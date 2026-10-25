@@ -100,6 +100,44 @@ unresolved/quarantined; unknown, quota-held, paid/trial and unsafe operations
 remain disabled. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`,
 raw/PIT lineage, retained data and the 30-day observation.
 
+## Root-reviewed d93 first-qualification boundary corrections — 2026-10-25
+
+Root authorized two corrections within the same `etf-sec-first-qualification-1`
+checkpoint after reviewing exact source `d93a7f3fa12700a2b3c5e908aea7147e48671254`.
+The first closes a deadline mismatch: a task-local qualification authority's
+absolute `expires_at` now clamps the SEC budget's monotonic whole-call deadline
+at budget creation. The outer call timeout uses that same remaining budget;
+the worker's existing pre-setup guard and immediate post-client/request setup
+check therefore prevent send after expiry. An already-started HTTPX coroutine
+remains bounded by the same remaining time and existing shared settlement path.
+The 20-second attempt and 210-second whole-fund maxima, request pacing, body
+caps, and zero-retry behavior are unchanged.
+
+The second correction keeps candidate search truthful. Only the dedicated
+qualification backfill records a candidate as an expected non-target discard,
+and only when the parsed N-PORT identity explicitly mismatches the committed
+series ID or class ID. The skipped filing and identity evidence remain durable.
+Ordinary backfills retain their prior failure summary. Qualification evidence
+validates every discard against the committed expected IDs and persisted filing
+state; it still requires exactly one new usable matched snapshot, raw artifact,
+request logs and shared settlements. Missing identity, no match, parser/HTTP/
+transport/quota/deadline/body failure or incomplete audit cannot set the marker.
+
+Bounded offline validation on the current worktree passed **61 tests** across
+`test_etf_holdings_initial_qualification.py`,
+`test_etf_holdings_provider_bridge.py`, `test_etf_holdings_edgar.py`, the
+exact workstream narrative-count sentinel, and the positive-probe runtime
+guard. Ruff, Python compilation, and pytest collection passed; the retained
+shared-runtime qualification test collects three scenarios:
+wrong-fund-then-match, no-match, and HTTP failure. Those DB-backed cases were
+not executed because no database fixture was assigned. No HTTP, credential,
+quota, target, database, fixture, service, browser, staging, or sibling action
+occurred. FHSC1–FHSC7 remains historically accepted; this FQC checkpoint remains
+in progress and unaccepted pending Producer re-review and Root's assigned DB,
+full-profile, and exact-source CI gates. Preserve all fourteen roadmap
+criteria, `15 Tier-0 and 156 Tier-1`, disabled/held operations, quarantines,
+historical evidence, raw/PIT lineage, and the 30-day observation.
+
 **Next action:** publish this coherent implementation and owner-record
 changeset, then hand the exact source to Producer peer review and Root's
 assigned real shared-runtime DB/full-profile gates. No live request, quota use,

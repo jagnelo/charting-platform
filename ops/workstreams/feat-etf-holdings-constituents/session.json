@@ -30,10 +30,10 @@
     }
   ],
   "active_changeset": {
-    "baseline": "cf0901d6e7943411d4b0fe3c7ec0d520015ca05d",
+    "baseline": "d93a7f3fa12700a2b3c5e908aea7147e48671254",
     "name": "etf-sec-first-qualification-1 admin-only initial SEC qualification",
     "intent": "Resolve the not_run first-request cycle through one admin-only, exact-scope qualification context while preserving every shared Provider admission/accounting guard and leaving ordinary policy disabled.",
-    "current_delta": "Added the admin-only POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification route, task-local sealed authority for the three reviewed EDGAR ETF_HOLDINGS SEC operations, account-scoped PostgreSQL advisory serialization and durable one-attempt latch, shared bridge request-log linkage, evidence-gated positive marker, and atomic final disabled policy. Retained a real shared-runtime MockTransport integration test for success, concurrent duplicate denial, replay denial, ordinary-route denial, retained snapshot/raw/request evidence and settled reservations; it awaits Root DB validation. Stack-free focused suite passed 57 tests, including admin denial, exact authority scope/expiry, prior-positive-probe route guard, bridge/EDGAR regressions, and the exact narrative count sentinel. Ruff and syntax checks passed.",
+    "current_delta": "Added the admin-only POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification route, task-local sealed authority for the three reviewed EDGAR ETF_HOLDINGS SEC operations, account-scoped PostgreSQL advisory serialization and durable one-attempt latch, shared bridge request-log linkage, evidence-gated positive marker, and atomic final disabled policy. The d93 follow-up clamps the whole-call and per-attempt monotonic budget to authority expiry, rechecks after loop-local setup, prevents send after setup expiry, and keeps sent I/O cancellable under durable settlement. Only durable explicit series/class mismatches are candidate-search discards in qualification; ordinary backfill failure semantics remain unchanged. The retained real shared-runtime integration test now covers wrong-fund-then-match, no-match and HTTP-failure outcomes plus success/concurrency/replay/ordinary-denial evidence. The bounded offline focused suite passed 61 tests; Ruff and syntax checks passed. The three DB scenarios were collected but not run; they await Root's assigned fixture. No live call or quota use.",
     "contract": "/home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md",
     "owned_paths": [
       "backend/app/routers/etf_holdings.py",
@@ -47,7 +47,7 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Implementation is in progress and not accepted. Preserve prior FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, 15 Tier-0 and 156 Tier-1, live/quota/native holds and all historical red/incomplete receipts. No live request, quota use, target write or fixture was used. The DB-backed test, Producer exact-code peer review, fresh complete full-profile qualification and exact-source CI remain required."
+    "state": "Implementation is in progress and not accepted. Root authorized only the two reviewed d93 corrections: authority-expiry deadline clamping and precise durable wrong-fund candidate-discard classification. Preserve prior FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, 15 Tier-0 and 156 Tier-1, live/quota/native holds and all historical red/incomplete receipts. No live request, quota use, target write or DB fixture was used. The retained DB-backed success/no-match/failure and expiry-settlement tests, Producer exact-code re-review, fresh complete full-profile qualification and exact-source CI remain required."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -98,16 +98,15 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Root accepted Producer's exact first-qualification contract and directly authorized its single minimal admin-only path and narrowly scoped producer hook. The implementation and stack-free tests are complete locally; 57 bounded focused tests, lint/format and syntax checks passed. A real shared-runtime MockTransport success/concurrency/replay integration test is retained but awaits Root's DB slot. Producer peer review, fresh full-profile and exact-source CI remain open. No live SEC/provider request, credential, quota use, target mutation, actual qualification or route enablement is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, held routes, retained data and raw/PIT lineage.",
+  "current_blocker_latest": "Root accepted Producer's exact first-qualification contract and authorized two narrow corrections after exact-d93 review: clamp the monotonic whole-call/attempt budget to task-authority expiry, and treat only durable explicit series/class mismatches as expected candidate-search discards before a later exact match. Bounded offline focused checks passed 61/61, including slow setup/no-send, authority-expiry cancellation, explicit mismatch classification, existing timeout distinctions, router and positive-probe guards; Ruff, syntax and exact narrative-count sentinel passed. Three retained DB-backed shared-runtime scenarios cover wrong-fund-then-match, no-match and HTTP failure, but await Root's assigned DB slot. Producer re-review, fresh full-profile and exact-source CI remain open. No live SEC/provider request, credential, quota use, target mutation, actual qualification or route enablement is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, held routes, retained data and raw/PIT lineage.",
   "current_checkpoint_objective": "Implement etf-sec-first-qualification-1 under Root-accepted Producer contract: add one separate administrator-only one-fund SEC qualification operation and narrowly scoped shared-runtime hook without bypassing normal admission, identity, account, hold, budget, settlement, provenance or bounded-transport controls. Keep ordinary routes denied and policy disabled until Root accepts real qualifying evidence; preserve FHSC1-FHSC7 acceptance and the complete AC1-AC14 roadmap.",
-  "current_local_delta": "On clean base cf0901d6e7943411d4b0fe3c7ec0d520015ca05d, implemented the accepted Producer contract as a separate admin-only initial SEC qualification path and exact task-local shared-runtime authority. Added offline authority/router tests and a retained real shared-runtime MockTransport integration test covering success, concurrent duplicate/replay denial, ordinary denial, evidence and settled reservations; it awaits Root DB validation. The bounded stack-free focused suite passed 57 tests; Ruff and syntax checks passed. No live HTTP, quota, target, DB, fixture, service, sibling or staging action occurred; FHSC remains accepted historically and FQC remains in progress pending Producer review and Root full qualification.",
+  "current_local_delta": "On d93, implemented the two Root-reviewed FQC boundary corrections: the shared monotonic SEC deadline is clamped to authority expiry across the whole call and worker attempt, with post-setup no-send and in-flight cancellation coverage; explicit durable series/class mismatches are separately retained as candidate-search discards only for qualification, and only a later exact-match usable snapshot can qualify. Ordinary backfill mismatch/failure behavior is unchanged. Offline unit/router checks and retained DB MockTransport wrong-fund-then-match/no-match/HTTP-failure cases cover the change; no DB case was run locally. No live HTTP, quota, target, fixture, service, sibling or staging action occurred; FHSC remains historically accepted and FQC remains in progress pending Producer review and Root full qualification.",
   "dirty_paths": [
-    "backend/app/routers/etf_holdings.py",
     "backend/app/services/etf_holdings_edgar.py",
     "backend/app/services/etf_holdings_provider_bridge.py",
-    "backend/app/services/provider_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -429,8 +428,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent implementation and owner records; then obtain Producer exact-code peer review and Root-assigned DB-backed shared-runtime plus fresh full-profile/exact-source CI qualification. Do not issue live SEC/provider requests, use quota, enable policy, or claim checkpoint acceptance.",
-  "plan_hash": "d5c163a59727cd8a0b774d5dbf2fbabd05716726e4665123733e5c03ca58f404",
+  "next_action": "Finish bounded offline tests, lint/format, narrative-count sentinel and workstream validation for the two exact-d93 corrections, then publish one coherent clean source-and-record tip for Producer exact-code re-review and Root's assigned DB/full-profile/exact-source-CI gates. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
+  "plan_hash": "64e93c6bc3ec9d48ccb38f0a874cfd6d639e65551540cecaec2f6d6cf145d695",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -654,11 +653,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root accepted Producer's exact first-qualification contract and directly authorized its single minimal admin-only path and narrowly scoped producer hook. The implementation and stack-free tests are complete locally; 57 bounded focused tests, lint/format and syntax checks passed. A real shared-runtime MockTransport success/concurrency/replay integration test is retained but awaits Root's DB slot. Producer peer review, fresh full-profile and exact-source CI remain open. No live SEC/provider request, credential, quota use, target mutation, actual qualification or route enablement is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, held routes, retained data and raw/PIT lineage.",
+    "current_blocker": "Root accepted Producer's exact first-qualification contract and authorized two narrow corrections after exact-d93 review: clamp the monotonic whole-call/attempt budget to task-authority expiry, and treat only durable explicit series/class mismatches as expected candidate-search discards before a later exact match. Bounded offline focused checks passed 61/61; Ruff, syntax and the exact count sentinel passed. Retained DB-backed shared-runtime wrong-fund-then-match, no-match and HTTP-failure cases await Root's DB slot. Producer re-review, fresh full-profile and exact-source CI remain open. No live SEC/provider request, credentials, quota, target mutation, actual qualification or route enablement is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, held routes, retained data and raw/PIT lineage.",
     "current_phase": "etf_sec_first_qualification_implementation_in_progress_pending_root_validation",
-    "next_action": "Publish the coherent implementation and owner records; then obtain Producer exact-code peer review and Root-assigned DB-backed shared-runtime plus fresh full-profile/exact-source CI qualification. Do not issue live SEC/provider requests, use quota, enable policy, or claim checkpoint acceptance.",
+    "next_action": "Publish one coherent clean source-and-record tip for Producer exact-code re-review and Root's assigned DB-backed expiry/candidate-search/success/no-match/failure checks, then fresh full-profile and exact-source CI qualification. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
     "total": 7,
-    "updated_at": "2026-10-25T06:49:38.829065+00:00"
+    "updated_at": "2026-10-25T07:17:56Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",

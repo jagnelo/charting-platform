@@ -2799,12 +2799,13 @@ async def test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial(
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+@pytest.mark.parametrize("scenario", ["wrong_fund_then_match", "no_match", "real_failure"])
 async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
-    provider_db, monkeypatch
+    provider_db, monkeypatch, scenario
 ):
-    """The explicit first-use path keeps ordinary routing held and shares admission."""
+    """Qualification searches only explicit wrong-fund discards and never blesses failures."""
 
-    from app.models.etf_holdings import ETFHoldingsBackfillJob
+    from app.models.etf_holdings import ETFHoldingsBackfillFiling, ETFHoldingsBackfillJob
     from app.services import etf_holdings_edgar as edgar
 
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
@@ -2832,22 +2833,56 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
         for operation in operations
     }
     submissions_url = "https://data.sec.gov/submissions/CIK0001100663.json"
-    filing_url = (
-        "https://www.sec.gov/Archives/edgar/data/1100663/" "000110066326000001/primary_doc.xml"
+    wrong_accession = "000110066326000002"
+    wrong_filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" f"{wrong_accession}/wrong_doc.xml"
     )
+    matching_accession = "000110066326000001"
+    filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" f"{matching_accession}/primary_doc.xml"
+    )
+    if scenario == "wrong_fund_then_match":
+        recent = {
+            "form": ["NPORT-P", "NPORT-P"],
+            "accessionNumber": [wrong_accession, matching_accession],
+            "filingDate": ["2026-10-02", "2026-10-01"],
+            "reportDate": ["2026-09-30", "2026-09-30"],
+            "acceptanceDateTime": [
+                "2026-10-02T12:00:00.000Z",
+                "2026-10-01T12:00:00.000Z",
+            ],
+            "primaryDocument": ["wrong_doc.xml", "primary_doc.xml"],
+        }
+    elif scenario == "no_match":
+        recent = {
+            "form": ["NPORT-P"],
+            "accessionNumber": [wrong_accession],
+            "filingDate": ["2026-10-02"],
+            "reportDate": ["2026-09-30"],
+            "acceptanceDateTime": ["2026-10-02T12:00:00.000Z"],
+            "primaryDocument": ["wrong_doc.xml"],
+        }
+    else:
+        recent = {
+            "form": ["NPORT-P"],
+            "accessionNumber": [matching_accession],
+            "filingDate": ["2026-10-01"],
+            "reportDate": ["2026-09-30"],
+            "acceptanceDateTime": ["2026-10-01T12:00:00.000Z"],
+            "primaryDocument": ["primary_doc.xml"],
+        }
     submissions = {
         "filings": {
-            "recent": {
-                "form": ["NPORT-P"],
-                "accessionNumber": ["000110066326000001"],
-                "filingDate": ["2026-10-01"],
-                "reportDate": ["2026-09-30"],
-                "acceptanceDateTime": ["2026-10-01T12:00:00.000Z"],
-                "primaryDocument": ["primary_doc.xml"],
-            },
+            "recent": recent,
             "files": [],
         }
     }
+    wrong_filing_xml = """<edgarSubmission><formData><genInfo>
+      <seriesId>S000009999</seriesId><classId>C000099999</classId>
+      <repPdDate>2026-09-30</repPdDate></genInfo><invstOrSecs>
+      <invstOrSec><name>Non-target issuer</name><ticker>ZZZ</ticker>
+      <pctVal>1</pctVal><assetCat>EC</assetCat></invstOrSec>
+      </invstOrSecs></formData></edgarSubmission>"""
     filing_xml = """<edgarSubmission><formData><genInfo>
       <seriesId>S000004344</seriesId><classId>C000012074</classId>
       <repPdDate>2026-09-30</repPdDate></genInfo><invstOrSecs>
@@ -2868,13 +2903,21 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
             if url == submissions_url:
                 body = json.dumps(submissions).encode()
                 content_type = "application/json"
-            elif url == filing_url:
-                body = filing_xml.encode()
+                status_code = 200
+            elif url == wrong_filing_url:
+                body = wrong_filing_xml.encode()
                 content_type = "application/xml"
+                status_code = 200
+            elif url == filing_url:
+                body = (
+                    b"SEC filing unavailable" if scenario == "real_failure" else filing_xml.encode()
+                )
+                content_type = "application/xml"
+                status_code = 503 if scenario == "real_failure" else 200
             else:
                 raise AssertionError(f"Unexpected offline SEC URL: {url}")
             return httpx.Response(
-                200,
+                status_code,
                 headers={"content-type": content_type},
                 stream=httpx.ByteStream(body),
                 request=request,
@@ -2984,9 +3027,21 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
     assert len(summaries) == 1, outcomes
     assert len(concurrent_denials) == 1, outcomes
     summary = summaries[0]
-    assert summary["status"] == "completed"
-    assert summary["ingested"] == 1
-    assert runner.calls == [submissions_url, filing_url]
+    qualification_succeeded = scenario == "wrong_fund_then_match"
+    if qualification_succeeded:
+        assert summary["status"] == "completed"
+        assert summary["ingested"] == 1
+        assert len(summary["expected_non_target_fund_discards"]) == 1
+        assert runner.calls == [submissions_url, wrong_filing_url, filing_url]
+    elif scenario == "no_match":
+        assert summary["status"] == "partial"
+        assert summary["ingested"] == 0
+        assert len(summary["expected_non_target_fund_discards"]) == 1
+        assert runner.calls == [submissions_url, wrong_filing_url]
+    else:
+        assert summary["status"] == "failed"
+        assert summary["ingested"] == 0
+        assert runner.calls == [submissions_url, filing_url]
 
     async with provider_db() as readback:
         policy = await readback.scalar(
@@ -3016,10 +3071,14 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
                 )
             ).all()
         )
-        artifact = await readback.scalar(
-            select(ETFHoldingsRawArtifact).where(
-                ETFHoldingsRawArtifact.etf_profile_id == profile_id
-            )
+        artifacts = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsRawArtifact).where(
+                        ETFHoldingsRawArtifact.etf_profile_id == profile_id
+                    )
+                )
+            ).all()
         )
         logs = list(
             (
@@ -3031,25 +3090,54 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
             ).all()
         )
         assert policy is not None and not policy.is_enabled
-        assert entitlement is not None and entitlement.live_probe_status == "passed"
-        assert attempt is not None and attempt.status == "completed"
-        assert len(snapshots) == 1
-        snapshot = snapshots[0]
-        assert snapshot.row_count == 1
-        assert snapshot.known_at is not None
-        assert snapshot.published_at is None
-        assert artifact is not None and artifact.payload_text == filing_xml
-        assert artifact.content_hash == _hash_payload(filing_xml)
-        assert len(logs) == 2
-        assert set(attempt.extra_data["qualification_request_log_ids"]) == {row.id for row in logs}
-        assert attempt.extra_data["qualification_snapshot_id"] == snapshot.id
-        assert attempt.extra_data["qualification_raw_artifact_id"] == artifact.id
+        assert entitlement is not None
+        assert attempt is not None
+        assert len(logs) == len(runner.calls)
+        if qualification_succeeded:
+            assert entitlement.live_probe_status == "passed"
+            assert attempt.status == "completed"
+            assert len(snapshots) == 1
+            snapshot = snapshots[0]
+            assert snapshot.row_count == 1
+            assert snapshot.known_at is not None
+            assert snapshot.published_at is None
+            artifact = next(
+                item for item in artifacts if item.source_identifier == matching_accession
+            )
+            assert artifact.payload_text == filing_xml
+            assert artifact.content_hash == _hash_payload(filing_xml)
+            assert len(attempt.extra_data["qualification_request_log_ids"]) == len(logs)
+            assert attempt.extra_data["qualification_snapshot_id"] == snapshot.id
+            assert attempt.extra_data["qualification_raw_artifact_id"] == artifact.id
+            discarded_row = await readback.scalar(
+                select(ETFHoldingsBackfillFiling).where(
+                    ETFHoldingsBackfillFiling.etf_profile_id == profile_id,
+                    ETFHoldingsBackfillFiling.accession_number == wrong_accession,
+                )
+            )
+            assert discarded_row is not None and discarded_row.status == "skipped"
+            assert (
+                discarded_row.extra_data["identity_validation"]["qualification_disposition"]
+                == "expected_non_target_fund_candidate"
+            )
+            discarded_artifact = next(
+                item for item in artifacts if item.source_identifier == wrong_accession
+            )
+            assert discarded_artifact.payload_text == wrong_filing_xml
+            assert discarded_artifact.content_hash == _hash_payload(wrong_filing_xml)
+        else:
+            assert entitlement.live_probe_status == "not_run"
+            assert attempt.status in {"partial", "failed"}
+            assert snapshots == []
+            assert "qualification_outcome" in attempt.extra_data
+            assert attempt.extra_data["qualification_outcome"]["status"] == "not_qualified"
         assert {row.operation for row in logs} == {
             "fetch_etf_holdings_sec_submissions",
             "fetch_etf_holdings_sec_filing",
         }
-        assert all(row.success and row.http_requests == 1 for row in logs)
-        assert all(row.settled_usage_units == Decimal("1.0000") for row in logs)
+        assert all(row.http_requests == 1 for row in logs)
+        if qualification_succeeded:
+            assert all(row.success and row.settled_usage_units == Decimal("1.0000") for row in logs)
 
     with pytest.raises(ETFHoldingsRouteHeldError, match="already has a latched"):
         async with provider_db() as replay:
@@ -3058,7 +3146,8 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
                 profile_id=profile_id,
                 requested_by_user_id=None,
             )
-    assert runner.calls == [submissions_url, filing_url]
+    if qualification_succeeded:
+        assert runner.calls == [submissions_url, wrong_filing_url, filing_url]
     with quota_engine.connect() as connection:
         reservations = (
             connection.execute(
@@ -3070,8 +3159,9 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
             .mappings()
             .all()
         )
-    assert len(reservations) == 2
-    assert all(row["state"] == "settled" for row in reservations)
+    assert len(reservations) == len(runner.calls)
+    if qualification_succeeded:
+        assert all(row["state"] == "settled" for row in reservations)
     assert all(row["reserved_units"] == 1 for row in reservations)
 
 

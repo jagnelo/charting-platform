@@ -20,6 +20,13 @@ human_intent_authorization: >-
   /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-
   producer-contract-20261025.md on 2026-10-25. This authorizes offline source
   implementation, not a live request, quota use, or target mutation.
+  Root's 2026-10-25 direct follow-up accepts Producer's exact-d93 review and
+  authorizes only two bounded corrections in this same FQC checkpoint: clamp
+  the monotonic call/attempt deadline to authority expiry, and recognize only
+  durably identified series/class mismatches as candidate-search discards when
+  a later exact-match filing qualifies. Offline tests and own-branch publication
+  are authorized; live requests, quota use, target changes, and heavy fixtures
+  are not.
 planning_state: ready
 previous_human_closure_authorization: >-
   The human delegated bounded checkpoint acceptance to the central coordinator:
@@ -691,6 +698,8 @@ integration_checkpoint:
     - Independently hold entitlement, host/operation review, account mapping, cost/terms, recurring commitment, aggregate budget, quota/headroom, and policy conditions; verify actual denial cause, no unintended reservation/transport, and no positive state.
     - Concurrent requests for the same context yield one latched attempt at most; duplicate task, replay, post-expiry invocation, and cancellation cannot create a second attempt or erase uncertain holds.
     - Deterministic MockTransport success uses an exact identity-matching N-PORT body and proves one usable snapshot, raw artifact/content hash, request-log/reservation linkage, measured settlement, observed known_at, and positive qualification while policy remains disabled.
+    - In the dedicated qualification job only, a durably retained explicit series/class mismatch may be an expected candidate-search discard before a later exact-match filing. No-match, missing identity, parser/transport/HTTP/quota/deadline/byte failure remain non-positive.
+    - Task authority expiry caps the monotonic whole-call and attempt deadlines; slow loop-local transport setup that crosses expiry performs no send, while expiry during a sent HTTPX attempt cancels it and preserves shared durable settlement. The 20s attempt and 210s fund ceilings remain unchanged.
     - HTTP error, transport timeout, fund deadline, cancellation, partial/truncated/decompression-limit response, parser error, identity mismatch, no candidate, and failed/uncertain settlement remain truthful, durably audited where applicable, and never set positive qualification.
   original_criterion_dispositions: *etf_fhsc_original_criterion_dispositions
   full_roadmap_status: AC1-AC14 retained verbatim and remain open; no other publisher onboarding, native-current evidence, or 30-day observation is accepted by this checkpoint.
@@ -1081,15 +1090,19 @@ current_blocker: >-
   and its immutable closure/evidence is archived in this plan. Exact synchronized
   green staging 5b29620741fd82d27db45987afb927bf91396712 has been adopted
   locally. Root accepted Producer's exact first-qualification contract and
-  directly authorized its single minimal admin-only path and narrowly scoped
-  producer hook. Stack-free authority/router/provider regression checks pass;
-  the real shared-runtime MockTransport success/replay integration test is
-  retained for Root's DB slot, and full-profile validation remains open. No
-  live request, credential, quota, target mutation, positive native-current
-  claim or route enablement is authorized here. Keep ordinary routes denied
-  and policy disabled after the operation, preserve `15 Tier-0 and 156 Tier-1`,
-  all AC1-AC14, FHSC closure, raw/PIT lineage, quarantines, retained data and
-  the 30-day observation.
+  authorized the two narrow corrections after exact-d93 review: clamp the
+  monotonic whole-call/attempt deadline to task-authority expiry, and treat
+  only durable explicit series/class mismatches as expected candidate-search
+  discards before a later matched filing. The bounded stack-free suite passed
+  61/61; Ruff, syntax and the exact narrative-count sentinel passed. Retained
+  shared-runtime MockTransport cases cover wrong-fund-then-match,
+  no-match and HTTP failure but await Root's DB slot; Producer re-review,
+  full-profile validation and exact-source CI remain open. No live request,
+  credential, quota, target mutation, actual qualification, positive
+  native-current claim or route enablement is claimed. Keep ordinary routes
+  denied and policy disabled; preserve `15 Tier-0 and 156 Tier-1`, all AC1-AC14,
+  FHSC closure, raw/PIT lineage, quarantines, retained data and the 30-day
+  observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2185,13 +2198,13 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete focused offline tests and review for the accepted Producer contract,
-  validate the workstream and preserved full roadmap, then publish one coherent
-  source-and-record changeset for Producer peer review and Root's assigned
-  final-source qualification. The DB-backed replay/concurrency/settlement and
-  full_integration/full_stack_browser gates remain open. No SEC/provider HTTP,
-  credential access, quota operation, target mutation, or live qualification is
-  authorized by this implementation go-ahead.
+  Complete bounded stack-free tests, Ruff, the narrative-count sentinel and
+  workstream validation for the two exact-d93 FQC corrections, then publish one
+  coherent clean source-and-record changeset. Producer exact-code re-review,
+  DB-backed shared-runtime expiry/candidate-search/success/no-match/failure
+  cases, full_integration/full_stack_browser and exact-source CI remain open for
+  Root qualification. No SEC/provider HTTP, credential, quota, target mutation,
+  or live qualification is authorized.
   Preserve FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, `15 Tier-0 and 156
   Tier-1`, all quarantines, held operations, retained data, PIT/raw lineage and
   the 30-day observation. Do not claim the new checkpoint accepted or the full

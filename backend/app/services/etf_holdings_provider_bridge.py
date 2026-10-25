@@ -556,6 +556,14 @@ class ETFSECExecutionBudget:
         self.started_at = _sec_budget_monotonic()
         self.deadline_at = self.started_at + ETF_SEC_FUND_DEADLINE_SECONDS
         self.initial_qualification_authority = initial_qualification_authority
+        if initial_qualification_authority is not None:
+            authority_remaining = (
+                initial_qualification_authority.expires_at - datetime.now(UTC)
+            ).total_seconds()
+            self.deadline_at = min(
+                self.deadline_at,
+                self.started_at + max(0.0, authority_remaining),
+            )
         self.provider_request_log_ids: list[int] = []
         self.physical_attempts = 0
         self.archived_submissions_pages = 0
@@ -592,6 +600,17 @@ class ETFSECExecutionBudget:
         """Return the remaining fund budget capped by the reviewed 20s attempt."""
 
         return self.attempt_timeout_selection()[0]
+
+    def whole_call_timeout_seconds(self) -> float:
+        """Return remaining monotonic time, already clamped to authority expiry."""
+
+        self._raise_if_terminal()
+        remaining = self.deadline_at - _sec_budget_monotonic()
+        if remaining <= 0:
+            reason = "SEC one-fund execution deadline exceeded"
+            self.latch_terminal(reason)
+            raise ETFHoldingsRouteHeldError(reason)
+        return remaining
 
     def attempt_timeout_selection(self) -> tuple[float, bool]:
         """Return the chosen timeout and whether the fund deadline selects it.

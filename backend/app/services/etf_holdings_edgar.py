@@ -332,6 +332,29 @@ def _sec_filing_identity_for_profile(
     )
 
 
+def _is_identified_non_target_fund(
+    *,
+    identity_status: str,
+    filing_identity: dict[str, str],
+    profile: ETFProfile,
+) -> bool:
+    """Only a concrete series/class mismatch is an expected candidate discard."""
+
+    mismatched_field = next(
+        (
+            field
+            for field in ("series_id", "class_id")
+            if identity_status.startswith(f"mismatch_{field}:")
+        ),
+        None,
+    )
+    if mismatched_field is None:
+        return False
+    expected = profile.sec_series_id if mismatched_field == "series_id" else profile.sec_class_id
+    observed = filing_identity.get(mismatched_field)
+    return bool(expected and observed and observed.strip().upper() != str(expected).strip().upper())
+
+
 def _now() -> datetime:
     return datetime.now(UTC)
 
@@ -377,10 +400,12 @@ async def sec_fund_execution_scope(initial_qualification_authority=None):
     budget = ETFSECExecutionBudget(initial_qualification_authority)
     token = _SEC_FUND_BUDGET.set(budget)
     try:
-        async with asyncio.timeout(ETF_SEC_FUND_DEADLINE_SECONDS):
+        async with asyncio.timeout(budget.whole_call_timeout_seconds()):
             yield budget
     except TimeoutError as exc:
-        raise ETFHoldingsRouteHeldError("SEC one-fund execution deadline exceeded") from exc
+        reason = "SEC one-fund execution deadline exceeded"
+        budget.latch_terminal(reason)
+        raise ETFHoldingsRouteHeldError(reason) from exc
     finally:
         _SEC_FUND_BUDGET.reset(token)
 
@@ -808,6 +833,7 @@ async def _backfill_sec_holdings(
     skipped = 0
     failed = 0
     already_ingested = 0
+    expected_non_target_fund_discards: list[dict[str, Any]] = []
 
     try:
         request_identity = await _resolve_request_identity(db=db, profile=profile)
@@ -901,14 +927,40 @@ async def _backfill_sec_holdings(
                         "expected_class_id": profile.sec_class_id,
                         "observed": filing_identity,
                         "status": identity_status,
+                        "qualification_disposition": (
+                            "expected_non_target_fund_candidate"
+                            if qualification_job is not None
+                            and _is_identified_non_target_fund(
+                                identity_status=identity_status,
+                                filing_identity=filing_identity,
+                                profile=profile,
+                            )
+                            else None
+                        ),
                     },
                 }
-                failures.append(
-                    {
-                        "accession_number": filing.accession_number,
-                        "reason": reason,
-                    }
-                )
+                if qualification_job is not None and _is_identified_non_target_fund(
+                    identity_status=identity_status,
+                    filing_identity=filing_identity,
+                    profile=profile,
+                ):
+                    expected_non_target_fund_discards.append(
+                        {
+                            "accession_number": filing.accession_number,
+                            "reason": reason,
+                            "identity_status": identity_status,
+                            "expected_series_id": profile.sec_series_id,
+                            "expected_class_id": profile.sec_class_id,
+                            "observed_identity": filing_identity,
+                        }
+                    )
+                else:
+                    failures.append(
+                        {
+                            "accession_number": filing.accession_number,
+                            "reason": reason,
+                        }
+                    )
                 continue
             composition_date, rows = parse_xml(response.text)
             composition_date = composition_date or filing.report_date
@@ -1001,6 +1053,8 @@ async def _backfill_sec_holdings(
     else:
         job.status = "completed"
     job.summary = _job_summary(job, status=job.status, failures=failures)
+    if qualification_job is not None and expected_non_target_fund_discards:
+        job.summary["expected_non_target_fund_discards"] = expected_non_target_fund_discards
     await db.flush()
     return job.summary
 
@@ -1152,10 +1206,86 @@ async def _qualification_success_evidence(
     profile: ETFProfile,
     summary: dict[str, Any],
 ) -> tuple[bool, str]:
-    if summary.get("status") != "completed" or int(summary.get("ingested") or 0) != 1:
+    if (
+        summary.get("status") != "completed"
+        or int(summary.get("ingested") or 0) != 1
+        or int(summary.get("failed") or 0) != 0
+    ):
         return False, "qualification_requires_one_new_completed_snapshot"
     if summary.get("failures"):
         return False, "qualification_backfill_contains_failures"
+    discards = summary.get("expected_non_target_fund_discards") or []
+    if not isinstance(discards, list):
+        return False, "qualification_candidate_discard_audit_is_invalid"
+    seen_discard_accessions: set[str] = set()
+    for discard in discards:
+        if not isinstance(discard, dict):
+            return False, "qualification_candidate_discard_audit_is_invalid"
+        accession = str(discard.get("accession_number") or "").strip()
+        status = str(discard.get("identity_status") or "")
+        observed = discard.get("observed_identity")
+        mismatched_field = next(
+            (
+                field
+                for field in ("series_id", "class_id")
+                if status.startswith(f"mismatch_{field}:")
+            ),
+            None,
+        )
+        expected_series = str(profile.sec_series_id or "").strip().upper()
+        expected_class = str(profile.sec_class_id or "").strip().upper()
+        expected_value = expected_series if mismatched_field == "series_id" else expected_class
+        observed_value = (
+            str(observed.get(mismatched_field) or "").strip().upper()
+            if mismatched_field and isinstance(observed, dict)
+            else ""
+        )
+        if (
+            not accession
+            or accession in seen_discard_accessions
+            or mismatched_field is None
+            or not expected_value
+            or str(discard.get("expected_series_id") or "").strip().upper() != expected_series
+            or str(discard.get("expected_class_id") or "").strip().upper() != expected_class
+            or not observed_value
+            or observed_value == expected_value
+            or discard.get("reason") != f"filing_fund_identity_rejected:{status}"
+        ):
+            return False, "qualification_candidate_discard_is_not_a_proven_fund_mismatch"
+        seen_discard_accessions.add(accession)
+
+    if discards:
+        durable_discard_rows = list(
+            (
+                await db.execute(
+                    select(ETFHoldingsBackfillFiling).where(
+                        ETFHoldingsBackfillFiling.etf_profile_id == profile.id,
+                        ETFHoldingsBackfillFiling.last_job_id == job.id,
+                        ETFHoldingsBackfillFiling.accession_number.in_(seen_discard_accessions),
+                    )
+                )
+            )
+            .scalars()
+            .all()
+        )
+        if len(durable_discard_rows) != len(discards):
+            return False, "qualification_candidate_discard_lineage_is_missing"
+        for row in durable_discard_rows:
+            validation = (row.extra_data or {}).get("identity_validation")
+            discard = next(
+                item for item in discards if item["accession_number"] == row.accession_number
+            )
+            if (
+                row.status != "skipped"
+                or not isinstance(validation, dict)
+                or validation.get("qualification_disposition")
+                != "expected_non_target_fund_candidate"
+                or validation.get("status") != discard["identity_status"]
+                or validation.get("expected_series_id") != profile.sec_series_id
+                or validation.get("expected_class_id") != profile.sec_class_id
+                or validation.get("observed") != discard["observed_identity"]
+            ):
+                return False, "qualification_candidate_discard_lineage_is_invalid"
     await db.flush()
     await db.refresh(job, attribute_names=["extra_data"])
     extra_data = dict(job.extra_data or {})

@@ -6,6 +6,7 @@ import pytest
 from app.config import settings
 from app.models.provider_runtime import ProviderCapability
 from app.routers import etf_holdings
+from app.services.etf_holdings_edgar import _is_identified_non_target_fund
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     bind_etf_holdings_sec_request_context,
@@ -94,6 +95,31 @@ def test_sec_request_binding_rejects_a_different_qualification_fund():
             initial_qualification_authority=authority,
         ):
             pass
+
+
+def test_only_explicit_series_or_class_mismatch_is_expected_candidate_discard():
+    profile = SimpleNamespace(sec_series_id="S000004344", sec_class_id="C000012074")
+
+    assert _is_identified_non_target_fund(
+        identity_status="mismatch_series_id:S000009999!=S000004344",
+        filing_identity={"series_id": "S000009999"},
+        profile=profile,
+    )
+    assert _is_identified_non_target_fund(
+        identity_status="mismatch_class_id:C000099999!=C000012074",
+        filing_identity={"class_id": "C000099999"},
+        profile=profile,
+    )
+    assert not _is_identified_non_target_fund(
+        identity_status="missing_class_id",
+        filing_identity={"series_id": "S000004344"},
+        profile=profile,
+    )
+    assert not _is_identified_non_target_fund(
+        identity_status="mismatch_ticker:ZZZ!=IWM",
+        filing_identity={"class_ticker": "ZZZ"},
+        profile=profile,
+    )
 
 
 def test_initial_qualification_router_is_admin_only(client, auth_headers, monkeypatch):
