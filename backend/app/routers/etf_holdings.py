@@ -92,6 +92,7 @@ from app.services.etf_holdings import (
     list_available_dates,
     list_etfs_with_holdings,
     profile_to_out,
+    reparse_retained_sec_nport_snapshot,
     snapshot_to_out,
 )
 from app.services.etf_holdings_adapters import (
@@ -1135,6 +1136,32 @@ async def ingest_sec_nport_holdings(
     if loaded is None:
         raise HTTPException(500, "Holdings were ingested but could not be reloaded")
     return loaded
+
+
+@router.post(
+    "/{symbol}/snapshots/{snapshot_id}/reparse-sec-nport",
+    response_model=ETFHoldingsSnapshotOut,
+)
+async def reparse_retained_sec_nport_holdings(
+    symbol: str,
+    snapshot_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Append a parser-corrected version from this profile's retained raw filing."""
+
+    profile = await get_etf_profile_for_symbol(db, symbol)
+    if profile is None:
+        raise HTTPException(404, "ETF profile not found")
+    try:
+        snapshot = await reparse_retained_sec_nport_snapshot(
+            db,
+            profile=profile,
+            snapshot_id=snapshot_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return snapshot_to_out(snapshot, instrument=profile.instrument)
 
 
 @router.post("/{symbol}/ingest-sec-legacy", response_model=ETFHoldingsSnapshotOut)

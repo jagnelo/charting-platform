@@ -509,52 +509,52 @@ previously_accepted_integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: etf-sec-first-qualification-1 admin-only initial SEC qualification
+    name: retained IWM N-PORT normalization and append-only correction
     state: >-
-      Root accepts Producer's exact first-qualification review and authorized
-      this implementation under
-      /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-
-      producer-contract-20261025.md. Added the admin-only qualification route,
-      exact task-local shared-runtime authority, durable account-scoped attempt
-      latch, request-log linkage, evidence-gated marker and atomic final
-      disabled policy. The d93 expiry and wrong-fund search boundaries are
-      preserved. Exact CI 40174878538 on source
-      5e96df678ba5473eb1930461a4e02db3365d269b is red: 5442 unit cases passed
-      with one declared skip; integrations had 540 passed, two held skips and
-      one failure. The sole failure was this test's stale factory double:
-      production passed its optional authority argument, while the double
-      accepted no arguments. Applied only a test correction: the factory now
-      accepts and forwards the optional authority and asserts this ordinary
-      route call supplies None. Cancellation, transport, thread, deadline,
-      reservation and settlement assertions are unchanged. Root's complete
-      unchanged-source unit component is terminal green (109 shards, 5442
-      passed/1 declared skip, all 5443 cases covered); its coverage and
-      manifest are sealed in
-      /tmp/etf-fqc-5e96df67-validation-20261025/backend. Reuse for the
-      corrected test-only tip awaits Root's byte-equivalence check. The
-      corrected DB cancellation case, complete integrations, app profile and
-      exact-tip CI remain pending Root validation. The source and checkpoint
-      are not accepted. Preserve historical
-      FHSC1-FHSC7 acceptance, every AC1-AC14 criterion,
-      `15 Tier-0 and 156 Tier-1`, all holds/quarantines, raw/PIT lineage,
-      retained data and the 30-day gate. No live request, quota use, target
-      mutation or actual qualification is claimed. Complete full-profile
-      validation and exact-source CI remain required.
-    baseline: cf0901d6e7943411d4b0fe3c7ec0d520015ca05d
+      Continuing the full roadmap after Root accepted FQ1-FQ8 source readiness.
+      The retained IWM N-PORT artifact exposed percentage-unit values below
+      one and seven OTHER/Right rows; the parser now converts SEC percentage
+      fields consistently, preserves fraction-valued generic aliases, retains
+      conditional-category provenance, and keeps rights out of equity
+      resolution. A narrowly scoped administrator-only retained-artifact
+      reparse endpoint appends a corrected snapshot at correction time while
+      preserving the old snapshot, raw bytes/hash/fetched time, original
+      known_at, profile metadata and filing dates in lineage. Strict URL CIK
+      matching canonicalizes numeric leading zeroes; accession syntax, URL
+      accession-directory equality, exact archive path shape and a safe ASCII
+      XML document basename are checked independently. The actual IWM accession
+      0002071691-26-012507 has filing-agent prefix 0002071691, which is not the
+      fund CIK 0001100663; no accession-prefix-to-fund-CIK check is present.
+      The first allocated PostgreSQL API attempt exposed Unicode case-folding
+      in the XML filename validator: re.IGNORECASE alone accepted dotless-i.
+      The validator now matches the existing committed-reference validator's
+      ASCII flag, safe-basename limit and traversal rejection. The same
+      allocated API/PIT reparse case passed on attempt two (1 passed, 13.61s,
+      five dependency warnings); the first red result is preserved. The full
+      stack-free parser/resolver modules passed 96/96 before this filename-only
+      correction, and all seven post-correction safe-name cases passed. Ruff
+      check/format, Python compilation and diff check passed. The retained-body
+      offline parse yielded 1946 rows, 1.14096388613052 gross weight fraction
+      (not renormalized), with seven OTHER/Right rows retained. Complete
+      integration/full_stack_browser gates and exact-source CI remain pending
+      Root's allocation. No target mutation, live request, quota use, or actual
+      target reparse is claimed. Preserve accepted FQ1-FQ8, all AC1-AC14,
+      `15 Tier-0 and 156 Tier-1`, holds, quarantines, raw/PIT lineage, retained
+      data and the 30-day gate.
+    baseline: 928ee358628df996125c5dcb589248c02be78d46
     intent: >-
-      Permit one admin-only initial EDGAR ETF_HOLDINGS qualification when prior
-      probe evidence is not_run, through an exact opaque task-local authority.
-      Preserve every shared admission, identity, account, hold, cost, budget,
-      quota, transport, telemetry, settlement, health and evidence gate. The
-      ordinary route remains denied and policy finishes disabled.
+      Correct the SEC filing parser's evidence-backed percentage and asset
+      category semantics and provide a safe no-network append-only reparse for
+      a retained SEC snapshot. Preserve raw lineage, historical PIT ordering,
+      actual identity checks, normal admission/route holds and all existing
+      ordinary ingestion semantics.
     owned_paths:
       - backend/app/routers/etf_holdings.py
-      - backend/app/services/etf_holdings_edgar.py
-      - backend/app/services/etf_holdings_provider_bridge.py
-      - backend/app/services/provider_runtime.py
-      - backend/tests/unit/services/test_etf_holdings_initial_qualification.py
-      - backend/tests/unit/services/test_etf_holdings_edgar.py
-      - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+      - backend/app/services/etf_holdings.py
+      - backend/app/services/etf_holdings_sec.py
+      - backend/tests/unit/services/test_etf_holdings_resolution.py
+      - backend/tests/unit/services/test_etf_holdings_sec.py
+      - backend/tests/integration/api/test_etf_holdings.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -2267,11 +2267,12 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  After Root releases publication beyond master CI40210522503, publish the
-  local record-only staging-adoption reconciliation. Then resume AC2's
-  remaining fallback-provider audit from retained evidence as the next
-  branch-owned roadmap step; do not begin it in this adoption turn. Root owns
-  actual one-fund SEC invocation and target/UI acceptance after separately
-  reviewed live prerequisites. Preserve all AC1-AC14, `15 Tier-0 and 156
-  Tier-1`, historical failures, quarantines, retained data, PIT/raw lineage,
-  disabled routes, and the 30-day observation.
+  After stack-free source/record validation and coherent own-branch publication,
+  Root should allocate the required exact-source full integration and
+  full_stack_browser gates. The focused PostgreSQL API/PIT reparse regression
+  passed on corrected source. Root owns applying the parser correction to the
+  retained target artifact after source acceptance and review; this owner turn
+  does not read or mutate target data or make a live SEC request. Then continue
+  the complete AC1-AC14 roadmap. Preserve
+  `15 Tier-0 and 156 Tier-1`, historical failures, quarantines, retained data,
+  PIT/raw lineage, disabled routes and the 30-day observation.

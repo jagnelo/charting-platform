@@ -16443,3 +16443,90 @@ No new migration paths were added relative to accepted staging5b; the
 local record reconciliation remains unpushed pending Root's release. Root owns
 actual one-fund invocation/UI acceptance after separate live prerequisites.
 The full roadmap remains active. integration_capture: exact branch HEAD.
+
+## Retained IWM N-PORT normalization and append-only correction — 2026-10-25
+
+Continuing the full AC1–AC14 roadmap after the accepted FQ1–FQ8 source-readiness
+checkpoint. Root supplied the retained IWM filing bytes for offline parsing only:
+accession `0002071691-26-012507`, raw file SHA256
+`48befdf670e0a0258dfbb8b67489e964827fdf041cdabec657cd14a71a8a632c`, 1,924,454
+bytes. No target snapshot was changed and no filing was fetched in this owner
+turn. The official Form N-PORT identifies C2.d as percent of net assets and C4
+as a category distinction; the parser therefore converts N-PORT percentage
+fields even when values are below one, while preserving genuinely fractional
+generic weight aliases. It does not renormalize gross exposure to 100%.
+
+The current parser run over the retained bytes produced 1,946 rows and gross
+fractional weight `1.14096388613052` (114.096388613052%, retained as reported).
+Radian Group's `pctVal=0.152721985047` becomes `0.00152721985047`; Coeur Mining's
+`pctVal=0.648126277059` becomes `0.00648126277059`. EC/EP map to existing
+common/preferred equity types; DE, STIV and other categories remain distinct.
+All seven namespace-tolerant conditional `OTHER` / `Right` entries retain their
+conditional attributes and remain non-equity/unresolved. Missing ticker does
+not create a synthetic tradable symbol. These checks use only the retained
+artifact; no HTTP or database access occurred.
+
+Added an administrator-only
+`POST /api/v1/etf-holdings/{symbol}/snapshots/{snapshot_id}/reparse-sec-nport`
+operation that parses only an already-retained SEC N-PORT artifact and makes no
+network request. It verifies the SEC raw hash and lineage, profile and body
+series/class, HTTPS SEC archive URL, strict numeric profile/URL CIK equality,
+accession syntax, and URL accession-directory equality. The accepted IWM
+identity is an explicit regression: padded profile CIK `0001100663`, URL CIK
+directory `1100663`, accession `0002071691-26-012507`, and URL directory
+`000207169126012507`. The accession prefix `0002071691` is a filing-agent
+identifier and is deliberately not compared to the fund CIK. The test asserts
+that this prefix differs from the padded profile CIK, so a same-prefix
+synthetic fixture cannot hide a regression. The URL must also have the exact
+archive path shape and a safe ASCII `.xml` basename; the DB regression rejects
+`.json`, a Unicode basename and a wildcard before accepting the retained IWM
+URL.
+
+Reparse appends a corrected snapshot with `known_at` equal to correction time;
+it preserves the original snapshot and its prior `known_at`, original raw bytes,
+canonical raw hash and `fetched_at`, existing profile metadata, composition
+date, filing date and unknown publication date. The new snapshot's
+`parser_correction` lineage records the source snapshot's prior observation
+time separately from correction availability. Repetition returns the same
+corrected version. Existing ordinary import and generic profile-update
+semantics are unchanged.
+
+Root allocated one isolated PostgreSQL API run using the same private fixture.
+Attempt 1 at `/tmp/etf-iwm-focused-api-20261025/focused-api.log` exited 1 after
+14.73s. The `.json` filename rejection passed, but the Unicode dotless-i
+basename `prımary_doc.xml` returned 200 instead of 409. The cause was Python
+`re.IGNORECASE` Unicode case folding in the new filename check. The code now
+uses the same ASCII+ignore-case filename grammar as the accepted committed
+filing-reference validator, including its 251-character bound and `..`
+rejection. The stack-free safe-name predicate tests all pass, including
+dotless-i, wildcard, non-XML, and traversal inputs.
+
+Root authorized one changed-source retry. Attempt 2 ran the same API/PIT case
+once and passed: 1 passed in 13.61s, five dependency deprecation warnings,
+zero retries, zero provider requests, and the runner confirmed all four source
+hashes unchanged during execution. Result and log:
+`/tmp/etf-iwm-focused-api-20261025/focused-api-attempt2-result.json` and
+`/tmp/etf-iwm-focused-api-20261025/focused-api-attempt2.log`. Root owns fixture
+cleanup; no fixture/service cleanup was performed by this owner.
+
+Validation passed: both stack-free SEC parser and resolution unit modules,
+96/96 before the final filename-only correction; the seven safe-name predicate
+cases passed after it. Ruff check and format check passed on the changed Python
+files; Python compilation and `git diff --check` passed. The integration test's
+imports were sorted by Ruff after the first check reported I001. An initial raw-parser command used
+the wrong import path and failed before parsing; the corrected UV-managed
+offline invocation succeeded and printed only hashes/counts/selected rows.
+No database fixture, target read/write, provider/SEC request, quota use, browser,
+Docker service action or cleanup occurred. The sandbox Docker readiness attempt
+at 18:37:21Z was denied after 180s; a later narrowly escalated readiness check
+returned `ready=true`, `started_desktop=false`, `wait_seconds=0`. The earlier
+denial remains a historical failed attempt, not retroactively green.
+
+This is not a new checkpoint acceptance or deployment proof. Root owns applying
+the parser correction to the retained target artifact after source review and
+required gates. Exact new-source PostgreSQL validation, complete integration,
+full-stack/browser validation and exact-source CI remain pending. Preserve the
+accepted FQ1–FQ8 and FHSC source-readiness history, all fourteen AC criteria,
+`15 Tier-0 and 156 Tier-1`, the 119-request history, holds, quarantines,
+retained historical data, raw/PIT semantics and the 30-day observation. The
+full roadmap remains active.
