@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import gzip
 import hashlib
+import json
 import threading
 import time
 from datetime import UTC, date, datetime, timedelta
@@ -1284,8 +1285,9 @@ async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlem
     budgets = []
     budget_type = bridge.ETFSECExecutionBudget
 
-    def new_budget():
-        budget = budget_type()
+    def new_budget(initial_qualification_authority=None):
+        assert initial_qualification_authority is None
+        budget = budget_type(initial_qualification_authority)
         budgets.append(budget)
         return budget
 
@@ -2794,6 +2796,638 @@ async def test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial(
             ).all()
         )
         _assert_second_bucket_contract(windows, consumed_units=1, reserved_units=0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "wrong_fund_then_match",
+        "cross_session_job_link",
+        "no_match",
+        "real_failure",
+        "committed_reference",
+        "committed_reference_wrong_body_identity",
+        "committed_reference_tampered_audit",
+        "invalid_reference_cross_fund",
+    ],
+)
+async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
+    provider_db, monkeypatch, scenario
+):
+    """Qualification links child-session logs without deadlocking the parent job transaction."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillFiling, ETFHoldingsBackfillJob
+    from app.services import etf_holdings_edgar as edgar
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_ACCOUNT_SCOPES",
+        {"edgar:ip": "synthetic-initial-qualification-account"},
+    )
+    operations = {
+        "fetch_etf_holdings_sec_submissions",
+        "fetch_etf_holdings_sec_submissions_file",
+        "fetch_etf_holdings_sec_filing",
+    }
+    operation_reviews = {
+        operation: {
+            "evidence_source": "test-fixture:etf:offline-mocktransport",
+            "evidence_version": "synthetic-v1",
+            "reviewed_at": datetime.now(UTC).date().isoformat(),
+        }
+        for operation in operations
+    }
+    submissions_url = "https://data.sec.gov/submissions/CIK0001100663.json"
+    wrong_accession = "000110066326000002"
+    wrong_filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" f"{wrong_accession}/wrong_doc.xml"
+    )
+    matching_accession = "000110066326000001"
+    filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" f"{matching_accession}/primary_doc.xml"
+    )
+    if scenario == "wrong_fund_then_match":
+        recent = {
+            "form": ["NPORT-P", "NPORT-P"],
+            "accessionNumber": [wrong_accession, matching_accession],
+            "filingDate": ["2026-10-02", "2026-10-01"],
+            "reportDate": ["2026-09-30", "2026-09-30"],
+            "acceptanceDateTime": [
+                "2026-10-02T12:00:00.000Z",
+                "2026-10-01T12:00:00.000Z",
+            ],
+            "primaryDocument": ["wrong_doc.xml", "primary_doc.xml"],
+        }
+    elif scenario == "no_match":
+        recent = {
+            "form": ["NPORT-P"],
+            "accessionNumber": [wrong_accession],
+            "filingDate": ["2026-10-02"],
+            "reportDate": ["2026-09-30"],
+            "acceptanceDateTime": ["2026-10-02T12:00:00.000Z"],
+            "primaryDocument": ["wrong_doc.xml"],
+        }
+    else:
+        recent = {
+            "form": ["NPORT-P"],
+            "accessionNumber": [matching_accession],
+            "filingDate": ["2026-10-01"],
+            "reportDate": ["2026-09-30"],
+            "acceptanceDateTime": ["2026-10-01T12:00:00.000Z"],
+            "primaryDocument": ["primary_doc.xml"],
+        }
+    submissions = {
+        "filings": {
+            "recent": recent,
+            "files": [],
+        }
+    }
+    wrong_filing_xml = """<edgarSubmission><formData><genInfo>
+      <seriesId>S000009999</seriesId><classId>C000099999</classId>
+      <repPdDate>2026-09-30</repPdDate></genInfo><invstOrSecs>
+      <invstOrSec><name>Non-target issuer</name><ticker>ZZZ</ticker>
+      <pctVal>1</pctVal><assetCat>EC</assetCat></invstOrSec>
+      </invstOrSecs></formData></edgarSubmission>"""
+    filing_xml = """<edgarSubmission><formData><genInfo>
+      <seriesId>S000004344</seriesId><classId>C000012074</classId>
+      <repPdDate>2026-09-30</repPdDate></genInfo><invstOrSecs>
+      <invstOrSec><name>Example Issuer</name><ticker>AAA</ticker>
+      <pctVal>1</pctVal><assetCat>EC</assetCat></invstOrSec>
+      </invstOrSecs></formData></edgarSubmission>"""
+
+    class InitialQualificationTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            url = str(request.url)
+            self.calls.append(url)
+            if url == submissions_url:
+                body = json.dumps(submissions).encode()
+                content_type = "application/json"
+                status_code = 200
+            elif url == wrong_filing_url:
+                body = wrong_filing_xml.encode()
+                content_type = "application/xml"
+                status_code = 200
+            elif url == filing_url:
+                if scenario == "real_failure":
+                    body = b"SEC filing unavailable"
+                elif scenario == "committed_reference_wrong_body_identity":
+                    body = wrong_filing_xml.encode()
+                else:
+                    body = filing_xml.encode()
+                content_type = "application/xml"
+                status_code = 503 if scenario == "real_failure" else 200
+            else:
+                raise AssertionError(f"Unexpected offline SEC URL: {url}")
+            return httpx.Response(
+                status_code,
+                headers={"content-type": content_type},
+                stream=httpx.ByteStream(body),
+                request=request,
+            )
+
+    runner = InitialQualificationTransport()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=9,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["data.sec.gov", "www.sec.gov"],
+                operation="fetch_etf_holdings_sec_submissions",
+                provider_name_override="edgar",
+                instrument_symbol_override="IWM",
+                quota_scope_override="ip",
+            )
+            source = await setup.get(DataSource, case.source_id)
+            policy = await setup.scalar(
+                select(ProviderPolicy).where(
+                    ProviderPolicy.data_source_id == case.source_id,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert source is not None and policy is not None and entitlement is not None
+            assert instrument is not None
+            source_config = dict(source.config)
+            source_config["usage_tracking"] = {"operation_costs": dict.fromkeys(operations, 1)}
+            source_config["etf_holdings_review"] = {
+                "https_hosts": ["data.sec.gov", "www.sec.gov"],
+                "account_scope": case.account_scope,
+                "operations": operation_reviews,
+            }
+            source.config = source_config
+            policy.is_enabled = False
+            policy.quota_contract = {
+                **dict(policy.quota_contract),
+                "operation_costs": dict.fromkeys(operations, 1),
+            }
+            entitlement.live_probe_status = "not_run"
+            profile_metadata = {"existing_provenance": {"owner": "preserved"}}
+            if scenario in {
+                "committed_reference",
+                "committed_reference_wrong_body_identity",
+                "committed_reference_tampered_audit",
+                "invalid_reference_cross_fund",
+            }:
+                profile_metadata.update(
+                    {"source_access": "stale-hint", "fund_identity": {"series_id": "stale"}}
+                )
+                reference = {
+                    "cik": "0001100663",
+                    "series_id": "S000004344",
+                    "class_id": "C000012074",
+                    "form": "NPORT-P",
+                    "accession_number": matching_accession,
+                    "primary_document": "primary_doc.xml",
+                    "filing_date": "2026-10-01",
+                    "report_date": "2026-09-30",
+                    "acceptance_datetime": "2026-10-01T12:00:00.000Z",
+                    "review_provenance": "offline MockTransport fixture review",
+                    "reviewed_at": datetime.now(UTC).isoformat(),
+                }
+                if scenario == "invalid_reference_cross_fund":
+                    reference["class_id"] = "C000099999"
+                profile_metadata["sec_initial_qualification"] = {"filing_reference": reference}
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                adapter_key="edgar_sec_holdings",
+                sec_cik="0001100663",
+                sec_series_id="S000004344",
+                sec_class_id="C000012074",
+                provider_aliases={"holdings_source_provider": "edgar"},
+                legal_metadata=profile_metadata,
+            )
+            setup.add(profile)
+            await setup.flush()
+            profile_id = profile.id
+
+    async with provider_db() as ordinary:
+        profile = await _load_profile(ordinary, profile_id)
+        request_identity = await edgar._resolve_request_identity(
+            db=ordinary,
+            profile=profile,
+        )
+        with pytest.raises(ETFHoldingsRouteHeldError, match="not explicitly enabled"):
+            await edgar._run_in_sec_fund_scope(
+                lambda: edgar._sec_get(
+                    request_identity,
+                    operation="fetch_etf_holdings_sec_submissions",
+                    url=submissions_url,
+                )
+            )
+    assert runner.calls == []
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        assert (
+            connection.execute(
+                select(func.count())
+                .select_from(quota_coordinator._reservations)
+                .where(
+                    quota_coordinator._reservations.c.provider_name == "edgar",
+                    quota_coordinator._reservations.c.account_scope == case.account_scope,
+                )
+            ).scalar_one()
+            == 0
+        )
+
+    async def qualify_once():
+        async with provider_db() as invocation:
+            return await edgar.qualify_sec_nport_fund(
+                invocation,
+                profile_id=profile_id,
+                requested_by_user_id=None,
+            )
+
+    if scenario == "committed_reference_tampered_audit":
+        original_backfill = edgar._backfill_sec_holdings
+
+        async def tamper_selection_after_real_backfill(*args, **kwargs):
+            summary = await original_backfill(*args, **kwargs)
+            job = kwargs["qualification_job"]
+            # Isolate the selection mutation from the child's durable request IDs.
+            await args[0].refresh(job, attribute_names=["extra_data"])
+            extra_data = dict(job.extra_data or {})
+            linked_request_ids = list(extra_data.get("provider_request_log_ids") or [])
+            assert linked_request_ids
+            selection = dict(extra_data["qualification_filing_selection"])
+            reference = dict(selection["reference"])
+            reference["accession_number"] = wrong_accession
+            selection["reference"] = reference
+            extra_data["qualification_filing_selection"] = selection
+            job.extra_data = extra_data
+            await args[0].flush()
+            await args[0].refresh(job, attribute_names=["extra_data"])
+            assert job.extra_data["provider_request_log_ids"] == linked_request_ids
+            return summary
+
+        monkeypatch.setattr(edgar, "_backfill_sec_holdings", tamper_selection_after_real_backfill)
+
+    if scenario == "invalid_reference_cross_fund":
+        with pytest.raises(ETFHoldingsRouteHeldError, match="does not match this ETF profile"):
+            await qualify_once()
+        assert runner.calls == []
+        async with provider_db() as readback:
+            assert (
+                await readback.scalar(
+                    select(func.count())
+                    .select_from(ETFHoldingsBackfillJob)
+                    .where(
+                        ETFHoldingsBackfillJob.etf_profile_id == profile_id,
+                        ETFHoldingsBackfillJob.job_type == edgar.SEC_INITIAL_QUALIFICATION_JOB_TYPE,
+                    )
+                )
+                == 0
+            )
+            assert (
+                await readback.scalar(
+                    select(func.count())
+                    .select_from(ProviderRequestLog)
+                    .where(ProviderRequestLog.data_source_id == case.source_id)
+                )
+                == 0
+            )
+            policy = await readback.scalar(
+                select(ProviderPolicy).where(
+                    ProviderPolicy.data_source_id == case.source_id,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            entitlement = await readback.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert policy is not None and policy.is_enabled is False
+            assert entitlement is not None and entitlement.live_probe_status == "not_run"
+        with quota_engine.connect() as connection:
+            assert (
+                connection.execute(
+                    select(func.count())
+                    .select_from(quota_coordinator._reservations)
+                    .where(
+                        quota_coordinator._reservations.c.provider_name == "edgar",
+                        quota_coordinator._reservations.c.account_scope == case.account_scope,
+                    )
+                ).scalar_one()
+                == 0
+            )
+        return
+
+    outcomes = await asyncio.gather(qualify_once(), qualify_once(), return_exceptions=True)
+    summaries = [value for value in outcomes if isinstance(value, dict)]
+    concurrent_denials = [
+        value for value in outcomes if isinstance(value, ETFHoldingsRouteHeldError)
+    ]
+    assert len(summaries) == 1, outcomes
+    assert len(concurrent_denials) == 1, outcomes
+    summary = summaries[0]
+    qualification_succeeded = scenario in {
+        "wrong_fund_then_match",
+        "cross_session_job_link",
+        "committed_reference",
+    }
+    if qualification_succeeded:
+        assert summary["status"] == "completed"
+        assert summary["ingested"] == 1
+        if scenario == "wrong_fund_then_match":
+            assert len(summary["expected_non_target_fund_discards"]) == 1
+        if scenario in {"committed_reference", "committed_reference_wrong_body_identity"}:
+            assert runner.calls == [filing_url]
+        else:
+            expected_calls = [submissions_url]
+            if scenario == "wrong_fund_then_match":
+                expected_calls.append(wrong_filing_url)
+            expected_calls.append(filing_url)
+            assert runner.calls == expected_calls
+    elif scenario == "committed_reference_wrong_body_identity":
+        assert summary["status"] == "partial"
+        assert summary["ingested"] == 0
+        assert summary.get("expected_non_target_fund_discards", []) == []
+        assert runner.calls == [filing_url]
+    elif scenario == "committed_reference_tampered_audit":
+        assert summary["status"] == "failed"
+        assert summary["ingested"] == 1
+        assert runner.calls == [filing_url]
+    elif scenario == "no_match":
+        assert summary["status"] == "partial"
+        assert summary["ingested"] == 0
+        assert len(summary["expected_non_target_fund_discards"]) == 1
+        assert runner.calls == [submissions_url, wrong_filing_url]
+    else:
+        assert summary["status"] == "failed"
+        assert summary["ingested"] == 0
+        assert runner.calls == [submissions_url, filing_url]
+
+    async with provider_db() as readback:
+        policy = await readback.scalar(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == case.source_id,
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        entitlement = await readback.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == case.source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        attempt = await readback.scalar(
+            select(ETFHoldingsBackfillJob).where(
+                ETFHoldingsBackfillJob.etf_profile_id == profile_id,
+                ETFHoldingsBackfillJob.job_type == edgar.SEC_INITIAL_QUALIFICATION_JOB_TYPE,
+            )
+        )
+        snapshots = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsSnapshot).where(
+                        ETFHoldingsSnapshot.etf_profile_id == profile_id
+                    )
+                )
+            ).all()
+        )
+        artifacts = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsRawArtifact).where(
+                        ETFHoldingsRawArtifact.etf_profile_id == profile_id
+                    )
+                )
+            ).all()
+        )
+        logs = list(
+            (
+                await readback.scalars(
+                    select(ProviderRequestLog)
+                    .where(ProviderRequestLog.data_source_id == case.source_id)
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert policy is not None and not policy.is_enabled
+        assert entitlement is not None
+        assert attempt is not None
+        assert len(logs) == len(runner.calls)
+        if qualification_succeeded:
+            assert entitlement.live_probe_status == "passed"
+            assert attempt.status == "completed"
+            assert len(snapshots) == 1
+            snapshot = snapshots[0]
+            assert snapshot.row_count == 1
+            assert snapshot.known_at is not None
+            assert snapshot.published_at is None
+            artifact = next(
+                item for item in artifacts if item.source_identifier == matching_accession
+            )
+            assert artifact.payload_text == filing_xml
+            assert artifact.content_hash == _hash_payload(filing_xml)
+            linked_request_ids = attempt.extra_data["qualification_request_log_ids"]
+            assert len(linked_request_ids) == len(set(linked_request_ids)) == len(logs)
+            assert set(linked_request_ids) == {row.id for row in logs}
+            assert attempt.extra_data["qualification_snapshot_id"] == snapshot.id
+            assert attempt.extra_data["qualification_raw_artifact_id"] == artifact.id
+            if scenario == "committed_reference":
+                selection = attempt.extra_data["qualification_filing_selection"]
+                assert selection["selection_method"] == "committed_profile_reference"
+                assert selection["reference"]["accession_number"] == matching_accession
+                assert selection["reference"]["filing_url"] == filing_url
+                assert (await readback.get(ETFProfile, profile_id)).legal_metadata[
+                    "existing_provenance"
+                ] == {"owner": "preserved"}
+                committed_profile = await readback.get(ETFProfile, profile_id)
+                assert committed_profile.legal_metadata["source_access"] == "sec_filing"
+                assert committed_profile.legal_metadata["fund_identity"] == {
+                    "series_id": "S000004344",
+                    "class_id": "C000012074",
+                }
+                assert (
+                    committed_profile.legal_metadata["sec_initial_qualification"][
+                        "filing_reference"
+                    ]["accession_number"]
+                    == matching_accession
+                )
+            discarded_row = await readback.scalar(
+                select(ETFHoldingsBackfillFiling).where(
+                    ETFHoldingsBackfillFiling.etf_profile_id == profile_id,
+                    ETFHoldingsBackfillFiling.accession_number == wrong_accession,
+                )
+            )
+            if scenario == "wrong_fund_then_match":
+                assert discarded_row is not None and discarded_row.status == "skipped"
+                assert (
+                    discarded_row.extra_data["identity_validation"]["qualification_disposition"]
+                    == "expected_non_target_fund_candidate"
+                )
+                discarded_artifact = next(
+                    item for item in artifacts if item.source_identifier == wrong_accession
+                )
+                assert discarded_artifact.payload_text == wrong_filing_xml
+                assert discarded_artifact.content_hash == _hash_payload(wrong_filing_xml)
+            else:
+                assert scenario in {"cross_session_job_link", "committed_reference"}
+                assert discarded_row is None
+                if scenario in {"cross_session_job_link", "committed_reference"}:
+                    assert all(item.source_identifier != wrong_accession for item in artifacts)
+        else:
+            assert entitlement.live_probe_status == "not_run"
+            assert attempt.status in {"partial", "failed"}
+            if scenario == "committed_reference_tampered_audit":
+                assert len(snapshots) == 1
+            else:
+                assert snapshots == []
+            assert "qualification_outcome" in attempt.extra_data
+            assert attempt.extra_data["qualification_outcome"]["status"] == "not_qualified"
+        expected_operations = {"fetch_etf_holdings_sec_filing"}
+        if scenario not in {
+            "committed_reference",
+            "committed_reference_wrong_body_identity",
+            "committed_reference_tampered_audit",
+        }:
+            expected_operations.add("fetch_etf_holdings_sec_submissions")
+        assert {row.operation for row in logs} == expected_operations
+        assert all(row.http_requests == 1 for row in logs)
+        if qualification_succeeded:
+            assert all(row.success and row.settled_usage_units == Decimal("1.0000") for row in logs)
+        if scenario == "committed_reference_wrong_body_identity":
+            assert len(logs) == 1
+            assert logs[0].operation == "fetch_etf_holdings_sec_filing"
+            assert (
+                logs[0].success is True
+            )  # HTTP 200 succeeded; the returned fund identity did not.
+            assert logs[0].settled_usage_units == Decimal("1.0000")
+            assert attempt.status == "partial"
+            assert entitlement.live_probe_status == "not_run"
+            assert snapshots == []
+            selection = attempt.extra_data["qualification_filing_selection"]
+            assert selection["selection_method"] == "committed_profile_reference"
+            assert selection["reference"]["accession_number"] == matching_accession
+            assert selection["reference"]["filing_url"] == filing_url
+            profile_after_ingest = await readback.get(ETFProfile, profile_id)
+            assert profile_after_ingest.legal_metadata == profile_metadata
+            rejected = next(
+                item for item in artifacts if item.source_identifier == matching_accession
+            )
+            assert rejected.payload_text == wrong_filing_xml
+            assert rejected.content_hash == _hash_payload(wrong_filing_xml)
+            rejected_filing = await readback.scalar(
+                select(ETFHoldingsBackfillFiling).where(
+                    ETFHoldingsBackfillFiling.etf_profile_id == profile_id,
+                    ETFHoldingsBackfillFiling.accession_number == matching_accession,
+                )
+            )
+            assert rejected_filing is not None and rejected_filing.status == "skipped"
+            assert rejected_filing.extra_data["identity_validation"]["observed"] == {
+                "series_id": "S000009999",
+                "class_id": "C000099999",
+            }
+            assert (
+                rejected_filing.extra_data["identity_validation"]["qualification_disposition"]
+                is None
+            )
+            rejected_raw = next(
+                item for item in artifacts if item.source_identifier == matching_accession
+            )
+            assert rejected_raw.legal_metadata["validation"]["observed_filing_identity"] == {
+                "series_id": "S000009999",
+                "class_id": "C000099999",
+            }
+            assert rejected_raw.legal_metadata["provider_request_log_ids"] == [logs[0].id]
+            assert attempt.extra_data["provider_request_log_ids"] == [logs[0].id]
+        if scenario == "committed_reference_tampered_audit":
+            assert attempt.status == "failed"
+            assert entitlement.live_probe_status == "not_run"
+            selection = attempt.extra_data["qualification_filing_selection"]
+            assert selection["reference"]["accession_number"] == wrong_accession
+            assert attempt.extra_data["qualification_outcome"]["status"] == "not_qualified"
+            assert "selection_audit_is_missing_or_tampered" in attempt.failure_reason
+            committed_profile = await readback.get(ETFProfile, profile_id)
+            assert committed_profile.legal_metadata["existing_provenance"] == {"owner": "preserved"}
+            assert committed_profile.legal_metadata["source_access"] == "sec_filing"
+            assert committed_profile.legal_metadata["fund_identity"] == {
+                "series_id": "S000004344",
+                "class_id": "C000012074",
+            }
+            assert (
+                committed_profile.legal_metadata["sec_initial_qualification"]["filing_reference"][
+                    "accession_number"
+                ]
+                == matching_accession
+            )
+            assert len(logs) == 1
+            assert logs[0].operation == "fetch_etf_holdings_sec_filing"
+            assert logs[0].success is True
+            assert logs[0].settled_usage_units == Decimal("1.0000")
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="already has a latched"):
+        async with provider_db() as replay:
+            await edgar.qualify_sec_nport_fund(
+                replay,
+                profile_id=profile_id,
+                requested_by_user_id=None,
+            )
+    if qualification_succeeded:
+        if scenario in {
+            "committed_reference",
+            "committed_reference_wrong_body_identity",
+            "committed_reference_tampered_audit",
+        }:
+            assert runner.calls == [filing_url]
+        else:
+            expected_calls = [submissions_url]
+            if scenario == "wrong_fund_then_match":
+                expected_calls.append(wrong_filing_url)
+            expected_calls.append(filing_url)
+            assert runner.calls == expected_calls
+    elif scenario in {
+        "committed_reference_wrong_body_identity",
+        "committed_reference_tampered_audit",
+    }:
+        assert runner.calls == [filing_url]
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations).where(
+                    quota_coordinator._reservations.c.provider_name == "edgar",
+                    quota_coordinator._reservations.c.account_scope == case.account_scope,
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == len(runner.calls)
+    if qualification_succeeded:
+        assert all(row["state"] == "settled" for row in reservations)
+    if scenario in {
+        "committed_reference_wrong_body_identity",
+        "committed_reference_tampered_audit",
+    }:
+        assert all(row["state"] == "settled" for row in reservations)
+    assert all(row["reserved_units"] == 1 for row in reservations)
 
 
 @pytest.mark.integration

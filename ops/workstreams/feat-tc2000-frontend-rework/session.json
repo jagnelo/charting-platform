@@ -35,20 +35,15 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The prior exact TC source 7ff559cd77ec67e83699903a3fcbe2593e60a620 passed required branch CI40160877143; Backend, Frontend Unit, Branch-declared and E2E were green, while feature EIG was policy-skipped. Exact accepted synchronized staging 5b29620741fd82d27db45987afb927bf91396712 (receipt SHA256 bb4c641bdd5dd4f8dbd529c3e3fd2df8ff62428604707c61ca6bb4f77ce7161b; CI40161945123) has been merged without TC consumer conflicts. Its receipt and 874-path frozen-import manifest are recorded and passed scope validation; earlier cdc334 records/manifests remain preserved. The combined source requires its own exact CI and Root's full local profile. F8y remains unproven here: preserve its 60-second timeout, Source/Target/Control and parent-host assertions, locked Remove/zero-DELETE checks and zero retries. AC1-AC9, TCP3-TCP5, SX/IX, official V25 parity and provider/data/service holds remain open.",
+  "current_candidate_ci_status": "Exact prior TC source 0c1bebbcb9d394562a20cbd4d25378cc54649bdf passed branch CI40168275812 (Backend, Frontend Unit, Branch-declared and E2E green; Exhaustive Integration Gate skipped by feature-CI policy). Exact accepted synchronized staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 (canonical receipt SHA256 21c6727ae86a57ce6fb11f6c81e175521f0c5e5dc00c3820d22c9a64243e77ee; CI40202604218) is assembled locally without conflicts and includes accepted ETF FQ1-FQ8 source checkpoint abdca6e6ec2b383f678995029149bbb748596af4. The 875-path import manifest passed scope validation. No exact branch CI exists for this unpushed merge; push is held pending Root's independent master CI. SEC acquisition and target acceptance remain Root-owned and pending. F8y, the full local profile, AC1-AC9/TCP3-TCP5/SX/IX, official V25 parity and provider/data/service holds remain open.",
   "current_exact_ci": {
     "conclusion": "success",
-    "head_sha": "7ff559cd77ec67e83699903a3fcbe2593e60a620",
-    "run_id": 40160877143,
-    "status": "Terminal green on exact prior TC source7ff559cd77ec67e83699903a3fcbe2593e60a620 for Backend, Frontend Unit, Branch-declared and E2E; feature Exhaustive Integration Gate was policy-skipped. This does not qualify the current 5b merge. Its own exact CI and Root's full local profile remain pending.",
+    "head_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
+    "run_id": 40168275812,
+    "status": "Terminal green on exact pre-3ff TC source0c1bebbcb9d394562a20cbd4d25378cc54649bdf for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration Gate was skipped by feature-CI policy. This does not qualify the current unpushed 3ff merge. Its exact CI awaits Root's publication release; full local profile remains pending.",
     "visuals": "No strict visual result is established by this functional CI. Existing references/masks/tolerances and zero-retry acceptance policy are unchanged."
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -128,7 +123,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7ff559cd77ec67e83699903a3fcbe2593e60a620",
+  "head": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -139,13 +134,13 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-25T06:09:49Z",
+  "last_checkpoint": "2026-10-25T16:19:03Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
     "conclusion": "success",
-    "e2e_summary": "Exact TC branch CI terminal green on 7ff559cd77ec67e83699903a3fcbe2593e60a620; all required branch jobs passed, feature Exhaustive Integration Gate was policy-skipped",
-    "head_sha": "7ff559cd77ec67e83699903a3fcbe2593e60a620",
+    "e2e_summary": "Exact pre-3ff TC branch CI terminal green on 0c1bebbcb9d394562a20cbd4d25378cc54649bdf; Backend, Frontend Unit, Branch-declared and E2E passed; Exhaustive Integration Gate was skipped by feature-CI policy. Does not qualify the local 3ff merge.",
+    "head_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
     "jobs": {
       "backend": "success",
       "branch_declared": "success",
@@ -153,13 +148,13 @@
       "exhaustive_integration_gate": "policy_skipped_on_feature_CI",
       "frontend_unit": "success"
     },
-    "run_id": 40160877143,
-    "scope": "Exact CI40160877143 on 7ff559cd77ec67e83699903a3fcbe2593e60a620 completed green for Backend, Frontend Unit, Branch-declared and E2E; feature Exhaustive Integration Gate was policy-skipped. Accepted 5b staging has been merged into a new TC candidate, which requires its own exact CI.",
+    "run_id": 40168275812,
+    "scope": "Exact CI40168275812 on 0c1bebbcb9d394562a20cbd4d25378cc54649bdf completed green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration Gate was skipped by feature-CI policy. Exact accepted 3ff staging is assembled in a local merge requiring its own exact branch CI after Root releases push.",
     "visuals": "No strict104 result is established for the new combined source. F8y remains unproven on the combined source; retain the 60-second timeout, original assertions and zero retries. Official REF-HELP-V25 parity and full local profile remain open."
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Finish TC scope/frozen-import/workstream validation for the exact 5b merge, publish the coherent source-and-record changeset, and follow its exact branch CI. Then await Root's full-profile allocation. Preserve producer-owned selected-default filtering, ETF acquisition/admission and PIT/current distinctions, Strategy inspector/navigation, F8y assertions/60-second timeout/zero retries, Help/V25 disposition, the full roadmap and all provider/data/service holds.",
+  "next_action": "Finish exact 3ff scope/frozen-import/workstream checks and commit the bounded adoption locally. Hold push until Root releases it after independent master CI. Then follow exact-source branch CI and await the assigned full local profile; preserve F8y assertions/60-second timeout/zero retries, ETF/PIT contracts, Strategy identity/navigation, Help/V25 disposition, the full roadmap and all holds.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -172,7 +167,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "a5daa876ff892915bbcf9c84b323198979679bc909eeb5b12eb117064fc80108",
+  "plan_hash": "d4c90f902c2885917dcc06f722addc6357f72984f2e316de33d486fd23bb7fe4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -189,29 +184,29 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "The accepted 5b staging merge is assembled without consumer conflicts; the exact 5b receipt and 874-path frozen-import manifest are recorded and passed scope validation. The new combined TC source has no exact CI yet. Prior 7ff CI40160877143 is green only for 7ff and its EIG was policy-skipped. F8y remains unproven on the combined source; preserve the 60-second timeout, Source/Target/Control and parent-host/locked-target assertions, and zero retries. Root owns full local validation. The full roadmap, V25 parity and all provider/data/service holds remain open.",
-    "current_phase": "5b296_merge_assembled_no_conflicts;874_import_manifest_scope_validated;TC_consumer_files_preserved;prior_7ff_CI40160877143_green;new_exact_CI_and_Root_full_profile_pending;F8y_unproven",
-    "next_action": "Publish the exact 5b merge and coherent owner-record update, then follow its exact branch CI. Coordinate Root's full local profile. Preserve F8y assertions/60-second timeout/zero retries, Help local-only disposition, AC1-AC9/SX/IX/official V25 and all provider/data/service holds.",
+    "current_blocker": "Exact accepted 3ff staging is assembled locally without conflicts; its ETF FQ1-FQ8 source checkpoint is imported and the 875-path frozen-import manifest passed scope validation. Pre-3ff CI40168275812 is green only for 0c1bebb and its Exhaustive Integration Gate was policy-skipped. This unpushed merge has no exact branch CI. Push is held for Root's independent master CI; Root owns SEC acquisition/target acceptance and the full local profile. F8y, the 60-second timeout and all assertions remain open; preserve zero retries. AC1-AC9, TCP3-TCP5, SX/IX, official V25 and all provider/data/service holds remain open.",
+    "current_phase": "3ff96_local_merge_no_conflicts;ETF_FQ1_FQ8_checkpoint_adopted;875_import_manifest_scope_validated;premerge_0c_CI40168275812_green;push_held_for_master_CI;new_exact_CI_and_full_profile_pending;F8y_unproven",
+    "next_action": "Commit the bounded 3ff adoption locally. Hold push until Root releases after independent master CI. Preserve F8y assertions/60-second timeout/zero retries, Help local-only disposition, AC1-AC9/SX/IX/official V25 and all provider/data/service holds.",
     "total": 5,
-    "updated_at": "2026-10-25T06:09:49Z"
+    "updated_at": "2026-10-25T16:19:03Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
     "current_local_head": null,
-    "current_pending_range": "This changeset adopts exact accepted synchronized staging 5b29620741fd82d27db45987afb927bf91396712 into the TC feature branch and carries its exact receipt and frozen-import manifest. The merge commit hash is intentionally not self-referenced here. The post-commit push outcome and exact-source CI are external results and must be verified from the branch ref/CI.",
+    "current_pending_range": "This locally committed changeset adopts exact accepted synchronized staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 into the TC feature branch and carries its exact receipt and frozen-import manifest. The merge commit hash is intentionally not self-referenced here. Push remains held until Root releases it after independent master CI; new exact-source CI follows only after authorized publication.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": null,
-    "status": "The merge commit is included in this publication packet. Verify the exact post-push origin SHA and normal branch CI externally; they are not embedded to avoid self-referential commit metadata."
+    "remote_tracking_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
+    "status": "The bounded 3ff merge is committed locally; the verified origin feature ref remains at 0c1bebbcb9d394562a20cbd4d25378cc54649bdf. Push is explicitly held pending Root's independent master CI; no publication or new branch CI is claimed here."
   },
   "remote": "origin",
-  "remote_sha": null,
-  "remote_synchronized": null,
+  "remote_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

@@ -1,6 +1,7 @@
 import asyncio
 import threading
 import time
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import httpx
@@ -111,6 +112,129 @@ def test_expired_sec_budget_refuses_worker_transport_before_factory_or_send():
     assert factory_calls == []
     assert budget.physical_attempts == 0
     assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+
+
+def test_initial_qualification_authority_expiry_clamps_whole_call_budget():
+    from app.services.provider_runtime import (
+        _ETF_INITIAL_QUALIFICATION_OPERATIONS,
+        _new_etf_initial_qualification_authority,
+    )
+
+    authority = _new_etf_initial_qualification_authority(
+        attempt_id=1,
+        provider_name="edgar",
+        capability=bridge.ProviderCapability.ETF_HOLDINGS,
+        operations=_ETF_INITIAL_QUALIFICATION_OPERATIONS,
+        profile_id=2,
+        instrument_id=3,
+        provider_symbol="IWM",
+        account_scope="reviewed-edgar-ip",
+        expires_at=datetime.now(UTC) + timedelta(seconds=0.2),
+    )
+    budget = ETFSECExecutionBudget(authority)
+
+    assert budget.deadline_at - budget.started_at < bridge.ETF_SEC_FUND_DEADLINE_SECONDS
+    assert 0 < budget.whole_call_timeout_seconds() <= 0.2
+
+
+def test_qualification_authority_expiry_during_slow_factory_prevents_send():
+    from app.services.provider_runtime import (
+        _ETF_INITIAL_QUALIFICATION_OPERATIONS,
+        _new_etf_initial_qualification_authority,
+    )
+
+    authority = _new_etf_initial_qualification_authority(
+        attempt_id=1,
+        provider_name="edgar",
+        capability=bridge.ProviderCapability.ETF_HOLDINGS,
+        operations=_ETF_INITIAL_QUALIFICATION_OPERATIONS,
+        profile_id=2,
+        instrument_id=3,
+        provider_symbol="IWM",
+        account_scope="reviewed-edgar-ip",
+        expires_at=datetime.now(UTC) + timedelta(seconds=0.05),
+    )
+    budget = ETFSECExecutionBudget(authority)
+    factory_calls = []
+    send_calls = []
+
+    def transport_factory():
+        time.sleep(0.1)
+        factory_calls.append("created")
+        return httpx.MockTransport(
+            lambda request: send_calls.append(str(request.url))
+            or httpx.Response(200, request=request)
+        )
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=transport_factory,
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="deadline exceeded"):
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    assert factory_calls == ["created"]
+    assert send_calls == []
+    assert budget.physical_attempts == 1
+    assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+
+
+def test_qualification_authority_expiry_cancels_in_flight_httpx_transport():
+    from app.services.provider_runtime import (
+        _ETF_INITIAL_QUALIFICATION_OPERATIONS,
+        _new_etf_initial_qualification_authority,
+    )
+
+    authority = _new_etf_initial_qualification_authority(
+        attempt_id=1,
+        provider_name="edgar",
+        capability=bridge.ProviderCapability.ETF_HOLDINGS,
+        operations=_ETF_INITIAL_QUALIFICATION_OPERATIONS,
+        profile_id=2,
+        instrument_id=3,
+        provider_symbol="IWM",
+        account_scope="reviewed-edgar-ip",
+        expires_at=datetime.now(UTC) + timedelta(seconds=1),
+    )
+    budget = ETFSECExecutionBudget(authority)
+    transport_state = {"started": threading.Event(), "cancelled": threading.Event()}
+
+    class WaitingTransport(httpx.AsyncBaseTransport):
+        async def handle_async_request(self, request):
+            transport_state["started"].set()
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                transport_state["cancelled"].set()
+                raise
+
+        async def aclose(self):
+            return None
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://data.sec.gov/submissions/CIK0000000001.json",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=WaitingTransport,
+        sec_budget=budget,
+        sec_operation="fetch_etf_holdings_sec_submissions",
+    )
+
+    with pytest.raises(TimeoutError, match="SEC one-fund execution deadline exceeded"):
+        _run_sync_attempt_in_finite_worker(attempt)
+
+    assert transport_state["started"].is_set()
+    assert transport_state["cancelled"].is_set()
+    assert budget._terminal_failure == "SEC one-fund execution deadline exceeded"
+    with pytest.raises(ETFHoldingsRouteHeldError, match="terminal response"):
+        _run_sync_attempt_in_finite_worker(attempt)
 
 
 def test_sec_worker_rechecks_deadline_after_slow_setup_before_send(monkeypatch):

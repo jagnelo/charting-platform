@@ -1,4 +1,5 @@
-from datetime import UTC, date, datetime
+from contextlib import contextmanager
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -24,6 +25,7 @@ from app.services.etf_holdings_edgar import (
 )
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
+    ETFSECExecutionBudget,
     bind_etf_holdings_request_context,
 )
 
@@ -73,6 +75,62 @@ async def test_sec_discovery_and_backfill_cannot_borrow_ambient_issuer_binding(m
 
     assert transport_calls == []
     assert database_writes == []
+
+
+@pytest.mark.asyncio
+async def test_initial_qualification_releases_parent_transaction_before_provider_child(monkeypatch):
+    events = []
+
+    class QualificationOperationSession:
+        async def flush(self):
+            events.append("parent_flush")
+
+        async def commit(self):
+            events.append("parent_commit")
+
+    class MockClient:
+        def __init__(self, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return None
+
+        async def get(self, *_args, **_kwargs):
+            events.append("provider_attempt")
+            return SimpleNamespace(extensions={})
+
+    @contextmanager
+    def bind_provider_child(**_kwargs):
+        events.append("provider_child_context")
+        yield SimpleNamespace()
+
+    monkeypatch.setattr(edgar.httpx, "AsyncClient", MockClient)
+    monkeypatch.setattr(edgar, "bind_etf_holdings_sec_request_context", bind_provider_child)
+    authority = SimpleNamespace(expires_at=datetime.now(UTC) + timedelta(minutes=1))
+    budget_token = edgar._SEC_FUND_BUDGET.set(ETFSECExecutionBudget(authority))
+    try:
+        await edgar._sec_get(
+            SimpleNamespace(
+                db=QualificationOperationSession(),
+                profile_id=17,
+                instrument_id=23,
+                provider_symbol="IWM",
+            ),
+            operation="fetch_etf_holdings_sec_submissions",
+            url="https://data.sec.gov/submissions/CIK0001100663.json",
+        )
+    finally:
+        edgar._SEC_FUND_BUDGET.reset(budget_token)
+
+    assert events == [
+        "parent_flush",
+        "parent_commit",
+        "provider_child_context",
+        "provider_attempt",
+    ]
 
 
 @pytest.mark.asyncio

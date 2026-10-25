@@ -1,6 +1,27 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — accepted 5b staging adopted without TC consumer conflicts — 2026-10-25T06:08Z
+## Current continuation — accepted ETF FQ1-FQ8 staging adopted locally — 2026-10-25T16:17Z
+
+The exact accepted synchronized staging release `3ff96af855a49d42b1dee10cecb43bc6690f4502`
+(`20261025T161013Z-3ff96af855a4.json`, canonical staging CI `40202604218`)
+is merged locally on `0c1bebbcb9d394562a20cbd4d25378cc54649bdf` without
+conflicts. The incoming ETF source is `abdca6e6ec2b383f678995029149bbb748596af4`;
+it supplies the accepted FQ1-FQ8 source checkpoint. Provider P2, Strategy SLICP,
+the existing TC consumers, and all prior workstream history are preserved.
+The new import manifest pins 875 exact foreign paths; TC-owned and approved
+adaptation paths remain outside it. Scope self-tests, the full scope guard and
+workstream validation passed before the local merge commit. No push is authorized until Root releases it
+after independent master CI. SEC acquisition and target acceptance remain
+Root-owned and pending; staging green is not deployment or target acceptance.
+
+The next TC-owned development item is the unresolved F8y latency and
+parent-host/locked-target proof when Root allocates the source-matched profile.
+Preserve its 60-second timeout, ordinary Source/Target/Control interactions,
+locked Remove/zero-DELETE assertions, zero retries, references/masks/tolerances,
+and all provider/data/service holds. The broader AC1-AC9/TCP3-TCP5/SX/IX and
+official V25/REF-HELP parity remain open.
+
+## Historical continuation — accepted 5b staging adopted without TC consumer conflicts — 2026-10-25T06:08Z
 
 The exact accepted synchronized release `5b29620741fd82d27db45987afb927bf91396712`
 (receipt `20261025T055427Z-5b29620741fd.json`, staging CI `40161945123`) is
