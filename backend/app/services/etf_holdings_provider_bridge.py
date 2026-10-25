@@ -28,7 +28,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFProfile
+from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFProfile
 from app.models.instrument import Instrument
 from app.models.provider_recurring_cost import (
     ProviderRecurringCostBudget,
@@ -42,7 +42,12 @@ from app.models.provider_runtime import (
 from app.providers.telemetry import observe_response
 from app.services.provider_quota_coordinator import account_scope_for_provider
 from app.services.provider_recurring_costs import provider_recurring_cost_status
-from app.services.provider_runtime import ProviderExecutionResult, execute_provider_call
+from app.services.provider_runtime import (
+    ProviderExecutionResult,
+    _bind_etf_initial_qualification_authority,
+    _ETFInitialQualificationAuthority,
+    execute_provider_call,
+)
 
 T = TypeVar("T")
 
@@ -101,6 +106,7 @@ class ETFHoldingsRequestBinding:
     request_log_ids: list[int]
     request_urls_by_log_id: dict[int, str]
     sec_budget: Any | None = None
+    initial_qualification_authority: _ETFInitialQualificationAuthority | None = None
 
 
 @dataclass(frozen=True)
@@ -160,6 +166,7 @@ def bind_etf_holdings_sec_request_context(
     provider_symbol: str,
     operation: str,
     sec_budget: Any | None = None,
+    initial_qualification_authority: _ETFInitialQualificationAuthority | None = None,
 ):
     """Bind one distinct EDGAR attempt without inheriting an issuer operation."""
 
@@ -172,6 +179,16 @@ def bind_etf_holdings_sec_request_context(
         raise ETFHoldingsRouteHeldError("SEC holdings request requires its dedicated EDGAR adapter")
     if profile_id <= 0 or instrument_id <= 0 or not str(provider_symbol).strip():
         raise ETFHoldingsRouteHeldError("SEC holdings request identity is incomplete")
+    if initial_qualification_authority is not None and (
+        initial_qualification_authority.provider_name != "edgar"
+        or initial_qualification_authority.capability != ProviderCapability.ETF_HOLDINGS
+        or operation not in initial_qualification_authority.operations
+        or initial_qualification_authority.profile_id != profile_id
+        or initial_qualification_authority.instrument_id != instrument_id
+        or initial_qualification_authority.provider_symbol != provider_symbol.strip().upper()
+        or initial_qualification_authority.attempt_id <= 0
+    ):
+        raise ETFHoldingsRouteHeldError("SEC qualification context does not match this fund")
     binding = ETFHoldingsRequestBinding(
         db=db,
         adapter=adapter,
@@ -183,6 +200,7 @@ def bind_etf_holdings_sec_request_context(
         request_log_ids=[],
         request_urls_by_log_id={},
         sec_budget=sec_budget,
+        initial_qualification_authority=initial_qualification_authority,
     )
     token = _REQUEST_BINDING.set(binding)
     try:
@@ -534,15 +552,22 @@ class LoopLocalHTTPXAttempt:
 class ETFSECExecutionBudget:
     """One finite, in-memory application envelope for a single fund lookup."""
 
-    def __init__(self) -> None:
+    def __init__(self, initial_qualification_authority=None) -> None:
         self.started_at = _sec_budget_monotonic()
         self.deadline_at = self.started_at + ETF_SEC_FUND_DEADLINE_SECONDS
+        self.initial_qualification_authority = initial_qualification_authority
+        self.provider_request_log_ids: list[int] = []
         self.physical_attempts = 0
         self.archived_submissions_pages = 0
         self.aggregate_decoded_bytes = 0
         self.last_attempt_started_at: float | None = None
         self._terminal_failure: str | None = None
         self._lock = threading.Lock()
+
+    def record_request_log_id(self, request_log_id: int) -> None:
+        with self._lock:
+            if request_log_id not in self.provider_request_log_ids:
+                self.provider_request_log_ids.append(request_log_id)
 
     def latch_terminal(self, reason: str) -> None:
         with self._lock:
@@ -927,6 +952,27 @@ async def _review_attempt_context(
             "ETF publisher review is bound to a different account scope"
         )
 
+    binding = _REQUEST_BINDING.get()
+    authority = binding.initial_qualification_authority if binding is not None else None
+    if authority is not None:
+        if (
+            not sec_request
+            or provider_name != authority.provider_name
+            or operation not in authority.operations
+            or profile_id != authority.profile_id
+            or instrument_id != authority.instrument_id
+            or provider_symbol.strip().upper() != authority.provider_symbol
+            or account_scope != authority.account_scope
+            or authority.expires_at <= datetime.now(UTC)
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC request does not match its active initial qualification context"
+            )
+        if str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run":
+            raise ETFHoldingsRouteHeldError(
+                "SEC initial qualification requires the exact unprobed entitlement state"
+            )
+
     now = datetime.now(UTC)
     digest = hashlib.sha256(account_scope.strip().encode("utf-8")).hexdigest()
 
@@ -1020,6 +1066,31 @@ async def execute_etf_holdings_request_attempt(
         if binding is not None:
             binding.request_log_ids.append(request_log_id)
             binding.request_urls_by_log_id[request_log_id] = physical_request_url
+            if binding.sec_budget is not None:
+                binding.sec_budget.record_request_log_id(request_log_id)
+
+    async def retain_qualification_log_ids(runtime_db: AsyncSession) -> None:
+        authority = binding.initial_qualification_authority if binding is not None else None
+        if authority is None or not attempt_log_ids:
+            return
+        job = await runtime_db.get(ETFHoldingsBackfillJob, authority.attempt_id)
+        if (
+            job is None
+            or job.job_type != "sec_nport_initial_qualification"
+            or job.etf_profile_id != authority.profile_id
+            or job.status != "running"
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "SEC initial qualification attempt is missing or no longer active"
+            )
+        extra_data = dict(job.extra_data or {})
+        request_log_ids = list(extra_data.get("provider_request_log_ids") or [])
+        for request_log_id in attempt_log_ids:
+            if request_log_id not in request_log_ids:
+                request_log_ids.append(request_log_id)
+        extra_data["provider_request_log_ids"] = request_log_ids
+        job.extra_data = extra_data
+        await runtime_db.flush()
 
     async def run_shared_attempt() -> ProviderExecutionResult:
         # The shared attempt gets a narrow transaction of its own. This keeps
@@ -1027,7 +1098,7 @@ async def execute_etf_holdings_request_attempt(
         # cancels and rolls back unrelated ETF work in its unit of work.
         runtime_db = AsyncSession(bind=db.bind, expire_on_commit=False)
         try:
-            await _review_attempt_context(
+            review_result = await _review_attempt_context(
                 runtime_db,
                 provider_name=provider_name,
                 profile_id=profile_id,
@@ -1038,22 +1109,78 @@ async def execute_etf_holdings_request_attempt(
                 request_url=physical_request_url,
                 sec_request=sec_request,
             )
-            result = await execute_provider_call(
-                runtime_db,
-                ProviderCapability.ETF_HOLDINGS,
-                operation,
-                instrument_id=instrument_id,
-                provider_symbol=provider_symbol,
-                usage_identity=provider_symbol,
-                provider_name=provider_name,
-                invoke=invoke,
-                etf_holdings_adapters={provider_name: adapter},
-                capture_response_payloads=True,
-                request_log_id_callback=retain_request_log_id,
-            )
+            authority = binding.initial_qualification_authority if binding is not None else None
+            if authority is not None:
+                if not isinstance(review_result, tuple) or len(review_result) != 3:
+                    raise ETFHoldingsRouteHeldError(
+                        "SEC qualification request review did not return its committed scope"
+                    )
+                _data_source, _policy, account_scope = review_result
+                if authority.account_scope != account_scope:
+                    raise ETFHoldingsRouteHeldError(
+                        "SEC qualification account scope differs from its committed context"
+                    )
+                qualification_job = await runtime_db.get(
+                    ETFHoldingsBackfillJob, authority.attempt_id
+                )
+                qualification_scope = (
+                    qualification_job.extra_data.get("qualification_scope")
+                    if qualification_job is not None
+                    and isinstance(qualification_job.extra_data, dict)
+                    else None
+                )
+                if (
+                    qualification_job is None
+                    or qualification_job.job_type != "sec_nport_initial_qualification"
+                    or qualification_job.etf_profile_id != authority.profile_id
+                    or qualification_job.status != "running"
+                    or qualification_scope
+                    != {
+                        "provider": "edgar",
+                        "capability": ProviderCapability.ETF_HOLDINGS.value,
+                        "operations": sorted(authority.operations),
+                        "profile_id": authority.profile_id,
+                        "instrument_id": authority.instrument_id,
+                        "account_scope": authority.account_scope,
+                    }
+                    or authority.expires_at <= datetime.now(UTC)
+                ):
+                    raise ETFHoldingsRouteHeldError(
+                        "SEC initial qualification context is expired or no longer active"
+                    )
+
+            async def execute_shared_call() -> ProviderExecutionResult:
+                return await execute_provider_call(
+                    runtime_db,
+                    ProviderCapability.ETF_HOLDINGS,
+                    operation,
+                    instrument_id=instrument_id,
+                    provider_symbol=provider_symbol,
+                    profile_id=profile_id,
+                    usage_identity=provider_symbol,
+                    provider_name=provider_name,
+                    invoke=invoke,
+                    etf_holdings_adapters={provider_name: adapter},
+                    capture_response_payloads=True,
+                    request_log_id_callback=retain_request_log_id,
+                )
+
+            if authority is None:
+                result = await execute_shared_call()
+            else:
+                with _bind_etf_initial_qualification_authority(authority):
+                    result = await execute_shared_call()
+            await retain_qualification_log_ids(runtime_db)
         except BaseException:
             if attempt_log_ids:
-                await runtime_db.commit()
+                try:
+                    await retain_qualification_log_ids(runtime_db)
+                    await runtime_db.commit()
+                except BaseException:
+                    # Preserve the original provider/transport exception. If
+                    # the audit link itself cannot be committed, leave the
+                    # qualification latch unresolved and fail closed.
+                    await runtime_db.rollback()
             else:
                 await runtime_db.rollback()
             raise

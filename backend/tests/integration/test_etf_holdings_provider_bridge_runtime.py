@@ -10,6 +10,7 @@ from __future__ import annotations
 import asyncio
 import gzip
 import hashlib
+import json
 import threading
 import time
 from datetime import UTC, date, datetime, timedelta
@@ -2794,6 +2795,284 @@ async def test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial(
             ).all()
         )
         _assert_second_bucket_contract(windows, consumed_units=1, reserved_units=0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
+    provider_db, monkeypatch
+):
+    """The explicit first-use path keeps ordinary routing held and shares admission."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob
+    from app.services import etf_holdings_edgar as edgar
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_ACCOUNT_SCOPES",
+        {"edgar:ip": "synthetic-initial-qualification-account"},
+    )
+    operations = {
+        "fetch_etf_holdings_sec_submissions",
+        "fetch_etf_holdings_sec_submissions_file",
+        "fetch_etf_holdings_sec_filing",
+    }
+    operation_reviews = {
+        operation: {
+            "evidence_source": "test-fixture:etf:offline-mocktransport",
+            "evidence_version": "synthetic-v1",
+            "reviewed_at": datetime.now(UTC).date().isoformat(),
+        }
+        for operation in operations
+    }
+    submissions_url = "https://data.sec.gov/submissions/CIK0001100663.json"
+    filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" "000110066326000001/primary_doc.xml"
+    )
+    submissions = {
+        "filings": {
+            "recent": {
+                "form": ["NPORT-P"],
+                "accessionNumber": ["000110066326000001"],
+                "filingDate": ["2026-10-01"],
+                "reportDate": ["2026-09-30"],
+                "acceptanceDateTime": ["2026-10-01T12:00:00.000Z"],
+                "primaryDocument": ["primary_doc.xml"],
+            },
+            "files": [],
+        }
+    }
+    filing_xml = """<edgarSubmission><formData><genInfo>
+      <seriesId>S000004344</seriesId><classId>C000012074</classId>
+      <repPdDate>2026-09-30</repPdDate></genInfo><invstOrSecs>
+      <invstOrSec><name>Example Issuer</name><ticker>AAA</ticker>
+      <pctVal>1</pctVal><assetCat>EC</assetCat></invstOrSec>
+      </invstOrSecs></formData></edgarSubmission>"""
+
+    class InitialQualificationTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            url = str(request.url)
+            self.calls.append(url)
+            if url == submissions_url:
+                body = json.dumps(submissions).encode()
+                content_type = "application/json"
+            elif url == filing_url:
+                body = filing_xml.encode()
+                content_type = "application/xml"
+            else:
+                raise AssertionError(f"Unexpected offline SEC URL: {url}")
+            return httpx.Response(
+                200,
+                headers={"content-type": content_type},
+                stream=httpx.ByteStream(body),
+                request=request,
+            )
+
+    runner = InitialQualificationTransport()
+    _use_mocktransport(monkeypatch, runner)
+    quota_coordinator.ensure_provider_quota_coordinator(require_persistent_coordinator=True)
+
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=9,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["data.sec.gov", "www.sec.gov"],
+                operation="fetch_etf_holdings_sec_submissions",
+                provider_name_override="edgar",
+                instrument_symbol_override="IWM",
+                quota_scope_override="ip",
+            )
+            source = await setup.get(DataSource, case.source_id)
+            policy = await setup.scalar(
+                select(ProviderPolicy).where(
+                    ProviderPolicy.data_source_id == case.source_id,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert source is not None and policy is not None and entitlement is not None
+            assert instrument is not None
+            source_config = dict(source.config)
+            source_config["usage_tracking"] = {"operation_costs": dict.fromkeys(operations, 1)}
+            source_config["etf_holdings_review"] = {
+                "https_hosts": ["data.sec.gov", "www.sec.gov"],
+                "account_scope": case.account_scope,
+                "operations": operation_reviews,
+            }
+            source.config = source_config
+            policy.is_enabled = False
+            policy.quota_contract = {
+                **dict(policy.quota_contract),
+                "operation_costs": dict.fromkeys(operations, 1),
+            }
+            entitlement.live_probe_status = "not_run"
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                adapter_key="edgar_sec_holdings",
+                sec_cik="0001100663",
+                sec_series_id="S000004344",
+                sec_class_id="C000012074",
+                provider_aliases={"holdings_source_provider": "edgar"},
+            )
+            setup.add(profile)
+            await setup.flush()
+            profile_id = profile.id
+
+    async with provider_db() as ordinary:
+        profile = await _load_profile(ordinary, profile_id)
+        request_identity = await edgar._resolve_request_identity(
+            db=ordinary,
+            profile=profile,
+        )
+        with pytest.raises(ETFHoldingsRouteHeldError, match="not explicitly enabled"):
+            await edgar._run_in_sec_fund_scope(
+                lambda: edgar._sec_get(
+                    request_identity,
+                    operation="fetch_etf_holdings_sec_submissions",
+                    url=submissions_url,
+                )
+            )
+    assert runner.calls == []
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        assert (
+            connection.execute(
+                select(func.count())
+                .select_from(quota_coordinator._reservations)
+                .where(
+                    quota_coordinator._reservations.c.provider_name == "edgar",
+                    quota_coordinator._reservations.c.account_scope == case.account_scope,
+                )
+            ).scalar_one()
+            == 0
+        )
+
+    async def qualify_once():
+        async with provider_db() as invocation:
+            return await edgar.qualify_sec_nport_fund(
+                invocation,
+                profile_id=profile_id,
+                requested_by_user_id=None,
+            )
+
+    outcomes = await asyncio.gather(qualify_once(), qualify_once(), return_exceptions=True)
+    summaries = [value for value in outcomes if isinstance(value, dict)]
+    concurrent_denials = [
+        value for value in outcomes if isinstance(value, ETFHoldingsRouteHeldError)
+    ]
+    assert len(summaries) == 1, outcomes
+    assert len(concurrent_denials) == 1, outcomes
+    summary = summaries[0]
+    assert summary["status"] == "completed"
+    assert summary["ingested"] == 1
+    assert runner.calls == [submissions_url, filing_url]
+
+    async with provider_db() as readback:
+        policy = await readback.scalar(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == case.source_id,
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        entitlement = await readback.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == case.source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        attempt = await readback.scalar(
+            select(ETFHoldingsBackfillJob).where(
+                ETFHoldingsBackfillJob.etf_profile_id == profile_id,
+                ETFHoldingsBackfillJob.job_type == edgar.SEC_INITIAL_QUALIFICATION_JOB_TYPE,
+            )
+        )
+        snapshots = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsSnapshot).where(
+                        ETFHoldingsSnapshot.etf_profile_id == profile_id
+                    )
+                )
+            ).all()
+        )
+        artifact = await readback.scalar(
+            select(ETFHoldingsRawArtifact).where(
+                ETFHoldingsRawArtifact.etf_profile_id == profile_id
+            )
+        )
+        logs = list(
+            (
+                await readback.scalars(
+                    select(ProviderRequestLog)
+                    .where(ProviderRequestLog.data_source_id == case.source_id)
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert policy is not None and not policy.is_enabled
+        assert entitlement is not None and entitlement.live_probe_status == "passed"
+        assert attempt is not None and attempt.status == "completed"
+        assert len(snapshots) == 1
+        snapshot = snapshots[0]
+        assert snapshot.row_count == 1
+        assert snapshot.known_at is not None
+        assert snapshot.published_at is None
+        assert artifact is not None and artifact.payload_text == filing_xml
+        assert artifact.content_hash == _hash_payload(filing_xml)
+        assert len(logs) == 2
+        assert set(attempt.extra_data["qualification_request_log_ids"]) == {row.id for row in logs}
+        assert attempt.extra_data["qualification_snapshot_id"] == snapshot.id
+        assert attempt.extra_data["qualification_raw_artifact_id"] == artifact.id
+        assert {row.operation for row in logs} == {
+            "fetch_etf_holdings_sec_submissions",
+            "fetch_etf_holdings_sec_filing",
+        }
+        assert all(row.success and row.http_requests == 1 for row in logs)
+        assert all(row.settled_usage_units == Decimal("1.0000") for row in logs)
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="already has a latched"):
+        async with provider_db() as replay:
+            await edgar.qualify_sec_nport_fund(
+                replay,
+                profile_id=profile_id,
+                requested_by_user_id=None,
+            )
+    assert runner.calls == [submissions_url, filing_url]
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations).where(
+                    quota_coordinator._reservations.c.provider_name == "edgar",
+                    quota_coordinator._reservations.c.account_scope == case.account_scope,
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 2
+    assert all(row["state"] == "settled" for row in reservations)
+    assert all(row["reserved_units"] == 1 for row in reservations)
 
 
 @pytest.mark.integration

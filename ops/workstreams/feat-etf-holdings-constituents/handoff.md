@@ -33,7 +33,7 @@ preflight with `UV_CACHE_DIR=/tmp/etf-owner-preflight-cache` and
 The preflight reported the existing private quota-ledger directory permission
 issue and Docker socket denial; no runtime or quota action was attempted.
 
-## New bounded checkpoint plan — not implemented or accepted
+## New bounded checkpoint implementation — in progress, not accepted
 
 The new checkpoint is `etf-sec-first-qualification-1`. The source-backed
 circularity is visible in the released application path: admin-only
@@ -45,17 +45,17 @@ around `2624`). Consequently, normal candidate selection cannot issue the first
 qualification request; enabling normal policy or writing a positive probe
 status first would fabricate evidence. Neither action is authorized.
 
-Root is obtaining the Producer-owned interface review. Do not implement an
-ETF-side producer hook, invent an operation name/schema, or directly modify
-Provider-owned runtime behavior until Root provides the agreed contract and an
-explicit implementation go-ahead in this thread. The proposed minimal contract
-is an explicit administrator-only one-fund qualification entry point using a
-finite, one-use context bound to the exact provider, `ETF_HOLDINGS` capability,
-reviewed operation, committed instrument/profile, shared account scope and
-task. Its sole exception is the prior-positive-live-probe prerequisite for
-that one operation. Normal ETF routes stay denied, and route policy remains
-disabled even after a successful probe until Root reviews and accepts genuine
-evidence.
+Root's direct 2026-10-25 implementation go-ahead accepts Producer's interface
+review and explicitly authorizes the implementation. The exact contract is
+`/home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md`.
+The in-progress implementation adds the separate admin-only
+`POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification` path and the
+small task-local shared-runtime authority it requires. The authority bypasses
+only prior positive live-probe evidence for the exact reviewed SEC operation
+set and committed fund/account/task; ordinary routes remain denied while the
+entitlement is `not_run`. The policy is disabled at the operation's terminal
+boundary. No live invocation, actual qualification, native-current claim, or
+policy enablement is authorized or claimed.
 
 All other gates remain mandatory: committed CIK/series/class identity; reviewed
 HTTPS host/operation/account binding; entitlement; evidence-backed zero-cost
@@ -81,17 +81,30 @@ one-shot latch and uncertain settlement; HTTP/parser/body/identity/empty/failure
 outcomes must never mark success. These offline tests prove implementation
 semantics only, not a genuine SEC acquisition.
 
-No product source, tests, provider/issuer/SEC request, credential, quota state,
-target, fixture, service, staging or sibling worktree was changed or used in
-this planning/adoption context. MSMR/QQQ and Militia/GOOG remain
+The current source changes are limited to the shared-runtime authority hook,
+ETF SEC bridge/backfill service, admin router, and focused tests. Bounded
+stack-free checks passed 57 tests across the new authority/router module, the
+bridge and EDGAR service modules, the narrative-count sentinel, and the
+positive-probe runtime regression. Ruff check/format and syntax checks passed.
+A real shared-runtime MockTransport integration test for the initial success,
+account-scoped concurrent duplicate/replay denial, zero-reservation ordinary
+denial, durable snapshot/raw/request evidence, settled reservations, and
+disabled final policy is retained in
+`backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`; it
+has not been run because this owner has no DB fixture slot. This implementation
+is not source acceptance.
+
+No provider/issuer/SEC request, credential, quota state, target, fixture,
+service, staging or sibling worktree was used. MSMR/QQQ and Militia/GOOG remain
 unresolved/quarantined; unknown, quota-held, paid/trial and unsafe operations
 remain disabled. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`,
 raw/PIT lineage, retained data and the 30-day observation.
 
-**Next action:** wait for Root’s Producer contract and implementation
-go-ahead, then implement only this one-fund consumer path and its bounded
-offline shared-runtime tests. Root assigns source qualification gates later.
-Do not make a live request, enable policy, or claim the new checkpoint accepted.
+**Next action:** publish this coherent implementation and owner-record
+changeset, then hand the exact source to Producer peer review and Root's
+assigned real shared-runtime DB/full-profile gates. No live request, quota use,
+actual qualification, route enablement, checkpoint acceptance or roadmap
+completion is claimed.
 
 ## FHSC3 send-boundary deadline correction — 2026-10-24T16:01Z
 

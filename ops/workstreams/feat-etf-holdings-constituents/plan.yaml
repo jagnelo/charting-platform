@@ -15,8 +15,11 @@ human_intent_authorization: >-
   control hit-target defect within this assigned branch. On 2026-10-25, the
   coordinator directed this existing owner to consume exact green staging
   5b29620741fd82d27db45987afb927bf91396712 and prepare a narrow first-SEC-
-  qualification checkpoint. Implementation of its producer hook is held until
-  Root supplies the agreed Producer contract and implementation go-ahead.
+  qualification checkpoint. Root accepted Producer's review and authorized
+  implementation against
+  /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-
+  producer-contract-20261025.md on 2026-10-25. This authorizes offline source
+  implementation, not a live request, quota use, or target mutation.
 planning_state: ready
 previous_human_closure_authorization: >-
   The human delegated bounded checkpoint acceptance to the central coordinator:
@@ -62,12 +65,12 @@ human_closure_authorization: >-
   this turn. The prior FHSC1-FHSC7 acceptance remains preserved in the
   accepted FHSC closure fields and archived checkpoint below.
 closure_summary: >-
-  etf-sec-first-qualification-1 is a planned follow-up only. No producer hook,
-  live attempt, positive qualification, or current route enablement has been
-  implemented or accepted. Root's Producer contract review and explicit
-  implementation go-ahead are prerequisites. The previously accepted FHSC
-  closure remains preserved in its historical record; the full AC1-AC14
-  roadmap remains open.
+  etf-sec-first-qualification-1 implementation is in progress under the
+  accepted Root/Producer contract. No live attempt, positive qualification,
+  native-current claim, or route enablement is accepted. The previously
+  accepted FHSC closure remains preserved in its historical record; all seven
+  FQC criteria and the full AC1-AC14 roadmap remain open pending source review
+  and required validation.
 validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
 local_validation_profile: full_stack_browser
@@ -78,12 +81,11 @@ previous_branch: feat/etf-holdings-constituents
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
 roadmap_goal: &etf_full_roadmap_goal "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support."
 goal: >-
-  Prepare etf-sec-first-qualification-1: plan the smallest Producer-reviewed,
-  admin-only one-fund qualification path that can establish the first genuine
-  SEC probe without bypassing shared admission, identity, account, hold,
-  budget, settlement, provenance or bounded-transport controls. Do not
-  implement the producer hook until Root supplies the agreed contract and
-  explicit go-ahead. Keep ordinary routes denied and policy disabled until
+  Implement etf-sec-first-qualification-1 under the accepted Producer
+  contract: add one separate administrator-only one-fund SEC qualification
+  operation and narrowly scoped shared-runtime hook without bypassing normal
+  admission, identity, account, hold, budget, settlement, provenance or bounded
+  transport controls. Keep ordinary routes denied and policy disabled until
   Root accepts real qualifying evidence; preserve FHSC1-FHSC7 acceptance and
   the complete AC1-AC14 roadmap.
 previously_accepted_integration_checkpoint:
@@ -461,36 +463,37 @@ previously_accepted_integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, zero silent identity/schema/completeness violations.
   active_changeset:
-    name: FHSC3 fund-selected SEC timer cause and sticky deadline correction
+    name: etf-sec-first-qualification-1 admin-only initial SEC qualification
     state: >-
-      Root accepted this FHSC3 timer-cause correction as part of source
-      checkpoint etf-first-human-sec-source-1 at exact implementation
-      8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7. Exact CI40118007739 is green.
-      The final local audit records 5433 backend unit passes/1 existing skip,
-      537 integration passes/2 held native cases, 84.47% combined coverage,
-      1353 frontend tests, 195 functional passes/2 existing live skips, and
-      104/104 strict visuals with zero retries. Root's fresh component evidence
-      and reuse qualifications are in the acceptance receipt and audit JSON;
-      the earlier 40110202709 and 40114130605 reds and Root88520's 900-second
-      timeout at97%/exit124 remain historical, not relabelled. Local migration
-      compatibility was an explicit no-change-input SKIP against green staging
-      cdc33442c19f5c387b9ada759607d961365993c0, not a fresh prior-release
-      upgrade. FHSC1-FHSC7 are accepted for integration; actual SEC acquisition,
-      deployed inspector proof, native-current coverage, integration and all
-      AC1-AC14 roadmap work remain open. Keep SEC/unknown operations held and
-      preserve raw/PIT lineage, quarantines, retained data, `15 Tier-0 and 156
-      Tier-1`, and the 30-day observation.
-    baseline: 39c411b910fcac5c637163cffd13ae68286988f4
+      Root accepts Producer's exact first-qualification review and authorized
+      this implementation under
+      /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-
+      producer-contract-20261025.md. Added the admin-only qualification route,
+      exact task-local shared-runtime authority, durable account-scoped attempt
+      latch, request-log linkage, evidence-gated marker and atomic final
+      disabled policy. Stack-free focused tests pass 57/57; Ruff and syntax
+      checks pass. A real shared-runtime MockTransport success/concurrency/
+      replay integration test is retained but awaits Root's DB slot. The source
+      and checkpoint are not accepted. Preserve historical FHSC1-FHSC7
+      acceptance, every AC1-AC14 criterion, `15 Tier-0 and 156 Tier-1`, all
+      holds/quarantines, raw/PIT lineage, retained data and the 30-day gate.
+      No live request, quota use, target mutation or actual qualification is
+      claimed. Root Producer review, complete full-profile validation and
+      exact-source CI remain required.
+    baseline: cf0901d6e7943411d4b0fe3c7ec0d520015ca05d
     intent: >-
-      Classify an expired in-flight SEC timeout from the actual selected
-      asyncio timer and its chosen fund-vs-attempt bound, not a later strict
-      wall-clock comparison. Preserve real transport cancellation, sticky
-      fund expiry, shared durable settlement, and distinct ordinary attempt
-      and transport timeouts. Do not change production 210-second/20-second
-      limits, retries, assertions, provider policy or live/held boundaries.
+      Permit one admin-only initial EDGAR ETF_HOLDINGS qualification when prior
+      probe evidence is not_run, through an exact opaque task-local authority.
+      Preserve every shared admission, identity, account, hold, cost, budget,
+      quota, transport, telemetry, settlement, health and evidence gate. The
+      ordinary route remains denied and policy finishes disabled.
     owned_paths:
+      - backend/app/routers/etf_holdings.py
+      - backend/app/services/etf_holdings_edgar.py
       - backend/app/services/etf_holdings_provider_bridge.py
-      - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+      - backend/app/services/provider_runtime.py
+      - backend/tests/unit/services/test_etf_holdings_initial_qualification.py
+      - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
       - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -635,15 +638,16 @@ previously_accepted_etf_first_human_sec_checkpoint:
 integration_checkpoint:
   id: etf-sec-first-qualification-1
   planning_authorization: >-
-    Direct coordinator direction on 2026-10-25: activate a narrow first-SEC-
-    qualification repair checkpoint in this existing ETF branch, preserve
-    accepted FHSC1-FHSC7 and the full AC1-AC14 roadmap, and first complete the
-    branch-owned plan and acceptance cases. Root is obtaining Producer review
-    in parallel. Do not implement the producer hook until Root supplies the
-    agreed contract and explicit implementation go-ahead. No actual SEC request
-    or quota use is authorized by this planning instruction.
+    Root's direct 2026-10-25 implementation go-ahead accepts Producer's review
+    and the exact contract at
+    /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-
+    producer-contract-20261025.md and authorizes the single minimal
+    administrator-only first-SEC-qualification path in this existing ETF
+    branch. Preserve accepted FHSC1-FHSC7 and all AC1-AC14. This authorizes
+    source implementation and offline tests only, not an actual SEC request,
+    quota use, target mutation, or live qualification.
   acceptance_authorization: pending_root_review_and_future_checkpoint_acceptance
-  status: planning_only_producer_contract_pending
+  status: in_progress
   prior_accepted_checkpoint:
     id: etf-first-human-sec-source-1
     accepted_source_sha: 8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7
@@ -657,7 +661,7 @@ integration_checkpoint:
     - Existing ETF backfill, retained raw evidence, snapshot, and capability consumers
     - Root-owned review and later actual one-fund qualification acceptance
   required_contracts:
-    - A distinct explicit administrator-only first-qualification operation is needed because normal selection correctly rejects live_probe_status=not_run; do not invent its producer interface or operation identifier before review.
+    - The reviewed operation is POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification; its opaque task-local authority bypasses only the prior-positive-probe prerequisite for the reviewed EDGAR ETF_HOLDINGS SEC operation set.
     - Any exception to prior positive live-probe evidence is finite, one-use, and bound to the exact provider, capability, operation, committed instrument, profile, account scope, and task; it bypasses only that prior-positive-probe prerequisite for that operation.
     - Normal routes remain denied while prior positive qualification is absent; no generic bypass, credentialed status, not-required status, or fabricated positive evidence is allowed.
     - Existing reviewed identity, host, entitlement, operation, account, quota, recurring-cost, budget, shared reservation, transport, telemetry, settlement, and health checks remain mandatory. Unknown native limits/headroom, costs, or policy remain held and non-routable.
@@ -821,7 +825,7 @@ latest_provider_candidate_audit:
 dependencies:
   - "Reviewed public, free, or already-entitled first-party issuer routes; no new paid entitlement is implied."
   - "feat/market-data-provider-platform must first reach staging; its shared provider runtime is the owner of generic capability, entitlement, quota, cost, health, and shadow contracts."
-  - "For etf-sec-first-qualification-1, Root must first provide the Producer-reviewed exact first-qualification context/operation contract and explicit implementation go-ahead; no ETF-side producer hook or guessed interface may precede it."
+  - "For etf-sec-first-qualification-1, implement only the reviewed first-qualification contract at /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md; source implementation/offline tests are authorized, but actual SEC invocation and quota use remain held."
   - "The ETF branch may add the ETF_HOLDINGS capability bridge and holdings-specific state after the provider-platform merge, but must not fork generic provider governance."
   - "A paid source may be researched and tested only with fixtures until the human separately approves purchase, credentials, terms, and activation."
   - "External provider availability is evidence for route disposition, not permission to weaken deterministic contracts."
@@ -1076,13 +1080,15 @@ current_blocker: >-
   Prior checkpoint etf-first-human-sec-source-1 (FHSC1-FHSC7) remains accepted
   and its immutable closure/evidence is archived in this plan. Exact synchronized
   green staging 5b29620741fd82d27db45987afb927bf91396712 has been adopted
-  locally. Current checkpoint etf-sec-first-qualification-1 is planning-only:
-  provisioning creates live_probe_status=not_run while normal candidate
-  selection requires prior positive probe evidence. Root's Producer contract
-  review and explicit implementation go-ahead are pending. Do not add a bypass
-  or change product source until that contract arrives. Keep route policy
-  disabled, unknown and held operations non-routable, and preserve `15 Tier-0
-  and 156 Tier-1`, all AC1-AC14, raw/PIT lineage, quarantines, retained data and
+  locally. Root accepted Producer's exact first-qualification contract and
+  directly authorized its single minimal admin-only path and narrowly scoped
+  producer hook. Stack-free authority/router/provider regression checks pass;
+  the real shared-runtime MockTransport success/replay integration test is
+  retained for Root's DB slot, and full-profile validation remains open. No
+  live request, credential, quota, target mutation, positive native-current
+  claim or route enablement is authorized here. Keep ordinary routes denied
+  and policy disabled after the operation, preserve `15 Tier-0 and 156 Tier-1`,
+  all AC1-AC14, FHSC closure, raw/PIT lineage, quarantines, retained data and
   the 30-day observation.
 integration_capture: exact branch HEAD
 
@@ -2179,13 +2185,13 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Wait for Root's Producer review and same-thread implementation go-ahead for
-  the exact initial-qualification context/operation contract. Do not implement
-  a producer hook or create a substitute API before that review. Once the
-  interface is supplied, implement only the one-fund admin-only qualification
-  path, its bounded offline shared-runtime tests, and then the Root-assigned
-  source validation. No SEC/provider HTTP, credential access, quota operation,
-  policy enablement, or additional publisher acquisition is authorized now.
+  Complete focused offline tests and review for the accepted Producer contract,
+  validate the workstream and preserved full roadmap, then publish one coherent
+  source-and-record changeset for Producer peer review and Root's assigned
+  final-source qualification. The DB-backed replay/concurrency/settlement and
+  full_integration/full_stack_browser gates remain open. No SEC/provider HTTP,
+  credential access, quota operation, target mutation, or live qualification is
+  authorized by this implementation go-ahead.
   Preserve FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, `15 Tier-0 and 156
   Tier-1`, all quarantines, held operations, retained data, PIT/raw lineage and
   the 30-day observation. Do not claim the new checkpoint accepted or the full
