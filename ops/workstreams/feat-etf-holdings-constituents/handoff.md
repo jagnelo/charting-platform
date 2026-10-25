@@ -1,6 +1,47 @@
 # feat/etf-holdings-constituents
 
-## Current accepted checkpoint — FQC source readiness
+## Current accepted checkpoint — retained IWM N-PORT correction source readiness
+
+Root accepted the retained-IWM N-PORT normalization and append-only correction
+at validated implementation `b640ca47f74c2251cdebadd87c32dd87a751f64c` under
+the existing human-delegated checkpoint authority; this records Root's decision,
+not a new human quote. Acceptance record:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-checkpoint-source-acceptance-20261025.md`.
+Final local audit:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-final-local-audit-20261025.json`
+(SHA256 `22588eb610971f95ddf78778a48fb6288173127b891bdbb44c0b22f7875f299a`).
+Exact source CI40224026620 is green. The complete local qualification recorded
+5,503 backend unit passes/1 existing native opt-in skip, 544 integration
+passes/4 existing skips, 84.45% combined coverage, 1,353 frontend tests plus
+build, 195 functional passes/2 existing live-held skips, and 104 strict visual
+passes with zero retries. The backend composite preserves both failed attempts
+and uses only independently green checkpoints plus corrected short-path cases;
+consult the audit for component provenance. Research component reuse is not
+fresh standalone probe evidence. Cleanup_error0/restore_proved1, all five
+inventory diffs empty, no owned app resources remaining, and genuine private
+Study5/479 bars preserved; no provider request or target-service pause occurred.
+The source correction handles SEC percentages without forced renormalization,
+keeps OTHER/Right as non-equity evidence, and appends an idempotent correction-
+time snapshot while retaining original raw and snapshot observation lineage.
+No migration was added by this correction; model/migration/dependency inputs
+match accepted staging.
+
+This closes source readiness for the retained-IWM correction only. The actual
+target has not been corrected or reparsed by this owner; Root owns target
+application and API/UI acceptance. No current/native route qualification,
+normal-route enablement, deployment, paid/trial operation or full feature
+completion is claimed. Preserve accepted FQ1-FQ8 and FHSC1-FHSC7 history, all
+AC1-AC14, both current summaries' `15 Tier-0 and 156 Tier-1`, holds and
+quarantines, raw/PIT evidence, the 119-request spent history, and the 30-day
+observation. Root watches the exact final records HEAD CI and owns subsequent
+integration; this closure uses `integration_capture: exact branch HEAD`.
+
+Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The final
+records-only closure HEAD will receive its own exact-source CI; no post-push
+metadata refresh is planned. Root owns the target reparse/API/UI gate and
+subsequent integration.
+
+## Previously accepted checkpoint — FQ1-FQ8 source readiness (historical)
 
 Root accepted FQ1–FQ8 source readiness at `a7d0f25064e98f8c3015e9866804f7a68fcaa263`
 on 2026-10-25T13:33:51Z under the existing delegated checkpoint authority.

@@ -34,23 +34,17 @@
     }
   ],
   "active_changeset": {
-    "baseline": "928ee358628df996125c5dcb589248c02be78d46",
-    "current_delta": "Post-FQ1-FQ8 continuation: retained IWM N-PORT parser correction and append-only no-network snapshot reparse. Actual IWM accession 0002071691-26-012507 has filing-agent prefix 0002071691, distinct from fund CIK 0001100663; strict URL CIK and accession-directory checks are separate. XML filenames now use the accepted ASCII-safe grammar; the first focused DB attempt exposed Unicode case-folding and remains recorded red, while authorized changed-source attempt2 passed the API/PIT case once. Root owns fixture cleanup. Parser/resolver stack-free modules passed96/96 before the filename-only fix; seven safe-name cases passed after it. Ruff/format/compile/diff and workstream/count checks passed. Preserve 15 Tier-0 and 156 Tier-1 and AC1-AC14. Full integration/full_stack_browser and exact-source CI remain pending Root; no target reparse or live request occurred.",
-    "intent": "Correct SEC percentage/category parsing and append a correction-time snapshot from retained raw evidence without network access, overwriting the old snapshot, or changing ordinary ingestion semantics.",
-    "name": "retained IWM N-PORT normalization and append-only correction",
+    "name": "accepted retained-IWM N-PORT normalization source checkpoint closure",
+    "baseline": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
+    "intent": "Publish only the accepted source-readiness closure records for the retained-IWM correction; no product/source changes or target operation.",
     "owned_paths": [
-      "backend/app/routers/etf_holdings.py",
-      "backend/app/services/etf_holdings.py",
-      "backend/app/services/etf_holdings_sec.py",
-      "backend/tests/integration/api/test_etf_holdings.py",
-      "backend/tests/unit/services/test_etf_holdings_resolution.py",
-      "backend/tests/unit/services/test_etf_holdings_sec.py",
-      "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+      "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Stack-free parser/resolver tests passed 96/96 before the final filename-only fix; seven post-fix filename cases passed. One allocated real-PostgreSQL API/PIT reparse case passed on corrected source after a first red exposed Unicode case-folding. Full source gates remain pending Root."
+    "current_delta": "Coordinator accepted source b640 after exact CI40224026620 and complete local profile. This closure records the actual audit; target correction/API/UI remain Root-owned and pending.",
+    "state": "records-only closure publication; exact final HEAD CI pending Root watch"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -101,24 +95,35 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "The retained-IWM parser/reparse correction is source-complete for focused validation. Root-provided actual XML parses as 1946 rows; percentages and seven OTHER/Right categories are preserved. The exact IWM accession-prefix mismatch is covered, and the focused PostgreSQL append-only/PIT/admin API case passed once on corrected source after preserving its first red. Root owns cleanup and target application. Full integration, full_stack_browser and exact-source CI remain pending. Preserve 15 Tier-0 and 156 Tier-1, all AC1-AC14, and all holds/history.",
-  "current_checkpoint_objective": "Continue the full ETF AC1-AC14 roadmap after Root accepted and integrated FQ1-FQ8 source readiness in green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502. Keep the original disabled routes, holds, quarantines, data, 119-request history, PIT/raw lineage and 30-day observation; Root owns actual SEC acquisition/target UI acceptance.",
-  "current_local_delta": "Post-FQ1-FQ8 continuation: retained IWM N-PORT parser correction and append-only no-network snapshot reparse. Actual IWM accession 0002071691-26-012507 has filing-agent prefix 0002071691, distinct from fund CIK 0001100663; strict URL CIK and accession-directory checks are separate. XML filenames now use the accepted ASCII-safe grammar; the first focused DB attempt exposed Unicode case-folding and remains recorded red, while authorized changed-source attempt2 passed the API/PIT case once. Root owns fixture cleanup. Parser/resolver stack-free modules passed96/96 before the filename-only fix; seven safe-name cases passed after it. Ruff/format/compile/diff and workstream/count checks passed. Preserve 15 Tier-0 and 156 Tier-1 and AC1-AC14. Full integration/full_stack_browser and exact-source CI remain pending Root; no target reparse or live request occurred.",
-  "dirty_paths": [
-    "backend/app/routers/etf_holdings.py",
-    "backend/app/services/etf_holdings.py",
-    "backend/app/services/etf_holdings_sec.py",
-    "backend/tests/integration/api/test_etf_holdings.py",
-    "backend/tests/unit/services/test_etf_holdings_resolution.py",
-    "backend/tests/unit/services/test_etf_holdings_sec.py",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "Root accepted source readiness at b640ca47f74c2251cdebadd87c32dd87a751f64c. Exact source CI40224026620 and complete local backend/frontend/app gates passed under the audit qualifications. The final records-only HEAD CI is pending; Root owns that watch and subsequent integration. Actual target reparse/API/UI acceptance, ordinary-route enablement, native-current evidence, all remaining AC1-AC14 work, and the 30-day observation remain open. Preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, raw/PIT lineage, 119 spent requests and retained evidence.",
+  "current_checkpoint_objective": "Close the Root-accepted retained-IWM N-PORT normalization and append-only correction source-readiness checkpoint; keep accepted FQ/FHSC history and the complete AC1-AC14 roadmap open, with Root owning target reparse and API/UI acceptance.",
+  "current_local_delta": "Accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c. Root audit: source-correct SEC percentage fractions (no forced normalization), EC/EP equity handling, OTHER/Right retained as non-equity, strict actual IWM filing identity, append-only correction-time snapshot with original raw/snapshot times preserved. Exact source CI40224026620 and full local gates passed; 5,503 backend unit passes/1 existing skip, 544 integrations/4 existing skips, 84.45%; 1,353 frontend tests/build; 195 functional/2 existing skips; 104 strict visuals, retries0. Actual target correction/reparse and API/UI acceptance remain Root-owned and pending. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, holds/history.",
+  "dirty_paths": [],
   "docker": {
+    "accounting_complete": true,
     "available": true,
-    "reason": null
+    "build_cache_bytes": null,
+    "container_count": 2,
+    "containers": [
+      "etf-db-684812f39cd0-20261020-postgres-1",
+      "etf-db-684812f39cd0-20261020-redis-1"
+    ],
+    "known_bytes": 463920569,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
+      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+    ],
+    "testcontainer_sessions": [
+      "36c07de8-5e13-4d50-91d9-b1686e19e6ee"
+    ],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 463900089,
+    "volume_count": 2,
+    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "docker_ready": {
     "ready": true,
@@ -141,181 +146,159 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "928ee358628df996125c5dcb589248c02be78d46",
-  "implementation_sha": "a7d0f25064e98f8c3015e9866804f7a68fcaa263",
+  "head": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
+  "implementation_sha": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
   "integration_checkpoint": {
+    "id": "etf-retained-iwm-nport-normalization-1",
+    "planning_authorization": "Root directed this original ETF owner to close the accepted retained-IWM N-PORT normalization and append-only correction source-readiness checkpoint under the existing human-delegated checkpoint authority. Root accepted exact source b640ca47f74c2251cdebadd87c32dd87a751f64c for source readiness only. This record does not authorize another acquisition, target mutation, deployment, quota use, or completion of the full ETF roadmap.",
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
+    "status": "ready_for_integration",
+    "validated_implementation_sha": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
+    "exact_source_ci_run": 40224026620,
+    "source_acceptance_record": "/home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-checkpoint-source-acceptance-20261025.md",
+    "final_local_audit": "/home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-final-local-audit-20261025.json",
+    "final_local_audit_sha256": "22588eb610971f95ddf78778a48fb6288173127b891bdbb44c0b22f7875f299a",
     "acceptance_criteria": [
       {
-        "id": "FQ1",
-        "text": "A separate administrator-only one-fund qualification entry point uses a Producer-reviewed, exact-scope context and preserves the normal live_probe_status=not_run route denial."
+        "id": "RIW1",
+        "text": "SEC N-PORT percentage-valued fields are converted source-correctly to fractional storage, including values below one, exactly one, zero, and negative values, while genuinely fractional generic aliases retain their semantics and gross exposure is not forcibly normalized. Reviewed EC/EP equity categories use existing identity resolution; conditional OTHER/Right categories retain source provenance and remain non-equity/unresolved without invented tickers or tradability."
       },
       {
-        "id": "FQ2",
-        "text": "The context is bound to exact provider, ETF_HOLDINGS capability, reviewed operation, committed instrument/profile, shared account scope, and task; any mismatch, missing scope, wildcard, expiry, reuse, or concurrent duplicate is denied without a second transport or reservation."
+        "id": "RIW2",
+        "text": "The administrator-only retained-artifact reparse validates the exact retained raw artifact and hash, canonical profile/body CIK-series-class identity, SEC archive URL/accession-directory agreement, and safe XML basename; it performs no provider request or enrichment and does not change ordinary ingestion behavior."
       },
       {
-        "id": "FQ3",
-        "text": "All existing shared admission, identity, host, entitlement, operation, reviewed-cost, budget, quota, reservation, transport, telemetry, settlement, health, and fail-closed hold checks remain mandatory; unknown or held inputs cannot be bypassed."
+        "id": "RIW3",
+        "text": "Correction appends an idempotent derived snapshot known at the actual correction time, preserves the original raw fetched_at/hash and original snapshot known_at, records their lineage without backdating, and preserves filing/composition dates and unknown publication time. Rejection and successful correction leave prior raw evidence, snapshot, job, and profile metadata truthful and unchanged except for documented accepted facts."
       },
       {
-        "id": "FQ4",
-        "text": "The one-fund execution retains the exact 9-physical-attempt, one-archive-page, two-redirect, 1-rps, 20s-attempt, 210s-total, 2-MiB-JSON, 16-MiB-filing, and 20-MiB-aggregate bounds with no automatic retry or replay."
-      },
-      {
-        "id": "FQ5",
-        "text": "Only a fully completed, usable, exact CIK/series/class-matched snapshot with actual retained raw provenance and successful shared request audit can set the real positive qualification state; no error, mismatch, partial, cancellation, or empty result can do so."
-      },
-      {
-        "id": "FQ6",
-        "text": "Deterministic offline tests cover authorization, normal-route denial, exact-scope mismatches, every admission hold, concurrency, replay and expiry, durable cancellation/failure settlement, no false positive state, and genuine success semantics through the shared runtime and MockTransport."
-      },
-      {
-        "id": "FQ7",
-        "text": "The implementation passes required full_integration/full_stack_browser and exact-source CI without weakening existing assertions, retries, limits, or live holds; Root separately reviews any actual first-fund live qualification, and route policy remains disabled until that review accepts evidence."
+        "id": "RIW4",
+        "text": "The accepted implementation passes the exact-source CI and required complete local backend, frontend, functional, and strict visual evidence without changing test assertions, retries, references, masks, or tolerances. This is source-readiness only: Root owns applying the correction to the actual target and validating the resulting API/UI; no live/current/native route acceptance or full AC1-AC14 completion is claimed."
       }
     ],
-    "accepted_staging_ci_run": 40202604218,
-    "accepted_staging_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json",
-    "accepted_staging_sha": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
     "downstream_consumers": [
-      "Dedicated one-fund EDGAR initial-qualification operation",
-      "Existing shared Provider admission, durable request log, reservation, settlement, and health consumers",
-      "Existing ETF backfill, retained raw evidence, snapshot, and capability consumers",
-      "Root-owned review and later actual one-fund qualification acceptance"
+      "Retained raw N-PORT artifact, historical snapshots, parser, and capability/API consumers",
+      "Root-owned target correction and truthful API/UI acceptance",
+      "Existing ETF roadmap, issuer audit, and post-integration observation work"
     ],
-    "full_roadmap_status": "AC1-AC14 retained verbatim and remain open; no other publisher onboarding, native-current evidence, or 30-day observation is accepted by this checkpoint.",
-    "id": "etf-sec-first-qualification-1",
-    "live_and_deployment_boundary": "No live invocation is authorized in this plan turn. A later real qualifying operation needs a Root-reviewed exact invocation and separately qualified live evidence. Keep route policy disabled until Root accepts that evidence.",
-    "original_criterion_dispositions": [
-      {
-        "continuation_acceptance": "Current plan/session/handoff/source ledgers agree and pass the narrative-count and workstream validators at the exact source.",
-        "disposition": "partially_delivered",
-        "id": "AC1",
-        "owner": "ETF",
-        "remainder": "Keep workstream, audit, registry counts and next action aligned at each later checkpoint."
-      },
-      {
-        "continuation_acceptance": "Every current fallback key has exactly one ranked, dated evidence/disposition/next-action row.",
-        "disposition": "deferred",
-        "id": "AC2",
-        "owner": "ETF",
-        "reason": "Exhaustive issuer-by-issuer fallback ledger maintenance is outside this one-fund SEC source checkpoint."
-      },
-      {
-        "continuation_acceptance": "Each claimed native provider has provider-owned fetch, strict mapping, provenance/freshness, deterministic tests and qualifying opt-in live evidence.",
-        "disposition": "deferred",
-        "id": "AC3",
-        "owner": "ETF",
-        "reason": "This checkpoint does not add or validate every provider counted as native and does not run the opt-in 537-source live matrix."
-      },
-      {
-        "continuation_acceptance": "Each remaining fallback provider has dated issuer evidence and an explicit current/degraded/stale/unavailable/non-publisher outcome without SEC promotion.",
-        "disposition": "partially_delivered",
-        "id": "AC4",
-        "owner": "ETF",
-        "remainder": "Keep SEC clearly classified as historical regulatory/fallback evidence and continue current issuer-specific audits for all other fallback providers."
-      },
-      {
-        "continuation_acceptance": "All 140 starting identities are accounted for exactly once as verified native promotion or defensible dated terminal/blocked disposition.",
-        "disposition": "deferred",
-        "id": "AC5",
-        "owner": "ETF",
-        "reason": "Processing all 140 providers in the starting fallback population exceeds the bounded one-fund checkpoint."
-      },
-      {
-        "continuation_acceptance": "Code-derived counts and all runtime, tests, manifests, docs and audit rows satisfy the exhaustive matrix.",
-        "disposition": "partially_delivered",
-        "id": "AC6",
-        "owner": "ETF",
-        "remainder": "Recompute exhaustive native/fallback, adapter ownership, test, documentation and audit-ledger invariants after each source change."
-      },
-      {
-        "continuation_acceptance": "Required deterministic suites, default offline contracts, changed-file lint, full_stack_browser, source-exact CI and any explicitly authorized source-specific live checks have honest passing/held dispositions.",
-        "disposition": "partially_delivered",
-        "id": "AC7",
-        "owner": "ETF; Root assigns local full-profile resources and live/deployment acceptance",
-        "remainder": "The selected 12-case offline DB/API/shared-runtime selection passed on source 45c6; exact-source CI for 45c6 was not refreshed in this receipt, and full local-profile, applicable live and deployed positive-sample evidence remain open."
-      },
-      {
-        "continuation_acceptance": "Clean exact source, full required validation, complete review packet and explicit coordinator decision; no feature agent staging mutation.",
-        "disposition": "partially_delivered",
-        "id": "AC8",
-        "owner": "ETF for source preparation; central coordinator for checkpoint acceptance and staging integration",
-        "remainder": "The next source checkpoint remains pending Root review; its later review receipt and any central integration are not complete."
-      },
-      {
-        "continuation_acceptance": "Identity-verified acquired evidence passes provenance/completeness/freshness checks, appears truthfully in API/UI, and non-current data remains rejected from current analysis.",
-        "disposition": "partially_delivered",
-        "id": "AC9",
-        "owner": "ETF for truthful API/UI contracts; Root for deployment acceptance of the reviewed invocation",
-        "remainder": "A qualifying real one-fund sample and Root's actual acquisition/UI proof have not occurred; SEC remains unavailable/non-current until all gates pass."
-      },
-      {
-        "continuation_acceptance": "Actual shared-runtime tests cover entitlement, account/operation binding, quota/budget denials, measured settlement, restart/concurrency and zero-transport rejection without a second ledger.",
-        "disposition": "partially_delivered",
-        "id": "AC10",
-        "owner": "ETF for consumer contract/tests; Provider for shared governance; Root for source/account and deployment review",
-        "remainder": "Source implementation exists, but this checkpoint has not demonstrated all new SEC database-backed settlement/concurrency cases or established live target policy/account headroom."
-      },
-      {
-        "continuation_acceptance": "Every current fallback identity receives a relevance-ranked evidence-backed availability outcome and free-first reassessment where warranted.",
-        "disposition": "deferred",
-        "id": "AC11",
-        "owner": "ETF",
-        "reason": "The one-fund IWM candidate does not replace symbol-level reassessment of all 74 current fallback identities or the preserved 15 Tier-0 and 156 Tier-1 investigations."
-      },
-      {
-        "continuation_acceptance": "Shared-runtime canaries persist bounded source/transport/schema/completeness/freshness/latency/circuit/recovery evidence and meet the separate shadow gate.",
-        "disposition": "partially_delivered",
-        "id": "AC12",
-        "owner": "ETF; Root/authorized operational coordinator for deployment observation",
-        "remainder": "SEC transport remains held; no live canary, route recovery or shadow observation is claimed by this source checkpoint."
-      },
-      {
-        "continuation_acceptance": "A qualifying real sample is displayed with source/as-of/known-at/raw lineage while stale, partial, held and unavailable outcomes remain explicit and current analysis rejects them.",
-        "disposition": "partially_delivered",
-        "id": "AC13",
-        "owner": "ETF for API/UI semantics; Root for the later exact-invocation deployment acceptance proof",
-        "remainder": "Historical and unavailable states are implemented, but no real one-fund acquisition/UI proof has been performed."
-      },
-      {
-        "continuation_acceptance": "At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations over 30 days.",
-        "disposition": "deferred",
-        "id": "AC14",
-        "owner": "ETF and authorized operational coordinator",
-        "reason": "The 30-day operational shadow period starts only after separately authorized deployment; it is not source-checkpoint evidence."
-      }
+    "required_contracts": [
+      "Percentage units are interpreted from source fields; fractional generic aliases are not globally divided and filing gross weights are not forcibly renormalized.",
+      "Reviewed EC/EP categories are equity; conditional OTHER/Right is retained as non-equity evidence and is not passed through equity resolution.",
+      "Retained-artifact reparse is administrator-only, identity- and raw-hash-bound, idempotent, and makes no external request or provider enrichment call.",
+      "Original raw fetched_at/hash, source snapshot known_at, filing/composition dates, and unknown publication time remain preserved; the appended correction snapshot is known only from the actual correction time.",
+      "Rejected historical identity evidence is not rewritten into a profile, instrument, snapshot, or current/native qualification.",
+      "No migration was added by this correction; the accepted staging migration/model/dependency inputs remain unchanged.",
+      "The actual private target remains under Root ownership; this source closure is not target application, deployment, current holdings acceptance, or normal-route enablement."
     ],
     "planned_acceptance_cases": [
-      "Unauthorized/non-admin attempt denied before reservation and transport; authorized request is still subject to every existing shared admission gate.",
-      "Ordinary backfill, refresh, capability, and discovery paths remain denied for not_run without a qualification context and make zero transport calls.",
-      "Table-driven provider/capability/operation/instrument/profile/account/task scope mismatches, malformed or wildcard values, missing identity, and expired/consumed context deny before transport; no guessed alias is accepted.",
-      "Independently hold entitlement, host/operation review, account mapping, cost/terms, recurring commitment, aggregate budget, quota/headroom, and policy conditions; verify actual denial cause, no unintended reservation/transport, and no positive state.",
-      "Concurrent requests for the same context yield one latched attempt at most; duplicate task, replay, post-expiry invocation, and cancellation cannot create a second attempt or erase uncertain holds.",
-      "Deterministic MockTransport success uses an exact identity-matching N-PORT body and proves one usable snapshot, raw artifact/content hash, request-log/reservation linkage, measured settlement, observed known_at, and positive qualification while policy remains disabled.",
-      "HTTP error, transport timeout, fund deadline, cancellation, partial/truncated/decompression-limit response, parser error, identity mismatch, no candidate, and failed/uncertain settlement remain truthful, durably audited where applicable, and never set positive qualification."
+      "Retained real IWM filing parses 1946 rows with source-correct percentages, preserves gross fractional total 1.14096388613052, maps EC/EP through equity identity rules, and keeps all seven OTHER/Right holdings non-equity with original conditional provenance.",
+      "The exact real accession 0002071691-26-012507 accepts the padded profile CIK and non-padded SEC URL CIK while independently validating archive accession directory and XML basename.",
+      "A successful reparse appends one correction-time snapshot, preserves raw and original snapshot timestamps and lineage, remains idempotent, and returns the expected version on pre- and post-correction PIT queries.",
+      "Invalid identity, URL, basename, authority, or replay is rejected without provider HTTP or overwriting the prior raw artifact, snapshot, job, or profile context.",
+      "Full source gates and exact-source CI pass; target repair/UI and complete AC1-AC14 remain separately owned/open as stated."
     ],
-    "planning_authorization": "Root direct go-ahead on 2026-10-25 accepts Producer review and the exact contract at /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md; it authorizes the single minimal admin-only one-fund SEC initial-qualification path and narrow producer hook in this existing ETF branch. This permits offline source implementation only, not a live SEC request, quota use, target mutation or actual qualification. Preserve the accepted FHSC1-FHSC7 closure and the complete AC1-AC14 roadmap.",
-    "prior_accepted_checkpoint": {
-      "acceptance_record": "/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-checkpoint-source-acceptance-20261025.md",
-      "accepted_source_sha": "8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7",
-      "exact_ci_run": 40118007739,
-      "full_closure_record_preserved_as": "previously_accepted_etf_first_human_sec_checkpoint",
-      "id": "etf-first-human-sec-source-1",
-      "local_audit": "/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-final-local-audit-20261025.json"
-    },
-    "required_contracts": [
-      "A distinct explicit administrator-only first-qualification operation is needed because normal selection correctly rejects live_probe_status=not_run; do not invent its producer interface or operation identifier before review.",
-      "Any exception to prior positive live-probe evidence is finite, one-use, and bound to the exact provider, capability, operation, committed instrument, profile, account scope, and task; it bypasses only that prior-positive-probe prerequisite for that operation.",
-      "Normal routes remain denied while prior positive qualification is absent; no generic bypass, credentialed status, not-required status, or fabricated positive evidence is allowed.",
-      "Existing reviewed identity, host, entitlement, operation, account, quota, recurring-cost, budget, shared reservation, transport, telemetry, settlement, and health checks remain mandatory. Unknown native limits/headroom, costs, or policy remain held and non-routable.",
-      "Serialize and durably latch one attempt for one committed fund; concurrent, duplicate, expired, consumed, or replayed contexts cannot create another transport or reservation. No automatic retry or replay.",
-      "Preserve the existing envelope: at most 9 physical attempts total, one archive page, two redirects per logical request, 1 request/second, 20-second attempt timeout, 210-second whole-fund deadline, 2 MiB JSON, 16 MiB filing body, and 20 MiB aggregate decoded bytes.",
-      "Only a completed, usable, exact CIK/series/class-matched snapshot with retained real raw provenance and successful shared request audit may record positive qualification. HTTP success alone, partial/parser failure, mismatch, timeout, cancellation, uncertain settlement, or empty/no-candidate outcome never does.",
-      "A successful qualification does not enable normal route policy. Keep it disabled until Root reviews and accepts real evidence; historical/PIT, current-versus-unavailable, raw lineage, and all prior FHSC contracts remain intact."
+    "original_criterion_dispositions": [
+      {
+        "id": "AC1",
+        "disposition": "partially_delivered",
+        "remainder": "Keep workstream, audit, registry counts and next action aligned at each later checkpoint.",
+        "owner": "ETF",
+        "continuation_acceptance": "Current plan/session/handoff/source ledgers agree and pass the narrative-count and workstream validators at the exact source."
+      },
+      {
+        "id": "AC2",
+        "disposition": "deferred",
+        "reason": "Exhaustive issuer-by-issuer fallback ledger maintenance is outside this one-fund SEC source checkpoint.",
+        "owner": "ETF",
+        "continuation_acceptance": "Every current fallback key has exactly one ranked, dated evidence/disposition/next-action row."
+      },
+      {
+        "id": "AC3",
+        "disposition": "deferred",
+        "reason": "This checkpoint does not add or validate every provider counted as native and does not run the opt-in 537-source live matrix.",
+        "owner": "ETF",
+        "continuation_acceptance": "Each claimed native provider has provider-owned fetch, strict mapping, provenance/freshness, deterministic tests and qualifying opt-in live evidence."
+      },
+      {
+        "id": "AC4",
+        "disposition": "partially_delivered",
+        "remainder": "Keep SEC clearly classified as historical regulatory/fallback evidence and continue current issuer-specific audits for all other fallback providers.",
+        "owner": "ETF",
+        "continuation_acceptance": "Each remaining fallback provider has dated issuer evidence and an explicit current/degraded/stale/unavailable/non-publisher outcome without SEC promotion."
+      },
+      {
+        "id": "AC5",
+        "disposition": "deferred",
+        "reason": "Processing all 140 providers in the starting fallback population exceeds the bounded one-fund checkpoint.",
+        "owner": "ETF",
+        "continuation_acceptance": "All 140 starting identities are accounted for exactly once as verified native promotion or defensible dated terminal/blocked disposition."
+      },
+      {
+        "id": "AC6",
+        "disposition": "partially_delivered",
+        "remainder": "Recompute exhaustive native/fallback, adapter ownership, test, documentation and audit-ledger invariants after each source change.",
+        "owner": "ETF",
+        "continuation_acceptance": "Code-derived counts and all runtime, tests, manifests, docs and audit rows satisfy the exhaustive matrix."
+      },
+      {
+        "id": "AC7",
+        "disposition": "partially_delivered",
+        "remainder": "The selected 12-case offline DB/API/shared-runtime selection passed on source 45c6; exact-source CI for 45c6 was not refreshed in this receipt, and full local-profile, applicable live and deployed positive-sample evidence remain open.",
+        "owner": "ETF; Root assigns local full-profile resources and live/deployment acceptance",
+        "continuation_acceptance": "Required deterministic suites, default offline contracts, changed-file lint, full_stack_browser, source-exact CI and any explicitly authorized source-specific live checks have honest passing/held dispositions."
+      },
+      {
+        "id": "AC8",
+        "disposition": "partially_delivered",
+        "remainder": "The next source checkpoint remains pending Root review; its later review receipt and any central integration are not complete.",
+        "owner": "ETF for source preparation; central coordinator for checkpoint acceptance and staging integration",
+        "continuation_acceptance": "Clean exact source, full required validation, complete review packet and explicit coordinator decision; no feature agent staging mutation."
+      },
+      {
+        "id": "AC9",
+        "disposition": "partially_delivered",
+        "remainder": "A qualifying real one-fund sample and Root's actual acquisition/UI proof have not occurred; SEC remains unavailable/non-current until all gates pass.",
+        "owner": "ETF for truthful API/UI contracts; Root for deployment acceptance of the reviewed invocation",
+        "continuation_acceptance": "Identity-verified acquired evidence passes provenance/completeness/freshness checks, appears truthfully in API/UI, and non-current data remains rejected from current analysis."
+      },
+      {
+        "id": "AC10",
+        "disposition": "partially_delivered",
+        "remainder": "Source implementation exists, but this checkpoint has not demonstrated all new SEC database-backed settlement/concurrency cases or established live target policy/account headroom.",
+        "owner": "ETF for consumer contract/tests; Provider for shared governance; Root for source/account and deployment review",
+        "continuation_acceptance": "Actual shared-runtime tests cover entitlement, account/operation binding, quota/budget denials, measured settlement, restart/concurrency and zero-transport rejection without a second ledger."
+      },
+      {
+        "id": "AC11",
+        "disposition": "deferred",
+        "reason": "The one-fund IWM candidate does not replace symbol-level reassessment of all 74 current fallback identities or the preserved 15 Tier-0 and 156 Tier-1 investigations.",
+        "owner": "ETF",
+        "continuation_acceptance": "Every current fallback identity receives a relevance-ranked evidence-backed availability outcome and free-first reassessment where warranted."
+      },
+      {
+        "id": "AC12",
+        "disposition": "partially_delivered",
+        "remainder": "SEC transport remains held; no live canary, route recovery or shadow observation is claimed by this source checkpoint.",
+        "owner": "ETF; Root/authorized operational coordinator for deployment observation",
+        "continuation_acceptance": "Shared-runtime canaries persist bounded source/transport/schema/completeness/freshness/latency/circuit/recovery evidence and meet the separate shadow gate."
+      },
+      {
+        "id": "AC13",
+        "disposition": "partially_delivered",
+        "remainder": "Historical and unavailable states are implemented, but no real one-fund acquisition/UI proof has been performed.",
+        "owner": "ETF for API/UI semantics; Root for the later exact-invocation deployment acceptance proof",
+        "continuation_acceptance": "A qualifying real sample is displayed with source/as-of/known-at/raw lineage while stale, partial, held and unavailable outcomes remain explicit and current analysis rejects them."
+      },
+      {
+        "id": "AC14",
+        "disposition": "deferred",
+        "reason": "The 30-day operational shadow period starts only after separately authorized deployment; it is not source-checkpoint evidence.",
+        "owner": "ETF and authorized operational coordinator",
+        "continuation_acceptance": "At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations over 30 days."
+      }
     ],
-    "status": "accepted_and_integrated_in_staging"
+    "full_roadmap_status": "AC1-AC14 remain unchanged and open; this accepted source checkpoint does not accept target repair, normal-route enablement, native-current support, the 30-day observation, or full feature completion.",
+    "live_and_deployment_boundary": "Root accepted source readiness only. Root owns the later target parser correction/reparse and API/UI verification. No provider or SEC request, quota replay, target mutation, deployment, policy enablement, paid/trial operation, or retained-data cleanup is authorized or claimed by this closure."
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -437,7 +420,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Publish this coherent source/record change for Root review; Root owns complete exact-source integration/full_stack_browser gates and the separately approved retained-target correction.",
-  "plan_hash": "38b2bc3046606911a9dfc15470eebfc4b1b4246fc777140a248e2befd7dac626",
+  "plan_hash": "230d2c4ebe4d5ad355fe984507f143ba926ffc8917f9ff2368c4f8f08e6637dd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -661,20 +644,16 @@
   },
   "progress": {
     "completed": [
-      "FQ1",
-      "FQ2",
-      "FQ3",
-      "FQ4",
-      "FQ5",
-      "FQ6",
-      "FQ7",
-      "FQ8"
+      "RIW1",
+      "RIW2",
+      "RIW3",
+      "RIW4"
     ],
-    "current_blocker": "Green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 (CI40202604218) is adopted locally with a tree identical to the pre-adoption feature source. Independent master CI40210522503 is running, so push of this local record-only reconciliation is held pending Root release. The accepted checkpoint is FQ1-FQ8 source readiness only; actual SEC acquisition, positive qualification, route enablement, deployed target/UI acceptance and remaining AC1-AC14 work are open. Preserve the current 15 Tier-0 and 156 Tier-1 counts.",
-    "current_phase": "fqc_source_checkpoint_integrated_in_staging_full_roadmap_open",
-    "next_action": "After Root releases publication beyond master CI40210522503, publish the local record-only adoption reconciliation. Then resume AC2 remaining fallback-provider audit from retained evidence as the next branch-owned roadmap step; do not begin it in this turn. Root owns actual one-fund SEC invocation and target/UI acceptance after separately reviewed live prerequisites.",
-    "total": 8,
-    "updated_at": "2026-10-25T16:20:49Z"
+    "total": 4,
+    "current_phase": "retained_iwm_source_checkpoint_accepted_final_head_ci_pending",
+    "current_blocker": "Root accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c with exact source CI40224026620 and complete local gates. Final records-head CI is pending; actual target reparse/API/UI acceptance and the complete AC1-AC14 roadmap remain Root-owned/open. Preserve 15 Tier-0 and 156 Tier-1, holds, raw/PIT lineage and 119 spent requests.",
+    "next_action": "Root watches final exact-head CI and owns central integration. Root separately owns applying the correction to the retained target and verifying API/UI behavior; then continue the full roadmap.",
+    "updated_at": "2026-10-25T21:44:17Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -696,9 +675,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "928ee358628df996125c5dcb589248c02be78d46",
-  "remote_observation": "At staging adoption, origin/staging and origin/master were independently verified at 3ff96af855a49d42b1dee10cecb43bc6690f4502; origin/feat/etf-holdings-constituents was abdca6e6ec2b383f678995029149bbb748596af4. The feature fast-forwarded to the exact staging merge. Staging tree equals the pre-adoption feature tree d919925251a1c5dabed2622d8cf758b2408df134, so no source paths or import manifest were needed. This metadata describes the adoption boundary before this records-only reconciliation commit; its push is held until Root releases after master CI40210522503.",
-  "remote_sha": "928ee358628df996125c5dcb589248c02be78d46",
+  "remote": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
+  "remote_observation": "Immediately before this records-only closure, the assigned ETF worktree and origin feature branch were both clean at validated implementation b640ca47f74c2251cdebadd87c32dd87a751f64c. The accepted source CI is 40224026620. This closure commit is not self-referenced; exact final branch HEAD and remote parity will be verified externally after publication.",
+  "remote_sha": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
@@ -845,7 +824,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-25T19:00:42Z",
+  "updated_at": "2026-10-25T21:44:17Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents",
   "workstream_files": [
@@ -855,5 +834,196 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
-  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
+  "previously_accepted_fqc_checkpoint": {
+    "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
+    "acceptance_criteria": [
+      {
+        "id": "FQ1",
+        "text": "A separate administrator-only one-fund qualification entry point uses a Producer-reviewed, exact-scope context and preserves the normal live_probe_status=not_run route denial."
+      },
+      {
+        "id": "FQ2",
+        "text": "The context is bound to exact provider, ETF_HOLDINGS capability, reviewed operation, committed instrument/profile, shared account scope, and task; any mismatch, missing scope, wildcard, expiry, reuse, or concurrent duplicate is denied without a second transport or reservation."
+      },
+      {
+        "id": "FQ3",
+        "text": "All existing shared admission, identity, host, entitlement, operation, reviewed-cost, budget, quota, reservation, transport, telemetry, settlement, health, and fail-closed hold checks remain mandatory; unknown or held inputs cannot be bypassed."
+      },
+      {
+        "id": "FQ4",
+        "text": "The one-fund execution retains the exact 9-physical-attempt, one-archive-page, two-redirect, 1-rps, 20s-attempt, 210s-total, 2-MiB-JSON, 16-MiB-filing, and 20-MiB-aggregate bounds with no automatic retry or replay."
+      },
+      {
+        "id": "FQ5",
+        "text": "Only a fully completed, usable, exact CIK/series/class-matched snapshot with actual retained raw provenance and successful shared request audit can set the real positive qualification state; no error, mismatch, partial, cancellation, or empty result can do so."
+      },
+      {
+        "id": "FQ6",
+        "text": "Deterministic offline tests cover authorization, normal-route denial, exact-scope mismatches, every admission hold, concurrency, replay and expiry, durable cancellation/failure settlement, no false positive state, and genuine success semantics through the shared runtime and MockTransport."
+      },
+      {
+        "id": "FQ7",
+        "text": "The implementation passes required full_integration/full_stack_browser and exact-source CI without weakening existing assertions, retries, limits, or live holds; Root separately reviews any actual first-fund live qualification, and route policy remains disabled until that review accepts evidence."
+      }
+    ],
+    "accepted_staging_ci_run": 40202604218,
+    "accepted_staging_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json",
+    "accepted_staging_sha": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
+    "downstream_consumers": [
+      "Dedicated one-fund EDGAR initial-qualification operation",
+      "Existing shared Provider admission, durable request log, reservation, settlement, and health consumers",
+      "Existing ETF backfill, retained raw evidence, snapshot, and capability consumers",
+      "Root-owned review and later actual one-fund qualification acceptance"
+    ],
+    "full_roadmap_status": "AC1-AC14 retained verbatim and remain open; no other publisher onboarding, native-current evidence, or 30-day observation is accepted by this checkpoint.",
+    "id": "etf-sec-first-qualification-1",
+    "live_and_deployment_boundary": "No live invocation is authorized in this plan turn. A later real qualifying operation needs a Root-reviewed exact invocation and separately qualified live evidence. Keep route policy disabled until Root accepts that evidence.",
+    "original_criterion_dispositions": [
+      {
+        "continuation_acceptance": "Current plan/session/handoff/source ledgers agree and pass the narrative-count and workstream validators at the exact source.",
+        "disposition": "partially_delivered",
+        "id": "AC1",
+        "owner": "ETF",
+        "remainder": "Keep workstream, audit, registry counts and next action aligned at each later checkpoint."
+      },
+      {
+        "continuation_acceptance": "Every current fallback key has exactly one ranked, dated evidence/disposition/next-action row.",
+        "disposition": "deferred",
+        "id": "AC2",
+        "owner": "ETF",
+        "reason": "Exhaustive issuer-by-issuer fallback ledger maintenance is outside this one-fund SEC source checkpoint."
+      },
+      {
+        "continuation_acceptance": "Each claimed native provider has provider-owned fetch, strict mapping, provenance/freshness, deterministic tests and qualifying opt-in live evidence.",
+        "disposition": "deferred",
+        "id": "AC3",
+        "owner": "ETF",
+        "reason": "This checkpoint does not add or validate every provider counted as native and does not run the opt-in 537-source live matrix."
+      },
+      {
+        "continuation_acceptance": "Each remaining fallback provider has dated issuer evidence and an explicit current/degraded/stale/unavailable/non-publisher outcome without SEC promotion.",
+        "disposition": "partially_delivered",
+        "id": "AC4",
+        "owner": "ETF",
+        "remainder": "Keep SEC clearly classified as historical regulatory/fallback evidence and continue current issuer-specific audits for all other fallback providers."
+      },
+      {
+        "continuation_acceptance": "All 140 starting identities are accounted for exactly once as verified native promotion or defensible dated terminal/blocked disposition.",
+        "disposition": "deferred",
+        "id": "AC5",
+        "owner": "ETF",
+        "reason": "Processing all 140 providers in the starting fallback population exceeds the bounded one-fund checkpoint."
+      },
+      {
+        "continuation_acceptance": "Code-derived counts and all runtime, tests, manifests, docs and audit rows satisfy the exhaustive matrix.",
+        "disposition": "partially_delivered",
+        "id": "AC6",
+        "owner": "ETF",
+        "remainder": "Recompute exhaustive native/fallback, adapter ownership, test, documentation and audit-ledger invariants after each source change."
+      },
+      {
+        "continuation_acceptance": "Required deterministic suites, default offline contracts, changed-file lint, full_stack_browser, source-exact CI and any explicitly authorized source-specific live checks have honest passing/held dispositions.",
+        "disposition": "partially_delivered",
+        "id": "AC7",
+        "owner": "ETF; Root assigns local full-profile resources and live/deployment acceptance",
+        "remainder": "The selected 12-case offline DB/API/shared-runtime selection passed on source 45c6; exact-source CI for 45c6 was not refreshed in this receipt, and full local-profile, applicable live and deployed positive-sample evidence remain open."
+      },
+      {
+        "continuation_acceptance": "Clean exact source, full required validation, complete review packet and explicit coordinator decision; no feature agent staging mutation.",
+        "disposition": "partially_delivered",
+        "id": "AC8",
+        "owner": "ETF for source preparation; central coordinator for checkpoint acceptance and staging integration",
+        "remainder": "The next source checkpoint remains pending Root review; its later review receipt and any central integration are not complete."
+      },
+      {
+        "continuation_acceptance": "Identity-verified acquired evidence passes provenance/completeness/freshness checks, appears truthfully in API/UI, and non-current data remains rejected from current analysis.",
+        "disposition": "partially_delivered",
+        "id": "AC9",
+        "owner": "ETF for truthful API/UI contracts; Root for deployment acceptance of the reviewed invocation",
+        "remainder": "A qualifying real one-fund sample and Root's actual acquisition/UI proof have not occurred; SEC remains unavailable/non-current until all gates pass."
+      },
+      {
+        "continuation_acceptance": "Actual shared-runtime tests cover entitlement, account/operation binding, quota/budget denials, measured settlement, restart/concurrency and zero-transport rejection without a second ledger.",
+        "disposition": "partially_delivered",
+        "id": "AC10",
+        "owner": "ETF for consumer contract/tests; Provider for shared governance; Root for source/account and deployment review",
+        "remainder": "Source implementation exists, but this checkpoint has not demonstrated all new SEC database-backed settlement/concurrency cases or established live target policy/account headroom."
+      },
+      {
+        "continuation_acceptance": "Every current fallback identity receives a relevance-ranked evidence-backed availability outcome and free-first reassessment where warranted.",
+        "disposition": "deferred",
+        "id": "AC11",
+        "owner": "ETF",
+        "reason": "The one-fund IWM candidate does not replace symbol-level reassessment of all 74 current fallback identities or the preserved 15 Tier-0 and 156 Tier-1 investigations."
+      },
+      {
+        "continuation_acceptance": "Shared-runtime canaries persist bounded source/transport/schema/completeness/freshness/latency/circuit/recovery evidence and meet the separate shadow gate.",
+        "disposition": "partially_delivered",
+        "id": "AC12",
+        "owner": "ETF; Root/authorized operational coordinator for deployment observation",
+        "remainder": "SEC transport remains held; no live canary, route recovery or shadow observation is claimed by this source checkpoint."
+      },
+      {
+        "continuation_acceptance": "A qualifying real sample is displayed with source/as-of/known-at/raw lineage while stale, partial, held and unavailable outcomes remain explicit and current analysis rejects them.",
+        "disposition": "partially_delivered",
+        "id": "AC13",
+        "owner": "ETF for API/UI semantics; Root for the later exact-invocation deployment acceptance proof",
+        "remainder": "Historical and unavailable states are implemented, but no real one-fund acquisition/UI proof has been performed."
+      },
+      {
+        "continuation_acceptance": "At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations over 30 days.",
+        "disposition": "deferred",
+        "id": "AC14",
+        "owner": "ETF and authorized operational coordinator",
+        "reason": "The 30-day operational shadow period starts only after separately authorized deployment; it is not source-checkpoint evidence."
+      }
+    ],
+    "planned_acceptance_cases": [
+      "Unauthorized/non-admin attempt denied before reservation and transport; authorized request is still subject to every existing shared admission gate.",
+      "Ordinary backfill, refresh, capability, and discovery paths remain denied for not_run without a qualification context and make zero transport calls.",
+      "Table-driven provider/capability/operation/instrument/profile/account/task scope mismatches, malformed or wildcard values, missing identity, and expired/consumed context deny before transport; no guessed alias is accepted.",
+      "Independently hold entitlement, host/operation review, account mapping, cost/terms, recurring commitment, aggregate budget, quota/headroom, and policy conditions; verify actual denial cause, no unintended reservation/transport, and no positive state.",
+      "Concurrent requests for the same context yield one latched attempt at most; duplicate task, replay, post-expiry invocation, and cancellation cannot create a second attempt or erase uncertain holds.",
+      "Deterministic MockTransport success uses an exact identity-matching N-PORT body and proves one usable snapshot, raw artifact/content hash, request-log/reservation linkage, measured settlement, observed known_at, and positive qualification while policy remains disabled.",
+      "HTTP error, transport timeout, fund deadline, cancellation, partial/truncated/decompression-limit response, parser error, identity mismatch, no candidate, and failed/uncertain settlement remain truthful, durably audited where applicable, and never set positive qualification."
+    ],
+    "planning_authorization": "Root direct go-ahead on 2026-10-25 accepts Producer review and the exact contract at /home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md; it authorizes the single minimal admin-only one-fund SEC initial-qualification path and narrow producer hook in this existing ETF branch. This permits offline source implementation only, not a live SEC request, quota use, target mutation or actual qualification. Preserve the accepted FHSC1-FHSC7 closure and the complete AC1-AC14 roadmap.",
+    "prior_accepted_checkpoint": {
+      "acceptance_record": "/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-checkpoint-source-acceptance-20261025.md",
+      "accepted_source_sha": "8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7",
+      "exact_ci_run": 40118007739,
+      "full_closure_record_preserved_as": "previously_accepted_etf_first_human_sec_checkpoint",
+      "id": "etf-first-human-sec-source-1",
+      "local_audit": "/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-final-local-audit-20261025.json"
+    },
+    "required_contracts": [
+      "A distinct explicit administrator-only first-qualification operation is needed because normal selection correctly rejects live_probe_status=not_run; do not invent its producer interface or operation identifier before review.",
+      "Any exception to prior positive live-probe evidence is finite, one-use, and bound to the exact provider, capability, operation, committed instrument, profile, account scope, and task; it bypasses only that prior-positive-probe prerequisite for that operation.",
+      "Normal routes remain denied while prior positive qualification is absent; no generic bypass, credentialed status, not-required status, or fabricated positive evidence is allowed.",
+      "Existing reviewed identity, host, entitlement, operation, account, quota, recurring-cost, budget, shared reservation, transport, telemetry, settlement, and health checks remain mandatory. Unknown native limits/headroom, costs, or policy remain held and non-routable.",
+      "Serialize and durably latch one attempt for one committed fund; concurrent, duplicate, expired, consumed, or replayed contexts cannot create another transport or reservation. No automatic retry or replay.",
+      "Preserve the existing envelope: at most 9 physical attempts total, one archive page, two redirects per logical request, 1 request/second, 20-second attempt timeout, 210-second whole-fund deadline, 2 MiB JSON, 16 MiB filing body, and 20 MiB aggregate decoded bytes.",
+      "Only a completed, usable, exact CIK/series/class-matched snapshot with retained real raw provenance and successful shared request audit may record positive qualification. HTTP success alone, partial/parser failure, mismatch, timeout, cancellation, uncertain settlement, or empty/no-candidate outcome never does.",
+      "A successful qualification does not enable normal route policy. Keep it disabled until Root reviews and accepts real evidence; historical/PIT, current-versus-unavailable, raw lineage, and all prior FHSC contracts remain intact."
+    ],
+    "status": "accepted_and_integrated_in_staging"
+  },
+  "previously_accepted_fqc_progress": {
+    "completed": [
+      "FQ1",
+      "FQ2",
+      "FQ3",
+      "FQ4",
+      "FQ5",
+      "FQ6",
+      "FQ7",
+      "FQ8"
+    ],
+    "current_blocker": "Green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 (CI40202604218) is adopted locally with a tree identical to the pre-adoption feature source. Independent master CI40210522503 is running, so push of this local record-only reconciliation is held pending Root release. The accepted checkpoint is FQ1-FQ8 source readiness only; actual SEC acquisition, positive qualification, route enablement, deployed target/UI acceptance and remaining AC1-AC14 work are open. Preserve the current 15 Tier-0 and 156 Tier-1 counts.",
+    "current_phase": "fqc_source_checkpoint_integrated_in_staging_full_roadmap_open",
+    "next_action": "After Root releases publication beyond master CI40210522503, publish the local record-only adoption reconciliation. Then resume AC2 remaining fallback-provider audit from retained evidence as the next branch-owned roadmap step; do not begin it in this turn. Root owns actual one-fund SEC invocation and target/UI acceptance after separately reviewed live prerequisites.",
+    "total": 8,
+    "updated_at": "2026-10-25T16:20:49Z"
+  }
 }
