@@ -1,5 +1,98 @@
 # feat/etf-holdings-constituents
 
+# Green staging adoption and first SEC qualification plan — 2026-10-25
+
+## Adopted source baseline
+
+The exact canonical green staging release `5b29620741fd82d27db45987afb927bf91396712`
+was fast-forwarded into this existing ETF branch from `d203212f4841f9fa21e68525ea4bc608a86ff798`.
+Its receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json`
+and exact CI is `40161945123`. The local `origin/staging` tracking ref and
+receipt both resolve to the released SHA. A direct `git ls-remote` attempt was
+blocked by temporary DNS resolution failure, so the remote was not independently
+queried in this session. The normal fast-forward initially could not write the
+linked-worktree `ORIG_HEAD` because shared Git metadata was read-only; the same
+ordinary `git merge --ff-only` then succeeded through the authorized elevated
+Git boundary. No alternate index/ref was used.
+
+The four imported workstream directories are unchanged from the released tree.
+Only ETF-owned workstream planning/receipt updates are being made after the
+backmerge. The prior `etf-first-human-sec-source-1` FHSC1–FHSC7 acceptance,
+closure, exact CI `40118007739`, local audit qualifications and all older
+failure/partial evidence remain preserved. This adoption is not another
+checkpoint acceptance and does not close any of AC1–AC14.
+
+The normal UV-managed `make agent-context` initially failed because the shared
+UV cache under `/home/m920q/.cache/uv` is read-only. Repeating the same role
+preflight with `UV_CACHE_DIR=/tmp/etf-owner-preflight-cache` and
+`UV_NO_SYNC=1` classified the exact checkout as the implementation worktree.
+`make agent-session-status` confirmed existing claim
+`f206bbc5-abbf-473a-a44f-fb5706c81282` and worktree ID
+`feat-etf-holdings-constituents-fdc36fa27a`; no new claim or goal was created.
+The preflight reported the existing private quota-ledger directory permission
+issue and Docker socket denial; no runtime or quota action was attempted.
+
+## New bounded checkpoint plan — not implemented or accepted
+
+The new checkpoint is `etf-sec-first-qualification-1`. The source-backed
+circularity is visible in the released application path: admin-only
+`provision_edgar_etf_holdings` creates the dedicated ETF entitlement with
+`live_probe_status="not_run"` (`backend/app/routers/providers.py` around
+`597–900`), while Provider runtime candidate selection excludes any entitlement
+whose probe status is not in its positive set (`backend/app/services/provider_runtime.py`
+around `2624`). Consequently, normal candidate selection cannot issue the first
+qualification request; enabling normal policy or writing a positive probe
+status first would fabricate evidence. Neither action is authorized.
+
+Root is obtaining the Producer-owned interface review. Do not implement an
+ETF-side producer hook, invent an operation name/schema, or directly modify
+Provider-owned runtime behavior until Root provides the agreed contract and an
+explicit implementation go-ahead in this thread. The proposed minimal contract
+is an explicit administrator-only one-fund qualification entry point using a
+finite, one-use context bound to the exact provider, `ETF_HOLDINGS` capability,
+reviewed operation, committed instrument/profile, shared account scope and
+task. Its sole exception is the prior-positive-live-probe prerequisite for
+that one operation. Normal ETF routes stay denied, and route policy remains
+disabled even after a successful probe until Root reviews and accepts genuine
+evidence.
+
+All other gates remain mandatory: committed CIK/series/class identity; reviewed
+HTTPS host/operation/account binding; entitlement; evidence-backed zero-cost
+and recurring-cost/budget policy; shared quota/headroom decisions and durable
+per-physical-attempt reservation, request log, measured settlement and health;
+and fail-closed unknown/held state. Native quota counters/headroom, unknown
+costs and unreviewed operations are not inferred. Serialize and durably latch
+one attempt; expiry, concurrent duplicate, consumed context or replay cannot
+cause another transport. Preserve the existing envelope exactly: nine total
+physical attempts, one archive page, two redirects per logical request, one
+request/second, 20-second attempt timeout, 210-second whole-fund deadline,
+2 MiB JSON, 16 MiB filing body, and 20 MiB aggregate decoded bytes.
+
+The planned offline acceptance cases are recorded in
+`plan.yaml.integration_checkpoint.planned_acceptance_cases`. In particular,
+the positive deterministic MockTransport case must prove a usable, exact
+fund-identity-matched result, retained raw artifact/content hash, request-log
+and reservation linkage, measured settlement, observed `known_at`, and a
+positive status only after completion; it must leave route policy disabled.
+Unauthorized/normal-route/scope-mismatch/held/unknown cases must prove no
+unadmitted transport; concurrency/replay/expiry/cancellation must preserve the
+one-shot latch and uncertain settlement; HTTP/parser/body/identity/empty/failure
+outcomes must never mark success. These offline tests prove implementation
+semantics only, not a genuine SEC acquisition.
+
+No product source, tests, provider/issuer/SEC request, credential, quota state,
+target, fixture, service, staging or sibling worktree was changed or used in
+this planning/adoption context. MSMR/QQQ and Militia/GOOG remain
+unresolved/quarantined; unknown, quota-held, paid/trial and unsafe operations
+remain disabled. Preserve the full AC1–AC14 roadmap, `15 Tier-0 and 156 Tier-1`,
+raw/PIT lineage, retained data and the 30-day observation.
+
+**Next action:** wait for Root’s Producer contract and implementation
+go-ahead, then implement only this one-fund consumer path and its bounded
+offline shared-runtime tests. Root assigns source qualification gates later.
+Do not make a live request, enable policy, or claim the new checkpoint accepted.
+
 ## FHSC3 send-boundary deadline correction — 2026-10-24T16:01Z
 
 Root's review of the in-progress FHSC3 repair found that the worker computed
