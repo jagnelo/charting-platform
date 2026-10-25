@@ -35,15 +35,20 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Accepted synchronized staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e (receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726 all required jobs green) has been merged into this TC branch. Stack-free checks on the merge worktree passed 18 timestamp-classifier tests, the migration-head compatibility test, the full scope guard (864 byte-verified imports/29 approved adaptations), and workstream validation. The combined branch candidate is pending its own exact-source CI; CI40003951941 was green only for pre-merge source 1e8f9803f4ddd225cb4649db3a9cf9f30e83580f. The merge adds the additive market_series_default created_at/updated_at migration after slv2_0011 and its fresh/retained-row compatibility test, a narrow migration-shape classifier with workflow tests, and F8m initial-rail/SPY fixture setup. No local DB, fixture, browser, provider, or retained service action was run. Keep the F8y one-case slot consumed and its inputValue delay unresolved; preserve all actions/assertions/timeouts/retries and full AC1-AC9, SX/IX, holds, and official REF-HELP-V25.",
+  "current_candidate_ci_status": "Current TC source remains c9719521bfe8c558f1a743df683a12bef85fffe4, whose last exact CI40010646181 was green for Backend, Frontend Unit, Branch-declared and E2E (192 passed/110 declared skips; feature EIG expected skipped). New accepted staging cdc33442c19f5c387b9ada759607d961365993c0 is authorized but not yet merged; canonical receipt 20261024T111337Z-cdc33442c19f.json and exact staging CI40083128955 are terminal green. It includes Provider P2 and Strategy SLICP. ETF d203212f4841f9fa21e68525ea4bc608a86ff798 / exact CI40158881330 remains pending canonical release and is not imported. Prior bounded closure remains historical; no new acceptance or full local profile is established. F8y on c971 remains unproven despite the separate 8d8 control pass. Preserve AC1-AC9, SX/IX, Help/V25 and all provider/data/service holds.",
   "current_exact_ci": {
     "conclusion": "success",
-    "head_sha": "1e8f9803f4ddd225cb4649db3a9cf9f30e83580f",
-    "run_id": 40003951941,
-    "status": "Terminal green on the pre-merge diagnostic source: Backend120586959301, Frontend120586959736, Branch120593529337, and E2E120593529565 succeeded; feature Exhaustive Integration Gate120593531639 was an expected skip. E2E reported 192 passed/110 declared skips. This does not qualify the subsequent a6b9 merge candidate.",
+    "head_sha": "c9719521bfe8c558f1a743df683a12bef85fffe4",
+    "run_id": 40010646181,
+    "status": "Terminal green on exact merged source: Backend, Frontend Unit, Branch-declared and E2E succeeded; feature Exhaustive Integration Gate was an expected skip. E2E reported 192 passed/110 declared skips. The required full local profile remains pending.",
     "visuals": "No strict visual result is established by this functional CI. Existing references/masks/tolerances and zero-retry acceptance policy are unchanged."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -123,7 +128,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bb886386638c5b7f5479674d594d40914183ecbc",
+  "head": "c9719521bfe8c558f1a743df683a12bef85fffe4",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -134,27 +139,27 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-23T19:18:38Z",
+  "last_checkpoint": "2026-10-25T03:58:05Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
-    "conclusion": "failure",
-    "e2e_summary": "E2E job120558755519 terminal red:190 passed/110 declared skips/2 retry-passing flakes (F8e native-indicator-selection and F8y Tag Columns); embedded traces are retry traces, so first-attempt event causality remains unknown",
-    "head_sha": "bb886386638c5b7f5479674d594d40914183ecbc",
+    "conclusion": "success",
+    "e2e_summary": "E2E terminal green:192 passed/110 declared skips/0 failures/0 flakes; feature Exhaustive Integration Gate was an expected skip",
+    "head_sha": "c9719521bfe8c558f1a743df683a12bef85fffe4",
     "jobs": {
-      "backend": "not_changed_by_this_instrumentation_review",
-      "branch_declared": "not_changed_by_this_instrumentation_review",
-      "e2e": "failure_two_retry_passing_flakes",
-      "exhaustive_integration_gate": "not_verified_in_this_review",
-      "frontend_unit": "not_changed_by_this_instrumentation_review"
+      "backend": "success",
+      "branch_declared": "success",
+      "e2e": "success_192_passed_110_declared_skips",
+      "exhaustive_integration_gate": "expected_skip_on_feature_CI",
+      "frontend_unit": "success"
     },
-    "run_id": 39993743859,
-    "scope": "The newest exact CI is run39993743859 on bb886386638c5b7f5479674d594d40914183ecbc, terminal red from E2E120558755519:190 passed/110 declared skips/2 retry-passing flakes. The previous a83/39935342169 coverage failure remains historical in validation.jsonl and handoff.",
+    "run_id": 40010646181,
+    "scope": "Exact CI40010646181 on c9719521bfe8c558f1a743df683a12bef85fffe4 is terminal green for Backend, Frontend Unit, Branch-declared and E2E; E2E reported192 passed/110 declared skips. Feature Exhaustive Integration Gate was an expected skip. Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7 at published tip5b02caf509107856195ef8cfb2374e2ab6120612 but it is not synchronized green staging or deployed a6b9 proof. TC has not adopted or duplicated it; the full local profile remains open.",
     "visuals": "No strict104 result is established for this source by the reviewed run. The F8y one-case slot is consumed; no new local browser/fixture is authorized. Official REF-HELP-V25 parity and the full roadmap remain open."
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the accepted a6b9 merge candidate on this feature branch and track its own exact-source CI. Do not launch local fixtures, browsers, tests against retained services, or mutate seeds; preserve all retention holds and the 26 queued research runs. After exact CI, continue the owned F8y/roadmap work without changing its timeout, actions, assertions, retry policy or visual rules; keep full AC1-AC9, SX/IX unknowns, provider/data holds and official REF-HELP-V25 open.",
+  "next_action": "Publish the preserved owner-record update, merge only accepted synchronized green staging cdc33442c19f5c387b9ada759607d961365993c0, reconcile Provider selected-default coverage/Research and Strategy inspector contracts, run bounded focused stack-free checks, then publish for exact own CI. Do not import ETF d203 until its exact green staging release. Root retains the full local validation slot. Preserve F8y actions/assertions/60-second timeout/zero retries, Help local-only disposition, full roadmap and holds.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -182,33 +187,30 @@
   "progress": {
     "completed": [
       "TCP1",
-      "TCP2",
-      "TCP3",
-      "TCP4",
-      "TCP5"
+      "TCP2"
     ],
-    "current_blocker": "Accepted staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e is merged into this feature branch; the merged candidate still needs its own exact-source CI. The last green run40003951941 is qualified only to pre-merge1e8f9803f4ddd225cb4649db3a9cf9f30e83580f. Migration parity, migration classifier and F8m fixture impacts are documented in the current handoff/plan; no local DB or browser run was made. The F8y slot is spent and the inputValue delay remains unresolved. Preserve all retention holds, data, assertions, retry/timeouts, full roadmap, SX/IX and official REF-HELP-V25.",
-    "current_phase": "accepted_staging_a6b9_merged_into_TC;premerge_CI40003951941_green_on_1e8f_only;merged_branch_exact_CI_pending;additive_market_series_default_timestamp_migration_and_compatibility_classifier;F8m_setup_preserved;retained_services_held_no_restart_or_seed;F8y_slot_consumed_latency_unknown;fullroadmap_and_V25_open",
-    "next_action": "Publish this merged feature candidate and track its exact own-branch CI. Do not launch local fixtures or browsers, touch retained DB/Redis/seeds, or stop/restart services. After CI, continue the remaining TC roadmap and F8y proof under a separately granted slot, preserving every assertion, timeout, retry rule and visual oracle.",
+    "current_blocker": "Exact c971 source is green only for its prior hosted feature CI. Accepted staging cdc33442c19f5c387b9ada759607d961365993c0 and CI40083128955 are green and authorized for TC merge; current source has not merged it. ETF d203 / CI40158881330 remains pending release. Prior bounded closure is historical; no new acceptance. F8y on c971 remains unproven despite 8d8 control success; preserve the case and all roadmap/Help/data/service holds.",
+    "current_phase": "cdc334_green_authorized_owner_records_then_clean_backmerge;Provider_P2_Strategy_SLICP_to_reconcile;ETF_d203_CI40158881330_pending_not_imported;F8y60s_zero_retry_unproven_on_c971;focused_stack_free_checks_then_exact_own_CI;Root_full_profile_slot_pending",
+    "next_action": "Publish the coherent preserved owner-record update, merge only accepted staging cdc33442c19f5c387b9ada759607d961365993c0, reconcile its intended TC contracts, run bounded focused stack-free frontend/component/type checks, and publish for exact own CI. Do not import ETF d203 until its exact synchronized green staging release. Root owns the later full local profile. Preserve all F8y assertions/timeouts/retries, Help local-only disposition, full AC1-AC9/SX/IX/official V25, and provider/data/service holds.",
     "total": 5,
-    "updated_at": "2026-10-23T19:18:38Z"
+    "updated_at": "2026-10-25T03:58:05Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "bb886386638c5b7f5479674d594d40914183ecbc",
-    "current_pending_range": "This diagnostic-only instrumentation candidate is based on synchronized HEAD bb886386638c5b7f5479674d594d40914183ecbc. Exact CI39993743859 on that source is terminal red with190 passed/110 declared skips/2 retry-passing flakes (F8e/F8y); the retained ZIP SHA256 is recorded in the current blocker and validation journal. Retry-only traces did not reveal first-attempt causality. Two-case collection passed with default and explicit trace-mode configs and Vue type-check passed. The five-path diagnostic publication is pending, followed by one normal exact-source CI. No browser/fixture or behavior/assertion/retry/timeout/oracle change is part of this candidate; all provider/data holds and full roadmap gaps remain.",
+    "current_local_head": "c9719521bfe8c558f1a743df683a12bef85fffe4",
+    "current_pending_range": "The accepted a6b9 synchronized release is merged and pushed; own feature branch and origin are synchronized at c9719521bfe8c558f1a743df683a12bef85fffe4. Exact CI40010646181 is terminal green for Backend, Frontend Unit, Branch-declared and E2E; feature Exhaustive Integration Gate was expected skipped. The required full local profile remains open. The selected-default coverage endpoint mismatch is Provider-owned; its runtime reproduction is historical source51ab only, and c971 evidence is source review. No source code changed in this record update.",
     "failure_category": "frontend_function_coverage_threshold",
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "bb886386638c5b7f5479674d594d40914183ecbc",
-    "status": "Before this diagnostic-only publication, own branch and origin were synchronized at bb886386638c5b7f5479674d594d40914183ecbc. Exact CI39993743859 on that source is terminal red for two retry-passing flakes; only successful retry traces were attached. Diagnostic-only five-path candidate is locally validated for two-case collection/default plus explicit trace-mode configs and Vue type-check, with no browser or fixture run; publication and fresh exact-source CI are pending."
+    "remote_tracking_sha": "c9719521bfe8c558f1a743df683a12bef85fffe4",
+    "status": "The accepted release was merged and pushed; local feature HEAD and origin are synchronized at c9719521bfe8c558f1a743df683a12bef85fffe4. Exact CI40010646181 is terminal green on this source. This records hosted feature CI only; full local profile and Provider-owned selected-default coverage repair remain outstanding."
   },
-  "remote": "bb886386638c5b7f5479674d594d40914183ecbc",
-  "remote_sha": "bb886386638c5b7f5479674d594d40914183ecbc",
+  "remote": "c9719521bfe8c558f1a743df683a12bef85fffe4",
+  "remote_sha": "c9719521bfe8c558f1a743df683a12bef85fffe4",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",

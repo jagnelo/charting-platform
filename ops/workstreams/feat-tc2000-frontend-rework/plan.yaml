@@ -3,9 +3,19 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+latest_staging_parent_sha: cdc33442c19f5c387b9ada759607d961365993c0
 latest_staging_merge_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
 dependency_authorization: >-
+  Current coordinator release 2026-10-24: exact accepted synchronized green
+  staging cdc33442c19f5c387b9ada759607d961365993c0 (canonical receipt
+  20261024T111337Z-cdc33442c19f.json; exact CI40083128955 attempt 1) is
+  authorized for adoption into this TC-owned branch. It contains accepted
+  Provider P2 and Strategy SLICP updates. It does not contain the unmerged ETF
+  candidate 8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7; ETF's closing tip
+  d203212f4841f9fa21e68525ea4bc608a86ff798 and exact CI40158881330 remain
+  pending canonical integration/release. Preserve prior checkpoint closure as
+  historical; this resumed reconciliation is in progress, not a new acceptance.
+  Earlier accepted a6b9 release authorization follows as history:
   Human-approved four-feature integration; coordinator released exact synchronized
   Provider+ETF+TC2000+Strategy staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
   (canonical green receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726
@@ -66,6 +76,53 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Current 2026-10-25: TC is still at c9719521bfe8c558f1a743df683a12bef85fffe4
+  with four dirty owner records preserved. Exact accepted staging
+  cdc33442c19f5c387b9ada759607d961365993c0 is now authorized; canonical receipt
+  20261024T111337Z-cdc33442c19f.json and exact CI40083128955 are green. Merge
+  only this SHA after coherent record publication. ETF d203212f4841f9fa21e68525ea4bc608a86ff798
+  is locally qualified but its exact CI40158881330/canonical staging release
+  is pending; do not import it. Preserve the incoming selected-default
+  coverage/research and Strategy inspector contracts. No TC full-profile or
+  post-merge exact-CI evidence exists yet. Root retains heavy validation and
+  acceptance/integration authority. F8y remains pending on c971: preserve its
+  60-second timeout, all parent-host/locked-target assertions and zero retries;
+  the separate 8d8 pass is not proof for c971. AC1-AC9, SX/IX, official
+  REF-HELP-V25 and all provider/data/service holds remain open.
+
+  Historical blocker (superseded by the current cdc authorization) follows:
+  Current 2026-10-23T20:12Z: coordinator reports Provider fix
+  ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7 is present at published Provider
+  tip5b02caf509107856195ef8cfb2374e2ab6120612. It applies selected-default
+  filtering to range and per-timeframe summary coverage and adds a mapped-default
+  versus later-alternate regression. This is source-level evidence only: the fix
+  has not been delivered to TC through a synchronized green staging release and
+  has not been proven in deployed a6b9. Do not duplicate it or invent a client
+  identity/filter contract. TC remains at c9719521bfe8c558f1a743df683a12bef85fffe4
+  with CI40010646181 green for Backend, Frontend, Branch-declared and E2E
+  (192 passed/110 declared skips); feature EIG was expected skipped. The full
+  local profile remains unrun. F8y is spent with inputValue latency unresolved;
+  preserve provider/data/service holds, full AC1-AC9, SX/IX and official
+  REF-HELP-V25 as open.
+
+  Prior 2026-10-23T20:03Z record follows as historical context:
+  Current 2026-10-23T20:03Z: exact accepted a6b9 release is merged at
+  c9719521bfe8c558f1a743df683a12bef85fffe4. Exact branch CI40010646181 is
+  terminal green for Backend, Frontend, Branch-declared and E2E; the feature
+  Exhaustive Integration Gate was an expected skip. E2E reported 192 passed
+  and 110 declared skips. Read-only review confirms the previously reproduced
+  selected-default coverage mismatch remains in Provider-owned
+  backend/app/routers/coverage.py: both coverage queries aggregate by
+  instrument/timeframe without MarketSeriesDefault, whereas canonical reads
+  use the selected-series predicate. Historical runtime reproduction is
+  qualified to source51ab; current c971 confirms unchanged query shape but has
+  not been runtime-reproduced. TC ownership excludes this router and its tests;
+  coordinate a Provider-owned fix/regression rather than duplicating producer
+  logic. F8y remains spent with inputValue latency unresolved; keep all tests,
+  timeouts, retries, provider/data holds, full AC1-AC9, SX/IX unknowns and
+  official REF-HELP-V25 open.
+
+  Prior 2026-10-23T19:17Z adoption snapshot follows, retained as history:
   Current 2026-10-23T19:17Z: accepted four-feature release a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
   is now merged into the TC feature branch after the required handoff-only
   capacity audit commit. Exact pre-merge CI40003951941 on 1e8f9803f4ddd225cb4649db3a9cf9f30e83580f
@@ -382,6 +439,42 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
+  Current 2026-10-25: this is an in-progress dependency reconciliation, not a
+  renewed ready_for_integration decision. Prior bounded checkpoint acceptance
+  remains historical in integration_checkpoint. c9719521bfe8c558f1a743df683a12bef85fffe4
+  remains the source until the exact authorized cdc33442c19f5c387b9ada759607d961365993c0
+  staging tree is merged. Publish the preserved owner records first, then merge
+  cdc only; resolve intended overlap, run bounded focused TC contracts, and
+  publish the combined source for its own exact CI. Do not import ETF d203 until
+  its exact synchronized green staging release. The later full frontend,
+  backend/migration, functional and strict104 visual gates require Root's
+  resource allocation. F8y/Help/full roadmap status remains as above.
+
+  Historical checkpoint status (superseded by current reconciliation) follows:
+  Current 2026-10-23T20:12Z: TC remains on exact source
+  c9719521bfe8c558f1a743df683a12bef85fffe4 with CI40010646181 terminal green
+  for Backend, Frontend, Branch-declared and E2E; feature EIG was expected
+  skipped. Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
+  at published tip5b02caf509107856195ef8cfb2374e2ab6120612, with selected-default
+  coverage predicates and regression coverage. This is not a synchronized
+  staging release or deployed a6b9 proof; do not adopt or duplicate it. Full
+  local profile, F8y latency, full AC1-AC9, SX/IX, and official REF-HELP-V25
+  remain open, as do all provider/data/service holds.
+
+  Prior 2026-10-23T20:03Z checkpoint record follows as history:
+  Current 2026-10-23T20:03Z: exact accepted release
+  a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e is merged at
+  c9719521bfe8c558f1a743df683a12bef85fffe4; exact CI40010646181 passed
+  Backend, Frontend, Branch-declared and E2E, with feature EIG expected
+  skipped. E2E reported 192 passed/110 declared skips. No local full profile
+  was run. The selected-default coverage endpoint mismatch remains a
+  Provider-owned contract issue; the historical in-memory reproduction is on
+  source51ab, and the c971 review is source inspection only. TC does not own
+  the router/tests and has not changed them. Full current-source local
+  integration/visual profile, F8y latency resolution, full AC1-AC9, SX/IX,
+  and official REF-HELP-V25 remain open.
+
+  Previous 2026-10-23T19:17Z checkpoint snapshot follows, retained as history:
   Current 2026-10-23T19:17Z: exact green staging/master a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
   (canonical receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726) has
   been merged into the TC-owned branch with the handoff-only retained-runtime
@@ -1694,23 +1787,21 @@ branch_tests_reason: "The branch-declared job is intentionally stack-free: it ru
 live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
 migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
-status: ready_for_integration
+status: in_progress
 progress:
-  completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
+  completed: [TCP1, TCP2]
   total: 5
-  current_phase: "f04_backmerge_acbfe;TC_source_a83af413_origin_synced;CI39935342169_committed_coverage_red_on_committed_source;dirty_tree_full_V8_144_files_1406_tests_70.07_functions_pass;scoped_custom_date_sort_and_tag_column_coverage_recovery_packet_being_published;F8y_browser_driver_latency_unresolved_no_lock_request;full_stack_browser_and_new_exact_CI_open;SX_IX_AC1_AC9_REF_HELP_V25_open"
+  current_phase: "accepted_cdc334_green_release_authorized_pending_TC_backmerge;prior_bounded_closure_historical;ETF_d203_exactCI40158881330_pending_release_not_imported;F8y_c971_unproven_despite_8d8_control_pass;full_profile_pending_Root_slot"
   next_action: >-
-    Publish the tested scoped Custom Date Sort and Tag Column coverage-recovery
-    packet from a83, then use its automatic exact-source CI result before
-    continuing the highest-priority unmet TC-owned roadmap item. Full dirty-
-    snapshot V8 coverage passed144/144 files and1,406/1,406 tests at70.07%
-    functions; type-check exited0. Do not relabel those local results as CI.
-    Preserve the F8y diagnosis: browser/trace latency precedes the reported
-    lock line and no lock request was sent. Its one-case slot is consumed; do
-    not replay or change the60-second timeout/assertions/retries without a new
-    coordinator slot. Keep SX/IX unavailable until source-backed contracts
-    exist, and preserve provider/retained-data holds and all roadmap/reference
-    requirements.
+    Publish the preserved four owner records, then merge only accepted green
+    staging cdc33442c19f5c387b9ada759607d961365993c0 into this branch. Reconcile
+    selected-default coverage/Research and Strategy inspector behavior without
+    duplicating Provider logic or replacing immutable provenance checks. Run
+    focused stack-free component/type contracts; record exact post-merge CI.
+    Await exact green ETF staging before consuming ETF-owned deltas. Root owns
+    the later full local profile. Preserve F8y timeout/assertions/zero retries,
+    Help local-only disposition, full AC1-AC9/SX/IX/official V25 roadmap, and
+    all provider/data/service holds.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1767,15 +1858,21 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    The narrow compatibility correction on exact source6c720 restores cached
-    capability lineage when adapter state is absent, while availability/current
-    usability remain unknown and absent optional parser/source metadata remains
-    None. Focused capability/watchlist, affected non-runner, and partitioned runner
-    evidence is green; scope/workstream validation and publication remain. Exact
-    CI39604702686 is historically red for the missing-legacy-metadata case and
-    must remain preserved; fresh exact-source CI is required. No local fixture was
-    created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
-    open.
+    Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
+    at published Provider tip 5b02caf509107856195ef8cfb2374e2ab6120612. It is
+    not yet a synchronized green staging release or deployed a6b9 proof; TC
+    must not duplicate/adopt it directly. Exact merged TC source
+    c9719521bfe8c558f1a743df683a12bef85fffe4 has terminal
+    green CI40010646181 for Backend, Frontend Unit, Branch-declared and E2E;
+    feature Exhaustive Integration Gate was an expected skip. E2E reported
+    192 passed and 110 declared skips. The required full local profile has not
+    been run on this merged source. A selected-default coverage mismatch is
+    still visible in Provider-owned coverage endpoints; only the historical
+    runtime reproduction on source51ab is established, while c971 evidence is
+    source review, not a runtime repro. Provider owns the endpoint/tests, so TC
+    must coordinate rather than duplicate them. F8y remains spent with
+    inputValue latency unresolved; full AC1-AC9, SX/IX and official REF-HELP-V25
+    remain open, with all data/provider/retained-service holds intact.
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in

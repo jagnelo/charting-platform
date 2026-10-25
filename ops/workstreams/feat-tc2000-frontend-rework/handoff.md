@@ -1,5 +1,79 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — accepted cdc334 staging adoption authorized — 2026-10-25T03:58Z
+
+TC remains at exact source `c9719521bfe8c558f1a743df683a12bef85fffe4`; the four
+dirty owner records are being reconciled and must be published before a clean
+backmerge. UV-managed `make agent-context` classified this exact worktree as
+the implementation role. The existing claim/goal remains active; no new session
+or goal was created. `agent-session-start` was not rerun because this is the
+already claimed, intentionally dirty original worktree (the bootstrap helper
+requires a clean unclaimed worktree).
+
+Root released only accepted synchronized staging `cdc33442c19f5c387b9ada759607d961365993c0`
+for merge, with canonical receipt `20261024T111337Z-cdc33442c19f.json` and
+exact staging CI `40083128955` terminal green. This source includes Provider
+P2 and Strategy SLICP. The later ETF source `8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`
+is not imported: its close tip `d203212f4841f9fa21e68525ea4bc608a86ff798`
+and exact CI `40158881330` remain in Root's canonical integration process.
+The 8d8 local audit is source-qualified (195 functional passed/2 declared
+live skips, 104 strict visual passed, backend 5,433 unit/537 integration and
+84.47% line rate); it is not proof that c971 or its F8y behavior is repaired.
+
+Current order: publish this coherent owner-record update, merge only cdc334,
+resolve combined contracts and run bounded stack-free frontend/component/type
+checks, then publish the exact combined source for its own CI. Root retains
+heavy validation and acceptance/integration authority. F8y on c971 remains
+unproven; preserve Source/Target/Control, ordinary XLE parent-host add, locked
+Remove disabled/zero-DELETE assertions, 60-second timeout and zero retries.
+Do not duplicate Provider selected-default logic or infer an ETF-current fact
+from historical/PIT evidence. Preserve immutable Study/CodeVersion identity,
+all AC1-AC9/TCP1-TCP5 and holds, the approved local-only Help reference, and
+official V25 Help parity as unfinished. No fixture, test, service or provider
+action was performed in this record preparation.
+
+## Coordinator update — Provider fix awaiting synchronized release — 2026-10-23 20:12Z
+
+Coordinator reports Provider commit `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7`
+(`fix(coverage): honor selected default series`) at published Provider tip
+`5b02caf509107856195ef8cfb2374e2ab6120612`. Its source applies selected-default
+selection to range and per-timeframe summary coverage and adds mapped-default
+versus later-alternate regression coverage. This is not yet a synchronized
+green staging release or deployed `a6b9` proof. TC remains at `c9719521` and
+must not duplicate or directly adopt the Provider repair. The full local profile
+remains open; F8y latency is unresolved with its one-case slot spent. Preserve
+all provider/data/service holds, full AC1–AC9, SX/IX unknowns, and official
+REF-HELP-V25 as outstanding.
+
+## Current follow-up — exact merged CI and Provider-owned coverage contract — 2026-10-23 20:08Z
+
+The accepted synchronized release `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`
+is merged and pushed at exact source `c9719521bfe8c558f1a743df683a12bef85fffe4`.
+Exact branch CI `40010646181` is terminal green for Backend, Frontend Unit,
+Branch-declared, and E2E; feature Exhaustive Integration Gate was an expected
+skip. E2E reported 192 passed and 110 declared skips. This hosted receipt does
+not replace the required full local profile, which remains unrun on c971.
+
+A selected-default coverage mismatch remains in Provider-owned
+`backend/app/routers/coverage.py`: coverage aggregation does not apply the
+selected `MarketSeriesDefault` predicate used by canonical bar reads. The
+runtime reproduction is qualified only to historical source `51ab9d03`; current
+c971 evidence is read-only source inspection, not a new runtime reproduction.
+TC must coordinate the endpoint/test repair with Provider rather than duplicate
+producer logic. The spent F8y slot and its `inputValue` latency remain
+unresolved. Preserve all assertions, timeouts, retry rules, references,
+retained-service/data/provider holds, full AC1–AC9, SX/IX unknowns, and official
+REF-HELP-V25 parity as open work. No local fixture, browser, provider request,
+or retained-service mutation was performed for this update.
+
+The TC consumer contract was also inspected: `CoverageSummaryTool.vue` renders
+`local_coverage`/`dataset_states` and the requested-range assessment directly;
+the `InstrumentCoverageOut` and `OhlcvCoverageOut` schemas expose no selected
+default-series identity. A TC-side subtraction/filter would therefore guess at
+which rows are noncanonical. The repair needs the Provider-owned query to honor
+the canonical default-series selection (with legacy fallback semantics tested
+there), rather than a client-side workaround.
+
 ## Current accepted dependency adoption — 2026-10-23 19:12Z
 
 The feature branch has adopted the exact synchronized green release
