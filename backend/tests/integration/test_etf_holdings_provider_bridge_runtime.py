@@ -1285,8 +1285,9 @@ async def test_sec_fund_deadline_cancels_worker_transport_before_durable_settlem
     budgets = []
     budget_type = bridge.ETFSECExecutionBudget
 
-    def new_budget():
-        budget = budget_type()
+    def new_budget(initial_qualification_authority=None):
+        assert initial_qualification_authority is None
+        budget = budget_type(initial_qualification_authority)
         budgets.append(budget)
         return budget
 

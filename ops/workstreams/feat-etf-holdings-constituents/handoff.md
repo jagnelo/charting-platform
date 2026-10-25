@@ -16274,3 +16274,31 @@ database, fixture, service, staging, sibling, master, or deployment action was
 performed here. Preserve FHSC history, AC1–AC14, `15 Tier-0 and 156 Tier-1`,
 all holds/quarantines, raw/PIT lineage, retained data, the 119 consumed
 allowance, and the 30-day observation.
+
+## Exact-5e96 cancellation-test factory correction — 2026-10-25
+
+Root's exact-source CI `40174878538` on `5e96df678ba5473eb1930461a4e02db3365d269b`
+is terminal red and remains historical: unit phase 5442 passed/1 declared
+skip; integration 540 passed/2 held skips/1 failed. The sole failure was
+`test_sec_fund_deadline_cancels_worker_transport_before_durable_settlement`:
+the monkeypatched test factory accepted no argument while production passes
+`initial_qualification_authority` (None on this ordinary route). The real
+transport assertions were not reached; this is not a corrected cancellation
+proof.
+
+Applied only the prepared test-double correction. Its factory accepts the
+optional authority, asserts None for ordinary use, and forwards it to the
+original `ETFSECExecutionBudget`. No production code, timeout, transport,
+cancellation, thread, reservation, settlement or other assertion changed.
+Root's complete unchanged-source unit validation is terminal green: 109 shards,
+5442 passed/1 declared skip, all 5443 covered. Coverage is sealed at SHA
+`f5730e0be5dca5f6a376e6284604a2155eb1d736b69a05785b92bb5faa8fa7da`; unit
+manifest SHA is `e9f958aa0a21e2c5b2280783604d24571b9e29f4ae98bba73a27dc0a4211f8b4`.
+Root must verify relevant source/test input byte-equivalence before reusing that
+unit evidence, and separately confirm unchanged frontend build inputs. The
+corrected cancellation case, complete integrations, app profile and exact-tip
+CI remain open. This owner turn uses no DB fixture, Docker/browser/build, live
+provider/SEC request, quota, target or service action. Preserve the full
+AC1–AC14 roadmap, FHSC history, `15 Tier-0 and 156 Tier-1`, disabled routes,
+holds/quarantines, retained data, raw/PIT lineage, 119 allowance history and
+the 30-day observation; checkpoint acceptance remains pending.

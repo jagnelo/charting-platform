@@ -479,18 +479,23 @@ previously_accepted_integration_checkpoint:
       exact task-local shared-runtime authority, durable account-scoped attempt
       latch, request-log linkage, evidence-gated marker and atomic final
       disabled policy. The d93 expiry and wrong-fund search boundaries are
-      preserved. Root's exact-f164 PostgreSQL run completed all four bodies in
-      34.70s: wrong-fund-then-match, no-match and real-failure passed; only
-      cross_session_job_link failed because its no-discard success path reused
-      the wrong-fund scenario's skipped-row/raw-artifact assertions. Durable
-      snapshot and exact request-log linkage checks passed before that assertion;
-      Root recorded zero Provider HTTP and no target change. The correction is
-      test-only: wrong_fund_then_match still requires the skipped row, identity
-      disposition and retained raw artifact; cross_session_job_link now
-      requires those wrong-fund records to be absent. No product defect was
-      established. Stack-free checks pass 62/62, Ruff and format checks pass,
-      and all four DB scenarios collect. Root owns the next PostgreSQL rerun.
-      The source and checkpoint are not accepted. Preserve historical
+      preserved. Exact CI 40174878538 on source
+      5e96df678ba5473eb1930461a4e02db3365d269b is red: 5442 unit cases passed
+      with one declared skip; integrations had 540 passed, two held skips and
+      one failure. The sole failure was this test's stale factory double:
+      production passed its optional authority argument, while the double
+      accepted no arguments. Applied only a test correction: the factory now
+      accepts and forwards the optional authority and asserts this ordinary
+      route call supplies None. Cancellation, transport, thread, deadline,
+      reservation and settlement assertions are unchanged. Root's complete
+      unchanged-source unit component is terminal green (109 shards, 5442
+      passed/1 declared skip, all 5443 cases covered); its coverage and
+      manifest are sealed in
+      /tmp/etf-fqc-5e96df67-validation-20261025/backend. Reuse for the
+      corrected test-only tip awaits Root's byte-equivalence check. The
+      corrected DB cancellation case, complete integrations, app profile and
+      exact-tip CI remain pending Root validation. The source and checkpoint
+      are not accepted. Preserve historical
       FHSC1-FHSC7 acceptance, every AC1-AC14 criterion,
       `15 Tier-0 and 156 Tier-1`, all holds/quarantines, raw/PIT lineage,
       retained data and the 30-day gate. No live request, quota use, target
@@ -1100,16 +1105,20 @@ current_blocker: >-
   Prior checkpoint etf-first-human-sec-source-1 (FHSC1-FHSC7) remains accepted
   and its immutable closure/evidence is archived in this plan. Exact synchronized
   green staging 5b29620741fd82d27db45987afb927bf91396712 has been adopted
-  locally. Root accepted Producer's exact first-qualification contract and
-  authorized the two narrow corrections after exact-d93 review: clamp the
-  monotonic whole-call/attempt deadline to task-authority expiry, and treat
-  only durable explicit series/class mismatches as expected candidate-search
-  discards before a later matched filing. The bounded stack-free suite passed
-  61/61; Ruff, syntax and the exact narrative-count sentinel passed. Retained
-  shared-runtime MockTransport cases cover wrong-fund-then-match,
-  no-match and HTTP failure but await Root's DB slot; Producer re-review,
-  full-profile validation and exact-source CI remain open. No live request,
-  credential, quota, target mutation, actual qualification, positive
+  locally. The FHSC3 expiry and explicit wrong-fund search boundaries remain
+  intact. Exact CI 40174878538 on 5e96 is red: unit 5442 passed/1 declared skip;
+  integration 540 passed/2 held skips/1 failed because the cancellation test's
+  monkeypatched budget factory lacked the optional authority parameter. The
+  test-only correction now accepts/forwards that argument and asserts None for
+  ordinary use; product code and cancellation/transport/settlement assertions
+  are unchanged. Root's full unchanged-source units are terminal green (109
+  shards; 5442 passed/1 declared skip; all 5443 covered), with coverage SHA
+  f5730e0be5dca5f6a376e6284604a2155eb1d736b69a05785b92bb5faa8fa7da and unit
+  manifest SHA e9f958aa0a21e2c5b2280783604d24571b9e29f4ae98bba73a27dc0a4211f8b4.
+  Reuse on the corrected tip awaits Root's exact input-byte equivalence check.
+  The corrected DB cancellation case, full integration/app gates and exact-tip
+  CI remain open; no corrected-source DB or full profile is claimed. No live
+  request, credential, quota, target mutation, actual qualification, positive
   native-current claim or route enablement is claimed. Keep ordinary routes
   denied and policy disabled; preserve `15 Tier-0 and 156 Tier-1`, all AC1-AC14,
   FHSC closure, raw/PIT lineage, quarantines, retained data and the 30-day
@@ -2209,19 +2218,14 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Root should rerun the four retained shared-runtime PostgreSQL qualification
-  scenarios after the scenario-specific assertion correction. On exact source
-  f164db5807e746bbb0a5d57f16030ac10f07ee61, Root completed all four bodies in
-  34.70s: wrong_fund_then_match, no_match and real_failure passed; only
-  cross_session_job_link failed because the test incorrectly expected a
-  wrong-fund discard row in a scenario without that candidate. The corrected
-  test keeps strict skipped-row/raw-artifact checks for wrong_fund_then_match
-  and asserts the discard row/artifact are absent for cross_session_job_link.
-  The owner ran stack-free checks only; Root owns the corrected-source DB rerun.
-  Full_integration/full_stack_browser, exact-source CI and FQ acceptance remain
-  open. No SEC/provider HTTP, credential, quota, target mutation, or live
-  qualification is authorized.
-  Preserve FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, `15 Tier-0 and 156
-  Tier-1`, all quarantines, held operations, retained data, PIT/raw lineage and
-  the 30-day observation. Do not claim the new checkpoint accepted or the full
-  roadmap complete.
+  Root owns the corrected-source PostgreSQL cancellation regression, complete
+  integration/app profile and exact-tip CI. First, Root will verify whether
+  the sealed 5e96 complete unit and frontend proofs are byte-equivalent to the
+  new test-only tip; do not relabel them as proof for new source before that
+  check. The corrected cancellation integration case has not run in this turn.
+  Full_integration/full_stack_browser and FQ acceptance remain open. No
+  SEC/provider HTTP, credential, quota, target mutation or live qualification
+  is authorized. Preserve FHSC1-FHSC7 acceptance, every AC1-AC14 criterion,
+  `15 Tier-0 and 156 Tier-1`, all quarantines, held operations, retained data,
+  PIT/raw lineage and the 30-day observation. Do not claim the new checkpoint
+  accepted or the full roadmap complete.

@@ -426,7 +426,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Publish this scenario-specific integration-test correction with its stack-free checks and exact Root f164 result. Root then reruns the four retained real-PostgreSQL qualification cases on the corrected test; this owner must not use another database or repeat locally. Fresh full-profile/exact-source CI and FQ acceptance remain open. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
-  "plan_hash": "6b6be730aa99ec1b858ca972d771bb2b38b0493b2eb184830607d17da3807fd9",
+  "plan_hash": "5c2d32152190e914f4880827b3a9d176d8c70922748e5c31e590a72d40237fe6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -650,11 +650,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root's exact-f164 PostgreSQL run completed the four selected initial_sec_qualification bodies in34.70s: wrong_fund_then_match, no_match and real_failure passed; cross_session_job_link failed only because a shared success assertion incorrectly required a wrong-fund discarded row in a scenario without that candidate. Root recorded zero Provider HTTP and no target change. The scenario-specific test correction is now present; Root owns the corrected-source PostgreSQL rerun. Stack-free checks pass62/62 with Ruff/format, and all four DB cases collect. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
-    "current_phase": "etf_sec_first_qualification_implementation_in_progress_pending_root_validation",
-    "next_action": "After this single coherent source-and-record publication, Root owns corrected-source PostgreSQL validation of wrong-fund match, cross-session job-link, no-match and real-failure cases. Then continue required full-profile and exact-source CI qualification. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
+    "current_blocker": "Exact CI 40174878538 on 5e96 is red: 5442 unit passed/1 declared skip; integration 540 passed/2 held skips/1 failed because the cancellation test double rejected the production optional authority argument. The test-only factory now accepts/forwards it and asserts ordinary None; product code and cancellation/transport/settlement assertions are unchanged. Root complete units on 5e96 are terminal green (109 shards, 5442 passed/1 declared skip, all 5443 covered; coverage f5730e0be5dca5f6a376e6284604a2155eb1d736b69a05785b92bb5faa8fa7da; manifest e9f958aa0a21e2c5b2280783604d24571b9e29f4ae98bba73a27dc0a4211f8b4). Reuse on the corrected tip awaits Root input-equivalence verification. Corrected DB cancellation case, complete integrations/app gates and exact-tip CI remain pending. Preserve 15 Tier-0 and 156 Tier-1, all FHSC/AC history, holds, quarantines, retained data, raw/PIT lineage, 119 allowance history and 30-day observation; no live request or quota use.",
+    "current_phase": "etf_sec_first_qualification_test_double_correction_published_pending_root_integration_validation",
+    "next_action": "Root verifies 5e96 unit/frontend input equivalence, runs the corrected cancellation PostgreSQL case and complete integrations/app profile, and validates the exact published tip; preserve all prior failures and the complete AC1-AC14 roadmap.",
     "total": 7,
-    "updated_at": "2026-10-25T07:56:43Z"
+    "updated_at": "2026-10-25T08:59:18Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
