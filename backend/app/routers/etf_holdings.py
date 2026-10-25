@@ -1,13 +1,15 @@
 from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user, require_admin
 from app.database import get_db
 from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
-from app.models.etf_holdings import ETFHoldingsAdapterState
+from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+from app.models.instrument import Instrument
 from app.models.user import User
 from app.schemas.basket import BasketOut
 from app.schemas.etf_holdings import (
@@ -111,7 +113,9 @@ from app.services.etf_holdings_edgar import (
     backfill_sec_nport_holdings,
     get_sec_nport_backfill_job,
     list_sec_nport_backfill_jobs,
+    qualify_sec_nport_fund,
 )
+from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
     _apply_known_route_metadata,
@@ -1208,6 +1212,40 @@ async def backfill_sec_nport_holdings_for_etf(
     )
     await db.commit()
     return summary
+
+
+@router.post(
+    "/{symbol}/sec-initial-qualification",
+    response_model=ETFHoldingsSECBackfillSummary,
+)
+async def qualify_initial_sec_nport_fund_for_etf(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Run the one-use administrator-only first SEC qualification for an existing fund."""
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol or normalized_symbol in {"*", "ALL", "ANY"}:
+        raise HTTPException(status_code=422, detail="A single committed ETF symbol is required")
+    profile = (
+        await db.execute(
+            select(ETFProfile)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .options(selectinload(ETFProfile.instrument))
+            .where(func.upper(Instrument.symbol) == normalized_symbol)
+        )
+    ).scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Committed ETF profile not found")
+    try:
+        return await qualify_sec_nport_fund(
+            db,
+            profile_id=profile.id,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post("/{symbol}/backfill-sec-legacy", response_model=ETFHoldingsSECBackfillSummary)

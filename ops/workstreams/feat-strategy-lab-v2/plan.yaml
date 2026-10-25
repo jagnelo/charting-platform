@@ -93,7 +93,15 @@ integration_checkpoint:
     before limits/ranking, with canonical and null-series legacy fallbacks; the staging source
     contains focused single/batch regressions. No Strategy-specific production adaptation was
     needed. ETF PIT/admission/quota/identity and TC immutable Study contracts are preserved as
-    imported; their bytes/workstreams were not edited by this owner.
+    imported; their bytes/workstreams were not edited by this owner. On 2026-10-25 this branch also
+    adopted exact synchronized-green ETF checkpoint 3ff96af855a49d42b1dee10cecb43bc6690f4502,
+    released from starting staging 5b29620741fd82d27db45987afb927bf91396712 by canonical receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and
+    hosted CI 40202604218. The imported FQ1-FQ8 delta is confined to ETF source/tests and ETF-owned
+    records; no Strategy consumer source overlap or established Strategy frozen-import manifest
+    exists. The exact merge preserves the imported ETF record bytes. SEC acquisition remains
+    coordinator-owned and pending; the consumed 119-request history and all provider/data/quota
+    holds are unchanged.
   original_criterion_dispositions:
     - id: AC-DOMAIN
       disposition: partially_delivered
@@ -972,29 +980,32 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Combined green staging 5b29620741fd82d27db45987afb927bf91396712 is now adopted by exact
-    fast-forward; this branch contains the Provider P2 selected/default-series Research consumer
-    correction for both single and bounded batch materialization. Root's independent master run
-    40167616374 is still validating, and the private target remains on a6b9; no deployment or target
-    acceptance is implied. Branch-local immutable-reference API/payload and V2 navigation
-    prerequisites remain absent from deployed a6b9. Target owner-positive/negative UI/API proof and
-    SPY/RSP date-only acceptance remain pending; listing venue must come from authoritative canonical
-    InstrumentListing data (observed EquityDetail.exchange_mic NULL is not proof), with exact-bound
-    run4 distinct from deferred date-only run3. The full 18-criterion roadmap remains open. Preserve
-    the recorded split-phase backend qualification, migration no-change SKIP, frontend/Research
-    artifact reuse, isolated app/API/worker/functional/visual evidence and all historical red attempts
-    as qualified evidence for source 83, not as newly rerun tests on 5b. Native, forward, broker,
-    capital, provider/quota, paid/trial, unknown and unsafe operations remain disabled or held.
-  updated_at: "2026-10-25T06:12:01Z"
+    Exact synchronized-green ETF source 3ff96af855a49d42b1dee10cecb43bc6690f4502 is adopted as
+    the second parent of this branch reconciliation; its canonical receipt is
+    /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and exact
+    hosted CI 40202604218 passed the required jobs, including Exhaustive Integration Gate. This is
+    the accepted ETF FQ1-FQ8 source checkpoint, not source-combined deployment or target acceptance.
+    Root's independent master CI 40210522503 remains in progress; the private target remains on a6b9.
+    SEC acquisition and actual target acceptance remain Root-owned and pending; the historical
+    119-request consumption is preserved. The Provider P2 selected/default-series behavior from
+    5b remains present in direct single and bounded batch Research reads. Preserve the source-83
+    qualification and all earlier red attempts as source-83 evidence only; no tests or runtime work
+    were repeated for this staging adoption. The genuine deployed Results-to-inspector
+    owner-positive/negative proof, authoritative SPY/RSP canonical listing-venue review and full
+    18-criterion roadmap remain open. Native/RC6, forward, broker, capital, provider/quota,
+    paid/trial, unknown and unsafe operations remain held or disabled.
+  updated_at: "2026-10-25T16:25:22Z"
   next_action: >-
-    Continue the original full roadmap with AC-UPSTREAM's combined-consumer revalidation: Provider
-    local-series/default selection is now present in both Research read paths; preserve and qualify
-    ETF PIT/admission/quota/identity and TC immutable Study-output behavior on the exact adopted
-    source. Wait for Root's master/release coordination and any assigned heavy-validation slot before
-    resource work. Do not claim target acceptance or deployment: the target remains a6b9, genuine-data
-    owner-positive/negative inspector proof and SPY/RSP authoritative venue review are still open.
-    Keep native/RC6, forward, broker/capital, provider/quota, paid/trial, unknown and unsafe scopes
-    held or disabled; preserve all 18 criteria and their existing dispositions.
+    Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact
+    adopted source: stack-free review/regressions for ETF point-in-time membership, source identity,
+    admission/budget/quota denial and interaction with the already accepted Provider local-series
+    and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification.
+    Preserve ETF's held SEC acquisition and 119-request history; Root owns actual SEC acquisition and
+    target acceptance. Do not start that development or any heavy/resource work in this adoption
+    checkpoint. Keep the private target a6b9 and all 18 criterion dispositions open; no deployment,
+    native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown or unsafe operation is
+    authorized here.
+
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 parent_branch: staging

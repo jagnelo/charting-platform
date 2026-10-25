@@ -35,31 +35,26 @@
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "dirty_paths": [
+    "backend/app/routers/etf_holdings.py",
+    "backend/app/services/etf_holdings_edgar.py",
+    "backend/app/services/etf_holdings_provider_bridge.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_edgar.py",
+    "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
     "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -89,14 +84,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "5b29620741fd82d27db45987afb927bf91396712",
-  "implementation_sha": "5b29620741fd82d27db45987afb927bf91396712",
-  "last_checkpoint": "2026-10-25T06:12:01Z",
+  "head": "f3daad894e209b23b83c02789f2c6cbbffdcb9f2",
+  "implementation_sha": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
+  "last_checkpoint": "2026-10-25T16:25:22Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Root owns guarded staging integration of exact tested source 83e93958921b479ccd122494571d0b9dbb1acc5d after this ordinary closure is published and final exact-head CI is green. Continue the full 18-criterion roadmap in this same branch after coordinator release. This source checkpoint is not target acceptance: staging/master gates, separately authorized deployment, and genuine-data owner-positive/negative V2 inspector UI/API proof remain. Preserve SPY/RSP date-only venue review, prior red evidence, and all disabled live/native/forward/broker/capital boundaries.",
   "parent_branch": "staging",
-  "plan_hash": "e1a88acc180013e40449e5d5bdb8a28f06447c92caebe0829fc82672fed49a11",
+  "plan_hash": "22baa910b19b790517f86e0469c11e5905e11a6caf34202b7990bd29ca080568",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -126,14 +121,14 @@
       "FH4",
       "FH5"
     ],
-    "current_blocker": "Exact canonical green combined staging 5b29620741fd82d27db45987afb927bf91396712 is adopted by fast-forward from 1d32b1ee8d174c4f43432d6729846c5dbcd3347c. The accepted Provider P2 Research change applies the shared selected/default-series predicate in direct single-symbol and bounded set-based batch materialization before ranking/limits, with canonical and legacy fallbacks; no Strategy-specific source patch was necessary. No tests or runtime work were repeated for this source-only fast-forward. Master validation 40167616374 remains in progress and the private target remains a6b9; neither is deployment or target acceptance. Preserve source-83 qualification and historical failures as evidence on 83, not as newly rerun on 5b. Genuine deployed Results-to-inspector owner-positive/negative proof, authoritative SPY/RSP canonical listing venue review, and the complete 18-criterion roadmap remain open. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.",
+    "current_blocker": "Exact synchronized-green ETF source 3ff96af855a49d42b1dee10cecb43bc6690f4502 is adopted as the second parent of this branch reconciliation; its canonical receipt is /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and exact hosted CI 40202604218 passed the required jobs, including Exhaustive Integration Gate. This is the accepted ETF FQ1-FQ8 source checkpoint, not source-combined deployment or target acceptance. Root's independent master CI 40210522503 remains in progress; the private target remains on a6b9. SEC acquisition and actual target acceptance remain Root-owned and pending; the historical 119-request consumption is preserved. The Provider P2 selected/default-series behavior from 5b remains present in direct single and bounded batch Research reads. Preserve the source-83 qualification and all earlier red attempts as source-83 evidence only; no tests or runtime work were repeated for this staging adoption. The genuine deployed Results-to-inspector owner-positive/negative proof, authoritative SPY/RSP canonical listing-venue review and full 18-criterion roadmap remain open. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.",
     "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
-    "next_action": "Continue the original full Strategy Lab v2 roadmap with AC-UPSTREAM combined-consumer qualification on the adopted source: preserve Provider local-series/coverage/freshness/provenance behavior, qualify ETF PIT membership and admission/quota/identity, and qualify TC immutable CodeVersion/Study outputs. Root owns master/release coordination and any heavy-validation slot. Do not claim deployed target acceptance or deployment; the target remains a6b9 and genuine-data inspector UI/API proof plus SPY/RSP authoritative venue review remain open. Keep all 18 criterion IDs/texts/dispositions and disabled-scope boundaries intact; no unrelated feature implementation in this bounded adoption turn.",
+    "next_action": "Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact adopted source: stack-free review/regressions for ETF point-in-time membership, source identity, admission/budget/quota denial and interaction with the already accepted Provider local-series and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification. Preserve ETF's held SEC acquisition and 119-request history; Root owns actual SEC acquisition and target acceptance. Do not start that development or any heavy/resource work in this adoption checkpoint. Keep the private target a6b9 and all 18 criterion dispositions open; no deployment, native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown or unsafe operation is authorized here.",
     "total": 5,
-    "updated_at": "2026-10-25T06:12:01Z"
+    "updated_at": "2026-10-25T16:25:22Z"
   },
-  "remote": "1d32b1ee8d174c4f43432d6729846c5dbcd3347c",
-  "remote_sha": "1d32b1ee8d174c4f43432d6729846c5dbcd3347c",
+  "remote": "f3daad894e209b23b83c02789f2c6cbbffdcb9f2",
+  "remote_sha": "f3daad894e209b23b83c02789f2c6cbbffdcb9f2",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,

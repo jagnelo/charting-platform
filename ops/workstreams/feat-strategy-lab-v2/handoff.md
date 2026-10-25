@@ -19182,3 +19182,35 @@ The owner preflight resumed the existing claim `02d5ffaa-53b5-4dec-b39c-0f36612b
 The combined Provider P2 change applies the shared selected/default-series predicate in both direct single-symbol Research loading and bounded set-based batch materialization before ranking/limits, retaining canonical and legacy null-series fallback behavior. The staging source includes focused single-read and batch regressions. No additional Strategy production adaptation was needed. Provider and ETF imported workstream records remain untouched; accepted ETF PIT/admission/quota/identity and TC immutable Study contracts remain in scope for continued combined-consumer qualification.
 
 No tests, builds, services, databases, provider requests, or heavy resources were run for this pure fast-forward. Existing source-83 backend/profile and exact CI receipts remain qualified to source 83 only; their historical red attempts are preserved and were not replayed. Master validation `40167616374` is owned by Root and remains in progress. The private target is still on `a6b9`; no target/deployment acceptance is claimed. Genuine deployed Results-to-inspector owner-positive/negative proof, authoritative SPY/RSP canonical listing venue review, and all unfinished original 18 roadmap criteria remain open. Native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe operations remain held or disabled.
+
+### Accepted ETF FQ1-FQ8 staging adoption (2026-10-25)
+
+The existing claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436` and worktree
+`feat-strategy-lab-v2-7794d9e53d` were resumed without changing goal history or accounting. Exact
+green staging `3ff96af855a49d42b1dee10cecb43bc6690f4502` was verified from canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json`; hosted run
+`40202604218` passed all required jobs including Exhaustive Integration Gate. Its starting staging
+source is the already adopted `5b29620741fd82d27db45987afb927bf91396712`. Only this exact release is being reconciled into the existing feature branch; no staging/master/sibling ref is changed.
+
+The accepted delta is the ETF FQ1-FQ8 source checkpoint. The exact release diff from 5b is confined
+to ETF router/services, ETF unit/integration tests, and the ETF-owned `handoff.md`, `plan.yaml`,
+`session.json`, and append-only `validation.jsonl`. Those imported ETF workstream files are retained
+from the released tree without owner edits. There is no established Strategy frozen-upstream-import
+manifest or Strategy scope validator; the existing frozen-import manifest and scope validator belong
+to TC2000 and remain untouched. The merge has no Strategy consumer-source conflict. Provider P2
+selected/default-series single and bounded batch behavior from 5b is retained; ETF policy, PIT,
+budget/quota and identity semantics are preserved, as is TC behavior. The historical 119-request
+consumption and all data/quota holds remain unchanged.
+
+This is accepted source adoption, not genuine SEC acquisition or target acceptance. SEC acquisition
+and deployment/target proof remain Root-owned and pending; the private target is still `a6b9`, and
+master CI `40210522503` is still running. No tests, Docker, database, browser, provider request,
+native operation, service cleanup or other runtime work was performed for this adoption. The prior
+source-83 qualifications and red attempts remain source-83 evidence only. The full 18-criterion
+roadmap, genuine target inspector proof, and authoritative SPY/RSP listing-venue review remain open.
+
+Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification: stack-free review and
+focused regressions for ETF PIT membership, identity and admission/budget/quota denial together with
+the accepted Provider local-series/coverage contract, followed by TC immutable CodeVersion/Study
+outputs. This is recorded as the next action only; it is not started in this adoption context. Heavy
+validation requires Root's slot, and SEC acquisition/target proof remain Root-owned.
