@@ -31,23 +31,24 @@
   ],
   "active_changeset": {
     "baseline": "d93a7f3fa12700a2b3c5e908aea7147e48671254",
-    "name": "etf-sec-first-qualification-1 admin-only initial SEC qualification",
-    "intent": "Resolve the not_run first-request cycle through one admin-only, exact-scope qualification context while preserving every shared Provider admission/accounting guard and leaving ordinary policy disabled.",
-    "current_delta": "Added the admin-only POST /api/v1/etf-holdings/{symbol}/sec-initial-qualification route, task-local sealed authority for the three reviewed EDGAR ETF_HOLDINGS SEC operations, account-scoped PostgreSQL advisory serialization and durable one-attempt latch, shared bridge request-log linkage, evidence-gated positive marker, and atomic final disabled policy. The d93 follow-up clamps the whole-call and per-attempt monotonic budget to authority expiry, rechecks after loop-local setup, prevents send after setup expiry, and keeps sent I/O cancellable under durable settlement. Only durable explicit series/class mismatches are candidate-search discards in qualification; ordinary backfill failure semantics remain unchanged. The retained real shared-runtime integration test now covers wrong-fund-then-match, no-match and HTTP-failure outcomes plus success/concurrency/replay/ordinary-denial evidence. The bounded offline focused suite passed 61 tests; Ruff and syntax checks passed. The three DB scenarios were collected but not run; they await Root's assigned fixture. No live call or quota use.",
     "contract": "/home/m920q/charting-platform/.ai/staging-attempts/sec-first-qualification-producer-contract-20261025.md",
+    "current_delta": "At tested source 1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d, Root's assigned PostgreSQL run timed out at190.03s while the qualification parent transaction held the backfill-job row and the Provider child session awaited that row to durably append request-log IDs. The root lock snapshot supports this parent/child row-lock cycle; advisory account serialization is separate. For sealed initial-qualification requests only, _sec_get now flushes/commits the dedicated operation session before entering the shared Provider call. Ordinary backfills keep caller transaction ownership. Added a stack-free ordering regression and retained PostgreSQL cross_session_job_link scenario with exact durable-log linkage assertion. Focused offline tests passed62/62, Ruff/format passed, and four DB cases collect; no corrected-source DB run occurred. No live HTTP, quota, target, fixture, service, sibling or staging action.",
+    "intent": "Resolve the not_run first-request cycle through one admin-only, exact-scope qualification context while preserving every shared Provider admission/accounting guard and leaving ordinary policy disabled.",
+    "name": "etf-sec-first-qualification-1 admin-only initial SEC qualification",
     "owned_paths": [
       "backend/app/routers/etf_holdings.py",
       "backend/app/services/etf_holdings_edgar.py",
       "backend/app/services/etf_holdings_provider_bridge.py",
       "backend/app/services/provider_runtime.py",
       "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
+      "backend/tests/unit/services/test_etf_holdings_edgar.py",
       "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "state": "Implementation is in progress and not accepted. Root authorized only the two reviewed d93 corrections: authority-expiry deadline clamping and precise durable wrong-fund candidate-discard classification. Preserve prior FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, 15 Tier-0 and 156 Tier-1, live/quota/native holds and all historical red/incomplete receipts. No live request, quota use, target write or DB fixture was used. The retained DB-backed success/no-match/failure and expiry-settlement tests, Producer exact-code re-review, fresh complete full-profile qualification and exact-source CI remain required."
+    "state": "Implementation is in progress and not accepted. The exact-source Root PostgreSQL attempt on 1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d timed out at190.03s after setup; lock evidence shows the qualification parent holds a backfill-job row while the Provider child waits to durably link request-log IDs. The qualification-only pre-request commit boundary now releases that lock; ordinary backfills retain caller-owned transaction behavior. Offline checks pass62/62 and four DB cases collect, including cross_session_job_link, but corrected-source PostgreSQL validation has not run. Preserve earlier expiry/wrong-fund fixes, FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, 15 Tier-0 and 156 Tier-1, live/quota/native holds and all historical red/incomplete receipts. No live request, quota use, target write, corrected-source DB test, full profile or checkpoint acceptance is claimed; Root owns DB/full-profile validation and exact-source CI remains required."
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -98,15 +99,13 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Root accepted Producer's exact first-qualification contract and authorized two narrow corrections after exact-d93 review: clamp the monotonic whole-call/attempt budget to task-authority expiry, and treat only durable explicit series/class mismatches as expected candidate-search discards before a later exact match. Bounded offline focused checks passed 61/61, including slow setup/no-send, authority-expiry cancellation, explicit mismatch classification, existing timeout distinctions, router and positive-probe guards; Ruff, syntax and exact narrative-count sentinel passed. Three retained DB-backed shared-runtime scenarios cover wrong-fund-then-match, no-match and HTTP failure, but await Root's assigned DB slot. Producer re-review, fresh full-profile and exact-source CI remain open. No live SEC/provider request, credential, quota use, target mutation, actual qualification or route enablement is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, held routes, retained data and raw/PIT lineage.",
+  "current_blocker_latest": "Root's focused PostgreSQL run on source1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d timed out after180s plus10s grace (190.03s, exit-9) with zero Provider HTTP and no target change. PID117 held the qualification job transaction after filing-state insertion while PID120's Provider child transaction waited to append request-log IDs to that job; PID119/PID118 were the separate intended advisory-lock holder/waiter. The qualification-only pre-request flush/commit now releases the parent row lock before child linkage, preserving the advisory latch and caller-owned ordinary backfills. Offline focused tests pass62/62 with five warnings; Ruff/format pass; four actual PostgreSQL cases collect, including cross_session_job_link, but corrected-source DB proof is still Root-owned and pending. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
   "current_checkpoint_objective": "Implement etf-sec-first-qualification-1 under Root-accepted Producer contract: add one separate administrator-only one-fund SEC qualification operation and narrowly scoped shared-runtime hook without bypassing normal admission, identity, account, hold, budget, settlement, provenance or bounded-transport controls. Keep ordinary routes denied and policy disabled until Root accepts real qualifying evidence; preserve FHSC1-FHSC7 acceptance and the complete AC1-AC14 roadmap.",
-  "current_local_delta": "On d93, implemented the two Root-reviewed FQC boundary corrections: the shared monotonic SEC deadline is clamped to authority expiry across the whole call and worker attempt, with post-setup no-send and in-flight cancellation coverage; explicit durable series/class mismatches are separately retained as candidate-search discards only for qualification, and only a later exact-match usable snapshot can qualify. Ordinary backfill mismatch/failure behavior is unchanged. Offline unit/router checks and retained DB MockTransport wrong-fund-then-match/no-match/HTTP-failure cases cover the change; no DB case was run locally. No live HTTP, quota, target, fixture, service, sibling or staging action occurred; FHSC remains historically accepted and FQC remains in progress pending Producer review and Root full qualification.",
+  "current_local_delta": "On top of d93 and published source1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d, qualification-only _sec_get flushes/commits the dedicated parent operation session before awaiting the separate Provider transaction that durably appends request-log IDs to the job. This prevents the observed parent-held job-row/child-update deadlock without changing ordinary backfill transaction ownership. Added a stack-free commit-order regression and a real-PostgreSQL cross_session_job_link scenario, and strengthened exact request-log ID linkage. Focused tests pass62/62 and Ruff/format pass. The assigned Root DB run on1f failed before assertions due the observed lock cycle; no corrected-source PostgreSQL case has run. FHSC remains historically accepted; FQC, exact-source CI and full profile remain open. No live HTTP, quota, target, service or fixture action by this owner turn.",
   "dirty_paths": [
     "backend/app/services/etf_holdings_edgar.py",
-    "backend/app/services/etf_holdings_provider_bridge.py",
     "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_initial_qualification.py",
-    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+    "backend/tests/unit/services/test_etf_holdings_edgar.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -136,7 +135,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "cf0901d6e7943411d4b0fe3c7ec0d520015ca05d",
+  "head": "1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d",
   "implementation_sha": "5b29620741fd82d27db45987afb927bf91396712",
   "integration_checkpoint": {
     "acceptance_authorization": "pending_root_review_and_future_checkpoint_acceptance",
@@ -428,8 +427,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Finish bounded offline tests, lint/format, narrative-count sentinel and workstream validation for the two exact-d93 corrections, then publish one coherent clean source-and-record tip for Producer exact-code re-review and Root's assigned DB/full-profile/exact-source-CI gates. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
-  "plan_hash": "64e93c6bc3ec9d48ccb38f0a874cfd6d639e65551540cecaec2f6d6cf145d695",
+  "next_action": "Publish this transaction-safe correction with its offline and exact Root lock-timeout evidence. Root then runs the four retained real-PostgreSQL qualification cases on the corrected source; do not use another database or repeat locally. Fresh full-profile/exact-source CI and FQ acceptance remain open. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
+  "plan_hash": "f56e616ce580b85f6a1274553083220185b3e300ded78d6073b9d322049502d8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -653,11 +652,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root accepted Producer's exact first-qualification contract and authorized two narrow corrections after exact-d93 review: clamp the monotonic whole-call/attempt budget to task-authority expiry, and treat only durable explicit series/class mismatches as expected candidate-search discards before a later exact match. Bounded offline focused checks passed 61/61; Ruff, syntax and the exact count sentinel passed. Retained DB-backed shared-runtime wrong-fund-then-match, no-match and HTTP-failure cases await Root's DB slot. Producer re-review, fresh full-profile and exact-source CI remain open. No live SEC/provider request, credentials, quota, target mutation, actual qualification or route enablement is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, held routes, retained data and raw/PIT lineage.",
+    "current_blocker": "Root's assigned PostgreSQL run on tested source1f timed out at190.03s after the parent qualification transaction held the job row while the Provider child waited to append request-log IDs; zero Provider HTTP and no target change. The qualification-only pre-request commit now releases that row lock; ordinary backfills remain caller-owned. Offline focused checks pass62/62, Ruff/format pass, and four PG cases collect including the explicit cross-session link regression. No corrected-source DB case has run. Full-profile/exact-source CI and FQ acceptance remain open. No live request, quota, target mutation or actual qualification is claimed. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, quarantines, holds, retained data and raw/PIT lineage.",
     "current_phase": "etf_sec_first_qualification_implementation_in_progress_pending_root_validation",
-    "next_action": "Publish one coherent clean source-and-record tip for Producer exact-code re-review and Root's assigned DB-backed expiry/candidate-search/success/no-match/failure checks, then fresh full-profile and exact-source CI qualification. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
+    "next_action": "After this single coherent source-and-record publication, Root owns corrected-source PostgreSQL validation of wrong-fund match, cross-session job-link, no-match and real-failure cases. Then continue required full-profile and exact-source CI qualification. Keep live SEC/provider requests, quota, policy activation, target mutation and checkpoint acceptance held.",
     "total": 7,
-    "updated_at": "2026-10-25T07:17:56Z"
+    "updated_at": "2026-10-25T07:51:07Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -679,9 +678,9 @@
     "staging_sha": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
-  "remote": "cf0901d6e7943411d4b0fe3c7ec0d520015ca05d",
+  "remote": "1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d",
   "remote_observation": "Before this coherent workstream publication: local branch adopted released staging 5b29620741fd82d27db45987afb927bf91396712; origin/feat/etf-holdings-constituents still resolved locally to d203212f4841f9fa21e68525ea4bc608a86ff798. Direct ls-remote was DNS-blocked. Verify the final owner commit/push externally; do not create a self-hash metadata loop.",
-  "remote_sha": "cf0901d6e7943411d4b0fe3c7ec0d520015ca05d",
+  "remote_sha": "1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {

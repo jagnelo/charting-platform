@@ -16196,3 +16196,54 @@ dirty recorded state; the active claim was preserved rather than displaced.
 The final records commit intentionally identifies validated implementation
 source `8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`, not its own future commit
 hash, to avoid a self-hash metadata loop.
+
+## FQC parent/Provider transaction wait correction — 2026-10-25
+
+Root's focused run on exact source `1f622779d12f4ee3ec5235ec48e47dd3ea9afa2d`
+reached the initial qualification integration test, then timed out after
+180 seconds plus the 10-second termination grace (elapsed190.03s, exit `-9`).
+It recorded zero Provider HTTP and no target changes. Root's PostgreSQL lock
+snapshot showed PID117 idle in a transaction after inserting
+`etf_holdings_backfill_filing`, PID120 waiting on PID117's transaction while
+updating that qualification job's `extra_data`, and PID119 holding the
+account-scoped advisory transaction lock while PID118 waited for it.
+The exact coordinator evidence is in
+`/tmp/fqc-1f622779-db-20261025/root-focused-result.json`,
+`root-focused.log`, and `root-lock-observation.json`. The earlier owner-local
+attempt on that source ended at fixture setup with three connection errors and
+no test bodies; its log is `etf-initial-qualification.log` in the same temp
+directory. That setup error is distinct from Root's later transaction wait.
+
+The source path confirms the row-lock cycle: `_backfill_sec_holdings` flushes
+the candidate filing and job state in the qualification operation session,
+then awaits `_sec_get`; the shared Provider child session settles its request
+and tries to durably append the request-log ID to that same job before
+returning. The awaiting parent still owns the job-row update lock. The
+account advisory lock is separate and remains the intended one-attempt
+serialization mechanism.
+
+The correction is limited to requests carrying the sealed initial
+qualification authority: `_sec_get` flushes and commits the dedicated
+qualification operation session immediately before each shared SEC request.
+This releases pending job/filing row locks before the Provider child session
+durably links request-log IDs. The attempt/job state is persisted before the
+request; child settlement and linkage remain in its own transaction, and the
+qualification finalizer still records interruption/cancellation. Ordinary
+SEC backfills do not commit caller-owned transactions. The existing
+MockTransport PostgreSQL integration gained a `cross_session_job_link` case
+that enters the filing request after parent job/filing writes and verifies the
+committed job links exactly the returned settled request-log rows. The existing
+wrong-fund-then-match, no-match, real-failure, concurrent-latch, replay-denial,
+disabled-policy, expiry, physical-attempt, and audit assertions are retained.
+
+Stack-free validation on the worktree passed 62 tests/5 warnings in 15.05s,
+including the prior 61 offline assertions and a parent-flush/commit ordering
+unit regression. Ruff check and format-check passed for the three changed
+Python files. The PostgreSQL selector collects four cases (three prior
+candidate-search outcomes plus `cross_session_job_link`), but no corrected
+source DB case has run in this owner turn. Root owns the next isolated
+PostgreSQL validation. No Docker/DB/browser fixture, live HTTP, credential,
+quota, target, service, staging, sibling, master or deployment action occurred.
+FQC remains in progress/not accepted; preserve all FHSC history, AC1–AC14,
+`15 Tier-0 and 156 Tier-1`, holds, quarantines, retained data, PIT/raw lineage,
+119 consumed allowance and the 30-day observation.

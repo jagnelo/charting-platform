@@ -2799,11 +2799,14 @@ async def test_sec_invalid_http_200_is_failed_and_measured_before_sticky_denial(
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.parametrize("scenario", ["wrong_fund_then_match", "no_match", "real_failure"])
+@pytest.mark.parametrize(
+    "scenario",
+    ["wrong_fund_then_match", "cross_session_job_link", "no_match", "real_failure"],
+)
 async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
     provider_db, monkeypatch, scenario
 ):
-    """Qualification searches only explicit wrong-fund discards and never blesses failures."""
+    """Qualification links child-session logs without deadlocking the parent job transaction."""
 
     from app.models.etf_holdings import ETFHoldingsBackfillFiling, ETFHoldingsBackfillJob
     from app.services import etf_holdings_edgar as edgar
@@ -3027,12 +3030,20 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
     assert len(summaries) == 1, outcomes
     assert len(concurrent_denials) == 1, outcomes
     summary = summaries[0]
-    qualification_succeeded = scenario == "wrong_fund_then_match"
+    qualification_succeeded = scenario in {
+        "wrong_fund_then_match",
+        "cross_session_job_link",
+    }
     if qualification_succeeded:
         assert summary["status"] == "completed"
         assert summary["ingested"] == 1
-        assert len(summary["expected_non_target_fund_discards"]) == 1
-        assert runner.calls == [submissions_url, wrong_filing_url, filing_url]
+        if scenario == "wrong_fund_then_match":
+            assert len(summary["expected_non_target_fund_discards"]) == 1
+        expected_calls = [submissions_url]
+        if scenario == "wrong_fund_then_match":
+            expected_calls.append(wrong_filing_url)
+        expected_calls.append(filing_url)
+        assert runner.calls == expected_calls
     elif scenario == "no_match":
         assert summary["status"] == "partial"
         assert summary["ingested"] == 0
@@ -3106,7 +3117,9 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
             )
             assert artifact.payload_text == filing_xml
             assert artifact.content_hash == _hash_payload(filing_xml)
-            assert len(attempt.extra_data["qualification_request_log_ids"]) == len(logs)
+            linked_request_ids = attempt.extra_data["qualification_request_log_ids"]
+            assert len(linked_request_ids) == len(set(linked_request_ids)) == len(logs)
+            assert set(linked_request_ids) == {row.id for row in logs}
             assert attempt.extra_data["qualification_snapshot_id"] == snapshot.id
             assert attempt.extra_data["qualification_raw_artifact_id"] == artifact.id
             discarded_row = await readback.scalar(
@@ -3147,7 +3160,11 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
                 requested_by_user_id=None,
             )
     if qualification_succeeded:
-        assert runner.calls == [submissions_url, wrong_filing_url, filing_url]
+        expected_calls = [submissions_url]
+        if scenario == "wrong_fund_then_match":
+            expected_calls.append(wrong_filing_url)
+        expected_calls.append(filing_url)
+        assert runner.calls == expected_calls
     with quota_engine.connect() as connection:
         reservations = (
             connection.execute(

@@ -227,6 +227,16 @@ async def _sec_get(
             "SEC request is missing its bounded one-fund execution context"
         )
 
+    if sec_budget.initial_qualification_authority is not None:
+        # The qualification Provider child session durably appends each
+        # request-log ID to this attempt before it returns. Release any row
+        # locks held by the dedicated qualification operation session first;
+        # otherwise its flushed job/filing state can deadlock that child
+        # transaction while both sessions are active in the same operation.
+        # Ordinary SEC backfills retain caller-owned transaction semantics.
+        await request_identity.db.flush()
+        await request_identity.db.commit()
+
     with bind_etf_holdings_sec_request_context(
         db=request_identity.db,
         adapter=_EDGAR_ETF_HOLDINGS_ADAPTER,

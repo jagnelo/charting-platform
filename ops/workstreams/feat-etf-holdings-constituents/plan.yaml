@@ -478,15 +478,26 @@ previously_accepted_integration_checkpoint:
       producer-contract-20261025.md. Added the admin-only qualification route,
       exact task-local shared-runtime authority, durable account-scoped attempt
       latch, request-log linkage, evidence-gated marker and atomic final
-      disabled policy. Stack-free focused tests pass 57/57; Ruff and syntax
-      checks pass. A real shared-runtime MockTransport success/concurrency/
-      replay integration test is retained but awaits Root's DB slot. The source
-      and checkpoint are not accepted. Preserve historical FHSC1-FHSC7
-      acceptance, every AC1-AC14 criterion, `15 Tier-0 and 156 Tier-1`, all
-      holds/quarantines, raw/PIT lineage, retained data and the 30-day gate.
-      No live request, quota use, target mutation or actual qualification is
-      claimed. Root Producer review, complete full-profile validation and
-      exact-source CI remain required.
+      disabled policy. The d93 expiry and wrong-fund search boundaries are
+      preserved. Root's PostgreSQL run on exact source 1f622779d12f4ee3
+      reached the dedicated wrong-fund qualification scenario and timed out
+      after 190.03 seconds with zero provider HTTP and no target change. The
+      lock snapshot shows the parent qualification transaction holding a
+      backfill-job row update while its awaited Provider child transaction
+      tries to append request-log IDs to that same row. Only the qualification
+      request path now flushes and commits its dedicated operation session
+      before starting each shared Provider request; ordinary backfills retain
+      caller-owned transaction behavior. The existing actual PostgreSQL test
+      now includes a focused cross-session job-link scenario and asserts the
+      durable request-log IDs exactly match the settled log rows. Stack-free
+      checks pass 62/62, Ruff and format checks pass, and four DB scenarios
+      collect. The new PostgreSQL scenarios have not run locally; Root owns the
+      next DB proof. The source and checkpoint are not accepted. Preserve
+      historical FHSC1-FHSC7 acceptance, every AC1-AC14 criterion,
+      `15 Tier-0 and 156 Tier-1`, all holds/quarantines, raw/PIT lineage,
+      retained data and the 30-day gate. No live request, quota use, target
+      mutation or actual qualification is claimed. Complete full-profile
+      validation and exact-source CI remain required.
     baseline: cf0901d6e7943411d4b0fe3c7ec0d520015ca05d
     intent: >-
       Permit one admin-only initial EDGAR ETF_HOLDINGS qualification when prior
@@ -500,6 +511,7 @@ previously_accepted_integration_checkpoint:
       - backend/app/services/etf_holdings_provider_bridge.py
       - backend/app/services/provider_runtime.py
       - backend/tests/unit/services/test_etf_holdings_initial_qualification.py
+      - backend/tests/unit/services/test_etf_holdings_edgar.py
       - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
       - ops/workstreams/feat-etf-holdings-constituents/handoff.md
       - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
@@ -700,6 +712,7 @@ integration_checkpoint:
     - Deterministic MockTransport success uses an exact identity-matching N-PORT body and proves one usable snapshot, raw artifact/content hash, request-log/reservation linkage, measured settlement, observed known_at, and positive qualification while policy remains disabled.
     - In the dedicated qualification job only, a durably retained explicit series/class mismatch may be an expected candidate-search discard before a later exact-match filing. No-match, missing identity, parser/transport/HTTP/quota/deadline/byte failure remain non-positive.
     - Task authority expiry caps the monotonic whole-call and attempt deadlines; slow loop-local transport setup that crosses expiry performs no send, while expiry during a sent HTTPX attempt cancels it and preserves shared durable settlement. The 20s attempt and 210s fund ceilings remain unchanged.
+    - The dedicated qualification operation commits its own pending job/filing state before awaiting the separate shared-runtime transaction that durably links request-log IDs; a real PostgreSQL MockTransport regression exercises this cross-session boundary without changing ordinary backfill transaction ownership.
     - HTTP error, transport timeout, fund deadline, cancellation, partial/truncated/decompression-limit response, parser error, identity mismatch, no candidate, and failed/uncertain settlement remain truthful, durably audited where applicable, and never set positive qualification.
   original_criterion_dispositions: *etf_fhsc_original_criterion_dispositions
   full_roadmap_status: AC1-AC14 retained verbatim and remain open; no other publisher onboarding, native-current evidence, or 30-day observation is accepted by this checkpoint.
@@ -2198,13 +2211,14 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete bounded stack-free tests, Ruff, the narrative-count sentinel and
-  workstream validation for the two exact-d93 FQC corrections, then publish one
-  coherent clean source-and-record changeset. Producer exact-code re-review,
-  DB-backed shared-runtime expiry/candidate-search/success/no-match/failure
-  cases, full_integration/full_stack_browser and exact-source CI remain open for
-  Root qualification. No SEC/provider HTTP, credential, quota, target mutation,
-  or live qualification is authorized.
+  Root should rerun the four retained shared-runtime PostgreSQL qualification
+  scenarios against the corrected exact source, especially the explicit
+  cross-session job-link case; the previous assigned run timed out with the
+  parent/child row-lock cycle recorded in the handoff. Stack-free tests and
+  workstream checks passed locally, but no corrected-source PostgreSQL case has
+  run. Producer review of the corrected code, full_integration/full_stack_browser
+  and exact-source CI remain open. No SEC/provider HTTP, credential, quota,
+  target mutation, or live qualification is authorized.
   Preserve FHSC1-FHSC7 acceptance, every AC1-AC14 criterion, `15 Tier-0 and 156
   Tier-1`, all quarantines, held operations, retained data, PIT/raw lineage and
   the 30-day observation. Do not claim the new checkpoint accepted or the full
