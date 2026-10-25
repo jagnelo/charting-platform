@@ -271,6 +271,7 @@ def _build_oos_equity_metric_values(
     session_calendar: SessionCalendarSnapshot | None,
     session_periods_per_year: int | None,
     session_risk_free_return_per_period: Decimal,
+    event_risk_free_return_annualized: Decimal,
     session_historical_confidence_level: Decimal,
     session_label_range: tuple[date, date] | None,
     suppress_event_sampled_risk: bool,
@@ -281,6 +282,7 @@ def _build_oos_equity_metric_values(
         evidence_digest=reference.artifact.content_digest,
         expected_mark_count=reference.observation_count,
         event_time_ns=event_time_ns,
+        risk_free_return_annualized=event_risk_free_return_annualized,
     )
     session_metrics, session_input_digest = _session_interval_metrics(
         reference,
@@ -311,6 +313,7 @@ def build_nautilus_oos_equity_metric_set(
     session_calendar: SessionCalendarSnapshot | None = None,
     session_periods_per_year: int | None = None,
     session_risk_free_return_per_period: Decimal = Decimal(0),
+    event_risk_free_return_annualized: Decimal = Decimal(0),
     session_historical_confidence_level: Decimal = Decimal("0.95"),
     session_label_range: tuple[date, date] | None = None,
     suppress_event_sampled_risk: bool = False,
@@ -325,6 +328,9 @@ def build_nautilus_oos_equity_metric_set(
     Optional cadence-sensitive statistics require explicit, attempt-bound
     session intervals, their versioned calendar, and a declared sessions-per-
     year convention; irregular event marks never supply cadence implicitly.
+    ``event_risk_free_return_annualized`` applies only to timestamped event-risk
+    Sharpe/Sortino. The separate ``session_risk_free_return_per_period`` remains
+    the cadence-sampled assumption for explicit session intervals.
     """
 
     if not isinstance(reference, NautilusAccountEquityTraceReference):
@@ -339,19 +345,23 @@ def build_nautilus_oos_equity_metric_set(
         session_calendar=session_calendar,
         session_periods_per_year=session_periods_per_year,
         session_risk_free_return_per_period=session_risk_free_return_per_period,
+        event_risk_free_return_annualized=event_risk_free_return_annualized,
         session_historical_confidence_level=session_historical_confidence_level,
         session_label_range=session_label_range,
         suppress_event_sampled_risk=suppress_event_sampled_risk,
     )
-    metric_set_identity = content_digest(
-        {
-            "attempt_id": reference.attempt_id,
-            "definition_version": METRIC_DEFINITION_VERSION,
-            "equity_trace_digest": reference.artifact.content_digest,
-            "session_input_digest": session_input_digest,
-            "trial_id": reference.trial_id,
-        }
-    )
+    identity_input: dict[str, object] = {
+        "attempt_id": reference.attempt_id,
+        "definition_version": METRIC_DEFINITION_VERSION,
+        "equity_trace_digest": reference.artifact.content_digest,
+        "session_input_digest": session_input_digest,
+        "trial_id": reference.trial_id,
+    }
+    # Keep historical default-zero IDs stable while binding every non-zero
+    # event-time risk-free assumption that changes Sharpe/Sortino.
+    if event_risk_free_return_annualized != Decimal(0):
+        identity_input["event_risk_free_return_annualized"] = event_risk_free_return_annualized
+    metric_set_identity = content_digest(identity_input)
     return MetricSet(
         metric_set_id=f"metrics-{metric_set_identity.removeprefix('sha256:')}",
         trial_id=reference.trial_id,
@@ -377,6 +387,7 @@ def build_nautilus_oos_metric_set(
     session_calendar: SessionCalendarSnapshot | None = None,
     session_periods_per_year: int | None = None,
     session_risk_free_return_per_period: Decimal = Decimal(0),
+    event_risk_free_return_annualized: Decimal = Decimal(0),
     session_historical_confidence_level: Decimal = Decimal("0.95"),
     session_label_range: tuple[date, date] | None = None,
     suppress_event_sampled_risk: bool = False,
@@ -388,7 +399,8 @@ def build_nautilus_oos_metric_set(
     realized P&L remain in the currencies printed by Nautilus; no FX conversion
     or missing report field is inferred. Cadence-sensitive risk metrics are
     added only from complete, explicitly supplied session-close intervals and
-    their declared calendar and annualization convention.
+    their declared calendar and annualization convention. The annual event-time
+    risk-free target is independent of the per-period session target.
     """
 
     _require_matching_oos_references(equity_reference, native_reports_reference)
@@ -425,6 +437,7 @@ def build_nautilus_oos_metric_set(
         session_calendar=session_calendar,
         session_periods_per_year=session_periods_per_year,
         session_risk_free_return_per_period=session_risk_free_return_per_period,
+        event_risk_free_return_annualized=event_risk_free_return_annualized,
         session_historical_confidence_level=session_historical_confidence_level,
         session_label_range=session_label_range,
         suppress_event_sampled_risk=suppress_event_sampled_risk,
@@ -477,23 +490,24 @@ def build_nautilus_oos_metric_set(
             portfolio,
             account_net_pnl=equity_endpoints[1] - equity_endpoints[0],
         )
-    identity = content_digest(
-        {
-            "attempt_id": equity_reference.attempt_id,
-            "account_cash_observation_digest": (
-                None if cash_observations is None else content_digest(cash_observations)
-            ),
-            "account_exposure_observation_digest": (
-                None if exposure_observations is None else content_digest(exposure_observations)
-            ),
-            "definition_version": METRIC_DEFINITION_VERSION,
-            "equity_trace_digest": equity_reference.artifact.content_digest,
-            "native_reports_digest": native_reports_reference.artifact.content_digest,
-            "session_input_digest": session_input_digest,
-            "trial_id": equity_reference.trial_id,
-            "window_fingerprint": equity_reference.evaluation_window_fingerprint,
-        }
-    )
+    identity_input: dict[str, object] = {
+        "attempt_id": equity_reference.attempt_id,
+        "account_cash_observation_digest": (
+            None if cash_observations is None else content_digest(cash_observations)
+        ),
+        "account_exposure_observation_digest": (
+            None if exposure_observations is None else content_digest(exposure_observations)
+        ),
+        "definition_version": METRIC_DEFINITION_VERSION,
+        "equity_trace_digest": equity_reference.artifact.content_digest,
+        "native_reports_digest": native_reports_reference.artifact.content_digest,
+        "session_input_digest": session_input_digest,
+        "trial_id": equity_reference.trial_id,
+        "window_fingerprint": equity_reference.evaluation_window_fingerprint,
+    }
+    if event_risk_free_return_annualized != Decimal(0):
+        identity_input["event_risk_free_return_annualized"] = event_risk_free_return_annualized
+    identity = content_digest(identity_input)
     return MetricSet(
         metric_set_id=f"metrics-{identity.removeprefix('sha256:')}",
         trial_id=equity_reference.trial_id,

@@ -4,7 +4,7 @@ base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
 latest_staging_parent_sha: cdc33442c19f5c387b9ada759607d961365993c0
-latest_staging_merge_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+latest_staging_merge_sha: cdc33442c19f5c387b9ada759607d961365993c0
 dependency_authorization: >-
   Current coordinator release 2026-10-24: exact accepted synchronized green
   staging cdc33442c19f5c387b9ada759607d961365993c0 (canonical receipt
@@ -76,19 +76,18 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current 2026-10-25: TC is still at c9719521bfe8c558f1a743df683a12bef85fffe4
-  with four dirty owner records preserved. Exact accepted staging
-  cdc33442c19f5c387b9ada759607d961365993c0 is now authorized; canonical receipt
-  20261024T111337Z-cdc33442c19f.json and exact CI40083128955 are green. Merge
-  only this SHA after coherent record publication. ETF d203212f4841f9fa21e68525ea4bc608a86ff798
-  is locally qualified but its exact CI40158881330/canonical staging release
-  is pending; do not import it. Preserve the incoming selected-default
-  coverage/research and Strategy inspector contracts. No TC full-profile or
-  post-merge exact-CI evidence exists yet. Root retains heavy validation and
-  acceptance/integration authority. F8y remains pending on c971: preserve its
-  60-second timeout, all parent-host/locked-target assertions and zero retries;
-  the separate 8d8 pass is not proof for c971. AC1-AC9, SX/IX, official
-  REF-HELP-V25 and all provider/data/service holds remain open.
+  Current 2026-10-25: accepted synchronized green staging
+  cdc33442c19f5c387b9ada759607d961365993c0 is merged into the TC worktree with
+  no conflicts. Its canonical receipt is pinned in the TC release-receipt
+  directory and frozen-import manifest; the scope guard verifies the exact
+  imported blobs. Focused TC/upstream consumer tests and Vue type-check are
+  green. The combined branch candidate still requires its exact-source CI. ETF
+  d203212f4841f9fa21e68525ea4bc608a86ff798 remains locally qualified but its
+  exact CI40158881330/canonical synchronized staging release is pending; do not
+  import it. F8y remains unproven on this combined source: preserve its
+  60-second timeout, parent-host and locked-target assertions, and zero retries.
+  Root retains heavy validation and acceptance/integration authority. AC1-AC9,
+  SX/IX, official REF-HELP-V25 and all provider/data/service holds remain open.
 
   Historical blocker (superseded by the current cdc authorization) follows:
   Current 2026-10-23T20:12Z: coordinator reports Provider fix
@@ -439,16 +438,18 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
-  Current 2026-10-25: this is an in-progress dependency reconciliation, not a
-  renewed ready_for_integration decision. Prior bounded checkpoint acceptance
-  remains historical in integration_checkpoint. c9719521bfe8c558f1a743df683a12bef85fffe4
-  remains the source until the exact authorized cdc33442c19f5c387b9ada759607d961365993c0
-  staging tree is merged. Publish the preserved owner records first, then merge
-  cdc only; resolve intended overlap, run bounded focused TC contracts, and
-  publish the combined source for its own exact CI. Do not import ETF d203 until
-  its exact synchronized green staging release. The later full frontend,
-  backend/migration, functional and strict104 visual gates require Root's
-  resource allocation. F8y/Help/full roadmap status remains as above.
+  Current 2026-10-25: the authorized cdc334 merge is assembled and focused
+  stack-free consumer checks pass; its own exact CI is still required. Prior
+  bounded checkpoint acceptance remains historical in integration_checkpoint.
+  Provider selected-default coverage and Research behavior are consumed from
+  the producer release, while the accepted Strategy inspector and Research
+  navigation are retained beside TC functionality. No client-guessed series
+  filter or immutable Study/CodeVersion relaxation was introduced. Do not
+  import ETF d203 until its exact synchronized green staging release. Root
+  retains full frontend/backend/migration/functional/strict104 visual gates.
+  F8y remains pending; preserve Help local-only disposition and official
+  REF-HELP-V25 as unfinished roadmap work, along with AC1-AC9, SX/IX and all
+  provider/data/service holds.
 
   Historical checkpoint status (superseded by current reconciliation) follows:
   Current 2026-10-23T20:12Z: TC remains on exact source
@@ -1448,13 +1449,14 @@ shared_path_exceptions:
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
 dependencies:
-  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); accepted green release9b230ba4c97126a2937667138c6eb2a0aa297baf is included in synchronized staging628c1634f4894403339687586adee74d45637d51 and Provider consumer reconciliation is retained."
-  - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); accepted green source c2c232596cf848d83c20e5f2b9f5c502ddd01808 is included in synchronized staging628c1634f4894403339687586adee74d45637d51; TC-owned consumer reconciliation is active, while TCP3 overall remains open until consumer validation completes."
-  - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
-  - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
+  - "feat/market-data-provider-platform: accepted Provider P2 source 2178808746b3d850f33a76a064ab170f04989b91 is in synchronized green staging cdc33442c19f5c387b9ada759607d961365993c0 and adopted by this branch. Preserve provider-owned identity, governance, selected-default coverage, and Research behavior; do not duplicate producer filtering or infer selected-series identity in the client."
+  - "feat/strategy-lab-v2: accepted Strategy SLICP is present in synchronized green staging cdc33442c19f5c387b9ada759607d961365993c0 and adopted by this branch. Preserve its inspector and Research-results navigation alongside TC-owned Python/DSL/Study/Strategy behavior and immutable Study/CodeVersion identity."
+  - "feat/etf-holdings-constituents: candidate 8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7 and close tip d203212f4841f9fa21e68525ea4bc608a86ff798 are not yet delivered in synchronized green staging. Do not import the branch; await a later exact accepted staging release, then reconcile and requalify ETF historical/PIT/current-unavailable behavior."
+  - "Adoption of cdc334 does not complete TCP3 or the broader checkpoint. Keep ETF reconciliation, F8y latency, the fresh full local profile, official V25 parity, and the remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
+  - "Strategy Lab SLICP is an adopted upstream capability; preserve TC's Python/DSL/Study/Strategy engine together with the accepted Strategy inspector and Research-results navigation."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/cdc33442c19f5c387b9ada759607d961365993c0.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1692,6 +1694,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e.json
     receipt_sha256: ca0560d37c7d387295e07b90273ac9a1e07cd01b3330e628128abb892a230050
+  - source_sha: cdc33442c19f5c387b9ada759607d961365993c0
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/cdc33442c19f5c387b9ada759607d961365993c0.json
+    receipt_sha256: 15cf9c17396ad9fdf706de110750d3287fc528784ac2b3e690206845e1790c96
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -1791,17 +1796,14 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2]
   total: 5
-  current_phase: "accepted_cdc334_green_release_authorized_pending_TC_backmerge;prior_bounded_closure_historical;ETF_d203_exactCI40158881330_pending_release_not_imported;F8y_c971_unproven_despite_8d8_control_pass;full_profile_pending_Root_slot"
+  current_phase: "cdc334_merge_candidate;scope_manifest_pins_870_imports_and_29_adaptations;focused_frontend_276_and_route4_pass_typecheck_green;exact_own_CI_pending;ETF_d203_not_imported;F8y_and_full_profile_pending_Root_slot"
   next_action: >-
-    Publish the preserved four owner records, then merge only accepted green
-    staging cdc33442c19f5c387b9ada759607d961365993c0 into this branch. Reconcile
-    selected-default coverage/Research and Strategy inspector behavior without
-    duplicating Provider logic or replacing immutable provenance checks. Run
-    focused stack-free component/type contracts; record exact post-merge CI.
-    Await exact green ETF staging before consuming ETF-owned deltas. Root owns
-    the later full local profile. Preserve F8y timeout/assertions/zero retries,
-    Help local-only disposition, full AC1-AC9/SX/IX/official V25 roadmap, and
-    all provider/data/service holds.
+    Follow the exact branch CI for the published cdc334 merge and coordinate
+    with Root for the allocated full local profile. Preserve producer-owned
+    selected-default behavior and Strategy inspector/Research navigation. Do not import
+    ETF d203 until its exact synchronized green staging release. Root owns the
+    full local profile; F8y, full AC1-AC9/SX/IX, official V25 parity, and all
+    provider/data/service holds remain open.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:

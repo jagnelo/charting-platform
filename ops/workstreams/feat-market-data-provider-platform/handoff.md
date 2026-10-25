@@ -1,5 +1,1104 @@
 # feat/market-data-provider-platform
 
+## 2026-10-24 05:09Z — P2 Research default-series consumer repair (focused only)
+
+- On released Provider base `5b02caf509107856195ef8cfb2374e2ab6120612`,
+  fixed the existing local cached-read contract in the Provider copy. The
+  single-instrument Research loader now applies
+  `app.services.market_data._default_series_bar_condition`; the bounded
+  per-instrument batch loader uses the same predicate as a correlated row
+  expression, and declared-universe batch materialization delegates to that
+  loader. Batch ranking remains set-based in existing 500-ID chunks, so the
+  selector is applied before the history limit without an N+1 query. Reference
+  datasets use the same bounded loader.
+- The shared default predicate now explicitly correlates its nested canonical
+  series lookup to the current OHLCV row. This preserves mapped default,
+  canonical fallback, and nullable-series legacy behavior while preventing
+  same-adjustment bars from another series entering Research rows. Dates,
+  regular-session filtering, row limits, stored bars/mappings and immutable
+  dataset fingerprint inputs are unchanged; this is database-only materialization
+  and enables no acquisition/routing.
+- Added three SQLite-backed offline SQL regressions in
+  `backend/tests/unit/routers/test_research_router.py`: a mapped single-series
+  dataset with a later alternate-series bar and an excluded extended-session
+  row (including limit, values, fingerprint, and persisted-row immutability); a
+  two-instrument set-based read with independent mappings and exactly one query;
+  and canonical fallback plus legacy-null compatibility while noncanonical
+  alternate-only rows remain excluded. No PostgreSQL/Compose profile was run;
+  Root retains that later validation slot.
+- Focused module result: `backend/tests/unit/routers/test_research_router.py`
+  passed 6/6 in 2.72s on the working candidate. The execution was bounded to
+  180s, MemoryMax 384 MiB, MemorySwapMax 512 MiB, CPU 1, TasksMax 96, after
+  fresh checks of >=1 GiB available memory and PSI full avg10/avg60 below the
+  released thresholds. `ENV_FILE=/dev/null`, live tests/routing/availability
+  monitors were disabled, and the managed UV cache was isolated under `/tmp`.
+  Ruff check, Ruff format check, and `git diff --check` passed for the three
+  changed source/test files.
+- Preserve the earlier focused red attempts: the first exposed SQLite's
+  naive-datetime representation against an aware-only test assertion and an
+  over-specified multiple-canonical test fixture; after correcting those test
+  assumptions, the second exposed the actual nested canonical-subquery
+  correlation defect. The explicit correlation fix is included and the final
+  complete focused module passes. The sandboxed scope launcher itself also
+  failed before starting pytest because the user scope bus was inaccessible;
+  coordinator-approved narrow execution review then started the bounded test
+  scopes successfully.
+- Checkpoint stays `in_progress`; this is not the later PostgreSQL regression,
+  full local profile, exact-source hosted CI, Root review, acceptance, or full
+  roadmap completion. Preserve all operation holds and the consumed 119-request
+  boundary. No provider/issuer/SEC HTTP, quota action, Compose/DB service,
+  retained resource/data, staging/sibling ref, or deployment was touched.
+
+## 2026-10-24 05:14Z — Strategy compatibility review and deferred PostgreSQL regression
+
+- Read `/tmp/provider-strategy-series-compatibility-note.md` (SHA-256
+  `4a70b79c886962bf39a332ed41d06ca2df69da99c154eb896c476333903fa71e`). The
+  implementation leaves date parsing/calendars, `_dataset_options`, coverage
+  preflight, fresh `snapshot=false` materialization, `snapshot=true` persisted
+  manifest copying, and GET batch-results persisted readback unchanged. The
+  selected-series predicate is applied before batch ranking/limit; the
+  correlated `instrument_id` SQL expression is exercised by real SQLite SQL,
+  not mocked out.
+- Added `test_research_batch_coverage_uses_each_mapped_default_before_history_selection`
+  to `backend/tests/integration/api/test_code.py` for the later PostgreSQL
+  phase: two independently mapped instruments each have one selected Jan 2 D1
+  bar and a later Jan 5 same-adjustment canonical alternate. The test requires
+  incomplete coverage to report only one selected bar per instrument and
+  verifies mappings and all four observations remain unchanged. This
+  PostgreSQL integration test definition is intentionally **not executed** in
+  this bounded offline turn; it remains an explicit Root-slot gate, not a pass.
+- Final static checks after that addition: locked Ruff check and
+  `ruff format --check` passed for the two application files, SQLite unit test
+  module, and integration test definition; `git diff --check` passed. The
+  earlier final focused module run remains 6/6 (2.72s, invocation
+  `d124c3ebdc5a46509bcf783246e84f40`). Workstream validation, exact-source CI,
+  the PostgreSQL integration regression, and the full local profile remain
+  pending. No service, database, provider, quota, retained resource, or sibling
+  worktree was touched.
+
+## 2026-10-24 05:30Z — Incoming Strategy calendar semantics and closure path
+
+- Read-only diffed synchronized staging `c240037f526caa236ec3af64a0040b5df6d670be`
+  against frozen Provider base `5b02caf509107856195ef8cfb2374e2ab6120612`;
+  did not merge or copy its changes. Incoming Research code uses XNYS for
+  calendar-aware date-only D1 coverage only when each instrument has exactly
+  one active primary listing whose normalized MIC is XNYS. Missing, multiple,
+  inactive, or non-XNYS primary identity remains calendar-unknown. The new PG
+  regression has no listing fixture, so its bounds are now exact UTC instants
+  (`2026-01-02T00:00:00Z` through `2026-01-05T00:00:00Z`), bypassing date-only
+  calendar inference and isolating the selected-series difference. No listing
+  data is fabricated and no coverage assertion is weakened.
+- Lightweight-only post-edit checks passed: locked Ruff check and
+  `ruff format --check` for `backend/tests/integration/api/test_code.py`,
+  `py_compile` of that test definition, and `git diff --check`. PostgreSQL was
+  not executed.
+- The active plan keeps `validation_tier: full_integration` and
+  `local_validation_profile: full_stack_browser`; `docs/agent-orchestration.md`
+  forbids choosing a weaker profile absent an authorized remote-only
+  exception. This local-cache-only change adds no provider operation and does
+  not request live-matrix replay or alter ICP4 dispositions; source-qualified
+  operation evidence and all held/unavailable routes remain unchanged. A
+  substantive focused implementation commit is permissible before final
+  qualification, but it cannot close the checkpoint: exact-source CI and the
+  normal full profile remain required before Root technical review/acceptance.
+- After Root releases the PostgreSQL slot on a green synchronized staging
+  backmerge, the precise focused test command is:
+  `cd backend && ENV_FILE=/dev/null RUN_LIVE_PROVIDER_TESTS=0 PROVIDER_ROUTING_ENABLED=false PROVIDER_AVAILABILITY_MONITOR_ENABLED=false PROVIDER_AVAILABILITY_LIVE_ENABLED=false UV_CACHE_DIR=/tmp/provider-p2-research-uv-cache uv run --no-sync pytest tests/integration/api/test_code.py::test_research_batch_coverage_uses_each_mapped_default_before_history_selection --override-ini addopts= --no-header -q`.
+  This uses the repository's Testcontainers integration fixture and is not
+  authorized before the released slot. The final acceptance profile remains
+  the unchanged `make validate-integration` / `full_stack_browser` contract;
+  do not invoke its stack cleanup path against retained services without Root's
+  established exact-project containment guard.
+
+## 2026-10-24 05:33Z — focused implementation publication checkpoint
+
+- Committed only the four Provider-owned source/test paths in
+  `1bd856810e09a0bfb3f06f016745f9e5942d827a`
+  (`fix research default series materialization`). The implementation uses the
+  shared selector for single, benchmark/reference, and bounded batch Research
+  materialization; its batch selector is applied before row numbering and the
+  history limit. The new PostgreSQL regression remains defined but unrun.
+- The second, separate commit is limited to the four existing Provider
+  workstream records, preserving the prior dirty record history. Exact-source
+  push CI, PostgreSQL regression, and the unchanged `full_integration` /
+  `full_stack_browser` profile remain pending. This is a focused implementation
+  publication only—not checkpoint acceptance, readiness, closure, live-matrix
+  evidence, or full-roadmap completion. No provider transport/quota action or
+  staging/sibling mutation.
+
+## 2026-10-23 22:48Z — next checkpoint lifecycle prepared, pending Root gates
+
+- On frozen synchronized Provider source `5b02caf509107856195ef8cfb2374e2ab6120612`
+  (deployed baseline `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`), the active
+  checkpoint is now named
+  `provider-first-human-coverage-retained-universe-2`. The earlier
+  `provider-platform-integration-1` plan and authorization/history are retained
+  under `previously_accepted_integration_checkpoint`; its former closure text
+  is preserved as `previous_checkpoint_closure_summary`. The new checkpoint
+  remains `in_progress`, acceptance `pending`, and closure `pending`; no merge
+  authority or acceptance is asserted.
+- The exact source delta is bounded to: selected-default coverage summary and
+  range alignment (`backend/app/routers/coverage.py`); per-CIK SEC result/failure,
+  cursor/restart/no-replay and retained-payload consistency
+  (`backend/app/services/market_event_edgar_scan.py`); cross-page prelisting
+  consensus/conflict quarantine (`backend/app/services/market_event_prelisting.py`);
+  CTA and universe venue/identity reconciliation
+  (`backend/app/providers/cta_plan.py`, `backend/app/services/market_universe.py`);
+  and related Make/Compose test/runtime contracts (`Makefile`,
+  `docker-compose.e2e.yml`, with corresponding tests). These are checkpoint
+  contracts derived from the actual `a6b9..5b02` source diff, not added roadmap
+  features.
+- Exact Actions run `39988953219`, attempt 1, is terminal green on `5b02caf`:
+  Backend, Frontend Unit, Playwright E2E, and Branch-declared passed; Exhaustive
+  was skipped by feature-branch policy. The exact-source SEC issuer-scan unit
+  module passed 31/31 with mocked transport and temporary SQLite. Neither CI
+  nor that focused module proves the required local full profile, live
+  operation success, or current complete universe coverage.
+- Required local `full_integration/full_stack_browser` phases remain open:
+  combined backend unit/integration coverage; frontend coverage plus uPlot and
+  visual-policy helpers; migration/startup and Compose/research-runner
+  contracts; dynamically discovered functional/performance cases and all 104
+  strict visuals. Strategy currently owns heavy capacity, so do not launch a
+  competing fixture. The next step is to wait for Root's safe slot release and
+  run only the remaining required local phases on the frozen source with the
+  unchanged oracles, references, masks, tolerance and zero retries.
+- The isolated workstream validator accepted all 46 records, and `git diff
+  --check` passed after the four-record reconciliation. This validates record
+  shape and whitespace only; it is not product test or checkpoint acceptance.
+- The coordinator-released static-only qualification then passed on frozen
+  `5b02caf`: `uv lock --check`; `uv export --locked --format requirements-txt`
+  compared with `backend/requirements.txt` after removing its two generated
+  header lines; exactly one Alembic head (`d4a5b6c7e812`); `ruff check app
+  tests`; and `ruff format --check app tests`. Invocation
+  `provider-static-5b02-20261023.scope` reported MemoryMax=268435456,
+  MemorySwapMax=0, CPUQuotaPerSecUSec=1s, TasksMax=64; outer wall cap was
+  120 seconds. Environment used `ENV_FILE=/dev/null`, `UV_OFFLINE=1`,
+  `UV_NO_SYNC=1`, isolated `/tmp/provider-5b02-uv-cache`, and live/routing/
+  availability switches off. Exit 0; log
+  `/tmp/provider-5b02-static-qualification-20261023-run.log`, SHA-256
+  `1ceae0837cfa64737a0302c8cae2f992c1c3825e49f5d0914d45345115416920`.
+  The first launcher invocation failed before running any gate because
+  `systemd-run` rejects `--wait` with `--scope`; its preserved log is
+  `/tmp/provider-5b02-static-qualification-20261023.log`, SHA-256
+  `823c5ad299835fd190607e796946218decacc9c5db99378227f1be848c4d23b1`.
+  The corrected scope invocation ran the qualification once. No source,
+  product tests, Docker, database, network, provider operation, quota, or
+  retained resource changed. Full migration/startup, Compose/research-runner,
+  backend coverage, and browser gates remain open.
+- Preserve every operation disposition/hold. No held, unknown, unreviewed,
+  paid, trial, unsafe, or otherwise disabled operation becomes routable here;
+  no current-live/full-universe completeness is claimed. The consumed
+  119-request validation authorization is historical and cannot be reused.
+  No provider/issuer/SEC request, quota action, source edit, CI rerun, runtime
+  action, staging/sibling write, or deployment occurred for this record update.
+
+## 2026-10-23 15:49Z — released a6b9 staging reconciled into Provider
+
+- The exact coordinator-released staging source
+  `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e` (canonical run `39962134726`,
+  receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T150603Z-a6b9cc8d4fc2.json`)
+  was merged only into this Provider branch. Merge commit is
+  `1afb01b600686a565220d771b6479dce6294a882`, with parents `81ee5c50540dde13ef88cb7520767862d667506b`
+  and exact staging `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`. No staging,
+  sibling, master, or deployment ref was modified.
+- The sole overlap conflict was
+  `backend/app/strategy_lab_v2/tests/test_migration_compatibility.py`. The
+  merged assertion preserves the one-head invariant and confirms staging's
+  current head `d4a5b6c7e812` descends from `slv2_0011`; the focused test
+  `test_strategy_chain_has_unique_ids_and_preserves_shared_base` passed 1/1.
+  Merge tree is clean of unresolved paths. Exact hosted CI for a pushed
+  post-merge Provider tip is not yet recorded.
+- The released diagnostic scope is only the existing F8m yellow-wildcard /
+  grey-isolation case. Before launch, freeze/publish the exact profile source,
+  recheck resource ownership and available headroom, and prove source/image
+  equivalence for reused immutable frontend artifacts. Use a new unique
+  isolated project, zero retries, exact release caps/egress/seed constraints,
+  preserve the old `c6e40c66` project, and clean only new owned IDs by 16:20Z.
+  This is not the full functional/visual profile. Full roadmap, live operation
+  holds, exact-source CI and all remaining acceptance evidence stay open.
+
+## 2026-10-23 15:46Z — exact CI receipt closed; a6b9 adoption and F8m slot released
+
+- Exact synchronized Provider source `9b179d7e10a3f8767b4aa6ca083db398c530cc68`
+  passed Actions run `39970361154`, attempt 1: Backend, Frontend Unit,
+  Branch-declared, and Playwright succeeded (191 passed / 110 skipped);
+  Exhaustive was skipped by feature-branch policy. This is the current-source
+  hosted receipt, not full local-profile completion or roadmap closure.
+- Coordinator release `/home/m920q/charting-platform/.ai/staging-attempts/provider-f8m-slot-20261023.md`
+  authorizes adoption of exact green staging
+  `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e` (run `39962134726`) into this
+  Provider branch only. The current worktree has no product edits; its three
+  dirty workstream receipt files are being closed before source reconciliation.
+- After clean adoption and exact source checks, one newly owned isolated
+  F8m yellow-wildcard/grey-isolation diagnostic is released, not the F8m
+  chart-panels case or broad/full matrix. It must use the slot's exact source,
+  resource, network, credential, zero-retry, capture, and owned-only cleanup
+  gates and finish cleanup by 16:20Z. The old `c6e40c66` fixture is prohibited.
+- Full `full_stack_browser` profile, all Provider roadmap work, hosted
+  acceptance, and provider/quota holds remain open. No live provider calls,
+  quota changes, paid/trial activation, retained-resource cleanup, staging or
+  sibling writes, or deployment occurred.
+
+## 2026-10-23 15:43Z — exact-current hosted CI terminal green
+
+- Exact synchronized source `9b179d7e10a3f8767b4aa6ca083db398c530cc68`
+  passed Actions run `39970361154`, attempt 1. Backend, Frontend Unit,
+  Branch-declared, and Playwright jobs succeeded; Playwright reports 191
+  passed and 110 skipped in 19.7 minutes. Exhaustive was skipped by normal
+  feature-branch policy. The SEC issuer-scan durability tests remain covered
+  by the exact-source 31/31 no-network module result recorded below. This
+  green hosted run does not replace the required local full profile or close
+  the full roadmap. No provider/issuer/SEC HTTP, quota operation, source change,
+  service/data mutation, or staging/sibling/deployment write occurred.
+- Current retained `c6e40c66` seeded fixture remains unsuitable for the
+  full local profile: it has no exact source-revision label, shares writable
+  quota/FINRA state, and its E2E authentication/workspace fixture mutates
+  user/workspace state. No replacement isolated profile slot is released in
+  this checkpoint. Preserve all services/data; do not start a fixture.
+- Next action: continue the branch-owned roadmap with bounded no-network work;
+  keep `full_stack_browser`/F8m pending until a source-pinned isolated fixture
+  slot is explicitly released. Preserve provider/quota holds and all existing
+  acceptance criteria.
+
+## 2026-10-23 14:42Z — exact-current SEC durability module
+
+- On exact synchronized HEAD `9b179d7e10a3f8767b4aa6ca083db398c530cc68`,
+  the complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+  module passed 31/31 in 29.20 seconds. This is a no-network SQLite/unit run
+  with provider execution mocked and live routing/availability monitors
+  disabled; it covers per-CIK result/cursor atomicity, fresh worker-session
+  restart without replay of committed CIKs, failed-CIK retry, and rollback on
+  cursor commit failure. SEC service/test files are byte-identical to the
+  previously tested `33bc44f` source. Exact current-source Actions run
+  `39970361154` is still in progress (Frontend Unit succeeded; Backend unit
+  stage remains active); no result is inferred. No provider/issuer/SEC HTTP,
+  quota action, Docker/container action, retained-service/data change, or
+  staging/sibling/deployment write occurred. Full roadmap remains in_progress;
+  local full_stack_browser/F8m remains held because the retained c6e40c66
+  fixture has shared writable quota/state mounts, wildcard host relay ports,
+  unpinned source images, and no verified existing auth/data context.
+
+## 2026-10-23 14:30Z — NMS pagination rejects CTA source-date drift
+
+- Added a third case to the existing database-backed NMS snapshot-union test:
+  two paginated CTA rows carrying different dated symbol-file identities must
+  make the CTA run fail and must not form an NMS absence union. The existing
+  same-date positive and complete-but-cross-source-date-mismatch negative are
+  preserved. The prior XNAS lifecycle observation remains present and its
+  missing count remains unchanged. Production code/policy is unchanged; the
+  test exercises the existing `CTA Plan symbol file date changed during
+  pagination` guard.
+- The exact working candidate based on synchronized parent
+  `33bc44f6068e05f03cdbe1b3a745290ee4a5f830` passes the complete market-universe
+  unit module 52/52 in 3.38 seconds. Ruff check, Ruff format-check, and
+  `git diff --check` pass. Test-only patch SHA-256:
+  `ba32702f243d61275531f4ed432309bae3d01deba342f60f93ba8f019628f8fe`.
+- First attempts exposed fixture expectation issues, not product failures:
+  the mock initially accepted only offset `:0`; after allowing declared page
+  offset `:1`, the existing product guard correctly failed CTA on date drift,
+  so the test was corrected to expect a partial reconciliation/failed CTA
+  run and to treat absent `absence_scope` as non-authoritative. The final
+  focused three-case selection and full module pass. No provider/issuer/SEC
+  HTTP or quota action occurred. Exact CI `39960567287` validates the parent,
+  not this candidate; new-source CI remains required. Full roadmap and local
+  full_stack_browser/F8m evidence remain open.
+
+## 2026-10-23 14:27Z — exact-current SEC durability module
+
+- On synchronized source `33bc44f6068e05f03cdbe1b3a745290ee4a5f830`, the
+  complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+  module passed 31/31 in 54.20 seconds. It uses mocked provider execution and
+  temporary SQLite database fixtures; live routing and availability monitors
+  were disabled. This includes per-CIK result/cursor atomicity, worker-session
+  restart/no-replay, failed-CIK retry, and rollback-on-commit-failure cases.
+- No provider/issuer/SEC HTTP, quota operation, Docker/container action, or
+  retained-service/data change occurred. Exact Actions run `39960567287`
+  remains the current green hosted receipt. The full Provider roadmap and
+  isolated local `full_stack_browser`/F8m profile remain open. The supported
+  session progress snapshot now reflects the synchronized source and terminal
+  CI; goal state remains active. No source files changed.
+
+## 2026-10-23 14:18Z — exact-source CI receipt for 33bc44f
+
+- Exact pushed source `33bc44f6068e05f03cdbe1b3a745290ee4a5f830` passed
+  Actions run `39960567287`, attempt 1. Backend, Frontend Unit, and
+  Branch-declared jobs succeeded; Playwright succeeded with 191 passed and
+  110 skipped in 18.1 minutes. The Exhaustive Integration Gate was skipped
+  under normal feature-branch policy. No retry/flaky claim is made because the
+  CI summary did not expose a retry count.
+- This current-source result validates the previously recorded SEC durability
+  implementation/tests and NMS regression change. It does not replace the
+  required isolated local full profile: F8m/full-profile remains open. The
+  retained Provider E2E project is not safe for that interaction because the
+  flow resets/persists workspace state and the project shares writable quota
+  state and exposes host relay ports on all interfaces. No local browser or
+  test was launched; no provider/issuer/SEC HTTP, quota action, retained
+  service/data change, staging/sibling/deployment write occurred. Workstream
+  remains `in_progress`; full roadmap and holds are preserved.
+
+## 2026-10-23 13:20Z — complete NMS snapshot-date regression module
+
+- The complete `backend/tests/unit/services/test_market_universe.py` module
+  passes 51/51 in 6.94 seconds on a working test candidate based on exact HEAD
+  `3283d668b27fd5b714369d79cb9db79db86398a7`. The added negative case proves
+  otherwise-complete CTA and Nasdaq scopes with different source dates do not
+  form an NMS absence union; the same-date positive remains passing. All
+  provider execution is mocked; live routing and monitors are disabled.
+- Test-only diff SHA-256:
+  `01cc9c8143c7329b9008ce54d8970982e82c2c712ed7033339c780e92585b483`.
+  Production files and policies are unchanged. No provider/issuer/SEC HTTP,
+  quota action, retained service/data change, or staging/sibling/deployment
+  write occurred. Candidate hosted CI and the PostgreSQL integration fixture
+  remain open; full roadmap and local F8m/full profile remain in_progress.
+
+## 2026-10-23 13:20Z — NMS union rejects mixed snapshot dates
+
+- Expanded the deterministic same-cycle NMS union regression with an otherwise
+  complete CTA snapshot one day older than Nasdaq Tape C/ETF files. The
+  same-date positive remains asserted; the mismatched-date case confirms no
+  `US_NMS` absence union is recorded and prior listing observation state remains
+  unchanged. Both parameter cases pass 2/2 on the working test candidate.
+- Candidate is based on exact HEAD `3283d668b27fd5b714369d79cb9db79db86398a7`;
+  only `backend/tests/unit/services/test_market_universe.py` changed, with diff
+  SHA-256 `01cc9c8143c7329b9008ce54d8970982e82c2c712ed7033339c780e92585b483`.
+  Ruff check/format and `git diff --check` pass. No production behavior changed.
+  Exact candidate CI and the PostgreSQL integration profile remain open; no
+  provider HTTP/quota, retained resource/data, staging/sibling/deployment
+  changes occurred.
+
+## 2026-10-23 13:17Z — full market-universe unit module
+
+- The complete `backend/tests/unit/services/test_market_universe.py` module
+  passed 50/50 in 6.91 seconds on exact source `3283d668b27fd5b714369d79cb9db79db86398a7`.
+  Provider execution was mocked; live/provider routing and availability
+  monitors were disabled. This includes the same-cycle NMS union, required
+  Tape C source, and distinct-complete-session lifecycle regressions.
+- The separate PostgreSQL integration selector remains unexecuted because its
+  Testcontainers setup could not access the Docker socket (EPERM); the earlier
+  setup failure is preserved in `validation.jsonl`. No container was created.
+  No source, provider/issuer/SEC HTTP, quota, retained service/data, or
+  staging/sibling/deployment state changed. Full roadmap and local F8m/full
+  profile remain open.
+
+## 2026-10-23 13:16Z — current-source NMS unit regressions; integration fixture unavailable
+
+- Three deterministic SQLite/unit regressions passed on exact source
+  `3283d668b27fd5b714369d79cb9db79db86398a7`: Tape C requires the
+  `nasdaqlisted` scope, NMS absence requires same-cycle CTA/Nasdaq equity/ETF
+  scopes, and deactivation requires three distinct complete snapshot dates.
+  Provider execution was mocked.
+- The paired PostgreSQL integration test did not execute: Testcontainers could
+  not read the Docker API version (`PermissionError: EPERM` on the Docker
+  socket). The setup failure is preserved in `validation.jsonl`; no container
+  was created or changed. This is not a product-test result.
+- No provider/issuer/SEC HTTP, quota action, source change, retained
+  service/data change, or staging/sibling/deployment write occurred. Full
+  roadmap and the required local F8m/full profile remain open.
+
+## 2026-10-23 13:07Z — full SEC scan unit module verified on current source
+
+- The complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+  module passed 31/31 on exact synchronized source
+  `3283d668b27fd5b714369d79cb9db79db86398a7`. This includes per-CIK
+  result/cursor commits, fresh-session restart and no-replay, failed-CIK retry,
+  cursor-commit rollback, SEC directory retry/materialization, and source-payload
+  integrity cases. Live/provider execution and routing were disabled; this
+  used unit-test database fixtures only. No Docker, provider/issuer/SEC HTTP,
+  quota operation, retained-resource/data change, or staging/sibling/deployment
+  write occurred. Full roadmap and the required local `full_stack_browser` /
+  F8m profile remain open.
+
+## 2026-10-23 12:56Z — exact-source CI terminal green; local profile remains open
+
+- Exact pushed source `3283d668b27fd5b714369d79cb9db79db86398a7` passed Actions
+  run `39952646134`, attempt 1. Backend Tests, Frontend Unit Tests,
+  Branch-declared Tests, and Playwright E2E completed successfully; the
+  Exhaustive Integration Gate was skipped under normal feature-branch policy.
+  Playwright's test and teardown steps both completed successfully. The job
+  interface did not expose a test-count log/artifact, so no case count is
+  asserted here.
+- The SEC issuer-universe per-CIK result/failure-plus-resume-cursor restart
+  regressions are included in the successful Backend job. The full roadmap
+  remains `in_progress`; the required local full profile/F8m proof remains
+  open. The retained `c6e40c66` fixture is not suitable as-is: its app images
+  lack an exact source revision, its host relay binds all interfaces, and its
+  real quota/state paths are shared writable mounts. No local browser was
+  launched, no service/data/quota changed, and no provider/issuer/SEC request
+  or staging/sibling/deployment write occurred. Continue only after a safe
+  exact-source fixture slot is available; preserve all historical evidence.
+- 2026-10-23 13:02Z current-source SEC durability spot-check: six focused
+  no-network tests passed locally on `3283d668b27fd5b714369d79cb9db79db86398a7`,
+  covering per-CIK commit/restart, cursor persistence, rollback on cursor-commit
+  failure, durable failed-CIK retry without replay, runtime failure/restart,
+  and cursor recheck before advancing. No Docker, provider/issuer/SEC HTTP,
+  quota operation, or retained-resource/data change occurred. This confirms
+  the named SEC durability gap is closed on current source; full roadmap and
+  local `full_stack_browser`/F8m gates remain open.
+
+## 2026-10-23 12:20Z — page-boundary conflict control
+
+- Extended the SEC/prelisting page-boundary regression to cover both outcomes:
+  corroborated identical observations create one inactive provisional
+  instrument, while same-consensus conflicting symbols remain quarantined
+  across the page boundary with no instrument. The full prelisting unit module
+  now passes 12/12; Ruff check/format and diff check pass.
+- This is still the same working candidate on parent
+  57138049ed4fbb968d1182e989462ae2d015b14c; no product source outside the
+  prelisting materializer changed. The exact parent CI remains historical
+  evidence only for this candidate; no provider/issuer/SEC HTTP, quota action,
+  fixture/service/data change, staging/sibling/deployment write occurred.
+
+## 2026-10-23 12:18Z — prelisting consensus pagination integrity
+
+- A bounded SEC/prelisting review found that `materialize_prelisting_candidates`
+  paged `MarketEvent` rows before grouping them by consensus. If two retained
+  provider observations for one consensus straddled a small page boundary, the
+  first slice could classify its lone source as ambiguous and persist a
+  permanent quarantine before the second slice was considered.
+- The materializer now gathers the already-persisted, in-scope rows for each
+  consensus touched by the current page before evaluating evidence. Cursor
+  advancement and the `max_events` page count remain unchanged; strong evidence
+  still requires corroborated consensus, distinct sources, exact symbol/name,
+  and exact shared venue or stable identifier. Provisional instruments remain
+  inactive; conflicts remain quarantined.
+- Added a deterministic SQLite regression splitting a two-source consensus
+  across `max_events=1`. The complete prelisting unit module passes 11/11 on
+  the working candidate. Locked Ruff check/format and `git diff --check` pass.
+  The first format-check identified one formatter-only line wrap, corrected
+  with locked Ruff; final checks are green.
+- This candidate is based on exact parent `57138049ed4fbb968d1182e989462ae2d015b14c`;
+  Actions `39946328724` validates that parent, not this candidate. Exact-source
+  CI is pending after coherent publication. The full Provider roadmap and
+  required local F8m/full profile remain open. No provider/issuer/SEC HTTP,
+  quota operation, fixture/service/data change, staging/sibling/deployment
+  write occurred.
+
+## 2026-10-23 12:08Z — exact-source CI green for SEC fixture correction
+
+- Exact synchronized source `57138049ed4fbb968d1182e989462ae2d015b14c`
+  passed Actions run `39946328724`, attempt 1. Backend passed 5,206 unit
+  tests/1 skip and 498 integration tests/2 skips; combined coverage was 84%.
+  Frontend Unit and Branch-declared passed. Playwright passed 191 with 110
+  declared skips in 17.2 minutes; the terminal log has no test failure, retry,
+  or flaky marker. Exhaustive was skipped by normal feature-branch policy.
+- The SEC directory materialization integration fixture now retains normalized
+  `name_candidates`/`tickers` in its source payload, matching the unchanged
+  fail-closed integrity guard. The separate SEC issuer-universe per-CIK commit
+  and file-backed restart regressions remain in this source; Backend Tests are
+  green on the exact HEAD. No provider/issuer/SEC HTTP, quota action, retained
+  service/data mutation, or staging/sibling/deployment change occurred.
+- Status and full roadmap remain `in_progress`. The required local full profile
+  and F8m proof remain open; do not infer either from hosted E2E. Preserve the
+  earlier red runs `39941869542` and `39944289265` unchanged.
+
+## 2026-10-23 11:27Z — SEC integration fixture compatibility
+
+- Exact-source Actions run `39944289265` on `e815b37463ee6e4a4fe083e81450496ed0c1e5e6`
+  is terminal red. Backend unit stage passed 5,206 with 1 skipped; integration
+  passed 497 with 2 skipped and failed one test. Frontend Unit passed;
+  Branch-declared, Playwright and Exhaustive were skipped after Backend
+  failure. The integration failure was
+  `test_sec_issuer_report_materialization_uses_persisted_clean_rows_only`:
+  its positive `would_create` row's normalized `name_candidates` and `tickers`
+  were absent from retained `source_payload`, so the unchanged integrity guard
+  correctly returned 409.
+- The integration test fixture now includes both matching source fields. The
+  focused PostgreSQL integration regression passed 1/1 using its own disposable
+  Testcontainers database; the earlier full SEC scan plus affected router test
+  passed 32/32. Ruff check/format-check and `git diff --check` passed. No
+  production code/assertion changed; no provider,
+  issuer, or SEC HTTP, quota action, or retained service/data change occurred.
+- Status and full roadmap remain `in_progress`; no F8m browser or other heavy
+  profile ran. Next: validate/publish this narrow test-fixture correction and
+  require exact-source CI; preserve the red `39944289265` receipt unchanged.
+
+## 2026-10-23 11:05Z — SEC source-payload fixture compatibility
+
+- Exact-source Actions run `39941869542` on `bd1581f3cfc85e6dfe030b3158c241494412fd13`
+  is terminal red in Backend unit tests: 5,205 passed, 1 skipped, 1 failed.
+  The failing test is `test_sec_directory_candidate_report_is_admin_only_and_paginated`;
+  its `would_create` fixture had normalized `name_candidates=["New Issuer"]`
+  but its retained `source_payload` omitted `name_candidates`, so the new
+  fail-closed persisted-payload consistency guard correctly returned 409.
+- The production guard remains unchanged. The router fixture now contains the
+  corresponding source field, preserving the admin/pagination/status
+  assertions. The complete SEC scan unit module plus the affected router test
+  passed 32/32 with provider/live routing and availability monitors disabled;
+  Ruff check, Ruff format-check, and `git diff --check` passed. An initial
+  selector command used a stale function name and exited before running tests;
+  the corrected node selection is the 32/32 run.
+- No provider/issuer/SEC HTTP, quota reservation/spend/reset, retained service
+  or data change occurred. Status and full roadmap remain `in_progress`; the
+  F8m local profile remains pending. Next: publish this narrow test-fixture
+  correction coherently and require exact-source CI; do not rerun or relabel
+  the red `39941869542` result.
+
+## 2026-10-23 10:31Z — SEC persisted-payload consistency
+
+- The no-refetch issuer materializer previously checked persisted normalized
+  CIK/name/ticker columns but did not prove that they still projected from the
+  retained SEC `source_payload`. A tampered normalized name could therefore
+  create an issuer unsupported by the retained source row.
+- Working candidate is based on synchronized parent
+  `00fefff7164f745ae27ff201b461a13c801213bd`. It adds a fail-closed raw-to-
+  normalized consistency check before issuer creation and preserves the raw
+  payload. The regression covers mismatched CIK, name, and ticker projections;
+  the existing clean-payload no-refetch/materialization path remains positive.
+- Complete `test_market_event_edgar_scan.py`: 31/31 passed with live/provider
+  routing disabled. Ruff check, Ruff format check, and `git diff --check` pass.
+  No provider/issuer/SEC HTTP, quota operation, database mutation outside the
+  unit fixture, or service/data/staging/sibling/deployment change occurred.
+- Exact Actions run `39938451199` is still running on the unchanged parent
+  `00fefff…`; it does not validate this working candidate. The current worktree
+  has substantive source/test plus plan/handoff/journal changes. Next: inspect
+  and commit the coherent candidate after the parent run reaches terminal,
+  push once, then require exact-source CI. The F8m local full profile remains
+  pending a source-qualified private fixture; no existing retained stack was
+  used or changed.
+
+## 2026-10-23 10:18Z — F8m fixture inventory and E2E port containment
+
+- Read-only inventory found the retained seeded Provider E2E project
+  `charting-stack-feat-market-data-provider-platform-c6e40c66` with eight
+  services. Its worktree label is `feat-market-data-provider-platform-c6e40c6608`;
+  app image tags use `c6e40c66` and have no full OCI source-revision label, so it
+  is not exact-current-source proof for `ee3d8680`. SPY and QQQ each have 520
+  adjusted D1 rows from controlled `e2e_reference` (2024-01-02 through
+  2025-12-29); these are fixture data, not current provider evidence.
+- The E2E network is internal and provider routing/proxy settings deny provider
+  egress. The host-port relay was bound on all interfaces; this source change
+  binds it to loopback and resets inherited host ports for backend, frontend,
+  PostgreSQL, and Redis. The owner-managed quota ledger remains shared across
+  worktrees by design and is not replaced/reset. The old running project was
+  not changed or used. No local browser/profile process was visible; no app job
+  queue was inspected. Normal auth session availability remains unverified;
+  no credentials were read or printed and no account was created.
+- Changed only `docker-compose.e2e.yml`, `Makefile`, and the Compose contract
+  tests `backend/tests/unit/test_research_runner_deployment.py` and
+  `tests/workflow/test_staging_workflow.py` for this source context. Focused
+  tests passed 17/17; all 143 workflow tests passed; Ruff check/format and
+  rendered merged Compose contract passed. Two initial test failures were
+  harness assumptions: the E2E override does not define base `frontend`, and
+  the existing workflow test's plain YAML loader did not understand Compose's
+  `!reset`; both tests now parse/assert the override correctly. `make
+  test-compose-contract` exited 0 after the usual runtime-helper warning that
+  the sandbox could not prepare the shared quota directory; no Compose service
+  was started. Exact-source CI is pending for this uncommitted candidate.
+- The full local profile remains pending an explicit coordinator slot and an
+  exact-source isolated fixture. Keep the SEC durability proof and all roadmap
+  criteria/holds intact; no provider/issuer/SEC HTTP, quota operation, retained
+  service/data change, staging/sibling/master write, or deployment occurred.
+
+## 2026-10-23 10:05Z — exact-source CI and SEC durability checkpoint
+
+- Current code source is `ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7`, matching
+  its configured upstream. Exact Actions run `39930261098` attempt 1 is
+  terminal green on that SHA: Backend passed 5,202 unit / 1 skipped and 498
+  integration / 2 skipped with 84% combined coverage; Frontend Unit and
+  Branch-declared passed; Playwright passed 191 / skipped 110 with no test
+  retries or flaky marker; Exhaustive was skipped by feature-branch policy.
+- The SEC per-CIK result/failure and resume-cursor implementation in
+  `backend/app/services/market_event_edgar_scan.py` remains present. The full
+  file-backed no-network SEC scan module passed 28/28 on this exact source;
+  successful CIKs remain committed across worker restart while the failed CIK
+  is retried. No provider/issuer/SEC request or quota operation occurred.
+- The owned workstream validator passed (45 workstream records); after the
+  latest evidence append, the targeted validator passed this Provider record
+  again. Its only local bootstrap warning was inability to prepare the private
+  quota-ledger directory in this sandbox; validation still exited 0.
+- Status remains `in_progress`; preserve all original roadmaps and operation
+  holds. The required local full functional/visual profile is still pending
+  Root's explicit slot release. The latest visible coordinator handoff is
+  08:54Z and does not grant a Provider slot; do not start a fixture based on
+  that stale snapshot. No code, service, retained data, quota, staging, sibling,
+  master, or deployment state changed. The append-only validation journal is
+  the only dirty path from the prior evidence context.
+- Next: continue only bounded Provider-owned no-network roadmap work while the
+  full-profile slot is not explicitly released. On an actual release, verify
+  current ownership/capacity and run the unchanged source-pinned full profile;
+  do not re-run the completed SEC module or CI for documentation. Keep the
+  goal active and do not claim `ready_for_human_review` until every required
+  gate is actually satisfied.
+
+## 2026-10-23 07:26Z — additive MarketSeriesDefault timestamp repair
+
+The first private f04 deployment's cold D1 warm-up failed before provider
+transport because PostgreSQL lacks `market_series_default.created_at` and
+`updated_at`, although `MarketSeriesDefault` inherits `TimestampMixin`. The
+historical table-creation migration `a0b1c2d3e4f5` is intentionally unchanged.
+Added forward-only Alembic revision
+`backend/alembic/versions/d4a5b6c7e812_add_market_series_default_timestamps.py`
+(parent `slv2_0011`) with non-null timezone-aware timestamps and `now()` server
+defaults. Added
+`backend/tests/integration/test_market_series_default_timestamps_migration_postgres.py`,
+which uses isolated disposable schemas to exercise an empty legacy-to-repair
+upgrade and an existing-row upgrade, reading rows through the actual ORM and
+asserting selection metadata/provenance are preserved.
+
+The exact separable implementation commit is
+`2467a50b6a63fc433bd108413eaf260b1ef50ca6` (two source/test
+paths only). Static/local evidence on its source: Alembic resolves one head,
+`d4a5b6c7e812`; Ruff check/format pass; the unchanged historical SQLite
+migration test passes 1/1; and the PostgreSQL integration test collects 1/1.
+The new PostgreSQL test has NOT run yet: it must run with the promised bounded
+coordinator Docker grant; collection is not a substitute. Exact-source hosted
+CI also remains pending for this commit. No database target was modified, no
+provider/issuer/SEC request or quota action occurred, and no existing service
+or dataset was changed. Preserve this repair as a separable patch for Root's
+authorized extraction; do not integrate/deploy from this feature worktree.
+Full Provider roadmap remains open and status remains `in_progress`.
+
+## 2026-10-23 07:21Z — exact-source CI terminal receipt
+
+- Exact synchronized Provider HEAD is
+  `759921fbc4625aabd2fe12c60d98df0c7c195a5b`; local HEAD and
+  `origin/feat/market-data-provider-platform` match. Actions run `39911899935`
+  attempt 1 is terminal green on that exact SHA. Backend, Frontend Unit,
+  Branch-declared, and Playwright jobs succeeded; Exhaustive Integration Gate
+  was skipped by normal feature-branch policy. Backend logs show 5,201 unit
+  passed / 1 skipped, 497 integration passed / 2 skipped, and combined coverage
+  84% against the 75% threshold. Playwright logged 191 passed and 110 skipped
+  in 19.6 minutes; the completed job log contains no retry/flaky marker.
+- The source-bound SEC durability implementation and file-backed
+  `test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart`
+  remain intact; the exact-head SEC module check passed 28/28. The NMS
+  three-distinct-complete-union-session regression is included in this source
+  and covered by its focused local evidence.
+- This receipt does not complete the broader roadmap or substitute for the
+  required local full functional/strict-visual profile, which remains pending
+  Root's separately assigned slot. No provider/issuer/SEC HTTP, quota action,
+  service/data change, staging/sibling/master write, deployment, or cleanup
+  occurred. Continue no-network roadmap work while preserving every hold.
+
+## 2026-10-23 06:27Z — NMS distinct-session lifecycle contract
+
+- Current clean/synchronized base before this change was
+  `3d078bc02e0722352cefaf72618c0cf69c765b35`; exact Actions run `39905248908`
+  is green on that base. It already contains the SEC issuer-universe durability
+  fix: each CIK's provider result/failure and resume cursor commit atomically;
+  the file-backed worker-restart regression proves a failed CIK is retried
+  without replaying the preceding committed CIK. The staging adoption is the
+  released `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`.
+- Roadmap review found the unit suite proved OTC distinct snapshot dates and
+  NMS same-session deduplication, but not the NMS complete-union three-session
+  deactivation boundary. Added
+  `test_nms_union_missing_requires_three_distinct_complete_snapshot_sessions`
+  in `backend/tests/unit/services/test_market_universe.py`. It feeds the real
+  `_mark_missing` path synthetic complete CTA/Nasdaq union provenance and
+  seeded XNAS session rules: a same-date rerun is ignored; the first two
+  distinct sessions keep listing/provider binding active; the third records
+  missing state and retires both. No production lifecycle logic or live
+  provider behavior changed.
+- On the working tree based on the exact `3d078bc` source, the entire
+  market-universe unit module plus the SEC failure/restart composition test
+  passed `51/51` (`10.04s`). The four focused NMS union/same-session/incomplete
+  guards passed `4/4`; Ruff check, Ruff format check, and `git diff --check`
+  passed. The regression is now published in exact pushed HEAD
+  `759921fbc4625aabd2fe12c60d98df0c7c195a5b`; Actions run `39911899935`
+  targets that exact SHA and remains in progress at the latest check. The older
+  green `39905248908` receipt does not cover it.
+- Status remains `in_progress`; complete NMS/OTC reconciliation and other full
+  roadmap items remain open. The full functional/strict-visual profile remains
+  held for Root's separately assigned slot. No provider/issuer/SEC HTTP, quota
+  action, build, fixture, retained-service/data change, staging/sibling/master
+  write, deployment, paid/trial activation, or cleanup occurred.
+
+## 2026-10-23 05:17Z — released f04 staging backmerge
+
+- Adopted the exact canonical green staging source
+  `f04fb2a26c6363c6090e76c2658cfcfe7adabf61` into this Provider branch after
+  required jobs in Actions run `39896524209` completed successfully and Root's
+  canonical receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json`
+  recorded `state: green`. The earlier `04:46Z` receipt marked the still-running
+  CI degraded and was preserved; it was not treated as release evidence.
+- The owned branch merge commit is `c9bccae0b4f62404a021c0b2bcb7ddd44201581a`,
+  with first parent `61e31e77467688f98d654aea630ca679a8c26e78` and second parent
+  the exact released `f04` SHA. GitHub `staging` was verified at that exact SHA
+  before merging. The merge brought only the released hidden-request-observation
+  E2E/helper changes and Root-owned quality workstream records; Provider SEC/NMS
+  implementation and its history were preserved.
+- The three pre-existing dirty Provider records (`handoff.md`, `plan.yaml`, and
+  append-only `validation.jsonl`) were saved with a path-scoped Git stash before
+  merge, then restored without conflict. The stash remains as a recoverable copy
+  until the coherent adopted-source publication is verified. No prior
+  validation rows or source-bound receipts were rewritten.
+- Exact Provider branch CI for the reconciled publication is pending publication
+  and must be recorded only after its actual terminal result. The required local
+  full functional/strict-visual profile remains a separate Root slot; this
+  backmerge does not authorize a build, Compose startup, browser run, or reuse of
+  the source-`61e` backend image. Recheck complete backend input equivalence
+  before any later reuse. No provider/issuer/SEC HTTP, quota operation, fixture,
+  retained service/data change, sibling/staging/master write, or deployment.
+
+## 2026-10-23 04:05Z — SEC request-log transaction boundary audit
+
+- A read-only audit of the exact `61e31e7` source confirms the executor does
+  not commit independently: `provider_runtime._record_result` flushes the
+  request-log/health rows, and `execute_provider_call` returns or raises
+  without `db.commit()`. `market_events.refresh_edgar_ipo_pipeline` is called
+  with `commit=False` by the issuer-universe scan. The scan then persists the
+  per-CIK result/provenance and cursor in the same session and commits once
+  after each CIK. On executor failure, the market-events layer records the
+  typed failed result; the scan keeps the cursor at the previous successful
+  issuer and commits that failure with it.
+- Existing no-network file-backed restart regression
+  `test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart`
+  verifies the failed request-log row and cursor survive a fresh session and
+  the restarted worker retries only that CIK before proceeding to the next.
+  No additional test was needed; no code or test bytes changed in this audit.
+
+## 2026-10-23 04:03Z — conditional backend image build completed
+
+- On exact source `61e31e77467688f98d654aea630ca679a8c26e78`, the Root-released
+  BUILD-ONLY phase built one backend image from the exact Git archive
+  `/tmp/provider-61e31e77-backend-build.o8CKY4/source-61e31e77467688f98d654aea630ca679a8c26e78.tar`
+  (SHA-256 `3929ff4ff8280ffbdcfd5e4307947ba49c0ddc731e2d88b19e0a45993dee6b5b`).
+  Image `provider-61e31e77-full-20261023-backend:source-61e31e77` is
+  `sha256:ff250ff5b794b002514eeb240e1bad31e5f82aa171da7206f094f09a29d2833b`,
+  labelled with build/test source `61e31e7` and the Provider owner. BuildKit
+  resolved cached bases Python
+  `sha256:a0f57064cbdcd6285fa45f51237ab0b35ea8ebaed06a1f5973e89e19dfb86704`
+  and uv `sha256:9653efd4380d5a0e5511e337dcfc3b8ba5bc4e6ea7fa3be7716598261d5503fa`;
+  apt and locked-dependency layers were cache hits. No image pull occurred.
+- Preserve the first failed attempt (Dockerfile path resolved from caller cwd)
+  and second failed attempt (an extra `--network=none` invalidated the apt
+  cache key); neither produced an image. The successful third invocation used
+  `--pull=false` and completed in 22 seconds.
+- The exact transferred builder was temporarily capped at 128 PIDs, started,
+  and returned to `exited`; memory/swap `1610612736`, CPU `200000/100000`, and
+  restart policy `unless-stopped` are unchanged. Original unset PID semantics
+  were restored as Docker's explicit unlimited value `0` (CLI documents
+  `--pids-limit -1` as unlimited). Buildx selection remains `default*`.
+- No Compose project/container/volume/network was created. The approved
+  frontend and research images were reused only as immutable 4687 builds after
+  byte-equality checks against their effective 61e inputs; the API/worker,
+  frontend, research runner, browser, provider-egress-deny and services were
+  not started. Local full profile remains pending a separate Root UP/browser
+  release and the synchronized green-staging adoption gate. No provider,
+  issuer, or SEC HTTP; quota action; retained-service/data cleanup; or source
+  change occurred.
+
+## 2026-10-23 03:26Z — SEC restart durability exact-source CI
+
+- Exact pushed source `61e31e77467688f98d654aea630ca679a8c26e78` is clean and
+  synchronized. Actions run `39890778902` is terminal green: Backend,
+  Frontend Unit, Branch-declared, and Playwright succeeded; Exhaustive was
+  skipped by normal feature-branch policy.
+- The SEC issuer-universe regression was locally checked with the complete
+  SEC module (28/28), the focused restart case (1/1), Ruff check/format check,
+  and `git diff --check`. It exercises the real scan pipeline and mocks only
+  the provider executor; worker restart retries the failed CIK without
+  replaying previously committed CIKs.
+- Branch remains `in_progress`; local full functional/visual profile is still
+  pending Root's exact phase release. Its bounded preparation-only recipe is
+  `/tmp/provider-61e31e77-bounded-full-profile-recipe-20261023.md`, SHA-256
+  `6d339a6abac8a6048e688f9a72a964fe34fd615764d95c5aef14778e9998427b`.
+  The corrected plan replaces the infeasible 6 GiB pre-build threshold with
+  a 2 GiB gate derived from the 1.5 GiB BuildKit cgroup cap plus 512 MiB
+  reserve, and retains a 1.5 GiB measured post-start browser-stage reserve.
+  Read-only inspection of Root's stopped builder found 1.5 GiB memory, equal
+  memory+swap, 2 CPUs, but no PID limit; it is not eligible or transferred.
+  The recipe requires a verified 128-PID cap and exact stop/baseline-restore
+  checks after Root's phase release. Frontend and research-runner source inputs
+  compare byte-identically to 4687; any reused image retains its original
+  build-source identity and is not relabeled as built from 61e.
+  No fixture/build/browser, provider/issuer/SEC request, quota action, data or
+  retained-service cleanup, staging/sibling/master/deployment write occurred.
+
+## 2026-10-23 01:16Z — integration fixture provenance correction after exact CI failure
+
+- Exact Actions run `39881532927` is terminal red on parent
+  `e5e8911bb94faa34ba1c995cbcf0530374dd8534`: Backend failed with one
+  integration assertion (`1 failed, 496 passed, 2 skipped`); Frontend Unit
+  passed and downstream jobs were skipped. The failure was
+  `test_nms_absence_requires_same_cycle_cta_and_nasdaq_equity_etf_scopes`:
+  expected three union-tagged runs, observed zero.
+- Root cause is the integration fixture, not the fail-closed production rule:
+  both mocked Nasdaq quote rows omitted the row-level `source_file`, while
+  reconciliation requires each Nasdaq row to identify its source file before
+  accepting same-cycle absence evidence. Updated only the integration fixture:
+  its XNAS EQUITY and ETF rows now identify `nasdaqlisted`, consistent with
+  their exchange and the existing Nasdaq adapter response shape. Production
+  validation and test assertions are unchanged.
+- The analogous no-network unit regression
+  `test_nms_absence_union_uses_same_cycle_cta_and_nasdaq_listed_scopes` passed
+  `1/1` in `2.60s` against the current source. `git diff --check` passed. The
+  integration case itself was not rerun locally because its default fixture
+  starts Testcontainers; exact CI remains required for the corrected source.
+- Local HEAD remains `4ea0d5198b2dbea9b91c10625a27a12c52ec6b14`, one commit
+  ahead of origin, plus this uncommitted fixture/evidence correction. Preserve
+  the parent CI failure and the SEC restart/26-test and rollback-test proofs;
+  none is relabeled as passing evidence for the corrected source. Full local
+  profile remains held for Root's exact slot. No provider/issuer/SEC HTTP,
+  quota action, fixture, retained resource/data, staging, sibling, or master
+  change occurred.
+
+## 2026-10-23 01:02Z — published NMS follow-up; SEC transaction rollback regression
+
+- The preserved exact run `39877233446` completed successfully for pushed source
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0` (Backend, Frontend Unit,
+  Branch-declared, and Playwright succeeded; Exhaustive was skipped by feature
+  policy). This remains evidence only for that source and includes the earlier
+  SEC restart checks recorded below.
+- Pushed the five substantive NMS source/test/documentation commits already
+  present locally. Current local/origin feature commit is
+  `e5e8911bb94faa34ba1c995cbcf0530374dd8534`; exact Actions run
+  `39881532927` is in progress for that SHA; Frontend Unit succeeded and
+  Backend is running unit tests. Do not treat run `39877233446` as
+  coverage for the new NMS changes. The current change derives Tape C scope
+  from verified Nasdaq `nasdaqlisted` evidence and tests same-cycle CTA/Nasdaq
+  union behavior without claiming full all-venue completion.
+- Added one new file-backed, no-network SEC transaction regression. Its first
+  fixture attempt correctly produced no cursor update because one issuer
+  completed the cycle; the test was corrected to seed two issuers and scan one,
+  forcing the cursor-advance commit. The focused test passed `1/1` in `10.06s`
+  and again `1/1` in `8.62s` on the final formatted file: a SQLite trigger
+  rejects that cursor update, and a fresh session
+  confirms both the prior cursor/provenance and absence of the same-transaction
+  request log are preserved. Ruff check/format and diff check pass. The test
+  file is the only product-code working-tree modification; its current diff SHA-256
+  is `acfaa64d0b04b2b2bc55fca0bafad490befedd6f649cc2d2a789105041478f14`.
+- Full profile preparation for the next exact frozen/pushed source: derive the
+  isolated Compose project as `provider-<final-source-short-sha>-full-20261023`
+  (not the retained worktree project); use all 260 functional plus 104 strict
+  visual cases, Playwright `v1.62.1-noble`, one worker, zero retries, unchanged
+  references/masks and `0.005` tolerance, seeded instruments and market data,
+  read-only DejaVu fonts, provider routing false, backend/worker provider
+  egress denied, blank provider credentials, and quota/FINRA state mounts only
+  to new empty fixture-local directories. Existing Makefile limits are
+  Playwright `1536m`/2 CPUs and research runner `768m`/1 CPU/128 PIDs; the
+  browser has no explicit PID/swap cap and main app services have no
+  per-service resource caps. Require at least `1.5 GiB` available host memory
+  after app startup before browser stages, distinct project-owned volumes and
+  networks, no app/Postgres host bindings, and post-start checks of image source
+  labels, mounts, seed flags, credentials-by-name/emptiness, and egress.
+  Once a final source SHA is frozen, the reviewed command sequence must use
+  `docker compose -p "$PROJECT" -f docker-compose.yml -f
+  docker-compose.e2e.yml -f "$FIXTURE/compose.override.yml" config --format
+  json`, then the same project/files for `build` and `up -d --no-build --wait`;
+  run functional cases with the existing Playwright `v1.62.1-noble` Docker
+  invocation and `npx playwright test --retries=0`, then run
+  `tests/e2e/tc2000_visual.spec.ts --retries=0` with
+  `RUN_BOARD_VISUAL_PARITY=1`. Both keep one worker, `E2E_SEED_MARKET_DATA=true`,
+  and existing snapshots/tolerance. The fixture env/override must isolate
+  quota/FINRA state and credentials as described above. `make test-platform`
+  is not a safe isolated invocation here: its trap calls `test-stack-down`
+  (`down -v`) and broad resource cleanup. `make validate-integration` also
+  runs provider probes and the same stack cleanup. Do not use either wrapper;
+  no fixture/build/browser has started, and root slot release remains required.
+- No provider/issuer/SEC HTTP, quota action, fixture, retained resource/data,
+  staging, sibling, or master change occurred. Checkpoint remains in progress.
+
+## 2026-10-23 00:58Z — NMS coverage-boundary documentation reconciled
+
+- Corrected the venue-coverage section in `docs/data-providers.md` to match
+  the implemented same-invocation NMS union: complete CTA Tape A/B, Nasdaq
+  `nasdaqlisted` row-level Tape C evidence, and Nasdaq ETF classification must
+  share a source generation date. `otherlisted` alone is not Tape C authority;
+  incomplete files, timestamps, rows, or venue coverage still fail closed.
+- The text explicitly keeps complete fresh all-venue universe reconciliation
+  and remaining mapping work on the roadmap. `git diff --check` passed and a
+  targeted search found no stale claim that the scopes are not combined. The
+  docs working diff SHA-256 is
+  `7223e7a92edce551d7c3f5224ccd13c2a5aaa5d405c99d74198612d6677c0158`.
+- Exact run `39877233446` remains live on pushed source `1f0c6c0`; the local
+  source/test/docs commits remain unpublished pending its terminal result and
+  coherent exact-source CI. No provider/issuer/SEC HTTP, quota action, fixture,
+  or retained resource/data change occurred.
+
+## 2026-10-23 00:56Z — NMS union lifecycle protection assertion
+
+- Strengthened the new mocked, same-cycle CTA/Nasdaq scope regression with a
+  prior active CTA-source lifecycle observation for a symbol present in the
+  Nasdaq `nasdaqlisted` file. The real reconciliation now proves the union
+  leaves that observation present with no missing confirmation, in addition
+  to persisting all three actual provider/quote-type run identities.
+- The focused SQLite/no-network regression passed `1/1` in `2.96s`. Ruff check,
+  format check, and diff check pass. The test-only working diff SHA-256 is
+  `be037e33606dbf9dfd45e277c8e5ac3db74988195c85f81eece6c8f07f0edc25`.
+- Exact Actions run `39877233446` is still active on remote
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0`; local NMS commits and this
+  assertion remain outside that CI source. No push, provider/issuer/SEC HTTP,
+  quota action, fixture, or retained service/data change occurred.
+
+## 2026-10-23 00:52Z — same-cycle NMS union regression
+
+- Added a no-network reconciliation regression proving that a completed CTA
+  symbol-file run, Nasdaq EQUITY evidence containing `nasdaqlisted`, and
+  Nasdaq ETF classification form one same-cycle NMS absence union. The test
+  asserts the actual persisted provider/quote-type run identities and shared
+  union provenance; it does not invent a `nasdaq_tape_c` adapter or mark the
+  broader NMS roadmap complete.
+- The new isolated regression passed `1/1` with SQLite and mocked provider
+  calls. Ruff check and format check passed after formatting, and
+  `git diff --check` passed. Working test diff SHA-256:
+  `e90eb2aaa62e34f600b48269c44f312679ab47c885dfecb64d1251dbeaec3902`.
+- Exact hosted run `39877233446` is still active on pushed source
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0`; it does not validate the two
+  local NMS source commits or this additional regression. Local branch remains
+  two commits ahead of origin, with this test uncommitted. Preserve the run;
+  publish only after its terminal result and coherent exact-source checks.
+- The isolated full-profile recipe remains unchanged and unstarted pending
+  Root's explicit slot. No fixture/build/browser, provider/issuer/SEC HTTP,
+  quota action, retained-resource/data change, or staging/sibling write.
+
+## 2026-10-23 00:49Z — Nasdaq Tape C scope source refinement
+
+- Read-only inspection of the existing Nasdaq adapter confirms each parsed
+  row carries `source_file`: `nasdaqlisted.txt` is the distinct Nasdaq-listed
+  Tape C roster; `otherlisted.txt` is supplementary cross-tape evidence. No
+  new provider or endpoint is needed. The preceding local commit `0e46ff416`
+  was too strict in requiring a nonexistent `nasdaq_tape_c` provider and is
+  preserved locally but not pushed.
+- The current follow-up derives the Tape C scope alias from the completed
+  Nasdaq run only when `nasdaqlisted` is among its verified source files, while
+  preserving the actual `nasdaq` provider and EQUITY run identity through
+  lifecycle handling. Nasdaq rows without a source-file tag fail closed for
+  absence authority; `otherlisted` alone cannot satisfy the Tape C scope.
+  Other Nasdaq rows remain positive cross-check evidence in the same complete
+  snapshot.
+- The Nasdaq adapter and market-universe unit modules passed `61/61` together;
+  Ruff check/format and `git diff --check` passed after formatter correction.
+  The three-file source/test working diff SHA-256 is
+  `9eab4cd6687b6257985a68cff57b3a592de75662a06257aec286c0a1022d8b54`.
+- Exact run `39877233446` remains active on remote parent `1f0c6c0`; this
+  follow-up is not included. Local branch head is `0e46ff416` plus the dirty
+  correction. Do not push until the original exact run is terminal, then
+  validate the coherent correction on its own source. No provider/issuer/SEC
+  HTTP, quota action, fixture, or retained resource/data change occurred.
+
+## 2026-10-23 00:39Z — fail-closed NMS scope correction
+
+- While exact Actions run `39877233446` remained active on clean pushed source
+  `1f0c6c0956ecb8c3994c03cfc54c026313155da0`, a source review found the
+  same-session NMS absence union treating Nasdaq Trader `nasdaqlisted` /
+  `otherlisted` as the distinct Nasdaq-listed/Tape C roster. This conflicts
+  with the current `AC-UNIVERSE-COMPLETE` contract and `docs/data-providers.md`:
+  Nasdaq Trader is supplementary evidence and the separate Tape C source is
+  not yet reconciled.
+- The working source now requires a distinct `nasdaq_tape_c/EQUITY` cycle scope
+  alongside CTA Tape A/B and Nasdaq ETF classification before declaring a
+  whole-NMS absence union. This fails closed until a real, complete Tape C
+  producer scope is available; it does not claim the universe requirement is
+  complete or add a provider/transport path. The actual official Tape C source
+  contract and implementation remain open roadmap work.
+- A no-network scope-gate regression has negative coverage for the existing
+  CTA + Nasdaq Trader EQUITY + Nasdaq ETF set and a positive control for an
+  explicit separate Tape C scope. Focused universe checks passed `8/8`, then
+  the complete unit module passed `48/48`; Ruff check/format and
+  `git diff --check` passed. The two-file working diff SHA-256 is
+  `e4ad947b3167e0a255f40df722642cb5b741e3d62ad95999fdbc6b05445ef0694`.
+- Run `39877233446` still validates only the parent source; Backend, Frontend,
+  and Branch-declared jobs passed, while Playwright is starting its hosted
+  stack at last observation. The branch-local
+  follow-up is uncommitted and needs its own exact-source validation after the
+  current run is terminal. Existing SEC durability evidence on `1f0c6c0`
+  remains unchanged. No provider/issuer/SEC HTTP, quota action, fixture, or
+  retained resource/data change occurred.
+- Full-profile recipe for the current source remains unstarted and awaits
+  Root's exact slot release: isolated project `provider-1f0c6c0-full-20261023`,
+  all 260 functional plus 104 strict visual cases, Playwright 1.62.1 Noble,
+  one worker, zero retries, unchanged refs/masks/0.005 tolerance, read-only
+  DejaVu fonts, seeded market data, backend/worker egress denied and routing
+  off, blank provider credentials, and quota/FINRA state mounts only to new
+  empty fixture-local directories. Existing Makefile limits are browser
+  1536 MiB/2 CPUs and research runner 768 MiB/1 CPU/128 PIDs; the main app has
+  no per-service resource caps. Require the reviewed isolated startup/cleanup
+  recipe and at least 1.5 GiB actual available memory after app startup before
+  either heavy browser stage. Do not use broad `make validate-integration`
+  cleanup against retained resources.
+
+## 2026-10-23 00:34Z — exact CI integration-stage progress
+
+- Read-only GitHub Actions inspection confirms run `39877233446`, attempt 1, is still on exact pushed source `1f0c6c0956ecb8c3994c03cfc54c026313155da0`. Backend unit tests completed successfully and the Backend job is executing `Run integration tests (with testcontainers)`; Frontend Unit Tests passed. Coverage, Branch-declared, and Playwright remain pending; Exhaustive is skipped by feature-branch policy. An active-job log fetch returned 404 while the job is running; this is not a test result.
+- No rerun, source change, provider/issuer/SEC HTTP, quota action, local fixture, or retained resource/data change occurred. The isolated `full_stack_browser` profile remains held pending Root's explicit slot release and safe capacity review.
+- The repository `agent-session-progress` wrapper could not update session metadata: its runtime preflight reported the private quota-ledger directory unavailable, and the claim lock was read-only. No quota state was changed. The current CI-stage update is recorded directly in the branch-owned workstream records; no helper permission or escalation was attempted.
+
+## 2026-10-23 00:20Z — post-merge SEC durability recheck
+
+- On the clean pushed merged source `1f0c6c0956ecb8c3994c03cfc54c026313155da0`, the two isolated file-backed restart cases passed `2/2`, then the complete `test_market_event_edgar_scan.py` module passed `26/26` (`17.01s`). The tests use monkeypatched issuer refresh calls and temporary SQLite databases; no SEC/provider HTTP, quota reservation/spend/reset, Docker, retained service, or persistent dataset was used.
+- Ruff check and `ruff format --check` both pass for `backend/app/services/market_event_edgar_scan.py` and `backend/tests/unit/services/test_market_event_edgar_scan.py`; no formatter changed files.
+- Exact branch Actions run `39877233446` is for this same SHA, attempt 1. Frontend Unit Tests succeeded; Backend Tests remain in progress at the unit-test step, with integration and coverage stages pending. Do not treat this as terminal or rerun it. The branch remains clean and synchronized at this CI source; these local test results are recorded for continuation but have not been pushed as another evidence-only commit.
+- The full local `full_stack_browser` profile remains held until Root explicitly releases the slot and fresh resource review permits it. Continue with the full roadmap after current-source CI reaches a terminal state; preserve the per-CIK atomic result/failure plus cursor behavior, all provider/issuer/SEC holds, and coordinator-only staging ownership.
+
+## 2026-10-23 00:14Z — repaired staging adopted; local full-profile slot held
+
+- Closed the prior four-file SEC evidence context in commit `fbf682179d135ad8f2f307b6f6997d43e2df95d0`; the file-backed failed-CIK restart regression and 26/26 SEC scan module remain source-qualified to `8739c92aeb6e1059405e8b3df9577c053d89585d`, with exact green Actions run `39858232646` on that earlier source. That CI is not post-merge evidence.
+- Fetched and verified `origin/staging` at the exact accepted repaired release `4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad`, receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261023T000222Z-4687bd0cd21a.json` (Actions `39866387942`, attempt 1, fully green). Provider and staging had diverged from common ancestor `0e342512e53ba2268425294d61c50e219eaafa4f`; the exact release was merged into this Provider worktree only, without conflicts, at `3e8f866d756fd63c35740c6c45f19615cc48a4b0`. No staging, master, or sibling worktree was written.
+- The merged release contains the accepted Market Map repair plus its focused test and staging workflow/record changes. It does not complete the Provider roadmap or authorize any live transport. The previous Provider exact CI does not cover this merge; normal exact-source branch CI is required after publishing the owner checkpoint.
+- Full local profile plan (not started): freeze the clean pushed Provider tip after this record context, label all app images with that exact source, and use a unique project such as `provider-3e8f866d-full-20261023`, distinct from retained `charting-stack-feat-market-data-provider-platform-c6e40c66`, `charting-stack-feat-tc2000-frontend-rework-f63d60ae`, and ETF's `etf-db-684812f39cd0-20261020`. Run the repository's full validation profile, including all 260 functional and 104 strict visual cases, with seeded deterministic data, Playwright `v1.62.1-noble`, one worker, zero retries, unchanged references/masks and `0.005` tolerance, and read-only DejaVu font mount. Backend/worker routing stays false with provider egress denied; all provider credentials, including `FINRA_ORF_REFRESH_TOKEN`, stay blank, while quota-ledger and FINRA-state mounts point only to newly created empty directories under this unique fixture. Use only project-owned volumes/networks and preserve all retained datasets. Verify the rendered Compose configuration has no host bindings on backend/frontend/Postgres (and only explicitly reviewed free browser relay ports if required), then verify actual mounts, labels, seed flags and egress boundaries after startup. Cleanup, if later authorized as part of the run, may target only this exact unique project's generated resources.
+- Resource plan and present hold: canonical Playwright Docker defaults are `1536m` memory and `2` CPUs; the Compose research runner is capped at `768m`, `1` CPU, and `128` PIDs. The checked-in Playwright Docker invocation has no explicit PIDs or no-swap limit, and the main app Compose services have no per-service CPU/memory/PID caps; these remain explicit points for Root to review before any launch. The latest host sample at `00:16Z` shows `7.1 GiB` total RAM, `1.9 GiB` available, and `6.6 GiB` swap used; an earlier sample in this turn was `1.5 GiB` available. This is host-level pre-start headroom, not a post-app-start capacity check. Read-only Docker inventory showed 8 assigned Provider stack containers plus its existing three dev services and BuildKit, 6 assigned TC services, 2 ETF database services, and 5 unrelated Stremio services; none was started, stopped, or modified. No pytest/Playwright runner was launched by this turn. Root's explicit exact-slot release is still required; these measurements do not imply capacity approval.
+- Next: publish the merged Provider checkpoint and obtain exact-source branch CI; continue the full roadmap. Wait for Root's explicit profile-slot release and a fresh safe-capacity check before creating the unique fixture or starting any heavy local stage. No provider/issuer/SEC HTTP, quota reservation/spend/reset, hold change, deployment, paid/trial activation, dataset reset, or retained-service cleanup occurred.
+
+## 2026-10-22 22:02 UTC — current-source SEC scan regression and CI wait
+
+- Current source `8739c92aeb6e1059405e8b3df9577c053d89585d` is clean and
+  synchronized with origin. The isolated failed-CIK restart regression passed
+  1/1, and the complete SEC issuer-scan unit module passed 26/26 using the
+  UV-managed environment and a private temporary SQLite database. The tests
+  cover atomic CIK outcome/request-log and cursor persistence, resuming after
+  worker-session restart, and retrying a failed CIK without replaying a prior
+  success. No provider/issuer/SEC transport, quota operation, retained service,
+  or persistent dataset was used or changed.
+- Exact hosted CI `39858232646` for this same SHA is still in progress; it has
+  not been treated as terminal or rerun. The full local profile remains
+  deferred pending coordinator capacity. Existing `session.json` worktree
+  change was preserved untouched.
+- Security containment: no credential-bearing configuration was read or
+  repeated, and no key was used, rotated, revoked, or copied. Production
+  routing remains off; Alpaca production use still requires owner-managed key
+  rotation and separate storage authorization.
+
+## 2026-10-22 — Green staging adoption and SEC scan continuation
+
+- Adopted the exact canonical four-feature staging release
+  `0e342512e53ba2268425294d61c50e219eaafa4f` by guarded fast-forward from the
+  clean ancestor Provider tip `74d114aa6a174c723b01da25d83e7a49470bdc93`.
+  Only `feat/market-data-provider-platform` was pushed. Independent remote
+  lookup confirmed both the Provider branch and `staging` at the release SHA;
+  the release record is
+  `/home/m920q/charting-platform/.ai/staging-attempts/four-feature-green-release-20261022.md`
+  and records green exact CI `39827786248`. This is accepted initial
+  integration scope only; the full Provider roadmap remains open.
+- The next owned roadmap item is the per-CIK durability requirement in
+  `AC-UNIVERSE-COMPLETE` / `AC-SEC-PRELISTING-POLICY`. The issuer-universe scan
+  now executes one CIK at a time and commits that result/request-log state with
+  the next cursor; a failed CIK is retained and stops the batch, so restart
+  retries that CIK without replaying prior successes. Between commits it
+  re-locks and verifies the cursor before the next call, preventing a stale
+  worker from issuing duplicate work after another worker advances the scan.
+- Deterministic no-network coverage proves interruption/resume, failed-CIK
+  retention/retry, and stop-on-concurrent-cursor-advance. The complete
+  `test_market_event_edgar_scan.py` module passes 24/24; focused Ruff,
+  formatting, and diff checks pass. No provider/issuer/SEC HTTP, quota
+  reservation/spend/reset, paid/trial activation, fixture, or data cleanup
+  occurred. Full exact-source profile/CI, review, and the remaining roadmap
+  gates are still pending.
+- A follow-up regression closes a durability-test gap: the original restart
+  test reused the unit fixture's connection inside its outer rollback
+  transaction. A new file-backed SQLite test closes the worker session after
+  interruption, opens a distinct session, and verifies the committed CIK
+  request log/cursor survive and the completed CIK is not replayed. The full
+  SEC scan module now passes 25/25; Ruff, format check, and `git diff --check`
+  pass. No network or persistent runtime database is used.
+- Exact CI `39843849455` on source
+  `4c3c4b3083961e2ffd19626d3313271ee6f059fd` is terminal red: Backend,
+  Frontend Unit, and Branch-declared passed; the Playwright job ended with
+  190 passed, 110 skipped, and one flaky result. The first attempt of the
+  10,000-cell Market Map test failed because `SPY` was not selected after the
+  test filled the search field and immediately pressed Enter; retry passed.
+  Strict flaky-test policy keeps the run red. This is not a failure in the SEC
+  tests, and it has not been rerun or weakened. The prepared full isolated
+  profile remains unstarted until exact-source CI is green.
+- This coherent checkpoint changes only:
+  `backend/app/services/market_event_edgar_scan.py`,
+  `backend/tests/unit/services/test_market_event_edgar_scan.py`,
+  `ops/workstreams/feat-market-data-provider-platform/plan.yaml`,
+  `ops/workstreams/feat-market-data-provider-platform/handoff.md`,
+  `ops/workstreams/feat-market-data-provider-platform/checkpoint-review-packet.md`,
+  `ops/workstreams/feat-market-data-provider-platform/validation.jsonl`, and
+  `ops/workstreams/feat-market-data-provider-platform/session.json`.
+
 ## 2026-10-20 — Three-case continuation preparation (offline only)
 
 - Current published source is `2e1e63593b1083cfc38be3eba4b2071fe799170c`,
@@ -29483,3 +30582,1050 @@ index, hold, or quota reset/change was made. Checkpoint remains `in_progress` /
   reset, deployment, or staging/sibling write is implied. Current plan records
   `ready_for_integration` for this accepted checkpoint while ICP7's exact
   final-publication CI remains pending.
+## 2026-10-22 21:30Z — failed CIK restart durability regression
+
+The SEC issuer-universe implementation at source `ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1`
+commits each per-CIK outcome/request-log and resume cursor in one transaction,
+stops on a failed CIK, and verifies the cursor under lock before the next
+provider call. The existing file-backed worker-restart regression covered a
+successful CIK followed by cancellation, while the failed-CIK retry regression
+used the same test session. Added a second file-backed SQLite regression that
+commits one successful CIK and a failed next CIK, closes that worker, then
+opens a fresh session and proves the failure and preceding cursor survived;
+the resumed worker retries only the failed CIK and then continues. Existing
+success-restart, failure-retry, and concurrent-cursor tests remain unchanged.
+
+No-network evidence on the working test-only change: the new restart case
+passed 1/1; the complete SEC scan module passed 26/26; Ruff check, Ruff format
+check, and `git diff --check` passed. This is still an uncommitted test change
+on base source `ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1`; hosted CI `39851338439`
+is green only for that parent, not this added regression. No provider, issuer,
+or SEC HTTP; no quota reservation/spend/reset; no Docker or persistent service
+database; no retained data, staging, or sibling change. The local full profile
+remains deferred while the coordinator reserves heavy capacity for first-human
+deployment. Next: publish the tested owned change and obtain exact-source CI;
+keep the full local profile pending until the coordinator releases its slot.
+Current owned dirty paths are `backend/tests/unit/services/test_market_event_edgar_scan.py`,
+`ops/workstreams/feat-market-data-provider-platform/handoff.md`,
+`ops/workstreams/feat-market-data-provider-platform/validation.jsonl`, and
+`ops/workstreams/feat-market-data-provider-platform/session.json`; no other
+source or workstream file is part of this change.
+
+The repository checkpoint helper subsequently synchronized `session.json` to
+actual local/remote HEAD `ad1bfa64b45aa93bd48e3b97cb30a9d905c807e1` and the four
+dirty paths above. Its read-only resource accounting found the existing
+assigned Provider stack (8 containers, 4 volumes) within its recorded budget;
+it started/stopped no service and changed no dataset. This does not release the
+coordinator's deferred full-profile slot or establish that its separate image
+build is idle.
+
+## 2026-10-22 22:19Z — exact-source CI terminal reconciliation
+
+- Exact hosted Actions run `39858232646` completed successfully on source
+  `8739c92aeb6e1059405e8b3df9577c053d89585d`. Backend, Frontend Unit,
+  Branch-declared, and Playwright jobs succeeded; Exhaustive was skipped by
+  feature-branch policy. No rerun was started.
+- The SEC issuer-scan regression remains locally verified at 26/26 on this
+  source. Hosted CI does not replace the required local full profile, which
+  remains deferred pending coordinator release of the heavy slot. No provider,
+  issuer, or SEC transport; quota operation; service/data cleanup; staging or
+  sibling write occurred.
+- The confirmed private transcript exposure is not public-exposure evidence.
+  No credential values were inspected, repeated, copied, used, rotated, or
+  revoked. Alpaca remains held for owner-managed rotation and separate storage
+  authorization; production routing remains off.
+
+## 2026-10-23 02:32Z — SEC failure-path composition regression
+
+The current branch was independently rechecked at clean synchronized source
+`b87860e632c0846bfbd6619c9f40d69ba9f9cb55`. Exact Actions run
+`39883122792` is terminal green on that source (Backend, Frontend Unit,
+Branch-declared and Playwright succeeded; Exhaustive is skipped by feature
+branch policy). On this exact checkout, the complete SEC issuer-universe scan
+module passed 28/28, including worker restart, failed-CIK retry, atomic
+rollback, and cursor-lock coverage.
+
+Added one deterministic file-backed SQLite regression for the remaining
+layer-composition gap: it uses the real `refresh_edgar_ipo_pipeline` and
+`refresh_edgar_ipo_pipeline_for_issuer_universe` functions, while mocking only
+the provider executor. It verifies a real-pipeline-caught CIK exception and
+its failed request-log outcome commit with the preceding resume cursor; after
+closing that worker session, a fresh session sees the failure and retries only
+that CIK before continuing to the next issuer. The focused test passed 1/1;
+Ruff check, Ruff format check, and `git diff --check` passed. This test change
+is not included in Actions `39883122792` and needs exact-source CI after
+publication.
+
+The exact full local profile remains deferred until Root completes the
+`331d99b7` focused proof/cleanup and explicitly releases the Provider slot.
+The separate private, resource-bounded profile plan remains preparation only
+and must be rebound to the then-current clean source before any launch. No
+provider, issuer, or SEC HTTP; quota reservation/spend/reset; Docker/Compose or
+browser fixture; data/service cleanup; staging/sibling/master/deployment
+change; paid/trial activation; or credential inspection/change occurred.
+Current owned changes are the SEC regression and this handoff/plan/journal
+evidence; no other source or workstream context is part of this change.
+
+## 2026-10-23 — frozen f04 first-human Massive admission recipe (preparation only; corrected)
+
+Source basis is accepted staging `f04fb2a26c6363c6090e76c2658cfcfe7adabf61`,
+not later Provider changes. In a fresh non-seeded private deployment, keep
+`E2E_SEED_MARKET_DATA=false` and `E2E_SEED_LARGE_UNIVERSE=false`, retain
+`PROVIDER_FREE_ONLY_CHECKPOINT=true` and every checkpoint hold, and leave
+`PROVIDER_ROUTING_ENABLED=false` until a separate deployment preflight. Do not
+reuse seeded bars as provider evidence.
+
+The ordinary user flow is exact-symbol search for SPY/RSP, exact canonical
+instrument resolution/profile, then the authenticated chart request
+`GET /ohlcv/{symbol}/D1?adjusted=true&limit=500` (the normal OHLCV endpoint
+defaults to adjusted and refreshes only if the local series is cold/incomplete).
+`/instruments/search` uses the configured search preference, whose f04 seed
+includes EDGAR, Massive, and Alpha Vantage; the default price-history seed is
+Alpaca then Alpha Vantage, not Massive. Crucially,
+`PROVIDER_CHAIN_SEEDS` is an ordering preference, not an allowlist:
+`seed_provider_runtime()` appends all supported providers for each capability
+and creates missing policy rows enabled. Therefore setting those preferences
+to Massive does NOT prove Massive-only routing or prevent fan-out. Before any
+normal routing is enabled, inspect the target's resolved per-provider policies
+for both `instrument_search` and `price_history`, including all providers in
+each resolved chain, and confirm that only the specifically intended route is
+enabled while every other provider remains disabled and all holds remain
+effective. The existing admin control is
+`PATCH /api/v1/providers/policies/{provider_name}/{capability}` with
+`{"is_enabled": false}` (or true only for the reviewed Massive capability);
+the handler requires an already-managed admin principal. Do not create a
+privileged account or alter target policies as part of this preparation. Also
+verify the resolved chain/status after any separately authorized deployment
+configuration, rather than inferring it from seed order.
+
+Search results are cached; new canonical identity/profile resolution requires
+a fresh provider search cache or can repeat the Massive search, followed by
+one ticker-profile request per symbol. The cold initial 500-bar D1 chart page
+is one Massive aggregate request per symbol under the accepted estimator
+(calendar lookback about 701 days, within the configured two-year Stocks Basic
+history and one 50,000-base-aggregate page); any continuation/cursor page must
+be admitted and reserved separately. That is normally three calls per new
+symbol when exact search cache is fresh, but conservatively allow a repeated
+search: up to four per symbol/eight total for both symbols, not a guaranteed
+successful response. Calls may be fewer if a fresh canonical identity/cache
+already exists. Search/profile costs one call each; history is dynamically
+estimated from timeframe/range and cursor paging, not assumed globally to be
+one.
+
+Admission remains fail-closed until target-specific checks pass: only the
+privately provisioned Massive key is present (check field presence only); the
+actual entitlement is reviewed as `free-stocks-basic` with `is_free=true`,
+the operation is admitted by runtime policy, and its bounded requests have
+fresh durable-ledger reservations. No paid/trial/broker configuration is
+permitted. The already recorded
+`PROVIDER_OWNER_ACCEPTS_PROVIDER_TERMS_RISK=true` is the accepted single-user
+private-use/storage risk disposition; in f04,
+`massive_market_data_use_authority_missing()` consequently returns no missing
+authority fields. Do not request another owner approval or invent a missing
+provider-written-waiver prerequisite. This owner decision does not change
+Massive's terms or prove a provider-granted exception; keep the actual audience,
+display, retention, and deletion constraints accurately represented.
+
+F04's Massive seed documents five Stocks requests per account per minute,
+shared across keys, with the native minute-reset boundary unspecified. Its
+quota dimension supplies `safety_reset=rolling`, a 60-second window,
+`baseline_mode=local_zero`, and `application_usage_only=true`; the quota
+admission code resolves the unknown native reset dimension through this
+configured safety envelope. Thus `MASSIVE_REVIEWED_RESET`/quota-override
+evidence is not inherently mandatory when this accepted seed contract is what
+the target actually uses. The envelope is not a provider-native usage counter
+and does not establish zero total account use. Verify the target's effective
+contract and fresh shared durable coordinator state, including writable ledger,
+recent reservations/settlements, known concurrent use, and sufficient
+per-operation headroom in its rolling window; reserve each request before
+transport and pace the bounded flow across windows. Do not infer headroom or
+reset from the seed, or use recurring-cost budget admission as permission for
+paid routing.
+
+Still unknown here: target key presence, actual plan/zero-recurring-cost status,
+resolved policy enablement/chains, current durable-ledger headroom and
+reservations, and whether the runtime configuration matches the accepted
+f04 safety envelope. The configured `free-stocks-basic` seed and historical
+probe status are not current account or admission evidence. No HTTP,
+reservation, quota change, key inspection, policy mutation, or activation
+occurred; this is preparation, not live acceptance. If any target prerequisite
+is missing or unknown, leave routing off and preserve the ordinary fail-closed
+unavailable/capacity response; do not fall back to another provider or seeded
+data.
+
+Exact f04 pointers reviewed: `backend/app/config.py` (owner-risk default,
+`massive_market_data_use_authority_missing`, Massive quota seed and
+`PROVIDER_CHAIN_SEEDS`); `backend/app/services/provider_runtime.py`
+(`seed_provider_runtime`, entitlement/hold/admission); the existing
+`backend/app/routers/providers.py` policy PATCH and `ProviderPolicyUpdate`;
+`backend/app/services/provider_quota_coordinator.py` rolling safety-reset
+resolution; `backend/app/providers/massive.py` search/profile/adjusted aggregate
+and page-cost estimators; `backend/app/routers/instruments.py` and
+`backend/app/routers/ohlcv.py` ordinary request paths; and
+`docs/provider-live-validation.md` (2026-10-04 Massive audit and recorded
+single-user decision).
+
+## 2026-10-23 — CI compatibility follow-up
+
+Exact Actions run `39918492546` on source
+`34c954f7d5dfcfa7c887ef3b5a39d3baea749447` is preserved as terminal red. Its
+Backend unit stage had one failure in
+`test_strategy_chain_has_unique_ids_and_preserves_shared_base`: it asserted
+the global Alembic head must remain `slv2_0011`, which is no longer true after
+the additive Provider timestamp revision. The Strategy merge parent remains
+`("e9c23a7b1d40", "slv2_0010")`, and the unique Strategy namespace/shared
+ancestry assertions remain. Only the test now requires exactly one global
+head and walks ancestry from that head. Compatibility plus existing SQLite
+migration tests pass 20/20. The PostgreSQL fresh/upgrade preservation test is
+still not executed pending the coordinator's bounded Docker grant; collection
+and static SQL rendering are not substitutes. No historical migration,
+production runtime, target database, provider/issuer/SEC transport, quota, or
+retained resource was changed. Branch remains `in_progress`; exact follow-up
+test-only commit `33e62f1c88cb7a51e3b58d7591dcb315358c069c` is pushed and
+matches origin. Exact Actions run `39919722629` is queued; its terminal result
+is not yet known.
+
+The broader active roadmap's SEC scan durability regression module was also
+rerun at `33e62f1c88cb7a51e3b58d7591dcb315358c069c`: all 28 tests passed,
+including worker restart/cursor persistence coverage. This is deterministic
+no-network evidence only; it does not change the separate migration Docker
+gate or mark the roadmap complete.
+
+## 2026-10-23 08:25Z — exact-source CI terminal receipt
+
+Exact synchronized Provider HEAD `33e62f1c88cb7a51e3b58d7591dcb315358c069c`
+matches origin. Actions run `39919722629` attempt 1 is terminal green:
+Backend, Frontend Unit, Branch-declared, and Playwright succeeded; Playwright
+reported 191 passed and 110 skipped. Exhaustive was skipped under normal
+feature-branch policy. Backend reported 5,201 unit tests (1 skipped), 498
+integration tests (2 skipped), and 84% combined coverage above the 75%
+threshold. The run includes the SEC CIK result/failure plus resume-cursor
+restart regression, and the separate Strategy migration-head compatibility
+follow-up. The PostgreSQL timestamp-repair regression was executed by the
+coordinator's isolated green-f04-based repair validation, not by a duplicate
+fixture in this Provider worktree. No provider/issuer/SEC HTTP, quota action,
+target database change, retained-resource cleanup, sibling/staging/master
+write, or deployment occurred. Broader Provider roadmap remains open and
+status remains `in_progress`.
+
+## 2026-10-23 — alternate-series coverage regression
+
+Closed the prior dirty migration/CI evidence context in separate commit
+`3485d56e39a62311ea616dfda4a9ee0883848a06`, pushed and verified synchronized
+with origin. On that source, inspected and ran
+`/tmp/tc_default_series_coverage_repro.py` using the backend-managed
+environment. It reports one row from `_default_series_bar_condition` (the
+mapped default) but `instrument_coverage` summary count 2 and historical
+`instrument_ohlcv_coverage` count 2/ready through the later alternate-only
+date. Therefore the reported exclusion is not present in the current
+`backend/app/routers/coverage.py`: those coverage endpoints intentionally
+aggregate all adjusted bars and do not apply the default-series read
+selector. Added a deterministic router regression to preserve that coverage
+contract while explicitly asserting ordinary default reads remain mapped to
+the selected series. Focused coverage-router tests pass 7/7; adjacent
+mapped/canonical/legacy default-series tests pass 4/4. No production code,
+provider routing, adjustment/visibility/range rules, migration, target DB,
+provider/issuer/SEC transport, quota, or retained resource changed. The
+checkpoint remains `in_progress`; exact-source CI is pending for this
+separate regression/evidence changeset.
+
+## 2026-10-23 09:10Z — exact-source CI terminal receipt
+
+Exact synchronized Provider HEAD `710deebe8427d07c5c53aec83b20408669606b5a`
+matches origin. Actions run `39925449735` attempt 1 is terminal green:
+Backend, Frontend Unit, Branch-declared, and Playwright succeeded; Exhaustive
+was skipped by normal feature-branch policy. Backend reported 5,202 unit
+tests (1 skipped), 498 integration tests (2 skipped), and 84% combined
+coverage. Playwright completed 191 passed/110 skipped in 17.4 minutes. The
+run validates the deterministic alternate-series coverage regression; the
+current-source SEC issuer-scan module also passed 28/28 no-network tests,
+including failure/result durability, cursor atomicity, and fresh-session
+restart coverage. The broader roadmap and branch status remain
+`in_progress`; this receipt does not establish full-profile or live-provider
+acceptance. No provider/issuer/SEC HTTP, quota operation, retained-resource
+change, sibling/staging/master write, or deployment occurred.
+
+## 2026-10-23 09:12Z — coverage default-series alignment
+
+Closed the preceding receipt context at synchronized commit
+`23820901272438a107bc10c01805200f2dc1184d`. The requested TC reproduction
+showed the mismatch: the shared default-read selector returned only the
+mapped series, while coverage summary/range queries included a later
+alternate-series bar. The separate repair now applies
+`_default_series_bar_condition` to both coverage queries. The regression keeps
+the later alternate-only date and asserts it does not advance summary `newest`
+or range `covered_end`/readiness; adjustment mode, requested range, visibility,
+and selector's mapped/canonical/legacy fallback remain unchanged. Focused
+router tests pass 7/7, adjacent mapped/canonical/legacy selector tests pass
+4/4, and Ruff plus `git diff --check` pass. This candidate is separate from
+the prior receipt commit; exact-source CI is pending. No provider/issuer/SEC
+HTTP, quota operation, retained resource, target DB, sibling/staging/master
+write, or deployment occurred. Checkpoint remains `in_progress`.
+
+## 2026-10-23 16:12Z — released F8m diagnostic slot ended at capacity guard
+
+Adopted only released green staging `a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e`
+into Provider. Current clean/pushed source is
+`edea60a769a63863f72ef2a19df5df7a9378c277`; exact Actions run `39981791130`
+was in progress at the last observation (not claimed green). The staged
+migration-head conflict was resolved as one head `d4a5b6c7e812` descending
+from `slv2_0011`; focused regression, workstream validation, and diff-check
+passed.
+
+The newly released diagnostic used only isolated project
+`provider-edea60-f8m-20261023`. Its rendered config and actual containers had
+no host bindings, bounded equal memory/swap caps, blank provider credential
+values, routing/paid off, synthetic instrument/market-data seeds, and quota
+plus FINRA token-state mounts pointed only at empty directories inside that
+private scratch path. Backend provider egress was on the internal deny network;
+the browser proxy was limited to the previously reviewed OneSignal host. The
+backend image remains honestly identified as built from `61e31e7` (the
+F8m-relevant API paths are unchanged); the reused frontend image remains
+identified as built from `4687bd0`, whose non-test frontend build inputs are
+byte-identical. Playwright image was pinned to `v1.62.1-noble`; the target test
+was the yellow-wildcard/grey-isolation case only, not chart-panels or a broad
+matrix.
+
+Two initial runner invocations exited before test discovery (`No tests found`):
+first the file selector included a path relative to the wrong test root, then
+an anchored grep omitted the parent suite title. A no-execution Playwright
+`--list` confirmed the target and separately listed chart-panels. The corrected
+unique-title run selected the intended case once, with one worker and zero
+retries, but the immediate pre-launch memory sample was only `1,039 MiB`
+available (below the slot's `1,280 MiB` requirement). I stopped only that
+disposable browser runner; it exited `137` while the case was in progress. No
+assertion/result was produced, so this is neither a product failure nor a
+passing F8m proof. Full local functional/visual validation remains open.
+
+Raw test output and allow/deny proxy logs were preserved under
+`/tmp/provider-edea60-f8m-20261023/artifacts/`. The exact newly created
+Compose project was then removed with its own `down -v`; a before/after audit
+found all `32/32` pre-existing running containers, `51/51` pre-existing
+volumes, and `11/11` pre-existing networks still present, with zero resources
+left under the new project name. No provider/issuer/SEC HTTP, quota/ledger
+operation, retained-data/service change, sibling/staging/master write, or
+deployment occurred. Do not reuse this diagnostic as full-profile evidence;
+the next browser attempt requires a fresh coordinator slot and a passing
+capacity gate before runner launch.
+
+## 2026-10-23 16:18Z — SEC issuer-scan durability reverified on current source
+
+On exact current Provider source `edea60a769a63863f72ef2a19df5df7a9378c277`,
+the complete `backend/tests/unit/services/test_market_event_edgar_scan.py`
+module passed `31/31` in `29.10s` using the managed Python 3.12.4 environment,
+with `RUN_LIVE_PROVIDER_TESTS=0`, provider routing disabled, and both
+availability monitors disabled. Service and test files are byte-identical to
+the committed durability implementation at `61e31e7`; no source change was
+needed. File-backed SQLite restart tests prove completed CIK results and
+cursor survive a fresh worker session, caught per-CIK executor failure is
+persisted with the prior cursor and later CIKs resume without replay, and a
+forced cursor-update failure rolls back its result log atomically. Transport
+is mocked; no provider/issuer/SEC HTTP, quota operation, or external database
+was used. This closes the named SEC durability gap but does not satisfy the
+broader `ready_for_human_review` goal: the required local full profile remains
+open after the capacity-stopped F8m diagnostic.
+
+## 2026-10-23 — EDGAR shared-runtime interface note for ETF
+
+Read the coordinator's `sec-public-data-contract-review-20261023.md` and
+compared its proposed public-filings binding with the current Provider runtime
+at exact source `edea60a769a63863f72ef2a19df5df7a9378c277`. Reusable hooks:
+
+- Keep publisher identity `edgar` and its shared Provider `DataSource`; the
+  ETF bridge must pass the exact committed `ETFProfile`/`Instrument`, adapter,
+  provider symbol, and one of the two reviewed operation names through
+  `bind_etf_holdings_request_context` and
+  `execute_etf_holdings_request_attempt` in
+  `backend/app/services/etf_holdings_provider_bridge.py`. The bridge checks
+  committed profile/instrument/symbol/adapter/publisher identity, explicit
+  `ETF_HOLDINGS` policy enablement, reviewed HTTPS host and operation record,
+  entitlement, and configured account binding before the shared runtime.
+  `ProviderCapability.ETF_HOLDINGS` is intentionally not a generic EDGAR
+  registry capability: do not add generic `get_provider("edgar")` ETF routing
+  or let discovery/enrichment borrow the latest/dated refresh binding.
+- Reuse `account_scope_for_provider("edgar", "ip")` and the explicit
+  `PROVIDER_QUOTA_ACCOUNT_SCOPES["edgar:ip"]` entry. For IP scope, that helper
+  reads the namespaced key (or defaults to `edgar:shared-ip`); a provider-level
+  `"edgar"` entry is not used by the helper even though the bridge's preliminary
+  presence check accepts either key. The ETF review's stored `account_scope`
+  must exactly match the helper's resolved value; do not create a per-ETF/per-
+  adapter allowance. SEC public requests share the deployment egress-IP budget.
+- Reuse `execute_provider_call` and its per-attempt `reserve_provider_contract`
+  / `settle_provider_contract` plus durable `reserve_provider_quota_async` /
+  settlement path. Every physical page, retry, redirect hop, and failed send
+  must be admitted/accounted separately. The EDGAR seed in
+  `backend/app/config.py` is 10 requests per one-second rolling application
+  safety window, scope `ip`, with a local-zero *application usage* baseline;
+  this is not a native SEC usage counter or asserted account-wide headroom.
+- Public SEC access has zero monetary access cost, but not zero request or
+  response-byte budget. The ETF bridge's recurring-cost check requires the
+  shared recurring-cost budget to allow and an active commitment for the same
+  environment/account-scope digest with amount and monthly equivalent exactly
+  zero and no post-trial amount. Preserve explicit positive per-operation
+  request cost and reviewed byte bounds in normal quota admission; never
+  encode zero cost by omitting operation cost or bypassing reservations.
+- Use the existing EDGAR identity/config validation (`EDGAR_USER_AGENT`,
+  `is_valid_edgar_user_agent`, `provider_required_settings`) and the ETF
+  bridge's source-specific HTTPS host / operation evidence record. The
+  descriptive User-Agent is required identification, not an API credential.
+  `provider_rate_limit_error` already treats SEC rate-limit 403s and 429/418
+  responses as capacity events and uses the reviewed ten-minute recovery
+  behavior when SEC supplies no reset; preserve stop/hold behavior.
+
+Still unproved and therefore held: actual configured deployment egress-IP
+scope and current shared-ledger/native-window headroom; any native SEC usage
+counter or fixed reset (none is established by this review); reviewed
+operation-specific transport/response-byte maxima and active zero-cost
+commitment for the final adapter; a qualifying reachable filing and proven
+form/fund/series/class-to-instrument mapping; completeness, provenance and
+honest public-knowledge timestamps for the parsed holdings; and required
+source/CI plus any coordinator-authorized live evidence. The public-data
+research supports zero monetary access cost, not actual route readiness,
+coverage, quota allowance, or a new request authorization. No HTTP, credential
+inspection, database write, sibling edit, or activation occurred.
+
+## Highest-priority remaining no-network roadmap item
+
+The priority remains `AC-UNIVERSE-COMPLETE`; SEC CIK restart durability and
+the SEC directory dry-report/no-refetch materialization subpath are not a
+substitute for complete current-source NMS/OTC/SEC universe evidence. The
+bounded code review found no additional safe defect to patch here: the
+materialization route is admin-only and delegates to the retained-report
+materializer without refetching, and existing tests cover clean-cycle gates,
+source fingerprints, payload/normalized-field agreement, ambiguity quarantine,
+and no-refetch behavior (`backend/app/routers/market_data_admin.py` and
+`backend/tests/integration/api/test_market_data_admin.py`; detailed SEC scan
+unit coverage remains in `backend/tests/unit/services/test_market_event_edgar_scan.py`).
+The remaining criterion requires trustworthy complete CTA Tape A/B, Nasdaq
+Tape C, authorized FINRA OTC/Daily List, and SEC source scopes with same-session
+completeness and venue mappings; those current external source facts are not
+proved by this no-network review. Do not claim universe completion from the
+31-test SEC module or reuse historical/live receipts as current. The required
+full `full_stack_browser` profile also remains open after the F8m capacity
+stop. Continue only a concrete deterministic code gap if one is identified;
+otherwise preserve the no-HTTP boundary and await the separately released
+profile/source-evidence gates without repeating unchanged suites.
+
+## 2026-10-23 16:26Z — exact-source CI receipt reconciled
+
+GitHub Actions run `39981791130`, attempt 1, is terminal green on the exact
+synchronized source `edea60a769a63863f72ef2a19df5df7a9378c277`. Backend passed
+5,210 unit tests (1 skipped), 498 integration tests (2 skipped), and the
+combined coverage gate at 84%; Frontend Unit and Branch-declared passed.
+Playwright passed 191 with 110 declared skips in 17.5 minutes; the E2E job
+completed successfully and the retrieved log had no test retry/flaky marker.
+Exhaustive was skipped by normal feature-branch policy. This closes the
+hosted-source receipt only: the required local full functional/visual profile
+remains open, and the prior F8m capacity stop is still a no-result, not product
+acceptance. No provider/issuer/SEC request or quota operation occurred.
+
+## 2026-10-23 16:38Z — CTA redirect accounting fail-closed correction
+
+A bounded static audit of `AC-UNIVERSE-COMPLETE` found that
+`backend/app/providers/cta_plan.py::_get` enabled HTTPX automatic redirects
+inside one `execute_provider_call`. The adapter telemetry observed the final
+response, while the reviewed CTA operation reservation remains two requests
+(directory index plus dated CSV); an automatic redirect could therefore send
+an additional physical request without its own admission. The adapter now
+sets `follow_redirects=False`, preserving the reviewed two-request contract
+and surfacing a redirect as a failed attempt rather than silently following
+it. This is fail-closed, not proof that the official endpoint currently
+redirects or that CTA source reconciliation is complete. The focused CTA unit
+module passed 7/7, Ruff check and format passed for the two changed files, and
+`git diff --check` passed. No provider HTTP, quota reservation/spend/reset,
+source data, retained resource, or policy limit changed. The change is a
+working-tree candidate based on `edea60a769a63863f72ef2a19df5df7a9378c277`;
+exact-source CI is not yet available. Full roadmap and required local profile
+remain open.
+
+## 2026-10-23 — bounded no-network prelisting-contract follow-up
+
+On the same source, a read-only inspection of
+`backend/app/services/market_event_prelisting.py` and its existing unit suite
+confirmed that future-listing materialization is separate from SEC directory
+issuer-row materialization: only persisted IPO events with sufficiently
+corroborated consensus can create inactive provisional instruments; single-
+source, conflicted, or cross-page inconsistent evidence remains quarantined.
+The relevant deterministic cases are
+`test_materialization_deduplicates_consensus_into_inactive_provisional_instrument`,
+`test_materialization_keeps_consensus_complete_across_event_page_boundary`,
+`test_materialization_quarantines_conflicting_consensus_across_page_boundary`,
+`test_conflicted_consensus_is_quarantined_without_instrument`,
+`test_single_source_future_listing_is_quarantined_without_provisional_instrument`,
+and `test_corroborated_future_listing_with_conflicting_symbol_is_quarantined`.
+These are already part of the exact-source green backend CI; they were not
+rerun for this review. No additional deterministic defect was established.
+This does not prove current external universe completeness: AC-UNIVERSE-COMPLETE
+still needs complete current CTA/Nasdaq/FINRA/SEC source evidence and the held
+local full profile. No source code, database, provider transport, quota, or
+retained resource changed.
+## 2026-10-23 — bounded ETF EDGAR one-fund execution contract review
+
+Read the coordinator's `sec-public-data-contract-review-20261023.md` and
+compared the ETF owner's in-progress SEC implementation with the accepted
+Provider EDGAR contract at `5b02caf509107856195ef8cfb2374e2ab6120612`.
+ETF worktree HEAD was `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`; the reviewed
+dirty files were `etf_holdings_edgar.py`
+(SHA-256 `763ef49d85e9e9fcadb761c8ed27053179f120f40678e82d45df60d6ce69d485`)
+and `etf_holdings_provider_bridge.py`
+(SHA-256 `f43eaae3e9f1c7470b3abab45c577649b4b2ed856279106c6c18f3568f094c73`).
+The Provider config/runtime/quota sources reviewed were unchanged from the
+prior EDGAR interface note. Exact-source Actions `39988953219` was still in
+progress (Backend, Frontend Unit, and Branch-declared succeeded; Playwright
+remained running; Exhaustive skipped by feature-branch policy at review time).
+No tests were rerun, and no SEC/provider request, credential read, database
+write, activation, quota mutation, hold change, fixture, or sibling edit
+occurred.
+
+Code anchors: the ETF operations and per-hop bridge are in
+`backend/app/services/etf_holdings_provider_bridge.py` (`_ETF_SEC_OPERATIONS`,
+`ProviderBackedHTTPXClient.request`, `_review_attempt_context`, and
+`execute_etf_holdings_request_attempt`); the unbounded archive scan is
+`backend/app/services/etf_holdings_edgar.py::discover_holdings_filings`; the
+full-body read is `LoopLocalHTTPXAttempt.execute` in the bridge. Provider
+anchors are `backend/app/config.py` (EDGAR quota seed around lines 665–705,
+operation-cost seed 1908–1919, User-Agent settings 3087–3093),
+`backend/app/services/provider_runtime.py::_usage_cost_for_operation` and
+`_dimension_costs_for_operation`, and
+`backend/app/services/provider_quota_coordinator.py::account_scope_for_provider`.
+
+Reusable admission contract: retain publisher/DataSource `edgar` and the
+shared `ETF_HOLDINGS` policy and entitlement, with committed ETFProfile,
+Instrument, CIK, and provider-symbol identity. The dedicated adapter key is
+`edgar_sec_holdings`; the new bridge binds only
+`fetch_etf_holdings_sec_submissions`,
+`fetch_etf_holdings_sec_submissions_file`, and
+`fetch_etf_holdings_sec_filing`. Preserve the same `edgar:ip` account scope,
+actual `account_scope_for_provider("edgar", "ip")` result, and
+per-physical-attempt reservation/settlement through `execute_provider_call`;
+do not create an adapter- or ETF-specific allowance. The DataSource review
+record must bind exact `https_hosts`, that same resolved `account_scope`, and
+reviewed evidence source/version/date for each of the three operation names.
+Require the enabled `ETF_HOLDINGS` policy, matching entitlement, valid
+`EDGAR_USER_AGENT`, and an active verified zero-cost recurring commitment and
+budget for the same application environment and account-scope digest. The
+request code reads `EDGAR_USER_AGENT`; setting only
+`ETF_HOLDINGS_HTTP_USER_AGENT` would not satisfy this path.
+
+Source-documented/native facts versus application controls:
+
+- SEC public filing access has zero monetary access cost, needs no API key,
+  requires an identifying User-Agent, and publishes a shared egress-IP ceiling
+  of 10 requests/second. The accepted EDGAR seed preserves that
+  `requests_per_second` dimension and a rolling one-second application safety
+  window with `baseline_mode: local_zero` and `application_usage_only: true`.
+  This is the platform's durable measured use, not SEC-reported remaining
+  headroom.
+- SEC does not document a public usage counter or a fixed bucket/reset boundary
+  for this access path. The code therefore retains `reset: provider_defined`
+  and `unknown_dimensions: [requests_per_second_reset_boundary]` while
+  enforcing the rolling application window. That is documented absence from
+  the reviewed SEC contract, not proof of native current use/reset and not a
+  reason to invent a counter. The 10/s rate ceiling is known; current aggregate
+  use by other clients sharing the egress IP remains unobservable. An actual
+  run must not claim native account-wide headroom from the application ledger
+  alone.
+- The generic EDGAR `usage_tracking.operation_costs` seed does not include the
+  three ETF operation names. Add explicit positive cost `1` request for each
+  name in the actual shared DataSource operation-cost map; every redirect hop
+  is another physical call and must receive its own reservation and
+  settlement. Missing costs remain fail-closed, not an implicit zero-cost
+  call.
+- SEC publishes no response-size ceiling for these payloads. The current ETF
+  bridge measures response bytes, but `LoopLocalHTTPXAttempt.execute` invokes
+  `response.aread()` before returning and has no streaming/decoded-byte stop.
+  A reserved byte amount or post-read measurement does not cap actual download
+  size. A real execution contract needs a hard streaming byte limit before
+  body completion plus per-operation byte costs in shared usage-tracking/quota
+  records so reservation is reconciled to measured bytes. Those are explicit
+  application safety bounds, never SEC-native limits.
+
+Finite one-fund proposal for coordinator/ETF-owner review (not configured,
+tested, activated, or authorized for transport): one committed fund profile;
+at most one selected filing; at most one eligible archived-submissions JSON
+page scanned; at most two redirects per logical GET (initial request plus two
+redirect hops); zero retries; the existing 20-second timeout per physical
+attempt and a 210-second whole-fund deadline. The three logical operations are
+submissions JSON, at most one submissions archive JSON, and one filing body.
+At one request-cost unit per physical attempt this is at most 9 actual HTTP
+requests (`3 operations × 3 attempts`), all serialized and paced at no more
+than one physical request per second through the same `edgar:ip` ledger. The
+archive-page bound is distinct from `MAX_FILINGS_PER_ETF`: current
+`discover_holdings_filings` continues through `filings.files` until it finds
+`max_filings`, so that setting does not bound page-fetch count. If the one
+archive page does not yield the required filing, stop as incomplete/failed;
+never report a complete empty result or scan another page silently.
+
+Proposed decoded-body caps are 2 MiB for submissions JSON, 2 MiB for the one
+archive JSON, and 16 MiB for the filing response, with a 20 MiB aggregate
+per-fund body ceiling across every redirect response. The shared operation
+dimension-cost map should reserve the corresponding per-attempt maximum for
+each physical operation; under the 9-attempt ceiling its conservative
+reservation envelope is at most 60 MiB, while the independent application
+whole-fund reader stops at 20 MiB actual decoded bytes. Any page, request,
+redirect, byte, rate, or wall-time bound exhaustion must fail the run as
+incomplete and stop later operations. The 2/2/16/20 MiB, page count, redirect
+count, one-request/second pacing, and 210-second deadline are proposed
+application bounds only; they require explicit owner review and hard
+implementation, not inference from SEC documentation. They do not change the
+SEC 10-requests/second native ceiling, shared ledger, zero-USD commitment, or
+any held route.
+
+Current concrete gaps for the ETF owner: (1) `MAX_FILINGS_PER_ETF` does not
+bound archived submissions-file requests; add a separate finite archive-page
+cap with an incomplete outcome on exhaustion. (2) the bridge defaults to 20
+redirects; bound this route explicitly and keep each hop separately admitted.
+(3) there is no hard response streaming/aggregate byte cap before `aread()`.
+(4) current EDGAR operation costs omit all three new SEC ETF names, and the
+review record validates evidence strings/host but does not itself establish
+numeric transport or byte caps. Provider did not patch or duplicate this ETF
+implementation.
+
+Before any actual one-fund execution, require the ETF owner's tested
+fail-closed page/attempt/redirect/byte/deadline bounds; the three exact positive
+operation costs and byte reservation maps on the shared `edgar` DataSource/
+policy; one consistent explicit `edgar:ip` scope and observed durable-ledger
+state for the platform's own use; evidence that every client using the same
+public egress IP is governed or otherwise accounted for (the reviewed SEC
+contract has no native counter); qualifying committed fund/CIK/instrument
+mapping; configured valid User-Agent; active same-scope verified-zero
+recurring commitment; and coordinator authorization for that specific bounded
+run. This note is an interface/budget review only, not a positive route
+disposition, live-evidence claim, hold release, or new request authorization.
+The Provider full roadmap and `AC-UNIVERSE-COMPLETE` remain open.
+## 2026-10-23 17:25Z — current-source CIK durability scope clarification
+
+Clarification to the 16:18Z note above: its statement that the *entire* SEC
+scan service and test files were byte-identical to commit `61e31e7` was too
+broad. On current synchronized HEAD `5b02caf509107856195ef8cfb2374e2ab6120612`,
+the diff from `61e31e7` in those files is limited to the later SEC directory
+source-payload consistency guard/tests and compatible test fixtures; the
+per-CIK durability implementation and its six restart/atomicity/cursor tests
+remain unchanged. Current file SHA-256 values are service
+`90320b357dd637f794838e3cde539c600744a5839cbf18edd1f6c9ba1259c771` and tests
+`008a2d5655bccd096a474c4eb855508387972b1cd2ad9f9a35acfe8647ac9331`.
+
+The six focused regressions are `test_edgar_issuer_scan_commits_each_cik_and_restart_skips_committed_ciks`,
+`test_edgar_issuer_scan_cursor_survives_worker_session_restart`,
+`test_edgar_issuer_scan_rolls_back_result_when_cursor_commit_fails`,
+`test_edgar_failed_cik_is_durable_across_worker_restart_without_replaying_success`,
+`test_edgar_runtime_failure_result_and_cursor_commit_across_worker_restart`,
+and `test_edgar_issuer_scan_rechecks_cursor_before_next_cik_after_commit` in
+`backend/tests/unit/services/test_market_event_edgar_scan.py`. Their exact
+current component hashes match the 31/31 no-network module receipt at
+`edea60a769a63863f72ef2a19df5df7a9378c277`; no suite was repeated. At that
+observation, the exact-source Actions Backend job for run `39988953219` had
+completed successfully, while Playwright was still running. No
+provider/issuer/SEC request, quota operation, or retained resource change
+occurred.
+
+## 2026-10-23 17:29Z — EDGAR bounded-read boundary reiterated
+
+At Provider HEAD `5b02caf509107856195ef8cfb2374e2ab6120612`, the ETF archive
+finding is confirmed in `backend/app/services/etf_holdings_edgar.py::discover_holdings_filings`:
+`max_filings` limits returned filing rows, and the loop stops only when that
+row count is reached. It does not cap eligible entries in `filings.files` or
+the number of archive submissions requests. The one-archive-page proposal in
+the preceding review is therefore a separate application-level stop; exceeding
+it must produce incomplete/failed discovery, not a complete empty result.
+
+The body-size boundary is also confirmed at
+`backend/app/services/etf_holdings_provider_bridge.py::LoopLocalHTTPXAttempt.execute`:
+the attempt calls `client.request(...)` and then `await response.aread()` before
+returning. There is no streaming byte counter or hard response-size cutoff at
+this transport boundary. Later measured `response_bytes`, quota settlement, or
+a reserved byte amount can reconcile observed usage but cannot prevent the
+response body from being downloaded/buffered in full; absent or misleading
+`Content-Length` and decoded compression also make header-only checks
+insufficient. A real bound requires streaming/counting decoded chunks before
+accepting them, aborting and closing the response at the per-response or
+aggregate ceiling, and recording the outcome as incomplete/failed rather than
+parsing a truncated body as success. These enforcement changes are not present
+or validated in this Provider source and remain ETF-owner work.
+
+For clarity, the finite one-fund values above remain proposed application
+controls, not implemented protections or SEC-native facts: one archive page;
+two redirects maximum after the initial request (three physical attempts per
+logical GET); zero retries; 20 seconds per physical attempt; 210 seconds
+whole-run; at most 9 physical requests for submissions, one archive page, and
+one filing; serialized pacing at no more than one request/second; decoded-body
+ceilings of 2 MiB submissions, 2 MiB archive, 16 MiB filing, and 20 MiB
+aggregate across the fund. Their conservative per-attempt reservation envelope
+is at most 60 MiB only if each redirect response is separately reserved at its
+operation maximum. SEC's documented native bound remains 10 requests/second
+per egress IP; no public native byte ceiling, usage counter, or fixed reset
+boundary was established. No quota/ledger state or routing was changed, and no
+HTTP, tests, fixtures, or sibling files were touched by this review. This
+handoff-only note does not change the published source SHA or imply checkpoint
+acceptance.
+
+## 2026-10-23 17:31Z — exact-source CI terminal receipt
+
+GitHub Actions run `39988953219`, attempt 1, is terminal green on exact source
+`5b02caf509107856195ef8cfb2374e2ab6120612`, matching both local HEAD and
+`origin`. Backend Tests, Frontend Unit Tests, E2E Playwright, and
+Branch-declared Tests succeeded; Exhaustive Integration Gate was skipped under
+feature-branch policy. This corrects the earlier in-progress observation above
+without changing the source-bound EDGAR findings. The local full profile and
+full-roadmap `AC-UNIVERSE-COMPLETE` remain open; this CI result does not imply
+those gates or Provider checkpoint acceptance. No provider/issuer/SEC HTTP,
+quota operation, database/resource mutation, or source change occurred.
+
+Coordinator's terminal receipt additionally identifies E2E job `120545651940`,
+which completed successfully at `2026-10-23T17:27:44Z`; this supplements the
+run/job summary above without changing its source identity. The next bounded
+task is a read-only review of ETF owner's final EDGAR bounds implementation
+and positive/negative test evidence when that evidence is available; Provider
+will not duplicate the implementation or perform live transport.
+
+## 2026-10-23 — SEC issuer-universe durability reverified on current source
+
+On exact synchronized HEAD `5b02caf509107856195ef8cfb2374e2ab6120612`, the
+complete `backend/tests/unit/services/test_market_event_edgar_scan.py` module
+passed 31/31 in 29.57 seconds under the managed Python 3.12.4 environment.
+Provider routing, live tests, and availability monitors were disabled; the
+module uses mocked provider execution and temporary SQLite for its restart and
+atomicity regressions. It proves that each per-CIK result/request-log and
+resume cursor commit together, a fresh worker resumes after the last committed
+CIK without replay, failed CIKs are retried without replaying earlier success,
+and cursor-commit failure rolls back the CIK result. This closes the targeted
+durability gap for review, not the wider issuer-universe completeness or full
+Provider roadmap. No provider/issuer/SEC HTTP, quota operation, Docker,
+retained service/data change, or staging/sibling/deployment mutation occurred.
+The exact-source Actions run `39988953219` remains green; the broader roadmap
+and required local full profile remain open.
+
+## 2026-10-23 — bounded ETF SEC guard source review
+
+Read-only review of the current ETF worktree at HEAD
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`; that worktree is still dirty and
+the inspected candidate is not thereby accepted. Source hashes at review:
+
+- `backend/app/services/etf_holdings_edgar.py`:
+  `258df842293667f0446acda4bbd8065ac84855043b176f96aa7dd9aab58f5500`
+- `backend/app/services/etf_holdings_provider_bridge.py`:
+  `bf1568e08543842875538e3d3a25a4dc9413ea9261197ee7913d9712d284fc08`
+- `backend/tests/unit/services/test_etf_holdings_edgar.py`:
+  `7a60ac58e8e028db1b7b5fa2c9063c67b4016996dc0aa64ebfd033bcef44abf2`
+- `backend/tests/unit/services/test_etf_holdings_provider_bridge.py`:
+  `de6fa89dae25fa52adde25d6dd84704b8b08e12195afb13742cc53fe8d61a981`
+- `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`:
+  `f393aaf7c1c25ed1581e93fce96f3e0f122ff7fdecc414ca7c02a243bbc89c9d`
+
+Within the requested SEC guard boundaries, I found no remaining concrete
+source defect. `ETFSECExecutionBudget` latches terminal failures and checks
+them before logical requests and physical attempts; the HTTPX wrapper separately
+admits every redirect hop and latches 403/429, response-cap markers, redirect
+overflow, and deadline/attempt/page exhaustion. Bounded gzip/deflate decoding
+tracks per-response and aggregate decoded bytes and rejects incomplete streams,
+trailing bytes, and concatenated members. `backfill_sec_nport_holdings` does not
+report an empty/no-qualifying result as completed: zero ingested filings produce
+failed/partial plus `no_qualifying_filing_within_reviewed_budget`. Request
+identity is tied to the committed profile/instrument, normalized CIK and
+reviewed HTTPS host/account scope; filing series/class mismatches remain
+skipped rather than accepted as the target fund.
+
+Focused source-level regressions are present for sticky terminal denial before
+the next shared admission (`test_sec_terminal_response_denies_next_candidate_before_shared_admission`),
+gzip trailing/concatenated data and subsequent denial
+(`test_sec_gzip_rejects_concatenated_members_and_trailing_bytes`), no-match and
+wrong-series incomplete outcomes
+(`test_sec_backfill_without_qualifying_filing_is_not_completed_empty`), and
+per-hop shared ledger admission plus wrong-CIK no-transport denial
+(`test_sec_discovery_uses_shared_per_hop_admission_and_rejects_wrong_cik`).
+I did not run tests or make changes to ETF source. These are inspected test
+definitions, not current-candidate pass receipts; ETF remains responsible for
+running its focused tests and exact-source gates. No transport, credentials,
+fixture, runtime, sibling, or staging state was touched.
+
+## 2026-10-23 — SEC bounded-response shared-accounting review
+
+Read-only review of the same ETF candidate at HEAD
+`7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. Relevant current file hashes:
+
+- `backend/app/services/etf_holdings_provider_bridge.py`:
+  `bf1568e08543842875538e3d3a25a4dc9413ea9261197ee7913d9712d284fc08`
+- `backend/app/services/provider_runtime.py`:
+  `13fecfa9b0fea70911594e3d041aca3295af3a1f7474672db96f27e74a3575c0`
+- `backend/app/providers/telemetry.py`:
+  `1ef67bdcb7196fcc1a969bd20ee8e94711cc82e4214a2540be33d922608bd8d8`
+- `backend/tests/unit/services/test_etf_holdings_provider_bridge.py`:
+  `de6fa89dae25fa52adde25d6dd84704b8b08e12195afb13742cc53fe8d61a981`
+- `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py`:
+  `f393aaf7c1c25ed1581e93fce96f3e0f122ff7fdecc414ca7c02a243bbc89c9d`
+
+Concrete defect: a capped/invalid SEC body is represented as an HTTP 200
+`Response` with `_ETF_SEC_RESPONSE_LIMIT_MARKER`. In `_sync_provider_invoke`,
+the response is observed and returned (unless its HTTP status is >=400). The
+shared `execute_provider_call` therefore takes its success path before
+`ProviderBackedHTTPXClient.request` checks the marker and raises. That path
+persists the response payload, calls `_record_result(success=True)`, clears the
+failure streak/updates success health, and records provider support. For a
+truncated JSON body that remains parseable (notably a rejected concatenated
+gzip response whose first member was valid JSON), telemetry can retain that
+partial document as an ordinary captured payload. Request and byte/cost
+measurement is accurate, but success/completeness accounting is not.
+
+The narrow correction point is inside the shared invoke callback: after
+`observe_response` has captured the actual request/bytes/payload, detect the
+SEC marker and raise a typed failure before returning the response to
+`execute_provider_call`. This preserves consumed-quota settlement and raw
+measurement while sending the attempt through the shared failure/log/health
+path; the outer marker check can remain defensive. Add a shared-runtime
+regression asserting a marked HTTP-200 body produces a failed request log,
+does not update success/support health, preserves measured transport/cost and
+retained bounded bytes, and still blocks any later candidate. Existing
+`test_sec_terminal_response_denies_next_candidate_before_shared_admission`
+only stubs the shared executor and proves subsequent denial; it does not
+exercise this log/health ordering. No tests were run and no source/runtime,
+network, credential, fixture, sibling, or staging state was changed.
+
+## 2026-10-23 — bounded Strategy Study-reference consumer review
+
+Read-only review of Strategy worktree HEAD
+`f1c453270168260ba7c845bb81627e1c7baca8a0`, with owner edits present in
+`ResearchResultsTool.vue`, its unit test, and Strategy workstream records.
+Hashes below identify the inspected working-tree snapshots:
+
+- `backend/app/strategy_lab_v2/api_router.py`:
+  `4acf976d420d090755ed9abcc810f65af29c28ee33b0264f0201bfbd351fc5ae`
+- `backend/app/strategy_lab_v2/study_artifact_resolver.py`:
+  `e05bf473df3a881d5b5017813099e6d1acfd71777efd4a0ae842edc0c156f31d`
+- `backend/app/strategy_lab_v2/application.py`:
+  `0f6d4d6f52ef1c8ce247fa1168d5b7adb40ac925c85af776e93a9d7aa966a688`
+- `frontend/src/components/workstation/ResearchResultsTool.vue`:
+  `e2e94295d5a718064725a2a995bc248a066787023eb78672f7f634043d03e11b`
+- `frontend/src/views/StrategyLabV2View.vue`:
+  `f85ec9de695d8b1e639c2f21141c6e16b8fe95639bce062935e664a9dffe5b94`
+- `backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py`:
+  `26244133014b9cf733b6a852f565c25905ccd95a5492a766a6501e0a73d039e9`
+- `frontend/tests/unit/components/test_research_results_tool.test.ts`:
+  `22edec7e130ff9c77abdc92decc18fa3c2f4ca9d273140cbc69c1d536cedab05`
+
+No concrete owner-isolation, immutable-identity/digest, GET-only/dispatch, or
+stale-route-response defect was found in the requested seams. The registered
+router injects the authenticated `get_current_user`; the factory scopes the
+run query to that principal, checks the code asset owner, and selects the
+artifact by both run and artifact IDs. Its typed reference binds run/code
+version/artifact identity and recomputed run, code, dataset-manifest, and
+artifact-content digests, then passes through the verifier before return.
+The endpoint is `GET` only and calls that resolver; the production resolver
+reads persisted rows and does not dispatch. The integration test exercises a
+foreign-owner 404 and asserts dispatch/provider/HTTP-transport counters remain
+zero. The Research Results link carries the explicit run/artifact IDs to the
+Strategy Lab v2 route. Route hydration clears prior display state, increments
+the request generation on route changes, checks response IDs and digest shapes,
+and only applies a response from the current generation, preventing an older
+route response from replacing the current pin.
+
+This was source/test-definition inspection only; no tests were run and no
+Strategy files, services, network, or other-worktree state were changed. This
+bounded review is not an acceptance claim for the Strategy feature or its
+dirty candidate.
+
+## 2026-10-23 — target EDGAR identity and provisioning readiness
+
+Read-only source/config review on Provider HEAD
+`5b02caf509107856195ef8cfb2374e2ab6120612`. Source hashes:
+
+- `backend/app/config.py`:
+  `f85aaadab393fcc681eb616f0393310a8b2bd24eb8c86df17c541273b7b455a6`
+- `backend/app/services/provider_quota_coordinator.py`:
+  `a773fc13e9a0fb2eec2a293c6ca84261e91956e3ca4ef3f8fc4c74eb03dd475d`
+- `backend/app/services/provider_runtime.py`:
+  `13fecfa9b0fea70911594e3d041aca3295af3a1f7474672db96f27e74a3575c0`
+- `backend/app/routers/providers.py`:
+  `8e6defdcee04863a5c56fe6a35ce1c6da66d80696c6ff47f9d241f5235d5c339`
+- `backend/app/routers/market_data_admin.py`:
+  `fbf41c4eb77f12aa56ab839e96e7bda9f869c5636857950cc6b2051a3005ceea`
+- ETF bridge read-only reference:
+  `../feat-etf-holdings-constituents/backend/app/services/etf_holdings_provider_bridge.py`,
+  `b04285345e45ef7f9ca2ee2de50796a1ddd0f2c62aacfa84f67609869da4478c`
+
+Only configuration presence/consistency was checked; values were not printed.
+The Provider worktree `.env` has an `EDGAR_USER_AGENT` entry (line 22) that
+passes the source's non-placeholder predicate. It has no
+`PROVIDER_QUOTA_ACCOUNT_SCOPES`, `EDGAR_REVIEWED_RESET`, or
+`EDGAR_QUOTA_EVIDENCE` entry; those names are also absent from this process
+environment. `.env.example` leaves the scope map empty and the optional native
+reset evidence blank. These are local development facts, not target facts and
+not values to copy to deployment. The target facts (User-Agent absent, explicit
+scope absent, routing and SEC scheduler off) are coordinator-provided; I did
+not access or execute against the target.
+
+Canonical logical identity: EDGAR's policy scope is `ip`; the coordinator's
+canonical default alias is `edgar:shared-ip`. `account_scope_for_provider`
+uses the namespaced `edgar:ip` entry for IP scopes and otherwise defaults to
+that same alias. The ETF bridge specifically requires an explicit nonempty
+`PROVIDER_QUOTA_ACCOUNT_SCOPES["edgar:ip"]`; a provider-only `"edgar"` entry
+does not satisfy its check and does not override the resolver's IP-scope
+default. Thus an eventual explicit binding should resolve to the one existing
+`edgar:shared-ip` ledger identity, not introduce a second alias. This name
+does not prove the target's actual public egress IP, that every worker shares
+it, or native remaining capacity; those must remain separate target
+preflight facts. The SEC seed is 10 requests/second with a one-second rolling
+application safety envelope, `baseline_mode=local_zero`, and
+`application_usage_only=true`. It tracks this platform's calls in the shared
+durable coordinator; it is not a SEC-reported usage counter or proof of
+provider-native headroom. No reviewed native reset override should be invented.
+
+Provisioning order for a future coordinator-approved release: (1) keep routing,
+ETF backfill, and scheduler disabled; install a target-owned descriptive
+non-placeholder `EDGAR_USER_AGENT` and explicit `edgar:ip` alias resolving to
+`edgar:shared-ip`; verify actual egress and that API/worker use the same
+existing durable quota coordinator without reading/copying ledger contents;
+(2) inspect existing target EDGAR `DataSource`, `ETF_HOLDINGS` policy and
+entitlement before changing anything; (3) attach reviewed host/operation and
+account-scope evidence to the existing source, then establish the public/free
+entitlement and `ip` quota policy while still disabled; (4) confirm the
+existing aggregate recurring-cost budget, then record exactly one active
+zero-cost commitment for the same EDGAR source, environment, and resolved
+`edgar:shared-ip` scope (amount and monthly equivalent zero; no post-trial
+amount); (5) re-read admission, holds, ledger coordinator health and resolved
+policy/entitlement; only the coordinator may later authorize a narrowly
+bounded request. A zero-cost commitment does not prove current use rights,
+native remaining quota, same egress, or permission to enable routing.
+
+Concrete provisioning limitation: normal `seed_provider_runtime` derives
+policy/entitlement rows from generic registry capabilities, while EDGAR's
+registry descriptor does not declare `ETF_HOLDINGS`; `PROVIDER_CHAIN_SEEDS`
+also leaves ETF publishers empty. The existing `/providers/policies/...` and
+`/providers/entitlements/...` admin PATCH routes update existing rows and
+return 404 if absent; there is no inspected supported API that creates these
+EDGAR/ETF_HOLDINGS rows. Therefore the sequence above is conditional on those
+rows already existing or a reviewed deployment provisioning mechanism; do not
+manually insert rows or enable a generic EDGAR chain as a substitute. Recurring
+cost budget/commitment endpoints are available, with the budget checked before
+the zero-cost commitment. No target, ledger, policy, entitlement, or runtime
+state was changed; no tests or network calls were made.
+
+## 2026-10-23 — bounded review of ETF EDGAR provisioning route
+
+- Read-only review of the dirty ETF worktree at HEAD
+  `c45139b45324a5c3333868e63224d2464240034b` (worktree changes were present;
+  this is not a candidate acceptance). Reviewed
+  `backend/app/routers/providers.py` SHA-256
+  `766db38d0f0afccfbf1d80af647caf2a20fdea16443c66cf8759443bb2bb8e28` and
+  `backend/tests/unit/routers/test_providers_router.py` SHA-256
+  `c0d0ce0402aa1fde1613ee9c195225534554de08e8304ebcc70b784e5b09eb31`.
+- No concrete defect found in the requested boundaries. The route is
+  `require_admin` protected; `apply` defaults false and the dry-run path returns
+  before any ORM mutation. It requires all three EDGAR operation reviews, exact
+  SEC hosts, valid configured `edgar:ip` scope/account identity, complete
+  IP-scoped quota dimensions, positive reviewed operation costs, an active
+  existing EDGAR source, and compatible source URL/config before applying.
+- Apply preserves unrelated source config and advertised capabilities; usage
+  tracking is deep-merged, existing mode/unit and matching operation/dimension
+  costs are retained, and conflicting values fail with 409. Only ETF_HOLDINGS
+  policy/entitlement/health rows are added, with policy disabled, neutral health,
+  no request log, recurring-cost budget, or commitment. Existing conflicting
+  policy/entitlement/review rows are rejected. The source row is selected
+  `FOR UPDATE`, serializing concurrent provisioning on the production database;
+  unique source/capability constraints provide a second guard. Repeated exact
+  apply is covered as idempotent, including one immutable entitlement revision
+  and no revision bump on the repeat.
+- The new router cases cover non-admin denial, default dry-run/no writes,
+  preserving generic capabilities/config, disabled/no-budget/no-commitment
+  application, exact-repeat idempotence, missing scope/evidence, and refusal of
+  mismatched existing identity/review/policy/entitlement. Tests were inspected,
+  not run. This is a source/test-definition review only; ETF's dirty candidate
+  and its separate terminal failures remain unaccepted and are not modified by
+  Provider.
+
+## 2026-10-24 — released Strategy staging backmerge and bounded Research checks
+
+- Preflight confirmed the assigned Provider worktree was at clean published
+  boundary `50930a5adba253421b8d417f787b23142b2a7a86`, with
+  `origin/feat/market-data-provider-platform` at the same SHA. Verified the
+  coordinator receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261024T061827Z-c240037f526c.json`:
+  staging `c240037f526caa236ec3af64a0040b5df6d670be`, Actions `40064128940`,
+  terminal green including Exhaustive, clean synchronized staging and no
+  interrupted marker. Merged only `origin/staging` into this Provider branch.
+  The merge commit is `db559868ad9c9192e64e4eab051014f591476bee`, with parents
+  `50930a5adba253421b8d417f787b23142b2a7a86` and
+  `c240037f526caa236ec3af64a0040b5df6d670be`; no staging/master/sibling ref or
+  worktree was changed.
+- Resolved only the two import conflicts in
+  `backend/app/routers/research.py` and
+  `backend/tests/unit/routers/test_research_router.py`, retaining Provider's
+  `_default_series_bar_condition` and Strategy's calendar/date helpers. Review
+  confirmed the selected-series filter remains before `row_number()` and the
+  history limit, and the multi-instrument query remains set-based. Incoming
+  date parsing/calendar inference, snapshot-true persisted manifest copying,
+  immutable payload/digest behavior, and persisted GET batch-results readback
+  remain intact. This is a merge reconciliation, not PostgreSQL or full-profile
+  qualification.
+- The complete focused module
+  `backend/tests/unit/routers/test_research_router.py` passed 11/11 in 2.93s on
+  the reconciled source. It ran in systemd scope
+  `provider-p2-research-unit-final-20261024.scope`, invocation
+  `4dd51f99d2924d719bfa68cd8fcb9ea1`, with a 180s wall cap, 384 MiB RAM,
+  512 MiB swap, one CPU, 96 tasks, and verified fresh >=1 GiB available memory
+  and PSI guards. Ruff check and format check passed for the two reconciled
+  Research files in scope `provider-p2-research-lint-final-20261024.scope`,
+  invocation `02a3d004a2d84916bb40138c9dd88193`; `git diff --check` passed.
+  No PostgreSQL, DB/Compose/browser/build, provider/issuer/SEC transport,
+  quota operation, or retained service/data action occurred.
+- The original branch CI `39988953219` remains green evidence for prior source
+  `5b02caf509107856195ef8cfb2374e2ab6120612` only. Exact-source CI for this
+  reconciled publication has not run yet. The PostgreSQL regression defined in
+  `backend/tests/integration/api/test_code.py`, required local full integration
+  and full browser profile, exact-source CI, and Root review remain pending.
+  Checkpoint `provider-first-human-coverage-retained-universe-2` remains
+  `in_progress`, acceptance/closure pending, and all existing holds and the
+  consumed 119-request boundary remain unchanged.
+
+## 2026-10-24 — Root acceptance and closure of Provider checkpoint P2
+
+- The central coordinator's acceptance receipt is
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md`.
+  Under the standing human-authorized four-feature integration authority,
+  Root explicitly directed: “Close ONLY the accepted
+  provider-first-human-coverage-retained-universe-2 checkpoint through your
+  existing four owned workstream records.” This closes only that bounded
+  checkpoint; it does not complete the full Provider roadmap or authorize this
+  feature owner to integrate, deploy, activate any route, or replay the
+  consumed 119-request validation allowance. Root alone owns guarded staging
+  integration.
+- Accepted implementation source is exactly
+  `b68ac81d8591064b172b92e73e701c9c3eed8b68`, tree
+  `c8b02b8b64c118153999c9d9a58e8ef79010c565`. Exact Actions run `40070216994`
+  is terminal green on b68: Backend, Frontend Unit, Branch-declared and E2E
+  succeeded; Exhaustive was skipped under normal feature-branch policy.
+- Root's exact isolated runtime/profile receipt `Root95357` is terminal exit 0:
+  app/API/owner-denial/readback/default-unavailable checks and worker
+  DB/Redis readiness/restart/PID-change/stop passed; dynamically selected
+  functional profile passed 195 with 2 existing declared skips and strict
+  visuals passed 104/104 at unchanged references/masks/0.005 tolerance. Zero
+  retries or reserve breaches; owned cleanup inventory differences were zero,
+  private services/Study5/data/holds were restored, and the recovery timer is
+  absent. Receipt records the exact commands, logs and hashes.
+- The full fresh backend qualification passed 5,343 unit tests with 1 skip and
+  530 integration tests with 4 skips at 84% combined coverage/XML pass. Full
+  Ruff, workflow and Compose contract checks passed. Migration evidence is
+  qualified as recorded: normal fresh/upgrade migration head and preservation
+  audit passed; no separate migration fixture is claimed where the receipt
+  says the helper skipped unchanged migrations. The Research selected-default
+  regression and the newly defined PostgreSQL cross-series regression are
+  included in this full backend run. Research single/batch reads use the
+  selected default-series predicate before per-instrument ranking/history
+  limits, remain set-based, and preserve Strategy date/calendar inference,
+  immutable snapshot copy, payload digest, and persisted GET readback.
+- Frontend unit/coverage/type/build results and the 120-file prepared frontend
+  artifact are reused only under the receipt's exact input and artifact
+  equivalence to the qualified a414/1d32 evidence; this is not represented as a
+  new compile. The research-runner image and standalone sandbox/resource probes
+  are also prior exact-input/config qualified reuse, not new execution. Four
+  b68-pinned local images and Root95357 runtime evidence remain exactly as
+  source-qualified in the receipt. Historical red/partial receipts are
+  preserved and never relabeled.
+- All quota/operation holds, unavailable and unknown dispositions, the full
+  24-criterion Provider roadmap and the consumed 119-request boundary remain
+  unchanged. No provider/issuer/SEC request, reservation, spend, quota reset,
+  or current-live/full-universe claim is added by this closure.
+- Closure publication is records-only. The implementation evidence above is
+  bound to b68; the final four-record commit must receive its own terminal-green
+  exact-head branch CI before Root's guarded staging integration. The required
+  capture remains `integration_capture: exact branch HEAD` to avoid a
+  self-referential hash. No source, helper, tests, staging, sibling or runtime
+  state was changed for this closure.

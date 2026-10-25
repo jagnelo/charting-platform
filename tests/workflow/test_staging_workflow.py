@@ -300,9 +300,22 @@ def test_pinned_browser_uses_egress_bridge_and_strict_acceptance() -> None:
     visual = makefile.split("stage=e2e-visual;", 1)[1].split("; \\\n", 1)[0]
     assert "npx playwright test --retries=0" in functional
     assert "tc2000_visual.spec.ts --retries=0" in visual
-    compose = yaml.safe_load(text("docker-compose.e2e.yml"))
+
+    class ComposeResetLoader(yaml.SafeLoader):
+        pass
+
+    ComposeResetLoader.add_constructor(
+        "!reset", lambda loader, node: loader.construct_sequence(node)
+    )
+    compose = yaml.load(text("docker-compose.e2e.yml"), Loader=ComposeResetLoader)
     assert compose["networks"]["charting"]["internal"] is True
     assert compose["networks"]["host-access"]["driver"] == "bridge"
+    for service in ("backend", "frontend", "postgres", "redis"):
+        assert compose["services"][service]["ports"] == []
+    assert all(
+        port.startswith("127.0.0.1:")
+        for port in compose["services"]["host-port-relay"]["ports"]
+    )
     for service in ("backend", "worker"):
         environment = compose["services"][service]["environment"]
         assert environment["PROVIDER_ROUTING_ENABLED"] == "false"

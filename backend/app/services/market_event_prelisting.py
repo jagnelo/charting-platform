@@ -278,6 +278,32 @@ async def materialize_prelisting_candidates(
     for event in rows:
         grouped[_candidate_key(event)].append(event)
 
+    # The page cursor bounds which candidates are advanced, but corroboration
+    # is a property of the complete persisted consensus, not of whichever
+    # observations happen to land in this page. Load the other retained rows
+    # for consensus groups touched by this page so a page boundary cannot turn
+    # a valid multi-source candidate into a permanently quarantined
+    # single-source candidate. The query remains limited to the page's
+    # consensus IDs and the same event/date scope.
+    page_consensus_ids = {event.consensus_id for event in rows if event.consensus_id is not None}
+    consensus_events: dict[int, list[MarketEvent]] = defaultdict(list)
+    if page_consensus_ids:
+        evidence_query = (
+            select(MarketEvent)
+            .where(
+                MarketEvent.consensus_id.in_(page_consensus_ids),
+                MarketEvent.event_type.in_(("ipo", "ipo_pipeline")),
+                MarketEvent.instrument_id.is_(None),
+            )
+            .order_by(MarketEvent.id)
+        )
+        if filters:
+            evidence_query = evidence_query.where(*filters)
+        evidence_rows = (await db.execute(evidence_query)).scalars().all()
+        for event in evidence_rows:
+            if event.consensus_id is not None:
+                consensus_events[event.consensus_id].append(event)
+
     stock_type = (
         (
             await db.execute(
@@ -295,7 +321,13 @@ async def materialize_prelisting_candidates(
     instruments_created = 0
     quarantined = 0
     skipped = 0
-    for key, events in grouped.items():
+    for key, page_events in grouped.items():
+        consensus_id = page_events[0].consensus_id
+        events = (
+            consensus_events.get(consensus_id, page_events)
+            if consensus_id is not None
+            else page_events
+        )
         events.sort(key=lambda event: (event.source, event.event_key, event.id))
         payloads = [(event, dict(event.payload or {})) for event in events]
         anchor, payload = next(

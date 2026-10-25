@@ -1,6 +1,30 @@
 from pathlib import Path
 
 
+def test_e2e_host_port_relay_is_loopback_only_and_app_services_have_no_host_ports():
+    import yaml
+
+    class ComposeResetLoader(yaml.SafeLoader):
+        pass
+
+    ComposeResetLoader.add_constructor(
+        "!reset", lambda loader, node: loader.construct_sequence(node)
+    )
+    compose_path = Path(__file__).resolve().parents[3] / "docker-compose.e2e.yml"
+    compose = yaml.load(compose_path.read_text(), Loader=ComposeResetLoader)
+
+    assert compose["networks"]["charting"]["internal"] is True
+    assert compose["services"]["postgres"]["ports"] == []
+    assert compose["services"]["redis"]["ports"] == []
+    assert compose["services"]["backend"]["ports"] == []
+    assert compose["services"]["frontend"]["ports"] == []
+    assert compose["services"]["worker"].get("ports") is None
+    assert compose["services"]["host-port-relay"]["ports"] == [
+        "127.0.0.1:${FRONTEND_HOST_PORT:-80}:80",
+        "127.0.0.1:${BACKEND_HOST_PORT:-8000}:8000",
+    ]
+
+
 def test_compose_host_ports_are_overrideable_for_isolated_acceptance_stacks():
     compose = (Path(__file__).resolve().parents[3] / "docker-compose.yml").read_text()
 

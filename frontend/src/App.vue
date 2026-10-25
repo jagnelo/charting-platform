@@ -15,6 +15,7 @@
         </router-link>
         <router-link to="/legacy/radar" class="nav-link" title="Radar">◎</router-link>
         <router-link to="/legacy/strategy-lab" class="nav-link" title="Strategy Lab">⚗</router-link>
+        <router-link to="/legacy/strategy-lab-v2" class="nav-link" title="Strategy Lab v2">⚗2</router-link>
         <router-link to="/legacy/baskets" class="nav-link" title="Baskets">◫</router-link>
         <router-link to="/legacy/etf-holdings" class="nav-link" title="ETF Holdings">▤</router-link>
         <router-link to="/legacy/watchlist" class="nav-link" title="Watchlist">★</router-link>

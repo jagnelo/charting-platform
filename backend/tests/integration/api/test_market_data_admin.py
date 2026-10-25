@@ -104,7 +104,12 @@ def test_sec_issuer_report_materialization_uses_persisted_clean_rows_only(
             conformed_name="Persisted SEC Issuer",
             name_candidates=["Persisted SEC Issuer"],
             tickers=["PSI"],
-            source_payload={"cik": "0000000091", "name": "Persisted SEC Issuer"},
+            source_payload={
+                "cik": "0000000091",
+                "name": "Persisted SEC Issuer",
+                "name_candidates": ["Persisted SEC Issuer"],
+                "tickers": ["PSI"],
+            },
             admission_decision="would_create",
             decision_reason="No issuer matches this CIK.",
             cycle_status="complete",

@@ -711,6 +711,7 @@ def calculate_event_aligned_equity_metrics(
     expected_mark_count: int,
     event_time_ns: Iterable[int] | None = None,
     annualization_days: Decimal = Decimal("365.2425"),
+    risk_free_return_annualized: Decimal = Decimal(0),
     basis: MetricBasis = MetricBasis.NET,
 ) -> tuple[MetricValue, ...]:
     """Summarize native OOS equity marks without inventing a time cadence.
@@ -721,7 +722,11 @@ def calculate_event_aligned_equity_metrics(
     and path drawdown summaries while deliberately withholding cadence-based
     and sampling-based statistics until the caller supplies an explicit basis.
     Calendar-time CAGR uses the exact first and last event timestamps and the
-    explicit ``annualization_days`` convention recorded on the metric.
+    explicit ``annualization_days`` convention recorded on the metric. With
+    strictly increasing timestamps and positive equity at every mark, annualized
+    volatility, Sharpe, and Sortino use elapsed-time residual log-return
+    variance; historical VaR and expected shortfall remain withheld because
+    irregular event intervals do not share one return horizon.
     The trace is from a single local backtest account, whose execution bridge
     does not permit external deposits or withdrawals after initial funding.
     """
@@ -735,6 +740,12 @@ def calculate_event_aligned_equity_metrics(
         or annualization_days <= 0
     ):
         raise ValueError("annualization_days must be a finite positive Decimal")
+    if (
+        not isinstance(risk_free_return_annualized, Decimal)
+        or not risk_free_return_annualized.is_finite()
+        or risk_free_return_annualized <= Decimal(-1)
+    ):
+        raise ValueError("annualized risk-free return must be finite and greater than -1")
     require_sha256_digest(evidence_digest, field_name="evidence_digest")
     if (
         not isinstance(expected_mark_count, int)
@@ -767,6 +778,12 @@ def calculate_event_aligned_equity_metrics(
 
     opening_event_time_ns = next_event_time()
     previous_event_time_ns = opening_event_time_ns
+    previous_equity = opening_equity
+    event_log_returns: list[Decimal] = []
+    event_interval_durations_ns: list[int] = []
+    event_interval_time_invalid = False
+    event_interval_equity_nonpositive = opening_equity <= 0
+    event_interval_numeric_invalid = False
     peak_event_time_ns = opening_event_time_ns
     in_drawdown = False
     maximum_drawdown_duration_ns = 0
@@ -792,6 +809,23 @@ def calculate_event_aligned_equity_metrics(
             and current_event_time_ns < previous_event_time_ns
         ):
             raise ValueError("event timestamps must be non-decreasing")
+        if current_event_time_ns is not None and previous_event_time_ns is not None:
+            interval_duration_ns = current_event_time_ns - previous_event_time_ns
+            if interval_duration_ns <= 0:
+                event_interval_time_invalid = True
+            elif previous_equity <= 0 or equity <= 0:
+                event_interval_equity_nonpositive = True
+            else:
+                try:
+                    log_return = (equity / previous_equity).ln()
+                except DecimalException:
+                    event_interval_numeric_invalid = True
+                else:
+                    if not log_return.is_finite():
+                        event_interval_numeric_invalid = True
+                    else:
+                        event_log_returns.append(log_return)
+                        event_interval_durations_ns.append(interval_duration_ns)
         mark_count += 1
         scored_observations += 1
         terminal_equity = equity
@@ -831,6 +865,7 @@ def calculate_event_aligned_equity_metrics(
             in_drawdown = False
             peak_event_time_ns = current_event_time_ns
         previous_event_time_ns = current_event_time_ns
+        previous_equity = equity
 
     if event_time_iterator is not None and next(event_time_iterator, exhausted) is not exhausted:
         raise ValueError("event timestamp count is larger than the equity mark count")
@@ -903,6 +938,7 @@ def calculate_event_aligned_equity_metrics(
         else previous_event_time_ns - opening_event_time_ns
     )
     annualization_basis = f"elapsed UTC duration; {annualization_days} days per year"
+    year_duration_ns = annualization_days * Decimal(86_400) * Decimal(1_000_000_000)
     annualized_return: Decimal | None = None
     annualized_return_null_reason: str | None
     if event_time_ns is None:
@@ -914,7 +950,6 @@ def calculate_event_aligned_equity_metrics(
     elif elapsed_event_duration_ns is None or elapsed_event_duration_ns <= 0:
         annualized_return_null_reason = "elapsed observation duration must be positive"
     else:
-        year_duration_ns = annualization_days * Decimal(86_400) * Decimal(1_000_000_000)
         try:
             annualized_return = (terminal_equity / opening_equity) ** (
                 year_duration_ns / Decimal(elapsed_event_duration_ns)
@@ -925,6 +960,90 @@ def calculate_event_aligned_equity_metrics(
             )
         else:
             annualized_return_null_reason = None
+
+    annualized_volatility: Decimal | None = None
+    sharpe_ratio: Decimal | None = None
+    sortino_ratio: Decimal | None = None
+    event_sharpe_null_reason: str | None = None
+    event_sortino_null_reason: str | None = None
+    if event_time_ns is None:
+        event_risk_null_reason = "native event timestamps were not supplied"
+    elif no_scored_observations:
+        event_risk_null_reason = "no post-opening OOS equity observations"
+    elif event_interval_equity_nonpositive:
+        event_risk_null_reason = (
+            "positive equity at every event mark is required for log risk metrics"
+        )
+    elif event_interval_time_invalid:
+        event_risk_null_reason = "event timestamps must be strictly increasing for log risk metrics"
+    elif event_interval_numeric_invalid:
+        event_risk_null_reason = (
+            "event log-return calculation exceeds the configured Decimal numeric range"
+        )
+    elif len(event_log_returns) < 2:
+        event_risk_null_reason = (
+            "at least two timed return intervals are required for risk estimation"
+        )
+    elif elapsed_event_duration_ns is None or elapsed_event_duration_ns <= 0:
+        event_risk_null_reason = "elapsed observation duration must be positive"
+    else:
+        try:
+            total_duration_years = Decimal(elapsed_event_duration_ns) / year_duration_ns
+            annualized_log_growth = sum(event_log_returns, Decimal(0)) / total_duration_years
+            residual_variance = (
+                sum(
+                    (
+                        log_return
+                        - annualized_log_growth * Decimal(interval_duration_ns) / year_duration_ns
+                    )
+                    ** 2
+                    for log_return, interval_duration_ns in zip(
+                        event_log_returns, event_interval_durations_ns, strict=True
+                    )
+                )
+                / total_duration_years
+            )
+            annualized_volatility = residual_variance.sqrt()
+            risk_free_log_growth = (Decimal(1) + risk_free_return_annualized).ln()
+            annualized_excess_log_growth = annualized_log_growth - risk_free_log_growth
+            downside_variance = (
+                sum(
+                    min(
+                        log_return
+                        - risk_free_log_growth * Decimal(interval_duration_ns) / year_duration_ns,
+                        Decimal(0),
+                    )
+                    ** 2
+                    for log_return, interval_duration_ns in zip(
+                        event_log_returns, event_interval_durations_ns, strict=True
+                    )
+                )
+                / total_duration_years
+            )
+            annualized_downside_deviation = downside_variance.sqrt()
+            if annualized_volatility == 0:
+                event_sharpe_null_reason = "elapsed-time residual log-return variance is zero"
+            else:
+                sharpe_ratio = annualized_excess_log_growth / annualized_volatility
+            if annualized_downside_deviation == 0:
+                event_sortino_null_reason = "elapsed-time downside log-return deviation is zero"
+            else:
+                sortino_ratio = annualized_excess_log_growth / annualized_downside_deviation
+        except DecimalException:
+            annualized_volatility = None
+            sharpe_ratio = None
+            sortino_ratio = None
+            event_risk_null_reason = (
+                "elapsed-time risk calculation exceeds the configured Decimal numeric range"
+            )
+        else:
+            event_risk_null_reason = None
+    if event_risk_null_reason is not None:
+        annualized_volatility = None
+        sharpe_ratio = None
+        sortino_ratio = None
+        event_sharpe_null_reason = event_risk_null_reason
+        event_sortino_null_reason = event_risk_null_reason
     annualization_basis_value = (
         annualization_basis
         if annualized_return_null_reason is None
@@ -1058,10 +1177,84 @@ def calculate_event_aligned_equity_metrics(
             ),
         ),
     ]
+    event_risk_parameters = {
+        "annualization_method": "elapsed_utc_residual_log_variance.v1",
+        "annualization_days": annualization_days,
+        "timestamp_unit": "unix_nanoseconds",
+        "interval_count": len(event_log_returns),
+    }
+    event_ratio_parameters = {
+        **event_risk_parameters,
+        "risk_free_return_annualized": risk_free_return_annualized,
+    }
+    metrics.extend(
+        (
+            _value(
+                "annualized_volatility",
+                annualized_volatility,
+                unit="fraction",
+                basis=basis,
+                sample_size=scored_observations,
+                annualization_basis=(
+                    annualization_basis
+                    if event_risk_null_reason is None
+                    else f"unavailable: {event_risk_null_reason}; convention={annualization_basis}"
+                ),
+                calculation_basis=(
+                    "square root of the sum of squared drift-residual log-return increments "
+                    "divided by exact elapsed UTC years; event observations are not treated as "
+                    "equally spaced"
+                ),
+                calculation_parameters=event_risk_parameters,
+                null_reason=event_risk_null_reason,
+            ),
+            _value(
+                "sharpe_ratio",
+                sharpe_ratio,
+                unit="ratio",
+                basis=basis,
+                sample_size=scored_observations,
+                annualization_basis=(
+                    annualization_basis
+                    if event_risk_null_reason is None
+                    else f"unavailable: {event_risk_null_reason}; convention={annualization_basis}"
+                ),
+                calculation_basis=(
+                    "annualized elapsed-time log-equity growth less the continuously compounded "
+                    "annual risk-free target, divided by elapsed-time residual log-return volatility"
+                ),
+                calculation_parameters=event_ratio_parameters,
+                null_reason=(
+                    event_risk_null_reason
+                    if event_risk_null_reason is not None
+                    else event_sharpe_null_reason
+                ),
+            ),
+            _value(
+                "sortino_ratio",
+                sortino_ratio,
+                unit="ratio",
+                basis=basis,
+                sample_size=scored_observations,
+                annualization_basis=(
+                    annualization_basis
+                    if event_risk_null_reason is None
+                    else f"unavailable: {event_risk_null_reason}; convention={annualization_basis}"
+                ),
+                calculation_basis=(
+                    "annualized elapsed-time log-equity growth less the continuously compounded "
+                    "annual risk-free target, divided by elapsed-time downside log-return deviation"
+                ),
+                calculation_parameters=event_ratio_parameters,
+                null_reason=(
+                    event_risk_null_reason
+                    if event_risk_null_reason is not None
+                    else event_sortino_null_reason
+                ),
+            ),
+        )
+    )
     for name, unit in (
-        ("annualized_volatility", "fraction"),
-        ("sharpe_ratio", "ratio"),
-        ("sortino_ratio", "ratio"),
         ("historical_value_at_risk", "fraction"),
         ("historical_expected_shortfall", "fraction"),
     ):
@@ -1092,6 +1285,11 @@ def calculate_event_aligned_equity_metrics(
             ),
             "external_cash_flow_policy": "backtest account permits initial funding only",
             "trace_mark_count": mark_count,
+        },
+        calculation_parameters_by_metric={
+            "annualized_volatility": event_risk_parameters,
+            "sharpe_ratio": event_ratio_parameters,
+            "sortino_ratio": event_ratio_parameters,
         },
     )
 

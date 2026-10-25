@@ -1,5 +1,27 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — cdc334 merged, focused checks green — 2026-10-25T04:05Z
+
+Accepted synchronized staging `cdc33442c19f5c387b9ada759607d961365993c0`
+was merged into this branch with no conflicts. The TC frozen-import manifest
+now pins the 870 unauthorized changed paths to the exact green release receipt;
+29 previously approved TC adaptations remain separately bound. The scope guard
+passes and focused consumer tests pass 276/276 across ten files; `vue-tsc`
+passes. Provider selected-default coverage and Research behavior remain
+producer-owned and consumed as released; no client-side inferred series filter
+was added. Strategy's immutable Study inspector and Research-results navigation
+are retained and their focused tests pass.
+
+The combined c971+cdc candidate is the current branch source; its exact commit
+is identified by branch HEAD and its own exact CI is still pending. ETF 8d8
+remains locally qualified only; do not import before its exact synchronized
+green staging release. F8y is unproven on this combined source; retain its
+60-second timeout, ordinary parent-host actions, locked Remove/zero-DELETE
+assertions and zero retries. The a7/8d8 controls are not proof for this source.
+Root retains the heavy full-profile slot and acceptance/integration authority.
+Keep AC1-AC9, TCP3-TCP5, SX/IX, the full roadmap, official REF-HELP-V25 and
+provider/data/service holds open. The approved Help reference remains local-only.
+
 ## Current continuation — accepted cdc334 staging adoption authorized — 2026-10-25T03:58Z
 
 TC remains at exact source `c9719521bfe8c558f1a743df683a12bef85fffe4`; the four

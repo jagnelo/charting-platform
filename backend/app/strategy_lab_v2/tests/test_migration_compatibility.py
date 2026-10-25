@@ -162,11 +162,13 @@ def test_strategy_chain_has_unique_ids_and_preserves_shared_base() -> None:
     assert len(declared) == len(set(declared))
     revisions = list(scripts.walk_revisions())
     assert len(revisions) == len({revision.revision for revision in revisions})
-    assert scripts.get_heads() == ["d4a5b6c7e812"]
+    heads = scripts.get_heads()
+    assert len(heads) == 1
+    assert heads[0] == "d4a5b6c7e812"
     assert scripts.get_revision("d4a5b6c7e812").down_revision == "slv2_0011"
     merge = scripts.get_revision("slv2_0011")
     assert merge.down_revision == ("e9c23a7b1d40", "slv2_0010")
-    ancestry = {revision.revision for revision in scripts.iterate_revisions("d4a5b6c7e812", None)}
+    ancestry = {revision.revision for revision in scripts.iterate_revisions(heads[0], None)}
     assert {
         "e9c23a7b1d40",
         "a7c91e03d54b",

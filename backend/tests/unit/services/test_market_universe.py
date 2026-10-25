@@ -469,6 +469,124 @@ async def test_otc_missing_counts_distinct_complete_snapshot_dates(db, instrumen
 
 
 @pytest.mark.asyncio
+async def test_nms_union_missing_requires_three_distinct_complete_snapshot_sessions(db, instrument):
+    """Only distinct complete union dates count toward NMS deactivation."""
+
+    source = DataSource(name="cta_plan", base_url="https://example.test")
+    db.add(source)
+    db.flush()
+    session = AsyncSessionAdapter(db)
+    exchange = await ensure_exchange(session, "XNAS")
+    listing = InstrumentListing(
+        instrument_id=instrument.id,
+        exchange_id=exchange.id,
+        ticker=instrument.symbol,
+        is_primary=True,
+        is_active=True,
+    )
+    binding = InstrumentProviderSymbol(
+        instrument_id=instrument.id,
+        data_source_id=source.id,
+        provider_symbol=instrument.symbol,
+        provider_exchange_code="XNAS",
+        is_primary=True,
+        is_active=True,
+    )
+    db.add_all([listing, binding])
+    db.flush()
+    observed_at = datetime(2026, 9, 3, 21, tzinfo=UTC)
+    observation = MarketUniverseLifecycleObservation(
+        data_source_id=source.id,
+        instrument_id=instrument.id,
+        listing_id=listing.id,
+        provider_symbol=instrument.symbol,
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        observed_at=observed_at,
+        present=True,
+        lifecycle_status="active",
+        first_seen_at=observed_at,
+        last_seen_at=observed_at,
+        consecutive_seen=1,
+        consecutive_missing=0,
+        payload={"symbol": instrument.symbol},
+    )
+    db.add(observation)
+    db.flush()
+
+    async def record_complete_union(snapshot_date: str, hour: int = 21):
+        cycle_id = f"fixture-{snapshot_date}-{hour}"
+        run_at = datetime.fromisoformat(f"{snapshot_date}T{hour:02d}:00:00+00:00")
+        run = MarketUniverseReconciliationRun(
+            data_source_id=source.id,
+            quote_type="EQUITY",
+            observed_at=run_at,
+            finished_at=run_at,
+            status="complete",
+            provenance={
+                "provider": "cta_plan",
+                "quote_type": "EQUITY",
+                "snapshot_complete": True,
+                "source_files": ["cta_symbol_file_index", "CTA.Symbol.File.fixture.csv"],
+                "source_snapshot_date": snapshot_date,
+                "absence_scope": "US_NMS",
+                "reconciliation_cycle_id": cycle_id,
+                "nms_union_complete": True,
+                "nms_union_cycle_id": cycle_id,
+                "nms_union_snapshot_date": snapshot_date,
+                "nms_union_provider_runs": {
+                    "cta_plan:EQUITY": 1,
+                    "nasdaq_tape_c:EQUITY": 2,
+                    "nasdaq:ETF": 3,
+                },
+            },
+        )
+        db.add(run)
+        db.flush()
+        await _mark_missing(
+            session,
+            run=run,
+            provider_name="cta_plan",
+            quote_type="EQUITY",
+            active_keys=set(),
+            active_symbol_mics=set(),
+            observed_at=run_at,
+            missing_confirmations=3,
+        )
+        return run
+
+    first = await record_complete_union("2026-09-04")
+    assert observation.consecutive_missing == 1
+    assert observation.lifecycle_status == "missing_pending"
+    assert first.missing_count == 1
+    assert listing.is_active is True
+    assert binding.is_active is True
+
+    duplicate = await record_complete_union("2026-09-04", hour=22)
+    assert duplicate.missing_count == 0
+    assert observation.consecutive_missing == 1
+    assert listing.is_active is True
+    assert binding.is_active is True
+
+    second = await record_complete_union("2026-09-08")
+    assert second.missing_count == 1
+    assert observation.consecutive_missing == 2
+    assert observation.lifecycle_status == "missing_pending"
+    assert listing.is_active is True
+    assert binding.is_active is True
+
+    third = await record_complete_union("2026-09-09")
+    assert third.missing_count == 1
+    assert observation.consecutive_missing == 3
+    assert observation.lifecycle_status == "missing"
+    assert observation.present is False
+    assert listing.is_active is False
+    assert listing.delisted_at is not None
+    assert binding.is_active is False
+    assert binding.retired_at is not None
+
+
+@pytest.mark.asyncio
 async def test_cik_does_not_merge_a_new_symbol_without_security_identifier(db, instrument):
     issuer = Issuer(
         domain_key="cik:0000123456",
@@ -1152,6 +1270,213 @@ async def test_reconciliation_rejects_rows_for_a_different_requested_type(db, mo
     assert result["status"] == "failed"
     run = db.query(MarketUniverseReconciliationRun).one()
     assert "quote type ETF while reconciling EQUITY" in (run.error or "")
+
+
+def test_nms_tape_c_scope_comes_from_nasdaqlisted_not_otherlisted():
+    from app.services.market_universe import _REQUIRED_NMS_SCOPES, _nms_scope_key
+
+    # Nasdaq Trader publishes both files in one validated run, but only
+    # nasdaqlisted is the distinct Tape C roster. otherlisted stays useful
+    # supplementary evidence and cannot satisfy the required Tape C scope.
+    assert _nms_scope_key("nasdaq", "EQUITY", {"nasdaqlisted", "otherlisted"}) == (
+        "nasdaq_tape_c",
+        "EQUITY",
+    )
+    assert _nms_scope_key("nasdaq", "EQUITY", {"otherlisted"}) is None
+    assert _nms_scope_key("nasdaq", "ETF", {"nasdaqlisted", "otherlisted"}) == ("nasdaq", "ETF")
+
+    scopes = {
+        _nms_scope_key("cta_plan", "EQUITY", set()),
+        _nms_scope_key("nasdaq", "EQUITY", {"nasdaqlisted", "otherlisted"}),
+        _nms_scope_key("nasdaq", "ETF", {"nasdaqlisted", "otherlisted"}),
+    }
+    assert scopes == set(_REQUIRED_NMS_SCOPES)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("cta_snapshot_date", "expected_union", "expected_cta_status"),
+    [
+        ("2026-10-20", True, "complete"),
+        ("2026-10-19", False, "complete"),
+        (("2026-10-20", "2026-10-19"), False, "failed"),
+    ],
+)
+async def test_nms_absence_union_requires_same_snapshot_date_for_cta_and_nasdaq_scopes(
+    db, instrument, monkeypatch, cta_snapshot_date, expected_union, expected_cta_status
+):
+    """Only same-date complete sources/pages can count as one NMS absence snapshot."""
+
+    from app.services import market_universe
+
+    sources = {
+        name: DataSource(name=name, base_url=f"https://{name}.example.test")
+        for name in ("cta_plan", "nasdaq")
+    }
+    db.add_all(sources.values())
+    db.flush()
+    observed_at = datetime(2026, 10, 20, 21, tzinfo=UTC)
+    xnas = await ensure_exchange(AsyncSessionAdapter(db), "XNAS")
+    prior_nasdaq_listing = InstrumentListing(
+        instrument_id=instrument.id,
+        exchange_id=xnas.id,
+        ticker="NQ1",
+        is_primary=True,
+        is_active=True,
+    )
+    db.add(prior_nasdaq_listing)
+    db.flush()
+    prior_cta_observation = MarketUniverseLifecycleObservation(
+        data_source_id=sources["cta_plan"].id,
+        instrument_id=instrument.id,
+        listing_id=prior_nasdaq_listing.id,
+        provider_symbol="NQ1",
+        exchange_mic="XNAS",
+        quote_type="EQUITY",
+        observed_at=observed_at,
+        present=True,
+        lifecycle_status="active",
+        first_seen_at=observed_at,
+        last_seen_at=observed_at,
+        consecutive_seen=1,
+        consecutive_missing=0,
+        payload={"symbol": "NQ1"},
+    )
+    db.add(prior_cta_observation)
+    db.flush()
+
+    cta_snapshot_dates = (
+        cta_snapshot_date if isinstance(cta_snapshot_date, tuple) else (cta_snapshot_date,)
+    )
+    cta_pages = {}
+    for offset, page_date in enumerate(cta_snapshot_dates):
+        cta_page = {
+            "total": len(cta_snapshot_dates),
+            "quotes": [
+                {
+                    "symbol": f"CTA{offset + 1}",
+                    "name": f"CTA Example {offset + 1}",
+                    "exchange": "XNYS",
+                }
+            ],
+            "complete": True,
+            "source_files": [
+                "cta_symbol_file_index",
+                f"CTA.Symbol.File.{page_date.replace('-', '')}.csv",
+            ],
+            "source_snapshot_date": page_date,
+            "source_row_count": 1,
+            "raw_source_payload": {"index_html": "index", "symbol_file_csv": "row"},
+        }
+        if offset < len(cta_snapshot_dates) - 1:
+            cta_page["next_offset"] = offset + 1
+        cta_pages[offset] = cta_page
+    nasdaq_pages = {
+        "EQUITY": {
+            "total": 1,
+            "quotes": [
+                {
+                    "symbol": "NQ1",
+                    "name": "Nasdaq Listed Example",
+                    "exchange": "XNAS",
+                    "quoteType": "EQUITY",
+                    "source_file": "nasdaqlisted",
+                }
+            ],
+            "source_files": ["nasdaqlisted", "otherlisted"],
+            "source_file_creation_times": {
+                "nasdaqlisted": "2026-10-20T17:00:00",
+                "otherlisted": "2026-10-20T17:00:00",
+            },
+        },
+        "ETF": {
+            "total": 1,
+            "quotes": [
+                {
+                    "symbol": "ETF1",
+                    "name": "Nasdaq ETF Example",
+                    "exchange": "ARCX",
+                    "quoteType": "ETF",
+                    "source_file": "otherlisted",
+                }
+            ],
+            "source_files": ["nasdaqlisted", "otherlisted"],
+            "source_file_creation_times": {
+                "nasdaqlisted": "2026-10-20T17:00:00",
+                "otherlisted": "2026-10-20T17:00:00",
+            },
+        },
+    }
+    providers = {
+        "cta_plan": SimpleNamespace(
+            supported_discovery_types=lambda: ["EQUITY"],
+            discover_universe_page=lambda _quote_type, offset: cta_pages[offset],
+        ),
+        "nasdaq": SimpleNamespace(
+            supported_discovery_types=lambda: ["EQUITY", "ETF"],
+            discover_universe_page=lambda quote_type, _offset: nasdaq_pages[quote_type],
+        ),
+    }
+    resolved = [
+        SimpleNamespace(provider_name=name, data_source=source) for name, source in sources.items()
+    ]
+
+    async def resolve_fixture(*_args, **_kwargs):
+        return resolved
+
+    async def execute_fixture(_db, _capability, operation, *, provider_name, invoke, **_kwargs):
+        assert operation.rsplit(":", 1)[-1] in {"0", "1"}
+        return SimpleNamespace(
+            result=invoke(providers[provider_name], None),
+            data_source=sources[provider_name],
+        )
+
+    monkeypatch.setattr(market_universe, "resolve_provider_chain", resolve_fixture)
+    monkeypatch.setattr(market_universe, "get_discovery_provider", lambda name: providers[name])
+    monkeypatch.setattr(market_universe, "execute_provider_call", execute_fixture)
+
+    result = await reconcile_us_universe(AsyncSessionAdapter(db))
+
+    runs = (
+        db.query(MarketUniverseReconciliationRun).order_by(MarketUniverseReconciliationRun.id).all()
+    )
+    assert result["status"] == ("partial" if expected_cta_status == "failed" else "complete")
+    assert len(runs) == 3
+    cta_run = next(run for run in runs if run.provenance.get("provider") == "cta_plan")
+    assert cta_run.status == expected_cta_status
+    assert all(run.status == "complete" for run in runs if run is not cta_run)
+    union_runs = [run for run in runs if run.provenance.get("nms_union_complete")]
+    if not expected_union:
+        assert union_runs == []
+        assert all(run.provenance.get("absence_scope") is None for run in runs)
+        assert prior_cta_observation.present is True
+        assert prior_cta_observation.consecutive_missing == 0
+        return
+
+    assert {(run.provenance["provider"], run.quote_type) for run in runs} == {
+        ("cta_plan", "EQUITY"),
+        ("nasdaq", "EQUITY"),
+        ("nasdaq", "ETF"),
+    }
+    assert all(run.provenance["absence_scope"] == "US_NMS" for run in runs)
+    cycle_ids = {run.provenance["nms_union_cycle_id"] for run in runs}
+    assert len(cycle_ids) == 1
+    expected_union = {
+        "cta_plan:EQUITY": runs[0].id,
+        "nasdaq_tape_c:EQUITY": next(
+            run.id
+            for run in runs
+            if run.provenance["provider"] == "nasdaq" and run.quote_type == "EQUITY"
+        ),
+        "nasdaq:ETF": next(
+            run.id
+            for run in runs
+            if run.provenance["provider"] == "nasdaq" and run.quote_type == "ETF"
+        ),
+    }
+    assert all(run.provenance["nms_union_provider_runs"] == expected_union for run in runs)
+    assert prior_cta_observation.present is True
+    assert prior_cta_observation.consecutive_missing == 0
 
 
 @pytest.mark.asyncio

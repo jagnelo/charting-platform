@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from types import MappingProxyType
 
 from app.strategy_lab_v2.artifact_store import LocalArtifactStore
 from app.strategy_lab_v2.canonical import content_digest, require_sha256_digest
@@ -22,6 +23,7 @@ from app.strategy_lab_v2.contracts import (
     EvaluationWindow,
     ExperimentDefinition,
     PortfolioComposition,
+    ResolvedStudyArtifactOutput,
     RunAttempt,
     ScientificTrial,
     StrategyPackage,
@@ -212,6 +214,7 @@ class NautilusComponentTrialInput:
     strategy_manifest: StrategySdkManifest
     strategy_source: str
     max_intents_per_event: int = 100
+    study_artifacts: Mapping[str, ResolvedStudyArtifactOutput] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.component_id, str) or not self.component_id.strip():
@@ -224,6 +227,29 @@ class NautilusComponentTrialInput:
             raise TypeError("strategy_manifest must be a StrategySdkManifest")
         if not isinstance(self.strategy_source, str):
             raise TypeError("strategy_source must be a string")
+        if self.study_artifacts is not None and not isinstance(self.study_artifacts, Mapping):
+            raise TypeError("component Study artifacts must be a mapping or None")
+        selected_study = self.strategy_manifest.strategy.selected_study_artifact
+        if selected_study is None:
+            if self.study_artifacts:
+                raise ValueError("component cannot contain unpinned Study outputs")
+            if self.study_artifacts is not None:
+                object.__setattr__(self, "study_artifacts", None)
+        else:
+            if self.study_artifacts is not None and (
+                not isinstance(self.study_artifacts, Mapping)
+                or set(self.study_artifacts) != {selected_study.artifact_name}
+                or not isinstance(
+                    self.study_artifacts[selected_study.artifact_name],
+                    ResolvedStudyArtifactOutput,
+                )
+                or self.study_artifacts[selected_study.artifact_name].reference != selected_study
+            ):
+                raise ValueError("component Study output differs from its immutable reference")
+            if self.study_artifacts is not None:
+                object.__setattr__(
+                    self, "study_artifacts", MappingProxyType(dict(self.study_artifacts))
+                )
         if (
             not isinstance(self.max_intents_per_event, int)
             or isinstance(self.max_intents_per_event, bool)
@@ -460,6 +486,20 @@ def assemble_nautilus_trial_runtime_input(
         component_input = inputs_by_component[component_id]
         strategy = component_input.strategy_manifest.strategy
         package = component_input.strategy_package
+        selected_study = strategy.selected_study_artifact
+        study_artifacts = component_input.study_artifacts
+        if selected_study is not None and (
+            study_artifacts is None
+            or set(study_artifacts) != {selected_study.artifact_name}
+            or study_artifacts[selected_study.artifact_name].reference != selected_study
+        ):
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} Study artifact is not bound to its authenticated output"
+            )
+        if selected_study is None and study_artifacts:
+            raise NautilusTrialAssemblyError(
+                f"component {component_id!r} contains an unpinned Study artifact output"
+            )
         if strategy.fingerprint != component.strategy_fingerprint:
             raise NautilusTrialAssemblyError(
                 f"portfolio component {component_id!r} references a different strategy version"
@@ -651,6 +691,7 @@ def assemble_nautilus_trial_runtime_input(
                     component_input.strategy_manifest,
                     random_seed=trial.seed,
                     parameters=effective_parameters_by_component[component_id],
+                    study_artifacts=component_input.study_artifacts,
                 ),
                 entrypoint=component_input.strategy_package.entrypoint,
                 max_intents_per_event=component_input.max_intents_per_event,
@@ -666,6 +707,7 @@ def assemble_nautilus_trial_runtime_input(
                         component_input.strategy_manifest,
                         random_seed=trial.seed,
                         parameters=effective_parameters_by_component[component_id],
+                        study_artifacts=component_input.study_artifacts,
                     ),
                     entrypoint=component_input.strategy_package.entrypoint,
                     max_intents_per_event=component_input.max_intents_per_event,

@@ -132,6 +132,8 @@ def test_discovery_pages_filter_official_directory_and_keep_file_provenance():
         etfs = provider.discover_universe_page("ETF", 0)
     assert [row["symbol"] for row in equities["quotes"]] == ["AAPL"]
     assert [row["symbol"] for row in etfs["quotes"]] == ["SPY"]
+    assert equities["quotes"][0]["source_file"] == "nasdaqlisted"
+    assert etfs["quotes"][0]["source_file"] == "otherlisted"
     assert equities["source_files"] == ["nasdaqlisted", "otherlisted"]
     assert equities["source_file_creation_times"] == {
         "nasdaqlisted": "2026-09-05T12:00:00",

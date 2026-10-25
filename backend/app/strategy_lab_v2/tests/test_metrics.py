@@ -256,6 +256,10 @@ def test_event_aligned_equity_metrics_use_oos_opening_mark_and_withhold_annualiz
         "native event timestamps were not supplied"
     )
     assert metrics["annualized_return"].annualization_basis is not None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].null_reason == (  # type: ignore[attr-defined]
+        "native event timestamps were not supplied"
+    )
     assert all(
         item.definition_version == METRIC_DEFINITION_VERSION  # type: ignore[attr-defined]
         for item in metrics.values()  # type: ignore[attr-defined]
@@ -283,9 +287,109 @@ def test_event_aligned_equity_metrics_annualize_over_exact_elapsed_calendar_time
     assert annualized_definition is not None
     assert annualized_definition.parameters["annualization_method"] == "elapsed_utc_duration"
     assert annualized_definition.parameters["elapsed_duration_nanoseconds"] == year_ns
+    volatility = metrics["annualized_volatility"]
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        log_first = (Decimal("120") / Decimal("100")).ln()
+        log_second = (Decimal("110") / Decimal("120")).ln()
+        log_growth = log_first + log_second
+        residual_first = log_first - log_growth / Decimal(2)
+        residual_second = log_second - log_growth / Decimal(2)
+        expected_volatility = (residual_first**2 + residual_second**2).sqrt()
+        expected_sharpe = log_growth / expected_volatility
+        expected_downside = (min(log_second, Decimal(0)) ** 2).sqrt()
+        expected_sortino = log_growth / expected_downside
+    assert abs(volatility.value - expected_volatility) < Decimal("1e-32")  # type: ignore[operator]
+    assert volatility.calculation_definition is not None
+    assert volatility.calculation_definition.parameters["annualization_method"] == (
+        "elapsed_utc_residual_log_variance.v1"
+    )
+    assert abs(metrics["sharpe_ratio"].value - expected_sharpe) < Decimal("1e-32")  # type: ignore[operator]
+    assert abs(metrics["sortino_ratio"].value - expected_sortino) < Decimal("1e-32")  # type: ignore[operator]
+    assert metrics["historical_value_at_risk"].value is None  # type: ignore[attr-defined]
+    assert metrics["historical_expected_shortfall"].value is None  # type: ignore[attr-defined]
     calmar_value = metrics["calmar_ratio"].value
     assert calmar_value is not None
     assert abs(calmar_value - Decimal("1.2")) < Decimal("1e-32")
+
+
+def test_event_aligned_risk_metrics_weight_irregular_intervals_and_risk_free_target() -> None:
+    year_ns = 31_556_952_000_000_000
+    risk_free = Decimal("0.04")
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("110"), Decimal("105")),
+            base_currency="USD",
+            evidence_digest=content_digest("irregular-risk-free-oos-trace"),
+            expected_mark_count=3,
+            event_time_ns=(0, year_ns // 4, year_ns),
+            risk_free_return_annualized=risk_free,
+        )
+    )
+
+    with localcontext() as decimal_context:
+        decimal_context.prec = 34
+        year = Decimal(year_ns)
+        year_duration_ns = Decimal("365.2425") * Decimal(86_400) * Decimal(1_000_000_000)
+        interval_years = (Decimal("0.25"), Decimal("0.75"))
+        log_returns = (
+            (Decimal("110") / Decimal("100")).ln(),
+            (Decimal("105") / Decimal("110")).ln(),
+        )
+        annualized_log_growth = sum(log_returns, Decimal(0)) / (year / year_duration_ns)
+        residuals = tuple(
+            log_return - annualized_log_growth * duration
+            for log_return, duration in zip(log_returns, interval_years, strict=True)
+        )
+        expected_volatility = (
+            sum((residual**2 for residual in residuals), Decimal(0)) / (year / year_duration_ns)
+        ).sqrt()
+        risk_free_log_growth = (Decimal(1) + risk_free).ln()
+        excess_growth = annualized_log_growth - risk_free_log_growth
+        downside_increments = tuple(
+            min(log_return - risk_free_log_growth * duration, Decimal(0))
+            for log_return, duration in zip(log_returns, interval_years, strict=True)
+        )
+        expected_downside = (
+            sum((increment**2 for increment in downside_increments), Decimal(0))
+            / (year / year_duration_ns)
+        ).sqrt()
+        expected_sharpe = excess_growth / expected_volatility
+        expected_sortino = excess_growth / expected_downside
+
+    assert abs(metrics["annualized_volatility"].value - expected_volatility) < Decimal("1e-32")  # type: ignore[operator]
+    assert abs(metrics["sharpe_ratio"].value - expected_sharpe) < Decimal("1e-32")  # type: ignore[operator]
+    assert abs(metrics["sortino_ratio"].value - expected_sortino) < Decimal("1e-32")  # type: ignore[operator]
+    definition = metrics["annualized_volatility"].calculation_definition
+    assert definition is not None
+    assert definition.parameters["interval_count"] == 2
+    assert "risk_free_return_annualized" not in definition.parameters
+    sharpe_definition = metrics["sharpe_ratio"].calculation_definition
+    assert sharpe_definition is not None
+    assert sharpe_definition.parameters["risk_free_return_annualized"] == risk_free
+
+
+def test_event_aligned_risk_metrics_explain_zero_variance_and_downside() -> None:
+    year_ns = 31_556_952_000_000_000
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("100"), Decimal("100")),
+            base_currency="USD",
+            evidence_digest=content_digest("zero-risk-oos-trace"),
+            expected_mark_count=3,
+            event_time_ns=(0, year_ns // 2, year_ns),
+        )
+    )
+
+    assert metrics["annualized_volatility"].value == Decimal(0)  # type: ignore[attr-defined]
+    assert metrics["sharpe_ratio"].value is None  # type: ignore[attr-defined]
+    assert metrics["sharpe_ratio"].null_reason == (  # type: ignore[attr-defined]
+        "elapsed-time residual log-return variance is zero"
+    )
+    assert metrics["sortino_ratio"].value is None  # type: ignore[attr-defined]
+    assert metrics["sortino_ratio"].null_reason == (  # type: ignore[attr-defined]
+        "elapsed-time downside log-return deviation is zero"
+    )
 
 
 def test_event_aligned_equity_metrics_withhold_annualization_for_zero_elapsed_time() -> None:
@@ -304,6 +408,92 @@ def test_event_aligned_equity_metrics_withhold_annualization_for_zero_elapsed_ti
         "elapsed observation duration must be positive"
     )
     assert metrics["calmar_ratio"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].null_reason == (  # type: ignore[attr-defined]
+        "event timestamps must be strictly increasing for log risk metrics"
+    )
+
+
+def test_event_aligned_risk_metrics_require_two_timed_return_intervals() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("one-interval-risk-trace"),
+            expected_mark_count=2,
+            event_time_ns=(0, 31_556_952_000_000_000),
+        )
+    )
+
+    assert metrics["annualized_volatility"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].null_reason == (  # type: ignore[attr-defined]
+        "at least two timed return intervals are required for risk estimation"
+    )
+
+
+def test_event_aligned_equity_metrics_withhold_risk_when_timestamps_repeat() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101"), Decimal("102")),
+            base_currency="USD",
+            evidence_digest=content_digest("repeated-time-risk-trace"),
+            expected_mark_count=3,
+            event_time_ns=(0, 0, 31_556_952_000_000_000),
+        )
+    )
+
+    assert metrics["annualized_return"].value == Decimal("0.02")  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].null_reason == (  # type: ignore[attr-defined]
+        "event timestamps must be strictly increasing for log risk metrics"
+    )
+
+
+def test_event_aligned_equity_metrics_withhold_log_risk_for_nonpositive_equity() -> None:
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("0"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("zero-equity-risk-trace"),
+            expected_mark_count=3,
+            event_time_ns=(0, 15_778_476_000_000_000, 31_556_952_000_000_000),
+        )
+    )
+
+    assert metrics["annualized_volatility"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].null_reason == (  # type: ignore[attr-defined]
+        "positive equity at every event mark is required for log risk metrics"
+    )
+
+
+def test_event_aligned_equity_metrics_report_log_numeric_range_failure_precisely() -> None:
+    year_ns = 31_556_952_000_000_000
+    metrics = _by_name(
+        calculate_event_aligned_equity_metrics(
+            (Decimal("1e999999"), Decimal("1e-40"), Decimal("2e-40")),
+            base_currency="USD",
+            evidence_digest=content_digest("event-log-range-oos-trace"),
+            expected_mark_count=3,
+            event_time_ns=(0, year_ns // 2, year_ns),
+        )
+    )
+
+    assert metrics["annualized_volatility"].value is None  # type: ignore[attr-defined]
+    assert metrics["annualized_volatility"].null_reason == (  # type: ignore[attr-defined]
+        "event log-return calculation exceeds the configured Decimal numeric range"
+    )
+
+
+def test_event_aligned_equity_metrics_validate_annualized_risk_free_target() -> None:
+    with pytest.raises(ValueError, match="greater than -1"):
+        calculate_event_aligned_equity_metrics(
+            (Decimal("100"), Decimal("101")),
+            base_currency="USD",
+            evidence_digest=content_digest("invalid-risk-free-target"),
+            expected_mark_count=2,
+            event_time_ns=(0, 31_556_952_000_000_000),
+            risk_free_return_annualized=Decimal(-1),
+        )
 
 
 def test_event_aligned_equity_metrics_withhold_unrepresentable_extreme_annualization() -> None:

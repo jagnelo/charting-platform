@@ -256,6 +256,127 @@ def test_build_nautilus_oos_equity_metric_set_binds_trial_attempt_and_trace() ->
     assert metrics["annualized_return"].value is None
 
 
+def test_oos_equity_builder_binds_event_risk_free_rate_without_changing_default_identity() -> None:
+    year_ns = 31_556_952_000_000_000
+    reference = _reference(scoring_start_ns=0, scoring_end_ns=year_ns + 1)
+    equity_marks = (Decimal("1000"), Decimal("1200"), Decimal("1050"))
+    event_time_ns = (0, year_ns // 4, year_ns)
+    default = build_nautilus_oos_equity_metric_set(
+        reference,
+        equity_marks,
+        event_time_ns=event_time_ns,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+    explicit_zero = build_nautilus_oos_equity_metric_set(
+        reference,
+        equity_marks,
+        event_time_ns=event_time_ns,
+        event_risk_free_return_annualized=Decimal(0),
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+    adjusted = build_nautilus_oos_equity_metric_set(
+        reference,
+        equity_marks,
+        event_time_ns=event_time_ns,
+        event_risk_free_return_annualized=Decimal("0.05"),
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+    default_metrics = {item.name: item for item in default.values}
+    adjusted_metrics = {item.name: item for item in adjusted.values}
+    sharpe_definition = adjusted_metrics["sharpe_ratio"].calculation_definition
+    legacy_default_identity = content_digest(
+        {
+            "attempt_id": reference.attempt_id,
+            "definition_version": METRIC_DEFINITION_VERSION,
+            "equity_trace_digest": reference.artifact.content_digest,
+            "session_input_digest": None,
+            "trial_id": reference.trial_id,
+        }
+    )
+
+    assert default.metric_set_id == explicit_zero.metric_set_id
+    assert default.metric_set_id == f"metrics-{legacy_default_identity.removeprefix('sha256:')}"
+    assert adjusted.metric_set_id != default.metric_set_id
+    assert default_metrics["sharpe_ratio"].value is not None
+    assert adjusted_metrics["sharpe_ratio"].value is not None
+    assert adjusted_metrics["sharpe_ratio"].value < default_metrics["sharpe_ratio"].value
+    assert sharpe_definition is not None
+    assert sharpe_definition.parameters["risk_free_return_annualized"] == Decimal("0.05")
+
+
+def test_full_oos_builder_fingerprints_and_forwards_event_risk_free_rate(tmp_path) -> None:
+    year_ns = 31_556_952_000_000_000
+    reference = _reference(scoring_start_ns=0, scoring_end_ns=year_ns + 1)
+    equity_marks = (Decimal("1000"), Decimal("1200"), Decimal("1050"))
+    event_time_ns = (0, year_ns // 4, year_ns)
+    reports_path = tmp_path / "event-risk-free-reports.parquet"
+    writer = NautilusNativeReportsWriter(
+        reports_path,
+        engine_input={
+            "trial_id": reference.trial_id,
+            "attempt_id": reference.attempt_id,
+            "data_snapshot_fingerprint": reference.snapshot_fingerprint,
+            "event_tape": {"source_tape_fingerprint": reference.source_tape_fingerprint},
+            "evaluation_window": {
+                "fingerprint": reference.evaluation_window_fingerprint,
+                "start_ns": reference.scoring_start_ns,
+                "end_ns": reference.scoring_end_ns,
+            },
+        },
+        portfolio={"fingerprint": reference.portfolio_fingerprint},
+    )
+    writer.write_reports(
+        {
+            "account": pd.DataFrame([{"currency": "USD"}]),
+            "fills": pd.DataFrame(columns=["ts_event", "commission"]),
+            "orders": pd.DataFrame(columns=["ts_init"]),
+            "positions": pd.DataFrame(columns=["ts_opened", "ts_closed"]),
+        }
+    )
+    reports_reference = writer.finish()
+    baseline = build_nautilus_oos_metric_set(
+        reference,
+        equity_marks,
+        reports_reference,
+        reports_path,
+        event_time_ns=event_time_ns,
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+    adjusted = build_nautilus_oos_metric_set(
+        reference,
+        equity_marks,
+        reports_reference,
+        reports_path,
+        event_time_ns=event_time_ns,
+        event_risk_free_return_annualized=Decimal("0.05"),
+        created_at=datetime(2026, 10, 4, tzinfo=UTC),
+    )
+    baseline_metrics = {item.name: item for item in baseline.values}
+    adjusted_metrics = {item.name: item for item in adjusted.values}
+    sharpe_definition = adjusted_metrics["sharpe_ratio"].calculation_definition
+    legacy_default_identity = content_digest(
+        {
+            "attempt_id": reference.attempt_id,
+            "account_cash_observation_digest": None,
+            "account_exposure_observation_digest": None,
+            "definition_version": METRIC_DEFINITION_VERSION,
+            "equity_trace_digest": reference.artifact.content_digest,
+            "native_reports_digest": reports_reference.artifact.content_digest,
+            "session_input_digest": None,
+            "trial_id": reference.trial_id,
+            "window_fingerprint": reference.evaluation_window_fingerprint,
+        }
+    )
+
+    assert adjusted.metric_set_id != baseline.metric_set_id
+    assert baseline.metric_set_id == f"metrics-{legacy_default_identity.removeprefix('sha256:')}"
+    assert baseline_metrics["sharpe_ratio"].value is not None
+    assert adjusted_metrics["sharpe_ratio"].value is not None
+    assert adjusted_metrics["sharpe_ratio"].value < baseline_metrics["sharpe_ratio"].value
+    assert sharpe_definition is not None
+    assert sharpe_definition.parameters["risk_free_return_annualized"] == Decimal("0.05")
+
+
 def test_oos_equity_metrics_use_only_complete_explicit_session_intervals() -> None:
     reference, calendar, intervals = _session_equity_scope()
     equity_marks = (

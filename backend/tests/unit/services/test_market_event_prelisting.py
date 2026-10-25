@@ -97,6 +97,89 @@ async def test_materialization_deduplicates_consensus_into_inactive_provisional_
 
 
 @pytest.mark.asyncio
+async def test_materialization_keeps_consensus_complete_across_event_page_boundary(
+    db, instrument_type
+):
+    consensus = _consensus(db)
+    db.add_all(
+        [
+            _event(
+                source="alpaca",
+                key="alpaca:ipo:paged-newco",
+                consensus_id=consensus.id,
+                payload={"symbol": "PAGE", "name": "Paged Co", "exchange_mic": "XNAS"},
+            ),
+            _event(
+                source="edgar",
+                key="edgar:ipo:paged-newco",
+                consensus_id=consensus.id,
+                payload={"symbol": "PAGE", "name": "Paged Co", "mic": "XNAS"},
+            ),
+        ]
+    )
+    db.flush()
+
+    first = await materialize_prelisting_candidates(AsyncSessionAdapter(db), max_events=1)
+    candidate = db.execute(select(MarketEventPrelistingCandidate)).scalar_one()
+    instrument = db.get(Instrument, candidate.instrument_id)
+
+    assert first["status"] == "partial"
+    assert first["events_considered"] == 1
+    assert first["instruments_created"] == 1
+    assert candidate.status == "pending"
+    assert candidate.provider_sources == ["alpaca", "edgar"]
+    assert instrument is not None
+    assert instrument.symbol == "PAGE"
+    assert instrument.is_active is False
+    assert instrument.identity_status == IdentityStatus.PROVISIONAL.value
+
+    second = await materialize_prelisting_candidates(AsyncSessionAdapter(db), max_events=1)
+    assert second["status"] == "complete"
+    assert second["events_considered"] == 1
+    assert second["instruments_created"] == 0
+    assert candidate.status == "pending"
+    assert db.execute(select(MarketEventPrelistingCandidate)).scalars().all() == [candidate]
+
+
+@pytest.mark.asyncio
+async def test_materialization_quarantines_conflicting_consensus_across_page_boundary(
+    db,
+):
+    consensus = _consensus(db)
+    db.add_all(
+        [
+            _event(
+                source="alpaca",
+                key="alpaca:ipo:conflicting-paged-newco",
+                consensus_id=consensus.id,
+                payload={"symbol": "PAGEA", "name": "Paged Co", "exchange_mic": "XNAS"},
+            ),
+            _event(
+                source="edgar",
+                key="edgar:ipo:conflicting-paged-newco",
+                consensus_id=consensus.id,
+                payload={"symbol": "PAGEB", "name": "Paged Co", "mic": "XNAS"},
+            ),
+        ]
+    )
+    db.flush()
+
+    first = await materialize_prelisting_candidates(AsyncSessionAdapter(db), max_events=1)
+    candidate = db.execute(select(MarketEventPrelistingCandidate)).scalar_one()
+    assert first["status"] == "partial"
+    assert first["instruments_created"] == 0
+    assert candidate.status == "quarantined"
+    assert "disagree on the proposed symbol" in candidate.resolution["reason"]
+    assert candidate.instrument_id is None
+
+    second = await materialize_prelisting_candidates(AsyncSessionAdapter(db), max_events=1)
+    assert second["status"] == "complete"
+    assert second["instruments_created"] == 0
+    assert candidate.status == "quarantined"
+    assert db.execute(select(Instrument)).scalars().all() == []
+
+
+@pytest.mark.asyncio
 async def test_conflicted_consensus_is_quarantined_without_instrument(db):
     consensus = _consensus(db, status="conflicted")
     db.add(

@@ -833,10 +833,16 @@ canonical ticker normalization and cross-provider identity reconciliation are
 separate and still fail closed on collisions. It uses a local two-request
 daily safety ceiling (index plus file); CTA publishes no numeric HTTP quota.
 The file does not distinguish ETFs from common stocks. Nasdaq-listed
-securities remain a separate Tape C scope. These source scopes are not yet
-combined into one same-session snapshot, so neither may authorize whole-NMS
-absence or support a claim of complete all-venue US listings. Nasdaq Trader
-remains useful as independent cross-check and lifecycle evidence. Sources:
+securities remain a distinct Tape C scope. The reconciler now combines that
+scope with CTA Tape A/B and a separate Nasdaq ETF-classification run only when
+all required evidence is complete in one invocation and uses the same source
+generation date. The Nasdaq EQUITY scope is accepted for Tape C only when its
+row-level provenance identifies `nasdaqlisted`; `otherlisted` alone cannot
+satisfy the scope. Incomplete source-file, timestamp, row, or venue evidence
+still prevents the NMS absence union. This scoped lifecycle union does not
+claim a fresh complete all-venue US universe or replace the remaining mapping
+and reconciliation roadmap. Nasdaq Trader also remains supplementary
+cross-check and lifecycle evidence. Sources:
 [CTA Symbol File](https://www.ctaplan.com/symbol-file), [CTA Symbol File
 specification](https://www.ctaplan.com/publicdocs/ctaplan/CTA_Symbol_File_Specification.pdf),
 and [Nasdaq Trader directory definitions](https://www.nasdaqtrader.com/trader.aspx?id=symboldirdefs).
@@ -861,9 +867,10 @@ provenance. Nasdaq's field definition does not specify a timezone, so the
 encoded calendar date is used without conversion. A directory miss counts only
 once for a distinct file-generation date matching a completed exchange
 session, so rereading a stale or 304-cached snapshot cannot manufacture
-delisting confirmations. This source-local completeness does not make it
-whole-NMS absence evidence: CTA Tape A/B and Nasdaq-listed/Tape C evidence must
-also be complete for that session before a combined NMS absence decision.
+delisting confirmations. This source-local completeness does not by itself
+make a snapshot whole-NMS absence evidence: same-invocation CTA Tape A/B,
+Nasdaq-listed/Tape C, and Nasdaq ETF-classification evidence must all be
+complete for that session before the combined NMS absence decision.
 Rows whose venue is missing or cannot be mapped to
 the supported Nasdaq Trader MIC set (`XNAS`, `XNYS`, `ARCX`, `XASE`, `BATS`,
 `IEXG`, `TXSE`) likewise fail closed instead of becoming venue-less listings.
