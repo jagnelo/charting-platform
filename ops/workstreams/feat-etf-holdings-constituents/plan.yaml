@@ -40,11 +40,19 @@ previous_closure_summary: >-
   unresolved/quarantined; unknown, quota-held, unreviewed, paid/trial and unsafe
   operations remain disabled. No live calls, quota replay, deployment, or
   retained-data cleanup is claimed.
-human_closure_authorization: pending
+human_closure_authorization: accepted_by_coordinator_under_human_delegation
 closure_summary: >-
-  Pending. The next named first-human source checkpoint has not been accepted,
-  integrated, or closed. The historically accepted integration-1 closure below
-  is not evidence of acceptance for later ETF source work.
+  The coordinator accepted etf-first-human-sec-source-1 for source integration
+  under the human's recorded conditional checkpoint-acceptance delegation.
+  Accepted implementation is exact source 8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7,
+  with green exact-source CI 40118007739 and the reviewed local audit
+  etf-8d8-final-local-audit-20261025.json. This closes FHSC1-FHSC7 source
+  readiness only; it does not claim a real SEC acquisition, deployed inspector
+  proof, native-current holdings, staging integration, or completion of AC1-AC14.
+  Root owns integration and the later actual one-fund/UI acceptance. Preserve
+  all prior failures and component-reuse qualifications, the full roadmap,
+  `15 Tier-0 and 156 Tier-1`, holds, quarantines, retained data, and the 30-day
+  observation. integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
 local_validation_profile: full_stack_browser
@@ -439,36 +447,23 @@ previously_accepted_integration_checkpoint:
   active_changeset:
     name: FHSC3 fund-selected SEC timer cause and sticky deadline correction
     state: >-
-      This changeset is based on published source
-      39c411b910fcac5c637163cffd13ae68286988f4. Exact CI40114130605 on that
-      source is terminal RED: Backend unit result 5429 passed / 1 failed /
-      1 skipped in676.90 seconds; sole failure
-      test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline.
-      The real HTTPX transport was cancelled by the selected fund timer under
-      uvloop, but the strict follow-up budget-clock read remained just before
-      deadline, so the worker failed to latch/label the fund expiry and
-      rethrew a bare TimeoutError. Frontend passed; downstream jobs were
-      skipped. Preserve that exact red. Root's separate fresh local run
-      recorded: Root88520, fresh539-case integration collection, 900-second
-      timeout at97%, exit124; cleanup0/private recovery passed. No assertion
-      failure was reported; this is not a full-suite pass. The prior 39c source
-      also contains the reviewed test-only
-      finite-admission/worker-entry deadline arrangement; it is preserved.
-      The production correction records the selected timeout bound, treats
-      asyncio timeout-scope expiry as fund-terminal only when that scope was
-      selected by the fund deadline (including equal bounds), and leaves
-      attempt-cap or transport-raised TimeoutError recoverable. A module-local
-      SEC budget clock seam permits deterministic boundary testing without
-      patching global or event-loop time. The 42-test bridge unit module passes
-      under both normal asyncio and installed uvloop policies, exercising the
-      in-thread asyncio.run worker path; focused Ruff/format/AST and workstream
-      checks are recorded separately. Root must run fresh complete units,
-      integration and full app gates for this production delta. Exact final
-      source capture is integration_capture: exact branch HEAD; no self-hash
-      loop is intended. SEC transport remains held and the checkpoint/full
-      roadmap are not accepted. Preserve full AC1-AC14, 15 Tier-0 and 156
-      Tier-1, all quarantines/holds, retained data, PIT/raw lineage and the
-      30-day observation gate.
+      Root accepted this FHSC3 timer-cause correction as part of source
+      checkpoint etf-first-human-sec-source-1 at exact implementation
+      8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7. Exact CI40118007739 is green.
+      The final local audit records 5433 backend unit passes/1 existing skip,
+      537 integration passes/2 held native cases, 84.47% combined coverage,
+      1353 frontend tests, 195 functional passes/2 existing live skips, and
+      104/104 strict visuals with zero retries. Root's fresh component evidence
+      and reuse qualifications are in the acceptance receipt and audit JSON;
+      the earlier 40110202709 and 40114130605 reds and Root88520's 900-second
+      timeout at97%/exit124 remain historical, not relabelled. Local migration
+      compatibility was an explicit no-change-input SKIP against green staging
+      cdc33442c19f5c387b9ada759607d961365993c0, not a fresh prior-release
+      upgrade. FHSC1-FHSC7 are accepted for integration; actual SEC acquisition,
+      deployed inspector proof, native-current coverage, integration and all
+      AC1-AC14 roadmap work remain open. Keep SEC/unknown operations held and
+      preserve raw/PIT lineage, quarantines, retained data, `15 Tier-0 and 156
+      Tier-1`, and the 30-day observation.
     baseline: 39c411b910fcac5c637163cffd13ae68286988f4
     intent: >-
       Classify an expired in-flight SEC timeout from the actual selected
@@ -501,7 +496,11 @@ integration_checkpoint:
     all existing assertions/tolerances and exact-source CI. Keep this new
     checkpoint's closure and acceptance pending Root review; do not replace the
     active native goal, usage accounting, model or effort.
-  acceptance_authorization: pending
+  acceptance_authorization: accepted_by_coordinator_under_human_delegation
+  accepted_source_sha: 8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7
+  accepted_exact_ci_run: 40118007739
+  acceptance_record: /home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-checkpoint-source-acceptance-20261025.md
+  final_local_audit: /home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-final-local-audit-20261025.json
   downstream_consumers:
     - ETF EDGAR backfill and provisioning APIs
     - ETF capability, historical snapshot and point-in-time API consumers
@@ -603,15 +602,16 @@ integration_checkpoint:
       owner: ETF and authorized operational coordinator
       continuation_acceptance: At least 95% eligible Tier-0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations over 30 days.
   source_checkpoint_boundary: >-
-    This is source readiness only, not source acceptance or proof of an actual
-    acquired holdings sample. IWM remains a candidate identity, not an admitted
-    or verified current source. SEC transport and provisioning changes remain
-    disabled until the evidence-backed shared policy and Root-reviewed exact
-    invocation exist. Root owns the later one-fund deployment acceptance proof.
-    All 14 roadmap criteria and the 30-day observation remain open beyond this
-    checkpoint.
-  exact_source_validation: pending
-  full_stack_browser: required; no current-source run recorded
+    Root accepted FHSC1-FHSC7 for integration at exact source
+    8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7 after exact CI40118007739 and the
+    reviewed local source qualification. This does not prove an actual IWM
+    acquisition or UI sample. IWM remains a candidate identity, not an admitted
+    or verified current source; SEC and unknown routes remain held. Root owns
+    staging integration and the later one-fund deployment acceptance proof.
+    All 14 roadmap criteria, live/deployed acceptance and the 30-day observation
+    remain open beyond this source checkpoint.
+  exact_source_validation: passed; exact CI40118007739 and reviewed local audit
+  full_stack_browser: passed on exact source 8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7; 195 functional/2 existing live skips and 104/104 strict visuals, zero retries
   root_deployment_acceptance: >-
     Root owns the later one-fund acquisition/UI proof after qualifying source
     evidence and review of the exact invocation. No such proof is claimed here.
@@ -789,11 +789,11 @@ deferred_live_checks:
 live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDINGS_TESTS=1; the ordinary branch test explicitly sets it to 0 and retains nine no-network registry/route contracts. The network-enabled command remains under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
 deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
-status: in_progress
+status: ready_for_integration
 progress:
-  completed: []
+  completed: [FHSC1, FHSC2, FHSC3, FHSC4, FHSC5, FHSC6, FHSC7]
   total: 7
-current_phase: FHSC3_fund_selected_timer_cause_latch_root_full_qualification_pending_2026_10_24
+current_phase: FHSC1-FHSC7_accepted_ready_for_root_integration_2026_10_25
 historical_execution_context: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -988,30 +988,17 @@ historical_execution_context: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Exact CI `40114130605` on published source
-  `39c411b910fcac5c637163cffd13ae68286988f4` is terminal RED: Backend unit
-  result `5429 passed / 1 failed / 1 skipped` in676.90 seconds; the only
-  failure was `test_sec_worker_cancels_real_httpx_transport_at_remaining_fund_deadline`.
-  Under uvloop the real HTTPX transport was cancelled by the fund-selected
-  asyncio timer, but a later strict SEC budget-clock read still fell just
-  before the deadline, so the worker rethrew an unlabelled TimeoutError without
-  latching terminal fund expiry. Frontend passed and downstream jobs were
-  skipped. Preserve the exact failure. Root's separate fresh local attempt
-  recorded: Root88520, fresh539-case integration collection, 900-second
-  timeout at97%, exit124; cleanup0/private recovery passed. No assertion
-  failure was reported; this is incomplete, not a full-suite pass. The source fix
-  carries the chosen bound and uses the actual timeout scope's `expired()`
-  result; fund-selected expiry (ties included) becomes terminal, while
-  per-attempt-cap and transport-raised timeouts do not. Deterministic real-HTTPX
-  cancellation, sticky no-next-attempt, cap-only, transport-timeout, and
-  equal-bound regressions pass: bridge module42/42 under normal asyncio and
-  42/42 under installed uvloop, including the in-thread `asyncio.run` worker.
-  Production210/20-second limits and the prior finite-admission integration
-  fixture remain unchanged. No DB/profile/live request was run here. Root must
-  execute fresh complete units, integration and full app gates because
-  production changed. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, all
-  holds/quarantines, retained data, PIT/raw lineage and the30-day observation;
-  no checkpoint acceptance or roadmap completion is claimed.
+  FHSC1-FHSC7 source checkpoint etf-first-human-sec-source-1 is accepted by Root
+  under the recorded human-delegated authority at implementation source
+  8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7; exact CI40118007739 is green and
+  Root's reviewed local audit passed the required source profile with truthful
+  component-reuse scope and two existing declared live skips. Root owns
+  synchronized staging integration. After Root releases the resulting green
+  staging baseline, continue the full AC1-AC14 roadmap and separately obtain
+  reviewed actual one-fund SEC acquisition/UI and 30-day observation evidence.
+  SEC/unknown routes stay held; no native-current or deployment acceptance is
+  claimed. Preserve all historical red/incomplete attempts, `15 Tier-0 and 156
+  Tier-1`, quarantines, retained data, raw/PIT lineage and the complete roadmap.
 integration_capture: exact branch HEAD
 
 remaining_gaps:

@@ -16011,3 +16011,44 @@ not a full-suite pass. Root must run fresh complete units, integration and full 
 this production delta. Preserve full AC1–AC14, `15 Tier-0 and 156 Tier-1`, all
 holds/quarantines, retained data, PIT/raw lineage, and the 30-day observation;
 the checkpoint and full roadmap remain open.
+
+## FHSC1–FHSC7 source checkpoint accepted — 2026-10-25 03:35Z
+
+Root accepted the named `etf-first-human-sec-source-1` checkpoint for
+integration under the human's recorded conditional checkpoint-acceptance
+delegation. The accepted implementation is exact source
+`8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`; exact branch CI
+`40118007739` is terminal green for required jobs, with Exhaustive skipped by
+feature-branch policy. The acceptance decision is documented at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-checkpoint-source-acceptance-20261025.md`.
+
+The reviewed final local audit is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-8d8-final-local-audit-20261025.json`.
+It records 5433 backend unit passes/1 existing skip, 537 integration passes/2
+held native cases, 84.47% combined coverage, 1353 frontend tests, 195
+functional passes/2 existing declared live skips, and 104/104 strict visuals
+with zero retries. App/API/worker, cleanup, and original target-preservation
+evidence passed. The receipt retains the exact same-source component reuse and
+input qualifications; these counts are not represented as a single monolithic
+collector invocation. Migration compatibility against accepted green staging
+`cdc33442c19f5c387b9ada759607d961365993c0` was a no-change-input SKIP, not a
+fresh previous-release upgrade test.
+
+This closes FHSC1–FHSC7 source readiness and records the workstream at
+`ready_for_integration` with `integration_capture: exact branch HEAD`. It does
+not claim real SEC acquisition, a populated deployed inspector, native-current
+holdings, or completion of the full AC1–AC14 roadmap. SEC/unknown operations
+remain held; the actual one-fund acquisition/UI proof and 30-day observation
+remain future gates. Preserve every earlier red/incomplete result, all fourteen
+criterion texts and dispositions, `15 Tier-0 and 156 Tier-1`, quarantines,
+retained data, and raw/PIT lineage. Root owns synchronized staging integration.
+
+The existing ETF claim `f206bbc5-abbf-473a-a44f-fb5706c81282` was confirmed by
+the UV-managed session status command on the assigned branch/worktree and
+source. This resumed the existing owner context; no new claim or takeover was
+created. `make agent-context` was run with an isolated offline UV cache. The
+normal `agent-session-start` entry point is a new-writer bootstrap and refuses
+dirty recorded state; the active claim was preserved rather than displaced.
+The final records commit intentionally identifies validated implementation
+source `8d8dac530cd229eb3bceb3521fc5ffbabacdb0e7`, not its own future commit
+hash, to avoid a self-hash metadata loop.
