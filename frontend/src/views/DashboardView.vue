@@ -1385,8 +1385,8 @@ function onDashboardClick() {
   align-items: center;
   gap: 4px;
   padding: 8px 18px;
-  border-bottom: 1px solid #171717;
-  background: #0a0a0a;
+  border-bottom: 1px solid var(--tc-border);
+  background: var(--tc-panel-bg);
   flex-shrink: 0;
   overflow-x: auto;
   flex-wrap: nowrap;
@@ -1443,8 +1443,8 @@ function onDashboardClick() {
 .widget-catalog {
   width: 216px;
   padding: 10px;
-  border-right: 1px solid #181818;
-  background: #0a0a0a;
+  border-right: 1px solid var(--tc-border);
+  background: var(--tc-window-bg);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -1508,9 +1508,9 @@ function onDashboardClick() {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid #222;
-  border-radius: 6px;
-  background: #0d0d0d;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-panel-bg);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 .dashboard-widget.editing {
@@ -1523,8 +1523,8 @@ function onDashboardClick() {
   justify-content: space-between;
   gap: 8px;
   padding: 0 9px;
-  border-bottom: 1px solid #1c1c1c;
-  background: #111;
+  border-bottom: 1px solid var(--tc-border);
+  background: var(--tc-header-bottom);
   flex-shrink: 0;
 }
 .editing .widget-header { cursor: move; }
@@ -1597,7 +1597,7 @@ function onDashboardClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #555;
+  color: var(--tc-text-muted);
   font-size: 12px;
   text-align: center;
 }
@@ -1966,6 +1966,15 @@ function onDashboardClick() {
 }
 .dashboard-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 .dashboard-view :is(input, select, textarea) { border-radius: var(--tc-radius); }
+.config-modal .config-field,
+.config-modal .config-help { color: var(--tc-text-muted); }
+.config-modal .config-field > :is(input, select, textarea) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
 </style>
 
 <style>

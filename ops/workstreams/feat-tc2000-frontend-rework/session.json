@@ -40,13 +40,13 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current dirty presentation source is based on published9a0bbf451b3037e4786705b3e2b981275cf0f232. Root's isolated computed-style proof on9a verified neutral versus selected holding styles; this candidate extends route-specific token styling, recognizes Strategy v2 .is-selected without changing aria-current navigation semantics, and labels same-date differing ETF parser versions as raw audit data. Exact candidate CI is not yet available. Do not substitute baseline f809 CI40287957823.",
-  "current_checkpoint_status": "Whole-frontend shell/theme remains in progress and unaccepted. Focused ETF, application-shell and Strategy v2 suites pass24/24; npm run build passes vue-tsc and Vite (530 modules). TC scope self-tests and full scope guard pass for1050 changed paths with872 immutable imports,29 exact Provider adaptations and112 presentation paths. Same-date parser correction wording preserves source metrics, actual known_at and rows; ordinary different-date churn remains unchanged. Root-assigned exact-source full functional/strict-visual and route-state browser evidence remain pending. Preserve all routes, domain contracts, original references/masks/0.005/zero retries, F8y evidence, AC1-AC9 and official V25.",
+  "current_candidate_ci_status": "Current coherent presentation candidate is based on published 85c053b5466a0dee7d938a8f2d987ce0df4f7730. It includes the Root-reviewed navigation, route/component styling and mobile-shell corrections plus stored-ETF-snapshot/current-eligibility, same-date parser-audit, zero-call reliability, and teleported Notes-token presentation. Eight focused frontend test files passed104/104 and the production build passed vue-tsc and Vite. Exact candidate CI is pending publication; Root route-state and full functional/strict-visual profile are pending. Do not substitute CI40304902034 on parent85c.",
+  "current_checkpoint_status": "Whole-frontend source corrections are implemented but not accepted. The final affected eight-file frontend test slice passed104/104; npm run build passed vue-tsc and Vite (530 modules; existing large Workstation chunk advisory). Scope self-tests passed42/42; staged full scope guard passed for1,055 changed paths with872 immutable imports byte-verified,29 approved Provider adaptations and112 exact presentation paths. Full scope guard, unique-key plan/ownership YAML, session/plan-hash, append-only journal-prefix, workstream and final diff checks are recorded for this close. Current-source CI and Root-assigned isolated route-state/full functional/strict-visual evidence remain pending. No browser/fixture was started or changed. Keep the existing 85c fixture, archive, services and Root browser untouched. Preserve F8y at its consumed60-second timeout and zero retries, all112 presentation paths, Provider/ETF/Strategy domain contracts, original refs/masks/0.005/zero retries, AC1-AC9, official V25 and the complete roadmap.",
   "current_exact_ci": {
     "conclusion": "success",
-    "head_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
-    "run_id": 40287957823,
-    "status": "Exact published source f80995c3ed680263ca0db405d4dd03c9aafc1646 CI40287957823 completed green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration Gate was skipped by feature-CI policy. This receipt predates and does not qualify the current dirty whole-frontend presentation candidate.",
+    "head_sha": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
+    "run_id": 40304902034,
+    "status": "Exact published parent source 85c053b5466a0dee7d938a8f2d987ce0df4f7730 CI40304902034 is terminal green. This receipt qualifies only that parent; it does not qualify the current presentation correction candidate.",
     "jobs": {
       "backend": "success",
       "frontend_unit": "success",
@@ -54,11 +54,16 @@
       "e2e": "success",
       "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
     },
-    "visuals": "No new visual or full local profile result is claimed for the dirty candidate. Preserve F8y, original references/masks/tolerances/zero retries, full profile and official V25 as open."
+    "visuals": "85c route-review evidence identified gaps and is not whole-frontend acceptance. No full functional or strict-visual matrix has run on the current correction candidate. Preserve the original references, masks, 0.005 tolerance, zero retries, and F8y as open."
   },
   "dirty_paths": [
     "frontend/src/App.vue",
-    "frontend/src/views/AlertsView.vue",
+    "frontend/src/components/chart/IndicatorPanel.vue",
+    "frontend/src/components/common/SearchBar.vue",
+    "frontend/src/components/common/TagPicker.vue",
+    "frontend/src/components/etf/ETFHoldingsPanel.vue",
+    "frontend/src/components/strategy/StrategyRuleTreeEditor.vue",
+    "frontend/src/components/watchlist/WatchlistPanel.vue",
     "frontend/src/views/BasketsView.vue",
     "frontend/src/views/ChartView.vue",
     "frontend/src/views/DashboardView.vue",
@@ -68,10 +73,13 @@
     "frontend/src/views/SettingsView.vue",
     "frontend/src/views/StrategyLabV2View.vue",
     "frontend/src/views/StrategyLabView.vue",
-    "frontend/src/views/StudyLabView.vue",
     "frontend/src/views/WatchlistView.vue",
+    "frontend/src/views/WorkstationView.vue",
     "frontend/tests/unit/router/test_app_shell.test.ts",
-    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+    "frontend/tests/unit/router/test_application_routes.test.ts",
+    "frontend/tests/unit/views/test_etf_historical_capability_labels.test.ts",
+    "frontend/tests/unit/views/test_settings_view.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -227,7 +235,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Finish unique-key plan/YAML/session/journal checks, recompute the plan hash, and publish this one coherent route-style plus ETF-audit candidate. Report its exact source to Root for exact CI and the reserved isolated functional/strict-visual profile with route-state coverage. Keep whole-frontend acceptance, F8y, AC1-AC9 and official V25 open.",
+  "next_action": "Publish this coherent source and owner-record packet once, then give Root the exact candidate for CI and review. After Root allocates the slot, prepare/use a new candidate-pinned frontend-only replacement against the existing healthy 85c isolated project: prove the backend and Compose trees are unchanged, pin the new archive/source/image, replace only the owned frontend container, and compare all seven other fixture IDs plus the original 33 retained containers/volumes/networks before and after. Root must review the updated route states before any full functional and strict-visual matrix. Do not modify or launch against the existing 85c fixture before review. Keep whole-frontend acceptance, F8y, full AC1-AC9 and official V25 open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -240,7 +248,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "526329e4efe931d98a21e1418b916960298aefd9afcd4b00a84d3830ee3f60e0",
+  "plan_hash": "3f98e5ace3fb45cc5d58f04c48459566679797619974dd3fccaf8405c5dad733",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -257,25 +265,25 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "The route-specific shared theme and ETF same-date parser-audit presentation are implemented in the current dirty candidate. Focused 24/24 checks, vue-tsc/Vite build and scope guard are green; workstream unique-key/hash checks and coherent publication remain. Exact-source CI and Root's reserved full functional/strict-visual route-state profile are pending. F8y remains unproven at its consumed 60-second timeout and zero retries; preserve the full roadmap, official V25 and all provider/data/service holds.",
-    "current_phase": "whole_frontend_route_style_and_etf_parser_audit_changes_implemented;focused_24_vue_typecheck_build_green;scope_guard_1050_paths;records_and_publication_then_exact_CI_and_root_full_profile_pending",
-    "next_action": "Complete plan/session/journal and scope validation, publish one coherent candidate, then inspect its exact-source CI and hand the clean source to Root for the reserved isolated full profile. Do not use retained/default assigned services, relax any reference/mask/tolerance/assertion, or change retries.",
+    "current_blocker": "The Root-reviewed whole-frontend correction set is implemented on parent85c. It includes usable workstation application navigation, the reviewed route/component TC styling and mobile-grid fixes, clear ETF stored-snapshot versus current-analysis labeling, raw same-date parser-audit wording, zero-call reliability wording, and readable teleported Notes controls. The final affected seven frontend test files passed104/104 and vue-tsc/Vite build passed. Candidate exact CI and Root-assigned route-state/full functional/strict-visual profile remain pending. No browser or fixture action occurred. Preserve the original F8y60-second timeout and zero retries, all references/masks/0.005, AC1-AC9, official V25, all domain contracts and holds.",
+    "current_phase": "whole_frontend_reviewed_corrections_complete_focused_104_green_build_green;final_scope_and_records_close_then_publish;exact_candidate_CI_and_root_isolated_full_profile_pending",
+    "next_action": "Publish this coherent source and owner-record packet once, then give Root the exact candidate for CI and review. After Root allocates the slot, prepare/use a new candidate-pinned frontend-only replacement against the existing healthy 85c isolated project: prove the backend and Compose trees are unchanged, pin the new archive/source/image, replace only the owned frontend container, and compare all seven other fixture IDs plus the original 33 retained containers/volumes/networks before and after. Root must review the updated route states before any full functional and strict-visual matrix. Do not modify or launch against the existing 85c fixture before review. Keep whole-frontend acceptance, F8y, full AC1-AC9 and official V25 open.",
     "total": 6,
-    "updated_at": "2026-10-26T10:04:00Z"
+    "updated_at": "2026-10-26T11:36:06Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": null,
-    "current_pending_range": "Local adoption is committed as the merge of pre-merge source039919a and exact accepted staging15b5, with the exact receipt/manifest and owned checkpoint records. The merge hash is intentionally not self-referenced; see final owner result. Remote feature remains at039919a. Push is held until Root releases after independent master CI40247103720; no exact branch CI is claimed.",
+    "current_local_head": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
+    "current_pending_range": "The published branch and origin are at parent85c053b5466a0dee7d938a8f2d987ce0df4f7730. A coherent whole-frontend correction candidate and its owner records are being closed against that parent; publish one scoped commit after final staged checks. Do not claim CI40304902034 qualifies the new candidate.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
-    "status": "Bounded 15b5 adoption is committed locally; the resulting merge hash is captured in the owner turn result rather than self-referenced. Remote feature remains at039919a. Push is held pending Root release after master CI40247103720; no publication or new exact branch CI is claimed."
+    "remote_tracking_sha": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
+    "status": "Parent85c is clean and published before this correction packet; one coherent candidate commit/push remains after scoped checks. Exact candidate CI is pending."
   },
   "remote": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
   "remote_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",

@@ -1223,6 +1223,7 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   position: relative;
+  min-width: 0;
   height: 100%;
   color: #ccc;
   font-size: 13px;
@@ -1512,7 +1513,7 @@ onBeforeUnmount(() => {
 }
 
 .empty-row {
-  color: #555;
+  color: var(--tc-text-muted);
   font-size: 12px;
   padding: 20px;
   text-align: center;
@@ -1607,7 +1608,7 @@ onBeforeUnmount(() => {
 }
 
 .empty-detail {
-  color: #555;
+  color: var(--tc-text-muted);
   font-size: 12px;
   text-align: center;
   padding: 32px 0;
@@ -2031,7 +2032,7 @@ onBeforeUnmount(() => {
   }
 }
 
-.radar-view { padding: 14px; gap: 12px; background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.radar-view { padding: 14px; gap: 12px; background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); font-size: 12px; }
 .page-title { color: var(--tc-text); font-size: 18px; }
 .run-meta, .radar-view :is(.hint, .empty-hint, .section-info) { color: var(--tc-text-muted); }
 .radar-busy-card, .radar-results, .radar-detail, .research-summary-card {

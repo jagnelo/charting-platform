@@ -408,7 +408,8 @@ onMounted(() => {
 
 <style scoped>
 .strategy-lab-v2 {
-  min-height: 100vh;
+  min-width: 0;
+  min-height: 100%;
   overflow: auto;
   padding: 28px clamp(18px, 4vw, 56px) 48px;
   background: #0b0d10;
@@ -464,11 +465,18 @@ onMounted(() => {
   background: var(--tc-shell-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);
+  font-size: 12px;
 }
 .strategy-lab-v2__header { margin-bottom: 16px; }
-.strategy-lab-v2 h1 { margin-top: 4px; font-size: 22px; line-height: 1.2; }
-.strategy-lab-v2 h2 { color: var(--tc-text); font-size: 15px; line-height: 1.3; }
+.strategy-lab-v2 h1 { margin-top: 4px; font-size: 18px; line-height: 1.2; }
+.strategy-lab-v2 h2 { color: var(--tc-text); font-size: 14px; line-height: 1.3; }
 .strategy-lab-v2 h3 { color: var(--tc-text); }
+.strategy-lab-v2 p,
+.strategy-lab-v2__boundary,
+.strategy-lab-v2__pin-lookup,
+.strategy-lab-v2__list,
+.strategy-lab-v2__detail { font-size: 12px; }
+.strategy-lab-v2 :is(button, input, select) { font: inherit; }
 .strategy-lab-v2__eyebrow { color: var(--tc-text-muted); }
 .strategy-lab-v2__subtitle,
 .strategy-lab-v2__pin-lookup p,
@@ -481,7 +489,7 @@ onMounted(() => {
 .strategy-lab-v2__detail {
   border-color: var(--tc-border);
   border-radius: var(--tc-radius);
-  background: var(--tc-window-bg);
+  background: var(--tc-panel-bg);
 }
 .strategy-lab-v2__boundary { color: var(--tc-text); }
 .strategy-lab-v2__pin-lookup input,
@@ -505,9 +513,13 @@ onMounted(() => {
   background: color-mix(in srgb, var(--tc-accent) 12%, var(--tc-control-bg));
   color: var(--tc-accent-soft);
 }
-.strategy-lab-v2__item { border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
-.strategy-lab-v2__item:hover,
-.strategy-lab-v2__item.is-selected {
+.strategy-lab-v2__item { border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); }
+.strategy-lab-v2__item:hover {
+  border-color: var(--tc-border-strong);
+  background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-control-bg));
+}
+.strategy-lab-v2__item.is-selected,
+.strategy-lab-v2__item[aria-current="true"] {
   border-color: var(--tc-accent);
   background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg));
   color: var(--tc-accent-soft);

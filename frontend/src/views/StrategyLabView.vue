@@ -4945,7 +4945,7 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
   min-height: 0;
   background: #080808;
   color: #d0d0d0;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--tc-font-family);
 }
 
 .strategy-sidebar {
@@ -6586,5 +6586,11 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
 .definition-item { border-color: var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
 .definition-item:hover { border-color: var(--tc-border-strong); background: var(--tc-control-bg); }
 .definition-item.active, .definition-item[aria-pressed="true"] { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.run-item { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.run-item.active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.definition-item--new { border-color: var(--tc-accent); background: var(--tc-control-bg); color: var(--tc-accent-soft); }
+.inline-search :deep(.search-input-wrap), .field :deep(.search-input-wrap) { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); }
+.inline-search :deep(.search-input), .field :deep(.search-input) { color: var(--tc-text); font-family: var(--tc-font-family); }
+.strategy-lab-view :is(.empty-state, .empty-inline, .trade-table__empty) { color: var(--tc-text-muted); }
 .strategy-lab-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

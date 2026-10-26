@@ -26,6 +26,10 @@ import App from '@/App.vue'
 const appSource = readFileSync(resolve(process.cwd(), 'src/App.vue'), 'utf8')
 const appStyles = appSource.match(/<style>\s*([\s\S]*?)<\/style>/)?.[1] ?? ''
 const workstationTokens = readFileSync(resolve(process.cwd(), 'src/styles/workstation-tokens.css'), 'utf8')
+const componentStyles = (path: string) => {
+  const source = readFileSync(resolve(process.cwd(), path), 'utf8')
+  return Array.from(source.matchAll(/<style(?:\s[^>]*)?>([\s\S]*?)<\/style>/g), match => match[1]).join('\n')
+}
 
 const page = { template: '<section>Route content</section>' }
 
@@ -82,16 +86,31 @@ describe('application shell', () => {
     const watchlist = readFileSync(resolve(process.cwd(), 'src/views/WatchlistView.vue'), 'utf8')
     const screener = readFileSync(resolve(process.cwd(), 'src/views/ScreenerView.vue'), 'utf8')
     expect(watchlist).toMatch(/\.watchlist-view\s*\{[^}]*font-family:\s*var\(--tc-font-family\)/s)
-    expect(screener).toContain('.screener-view { display: flex; height: 100%; color: var(--tc-text); font-size: 12px; overflow: hidden; position: relative; font-family: var(--tc-font-family); background: var(--tc-window-bg); }')
-    expect(screener).toContain('.td-num  { color: #555; font-family: monospace; }')
+    expect(screener).toContain('.screener-view { display: flex; height: 100%; min-width: 0; color: var(--tc-text); font-size: 12px; overflow: hidden; position: relative; font-family: var(--tc-font-family); background: var(--tc-window-bg); }')
+    expect(screener).toContain('.td-num  { color: var(--tc-text-muted); font-family: monospace; font-variant-numeric: tabular-nums; }')
+    expect(strategyV2).toContain('font-size: 12px;')
+    expect(watchlist).toContain('.wlm-placeholder')
+    expect(watchlist).toContain('color: var(--tc-text-muted);')
+    expect(readFileSync(resolve(process.cwd(), 'src/views/BasketsView.vue'), 'utf8')).toContain('.basket-panel, .basket-card')
+    expect(readFileSync(resolve(process.cwd(), 'src/views/SettingsView.vue'), 'utf8')).toContain('.provider-summary-card, .usage-meta-card')
     expect(appStyles).toContain('border-radius: var(--tc-radius);\n  background-color: var(--tc-window-bg);')
     expect(appStyles).not.toContain('[aria-current="true"]')
     expect(appSource).toContain('* { box-sizing: border-box; margin: 0; padding: 0; }')
+    expect(appSource).not.toMatch(/<div\s+id="app"/)
+    expect(appStyles).toContain('body:has(#app .tc-legacy-app)')
+    expect(appStyles).toContain('grid-template-columns: minmax(0, 1fr);')
+    expect(appStyles).toContain('.tc-app-route-frame > * { width: 100%; max-width: 100%; height: 100%; min-width: 0; min-height: 0; }')
+    expect(appStyles).toContain('.tc-app-route-frame { width: 100%; flex: 1; min-width: 0; min-height: 0; overflow: hidden; font-size: 12px; }')
+    expect(appStyles).toContain('font-size: 12px;')
+    const settings = readFileSync(resolve(process.cwd(), 'src/views/SettingsView.vue'), 'utf8')
+    expect(settings).toContain('.availability-row { grid-template-columns: minmax(0, 1fr); gap: 5px; }')
     expect(appSource).toContain('[class*="--active"]')
     expect(appSource).toContain('[class*="status"]')
-    for (const teleportedSurface of ['.editor-box', '.indicator-settings-dialog', '.row-dropdown', '.quick-link-menu', '[class*="-results"]', '[role="tooltip"]', '.notification']) {
+    for (const teleportedSurface of ['.editor-box', '.indicator-settings-dialog', '.row-dropdown', '.quick-link-menu', '.config-modal', '[class*="-results"]', '[role="tooltip"]', '.notification']) {
       expect(appSource, `teleported surface ${teleportedSurface}`).toContain(teleportedSurface)
     }
+    expect(appSource).toContain('.config-modal .config-field > :is(input,select,textarea)')
+    expect(appSource).toContain('background-color: var(--tc-input-bg);')
   })
 
   it('keeps selected buttons, cards, rows, and tabs distinguishable from neutral controls', () => {
@@ -99,8 +118,9 @@ describe('application shell', () => {
     style.textContent = `${workstationTokens}\n${appStyles}`
     document.head.append(style)
     document.body.innerHTML = `
-      <div id="app" class="tc-legacy-app">
-        <div class="tc-app-route-frame">
+      <div id="app">
+        <div class="tc-legacy-app">
+          <div class="tc-app-route-frame">
           <section class="strategy-lab-v2">
             <button class="strategy-lab-v2__item">Ordinary Strategy resource</button>
             <button class="strategy-lab-v2__item is-selected" aria-current="true">Selected Strategy resource</button>
@@ -117,6 +137,7 @@ describe('application shell', () => {
           <button role="tab" class="workstation__tab--active" aria-selected="true">Selected tab</button>
           <button disabled>Disabled</button>
           <button class="provider-status-warning">Provider status</button>
+          </div>
         </div>
       </div>`
 
@@ -124,6 +145,7 @@ describe('application shell', () => {
       const frame = document.querySelector('.tc-app-route-frame')!
       const computed = (selector: string, property: 'backgroundColor' | 'color') =>
         getComputedStyle(frame.querySelector(selector) as Element)[property]
+      expect(getComputedStyle(document.body).fontSize).toBe('12px')
       expect(computed('.holding-row:not(.holding-row--selected)', 'backgroundColor'))
         .not.toBe(computed('.holding-row--selected[aria-selected="true"]', 'backgroundColor'))
       expect(computed('.strategy-lab-v2__item:not(.is-selected)', 'backgroundColor'))
@@ -159,10 +181,73 @@ describe('application shell', () => {
     }
   })
 
+  it('renders dense readable route states and tokenized inner panels from their owning components', () => {
+    const styles = [
+      'src/views/StrategyLabV2View.vue',
+      'src/views/WatchlistView.vue',
+      'src/views/ScreenerView.vue',
+      'src/views/RadarView.vue',
+      'src/views/BasketsView.vue',
+      'src/views/ETFHoldingsView.vue',
+      'src/views/SettingsView.vue',
+      'src/views/DashboardView.vue',
+      'src/components/etf/ETFHoldingsPanel.vue',
+      'src/components/chart/IndicatorPanel.vue',
+      'src/components/watchlist/WatchlistPanel.vue',
+      'src/components/strategy/StrategyRuleTreeEditor.vue',
+      'src/components/common/SearchBar.vue',
+      'src/components/common/TagPicker.vue',
+    ].map(componentStyles).join('\n')
+    const style = document.createElement('style')
+    style.textContent = `${workstationTokens}\n${appStyles}\n${styles}`
+    document.head.append(style)
+    document.body.innerHTML = `
+      <div id="app">
+        <div class="tc-legacy-app">
+          <div class="tc-app-route-frame">
+          <section class="strategy-lab-v2"><p class="strategy-lab-v2__subtitle">Study details</p></section>
+          <section class="watchlist-view"><div class="wls-empty">No watchlists yet</div></section>
+          <section class="screener-view"><div class="empty-list">No screeners yet</div></section>
+          <section class="radar-view"><div class="empty-row">No detections</div></section>
+          <section class="basket-view"><section class="basket-panel">New basket</section></section>
+          <section class="holdings-view"><aside class="holding-detail">Selected holding</aside></section>
+          <section class="settings-view"><div class="provider-summary-card"><span>Unknown quota</span></div></section>
+          <section class="etf-holdings-panel"><div class="holdings-table">Holdings</div></section>
+          <section class="side-panel"><div class="empty-hint">No alerts</div></section>
+          <section class="strategy-lab-view"><div class="group-card">Rule group</div></section>
+          </div>
+        </div>
+      </div>`
+    document.body.insertAdjacentHTML('beforeend', `
+      <div class="config-modal">
+        <label class="config-field">Notes mode <select><option>Notes</option></select></label>
+        <small class="config-help">Choose how the widget stores items.</small>
+      </div>`)
+
+    try {
+      const frame = document.querySelector('.tc-app-route-frame')!
+      const styleOf = (selector: string) => getComputedStyle(frame.querySelector(selector)!)
+      expect(styleOf('.strategy-lab-v2__subtitle').fontSize).toBe('12px')
+      expect(getComputedStyle(document.querySelector('.config-modal .config-field')!).color).toBe('var(--tc-text-muted)')
+      expect(getComputedStyle(document.querySelector('.config-modal .config-help')!).color).toBe('var(--tc-text-muted)')
+      expect(getComputedStyle(document.querySelector('.config-modal select')!).backgroundColor).toBe('var(--tc-input-bg)')
+      for (const selector of ['.wls-empty', '.empty-list', '.empty-row', '.empty-hint']) {
+        expect(styleOf(selector).color, `${selector} uses a readable token color`).not.toBe('rgb(51, 51, 51)')
+      }
+      expect(getComputedStyle(document.documentElement).getPropertyValue('--tc-radius').trim()).toBe('0px')
+      for (const selector of ['.basket-panel', '.holding-detail', '.provider-summary-card', '.group-card']) {
+        expect(styleOf(selector).borderRadius, `${selector} uses the shared radius token`).toBe('var(--tc-radius)')
+      }
+    } finally {
+      document.body.innerHTML = ''
+      style.remove()
+    }
+  })
+
   it('renders the shared labeled navigation on legacy routes and keeps active state and account controls', async () => {
     const wrapper = await mountAt('/legacy/chart/QQQ')
 
-    expect(wrapper.get('#app').classes()).toContain('tc-legacy-app')
+    expect(wrapper.classes()).toContain('tc-legacy-app')
     expect(wrapper.get('nav[aria-label="Main navigation"]').text()).toContain('ETF Holdings')
     expect(wrapper.get('nav[aria-label="Main navigation"]').text()).toContain('Strategy Lab v2')
     expect(wrapper.get('a[href="/legacy/chart"]').attributes('aria-current')).toBe('page')
@@ -174,12 +259,12 @@ describe('application shell', () => {
 
   it('leaves workstation and login routes outside the legacy navigation wrapper', async () => {
     const workstation = await mountAt('/')
-    expect(workstation.get('#app').classes()).not.toContain('tc-legacy-app')
+    expect(workstation.classes()).not.toContain('tc-legacy-app')
     expect(workstation.find('nav[aria-label="Main navigation"]').exists()).toBe(false)
     workstation.unmount()
 
     const login = await mountAt('/login')
-    expect(login.get('#app').classes()).not.toContain('tc-legacy-app')
+    expect(login.classes()).not.toContain('tc-legacy-app')
     expect(login.find('nav[aria-label="Main navigation"]').exists()).toBe(false)
     login.unmount()
   })

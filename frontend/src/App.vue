@@ -1,5 +1,5 @@
 <template>
-  <div id="app" :class="{ 'tc-legacy-app': usesSharedShell }">
+  <div :class="{ 'tc-legacy-app': usesSharedShell }">
     <template v-if="usesSharedShell">
       <header class="tc-app-header">
         <router-link class="tc-app-brand" to="/" aria-label="Charting Platform workstation">
@@ -85,17 +85,25 @@ body {
   color: var(--tc-text, #d5dde4);
   font-family: var(--tc-font-family, "Segoe UI", Arial, sans-serif);
 }
+body:has(#app .tc-legacy-app) {
+  font-family: var(--tc-font-family, "Segoe UI", Arial, sans-serif);
+  font-size: 12px;
+}
 #app { width: 100%; min-height: 100vh; }
 #app:not(.tc-legacy-app) { height: 100vh; overflow: hidden; }
-#app.tc-legacy-app {
+#app .tc-legacy-app {
   height: 100vh;
+  min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
   overflow: hidden;
   background: var(--tc-shell-bg);
 }
 
 .tc-app-header {
+  width: 100%;
+  min-width: 0;
   min-height: 48px;
   display: flex;
   align-items: center;
@@ -172,125 +180,136 @@ body {
   cursor: pointer;
 }
 .tc-app-signout:hover { border-color: var(--tc-accent); }
-.tc-app-main { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.tc-app-route-frame { flex: 1; min-width: 0; min-height: 0; overflow: hidden; }
-.tc-app-route-frame > * { width: 100%; height: 100%; min-width: 0; min-height: 0; }
+.tc-app-main { width: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.tc-app-route-frame { width: 100%; flex: 1; min-width: 0; min-height: 0; overflow: hidden; font-size: 12px; }
+.tc-app-route-frame > * { width: 100%; max-width: 100%; height: 100%; min-width: 0; min-height: 0; }
 
 /* Shared visual tokens for all routed legacy feature surfaces. */
-#app.tc-legacy-app .dashboard-view,
-#app.tc-legacy-app .chart-view,
-#app.tc-legacy-app .alerts-view,
-#app.tc-legacy-app .settings-view,
-#app.tc-legacy-app .screener-view,
-#app.tc-legacy-app .watchlist-view,
-#app.tc-legacy-app .radar-view,
-#app.tc-legacy-app .strategy-lab-view,
-#app.tc-legacy-app .strategy-lab-v2,
-#app.tc-legacy-app .basket-view,
-#app.tc-legacy-app .holdings-view {
+#app .tc-legacy-app .dashboard-view,
+#app .tc-legacy-app .chart-view,
+#app .tc-legacy-app .alerts-view,
+#app .tc-legacy-app .settings-view,
+#app .tc-legacy-app .screener-view,
+#app .tc-legacy-app .watchlist-view,
+#app .tc-legacy-app .radar-view,
+#app .tc-legacy-app .strategy-lab-view,
+#app .tc-legacy-app .strategy-lab-v2,
+#app .tc-legacy-app .basket-view,
+#app .tc-legacy-app .holdings-view {
   color: var(--tc-text);
   background-color: var(--tc-window-bg);
   font-family: var(--tc-font-family);
 }
-#app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(h1,h2,h3,h4) {
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(h1,h2,h3,h4) {
   color: var(--tc-text);
   font-family: var(--tc-font-family);
 }
-#app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(p,small,label,.hint,.empty-hint,.td-dim,.history-count) {
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(p,small,label,.hint,.empty-hint,.td-dim,.history-count) {
   color: var(--tc-text-muted);
 }
-#app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea) {
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea) {
   border-color: var(--tc-border-strong);
   border-radius: var(--tc-radius);
   background-color: var(--tc-input-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);
 }
-#app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea):focus-visible {
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea):focus-visible {
   outline: 2px solid var(--tc-accent);
   outline-offset: 1px;
 }
-#app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(button,.btn,.action-button) {
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(button,.btn,.action-button) {
   font-family: var(--tc-font-family);
 }
 /* Base tokens are deliberately zero-specificity so named route adaptations can override them. */
-:where(#app.tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
+:where(#app .tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
   border-color: var(--tc-border);
 }
-:where(#app.tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
+:where(#app .tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
   background-color: var(--tc-panel-bg);
 }
-:where(#app.tc-legacy-app .tc-app-route-frame) :where(:is([class*="-header"],[class*="__header"],[class*="-toolbar"],[class*="__toolbar"])) {
+:where(#app .tc-legacy-app .tc-app-route-frame) :where(:is([class*="-header"],[class*="__header"],[class*="-toolbar"],[class*="__toolbar"])) {
   border-color: var(--tc-border);
   background-color: var(--tc-header-bottom);
 }
-#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))) {
+#app .tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))) {
   border-color: var(--tc-border-strong);
   border-radius: var(--tc-radius);
   background-color: var(--tc-control-bg);
   color: var(--tc-text);
 }
-#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))):hover {
+#app .tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))):hover {
   border-color: var(--tc-accent);
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"],[role="row"],tr,[class*="-item"],[class*="-card"],[class*="-row"],[class*="-target"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
+#app .tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"],[role="row"],tr,[class*="-item"],[class*="-card"],[class*="-row"],[class*="-target"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
   border-color: var(--tc-accent);
   background-color: #68b6e91c;
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
+#app .tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
   color: var(--tc-accent-soft);
 }
-#app.tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]) > td,
-#app.tc-legacy-app .tc-app-route-frame tr[aria-selected="true"] > td {
+#app .tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]) > td,
+#app .tc-legacy-app .tc-app-route-frame tr[aria-selected="true"] > td {
   background-color: #68b6e91c;
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):focus-visible {
+#app .tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):focus-visible {
   outline: 2px solid var(--tc-accent);
   outline-offset: 2px;
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):disabled {
+#app .tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
-#app.tc-legacy-app .tc-app-route-frame a:not([class*="danger"]):not([class*="error"]) { color: var(--tc-accent-soft); }
-#app.tc-legacy-app .tc-app-route-frame table { border-color: var(--tc-border); }
-#app.tc-legacy-app .tc-app-route-frame :is(th,thead) { background-color: var(--tc-control-bg); color: var(--tc-text-muted); }
-#app.tc-legacy-app .tc-app-route-frame :is(td,th) { border-color: var(--tc-border); }
-#app.tc-legacy-app .tc-app-route-frame tr:hover > td { background-color: #68b6e90d; }
-#app.tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]):hover > td,
-#app.tc-legacy-app .tc-app-route-frame tr[aria-selected="true"]:hover > td {
+#app .tc-legacy-app .tc-app-route-frame a:not([class*="danger"]):not([class*="error"]) { color: var(--tc-accent-soft); }
+#app .tc-legacy-app .tc-app-route-frame table { border-color: var(--tc-border); }
+#app .tc-legacy-app .tc-app-route-frame :is(th,thead) { background-color: var(--tc-control-bg); color: var(--tc-text-muted); }
+#app .tc-legacy-app .tc-app-route-frame :is(td,th) { border-color: var(--tc-border); }
+#app .tc-legacy-app .tc-app-route-frame tr:hover > td { background-color: #68b6e90d; }
+#app .tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]):hover > td,
+#app .tc-legacy-app .tc-app-route-frame tr[aria-selected="true"]:hover > td {
   background-color: #68b6e91c;
 }
-#app.tc-legacy-app .tc-app-route-frame :is([role="dialog"],[role="menu"],[role="listbox"]) {
+#app .tc-legacy-app .tc-app-route-frame :is([role="dialog"],[role="menu"],[role="listbox"]) {
   border-color: var(--tc-border-strong);
   border-radius: var(--tc-radius);
   background-color: var(--tc-window-bg);
   color: var(--tc-text);
 }
-body:has(#app.tc-legacy-app) :is([role="dialog"],[role="menu"],[role="listbox"],[role="tooltip"],[class*="-modal"],[class~="modal"],[class*="-menu"],[class*="-results"],[class*="context-menu"],[class*="popover"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu,.symbol-bars__tooltip,.r-outcome-map__tooltip,.notification) {
+body:has(#app .tc-legacy-app) :is([role="dialog"],[role="menu"],[role="listbox"],[role="tooltip"],[class*="-modal"],[class~="modal"],[class*="-menu"],[class*="-results"],[class*="context-menu"],[class*="popover"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu,.symbol-bars__tooltip,.r-outcome-map__tooltip,.notification) {
   border-color: var(--tc-border-strong);
   border-radius: var(--tc-radius);
   background-color: var(--tc-window-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);
 }
-body:has(#app.tc-legacy-app) :is([role="dialog"],[class*="-menu"],[class*="-results"],[class*="-modal"],[class~="modal"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu) :is(button,input,select,textarea) {
+body:has(#app .tc-legacy-app) :is([role="dialog"],[class*="-menu"],[class*="-results"],[class*="-modal"],[class~="modal"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu) :is(button,input,select,textarea) {
   border-color: var(--tc-border-strong);
   border-radius: var(--tc-radius);
   background-color: var(--tc-control-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);
 }
-body:has(#app.tc-legacy-app) :is([class*="-menu"],[class*="-results"],.row-dropdown,.quick-link-menu) :is(button,[role="option"]):is([aria-selected="true"],[aria-pressed="true"],[class~="active"],[class~="highlighted"]) {
+body:has(#app .tc-legacy-app) .config-modal .config-field,
+body:has(#app .tc-legacy-app) .config-modal .config-help {
+  color: var(--tc-text-muted);
+}
+body:has(#app .tc-legacy-app) .config-modal .config-field > :is(input,select,textarea) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+body:has(#app .tc-legacy-app) :is([class*="-menu"],[class*="-results"],.row-dropdown,.quick-link-menu) :is(button,[role="option"]):is([aria-selected="true"],[aria-pressed="true"],[class~="active"],[class~="highlighted"]) {
   border-color: var(--tc-accent);
   background-color: #68b6e91c;
   color: var(--tc-accent-soft);
 }
-#app.tc-legacy-app .tc-app-route-frame :is(.error,.err,[role="alert"]) { color: var(--tc-negative); }
-#app.tc-legacy-app .tc-app-route-frame :is(.success,.ok,.positive) { color: var(--tc-positive); }
-#app.tc-legacy-app .tc-app-route-frame :is(.warning,.warn) { color: var(--tc-warning); }
-#app.tc-legacy-app .tc-app-route-frame ::selection { background: #68b6e955; color: #f4f8fb; }
-#app.tc-legacy-app .tc-app-route-frame * { scrollbar-color: var(--tc-border-strong) var(--tc-window-bg); }
+#app .tc-legacy-app .tc-app-route-frame :is(.error,.err,[role="alert"]) { color: var(--tc-negative); }
+#app .tc-legacy-app .tc-app-route-frame :is(.success,.ok,.positive) { color: var(--tc-positive); }
+#app .tc-legacy-app .tc-app-route-frame :is(.warning,.warn) { color: var(--tc-warning); }
+#app .tc-legacy-app .tc-app-route-frame ::selection { background: #68b6e955; color: #f4f8fb; }
+#app .tc-legacy-app .tc-app-route-frame * { scrollbar-color: var(--tc-border-strong) var(--tc-window-bg); }
 
 @media (max-width: 900px) {
   .tc-app-header { flex-wrap: wrap; gap: 6px 12px; padding: 8px 10px 0; }
@@ -302,6 +321,6 @@ body:has(#app.tc-legacy-app) :is([class*="-menu"],[class*="-results"],.row-dropd
   .tc-app-brand-name { font-size: 12px; }
   .tc-app-account-name { display: none; }
   .tc-app-header { gap: 4px 8px; }
-  #app.tc-legacy-app .tc-app-route-frame :is(.settings-view,.alerts-view,.radar-view,.strategy-lab-v2,.holdings-view) { padding-left: 12px; padding-right: 12px; }
+  #app .tc-legacy-app .tc-app-route-frame :is(.settings-view,.alerts-view,.radar-view,.strategy-lab-v2,.holdings-view) { padding-left: 12px; padding-right: 12px; }
 }
 </style>

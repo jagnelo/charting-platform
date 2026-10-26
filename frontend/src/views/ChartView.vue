@@ -700,7 +700,7 @@ onUnmounted(() => {
   gap: 8px;
 }
 
-.sync-all-hint { font-size: 11px; color: #444; font-style: italic; }
+.sync-all-hint { font-size: 11px; color: var(--tc-text-muted); font-style: italic; }
 
 .wl-star-wrap {
   position: relative;
@@ -985,8 +985,8 @@ onUnmounted(() => {
   50%       { opacity: 1; }
 }
 
-.empty-title { font-size: 18px; color: #555; margin: 0 0 6px; text-align: center; }
-.empty-sub   { font-size: 12px; color: #333; text-align: center; margin: 0; }
+.empty-title { font-size: 15px; color: var(--tc-text); margin: 0 0 6px; text-align: center; }
+.empty-sub   { font-size: 12px; color: var(--tc-text-muted); text-align: center; margin: 0; }
 
 .alert-strip {
   display: flex;

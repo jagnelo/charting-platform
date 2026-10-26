@@ -97,7 +97,7 @@
             </div>
             <div class="provider-summary-card">
               <span>Reliability</span>
-              <strong>{{ group.usage ? fmtPct(group.usage.success_rate_24h) : 'No data' }}</strong>
+              <strong>{{ group.usage ? reliabilityHeadline(group.usage) : 'No data' }}</strong>
               <small>{{ reliabilityDetail(group.usage) }}</small>
             </div>
             <div class="provider-summary-card">
@@ -468,11 +468,18 @@ function timeoutCount(usage: ProviderUsageSummary | null) {
 
 function reliabilityDetail(usage: ProviderUsageSummary | null) {
   if (!usage) return 'No reliability data available'
-  if (usage.requests_24h === 0) return 'No recent failures recorded'
+  if (usage.requests_24h === 0) return 'Reliability not observed because there were no calls in this window.'
   const failures = failureCount(usage)
   const timeouts = timeoutCount(usage)
   if (failures == null || timeouts == null) return 'Recent failure data not reported'
   return `${failures} failed · ${timeouts} timed out`
+}
+
+function reliabilityHeadline(usage: ProviderUsageSummary) {
+  if (usage.requests_24h == null) return 'Not reported'
+  if (usage.requests_24h === 0) return 'Not observed'
+  if (usage.success_rate_24h == null) return 'Not reported'
+  return fmtPct(usage.success_rate_24h)
 }
 
 function trackingHeadline(usage: ProviderUsageSummary | null) {
@@ -498,7 +505,9 @@ function trackingDetail(usage: ProviderUsageSummary | null) {
 
 function providerSummaryText(group: { usage: ProviderUsageSummary | null; enabledCount: number; capabilities: ProviderPolicyStatus[] }) {
   if (!group.usage) return `${group.enabledCount} of ${group.capabilities.length} capabilities enabled.`
-  return `${fmtCount(group.usage.requests_24h)} in the last 24h with ${fmtPct(group.usage.success_rate_24h)} success.`
+  if (group.usage.requests_24h == null) return `Not reported calls in the last 24h; reliability not reported.`
+  if (group.usage.requests_24h === 0) return `0 calls in the last 24h; reliability not observed because there were no calls.`
+  return `${fmtCount(group.usage.requests_24h)} in the last 24h with ${reliabilityHeadline(group.usage)} success.`
 }
 
 function usagePanelIntro(usage: ProviderUsageSummary) {
@@ -723,7 +732,7 @@ onUnmounted(() => {
 .preset-row button:hover { color: #ccc; }
 .preset-row .btn-danger:hover { border-color: #ef5350; color: #ef5350; }
 
-.empty-hint { color: #444; font-size: 12px; font-style: italic; }
+.empty-hint { color: var(--tc-text-muted); font-size: 12px; font-style: italic; }
 .availability-list { margin: 12px 0 16px; border: 1px solid #252525; border-radius: 6px; overflow: hidden; }
 .availability-head, .availability-row { display: grid; grid-template-columns: minmax(220px, 1.5fr) minmax(150px, 1fr) 150px 180px; gap: 10px; align-items: center; padding: 8px 10px; font-size: 11px; }
 .availability-head { background: #151515; color: #aaa; }
@@ -1088,6 +1097,12 @@ onUnmounted(() => {
   .provider-card { padding: 12px; }
   .provider-card-actions { width: 100%; }
   .provider-toggle { flex: 1 1 140px; justify-content: center; }
+  .availability-head,
+  .availability-row { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .provider-card-head { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .preset-row { flex-wrap: wrap; }
+  .preset-name { min-width: min(120px, 100%); overflow-wrap: anywhere; }
+  .reconciliation-card__head { flex-wrap: wrap; }
   .telemetry-row,
   .telemetry-row--with-usage,
   .telemetry-row--errors {
@@ -1098,12 +1113,16 @@ onUnmounted(() => {
     flex-direction: column;
   }
 }
-.settings-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.settings-view { min-width: 0; background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
 .page-title { color: var(--tc-text); font-size: 18px; margin-bottom: 16px; }
 .settings-section h3 { color: var(--tc-text); border-color: var(--tc-border); }
 .hint, .form-row label { color: var(--tc-text-muted); }
 .settings-input, .provider-inline input { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); }
 .provider-card, .availability-list { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.provider-summary-card, .usage-meta-card { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); }
+.provider-summary-card span, .usage-meta-card span { color: var(--tc-text-muted); }
+.provider-summary-card strong, .usage-meta-card strong { color: var(--tc-text); font-size: 13px; }
+.provider-summary-card small, .usage-meta-card small { color: var(--tc-text-muted); }
 .availability-head { background: var(--tc-control-bg); color: var(--tc-text-muted); }
 .settings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

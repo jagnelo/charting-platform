@@ -312,4 +312,12 @@ function tagStyle(tag: string) {
 .tag-option--create {
   background: #101923;
 }
+.tag-picker-shell { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); }
+.tag-input { color: var(--tc-text); font-family: var(--tc-font-family); }
+.tag-input::placeholder { color: var(--tc-text-muted); }
+.tag-dropdown { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.tag-option { border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.tag-option.active { border-color: var(--tc-accent); color: var(--tc-accent-soft); }
+.tag-option--create { background: var(--tc-panel-bg); }
+.tag-input:focus-visible, .tag-chip:focus-visible, .tag-option:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 1px; }
 </style>

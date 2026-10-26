@@ -80,4 +80,15 @@ describe('application route contract', () => {
     expect(isSharedNavigationItemActive('/legacy/chart', '/legacy/chart')).toBe(true)
     expect(isSharedNavigationItemActive('/legacy/charting', '/legacy/chart')).toBe(false)
   })
+
+  it('keeps every shared navigation destination backed by one concrete application route', () => {
+    const paths = sharedShellNavigation.map(({ path }) => path)
+    expect(new Set(paths).size).toBe(paths.length)
+    for (const item of sharedShellNavigation) {
+      expect(route(item.path), `${item.key} navigation target`).toBeDefined()
+      expect(route(item.path), `${item.key} is not a redirect-only target`).not.toHaveProperty('redirect')
+    }
+    expect(sharedShellNavigation.find(item => item.key === 'etf')?.path).toBe('/legacy/etf-holdings')
+    expect(sharedShellNavigation.find(item => item.key === 'strategy-v2')?.path).toBe('/legacy/strategy-lab-v2')
+  })
 })

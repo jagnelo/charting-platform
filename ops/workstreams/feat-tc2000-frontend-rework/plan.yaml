@@ -115,14 +115,29 @@ current_blocker: >-
   card/header selectors now use zero-specificity wrappers so component styles
   can override them. Same-date differing ETF parser versions display raw
   correction/audit labels and preserve actual known_at, rows and raw metrics;
-  normal different-date comparisons retain Gross churn/activity wording.
-  Focused ETF, shell and Strategy v2 suites pass 24/24; npm run build passes
-  (vue-tsc and Vite, 530 modules). The scope self-tests and full guard passed
-  for 1,050 changed paths (872 immutable imports, 29 exact Provider adaptations,
-  112 presentation paths). These source checks do not establish browser
-  appearance. Candidate exact-source CI and Root-assigned full functional/
-  strict-visual plus route-state review remain pending. F8y and official V25
-  remain open; references, masks, 0.005 tolerance and zero retries are unchanged.
+  normal different-date comparisons retain Gross churn/activity wording. Root's
+  85c desktop/mobile review also found missing workstation route discovery,
+  component-level legacy colors/typography, and a shared-shell mobile grid
+  overflow. The current source addresses those observed findings, keeps narrow
+  data/workstation surfaces intact, and uses the reviewed existing navigation
+  schema. The final ETF presentation separates stored snapshots from API
+  current-analysis eligibility; controlled fixtures stay labeled synthetic,
+  real SEC date/source/known_at are retained, exact capability reasons remain
+  scope-qualified, and internal symbol_audit.next_action is not exposed.
+  Settings distinguishes unknown/null usage, zero calls with reliability not
+  observed, and positive calls with a genuine 0.0% success rate. Teleported
+  Notes labels/help/inputs use shared readable tokens.
+  The final affected eight-file frontend slice passed 104/104, and npm run build
+  passed vue-tsc plus Vite (530 modules; existing large Workstation chunk
+  advisory). Scope self-tests passed 42/42. The staged full scope guard passed
+  for 1,055 changed paths, including 872 byte-verified immutable imports, 29
+  exact Provider adaptations and 112 exact presentation paths. Unique-key
+  plan/ownership YAML, session, journal-prefix, workstream and diff checks are
+  recorded at closure. These
+  source checks do not establish browser appearance. Exact candidate CI and
+  Root-assigned route-state/full functional/strict-visual evidence remain
+  pending. F8y and official V25 remain open; references, masks, 0.005 tolerance
+  and zero retries are unchanged.
   Preserve AC1-AC9, official V25, original references/masks/tolerances/zero
   retries, all holds and the complete roadmap.
   Historical adoption snapshot follows:
@@ -1523,6 +1538,11 @@ frontend_presentation_handoff:
     else is unacceptable”.
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   status: implementation_in_progress
+  latest_candidate_parent_sha: 85c053b5466a0dee7d938a8f2d987ce0df4f7730
+  latest_candidate_validation: >-
+    Eight focused frontend test files passed104/104; vue-tsc/Vite build passed.
+    Candidate CI and Root-isolated whole-route functional/strict-visual evidence
+    remain pending, so no whole-frontend acceptance is claimed.
   domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
   accepted_domain_reviews:
     provider: {source: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md}
@@ -2672,18 +2692,22 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2]
   total: 6
-  current_phase: "whole_frontend_route_and_112_path_inventory_pinned_to_f80995;final_provider_etf_strategy_reviews_consumed;shared_tc_shell_theme_login_status_and_teleport_styles_implemented;provider_unknown_zero_presentation_corrected;mounted_shell_route_settings_tests_14_pass;vue_typecheck_and_production_build_pass;full_route_surface_review_and_browser_profile_pending"
+  current_phase: "whole_frontend_consolidated_review_corrections_implemented_on_85c_parent;route_navigation_mobile_component_and_inner_surface_styles;ETF_snapshot_capability_and_parser_audit_contracts;Provider_zero_call_reliability_contract;Notes_teleport_tokens;focused_104_pass_and_vue_typecheck_build_green;exact_candidate_CI_and_root_isolated_route_full_profile_pending"
   next_action: >-
-    Continue the route-by-route review of all 110 reachable Vue surfaces and
-    apply the shared TC tokens to inconsistent component families and every
-    exposed loading/empty/error/menu/dialog state; add focused component checks
-    without changing feature behavior or protected references. Run exact-path
-    scope/unique-key workstream checks, then freeze a clean candidate for Root
-    review before any full browser fixture. Preserve F8y, all assertions,
-    references, masks, tolerances and zero retries, AC1-AC9, official V25, all
-    provider/data holds and the complete roadmap. Published baseline f809
-    CI40287957823 is green for required branch jobs; it does not qualify this
-    dirty UI source.
+    Publish this coherent, focused-validated source and send Root the exact
+    candidate CI handle. After Root reviews and allocates the reserved slot,
+    reuse the existing source-pinned isolated frontend-replacement pattern on
+    the healthy 85c project: prove backend/Compose source trees unchanged, bind
+    the exact candidate frontend archive read-only, replace only that owned
+    frontend container, and preserve the exact seven non-frontend service IDs,
+    33 original retained containers, all original volumes/networks/data and
+    provider egress holds. Root reviews the corrected route/UI states before
+    releasing the unchanged full functional and strict-visual matrices. Do not
+    launch or update the fixture before Root review. Preserve F8y at its
+    consumed 60-second timeout/zero retries, all assertions/references/masks/
+    0.005 tolerance, AC1-AC9, official V25 and the complete roadmap. Exact
+    candidate CI, full route-state browser evidence and whole-frontend
+    acceptance remain pending.
 
     Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the

@@ -232,7 +232,8 @@ describe('SettingsView', () => {
     await flushPromises()
 
     expect(wrapper.text()).toContain('Not reported calls')
-    expect(wrapper.text()).toContain('Not reported success')
+    expect(wrapper.text()).toContain('Not reported calls in the last 24h; reliability not reported.')
+    expect(wrapper.findAll('.provider-summary-card')[1].find('strong').text()).toBe('Not reported')
     expect(wrapper.text()).toContain('Quota unknown')
     expect(wrapper.text()).toContain('Provider quota limit is unknown')
 
@@ -262,8 +263,33 @@ describe('SettingsView', () => {
     await flushPromises()
     const zeroText = zeroWrapper.text()
     expect(zeroText).toContain('0 calls')
-    expect(zeroText).toContain('0.0%')
+    expect(zeroText).toContain('reliability not observed because there were no calls')
+    expect(zeroWrapper.findAll('.provider-summary-card')[1].find('strong').text()).toBe('Not observed')
+    expect(zeroWrapper.findAll('.provider-summary-card')[1].find('small').text()).toBe('Reliability not observed because there were no calls in this window.')
     expect(zeroText).toContain('Quota 100 requests')
+
+    const positiveZeroSuccess = {
+      ...zeroUsage,
+      requests_24h: 3,
+      units_24h: 3,
+      success_rate_24h: 0,
+      failure_rate_24h: 100,
+      timeout_rate_24h: 0,
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/presets') return Promise.resolve([])
+      if (path === '/providers/policies') return Promise.resolve(providerPolicies)
+      if (path === '/providers/usage') return Promise.resolve([positiveZeroSuccess])
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    zeroWrapper.unmount()
+
+    const positiveWrapper = mount(SettingsView, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+    expect(positiveWrapper.findAll('.provider-summary-card')[1].find('strong').text()).toBe('0.0%')
+    expect(positiveWrapper.get('.provider-summary-text').text()).toContain('3 calls in the last 24h with 0.0% success.')
+    positiveWrapper.unmount()
 
     const estimatedUsage = {
       ...zeroUsage,
