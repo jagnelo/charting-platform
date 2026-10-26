@@ -1994,4 +1994,23 @@ watch(() => chartStore.editRequestIndicatorIndex, (i) => {
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.15s; }
 .fade-enter-from, .fade-leave-to { opacity: 0; }
+.side-panel { background: var(--tc-window-bg); border-color: var(--tc-border); color: var(--tc-text); font-family: var(--tc-font-family); }
+.panel-toggle { background: var(--tc-header-bottom); border-color: var(--tc-border); color: var(--tc-text-muted); }
+.panel-toggle:hover, .section-header:hover { background: color-mix(in srgb, var(--tc-accent) 8%, var(--tc-header-bottom)); color: var(--tc-text); }
+.section { border-color: var(--tc-border); }
+.section-header { background: var(--tc-header-bottom); color: var(--tc-text); }
+.empty-hint, .mem-icon, .section-count { color: var(--tc-text-muted); }
+.list-row { border-color: var(--tc-border); color: var(--tc-text); }
+.list-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.list-row.row--selected { background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); box-shadow: inset 2px 0 var(--tc-accent); }
+.radar-focus-card, .radar-focus-event, .radar-focus-rationale-item, .picker-dropdown { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
+.radar-focus-title, .radar-focus-val { color: var(--tc-text); }
+.radar-focus-copy, .radar-focus-key, .radar-focus-event-meta, .radar-focus-event-seq, .mem-badge { color: var(--tc-text-muted); }
+.radar-focus-rationale-item { background: var(--tc-control-bg); }
+.radar-focus-event--active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); color: var(--tc-text); }
+.row-btn, .dd-item, .hint-btn, .add-btn, .picker-item { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.row-btn:hover, .dd-item:hover, .hint-btn:hover, .add-btn:hover, .picker-item:hover { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 12%, var(--tc-control-bg)); color: var(--tc-accent-soft); }
+.side-panel :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 1px; }
+.side-panel :is(button, input, select, textarea):disabled { opacity: .58; cursor: not-allowed; }
+.ed-input, .ed-select { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
 </style>

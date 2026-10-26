@@ -1,32 +1,24 @@
 {
   "acceptance_criteria": [
     {
-      "id": "ICP1",
-      "text": "Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates."
+      "id": "P2-COVERAGE",
+      "text": "On validated source b68ac81d8591064b172b92e73e701c9c3eed8b68, selected-default coverage summaries and requested-range alignment are validated; Research single/batch reads apply the same selected-series predicate before ranking/history limits while retaining set-based batching and Strategy date/calendar, immutable snapshot, digest, and persisted-readback behavior."
     },
     {
-      "id": "ICP2",
-      "text": "Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested."
+      "id": "P2-SEC-DURABILITY",
+      "text": "SEC issuer-scan per-CIK success/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency satisfy the scoped contract; this is not a claim of live SEC completeness."
     },
     {
-      "id": "ICP3",
-      "text": "Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested."
+      "id": "P2-PRELISTING",
+      "text": "Cross-page prelisting consensus is validated, and conflicting evidence remains quarantined without materializing ambiguous candidates."
     },
     {
-      "id": "ICP4",
-      "text": "Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral."
+      "id": "P2-CTA-UNIVERSE",
+      "text": "CTA/universe venue and identity reconciliation preserves official-source completeness rules; incomplete or stale snapshots cannot become absence evidence."
     },
     {
-      "id": "ICP5",
-      "text": "Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied."
-    },
-    {
-      "id": "ICP6",
-      "text": "Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence."
-    },
-    {
-      "id": "ICP7",
-      "text": "The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open."
+      "id": "P2-RUNTIME-AND-RELEASE",
+      "text": "Related Make/Compose test/runtime contracts pass, and the unchanged required local full_integration/full_stack_browser profile plus exact-source CI pass before Root technical review. All provider holds, unavailable dispositions, full-roadmap criteria, and the consumed 119-request boundary remain unchanged; no new operation is enabled, and no current-live/full-universe completeness is inferred from CI or historical evidence."
     }
   ],
   "active_checkpoint_id": "provider-first-human-coverage-retained-universe-2",
@@ -63,39 +55,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": 3613000000,
-    "container_count": 8,
-    "containers": [
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-host-port-relay-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-worker-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-frontend-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-backend-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-postgres-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-redis-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
-    ],
-    "known_bytes": 3807548208,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-c6e40c66",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66"
-    ],
-    "testcontainer_sessions": [
-      "7e61d933-c00b-4256-892e-cff0e1d98780",
-      "82adae2f-2869-4c78-84c1-78911aa49dc4",
-      "9d5d5d33-7794-4a7e-85e5-cd8531be4628",
-      "efb3887f-15ac-425e-9d06-03092bb9e7f1"
-    ],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 189026800,
-    "volume_count": 4,
-    "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "available": true,
@@ -109,7 +70,7 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/market-data-provider-platform: Continue the full Provider roadmap after acceptance of provider-platform-integration-1 at staging baseline 0e342512e53ba2268425294d61c50e219eaafa4f. First close the SEC issuer-universe durability gap: persist each CIK's retained result/failure and next cursor atomically so worker restart does not replay completed CIKs. Preserve every original market-data requirement, all provider/quota holds, and coordinator-only staging integration; no paid/trial activation, provider HTTP, deployment, or retained-data cleanup. Stop at ready_for_human_review.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance feat/market-data-provider-platform: Continue the full Provider roadmap after acceptance of provider-platform-integration-1 and the bounded provider-first-human-coverage-retained-universe-2 checkpoint, including adoption of synchronized-green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502, 15b5c22f0e689c973ee82d152d4bbad6125bf993, and 6d0a85da34ba276bca69c82a932a0602e783d7a1 on this branch. These include the accepted ETF retained-IWM correction and fresh-AsyncSession eager-reparse serialization/knowledge-time ordering correction, but do not establish target correction or UI acceptance. Preserve all criteria, prior acceptance, and operation dispositions. Root owns target acceptance and guarded promotion; do not self-integrate, activate providers, deploy, or close the full roadmap.. Acceptance criteria: P2-COVERAGE: On validated source b68ac81d8591064b172b92e73e701c9c3eed8b68, selected-default coverage summaries and requested-range alignment are validated; Research single/batch reads apply the same selected-series predicate before ranking/history limits while retaining set-based batching and Strategy date/calendar, immutable snapshot, digest, and persisted-readback behavior.; P2-SEC-DURABILITY: SEC issuer-scan per-CIK success/failure and cursor commits, restart/no-replay behavior, and immutable retained-payload consistency satisfy the scoped contract; this is not a claim of live SEC completeness.; P2-PRELISTING: Cross-page prelisting consensus is validated, and conflicting evidence remains quarantined without materializing ambiguous candidates.; P2-CTA-UNIVERSE: CTA/universe venue and identity reconciliation preserves official-source completeness rules; incomplete or stale snapshots cannot become absence evidence.; P2-RUNTIME-AND-RELEASE: Related Make/Compose test/runtime contracts pass, and the unchanged required local full_integration/full_stack_browser profile plus exact-source CI pass before Root technical review. All provider holds, unavailable dispositions, full-roadmap criteria, and the consumed 119-request boundary remain unchanged; no new operation is enabled, and no current-live/full-universe completeness is inferred from CI or historical evidence.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
   "goal_request": {
     "objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
@@ -117,16 +78,16 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5b29620741fd82d27db45987afb927bf91396712",
+  "head": "57b4b1d7ea502726dec8da9ce29c38d15edc97c3",
   "implementation_sha": "b68ac81d8591064b172b92e73e701c9c3eed8b68",
   "interrupted": false,
-  "last_checkpoint": "2026-10-26T06:15:28Z",
+  "last_checkpoint": "2026-10-26T17:34:27Z",
   "last_human_progress_update": "2026-10-25T06:12:37.150207+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Review TC's presentation contract follow-through from the Provider domain handoff while preserving the entire Provider roadmap. Root reports the 6d0 master release is canonical green and the private target update, correction, and API/UI baseline checks are complete; whole-frontend TC2000 consistency remains the human acceptance gate. TC is sole presentation owner; do not edit presentation paths or add a parallel theme. Preserve all provider/issuer/SEC holds and the consumed 119-request no-replay boundary. Root owns final integration/deployment decisions; no new provider operation or quota action is implied.",
+  "next_action": "The accepted whole-frontend release 02a7bae34c2aed145b9e46137ef3b8f041de4d92 is adopted in this Provider branch. Wait for and record this exact adoption source branch CI; do not infer it from staging CI. After that gate is known, resume Provider-owned AC-UNIVERSE-COMPLETE from the adopted source. Keep the accepted P2 checkpoint and full 24-criterion roadmap intact; Root owns private-target, deployment, integration and remaining acceptance. Preserve every provider/issuer/SEC hold and the consumed 119-request no-replay boundary.",
   "parent_branch": "staging",
-  "plan_hash": "7c1dce31603d6f96e9ccb9cdcc09c0f7f4291257a5da29cc593e71fb6caf498c",
+  "plan_hash": "d55fc44fdf5d8cd0e90824a76b59c562c965a7a86800c4213cd5582bf0c0b012",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -170,9 +131,9 @@
     "total": 5,
     "updated_at": "2026-10-26T06:15:28.066641+00:00"
   },
-  "remote": "8f17fe77025d770b7b4b974702ccecd06697af93",
-  "remote_sha": "8f17fe77025d770b7b4b974702ccecd06697af93",
-  "remote_synchronized": false,
+  "remote": "57b4b1d7ea502726dec8da9ce29c38d15edc97c3",
+  "remote_sha": "57b4b1d7ea502726dec8da9ce29c38d15edc97c3",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],

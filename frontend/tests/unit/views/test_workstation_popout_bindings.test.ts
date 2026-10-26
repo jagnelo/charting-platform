@@ -1,4 +1,4 @@
-import { defineComponent, nextTick } from 'vue'
+import { defineComponent, h, nextTick } from 'vue'
 import { flushPromises, mount as rawMount, type MountingOptions } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -114,18 +114,42 @@ vi.mock('@/lib/instruments', () => ({
 vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
 vi.mock('@/components/workstation/WorkspaceLayoutHost.vue', () => ({ default: defineComponent({ template: '<div />' }) }))
 vi.mock('golden-layout', () => ({}))
-vi.mock('vue-router', () => ({
-  useRoute: () => routeState,
-  useRouter: () => ({ resolve: vi.fn(), push: vi.fn() }),
-}))
+vi.mock('vue-router', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('vue-router')>()
+  return {
+    ...actual,
+    useRoute: () => routeState,
+    useRouter: () => ({ resolve: vi.fn(), push: vi.fn() }),
+  }
+})
 
 import WorkstationView from '@/views/WorkstationView.vue'
+
+const NavigationLinkStub = defineComponent({
+  props: { to: { type: String, required: true } },
+  setup(props, { attrs, slots }) {
+    return () => h('a', {
+      ...attrs,
+      href: props.to,
+      onClick: (event: MouseEvent) => {
+        event.preventDefault()
+        const click = attrs.onClick
+        if (Array.isArray(click)) click.forEach(handler => typeof handler === 'function' && handler(event))
+        else if (typeof click === 'function') click(event)
+      },
+    }, slots.default?.())
+  },
+})
 
 function mount(component: typeof WorkstationView, options: MountingOptions<typeof WorkstationView> = {}) {
   return rawMount(component, {
     ...options,
     global: {
       ...options.global,
+      stubs: {
+        'router-link': NavigationLinkStub,
+        ...options.global?.stubs,
+      },
       plugins: [
         ...(options.global?.plugins ?? []),
         [VueQueryPlugin, { queryClient: new QueryClient() }],
@@ -186,6 +210,76 @@ describe('WorkstationView pop-out bindings', () => {
     harness.recent.recent = [{ symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', viewedAt: 2 }]
     harness.drawings.activeToolType = null
     harness.drawings.setActiveTool.mockClear()
+  })
+
+  it('opens shared feature routes from the workstation and closes after selection', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          WorkstationToolContent: ToolStub,
+          WorkspaceLayoutHost: true,
+          'router-link': NavigationLinkStub,
+        },
+      },
+    })
+    try {
+      await wrapper.get('.workstation__brand').trigger('click')
+      const menu = wrapper.get('[role="menu"][aria-label="Application navigation"]')
+      const links = menu.findAll('[role="menuitem"]')
+      expect(links).toHaveLength(11)
+      expect(menu.get('[data-navigation-key="etf"]').attributes('href')).toBe('/legacy/etf-holdings')
+      expect(menu.get('[data-navigation-key="strategy-v2"]').attributes('href')).toBe('/legacy/strategy-lab-v2')
+
+      await menu.get('[data-navigation-key="etf"]').trigger('click')
+      expect(wrapper.find('[aria-label="Application navigation"]').exists()).toBe(false)
+    } finally {
+      wrapper.unmount()
+      wrapper.element.remove()
+    }
+  })
+
+  it('supports keyboard menu navigation, Escape focus return, and a bounded narrow viewport', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const originalWidth = window.innerWidth
+    Object.defineProperty(window, 'innerWidth', { configurable: true, value: 320 })
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: {
+        stubs: {
+          WorkstationToolContent: ToolStub,
+          WorkspaceLayoutHost: true,
+          'router-link': NavigationLinkStub,
+        },
+      },
+    })
+    const trigger = wrapper.get('.workstation__brand')
+    try {
+      await trigger.trigger('keydown', { key: 'ArrowDown' })
+      await flushPromises()
+      const menu = wrapper.get('.workstation__application-menu')
+      const menuItems = menu.findAll('[role="menuitem"]')
+      expect(document.activeElement).toBe(menuItems[0].element)
+      const menuLeft = Number.parseFloat((menu.element as HTMLElement).style.left)
+      const menuWidth = Number.parseFloat((menu.element as HTMLElement).style.width)
+      expect(menuLeft).toBeGreaterThanOrEqual(8)
+      expect(menuLeft + menuWidth).toBeLessThanOrEqual(312)
+
+      await menuItems[0].trigger('keydown', { key: 'ArrowDown' })
+      await flushPromises()
+      expect(document.activeElement).toBe(menuItems[1].element)
+      await menuItems[1].trigger('keydown', { key: 'Escape' })
+      await nextTick()
+      expect(wrapper.find('.workstation__application-menu').exists()).toBe(false)
+      expect(document.activeElement).toBe(trigger.element)
+    } finally {
+      wrapper.unmount()
+      wrapper.element.remove()
+      Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth })
+    }
   })
 
   it('acknowledges a cold tool command immediately and applies it exactly once after hydration', async () => {

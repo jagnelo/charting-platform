@@ -1,7 +1,45 @@
 <template>
   <div class="workstation" tabindex="0" @keydown.capture="handleGlobalKeydownCapture" @keydown="handleKeydown" @wheel.capture="handleWheel" @pointerdown.capture="handleWorkstationPointerDown" @focusin.capture="handleWorkstationFocusIn" @change.capture="handleWorkstationChange">
     <header v-if="!isPopout" class="workstation__menu">
-      <div class="workstation__brand">CHARTING WORKSTATION</div>
+      <div class="workstation__application-navigation">
+        <button
+          ref="applicationMenuTrigger"
+          class="workstation__brand"
+          type="button"
+          title="Open application navigation"
+          aria-label="Open application navigation"
+          aria-haspopup="menu"
+          :aria-expanded="applicationMenuOpen"
+          :aria-controls="applicationMenuId"
+          @click="toggleApplicationMenu()"
+          @keydown="handleShellTriggerKeydown('application', $event)"
+        >CHARTING WORKSTATION</button>
+        <div
+          v-if="applicationMenuOpen"
+          :id="applicationMenuId"
+          ref="applicationMenuRoot"
+          class="workstation__application-menu"
+          role="menu"
+          aria-label="Application navigation"
+          :style="applicationMenuStyle"
+          @click.stop
+          @keydown="handleShellMenuKeydown('application', $event)"
+        >
+          <router-link
+            v-for="item in applicationNavigation"
+            :key="item.path"
+            :to="item.path"
+            :data-navigation-key="item.key"
+            role="menuitem"
+            tabindex="-1"
+            :aria-current="isApplicationNavigationItemActive(item) ? 'page' : undefined"
+            @click="closeShellMenus()"
+          >
+            <span aria-hidden="true">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+          </router-link>
+        </div>
+      </div>
       <nav aria-label="Application menu">
         <div class="workstation__workspace-menu">
           <button ref="workspaceMenuTrigger" type="button" title="Manage workspace layouts" aria-haspopup="menu" :aria-expanded="workspaceMenuOpen" :aria-controls="workspaceMenuId" @click="toggleWorkspaceMenu" @keydown="handleShellTriggerKeydown('workspace', $event)">Workspace</button>
@@ -257,6 +295,7 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
 
 const BLOCKED_POPOUT_ERROR = 'Browser blocked the pop-out. The tool remains docked.'
@@ -290,10 +329,13 @@ const workspaceMenuId = `${workstationInstanceId}-workspace-menu`
 const keyboardHelpMenuId = `${workstationInstanceId}-keyboard-help-menu`
 const recentSymbolsMenuId = `${workstationInstanceId}-recent-symbols-menu`
 const toolLibraryMenuId = `${workstationInstanceId}-tool-library-menu`
+const applicationMenuId = `${workstationInstanceId}-application-menu`
 const popoutContextId = `${workstationInstanceId}-popout-context`
 const symbolInput = ref<HTMLInputElement | null>(null)
 const workspaceMenuTrigger = ref<HTMLButtonElement | null>(null)
 const workspaceMenuRoot = ref<HTMLElement | null>(null)
+const applicationMenuTrigger = ref<HTMLButtonElement | null>(null)
+const applicationMenuRoot = ref<HTMLElement | null>(null)
 const toolLibraryTrigger = ref<HTMLButtonElement | null>(null)
 const toolLibraryMenuRoot = ref<HTMLElement | null>(null)
 const keyboardHelpTrigger = ref<HTMLButtonElement | null>(null)
@@ -302,6 +344,7 @@ const recentSymbolsTrigger = ref<HTMLButtonElement | null>(null)
 const recentSymbolsMenuRoot = ref<HTMLElement | null>(null)
 const popoutRoot = ref<HTMLElement | null>(null)
 const workspaceMenuStyle = ref<Record<string, string>>({})
+const applicationMenuStyle = ref<Record<string, string>>({})
 const keyboardHelpMenuStyle = ref<Record<string, string>>({})
 const toolLibraryMenuStyle = ref<Record<string, string>>({})
 const recentSymbolsMenuStyle = ref<Record<string, string>>({})
@@ -316,6 +359,7 @@ const routeSymbol = typeof route.params.symbol === 'string' && route.params.symb
 const symbolDraft = ref(routeSymbol)
 const toolLibraryOpen = ref(false)
 const workspaceMenuOpen = ref(false)
+const applicationMenuOpen = ref(false)
 const workspaceOptionIndex = ref(0)
 const keyboardHelpOpen = ref(false)
 const recentSymbolsOpen = ref(false)
@@ -380,6 +424,9 @@ const preserveDrilldownSymbol = ref<string | null>(null)
 // workstation on a dead symbol.
 const symbolProxyNotice = ref<string | null>(null)
 const openableTools = OPENABLE_WORKSTATION_TOOLS
+const applicationNavigation = sharedShellNavigation
+const isApplicationNavigationItemActive = (item: typeof applicationNavigation[number]) =>
+  isSharedNavigationItemActive(route.path, item.match)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
 let removeVisibilityListener: (() => void) | null = null
 const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
@@ -414,7 +461,7 @@ function handleSymbolInput() {
   }
 }
 
-type ShellMenu = 'workspace' | 'tool-library' | 'help' | 'recent'
+type ShellMenu = 'application' | 'workspace' | 'tool-library' | 'help' | 'recent'
 
 /**
  * The desktop shell has one transient menu layer at a time. Keeping this
@@ -424,6 +471,7 @@ type ShellMenu = 'workspace' | 'tool-library' | 'help' | 'recent'
  * symbols menu may remain open while the symbol editor owns focus.
  */
 function closeShellMenus(except?: ShellMenu) {
+  if (except !== 'application') applicationMenuOpen.value = false
   if (except !== 'workspace') workspaceMenuOpen.value = false
   if (except !== 'tool-library') toolLibraryOpen.value = false
   if (except !== 'help') keyboardHelpOpen.value = false
@@ -451,6 +499,7 @@ function shellMenuPosition(trigger: HTMLButtonElement | null, width: number, max
 }
 
 function positionShellMenus() {
+  if (applicationMenuOpen.value) applicationMenuStyle.value = shellMenuPosition(applicationMenuTrigger.value, 236, 360)
   if (workspaceMenuOpen.value) workspaceMenuStyle.value = shellMenuPosition(workspaceMenuTrigger.value, 292, 360)
   if (keyboardHelpOpen.value) keyboardHelpMenuStyle.value = shellMenuPosition(keyboardHelpTrigger.value, 286, 320)
   if (toolLibraryOpen.value) toolLibraryMenuStyle.value = shellMenuPosition(toolLibraryTrigger.value, 190, 360)
@@ -472,7 +521,7 @@ function scheduleShellMenuPosition() {
 }
 
 function syncShellMenuListeners() {
-  const open = workspaceMenuOpen.value || toolLibraryOpen.value || keyboardHelpOpen.value || recentSymbolsOpen.value
+  const open = applicationMenuOpen.value || workspaceMenuOpen.value || toolLibraryOpen.value || keyboardHelpOpen.value || recentSymbolsOpen.value
   if (!open) return removeShellMenuListeners()
   addShellMenuListeners()
 }
@@ -509,6 +558,20 @@ function toggleWorkspaceMenu() {
   }
   if (open) closeSymbolSearch()
   else workspaceMenuTrigger.value?.focus()
+  syncShellMenuListeners()
+}
+
+function toggleApplicationMenu(focusLast = false) {
+  const open = !applicationMenuOpen.value
+  closeShellMenus(open ? 'application' : undefined)
+  applicationMenuOpen.value = open
+  if (open) {
+    closeSymbolSearch()
+    scheduleShellMenuPosition()
+    void focusShellMenu('application', focusLast ? -1 : 0)
+  } else {
+    applicationMenuTrigger.value?.focus()
+  }
   syncShellMenuListeners()
 }
 
@@ -609,21 +672,23 @@ function toggleRecentSymbols(focusLast = false) {
   syncShellMenuListeners()
 }
 
-type ShellMenuRoot = 'workspace' | 'tool-library' | 'help' | 'recent'
+type ShellMenuRoot = 'application' | 'workspace' | 'tool-library' | 'help' | 'recent'
 const shellMenuRoots: Record<ShellMenuRoot, ReturnType<typeof ref<HTMLElement | null>>> = {
+  application: applicationMenuRoot,
   workspace: workspaceMenuRoot,
   'tool-library': toolLibraryMenuRoot,
   help: keyboardHelpMenuRoot,
   recent: recentSymbolsMenuRoot,
 }
 const shellMenuTriggers: Record<ShellMenuRoot, ReturnType<typeof ref<HTMLButtonElement | null>>> = {
+  application: applicationMenuTrigger,
   workspace: workspaceMenuTrigger,
   'tool-library': toolLibraryTrigger,
   help: keyboardHelpTrigger,
   recent: recentSymbolsTrigger,
 }
 function shellMenuItems(menu: ShellMenuRoot) {
-  return Array.from(shellMenuRoots[menu].value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)') ?? [])
+  return Array.from(shellMenuRoots[menu].value?.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled):not([aria-disabled="true"])') ?? [])
 }
 async function focusShellMenu(menu: ShellMenuRoot, focusIndex = 0) {
   await nextTick()
@@ -655,6 +720,7 @@ function handleShellTriggerKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
   // a request to focus its first action (the workspace listbox owns focus).
   event.stopPropagation()
   if (menu === 'workspace' && !workspaceMenuOpen.value) return toggleWorkspaceMenu()
+  if (menu === 'application' && !applicationMenuOpen.value) return toggleApplicationMenu(focusIndex < 0)
   if (menu === 'tool-library' && !toolLibraryOpen.value) return toggleToolLibrary(focusIndex < 0)
   if (menu === 'help' && !keyboardHelpOpen.value) return toggleKeyboardHelp(focusIndex < 0)
   if (menu === 'recent' && !recentSymbolsOpen.value) return toggleRecentSymbols(focusIndex < 0)
@@ -681,7 +747,7 @@ function handleShellMenuKeydown(menu: ShellMenuRoot, event: KeyboardEvent) {
     && event.target.closest('[role="listbox"]')) return
   const items = shellMenuItems(menu)
   if (!items.length) return
-  const current = items.indexOf(document.activeElement as HTMLButtonElement)
+  const current = items.indexOf(document.activeElement as HTMLElement)
   let next: number | null = null
   if (event.key === 'ArrowDown' || event.key === 'ArrowRight') next = (current + 1 + items.length) % items.length
   else if (event.key === 'ArrowUp' || event.key === 'ArrowLeft') next = (current - 1 + items.length) % items.length
@@ -721,6 +787,7 @@ function handleWorkstationPointerDown(event: PointerEvent) {
     return
   }
   if (!(target instanceof Element && target.closest('.workstation__workspace-menu'))) workspaceMenuOpen.value = false
+  if (!(target instanceof Element && target.closest('.workstation__application-navigation'))) applicationMenuOpen.value = false
   if (!(target instanceof Element && target.closest('.workstation__tool-library'))) toolLibraryOpen.value = false
   if (!(target instanceof Element && target.closest('.workstation__help-menu'))) keyboardHelpOpen.value = false
   recentSymbolsOpen.value = false
@@ -735,14 +802,17 @@ function handleWorkstationFocusIn(event: FocusEvent) {
     // symbol control. The editor owns subsequent keyboard events, so dismiss
     // the shell help surface at the same focus boundary.
     keyboardHelpOpen.value = false
+    applicationMenuOpen.value = false
     syncShellMenuListeners()
     return
   }
   const inWorkspaceMenu = target instanceof Element && target.closest('.workstation__workspace-menu')
+  const inApplicationMenu = target instanceof Element && target.closest('.workstation__application-navigation')
   const inToolLibrary = target instanceof Element && target.closest('.workstation__tool-library')
   const inHelpMenu = target instanceof Element && target.closest('.workstation__help-menu')
   const inRecentMenu = target instanceof Element && target.closest('.workstation__search')
   if (!inWorkspaceMenu) workspaceMenuOpen.value = false
+  if (!inApplicationMenu) applicationMenuOpen.value = false
   if (!inToolLibrary) toolLibraryOpen.value = false
   if (!inHelpMenu) keyboardHelpOpen.value = false
   if (!inRecentMenu) recentSymbolsOpen.value = false
@@ -2175,7 +2245,7 @@ function handleKeydown(event: KeyboardEvent) {
 // focus recovery scheduled by closeShellMenuToTrigger where applicable.
 function handleGlobalKeydownCapture(event: KeyboardEvent) {
   if (event.key !== 'Escape') return
-  const hasTransientShell = recentSymbolsOpen.value || workspaceMenuOpen.value
+  const hasTransientShell = applicationMenuOpen.value || recentSymbolsOpen.value || workspaceMenuOpen.value
     || toolLibraryOpen.value || keyboardHelpOpen.value
   if (!hasTransientShell) return
   event.preventDefault()
@@ -2185,9 +2255,10 @@ function handleGlobalKeydownCapture(event: KeyboardEvent) {
     ? (Object.entries(shellMenuRoots).find(([, root]) => root.value?.contains(active))?.[0] as ShellMenuRoot | undefined)
     : undefined
   const openMenu: ShellMenuRoot | undefined = activeMenu
-    ?? (workspaceMenuOpen.value ? 'workspace' : toolLibraryOpen.value ? 'tool-library' : keyboardHelpOpen.value ? 'help' : recentSymbolsOpen.value ? 'recent' : undefined)
+    ?? (applicationMenuOpen.value ? 'application' : workspaceMenuOpen.value ? 'workspace' : toolLibraryOpen.value ? 'tool-library' : keyboardHelpOpen.value ? 'help' : recentSymbolsOpen.value ? 'recent' : undefined)
   closeSymbolSearch()
   recentSymbolsOpen.value = false
+  applicationMenuOpen.value = false
   workspaceMenuOpen.value = false
   toolLibraryOpen.value = false
   keyboardHelpOpen.value = false
@@ -2425,7 +2496,15 @@ onBeforeUnmount(() => {
 .workstation:has(.workstation__popout) { min-width: 320px; grid-template-rows: minmax(0, 1fr); }
 .workstation__popout { min-width: 0; min-height: 0; padding: 2px; background: #090c0f; }
 .workstation__menu { display: flex; align-items: center; gap: 12px; padding: 0 7px; background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom)); border-bottom: 1px solid #090b0d; }
-.workstation__brand { color: var(--tc-accent-soft); font-size: 10px; font-weight: 700; letter-spacing: .06em; white-space: nowrap; }
+.workstation__application-navigation { position: relative; display: flex; align-items: center; flex: 0 0 auto; }
+.workstation__brand { appearance: none; display: block; padding: 0; border: 0; background: transparent; color: var(--tc-accent-soft); font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .06em; line-height: normal; text-align: left; white-space: nowrap; cursor: pointer; }
+.workstation__brand:hover { color: var(--tc-text); text-decoration: underline; text-decoration-color: var(--tc-accent); text-underline-offset: 3px; }
+.workstation__brand:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 3px; }
+.workstation__application-menu { position: fixed; z-index: 151; display: grid; min-width: 0; padding: 3px; border: 1px solid var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-panel-bg); box-shadow: 0 7px 18px #000b; color: var(--tc-text); overflow: auto; overscroll-behavior: contain; }
+.workstation__application-menu a { display: flex; align-items: center; gap: 8px; min-width: 0; min-height: 28px; padding: 4px 7px; border: 1px solid transparent; border-radius: calc(var(--tc-radius) - 2px); color: var(--tc-text-muted); font-size: 11px; line-height: 1.25; text-decoration: none; white-space: nowrap; }
+.workstation__application-menu a:hover,
+.workstation__application-menu a:focus-visible { border-color: var(--tc-border); background: var(--tc-control-bg); color: var(--tc-text); outline: none; }
+.workstation__application-menu a[aria-current="page"] { border-color: color-mix(in srgb, var(--tc-accent) 28%, transparent); background: color-mix(in srgb, var(--tc-accent) 12%, transparent); color: var(--tc-accent-soft); }
 .workstation__menu nav { display: flex; align-self: stretch; }
 .workstation__workspace-menu { position: relative; display: flex; align-items: stretch; }
 .workstation__workspace-popover { position: fixed; z-index: 150; padding: 5px; border: 1px solid #4d5a63; background: #151d23; box-shadow: 0 7px 18px #000b; color: #cbd6dc; overflow: auto; }

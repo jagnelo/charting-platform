@@ -352,7 +352,7 @@ onMounted(async () => {
 .section-title { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
 
 .alerts-table-wrap { overflow-x: auto; }
-.alerts-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 12px; }
+.alerts-table { width: 100%; border-collapse: collapse; font-family: inherit; font-size: 12px; }
 .alerts-table th { background: #111; color: #666; text-align: left; padding: 8px 12px; border-bottom: 1px solid #222; font-weight: 600; }
 .alerts-table td { padding: 7px 12px; border-bottom: 1px solid #1a1a1a; }
 .alerts-table tr:hover td { background: #111; }
@@ -413,4 +413,15 @@ onMounted(async () => {
 .td-actions .btn-danger:hover { border-color: #ef5350; color: #ef5350; }
 
 .empty-row { text-align: center; color: #444; padding: 32px; }
+.alerts-view { padding: 14px; color: var(--tc-text); font-family: var(--tc-font-family); background: var(--tc-window-bg); }
+.page-title { color: var(--tc-text); font-size: 18px; }
+.tab-btn { border-radius: var(--tc-radius); border-color: var(--tc-border); color: var(--tc-text-muted); }
+.tab-btn:hover { background: var(--tc-control-bg); color: var(--tc-text); }
+.tab-btn.active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-control-bg)); color: var(--tc-accent-soft); }
+.filter-select, .inline-edit { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.alerts-table th { background: var(--tc-control-bg); color: var(--tc-text-muted); border-color: var(--tc-border); }
+.alerts-table td { border-color: var(--tc-border); color: var(--tc-text); }
+.alerts-table tr:hover td { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.td-mono, .inline-edit { font-variant-numeric: tabular-nums; }
+.alerts-view :is(button, input, select, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

@@ -9337,3 +9337,15 @@ current_gate_checkpoint: >-
     presentation writer; Provider must not edit presentation paths or add a
     parallel theme. Keep all full-roadmap criteria and holds open; Root owns
     final integration/deployment decisions.
+    CURRENT ADOPTION — 2026-10-26: exact synchronized-green staging
+    `02a7bae34c2aed145b9e46137ef3b8f041de4d92` is adopted in this Provider
+    branch after verifying its canonical green receipt and live `origin/staging`
+    ref. The whole-frontend TC2000 release is now present in this branch; this
+    records source adoption, not a new Provider local browser profile or exact
+    branch CI result. Preserve all 24 Provider roadmap criteria, the accepted
+    `provider-first-human-coverage-retained-universe-2` checkpoint, all holds,
+    and the consumed 119-request no-replay boundary. Root retains private-target,
+    deployment, integration, and remaining acceptance ownership. After this
+    adoption's exact branch CI is known, the next Provider-owned roadmap action
+    is to resume `AC-UNIVERSE-COMPLETE` from the adopted source; do not start
+    that work in this adoption checkpoint.
