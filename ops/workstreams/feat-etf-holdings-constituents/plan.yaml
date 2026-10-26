@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 5b29620741fd82d27db45987afb927bf91396712
-latest_staging_merge_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
-latest_staging_parent_sha: 5b29620741fd82d27db45987afb927bf91396712
+latest_staging_merge_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+latest_staging_parent_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -143,7 +143,17 @@ closure_summary: >-
   evidence, the 119-request spent history, and the 30-day observation. No
   current/native route qualification, normal-route enablement, deployment,
   paid/trial action, or full feature completion is claimed. Root watches the
-  exact final records HEAD CI and owns subsequent integration. integration_capture: exact branch HEAD.
+  exact final records HEAD CI and owns subsequent integration. The exact
+  accepted green staging adoption is 15b5c22f0e689c973ee82d152d4bbad6125bf993
+  (CI40241357259; canonical receipt
+  /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json).
+  It is a fast-forward descendant of the prior feature tip and has the identical
+  source tree, so no frozen-upstream import manifest applies. The local adoption
+  record commit remains unpublished while Root awaits independent master CI;
+  its exact-head CI will be pending after publication. Root still owns the
+  retained-target correction/reparse and API/UI acceptance. Continue AC1-AC14
+  and the post-integration observation; no full-feature completion is claimed.
+  integration_capture: exact branch HEAD.
 validation_tier: full_integration
 human_validation_authorization: "The human requested continued product development from staging; all application/provider changes use the complete integration gate."
 local_validation_profile: full_stack_browser
@@ -816,12 +826,15 @@ integration_checkpoint:
     This record does not authorize another acquisition, target mutation,
     deployment, quota use, or completion of the full ETF roadmap.
   acceptance_authorization: accepted_by_coordinator_under_human_delegation
-  status: ready_for_integration
+  status: accepted_and_integrated_in_staging
   validated_implementation_sha: b640ca47f74c2251cdebadd87c32dd87a751f64c
   exact_source_ci_run: 40224026620
   source_acceptance_record: /home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-checkpoint-source-acceptance-20261025.md
   final_local_audit: /home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-final-local-audit-20261025.json
   final_local_audit_sha256: 22588eb610971f95ddf78778a48fb6288173127b891bdbb44c0b22f7875f299a
+  accepted_staging_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+  accepted_staging_ci_run: 40241357259
+  accepted_staging_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json
   acceptance_criteria: &etf_retained_iwm_criteria
   - id: RIW1
     text: SEC N-PORT percentage-valued fields are converted source-correctly to fractional
@@ -1393,14 +1406,17 @@ historical_execution_context: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Root accepted the retained-IWM normalization/append-only correction at source
-  b640ca47f74c2251cdebadd87c32dd87a751f64c. Its source-exact CI and full local
-  backend/frontend/app profile are green as detailed in the final audit; the
-  records-only closure commit's own exact-head CI is pending and Root owns that
-  watch. Root still owns actual target reparse and API/UI acceptance. Preserve
-  accepted FQ/FHSC history, full AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds,
-  quarantines, raw/PIT lineage, 119 spent requests and the 30-day observation;
-  this is not full-feature completion.
+  The b640 retained-IWM correction source checkpoint is accepted and its source
+  tree is present in green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993
+  (exact CI40241357259, including Exhaustive Integration Gate; canonical receipt
+  /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json).
+  The adopted tree is identical to the previous feature tip; only own checkpoint
+  records are being reconciled. Publication is held pending Root's independent
+  master CI, then exact records-head CI will be observed. Root still owns actual
+  target correction/reparse and API/UI acceptance. Preserve accepted FQ/FHSC
+  history, full AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, quarantines,
+  raw/PIT lineage, 119 spent requests and the 30-day observation; this is not
+  full-feature completion.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2424,7 +2440,7 @@ historical_green_staging_adoption_2026_10_22:
   latest_full_local_profile_status: pending_safe_coordinator_slot_for_adopted_baseline
   quarantines: MSMR/QQQ and Militia/GOOG unresolved/quarantined
 
-latest_green_staging_adoption:
+previous_green_staging_adoption_2026_10_25_3ff:
   recorded_at: "2026-10-25T16:10:13Z"
   released_staging_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
   exact_ci_run: 40202604218
@@ -2440,6 +2456,23 @@ latest_green_staging_adoption:
   imported_workstream_records: unchanged_from_released_tree
   product_source_edits_in_this_context: none
   publish_state: held_until_Root_releases_after_independent_master_CI40210522503
+
+latest_green_staging_adoption:
+  recorded_at: "2026-10-25T23:55:46Z"
+  released_staging_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+  exact_ci_run: 40241357259
+  canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json
+  release_state: canonical_green_coordinator_receipt
+  previous_etf_sha: c1d5f160be0c681c99fb4204c327ed7e18174b36
+  adopted_etf_baseline_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+  adoption_method: fast_forward_in_assigned_etf_worktree
+  direct_remote_lookup: verified_origin_staging_exact_15b5_before_fast_forward
+  merge_base: c1d5f160be0c681c99fb4204c327ed7e18174b36
+  source_tree_delta_from_pre_adoption_feature_tip: none; tree 99381e8b6f719b6c9470e6f910248eb706cf26bc
+  upstream_import_manifest: not_applicable_no_tree_delta_from_owned_feature_tip
+  imported_workstream_records: unchanged_from_released_tree; reconciled below for this owned adoption
+  product_source_edits_in_this_context: none
+  publish_state: held_until_Root_release_after_independent_master_CI_for_15b5
 
 latest_sec_first_use_candidate:
   recorded_at: "2026-10-23T17:20:09Z"
@@ -2500,8 +2533,10 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Root watches exact-head CI for the records-only closure and owns subsequent
-  central integration. Root separately owns applying the accepted parser
-  correction to the retained target artifact and verifying truthful API/UI
-  behavior. After those coordinator-owned gates, continue the complete AC1-AC14
-  roadmap and 30-day observation without changing disabled routes or holds.
+  Hold publication until Root releases the push after independent master CI;
+  then publish the one coherent adoption-record commit and let Root watch its
+  exact-head CI. Root owns applying the accepted parser correction to the
+  retained target artifact and verifying truthful API/UI behavior. After those
+  coordinator-owned gates, continue the AC1-AC14 roadmap with the next ETF-owned
+  step being the retained-evidence issuer audit under AC2, while preserving
+  disabled routes, holds and the 30-day observation.

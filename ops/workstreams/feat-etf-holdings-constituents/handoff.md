@@ -16584,3 +16584,29 @@ accepted FQ1–FQ8 and FHSC source-readiness history, all fourteen AC criteria,
 `15 Tier-0 and 156 Tier-1`, the 119-request history, holds, quarantines,
 retained historical data, raw/PIT semantics and the 30-day observation. The
 full roadmap remains active.
+
+
+## Adopt synchronized-green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 — 2026-10-26
+
+The exact coordinator-approved release is recorded in canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json`:
+staging `15b5c22f0e689c973ee82d152d4bbad6125bf993`, exact CI run
+`40241357259`, including the Exhaustive Integration Gate. In this assigned ETF
+worktree, the clean prior tip `c1d5f160be0c681c99fb4204c327ed7e18174b36` was an
+ancestor and second parent of the staging merge; the feature branch fast-forwarded
+to the exact released SHA. The adopted tree is identical to the prior ETF tree
+(`99381e8b6f719b6c9470e6f910248eb706cf26bc`), so there are no foreign source
+blobs and no frozen-upstream-import manifest applies. The approved delta is the
+accepted ETF retained-IWM correction; no TC-owned unreleased frontend/tag/date-sort/
+favorites changes were imported or released by this adoption.
+
+The accepted b640 source-readiness checkpoint and its local/exact-source evidence
+remain historical and unchanged. This adoption does not apply the parser correction
+to the target or prove corrected API/UI acceptance. Root owns those target actions.
+The owned adoption records are local and the push is held until Root releases it
+after independent master CI; the eventual records commit will need its own exact-head
+CI observation. Continue preserving the full AC1-AC14 roadmap, 15 Tier-0 and 156
+Tier-1, prior accepted checkpoints and red/partial history, quarantines, disabled
+routes and holds, raw/PIT lineage, 119 spent requests, and the 30-day observation.
+After Root completes target correction/reparse and API/UI acceptance, the next
+ETF-owned roadmap step is the AC2 retained-evidence issuer audit.
