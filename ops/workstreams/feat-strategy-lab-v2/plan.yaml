@@ -981,34 +981,34 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Exact synchronized-green ETF staging source 15b5c22f0e689c973ee82d152d4bbad6125bf993 is
-    adopted as local merge b3704a96f3c03c91e99fb33ac55480f9497fefe4, with first parent
-    3742f612fe6bfb76366d521e7e3fa378751cd0e0 and second parent
-    15b5c22f0e689c973ee82d152d4bbad6125bf993. Its canonical receipt is /home/m920q/charting-
-    platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json and run 40241357259 passed
-    all required jobs including Exhaustive Integration Gate. The ten-path delta from 3ff is
-    limited to ETF router/services/tests and ETF-owned records; each merged blob matches the
-    exact release. No Strategy consumer code changed and no Strategy import manifest exists. The
-    release corrects retained-IWM SEC percentage points, equity/right classification and admin
-    offline append-only reparse. Genuine SEC acquisition happened once and was not replayed. TC
-    unreleased frontend/tag/date-sort/favorites work was not imported or changed. Root owns
-    target correction/UI acceptance and the independent master gate; push remains held until
-    master CI passes. The earlier normal-user inspector proof remains specifically on private
-    deployment 5b, not this 15b source. Preserve the consumed 119-request history, datasets,
-    quotas and provider/data holds. All 18 roadmap criteria remain open; the original native
-    worker goal remains historically blocked and this bounded adoption did not resume or re-
-    account it.
-  updated_at: "2026-10-26T00:08:49Z"
+    Exact synchronized-green ETF staging source 6d0a85da34ba276bca69c82a932a0602e783d7a1 is
+    adopted locally as merge 0f7e58bea0740161ff4454c85bf9fc3fcb15a572, with first parent
+    5df749f3cbb76c1ec5d1407ec7415b85d1882252 and second parent 6d0a85da34ba276bca69c82a932a0602e783d7a1.
+    Root's guarded authority is /home/m920q/charting-platform/.ai/staging-attempts/
+    6d0a85da-green-staging-owner-adoption-authority-20261026.json and its canonical receipt is
+    /home/m920q/charting-platform/.ai/staging-attempts/20261026T061035Z-6d0a85da34ba.json
+    (SHA256 5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b); exact staging CI
+    40270957631 is green on 6d0. Backend, frontend, E2E and Exhaustive Integration Gate succeeded;
+    Branch-declared Tests was skipped by feature-branch policy. The nine-path delta from 15b is
+    limited to ETF router/service, ETF integration tests and ETF-owned records; every merged blob
+    matches the exact release. The change adds fresh-AsyncSession eager reparse response
+    serialization and deterministic same-date knowledge-time/id ordering. No Strategy consumer
+    source or TC path changed, and no Strategy-specific frozen-import manifest exists. The
+    retained-IWM correction and its once-only acquisition history remain unchanged. Root owns
+    master promotion and actual private target/UI acceptance; push remains held pending the
+    independent master-green release. Preserve the consumed 119-request history, datasets, quotas
+    and provider/data holds. All 18 roadmap criteria remain open; the original native worker goal
+    remains historically blocked and this bounded adoption did not resume or re-account it.
+  updated_at: "2026-10-26T06:21:12Z"
   next_action: >-
     Next branch-owned step remains AC-UPSTREAM combined-consumer qualification on the adopted
     source: review and test how retained-IWM percentage/classification/reparse evidence composes
     with Strategy ETF PIT identity, Provider local-series/coverage/freshness and
     admission/budget/quota denial, then continue TC immutable CodeVersion/Study-output
-    qualification. Do not repeat SEC acquisition or spend provider quota. Root owns actual
-    target correction, UI acceptance and the populated ETF target sample; wait for those
-    releases before target-bound claims or resource work. Keep the full 18-criterion roadmap and
-    all native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe
-    scopes open or held.
+    qualification. Do not repeat SEC acquisition or spend provider quota. Root owns the
+    independent master gate, actual private target/UI acceptance and ETF target sample; hold
+    publication until Root releases it. Keep the full 18-criterion roadmap and all native/RC6,
+    forward, broker, capital, provider/quota, paid/trial, unknown and unsafe scopes open or held.
 
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35

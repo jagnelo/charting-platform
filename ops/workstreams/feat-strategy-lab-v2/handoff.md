@@ -19276,3 +19276,49 @@ Next branch-owned action: continue AC-UPSTREAM combined-consumer qualification o
 connecting retained-IWM evidence to ETF PIT identity, Provider local-series/coverage/freshness and
 admission/budget/quota denial, then TC immutable CodeVersion/Study outputs. Do not replay SEC acquisition.
 Target-bound claims and resource work remain Root-owned pending target correction/sample release.
+
+### Accepted ETF async-reparse and deterministic-date-ordering staging adoption (2026-10-26)
+
+This adoption resumed the existing Strategy worktree and claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436`;
+the branch began clean at `5df749f3cbb76c1ec5d1407ec7415b85d1882252`, synchronized with its own
+origin. The required session preflight ran. `make agent-context` passed; `make agent-session-start`
+recorded a Docker API permission refusal after its bounded local-profile readiness probe. It did not
+start a service or fixture. The preflight's Strategy `session.json` and append-only
+`validation.jsonl` updates were preserved and included in this workstream checkpoint.
+
+The guarded adoption authority
+`/home/m920q/charting-platform/.ai/staging-attempts/6d0a85da-green-staging-owner-adoption-authority-20261026.json`
+references canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261026T061035Z-6d0a85da34ba.json`, whose
+verified SHA256 is `5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b`. The receipt and
+GitHub Actions run `40270957631` both identify exact staging SHA
+`6d0a85da34ba276bca69c82a932a0602e783d7a1` as green. Backend Tests, Frontend Unit Tests, E2E Tests,
+and Exhaustive Integration Gate succeeded; Branch-declared Tests was skipped under feature-branch
+policy. The released staging commit descends from the adopted 15b baseline.
+
+The only accepted source delta from 15b is nine ETF-owned paths: `etf_holdings.py` router/service,
+the two ETF integration tests, and ETF-owned `branch-tests.json`, handoff, plan, session, and
+validation records. All nine merged blobs match the exact 6d0 tree. The implementation reloads
+reparsed holdings with a fresh AsyncSession and eager relationships before response serialization,
+and orders same-composition-date results deterministically by `known_at` then snapshot ID. No
+Strategy consumer source/test, migration, configuration, or TC path changed. No Strategy-specific
+frozen-upstream-import manifest exists, so none was created. TC's unreleased frontend/tag/date-sort/
+favorites code was not reset, imported, or represented as accepted. Existing Provider/ETF contracts
+and the full Strategy roadmap remain in place.
+
+The exact local adoption merge is `0f7e58bea0740161ff4454c85bf9fc3fcb15a572`, with first parent
+`5df749f3cbb76c1ec5d1407ec7415b85d1882252` and second parent
+`6d0a85da34ba276bca69c82a932a0602e783d7a1`. Stack-free checks confirmed the nine released blobs,
+the two-parent ancestry, no Strategy/TC source overlap, and no duplicate top-level keys in the
+Strategy plan. No tests or runtime validation were run for this source adoption. Publication is on
+hold until Root confirms the independent master-green release; this is not master or deployment
+acceptance. Root retains ownership of target/UI and ETF sample acceptance. The consumed 119-request
+history, datasets, quotas, provider holds, and disabled paid/trial/native/broker/capital scopes remain
+unchanged. All 18 roadmap criteria remain open and the original native worker goal remains
+historically blocked; this normal adoption turn did not change goal history or accounting.
+
+Next branch-owned action remains AC-UPSTREAM combined-consumer qualification: verify the adopted
+ETF PIT identity/admission/budget/quota behavior with Provider local-series, coverage, and freshness,
+then continue TC immutable CodeVersion/Study-output contracts. Do not replay SEC acquisition. Hold
+push until Root's master-green release and keep target proof, full roadmap completion, and all held
+native/forward/broker/capital operations distinct.
