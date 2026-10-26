@@ -1,6 +1,45 @@
 # feat/etf-holdings-constituents
 
-## Current accepted checkpoint — retained IWM N-PORT correction source readiness
+## Active follow-up — reparse response and same-date version ordering
+
+Root assigned this narrow repair after the actual target reparse attempt51385
+returned HTTP500 and was rolled back without business-data changes. The failure
+was SQLAlchemy `MissingGreenlet` in `snapshot_to_out`, where the response path
+accessed lazy `snapshot.rows` and `row.constituent_instrument` after the append.
+The router now reloads the new snapshot with both relationships eagerly loaded
+in the request's `AsyncSession` before serialization. Available-date ordering
+now uses composition date descending, `known_at` descending with nulls last, and
+snapshot ID descending for deterministic ties. Historical snapshots and PIT
+timestamps remain unchanged.
+
+The allocated initial focused run preserved the real red: the fresh-session
+HTTP regression raised `MissingGreenlet`; its companion ordering case passed.
+After the fix, the two authorized focused regression slices passed 2/2 in
+19.87s (five dependency warnings), using the Root-owned isolated tmpfs PG/Redis
+fixture and zero provider requests. The reparse regression exercises a real
+HTTP request with a new `AsyncSession` per request, full row plus nested
+constituent serialization, correction lineage, committed readback, unchanged
+raw/original snapshot, and repeat idempotence. The ordering coverage tests
+equal-known-at snapshot-ID ties and confirms the later correction sorts ahead
+of its source version. Initial red log/result and final focused log/result are
+preserved under `/tmp/erf26/`; Root owns fixture cleanup.
+
+Ruff check/format, AST parse and `git diff --check` passed. The HTTP error text
+was made neutral after the focused run; no behavior changed. This new source is
+not accepted yet: complete local backend/full_stack_browser qualification and
+exact-source CI remain pending Root. Root owns any later target reparse/API/UI
+acceptance; do not retry the rolled-back target operation. Preserve the prior
+accepted RIW1-RIW4 checkpoint as history, FQ/FHSC history, all AC1-AC14,
+`15 Tier-0 and 156 Tier-1`, 119 spent requests, holds/quarantines, raw/PIT
+lineage and the 30-day observation. No provider/SEC call, quota replay, target
+mutation, normal-route enablement, deployment or feature completion is claimed.
+
+**Next:** Root runs the exact new source through complete local backend and
+full_stack_browser gates plus exact-source CI. After qualification, Root owns
+any authorized target correction/API/UI proof; continue the full roadmap after
+that boundary.
+
+## Previously accepted checkpoint — retained IWM N-PORT correction source readiness
 
 Root accepted the retained-IWM N-PORT normalization and append-only correction
 at validated implementation `b640ca47f74c2251cdebadd87c32dd87a751f64c` under

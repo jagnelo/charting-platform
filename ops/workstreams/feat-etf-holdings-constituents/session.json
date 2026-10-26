@@ -79,9 +79,9 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "Root accepted source readiness at b640ca47f74c2251cdebadd87c32dd87a751f64c. Exact source CI40224026620 and complete local backend/frontend/app gates passed under the audit qualifications. The final records-only HEAD CI is pending; Root owns that watch and subsequent integration. The historical IWM sample was acquired on 3ff; actual b640 target correction/reparse and corrected API/UI acceptance, ordinary-route enablement, native-current evidence, all remaining AC1-AC14 work, and the 30-day observation remain open. Preserve 15 Tier-0 and 156 Tier-1, all holds/quarantines, raw/PIT lineage, 119 spent requests and retained evidence.",
-  "current_checkpoint_objective": "Close the Root-accepted retained-IWM N-PORT normalization and append-only correction source-readiness checkpoint; keep accepted FQ/FHSC history and the complete AC1-AC14 roadmap open, with Root owning target reparse and API/UI acceptance.",
-  "current_local_delta": "Accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c is adopted in exact green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 (CI40241357259; canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json). The adoption is a fast-forward descendant of c1d5f160be0c681c99fb4204c327ed7e18174b36 with identical tree 99381e8b6f719b6c9470e6f910248eb706cf26bc; no upstream import manifest applies and no product/source changes occurred. The owned adoption-record commit is local only; push is held pending Root release after independent master CI. Root owns retained-target correction/reparse and API/UI acceptance. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, holds, quarantines, raw/PIT lineage, 119 spent requests and the 30-day observation.",
+  "current_blocker_latest": "Target reparse attempt51385 returned HTTP500 and was rolled back; no business data changed and it was not retried. The cause was MissingGreenlet during response serialization, not parser/provider transport. The initial fresh-session HTTP regression preserved that red; after eager relationship reload and known_at/id ordering, the two focused slices passed2/2 in19.87s on the Root-owned isolated tmpfs PG/Redis fixture, provider_requests=0. Ruff/format/AST/diff checks pass; neutral reload error wording was clarified after the focused run. Complete new-source local backend/full_stack_browser and exact CI remain pending Root. Preserve accepted RIW1-RIW4/b640 as history, FQ/FHSC, AC1-AC14, 15 Tier-0 and 156 Tier-1, 119 spent requests, holds/quarantines, raw/PIT lineage and30-day observation.",
+  "current_checkpoint_objective": "Fix the retained-IWM reparse response lazy-load failure and deterministic same-composition-date ordering in this existing ETF continuation. Preserve the accepted RIW1-RIW4 checkpoint as history and the full AC1-AC14 roadmap; Root owns complete new-source gates and any actual target API/UI acceptance.",
+  "current_local_delta": "From clean source baseline af8b3e856d6c9dcea40915f8b2da6a2dcff88adc, this follow-up eager-loads ETF snapshot rows and nested constituent instruments before serializing the append-only reparse response, and sorts same-composition-date snapshots by known_at descending/nulls-last then id descending. Initial red and final focused evidence are /tmp/erf26/initial-red.log (SHA256 2790052601fbc0aea52382d726dd3b253cf2ebabdde9337c54a86b872c1de2db;1 failed/1 passed, MissingGreenlet at snapshot_to_out) and /tmp/erf26/final-focused.log (SHA256 337e7c743b172d1e29603e20c97bed81a80fc2245a2c9f379014fc296bd480fe;2 passed/5 warnings/19.87s). Both used only the Root-owned isolated fixture and no provider requests. The same-date tie case forces a sequential plan; the async HTTP case verifies new sessions, complete rows/nested identity, correction lineage, persisted append, unchanged old snapshot/raw, repeat idempotence and date selection. Full source gates and exact CI for this new source remain pending Root; actual target reparse/API/UI is Root-owned and the rolled-back target attempt is not retried. The source publication SHA is captured by Git/CI rather than self-referenced in these records. Preserve accepted history, full AC1-AC14,15 Tier-0/156 Tier-1, holds/quarantines,119 spent requests, raw/PIT lineage and30-day observation.",
   "dirty_paths": [],
   "docker": {
     "available": false,
@@ -108,7 +108,7 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "15b5c22f0e689c973ee82d152d4bbad6125bf993",
+  "head": "af8b3e856d6c9dcea40915f8b2da6a2dcff88adc",
   "implementation_sha": "b640ca47f74c2251cdebadd87c32dd87a751f64c",
   "integration_checkpoint": {
     "acceptance_authorization": "accepted_by_coordinator_under_human_delegation",
@@ -386,7 +386,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Publish this coherent source/record change for Root review; Root owns complete exact-source integration/full_stack_browser gates and the separately approved retained-target correction.",
-  "plan_hash": "b259adad7863ee51d15cba1280a29260f42ed120653b9d99a8fcbb697fc54cd5",
+  "plan_hash": "95ee6fae5a0a4e4b5082daefc796c4009bb65822321622f6cc8d5cc1276f2947",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -801,16 +801,14 @@
   },
   "progress": {
     "completed": [
-      "RIW1",
-      "RIW2",
-      "RIW3",
-      "RIW4"
+      "ERF1",
+      "ERF2"
     ],
-    "current_blocker": "Root accepted retained-IWM correction source b640ca47f74c2251cdebadd87c32dd87a751f64c with exact source CI40224026620 and complete local gates. Final records-head CI is pending; actual target reparse/API/UI acceptance and the complete AC1-AC14 roadmap remain Root-owned/open. Preserve 15 Tier-0 and 156 Tier-1, holds, raw/PIT lineage and 119 spent requests.",
-    "current_phase": "retained_iwm_source_checkpoint_accepted_final_head_ci_pending",
-    "next_action": "Root watches final exact-head CI and owns central integration. Root separately owns applying the correction to the retained target and verifying API/UI behavior; then continue the full roadmap.",
-    "total": 4,
-    "updated_at": "2026-10-25T21:50:23Z"
+    "current_blocker": "Target reparse attempt51385 returned HTTP500 and was rolled back; no business data changed and it was not retried. The cause was MissingGreenlet during response serialization, not parser/provider transport. The initial fresh-session HTTP regression preserved that red; after eager relationship reload and known_at/id ordering, the two focused slices passed2/2 in19.87s on the Root-owned isolated tmpfs PG/Redis fixture, provider_requests=0. Ruff/format/AST/diff checks pass; neutral reload error wording was clarified after the focused run. Complete new-source local backend/full_stack_browser and exact CI remain pending Root. Preserve accepted RIW1-RIW4/b640 as history, FQ/FHSC, AC1-AC14, 15 Tier-0 and 156 Tier-1, 119 spent requests, holds/quarantines, raw/PIT lineage and30-day observation.",
+    "current_phase": "reparse_response_and_same_date_ordering_focused_green_full_source_gates_pending",
+    "next_action": "Root runs complete local backend/full_stack_browser gates and exact-source CI on the published source; Root owns any later target reparse/API/UI acceptance.",
+    "total": 3,
+    "updated_at": "2026-10-26T01:50:15Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -981,7 +979,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-25T21:50:23Z",
+  "updated_at": "2026-10-26T01:50:15Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents",
   "workstream_files": [
@@ -991,5 +989,18 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
-  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
+  "active_follow_up": {
+    "name": "retained-IWM reparse response and same-date snapshot ordering",
+    "baseline_sha": "af8b3e856d6c9dcea40915f8b2da6a2dcff88adc",
+    "status": "focused_behavioral_regressions_passed_full_source_gates_pending",
+    "completed_acceptance": [
+      "ERF1",
+      "ERF2"
+    ],
+    "pending_acceptance": [
+      "ERF3"
+    ],
+    "source_capture": "exact branch HEAD"
+  }
 }

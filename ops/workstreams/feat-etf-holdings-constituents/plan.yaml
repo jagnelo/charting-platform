@@ -26,7 +26,11 @@ human_intent_authorization: >-
   durably identified series/class mismatches as candidate-search discards when
   a later exact-match filing qualifies. Offline tests and own-branch publication
   are authorized; live requests, quota use, target changes, and heavy fixtures
-  are not.
+  are not. On 2026-10-26 Root directed this same owner to correct the retained-
+  IWM reparse response's lazy ORM serialization and same-composition-date
+  version ordering after the actual target attempt returned HTTP 500. That
+  target attempt was rolled back; no target retry or provider request is part
+  of this follow-up.
 planning_state: ready
 previous_human_closure_authorization: >-
   The human delegated bounded checkpoint acceptance to the central coordinator:
@@ -164,12 +168,32 @@ previous_branch: feat/etf-holdings-constituents
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
 roadmap_goal: &etf_full_roadmap_goal "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support."
 goal: >-
-  Close the accepted retained-IWM N-PORT normalization and append-only
-  correction source-readiness checkpoint at
-  b640ca47f74c2251cdebadd87c32dd87a751f64c. Preserve accepted FQ/FHSC history
-  and the full AC1-AC14 roadmap. Root owns actual target reparse/API/UI
-  acceptance; no live provider request, quota replay, deployment, or full-roadmap
-  completion is claimed.
+  Repair the retained-IWM append-only reparse HTTP response so a fresh async
+  request session serializes the complete eagerly loaded snapshot, and make
+  same-composition-date history ordering deterministic by known_at and snapshot
+  id. Preserve the previously accepted RIW1-RIW4 source checkpoint and the full
+  AC1-AC14 roadmap. Root owns full-source qualification and actual target
+  API/UI acceptance; no provider request, target retry, quota replay, deployment,
+  or full-roadmap completion is claimed.
+active_changeset:
+  name: retained-IWM reparse response and same-date snapshot ordering
+  baseline: af8b3e856d6c9dcea40915f8b2da6a2dcff88adc
+  state: focused_behavioral_regressions_passed; complete_source_gates_pending
+  source_scope:
+    - backend/app/routers/etf_holdings.py
+    - backend/app/services/etf_holdings.py
+    - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+    - backend/tests/integration/api/test_etf_holdings.py
+  behavior:
+    - Reload the reparsed snapshot with rows and constituent instruments eagerly loaded before HTTP serialization.
+    - Order equal composition dates by latest known_at, then descending snapshot id; retain historical PIT rows.
+    - Preserve append-only snapshot/raw/job provenance, correction-time known_at, idempotence, disabled routes, and existing security/identity checks.
+  validation_boundary: >-
+    The focused red proved MissingGreenlet during fresh-session HTTP serialization.
+    The changed focused regressions pass; complete local backend/full_stack_browser
+    qualification and exact-source CI for this new source remain Root-owned and
+    pending. The earlier accepted b640 checkpoint remains historical.
+  source_capture: exact branch HEAD
 previously_accepted_integration_checkpoint:
   id: etf-holdings-integration-1
   planning_authorization: >-
@@ -1188,8 +1212,16 @@ roadmap_acceptance_criteria: &etf_full_roadmap_criteria
     text: "ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence."
   - id: AC14
     text: "A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations."
-acceptance_criteria: *etf_retained_iwm_criteria
+acceptance_criteria:
+  - id: ERF1
+    text: The administrator-only retained-IWM reparse returns a complete snapshot response from a fresh AsyncSession, including every holding and nested constituent identity; the append is committed, linked to unchanged raw/source lineage, and an identical repeat returns the same version without another snapshot or request.
+  - id: ERF2
+    text: Available snapshot dates with the same composition date sort by known_at descending with nulls last and snapshot id descending as a deterministic tie-breaker; the corrected version is selected after its actual correction time while historical/PIT selection before correction remains unchanged.
+  - id: ERF3
+    text: The exact new source passes the required complete local backend/full_stack_browser gates and exact-source CI without weakening existing tests, retries, tolerances, or provider/target holds; Root owns qualification, cleanup, and any later target acceptance.
 branch_tests:
+  - "uv run --project backend pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent -q --no-cov -p no:cacheprovider"
+  - "uv run --project backend pytest tests/integration/api/test_etf_holdings.py::test_available_dates_breaks_same_knowledge_time_ties_by_snapshot_id -q --no-cov -p no:cacheprovider"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov"
@@ -1207,11 +1239,11 @@ deferred_live_checks:
 live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDINGS_TESTS=1; the ordinary branch test explicitly sets it to 0 and retains nine no-network registry/route contracts. The network-enabled command remains under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "Additive ETF capability/freshness/schema-observation state and the ETF_HOLDINGS shared-capability seed; preserve existing snapshots and compatibility reads."
 deployment_impact: "New disabled-by-default ETF canary configuration, shared provider-platform capability/entitlement/budget integration, and post-deployment 30-day shadow evidence; no paid activation or deployment in this session."
-status: ready_for_integration
+status: in_progress
 progress:
-  completed: [RIW1, RIW2, RIW3, RIW4]
-  total: 4
-  current_phase: retained_iwm_source_checkpoint_accepted_final_head_ci_pending
+  completed: [ERF1, ERF2]
+  total: 3
+  current_phase: reparse_response_and_same_date_ordering_focused_green_full_source_gates_pending
 historical_execution_context: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -1406,17 +1438,21 @@ historical_execution_context: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  The b640 retained-IWM correction source checkpoint is accepted and its source
-  tree is present in green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993
-  (exact CI40241357259, including Exhaustive Integration Gate; canonical receipt
-  /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json).
-  The adopted tree is identical to the previous feature tip; only own checkpoint
-  records are being reconciled. Publication is held pending Root's independent
-  master CI, then exact records-head CI will be observed. Root still owns actual
-  target correction/reparse and API/UI acceptance. Preserve accepted FQ/FHSC
-  history, full AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, quarantines,
-  raw/PIT lineage, 119 spent requests and the 30-day observation; this is not
-  full-feature completion.
+  CURRENT FOLLOW-UP 2026-10-26T01:47Z: actual target reparse attempt51385
+  returned HTTP500 and was rolled back without business-data changes. The
+  diagnosed MissingGreenlet occurred during response serialization, not parser
+  or provider transport. The fresh-session HTTP regression captured the original
+  red; the corrected response and same-date ordering slices now pass2/2 on the
+  Root-owned isolated tmpfs PostgreSQL/Redis fixture with zero provider
+  requests. Ruff, format, AST and diff checks pass. Neutral reload-error wording
+  was clarified after the focused run. Complete new-source local backend,
+  full_stack_browser qualification, and exact-source CI remain pending Root; no
+  new checkpoint acceptance is claimed. Root owns any actual target reparse and
+  API/UI acceptance; the prior target attempt is not replayed. Preserve the prior
+  accepted RIW1-RIW4/b640 source checkpoint as history, accepted FQ/FHSC history,
+  AC1-AC14, 15 Tier-0 and 156 Tier-1, 119 spent requests, holds/quarantines,
+  raw/PIT lineage and the 30-day observation. No current/native-route acceptance,
+  deployment, or full feature completion is claimed.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2533,10 +2569,9 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Hold publication until Root releases the push after independent master CI;
-  then publish the one coherent adoption-record commit and let Root watch its
-  exact-head CI. Root owns applying the accepted parser correction to the
-  retained target artifact and verifying truthful API/UI behavior. After those
-  coordinator-owned gates, continue the AC1-AC14 roadmap with the next ETF-owned
-  step being the retained-evidence issuer audit under AC2, while preserving
-  disabled routes, holds and the 30-day observation.
+  Root qualifies the exact published response/order fix through complete local
+  backend/full_stack_browser gates and exact-source CI. After those gates, Root
+  owns any authorized target correction/API/UI verification. Then continue the
+  full AC1-AC14 roadmap and 30-day observation without repeating the SEC
+  acquisition. Preserve all source holds, the spent119-request history,
+  raw/PIT lineage and quarantines.
