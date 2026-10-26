@@ -1,3 +1,52 @@
+# Adopt accepted ETF checkpoint from synchronized green staging — 2026-10-26
+
+The exact Root-authorized staging source `6d0a85da34ba276bca69c82a932a0602e783d7a1`
+is verified green by run `40270957631`. Guarded owner authority is
+`/home/m920q/charting-platform/.ai/staging-attempts/6d0a85da-green-staging-owner-adoption-authority-20261026.json`
+(SHA256 `1ed26d6157877387c1b127109ae11ff839ae64ea8734a2bbe52d51b30c5056c2`),
+which binds the canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261026T061035Z-6d0a85da34ba.json`
+(SHA256 `5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b`).
+The earlier same-SHA watch attempt remains recorded as degraded; the later
+canonical receipt is the accepted green result.
+
+Root accepted ERF1–ERF3 at exact owner closing tip
+`cc4358d6d373439a86173289801921d929931df9` under existing delegated authority
+after all required CI jobs passed in run `40267718389`. Acceptance is recorded
+at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-cc4358d6-checkpoint-source-acceptance-20261026.json`
+(SHA256 `0c997c3ca634dc76c6e9af36c6045ba484e25445f63a538c4c7eff3ae1b626a2`).
+The prior branch-declared failure `40256359083` remains historical and red.
+
+In this original ETF worktree, `cc4358d6…` is the second parent of staging
+`6d0a85da…`; the fast-forward adoption completed with no conflicts. Both commits
+have identical tree `e3f54c825ded901444e490e809491d334763bf69`, so no source blobs
+or test changes were imported and no frozen-upstream-import manifest applies.
+TC's unreleased frontend, tag/date-sort, favorites code, and tests remain outside
+this adoption. The local `origin/staging` ref matches the authorized SHA; a
+direct `git ls-remote` refresh hit temporary GitHub DNS failure. No feature-branch
+push is made until Root confirms independent master-green. Master/deployment and
+actual private-target correction plus normal-user API/UI acceptance remain
+unclaimed and Root-owned.
+
+The existing full AC1–AC14 roadmap resumes after the accepted ERF checkpoint.
+Root still owns the target correction/API/UI gates; after those gates, the next
+ETF-owned step is the AC2 retained-evidence issuer audit. Preserve FHSC/FQ/RIW
+acceptance history, `15 Tier-0 and 156 Tier-1`, the 119 spent requests, all
+holds/quarantines, raw/PIT lineage, datasets, and the 30-day observation. No
+provider request, quota replay, target mutation, route enablement, deployment,
+or full-roadmap completion is claimed.
+
+## Current handoff
+
+Local adopted HEAD is `6d0a85da34ba276bca69c82a932a0602e783d7a1`; the own
+feature origin is still the pre-adoption closing tip until Root releases the
+push hold. First action after that release: publish this bounded local adoption
+to the existing feature branch. Continue the same roadmap and claim; do not
+start AC2 until Root completes the target/API/UI work stated above.
+
+---
+
 # feat/etf-holdings-constituents
 
 ## Current checkpoint — retained-IWM response/order repair (conditional closure prepared)
