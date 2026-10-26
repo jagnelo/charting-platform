@@ -4391,6 +4391,17 @@ remaining_gaps:
     https://docs.ondo.finance/api-reference/overview,
     https://docs.ondo.finance/legal/terms-of-service,
     https://legal.yahoo.com/us/en/yahoo/terms/otos/index.html.
+  - >-
+    2026-10-26 whole-frontend release acceptance remains open under the binding
+    human instruction
+    `/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`:
+    the deployed `6d0` source is a functional baseline, not final visual
+    acceptance. TC2000 is the single presentation writer for the shared shell,
+    router, theme, and all reachable screens. Provider's contribution is the
+    domain-contract review in its own handoff only; no Provider frontend or
+    presentation implementation is authorized here. This release-level
+    requirement does not replace, reduce, or mark complete any of the 24
+    Provider roadmap criteria or the accepted Provider checkpoint.
 progress:
   history:
     - >-
@@ -7187,6 +7198,21 @@ progress:
       volumes were preserved. Exact-source CI and current-source provider live
       dispositions remain pending; no frontend file was changed, no provider
       request was made, and the historical live receipt remains source-bound.
+    - >-
+      2026-10-26 whole-frontend TC2000 presentation handoff: on clean published
+      Provider source `a1698ec2f8ef27e3e29aac89e8673964327e31fc`, reviewed the
+      Provider settings, chart, coverage, series-selection, freshness, and
+      legacy-route contracts under the binding human instruction
+      `/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`
+      and Root dispatch
+      `/home/m920q/charting-platform/.ai/staging-attempts/provider-whole-frontend-tc2000-reconciliation-20261026-dispatch.json`.
+      TC remains the sole presentation writer; Provider records the exact
+      domain inventory and acceptance checks in its handoff and makes no
+      presentation changes. Exact adoption Actions `40287850396` is still
+      in progress at review time: Backend, Frontend Unit, and Branch-declared
+      succeeded; Playwright is running; Exhaustive is skipped by branch
+      policy. This run is not yet a terminal result. Whole-frontend acceptance
+      remains unresolved and does not alter Provider roadmap/checkpoint status.
   completed: []
   total: 5
   current_phase: exact_source_ci_green_full_profile_pending
@@ -9284,3 +9310,10 @@ current_gate_checkpoint: >-
     provider/issuer/SEC egress denial. No provider HTTP, quota mutation,
     staging/sibling/master write, deployment, paid/trial activation, or
     retained-resource cleanup.
+    CURRENT ACTION — 2026-10-26: TC owns the whole-frontend visual
+    reconciliation under the cited human instruction. Provider's review-only
+    domain contract is recorded in its handoff; do not edit presentation paths
+    or add a parallel theme. Preserve the existing Provider roadmap, all holds,
+    and the required full profile. Wait for the exact current adoption CI and
+    Root's coordination before resuming Provider-owned work; this review does
+    not waive or complete any local/hosted release gate.

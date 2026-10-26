@@ -126,7 +126,7 @@
   "local_validation_profile": "full_stack_browser",
   "next_action": "After Root releases publication following independent master CI, continue Provider-owned AC-UNIVERSE-COMPLETE and remaining roadmap work from adopted staging 6d0a85da34ba276bca69c82a932a0602e783d7a1. Root reports the genuine bounded SEC acquisition occurred once; do not replay it. Root owns the private target update/offline IWM reparse and API/UI acceptance. Preserve all holds and the consumed 119-request no-replay boundary; no new provider transport, quota mutation, deployment or self-integration.",
   "parent_branch": "staging",
-  "plan_hash": "696399853b6c6cbdaff899ee691cd5d9c8d7d434f7e4e504a3846d9752b9c2aa",
+  "plan_hash": "dd9962ab0976d3b709e6dffb7bb4c3e1a7e95286f9783d5f1b020fdb52fe1faf",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

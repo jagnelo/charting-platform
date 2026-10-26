@@ -31824,3 +31824,105 @@ state was changed; no tests or network calls were made.
   until Root releases it after independent master green. Next Provider-owned
   action remains `AC-UNIVERSE-COMPLETE`; do not implement it in this adoption
   context.
+
+## 2026-10-26 — Provider domain review for whole-frontend TC2000 reconciliation
+
+Binding authority: human instruction
+`/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`
+and Root dispatch
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-whole-frontend-tc2000-reconciliation-20261026-dispatch.json`.
+The human requires one consistent TC2000-style experience across the whole
+frontend. TC is the sole presentation writer for the shell, router, theme, and
+all reachable screens. This is a review-only Provider handoff; Provider's
+backend/domain ownership, all roadmaps, holds, and accepted checkpoint remain
+unchanged. The deployed `6d0` source is a functional baseline, not final UI
+acceptance.
+
+### Provider surface inventory and preserved contracts
+
+- **Shared shell and route leak:** `frontend/src/App.vue:3-44,68-70` chooses
+  the old narrow icon sidebar whenever `route.path.startsWith('/legacy/')` and
+  places `StatusBar` only in that shell. The sidebar links directly to legacy
+  dashboard/chart/alerts/radar/Strategy/ETF/baskets/watchlist/screener/settings
+  routes. `frontend/src/router/index.ts:23-55` retains both workstation routes
+  and legacy routes; `/settings` redirects to `/legacy/settings`, which mounts
+  `SettingsView`. This is a concrete old-shell navigation leak. TC should
+  reconcile the shared shell for both route families and direct legacy URLs,
+  preserving URLs, authentication guard, view behavior, and back/forward/deep
+  links; do not hide a legacy screen or create redirect loops.
+- **Provider policies, usage, availability and errors:** the Provider section
+  is embedded in `frontend/src/views/SettingsView.vue:41-60,92-143,170-203,
+  206-264`; its current reads are `/providers/policies`, `/providers/usage`,
+  `/providers/availability`, and `/providers/availability/runs?limit=8`
+  (`:574-595`). Admin policy writes are capability-specific
+  `/providers/policies/{provider}/{capability}` patches (`:599-609`); retain
+  the admin-only boundary and distinct enabled, pinned/fallback, auto-weight,
+  priority, rate/burst, and freshness controls. A policy being enabled is not
+  proof of entitlement, quota admission, availability, or current data. Keep
+  operation holds and disabled/unavailable states explicit; do not add a
+  refresh/bootstrap/live-provider action to the visual surface.
+- **Quota and credential safety:** `frontend/src/types/index.ts:1090-1195`
+  exposes policy, health, usage-window, unit, operation, capability and error
+  summaries, but no provider credential fields. Backend runtime bounds/redacts
+  provider error messages before the settings response
+  (`backend/app/services/provider_runtime.py:2908,2932-2934,3588`;
+  `backend/app/routers/providers.py:1092`). Preserve that boundary: show only
+  safe error class/message, never raw credentials, headers, response bodies or
+  secret-bearing URLs. Keep calls distinct from provider units and preserve
+  `quota` versus `estimated` versus `unknown`; null/unreported values must not
+  be styled or reformatted as an asserted zero. The current settings helpers
+  render null units/percentages as zero (`SettingsView.vue:415-426`), so add a
+  null-versus-zero presentation check when TC adapts this surface.
+- **Canonical series, adjustment and local coverage:** `frontend/src/stores/chart.ts:171-213`
+  defaults chart reads to `adjusted: true`; normal data uses `/ohlcv/{symbol}/{tf}`
+  (or `/transformed`), while explicit local-only reads use `/ohlcv/local/...`
+  or `local_only=true`. The browser does not choose a `series_id`; preserve the
+  server's selected/default-series result and never merge alternate-series bars
+  client-side. `CoverageSummaryTool.vue:1-61,187-217,243-270` reads
+  `/coverage/instruments/{symbol}` and the bounded `/ohlcv` coverage endpoint,
+  preserving adjusted, timeframe, historical/latest, UTC range, missing-slice,
+  error and cached query behavior. Keep it explicitly local/canonical coverage;
+  do not turn a coverage check into data acquisition.
+- **Freshness, lineage, unknowns and accessibility:**
+  `frontend/src/lib/workstation/freshness.ts:43-67` distinguishes current by
+  canonical policy, delayed, stale, partial, coverage-limited, fetching and
+  unavailable; “current” is not a real-time quote. The chart shell renders this
+  state in `WorkstationView.vue:134-139,229-234,761-771`. Preserve
+  provider-observed, derived and unknown lineage plus raw/adjusted/unspecified/
+  mixed adjustment from `ohlcvProvenance.ts:3-48` and chart ARIA summaries in
+  `UPlotChart.vue:1-15,554-558`. Coverage accessibility also reports factor,
+  storage and cadence evidence without claiming that factors recalculated
+  prices (`ohlcvCoverageAccessibility.ts:15-22`,
+  `CoverageSummaryTool.vue:138-174`). Retain keyboard, screen-reader, mobile,
+  loading/error/empty and stale-cache behavior while changing presentation.
+- **Status surfaces:** legacy `StatusBar.vue:1-63` polls `/health` on its own
+  30-second interval. The workstation has separate freshness/error status and
+  periodic market-analysis refresh ownership in `WorkstationView.vue:780-815`.
+  Preserve their distinct meanings and avoid duplicate polling or implying a
+  health response is provider availability.
+
+### Review acceptance checks for TC
+
+1. Inventory every current router entry and alias from `router/index.ts`, and
+   demonstrate that direct legacy paths, aliases, workstation, popout, login,
+   and Settings all receive the consistent shell without losing route/auth
+   behavior.
+2. Exercise Provider Settings for admin and ordinary users: only admins see
+   policy controls; capability-level holds/disabled states remain explicit;
+   usage calls/units and quota/estimated/unknown remain distinct; null is
+   visibly different from numeric zero; error output is redacted.
+3. Exercise a selected-series chart and Coverage Summary for adjusted and raw,
+   local-only and normal chart modes, range/missing/stale/partial/unavailable
+   states, and provider/derived/unknown lineage. Confirm no alternate-series
+   client merge and no appearance control initiates provider acquisition.
+4. Verify consistent visual language across these Provider surfaces and all
+   other reachable screens while retaining keyboard/screen-reader behavior,
+   mobile layouts, saved settings, chart navigation and existing workflows.
+
+At review time, exact adoption CI `40287850396` on `a1698ec2f8ef27e3e29aac89e8673964327e31fc`
+was still `in_progress`: Backend, Frontend Unit, and Branch-declared passed;
+Playwright was running; Exhaustive was skipped by branch policy. No failure
+was reported at that observation. This review ran no tests and made no
+frontend, backend, provider, quota, service, sibling, staging, master or
+deployment change. TC may consume this inventory; Root owns final qualification
+and integration.
