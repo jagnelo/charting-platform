@@ -1,18 +1,79 @@
 # feat/etf-holdings-constituents
 
-## Current accepted checkpoint — FQC source readiness
+## Current accepted checkpoint — retained IWM N-PORT correction source readiness
+
+Root accepted the retained-IWM N-PORT normalization and append-only correction
+at validated implementation `b640ca47f74c2251cdebadd87c32dd87a751f64c` under
+the existing human-delegated checkpoint authority; this records Root's decision,
+not a new human quote. Acceptance record:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-checkpoint-source-acceptance-20261025.md`.
+Final local audit:
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-b640ca47-final-local-audit-20261025.json`
+(SHA256 `22588eb610971f95ddf78778a48fb6288173127b891bdbb44c0b22f7875f299a`).
+Exact source CI40224026620 is green. The complete local qualification recorded
+5,503 backend unit passes/1 existing native opt-in skip, 544 integration
+passes/4 existing skips, 84.45% combined coverage, 1,353 frontend tests plus
+build, 195 functional passes/2 existing live-held skips, and 104 strict visual
+passes with zero retries. The backend composite preserves both failed attempts
+and uses only independently green checkpoints plus corrected short-path cases;
+consult the audit for component provenance. Research component reuse is not
+fresh standalone probe evidence. Cleanup_error0/restore_proved1, all five
+inventory diffs empty, no owned app resources remaining, and genuine private
+Study5/479 bars preserved; this b640 local qualification made no provider request or target-service pause.
+The source correction handles SEC percentages without forced renormalization,
+keeps OTHER/Right as non-equity evidence, and appends an idempotent correction-
+time snapshot while retaining original raw and snapshot observation lineage.
+No migration was added by this correction; model/migration/dependency inputs
+match accepted staging.
+
+This closes source readiness for the retained-IWM correction only. The actual
+target has not been corrected or reparsed by this owner; Root owns target
+application and API/UI acceptance. No current/native route qualification,
+normal-route enablement, deployment, paid/trial operation or full feature
+completion is claimed. Preserve accepted FQ1-FQ8 and FHSC1-FHSC7 history, all
+AC1-AC14, both current summaries' `15 Tier-0 and 156 Tier-1`, holds and
+quarantines, raw/PIT evidence, the 119-request spent history, and the 30-day
+observation. Root watches the exact final records HEAD CI and owns subsequent
+integration; this closure uses `integration_capture: exact branch HEAD`.
+
+Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The final
+records-only closure HEAD will receive its own exact-source CI; no post-push
+metadata refresh is planned. Root owns the target reparse/API/UI gate and
+subsequent integration.
+
+### Closure-review clarification — retained IWM sample and idempotent correction
+
+The real historical IWM N-PORT sample was acquired earlier on accepted source
+`3ff96af855a49d42b1dee10cecb43bc6690f4502`: job 1, raw artifact 1, snapshot 1,
+accession `0002071691-26-012507`, report/composition date `2026-03-31`, and
+1,946 rows. It exposed the weight/category defect corrected by b640. The accepted
+correction has not yet been applied to the target; Root owns deployment, the
+no-network append-only reparse, and corrected API/UI acceptance. Current/native
+holdings remain unverified and ordinary routes stay disabled. A repeated
+identical valid retained-artifact correction returns the existing corrected
+version without another snapshot or external request; invalid identity, URL,
+basename, or authority remains rejected.
+
+## Previously accepted checkpoint — FQ1-FQ8 source readiness (historical)
 
 Root accepted FQ1–FQ8 source readiness at `a7d0f25064e98f8c3015e9866804f7a68fcaa263`
 on 2026-10-25T13:33:51Z under the existing delegated checkpoint authority.
-Exact-source CI40191164658 is green. The complete local profile passed
+Exact-source CI40191164658 is green. The accepted source tree is now in
+synchronized green staging `3ff96af855a49d42b1dee10cecb43bc6690f4502`,
+CI40202604218 (receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json`).
+The fast-forward tree matched the pre-adoption ETF tip exactly. Independent
+master CI40210522503 is live; this owner holds push of the local records-only
+reconciliation until Root releases it. The complete local profile passed
 195 functional cases with 2 existing live-held skips and all 104 strict visuals;
 zero retries, cleanup and global inventory checks passed, and private Study 5
 readback verified 479 bars. Acceptance and audit:
 `/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-checkpoint-source-acceptance-20261025.md`
 and `/home/m920q/charting-platform/.ai/staging-attempts/etf-a7d0f250-final-local-audit-20261025.json`.
-The exact final closure-head CI and Root-owned staging integration remain next.
-No real SEC acquisition, target/UI acceptance, live route enablement, or full
-AC1–AC14 roadmap completion is claimed; preserve disabled policy and all holds.
+Root remains responsible for publication release after the master gate and for
+the actual SEC acquisition/target acceptance. No real SEC acquisition, target/UI
+acceptance, live route enablement, or full AC1–AC14 roadmap completion is
+claimed; preserve disabled policy and all holds.
 
 ## Audit-link correction — 2026-10-25
 
@@ -16431,6 +16492,95 @@ every AC1–AC14 text/disposition, `15 Tier-0 and 156 Tier-1`, the 119-request
 history, quarantines, raw/PIT lineage, held operations and 30-day observation.
 No new migration paths were added relative to accepted staging5b; the
 `backend/alembic` diff is empty and the target remains at head `d4a5b6c7e812`
-(124 revisions). Root owns actual one-fund invocation/UI acceptance after
-separate live prerequisites. Final closure-head CI and persistent-staging
-integration remain pending. integration_capture: exact branch HEAD.
+(124 revisions). The accepted FQ source is integrated in green staging
+`3ff96af855a49d42b1dee10cecb43bc6690f4502`; master CI40210522503 is live. This
+local record reconciliation remains unpushed pending Root's release. Root owns
+actual one-fund invocation/UI acceptance after separate live prerequisites.
+The full roadmap remains active. integration_capture: exact branch HEAD.
+
+## Retained IWM N-PORT normalization and append-only correction — 2026-10-25
+
+Continuing the full AC1–AC14 roadmap after the accepted FQ1–FQ8 source-readiness
+checkpoint. Root supplied the retained IWM filing bytes for offline parsing only:
+accession `0002071691-26-012507`, raw file SHA256
+`48befdf670e0a0258dfbb8b67489e964827fdf041cdabec657cd14a71a8a632c`, 1,924,454
+bytes. No target snapshot was changed and no filing was fetched in this owner
+turn. The official Form N-PORT identifies C2.d as percent of net assets and C4
+as a category distinction; the parser therefore converts N-PORT percentage
+fields even when values are below one, while preserving genuinely fractional
+generic weight aliases. It does not renormalize gross exposure to 100%.
+
+The current parser run over the retained bytes produced 1,946 rows and gross
+fractional weight `1.14096388613052` (114.096388613052%, retained as reported).
+Radian Group's `pctVal=0.152721985047` becomes `0.00152721985047`; Coeur Mining's
+`pctVal=0.648126277059` becomes `0.00648126277059`. EC/EP map to existing
+common/preferred equity types; DE, STIV and other categories remain distinct.
+All seven namespace-tolerant conditional `OTHER` / `Right` entries retain their
+conditional attributes and remain non-equity/unresolved. Missing ticker does
+not create a synthetic tradable symbol. These checks use only the retained
+artifact; no HTTP or database access occurred.
+
+Added an administrator-only
+`POST /api/v1/etf-holdings/{symbol}/snapshots/{snapshot_id}/reparse-sec-nport`
+operation that parses only an already-retained SEC N-PORT artifact and makes no
+network request. It verifies the SEC raw hash and lineage, profile and body
+series/class, HTTPS SEC archive URL, strict numeric profile/URL CIK equality,
+accession syntax, and URL accession-directory equality. The accepted IWM
+identity is an explicit regression: padded profile CIK `0001100663`, URL CIK
+directory `1100663`, accession `0002071691-26-012507`, and URL directory
+`000207169126012507`. The accession prefix `0002071691` is a filing-agent
+identifier and is deliberately not compared to the fund CIK. The test asserts
+that this prefix differs from the padded profile CIK, so a same-prefix
+synthetic fixture cannot hide a regression. The URL must also have the exact
+archive path shape and a safe ASCII `.xml` basename; the DB regression rejects
+`.json`, a Unicode basename and a wildcard before accepting the retained IWM
+URL.
+
+Reparse appends a corrected snapshot with `known_at` equal to correction time;
+it preserves the original snapshot and its prior `known_at`, original raw bytes,
+canonical raw hash and `fetched_at`, existing profile metadata, composition
+date, filing date and unknown publication date. The new snapshot's
+`parser_correction` lineage records the source snapshot's prior observation
+time separately from correction availability. Repetition returns the same
+corrected version. Existing ordinary import and generic profile-update
+semantics are unchanged.
+
+Root allocated one isolated PostgreSQL API run using the same private fixture.
+Attempt 1 at `/tmp/etf-iwm-focused-api-20261025/focused-api.log` exited 1 after
+14.73s. The `.json` filename rejection passed, but the Unicode dotless-i
+basename `prımary_doc.xml` returned 200 instead of 409. The cause was Python
+`re.IGNORECASE` Unicode case folding in the new filename check. The code now
+uses the same ASCII+ignore-case filename grammar as the accepted committed
+filing-reference validator, including its 251-character bound and `..`
+rejection. The stack-free safe-name predicate tests all pass, including
+dotless-i, wildcard, non-XML, and traversal inputs.
+
+Root authorized one changed-source retry. Attempt 2 ran the same API/PIT case
+once and passed: 1 passed in 13.61s, five dependency deprecation warnings,
+zero retries, zero provider requests, and the runner confirmed all four source
+hashes unchanged during execution. Result and log:
+`/tmp/etf-iwm-focused-api-20261025/focused-api-attempt2-result.json` and
+`/tmp/etf-iwm-focused-api-20261025/focused-api-attempt2.log`. Root owns fixture
+cleanup; no fixture/service cleanup was performed by this owner.
+
+Validation passed: both stack-free SEC parser and resolution unit modules,
+96/96 before the final filename-only correction; the seven safe-name predicate
+cases passed after it. Ruff check and format check passed on the changed Python
+files; Python compilation and `git diff --check` passed. The integration test's
+imports were sorted by Ruff after the first check reported I001. An initial raw-parser command used
+the wrong import path and failed before parsing; the corrected UV-managed
+offline invocation succeeded and printed only hashes/counts/selected rows.
+No database fixture, target read/write, provider/SEC request, quota use, browser,
+Docker service action or cleanup occurred. The sandbox Docker readiness attempt
+at 18:37:21Z was denied after 180s; a later narrowly escalated readiness check
+returned `ready=true`, `started_desktop=false`, `wait_seconds=0`. The earlier
+denial remains a historical failed attempt, not retroactively green.
+
+This is not a new checkpoint acceptance or deployment proof. Root owns applying
+the parser correction to the retained target artifact after source review and
+required gates. Exact new-source PostgreSQL validation, complete integration,
+full-stack/browser validation and exact-source CI remain pending. Preserve the
+accepted FQ1–FQ8 and FHSC source-readiness history, all fourteen AC criteria,
+`15 Tier-0 and 156 Tier-1`, the 119-request history, holds, quarantines,
+retained historical data, raw/PIT semantics and the 30-day observation. The
+full roadmap remains active.

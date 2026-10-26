@@ -3770,6 +3770,246 @@ def test_sec_nport_ingestion_reconstructs_filing_holdings(
     )
 
 
+def test_admin_reparses_retained_sec_nport_as_append_only_pit_version(
+    client, admin_headers, auth_headers, db, monkeypatch
+):
+    from app.models.etf_holdings import (
+        ETFHolding,
+        ETFHoldingsRawArtifact,
+        ETFHoldingsSnapshot,
+        ETFProfile,
+    )
+    from app.routers import etf_holdings as etf_holdings_router
+    from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+    imported_at = datetime(2026, 10, 25, 18, 31, tzinfo=UTC)
+    correction_at = datetime(2026, 10, 25, 20, 0, tzinfo=UTC)
+    now_values = iter((imported_at, correction_at, correction_at))
+    monkeypatch.setattr("app.services.etf_holdings._now", lambda: next(now_values))
+    # Model the retained v1 parse already stored before the parser correction.
+    monkeypatch.setattr(
+        etf_holdings_router,
+        "parse_sec_nport_xml",
+        lambda _raw: (
+            date(2026, 3, 31),
+            [
+                CanonicalHoldingRow(
+                    name="Coeur Mining, Inc.",
+                    cusip="192108504",
+                    weight=Decimal("0.648126277059"),
+                    holding_type="ec",
+                    row_type="security",
+                    source_row_id="1",
+                    extra_data={"assetCat": "EC"},
+                )
+            ],
+        ),
+    )
+    symbol = "NPORTREPARSE"
+    accession = "0002071691-26-012507"
+    filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" "000207169126012507/primary_doc.xml"
+    )
+    # The accession's leading digits identify the filing agent, not this fund.
+    # Keep the reviewed IWM case distinct from a synthetic accession/CIK match.
+    assert accession[:10] == "0002071691"
+    assert accession[:10] != "0001100663"
+    assert "/data/1100663/000207169126012507/" in filing_url
+    legal_metadata = {
+        "source_access": "sec_filing",
+        "source_format": "nport_xml",
+        "accession_number": accession,
+        "form": "NPORT-P",
+        "fund_identity": {
+            "series_id": "S000004344",
+            "class_id": "C000012074",
+        },
+    }
+    profile = client.patch(
+        f"/api/v1/etf-holdings/{symbol}/profile",
+        json={
+            "sec_cik": "0001100663",
+            "sec_series_id": "S000004344",
+            "sec_class_id": "C000012074",
+            "legal_metadata": {"operator_note": "preserve this profile context"},
+        },
+        headers=admin_headers,
+    )
+    assert profile.status_code == 200
+
+    original_response = client.post(
+        f"/api/v1/etf-holdings/{symbol}/ingest-sec-nport",
+        json={
+            "raw_xml": """
+            <edgarSubmission><formData><genInfo><repPdDate>2026-03-31</repPdDate>
+              <seriesId>S000004344</seriesId><classId>C000012074</classId></genInfo>
+              <invstOrSecs><invstOrSec><name>Coeur Mining, Inc.</name>
+                <cusip>192108504</cusip><valUSD>466103735.06000000</valUSD>
+                <pctVal>0.648126277059</pctVal><assetCat>EC</assetCat>
+              </invstOrSec></invstOrSecs></formData></edgarSubmission>
+            """,
+            "accession_number": accession,
+            "filing_url": filing_url,
+            "legal_metadata": legal_metadata,
+        },
+        headers=admin_headers,
+    )
+    assert original_response.status_code == 200, original_response.text
+    original = original_response.json()
+    original_id = original["id"]
+    original_snapshot = db.get(ETFHoldingsSnapshot, original_id)
+    original_artifact_id = original_snapshot.source_artifact_id
+    original_artifact = db.get(ETFHoldingsRawArtifact, original_artifact_id)
+    profile_metadata_before = dict(
+        db.get(ETFProfile, original_snapshot.etf_profile_id).legal_metadata
+    )
+    original_snapshot_hash = original_snapshot.snapshot_hash
+    original_raw = original_artifact.payload_text
+    original_raw_hash = original_artifact.content_hash
+    original_raw_fetched_at = original_artifact.fetched_at
+    original_known_at = original_snapshot.known_at
+    original_holding = db.query(ETFHolding).filter(ETFHolding.snapshot_id == original_id).one()
+    original_weight = original_holding.weight
+
+    denied = client.post(
+        f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+        headers=auth_headers,
+    )
+    assert denied.status_code == 403
+
+    for invalid_cik in ("0001100664", "0001100x63", "0000000000"):
+        mismatched_cik = client.patch(
+            f"/api/v1/etf-holdings/{symbol}/profile",
+            json={"sec_cik": invalid_cik},
+            headers=admin_headers,
+        )
+        assert mismatched_cik.status_code == 200
+        rejected = client.post(
+            f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+            headers=admin_headers,
+        )
+        assert rejected.status_code == 409
+        assert (
+            db.query(ETFHoldingsSnapshot)
+            .filter_by(etf_profile_id=original_snapshot.etf_profile_id)
+            .count()
+            == 1
+        )
+    restored_cik = client.patch(
+        f"/api/v1/etf-holdings/{symbol}/profile",
+        json={"sec_cik": "0001100663"},
+        headers=admin_headers,
+    )
+    assert restored_cik.status_code == 200
+
+    for invalid_document in ("primary_doc.json", "prımary_doc.xml", "primary*.xml"):
+        invalid_url = filing_url.rsplit("/", 1)[0] + "/" + invalid_document
+        original_snapshot.source_url = invalid_url
+        original_artifact.source_url = invalid_url
+        db.flush()
+        rejected_url = client.post(
+            f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+            headers=admin_headers,
+        )
+        assert rejected_url.status_code == 409
+        assert (
+            db.query(ETFHoldingsSnapshot)
+            .filter_by(etf_profile_id=original_snapshot.etf_profile_id)
+            .count()
+            == 1
+        )
+        original_snapshot.source_url = filing_url
+        original_artifact.source_url = filing_url
+        db.flush()
+
+    corrected_response = client.post(
+        f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+        headers=admin_headers,
+    )
+    assert corrected_response.status_code == 200, corrected_response.text
+    corrected = corrected_response.json()
+    corrected_id = corrected["id"]
+    assert corrected_id != original_id
+    assert corrected["parser_version"] == "sec-nport-v2"
+    assert corrected["known_at"] == "2026-10-25T20:00:00Z"
+    assert corrected["known_at"] != original["known_at"]
+    assert corrected["published_at"] is None
+    assert corrected["composition_date"] == original["composition_date"]
+    assert corrected["as_of_date"] == original["as_of_date"]
+    assert corrected["source_identifier"] == accession
+    assert corrected["source_url"] == filing_url
+    assert corrected["holdings"][0]["weight"] == "0.00648126"
+    assert corrected["holdings"][0]["holding_type"] == "common_stock"
+    assert corrected["holdings"][0]["is_resolved"] is False
+    assert corrected["holdings"][0]["constituent_instrument_id"] is None
+
+    correction_lineage = corrected["extra_data"]["parser_correction"]
+    assert correction_lineage["source_snapshot_id"] == original_id
+    assert correction_lineage["source_snapshot_hash"] == original_snapshot_hash
+    assert correction_lineage["raw_artifact_id"] == original_snapshot.source_artifact_id
+    assert correction_lineage["raw_content_hash"] == original_raw_hash
+    assert correction_lineage["source_identifier"] == accession
+    assert correction_lineage["source_url"] == filing_url
+    assert correction_lineage["source_snapshot_known_at"] == original_known_at.isoformat()
+    assert correction_lineage["raw_fetched_at"] == original_raw_fetched_at.isoformat()
+
+    db.expire_all()
+    retained_original = db.get(ETFHoldingsSnapshot, original_id)
+    retained_artifact = db.get(ETFHoldingsRawArtifact, original_artifact_id)
+    retained_original_holding = (
+        db.query(ETFHolding).filter(ETFHolding.snapshot_id == original_id).one()
+    )
+    retained_corrected = db.get(ETFHoldingsSnapshot, corrected_id)
+    assert retained_original.snapshot_hash == original_snapshot_hash
+    assert retained_original.known_at == original_known_at
+    assert retained_original_holding.weight == original_weight
+    assert retained_original_holding.holding_type == "ec"
+    assert retained_artifact.payload_text == original_raw
+    assert retained_artifact.content_hash == original_raw_hash
+    assert retained_artifact.fetched_at == original_raw_fetched_at
+    assert retained_corrected.source_artifact_id == retained_artifact.id
+
+    before_correction = (
+        db.query(ETFHoldingsSnapshot)
+        .filter(
+            ETFHoldingsSnapshot.etf_profile_id == retained_original.etf_profile_id,
+            ETFHoldingsSnapshot.known_at
+            <= correction_at.replace(microsecond=0) - timedelta(seconds=1),
+        )
+        .order_by(ETFHoldingsSnapshot.known_at.desc(), ETFHoldingsSnapshot.id.desc())
+        .first()
+    )
+    after_correction = (
+        db.query(ETFHoldingsSnapshot)
+        .filter(
+            ETFHoldingsSnapshot.etf_profile_id == retained_original.etf_profile_id,
+            ETFHoldingsSnapshot.known_at <= correction_at,
+        )
+        .order_by(ETFHoldingsSnapshot.known_at.desc(), ETFHoldingsSnapshot.id.desc())
+        .first()
+    )
+    assert before_correction.id == original_id
+    assert after_correction.id == corrected_id
+
+    assert (
+        db.get(ETFProfile, retained_original.etf_profile_id).legal_metadata
+        == profile_metadata_before
+    )
+
+    repeated = client.post(
+        f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+        headers=admin_headers,
+    )
+    assert repeated.status_code == 200, repeated.text
+    assert repeated.json()["id"] == corrected_id
+    assert (
+        db.query(ETFHoldingsSnapshot)
+        .filter_by(etf_profile_id=original_snapshot.etf_profile_id)
+        .count()
+        == 2
+    )
+
+
 def test_sec_legacy_ingestion_reconstructs_table_like_filing_holdings(
     client, admin_headers, auth_headers, monkeypatch
 ):
