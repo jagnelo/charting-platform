@@ -222,12 +222,12 @@ body {
   border-color: var(--tc-border);
   background-color: var(--tc-header-bottom);
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]) {
+#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]))) {
   border-color: var(--tc-border-strong);
   background-color: var(--tc-control-bg);
   color: var(--tc-text);
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):hover:not(:disabled) {
+#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]))):hover {
   border-color: var(--tc-accent);
 }
 #app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"],[role="row"],tr,[class*="-item"],[class*="-card"],[class*="-row"],[class*="-target"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]) {

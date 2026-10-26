@@ -24,6 +24,8 @@ vi.mock('@/stores/alerts', () => ({ useAlertsStore: () => stores.alerts }))
 import App from '@/App.vue'
 
 const appSource = readFileSync(resolve(process.cwd(), 'src/App.vue'), 'utf8')
+const appStyles = appSource.match(/<style>\s*([\s\S]*?)<\/style>/)?.[1] ?? ''
+const workstationTokens = readFileSync(resolve(process.cwd(), 'src/styles/workstation-tokens.css'), 'utf8')
 
 const page = { template: '<section>Route content</section>' }
 
@@ -76,6 +78,62 @@ describe('application shell', () => {
     expect(appSource).toContain('[class*="status"]')
     for (const teleportedSurface of ['.editor-box', '.indicator-settings-dialog', '.row-dropdown', '.quick-link-menu', '[class*="-results"]', '[role="tooltip"]', '.notification']) {
       expect(appSource, `teleported surface ${teleportedSurface}`).toContain(teleportedSurface)
+    }
+  })
+
+  it('keeps selected buttons, cards, rows, and tabs distinguishable from neutral controls', () => {
+    const style = document.createElement('style')
+    style.textContent = `${workstationTokens}\n${appStyles}`
+    document.head.append(style)
+    document.body.innerHTML = `
+      <div id="app" class="tc-legacy-app">
+        <div class="tc-app-route-frame">
+          <button class="holding-row">Ordinary holding</button>
+          <button class="holding-row holding-row--selected" aria-selected="true">IWM</button>
+          <div class="basket-card">Ordinary basket</div>
+          <div class="basket-card basket-card--active">Selected basket</div>
+          <table><tbody>
+            <tr><td>Ordinary row</td></tr>
+            <tr class="holding-row--selected" aria-selected="true"><td>Selected row</td></tr>
+          </tbody></table>
+          <button role="tab">Ordinary tab</button>
+          <button role="tab" class="workstation__tab--active" aria-selected="true">Selected tab</button>
+          <button disabled>Disabled</button>
+          <button class="provider-status-warning">Provider status</button>
+        </div>
+      </div>`
+
+    try {
+      const frame = document.querySelector('.tc-app-route-frame')!
+      const computed = (selector: string, property: 'backgroundColor' | 'color') =>
+        getComputedStyle(frame.querySelector(selector) as Element)[property]
+      expect(computed('.holding-row:not(.holding-row--selected)', 'backgroundColor'))
+        .not.toBe(computed('.holding-row--selected[aria-selected="true"]', 'backgroundColor'))
+      expect(computed('.holding-row:not(.holding-row--selected)', 'color'))
+        .not.toBe(computed('.holding-row--selected[aria-selected="true"]', 'color'))
+      expect(computed('.basket-card', 'backgroundColor')).not.toBe(computed('.basket-card--active', 'backgroundColor'))
+      expect(computed('tr:not([aria-selected="true"]) > td', 'backgroundColor'))
+        .not.toBe(computed('tr[aria-selected="true"] > td', 'backgroundColor'))
+      expect(computed('[role="tab"]:not([aria-selected="true"])', 'color'))
+        .not.toBe(computed('[role="tab"][aria-selected="true"]', 'color'))
+      expect(computed('.provider-status-warning', 'backgroundColor'))
+        .not.toBe(computed('.holding-row:not(.holding-row--selected)', 'backgroundColor'))
+
+      const disabled = frame.querySelector('button:disabled')!
+      expect(getComputedStyle(disabled).opacity).toBe('0.58')
+      expect(getComputedStyle(disabled).cursor).toBe('not-allowed')
+
+      const rules = Array.from(style.sheet?.cssRules ?? [])
+        .filter((rule): rule is CSSStyleRule => 'selectorText' in rule && 'style' in rule)
+      const buttonHover = rules.find(rule => rule.selectorText.includes(':where') && rule.selectorText.endsWith(':hover'))
+      expect(buttonHover?.style.length).toBe(1)
+      expect(buttonHover?.style.getPropertyValue('border-color')).toBe('var(--tc-accent)')
+      expect(buttonHover?.style.getPropertyValue('background-color')).toBe('')
+      expect(buttonHover?.style.getPropertyValue('color')).toBe('')
+      expect(rules.some(rule => rule.selectorText.includes('tr:is(') && rule.selectorText.includes(':hover > td'))).toBe(true)
+    } finally {
+      document.body.innerHTML = ''
+      style.remove()
     }
   })
 

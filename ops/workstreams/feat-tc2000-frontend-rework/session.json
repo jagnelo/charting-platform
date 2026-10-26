@@ -40,8 +40,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact published baseline f80995c3ed680263ca0db405d4dd03c9aafc1646 CI40287957823 is terminal green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration was skipped by feature-CI policy. This receipt does not qualify the current whole-frontend candidate, whose exact-source CI is pending publication.",
-  "current_checkpoint_status": "Whole-frontend presentation candidate is based on f80995c3ed680263ca0db405d4dd03c9aafc1646. Root accepted the 6d0 private correction/API/functional baseline; this is not acceptance of whole-frontend TC presentation or the full roadmap. The candidate adds the shared responsive legacy shell, actual routed-root/theme styles (ETF root .holdings-view), teleported surface styling, login/status/notification and Settings null/unknown states. Focused checks are 15/15, vue-tsc/build pass, and scope/workstream/YAML/diff checks pass. Candidate exact-source CI and the reserved full functional/strict visual profile remain pending; F8y and official V25 remain open.",
+  "current_candidate_ci_status": "Published candidate 8457e90299b1d8de2becb75911668c8810a64845 is rejected as final whole-frontend acceptance after Root reproduced a selected-button CSS specificity defect. Its exact CI status is not verified in this session. The corrected source is under focused validation; its exact-source CI and Root-assigned full functional/strict-visual profile remain pending. Do not substitute baseline f809 CI40287957823.",
+  "current_checkpoint_status": "Whole-frontend shell/theme work remains in progress, not accepted. The published 8457 candidate had a confirmed defect: ordinary and selected holding buttons computed identically. The current correction lowers neutral-button specificity with :where() and excludes selected/active/disabled controls. The computed-style regression passes across holding buttons, cards, table rows, tabs, semantic status, disabled appearance and hover declarations; the related 16 tests and Vue typecheck/build pass. Corrected-source exact CI and the Root-assigned complete functional/strict-visual profile remain pending. Preserve all routes, domain contracts, original references/masks/tolerance/zero retries, F8y evidence, AC1-AC9 and official V25.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
@@ -56,23 +56,7 @@
     },
     "visuals": "No new visual or full local profile result is claimed for the dirty candidate. Preserve F8y, original references/masks/tolerances/zero retries, full profile and official V25 as open."
   },
-  "dirty_paths": [
-    "frontend/src/App.vue",
-    "frontend/src/components/common/Notification.vue",
-    "frontend/src/components/common/StatusBar.vue",
-    "frontend/src/router/index.ts",
-    "frontend/src/views/LoginView.vue",
-    "frontend/src/views/SettingsView.vue",
-    "frontend/tests/unit/router/test_app_shell.test.ts",
-    "frontend/tests/unit/router/test_application_routes.test.ts",
-    "frontend/tests/unit/views/test_settings_view.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/ownership-reconciliation.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "scripts/validate-tc2000-scope.py"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -223,7 +207,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish this one coherent candidate to the existing TC feature branch. Then inspect its exact-source CI and give the clean source to Root for the reserved isolated full-profile slot. Do not use retained/default assigned services, relax any reference/mask/tolerance/assertion, or change retries.",
+  "next_action": "After the correction is published, inspect its exact-source CI and give Root the clean candidate for the reserved isolated full functional/strict-visual profile. Keep whole-frontend acceptance, F8y, AC1-AC9 and official V25 open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -236,7 +220,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "df4a291aa177af9e44a648642b08005796eb6f8044fe2ac40334fd7ac4625ec2",
+  "plan_hash": "fbfa969ee91e594b53c47f75bf36dbbe2e5d3cc7ee0261d98801017c56d82b32",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

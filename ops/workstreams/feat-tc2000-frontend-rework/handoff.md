@@ -1,5 +1,31 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — selected-state CSS cascade repair — 2026-10-26
+
+Root's isolated no-data/no-network cascade fixture reproduced a real issue on
+published `8457e90299b1d8de2becb75911668c8810a64845`. Its evidence receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/tc-whole-frontend-selected-cascade-fix-20261026-evidence.json`.
+The ordinary `.holding-row` button and selected
+`.holding-row.holding-row--selected[aria-selected=true]` both computed to
+`rgb(32,40,46)` background and `rgb(213,221,228)` text. The generic button
+rule's many semantic `:not(...)` filters gave it more specificity than the
+selected-state rule.
+
+The correction keeps those filters inside zero-specificity `:where(...)` and
+excludes disabled and selected/active controls from neutral button skin. This
+lets active-state rules and component styles win while the shared shell still
+styles ordinary controls. A computed-style regression uses the real App
+stylesheet and canonical workstation tokens; it compares ordinary and
+selected holding buttons, cards, table rows and tabs, checks semantic status
+controls and disabled opacity/cursor, and verifies generic hover only changes
+the border while the selected-row hover rule remains present. The related
+route/shell/Settings suites pass 16/16 and `npm run build` (including
+`vue-tsc`) passes. TC scope self-tests/full guard and workstream checks pass.
+No browser/full profile ran for this correction; published `8457` does not
+qualify it. Root's reserved isolated exact-source functional/strict-visual
+profile remains required. Preserve all references, masks, 0.005 tolerance,
+zero retries, F8y evidence and the complete AC1-AC9/V25 roadmap.
+
 ## Current continuation — whole-frontend TC style reconciliation — 2026-10-26T09:20Z
 
 The final domain review index

@@ -99,20 +99,21 @@ current_blocker: >-
   turnover. Strategy inspector/navigation and immutable Study identity remain.
   Root has accepted the 6d0 private correction/API/functional baseline; it is
   not whole-frontend UI acceptance.
-  Exact published f809 source CI40287957823 has all required branch jobs green;
-  Exhaustive Integration was skipped by feature policy. That receipt does not
-  qualify the current presentation candidate. The implementation gives the
-  eleven routed legacy view roots a shared TC
-  shell/theme, responsive labeled navigation, tokenized login, Settings,
-  status/notifications, teleported menus/editors and generic feature surfaces.
-  Actual root classes were checked from templates, including ETF
-  `.holdings-view`; a source-level regression protects that mapping, the
-  workstation zero-margin/padding reset, and active/status styling. Focused
-  route/shell/Settings tests pass 15/15; `vue-tsc` and the production build
-  succeed. This candidate has no exact-source CI or browser evidence. The full
-  route-by-route visual pass and exact-source browser fixture remain open; F8y
-  remains unproven; Root has reserved the isolated full browser slot for a
-  clean, reviewed candidate.
+  Published candidate 8457e90299b1d8de2becb75911668c8810a64845 was rejected
+  as final whole-frontend presentation acceptance after Root reproduced a real
+  CSS cascade defect: ordinary and selected ETF holding buttons had identical
+  background/text because the shared neutral button rule's semantic exclusions
+  accumulated higher specificity. The correction keeps the exclusions inside
+  zero-specificity :where(), and prevents disabled/selected/active controls from
+  receiving neutral button skin. A computed-style regression against the actual
+  App stylesheet and canonical workstation tokens distinguishes ordinary from
+  selected holding buttons, cards, rows and tabs; it also protects semantic
+  status controls, disabled appearance, and hover-rule behavior. The three
+  related shell/route/Settings suites pass 16/16; npm run build (vue-tsc and
+  Vite) passes. Candidate 8457's exact-source CI, if any, does not qualify this
+  correction. The correction's exact-source CI and Root-assigned full
+  functional/strict-visual profile remain pending. F8y and official V25 remain
+  open; no references, masks, tolerances or retry policies changed.
   Preserve AC1-AC9, official V25, original references/masks/tolerances/zero
   retries, all holds and the complete roadmap.
   Historical adoption snapshot follows:
