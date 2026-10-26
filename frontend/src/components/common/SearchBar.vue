@@ -376,4 +376,13 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
   border-top-color: #1f2c38;
   color: #8aa3bb;
 }
+.search-input-wrap, .search-results { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.search-input { color: var(--tc-text); font-family: var(--tc-font-family); }
+.search-input::placeholder, .search-icon, .recent-title, .r-type { color: var(--tc-text-muted); }
+.result-item { color: var(--tc-text); font-family: var(--tc-font-family); }
+.result-item.highlighted { background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); }
+.recent-title, .screener-link-row { border-color: var(--tc-border); }
+.r-name { color: var(--tc-text-muted); }
+.screener-link { color: var(--tc-accent-soft); }
+.search-message--hint { border-color: var(--tc-border); color: var(--tc-text-muted); }
 </style>

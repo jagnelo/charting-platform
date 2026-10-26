@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applicationRoutes } from '@/router'
+import { applicationRoutes, isSharedNavigationItemActive, sharedShellNavigation, usesSharedAppShell } from '@/router'
 
 function route(path: string) {
   return applicationRoutes.find(candidate => candidate.path === path)
@@ -61,5 +61,34 @@ describe('application route contract', () => {
   it('keeps the Study Lab deep link inside the workstation shell', () => {
     expect(route('/study-lab')?.redirect).toEqual({ path: '/', query: { tab: 'study-lab' } })
     expect(route('/study-lab')?.component).toBeUndefined()
+  })
+
+  it('routes authenticated legacy screens through the shared shell and keeps workstation, popout, and login frames intact', () => {
+    expect(usesSharedAppShell('/legacy/settings')).toBe(true)
+    expect(usesSharedAppShell('/legacy/chart/QQQ')).toBe(true)
+    expect(usesSharedAppShell('/settings')).toBe(true)
+    expect(usesSharedAppShell('/')).toBe(false)
+    expect(usesSharedAppShell('/chart/QQQ')).toBe(false)
+    expect(usesSharedAppShell('/popout/window-1')).toBe(false)
+    expect(usesSharedAppShell('/login')).toBe(false)
+    expect(sharedShellNavigation.map(({ path }) => path)).toEqual([
+      '/legacy/dashboard', '/legacy/chart', '/legacy/watchlist', '/legacy/screener',
+      '/legacy/radar', '/legacy/alerts', '/legacy/baskets', '/legacy/etf-holdings',
+      '/legacy/strategy-lab', '/legacy/strategy-lab-v2', '/legacy/settings',
+    ])
+    expect(isSharedNavigationItemActive('/legacy/chart/QQQ', '/legacy/chart')).toBe(true)
+    expect(isSharedNavigationItemActive('/legacy/chart', '/legacy/chart')).toBe(true)
+    expect(isSharedNavigationItemActive('/legacy/charting', '/legacy/chart')).toBe(false)
+  })
+
+  it('keeps every shared navigation destination backed by one concrete application route', () => {
+    const paths = sharedShellNavigation.map(({ path }) => path)
+    expect(new Set(paths).size).toBe(paths.length)
+    for (const item of sharedShellNavigation) {
+      expect(route(item.path), `${item.key} navigation target`).toBeDefined()
+      expect(route(item.path), `${item.key} is not a redirect-only target`).not.toHaveProperty('redirect')
+    }
+    expect(sharedShellNavigation.find(item => item.key === 'etf')?.path).toBe('/legacy/etf-holdings')
+    expect(sharedShellNavigation.find(item => item.key === 'strategy-v2')?.path).toBe('/legacy/strategy-lab-v2')
   })
 })

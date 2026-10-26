@@ -1,7 +1,7 @@
 import { mount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { defineComponent, nextTick, watch } from 'vue'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChartView from '@/views/ChartView.vue'
 import { useAlertsStore } from '@/stores/alerts'
@@ -45,6 +45,8 @@ describe('ChartView radar handoff', () => {
     route.query = {}
     route.path = '/chart'
   })
+
+  afterEach(() => vi.unstubAllGlobals())
 
   function mountDeferredPresetsChart(delaySymbolLoad = false) {
     const pinia = createPinia()
@@ -101,7 +103,10 @@ describe('ChartView radar handoff', () => {
           LayoutPicker: { template: '<div />' },
           DrawingToolbar: { template: '<div />' },
           IndicatorPanel: { template: '<div />' },
-          WatchlistPanel: { template: '<div />' },
+          WatchlistPanel: defineComponent({
+            props: { compactDefault: { type: Boolean, default: false } },
+            template: '<div class="watchlist-panel-stub" :data-compact-default="compactDefault" />',
+          }),
           ResizeHandle: { template: '<div />' },
           TextPromptModal: { template: '<div />' },
           OptionsChainPanel: { template: '<div />' },
@@ -125,6 +130,19 @@ describe('ChartView radar handoff', () => {
       wrapper,
     }
   }
+
+  it('starts both chart rails compact on narrow screens while preserving the visible toggle strip', async () => {
+    vi.stubGlobal('matchMedia', vi.fn(() => ({
+      matches: true,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })))
+    const chart = mountDeferredPresetsChart()
+
+    expect(chart.wrapper.get('.watchlist-panel-stub').attributes('data-compact-default')).toBe('true')
+    expect(chart.wrapper.get('.chart-body').exists()).toBe(true)
+    chart.wrapper.unmount()
+  })
 
   it('keeps the indicator rail geometry across a keyed active-panel switch while the new panel is loading', async () => {
     const pinia = createPinia()

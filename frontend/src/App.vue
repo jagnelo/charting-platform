@@ -1,47 +1,46 @@
 <template>
-  <div id="app">
-    <template v-if="isLegacyPage">
-      <nav class="sidebar">
-        <div class="sidebar-logo" title="Charting Platform">
-          <span class="logo-mark">◈</span>
-        </div>
-        <router-link to="/legacy/dashboard" class="nav-link" title="Dashboard">▦</router-link>
-        <router-link :to="chartLink" class="nav-link" :class="{ 'router-link-active': route.path.startsWith('/legacy/chart') }" title="Chart">📈</router-link>
-        <router-link to="/legacy/alerts" class="nav-link nav-link--bell" title="Alerts">
-          🔔
-          <span v-if="alertsStore.unviewedCount > 0" class="nav-badge">
-            {{ alertsStore.unviewedCount > 99 ? '99+' : alertsStore.unviewedCount }}
-          </span>
+  <div class="tc-application-root" :class="{ 'tc-legacy-app': usesSharedShell }">
+    <template v-if="usesSharedShell">
+      <header class="tc-app-header">
+        <router-link class="tc-app-brand" to="/" aria-label="Charting Platform workstation">
+          <span class="tc-app-brand-mark" aria-hidden="true">◈</span>
+          <span class="tc-app-brand-name">Charting Platform</span>
         </router-link>
-        <router-link to="/legacy/radar" class="nav-link" title="Radar">◎</router-link>
-        <router-link to="/legacy/strategy-lab" class="nav-link" title="Strategy Lab">⚗</router-link>
-        <router-link to="/legacy/strategy-lab-v2" class="nav-link" title="Strategy Lab v2">⚗2</router-link>
-        <router-link to="/legacy/baskets" class="nav-link" title="Baskets">◫</router-link>
-        <router-link to="/legacy/etf-holdings" class="nav-link" title="ETF Holdings">▤</router-link>
-        <router-link to="/legacy/watchlist" class="nav-link" title="Watchlist">★</router-link>
-        <router-link to="/legacy/screener"  class="nav-link" title="Screener">🔍</router-link>
-        <router-link to="/legacy/settings"  class="nav-link" title="Settings">⚙</router-link>
-        <div class="sidebar-spacer" />
-        <button
-          class="user-avatar logout-btn"
-          type="button"
-          title="Sign out"
-          :aria-label="`Sign out ${authStore.user?.username ?? ''}`.trim()"
-          @click="authStore.logout()"
-        >
-          {{ userInitial }}
-        </button>
-      </nav>
-      <main class="main-content">
-        <div class="route-frame">
+        <nav class="tc-app-navigation" aria-label="Main navigation">
+          <router-link
+            v-for="item in navigationItems"
+            :key="item.path"
+            :to="item.path"
+            class="tc-app-nav-link"
+            :aria-current="isCurrent(item) ? 'page' : undefined"
+          >
+            <span aria-hidden="true">{{ item.icon }}</span>
+            <span>{{ item.label }}</span>
+            <span v-if="item.key === 'alerts' && alertsStore.unviewedCount > 0" class="tc-app-nav-badge">
+              {{ alertsStore.unviewedCount > 99 ? '99+' : alertsStore.unviewedCount }}
+            </span>
+          </router-link>
+        </nav>
+        <div class="tc-app-account">
+          <span class="tc-app-account-name">{{ authStore.user?.username ?? 'Account' }}</span>
+          <button
+            class="tc-app-signout"
+            type="button"
+            :aria-label="`Sign out ${authStore.user?.username ?? ''}`.trim()"
+            @click="authStore.logout()"
+          >
+            Sign out
+          </button>
+        </div>
+      </header>
+      <main class="tc-app-main">
+        <div class="tc-app-route-frame">
           <router-view />
         </div>
         <StatusBar />
       </main>
     </template>
-    <template v-else>
-      <router-view />
-    </template>
+    <router-view v-else />
     <Notification />
   </div>
 </template>
@@ -49,15 +48,14 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
+import { isSharedNavigationItemActive, sharedShellNavigation, usesSharedAppShell } from '@/router'
 import { useAuthStore } from '@/stores/auth'
-import { useChartStore } from '@/stores/chart'
 import { useAlertsStore } from '@/stores/alerts'
 import Notification from '@/components/common/Notification.vue'
 import StatusBar from '@/components/common/StatusBar.vue'
 
-const route       = useRoute()
-const authStore   = useAuthStore()
-const chartStore  = useChartStore()
+const route = useRoute()
+const authStore = useAuthStore()
 const alertsStore = useAlertsStore()
 
 watch(() => authStore.isAuthenticated, (authenticated) => {
@@ -65,112 +63,270 @@ watch(() => authStore.isAuthenticated, (authenticated) => {
   else alertsStore.disconnectWebSocket()
 }, { immediate: true })
 
-const isLegacyPage = computed(() => route.path.startsWith('/legacy/'))
-const userInitial  = computed(() => (authStore.user?.username?.[0] ?? '?').toUpperCase())
-const chartLink = computed(() => chartStore.symbol ? `/legacy/chart/${chartStore.symbol}` : '/legacy/chart')
+const usesSharedShell = computed(() => usesSharedAppShell(route.path))
+const navigationItems = sharedShellNavigation
+const isCurrent = (item: typeof navigationItems[number]) => isSharedNavigationItemActive(route.path, item.match)
 </script>
 
 <style>
+:root {
+  color-scheme: dark;
+}
+
 * { box-sizing: border-box; margin: 0; padding: 0; }
 html, body {
   width: 100%;
+  min-width: 320px;
   height: 100%;
 }
 body {
-  background: #080808;
-  color: #ccc;
-  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', ui-monospace, monospace;
-  overflow: hidden;
+  margin: 0;
+  background: var(--tc-shell-bg, #0d1013);
+  color: var(--tc-text, #d5dde4);
+  font-family: var(--tc-font-family, "Segoe UI", Arial, sans-serif);
 }
-#app { display: flex; width: 100%; height: 100vh; overflow: hidden; }
-
-.sidebar {
-  width: 48px;
-  background: #0a0a0a;
-  border-right: 1px solid #161616;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 10px 0;
-  gap: 4px;
-  flex-shrink: 0;
-}
-
-.sidebar-logo { color: #64b5f6; font-size: 20px; margin-bottom: 12px; }
-
-.nav-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 6px;
-  text-decoration: none;
-  color: #444;
-  font-size: 16px;
-  transition: background 0.12s, color 0.12s;
-}
-.nav-link:hover { background: #141414; color: #888; }
-.nav-link.router-link-active { background: #0f1f2e; color: #64b5f6; }
-
-.nav-link--bell { position: relative; }
-.nav-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  background: #ef5350;
-  color: #fff;
-  border-radius: 8px;
-  font-size: 9px;
-  min-width: 14px;
-  height: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 3px;
-  font-weight: 700;
-  line-height: 1;
-  pointer-events: none;
-}
-
-.sidebar-spacer { flex: 1; }
-
-.user-avatar {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #1a3a5c;
-  color: #64b5f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+body:has(#app .tc-legacy-app) {
+  font-family: var(--tc-font-family, "Segoe UI", Arial, sans-serif);
   font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-bottom: 4px;
-  border: 1px solid #2a4a6c;
-  padding: 0;
 }
-.user-avatar:hover { background: #1e4a7a; }
-
-.main-content {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-.route-frame {
-  flex: 1;
-  min-width: 0;
-  min-height: 0;
-  overflow: hidden;
-}
-.route-frame > * {
+#app { width: 100%; min-height: 100vh; }
+#app:not(.tc-legacy-app) { height: 100vh; overflow: hidden; }
+#app .tc-application-root {
+  width: 100%;
   height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+#app .tc-legacy-app {
+  height: 100vh;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+  background: var(--tc-shell-bg);
+}
+
+.tc-app-header {
   width: 100%;
   min-width: 0;
-  min-height: 0;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--tc-border);
+  background: linear-gradient(var(--tc-header-top), var(--tc-header-bottom));
+  color: var(--tc-text);
+}
+.tc-app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  color: var(--tc-text);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 650;
+}
+.tc-app-brand-mark { color: var(--tc-accent); font-size: 18px; }
+.tc-app-navigation {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.tc-app-nav-link {
+  min-height: 30px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  position: relative;
+  flex: 0 0 auto;
+  padding: 0 9px;
+  border: 1px solid transparent;
+  color: var(--tc-text-muted);
+  text-decoration: none;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tc-app-nav-link:hover,
+.tc-app-nav-link:focus-visible { color: var(--tc-text); background: #ffffff0a; }
+.tc-app-nav-link[aria-current="page"] {
+  color: var(--tc-accent-soft);
+  border-color: #68b6e933;
+  background: #68b6e914;
+}
+.tc-app-nav-link:focus-visible,
+.tc-app-signout:focus-visible,
+.tc-app-brand:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+.tc-app-nav-badge {
+  min-width: 16px;
+  padding: 1px 4px;
+  border-radius: 8px;
+  background: var(--tc-negative);
+  color: #15191e;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+.tc-app-account { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.tc-app-account-name { color: var(--tc-text-muted); font-size: 11px; }
+.tc-app-signout {
+  min-height: 28px;
+  padding: 0 9px;
+  border: 1px solid var(--tc-border-strong);
+  background: var(--tc-control-bg);
+  color: var(--tc-text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.tc-app-signout:hover { border-color: var(--tc-accent); }
+.tc-app-main { width: 100%; min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+.tc-app-route-frame { width: 100%; flex: 1; min-width: 0; min-height: 0; overflow: hidden; font-size: 12px; }
+.tc-app-route-frame > * { width: 100%; max-width: 100%; height: 100%; min-width: 0; min-height: 0; }
+
+/* Shared visual tokens for all routed legacy feature surfaces. */
+#app .tc-legacy-app .dashboard-view,
+#app .tc-legacy-app .chart-view,
+#app .tc-legacy-app .alerts-view,
+#app .tc-legacy-app .settings-view,
+#app .tc-legacy-app .screener-view,
+#app .tc-legacy-app .watchlist-view,
+#app .tc-legacy-app .radar-view,
+#app .tc-legacy-app .strategy-lab-view,
+#app .tc-legacy-app .strategy-lab-v2,
+#app .tc-legacy-app .basket-view,
+#app .tc-legacy-app .holdings-view {
+  color: var(--tc-text);
+  background-color: var(--tc-window-bg);
+  font-family: var(--tc-font-family);
+}
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(h1,h2,h3,h4) {
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(p,small,label,.hint,.empty-hint,.td-dim,.history-count) {
+  color: var(--tc-text-muted);
+}
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea):focus-visible {
+  outline: 2px solid var(--tc-accent);
+  outline-offset: 1px;
+}
+#app .tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(button,.btn,.action-button) {
+  font-family: var(--tc-font-family);
+}
+/* Base tokens are deliberately zero-specificity so named route adaptations can override them. */
+:where(#app .tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
+  border-color: var(--tc-border);
+}
+:where(#app .tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
+  background-color: var(--tc-panel-bg);
+}
+:where(#app .tc-legacy-app .tc-app-route-frame) :where(:is([class*="-header"],[class*="__header"],[class*="-toolbar"],[class*="__toolbar"])) {
+  border-color: var(--tc-border);
+  background-color: var(--tc-header-bottom);
+}
+#app .tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-control-bg);
+  color: var(--tc-text);
+}
+#app .tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))):hover {
+  border-color: var(--tc-accent);
+}
+#app .tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"],[role="row"],tr,[class*="-item"],[class*="-card"],[class*="-row"],[class*="-target"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
+  border-color: var(--tc-accent);
+  background-color: #68b6e91c;
+}
+#app .tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
+  color: var(--tc-accent-soft);
+}
+#app .tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]) > td,
+#app .tc-legacy-app .tc-app-route-frame tr[aria-selected="true"] > td {
+  background-color: #68b6e91c;
+}
+#app .tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):focus-visible {
+  outline: 2px solid var(--tc-accent);
+  outline-offset: 2px;
+}
+#app .tc-legacy-app .tc-app-route-frame :is(button,.btn,.action-button):disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+#app .tc-legacy-app .tc-app-route-frame a:not([class*="danger"]):not([class*="error"]) { color: var(--tc-accent-soft); }
+#app .tc-legacy-app .tc-app-route-frame table { border-color: var(--tc-border); }
+#app .tc-legacy-app .tc-app-route-frame :is(th,thead) { background-color: var(--tc-control-bg); color: var(--tc-text-muted); }
+#app .tc-legacy-app .tc-app-route-frame :is(td,th) { border-color: var(--tc-border); }
+#app .tc-legacy-app .tc-app-route-frame tr:hover > td { background-color: #68b6e90d; }
+#app .tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]):hover > td,
+#app .tc-legacy-app .tc-app-route-frame tr[aria-selected="true"]:hover > td {
+  background-color: #68b6e91c;
+}
+#app .tc-legacy-app .tc-app-route-frame :is([role="dialog"],[role="menu"],[role="listbox"]) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-window-bg);
+  color: var(--tc-text);
+}
+body:has(#app .tc-legacy-app) :is([role="dialog"],[role="menu"],[role="listbox"],[role="tooltip"],[class*="-modal"],[class~="modal"],[class*="-menu"],[class*="-results"],[class*="context-menu"],[class*="popover"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu,.symbol-bars__tooltip,.r-outcome-map__tooltip,.notification) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-window-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+body:has(#app .tc-legacy-app) :is([role="dialog"],[class*="-menu"],[class*="-results"],[class*="-modal"],[class~="modal"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu) :is(button,input,select,textarea) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-control-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+body:has(#app .tc-legacy-app) .config-modal .config-field,
+body:has(#app .tc-legacy-app) .config-modal .config-help {
+  color: var(--tc-text-muted);
+}
+body:has(#app .tc-legacy-app) .config-modal .config-field > :is(input,select,textarea) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+body:has(#app .tc-legacy-app) :is([class*="-menu"],[class*="-results"],.row-dropdown,.quick-link-menu) :is(button,[role="option"]):is([aria-selected="true"],[aria-pressed="true"],[class~="active"],[class~="highlighted"]) {
+  border-color: var(--tc-accent);
+  background-color: #68b6e91c;
+  color: var(--tc-accent-soft);
+}
+#app .tc-legacy-app .tc-app-route-frame :is(.error,.err,[role="alert"]) { color: var(--tc-negative); }
+#app .tc-legacy-app .tc-app-route-frame :is(.success,.ok,.positive) { color: var(--tc-positive); }
+#app .tc-legacy-app .tc-app-route-frame :is(.warning,.warn) { color: var(--tc-warning); }
+#app .tc-legacy-app .tc-app-route-frame ::selection { background: #68b6e955; color: #f4f8fb; }
+#app .tc-legacy-app .tc-app-route-frame * { scrollbar-color: var(--tc-border-strong) var(--tc-window-bg); }
+
+@media (max-width: 900px) {
+  .tc-app-header { flex-wrap: wrap; gap: 6px 12px; padding: 8px 10px 0; }
+  .tc-app-navigation { order: 3; flex-basis: 100%; }
+  .tc-app-account { margin-left: auto; }
+  .tc-app-nav-link { min-height: 32px; padding: 0 8px; }
+}
+@media (max-width: 520px) {
+  .tc-app-brand-name { font-size: 12px; }
+  .tc-app-account-name { display: none; }
+  .tc-app-header { gap: 4px 8px; }
+  #app .tc-legacy-app .tc-app-route-frame :is(.settings-view,.alerts-view,.radar-view,.strategy-lab-v2,.holdings-view) { padding-left: 12px; padding-right: 12px; }
 }
 </style>

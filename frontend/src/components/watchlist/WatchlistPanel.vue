@@ -135,7 +135,9 @@
     <button
       class="wlp-toggle"
       :title="isOpen ? 'Hide watchlists' : 'Show watchlists'"
-      @click="isOpen = !isOpen"
+      :aria-label="isOpen ? 'Hide watchlists' : 'Show watchlists'"
+      :aria-expanded="isOpen ? 'true' : 'false'"
+      @click="togglePanel"
     >{{ isOpen ? '‹' : '›' }}</button>
 
     <!-- Delete confirmation modal -->
@@ -161,11 +163,17 @@ import type { Watchlist } from '@/types'
 import Sparkline from '@/components/common/Sparkline.vue'
 import SparkTfSelector from '@/components/common/SparkTfSelector.vue'
 
-const props = defineProps<{ currentSymbol?: string | null; bodyWidth?: number }>()
+const props = defineProps<{ currentSymbol?: string | null; bodyWidth?: number; compactDefault?: boolean }>()
 const emit  = defineEmits<{ select: [symbol: string] }>()
 
 const store  = useWatchlistStore()
 const isOpen = ref(true)
+const openStateChangedByUser = ref(false)
+
+function togglePanel() {
+  openStateChangedByUser.value = true
+  isOpen.value = !isOpen.value
+}
 
 /** Set of watchlist IDs that are currently expanded */
 const expanded = reactive(new Set<number>())
@@ -392,6 +400,7 @@ watch(() => store.focusRequest, (id) => {
 })
 
 onMounted(async () => {
+  if (props.compactDefault && !openStateChangedByUser.value) isOpen.value = false
   if (!store.watchlists.length) await store.loadWatchlists()
 })
 
@@ -806,4 +815,34 @@ function tickClass(symbol?: string | null) {
 .wlp-modal-cancel:hover  { background: #333; color: #ccc; }
 .wlp-modal-confirm { background: #c62828; color: #fff; }
 .wlp-modal-confirm:hover { background: #e53935; }
+.wl-panel { color: var(--tc-text); font-family: var(--tc-font-family); }
+.wlp-body { background: var(--tc-window-bg); }
+.wlp-topbar, .wlp-section-hdr { border-color: var(--tc-border); background: var(--tc-header-bottom); color: var(--tc-text); }
+.wlp-section-hdr:hover { background: color-mix(in srgb, var(--tc-accent) 8%, var(--tc-header-bottom)); }
+.wlp-section { border-color: var(--tc-border); background: var(--tc-panel-bg); }
+.wlp-section-items { background: var(--tc-window-bg); }
+.wlp-item { border-color: var(--tc-border); color: var(--tc-text); }
+.wlp-item:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.wlp-item--active { background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); box-shadow: inset 2px 0 var(--tc-accent); }
+.wlp-empty, .wlp-no-items, .wlp-create-error { color: var(--tc-text-muted); }
+.wlp-dropdown, .wlp-modal { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
+.wlp-dd-item, .wlp-hdr-btn, .wlp-toggle, .wlp-toggle-all, .wlp-create-btn, .wlp-modal-cancel { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.wlp-create-link { border-color: var(--tc-accent); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-accent-soft); font-family: var(--tc-font-family); }
+.wlp-modal-msg { color: var(--tc-text); font-family: var(--tc-font-family); }
+.wl-panel :is(button, input, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 1px; }
+@media (max-width: 600px) {
+  .wlp-body {
+    width: clamp(144px, 42vw, 176px) !important;
+    max-width: calc(100vw - 64px);
+  }
+  .wlp-topbar {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .wlp-topbar-right {
+    min-width: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
 </style>

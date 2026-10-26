@@ -291,43 +291,72 @@
           </div>
 
           <div class="diff-summary">
-            <span class="diff-chip diff-chip--added">{{ diff.added }} added</span>
-            <span class="diff-chip diff-chip--removed">{{ diff.removed }} removed</span>
-            <span class="diff-chip diff-chip--changed">{{ diff.changed }} changed</span>
-            <span class="diff-chip">{{ diff.unchanged }} unchanged</span>
+            <span
+              v-if="isParserCorrectionDiff"
+              class="notice notice--audit"
+              data-testid="etf-parser-correction-audit"
+              role="note"
+            >
+              <strong>Same-date parser correction audit</strong>
+              <span>
+                Both snapshots represent {{ diff.left_snapshot.composition_date }}, but parser versions
+                {{ diff.left_snapshot.parser_version }} and {{ diff.right_snapshot.parser_version }} differ.
+                The raw row and weight differences below are parser-audit output, not fund activity or turnover.
+              </span>
+              <span>
+                Compare snapshot known at
+                <time v-if="diff.left_snapshot.known_at" :datetime="diff.left_snapshot.known_at">
+                  {{ formatDateTime(diff.left_snapshot.known_at) }}
+                </time>
+                <span v-else>unknown time</span>;
+                selected snapshot known at
+                <time v-if="diff.right_snapshot.known_at" :datetime="diff.right_snapshot.known_at">
+                  {{ formatDateTime(diff.right_snapshot.known_at) }}
+                </time>
+                <span v-else>unknown time</span>.
+              </span>
+            </span>
+            <span class="diff-chip diff-chip--added">{{ isParserCorrectionDiff ? 'Raw diff: ' : '' }}{{ diff.added }} added</span>
+            <span class="diff-chip diff-chip--removed">{{ isParserCorrectionDiff ? 'Raw diff: ' : '' }}{{ diff.removed }} removed</span>
+            <span class="diff-chip diff-chip--changed">{{ isParserCorrectionDiff ? 'Raw diff: ' : '' }}{{ diff.changed }} changed</span>
+            <span class="diff-chip">{{ isParserCorrectionDiff ? 'Raw diff: ' : '' }}{{ diff.unchanged }} unchanged</span>
           </div>
 
           <div class="diff-metrics">
             <div class="metric-card">
-              <small>Gross churn</small>
+              <small>{{ isParserCorrectionDiff ? 'Raw gross weight change · audit' : 'Gross churn' }}</small>
               <strong>{{ formatWeight(diff.summary.gross_weight_churn) }}</strong>
-              <span>Total absolute weight change across the comparison.</span>
+              <span>
+                {{ isParserCorrectionDiff
+                  ? 'Unmodified comparison metric; do not interpret a same-date parser correction as turnover.'
+                  : 'Total absolute weight change across the comparison.' }}
+              </span>
             </div>
             <div class="metric-card">
-              <small>Added weight</small>
-              <strong class="status-added">{{ formatWeight(diff.summary.total_added_weight) }}</strong>
-              <span>Fresh exposure introduced in the newer snapshot.</span>
+              <small>{{ isParserCorrectionDiff ? 'Raw added weight' : 'Added weight' }}</small>
+              <strong :class="isParserCorrectionDiff ? '' : 'status-added'">{{ formatWeight(diff.summary.total_added_weight) }}</strong>
+              <span>{{ isParserCorrectionDiff ? 'Rows present only in the selected parser snapshot.' : 'Fresh exposure introduced in the newer snapshot.' }}</span>
             </div>
             <div class="metric-card">
-              <small>Removed weight</small>
-              <strong class="status-removed">{{ formatWeight(diff.summary.total_removed_weight) }}</strong>
-              <span>Exposure that disappeared versus the older snapshot.</span>
+              <small>{{ isParserCorrectionDiff ? 'Raw removed weight' : 'Removed weight' }}</small>
+              <strong :class="isParserCorrectionDiff ? '' : 'status-removed'">{{ formatWeight(diff.summary.total_removed_weight) }}</strong>
+              <span>{{ isParserCorrectionDiff ? 'Rows absent from the selected parser snapshot.' : 'Exposure that disappeared versus the older snapshot.' }}</span>
             </div>
             <div class="metric-card">
-              <small>Upweights / downweights</small>
+              <small>{{ isParserCorrectionDiff ? 'Raw weight increases / decreases' : 'Upweights / downweights' }}</small>
               <strong>
-                <span class="status-ok">{{ formatWeight(diff.summary.total_increased_weight) }}</span>
+                <span :class="isParserCorrectionDiff ? '' : 'status-ok'">{{ formatWeight(diff.summary.total_increased_weight) }}</span>
                 <span class="metric-sep"> / </span>
-                <span class="status-bad">{{ formatWeight(diff.summary.total_decreased_weight) }}</span>
+                <span :class="isParserCorrectionDiff ? '' : 'status-bad'">{{ formatWeight(diff.summary.total_decreased_weight) }}</span>
               </strong>
-              <span>Size changes among continuing holdings.</span>
+              <span>{{ isParserCorrectionDiff ? 'Raw row-level changes between parser versions.' : 'Size changes among continuing holdings.' }}</span>
             </div>
           </div>
 
           <div class="diff-highlights">
             <section v-if="diff.summary.largest_additions.length" class="highlight-card">
               <header>
-                <h4>Largest additions</h4>
+                <h4>{{ isParserCorrectionDiff ? 'Largest raw row differences · audit' : 'Largest additions' }}</h4>
                 <span>{{ diff.summary.largest_additions.length }}</span>
               </header>
               <button
@@ -340,13 +369,13 @@
                   <b>{{ row.symbol }}</b>
                   <small>{{ row.name }}</small>
                 </div>
-                <strong class="status-added">{{ formatWeight(row.weight_after) }}</strong>
+                <strong :class="isParserCorrectionDiff ? '' : 'status-added'">{{ formatWeight(row.weight_after) }}</strong>
               </button>
             </section>
 
             <section v-if="diff.summary.largest_removals.length" class="highlight-card">
               <header>
-                <h4>Largest removals</h4>
+                <h4>{{ isParserCorrectionDiff ? 'Largest raw row differences · audit' : 'Largest removals' }}</h4>
                 <span>{{ diff.summary.largest_removals.length }}</span>
               </header>
               <button
@@ -359,13 +388,13 @@
                   <b>{{ row.symbol }}</b>
                   <small>{{ row.name }}</small>
                 </div>
-                <strong class="status-removed">{{ formatWeight(row.weight_before) }}</strong>
+                <strong :class="isParserCorrectionDiff ? '' : 'status-removed'">{{ formatWeight(row.weight_before) }}</strong>
               </button>
             </section>
 
             <section v-if="diff.summary.largest_reweights.length" class="highlight-card">
               <header>
-                <h4>Largest reweights</h4>
+                <h4>{{ isParserCorrectionDiff ? 'Largest raw row differences · audit' : 'Largest reweights' }}</h4>
                 <span>{{ diff.summary.largest_reweights.length }}</span>
               </header>
               <button
@@ -378,14 +407,14 @@
                   <b>{{ row.symbol }}</b>
                   <small>{{ row.name }}</small>
                 </div>
-                <strong :class="diffDeltaClass(row.weight_delta)">{{ formatSignedWeight(row.weight_delta) }}</strong>
+                <strong :class="isParserCorrectionDiff ? '' : diffDeltaClass(row.weight_delta)">{{ formatSignedWeight(row.weight_delta) }}</strong>
               </button>
             </section>
           </div>
 
           <div class="diff-table" role="table" aria-label="ETF holdings diff">
             <div class="diff-row diff-row--head" role="row">
-              <span>Status</span>
+              <span>{{ isParserCorrectionDiff ? 'Raw diff status · audit' : 'Status' }}</span>
               <span>Symbol</span>
               <span>Name</span>
               <span>Before</span>
@@ -397,12 +426,12 @@
               :key="`${row.status}:${row.key}`"
               class="diff-row"
             >
-              <span :class="diffStatusClass(row.status)">{{ row.status }}</span>
+              <span :class="isParserCorrectionDiff ? '' : diffStatusClass(row.status)">{{ isParserCorrectionDiff ? `raw ${row.status}` : row.status }}</span>
               <span><b>{{ row.symbol }}</b></span>
               <span>{{ row.name }}</span>
               <span>{{ formatWeight(row.weight_before) }}</span>
               <span>{{ formatWeight(row.weight_after) }}</span>
-              <span :class="diffDeltaClass(row.weight_delta)">{{ formatSignedWeight(row.weight_delta) }}</span>
+              <span :class="isParserCorrectionDiff ? '' : diffDeltaClass(row.weight_delta)">{{ formatSignedWeight(row.weight_delta) }}</span>
             </div>
           </div>
         </section>
@@ -417,6 +446,16 @@
               <span>{{ weightEvolution.snapshot_count }} snapshots</span>
               <span>{{ moverCountLabel(weightEvolution.series.length) }}</span>
             </div>
+          </div>
+
+          <div
+            v-if="hasParserCorrectionEvolution"
+            class="notice notice--audit"
+            data-testid="etf-parser-correction-evolution-audit"
+            role="note"
+          >
+            Same-date points with different parser versions are shown as raw parser-audit values, not market
+            weight evolution or portfolio turnover.
           </div>
 
           <div class="evolution-list">
@@ -440,7 +479,9 @@
               </div>
               <div class="evolution-row__meta">
                 <span>{{ formatWeight(series.first_weight) }}</span>
-                <strong :class="diffDeltaClass(series.weight_delta)">{{ formatSignedWeight(series.weight_delta) }}</strong>
+                <strong :class="isParserCorrectionEvolution(series) ? '' : diffDeltaClass(series.weight_delta)">
+                  {{ isParserCorrectionEvolution(series) ? 'Raw parser delta ' : '' }}{{ formatSignedWeight(series.weight_delta) }}
+                </strong>
                 <span>{{ formatWeight(series.last_weight) }}</span>
               </div>
             </article>
@@ -466,23 +507,32 @@
               class="transition-card"
             >
               <div class="transition-card__head">
-                <strong>
+                <strong v-if="isParserCorrectionTransition(transition)" data-testid="etf-parser-correction-transition">
+                  Same-date parser correction audit · {{ transition.left_snapshot.composition_date }}
+                </strong>
+                <strong v-else>
                   {{ transition.left_snapshot.composition_date }}
                   <span>-></span>
                   {{ transition.right_snapshot.composition_date }}
                 </strong>
-                <b>{{ formatWeight(transition.gross_weight_churn) }} churn</b>
+                <b>
+                  {{ formatWeight(transition.gross_weight_churn) }}
+                  {{ isParserCorrectionTransition(transition) ? 'raw weight change · audit' : 'churn' }}
+                </b>
               </div>
+              <p v-if="isParserCorrectionTransition(transition)" class="notice notice--audit">
+                Raw row and weight differences between parser versions; not additions, reweights, or fund turnover.
+              </p>
               <div class="transition-metrics">
-                <span class="status-added">{{ transition.added }} added</span>
-                <span class="status-removed">{{ transition.removed }} removed</span>
-                <span class="status-changed">{{ transition.changed }} reweighted</span>
+                <span :class="isParserCorrectionTransition(transition) ? '' : 'status-added'">{{ isParserCorrectionTransition(transition) ? 'Raw diff: ' : '' }}{{ transition.added }} added</span>
+                <span :class="isParserCorrectionTransition(transition) ? '' : 'status-removed'">{{ isParserCorrectionTransition(transition) ? 'Raw diff: ' : '' }}{{ transition.removed }} removed</span>
+                <span :class="isParserCorrectionTransition(transition) ? '' : 'status-changed'">{{ isParserCorrectionTransition(transition) ? 'Raw diff: ' : '' }}{{ transition.changed }} {{ isParserCorrectionTransition(transition) ? 'changed' : 'reweighted' }}</span>
               </div>
               <div class="transition-movers">
                 <span v-for="row in transitionTopMovers(transition)" :key="`${transition.right_snapshot.id}:${row.key}`">
                   <b>{{ row.symbol }}</b>
-                  <em :class="diffDeltaClass(row.weight_delta ?? row.weight_after ?? row.weight_before)">
-                    {{ transitionMoverLabel(row) }}
+                  <em :class="isParserCorrectionTransition(transition) ? '' : diffDeltaClass(row.weight_delta ?? row.weight_after ?? row.weight_before)">
+                    {{ isParserCorrectionTransition(transition) ? 'Raw parser row delta ' : '' }}{{ transitionMoverLabel(row) }}
                   </em>
                 </span>
               </div>
@@ -712,6 +762,38 @@ const selectedSnapshotKind = computed(() => {
     ? 'Latest stored snapshot'
     : 'Historical snapshot'
 })
+const isParserCorrectionDiff = computed(() => isSameDateParserCorrection(
+  diff.value?.left_snapshot,
+  diff.value?.right_snapshot,
+))
+const hasParserCorrectionEvolution = computed(() =>
+  weightEvolution.value?.series.some(isParserCorrectionEvolution) ?? false,
+)
+
+function isParserCorrectionEvolution(series: ETFHoldingsWeightEvolutionSeries) {
+  return series.points.some((point, index) => {
+    const previous = series.points[index - 1]
+    return previous != null && isSameDateParserCorrection(previous, point)
+  })
+}
+
+function isParserCorrectionTransition(transition: ETFHoldingsTransition) {
+  return isSameDateParserCorrection(transition.left_snapshot, transition.right_snapshot)
+}
+
+function isSameDateParserCorrection(
+  left: { composition_date: string; parser_version?: string | null } | null | undefined,
+  right: { composition_date: string; parser_version?: string | null } | null | undefined,
+) {
+  return Boolean(
+    left
+    && right
+    && left.composition_date === right.composition_date
+    && left.parser_version
+    && right.parser_version
+    && left.parser_version !== right.parser_version,
+  )
+}
 
 function capabilityLabel(capability: ETFHoldingsCapability | null | undefined): string {
   if (!capability) return 'Capability not checked'
@@ -1239,6 +1321,7 @@ function evolutionDotOffset(series: ETFHoldingsWeightEvolutionSeries, value: num
 }
 
 function evolutionDotClass(series: ETFHoldingsWeightEvolutionSeries, value: number | string | null | undefined) {
+  if (isParserCorrectionEvolution(series)) return {}
   const current = numeric(value)
   const first = numeric(series.first_weight)
   return {
@@ -1258,10 +1341,12 @@ onMounted(loadProfiles)
 <style scoped>
 .holdings-view {
   height: 100%;
+  min-width: 0;
   display: grid;
   grid-template-columns: minmax(260px, 320px) minmax(0, 1fr);
-  background: #080808;
-  color: #d4d4d4;
+  background: var(--tc-window-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
   font-size: 12px;
 }
 .holdings-sidebar {
@@ -2145,18 +2230,59 @@ button.holding-row:hover,
   border-radius: 8px;
   padding: 14px;
 }
+/* Explicit ETF route adaptation; capability/status meaning stays distinct. */
+.holdings-sidebar { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.sidebar-head h1, .panel-title-row h2 { color: var(--tc-text); }
+.sidebar-head p, .panel-title-row p, .profile-card span, .profile-card em { color: var(--tc-text-muted); }
+.profile-list { gap: 4px; }
+.profile-card, .workspace-panel, .metric-card, .highlight-card,
+.evolution-panel, .transition-panel, .overlap-panel {
+  border-color: var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-panel-bg);
+}
+.profile-card { color: var(--tc-text); }
+.profile-card:hover { border-color: var(--tc-border-strong); background: var(--tc-control-bg); }
+.profile-card--active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.profile-card__top b { color: var(--tc-text); }
+.panel-meta span, .snapshot-lineage { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-accent-soft); }
+.panel-meta span:not(.capability-pill) { color: var(--tc-text-muted); }
+.snapshot-lineage dt { color: var(--tc-text-muted); }
+.snapshot-lineage dd { color: var(--tc-text); }
+.holdings-table { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-window-bg); }
+.holding-row { border-color: var(--tc-border); color: var(--tc-text); font-family: var(--tc-font-family); }
+.holding-row--head { background: var(--tc-header-bottom); color: var(--tc-text-muted); }
+button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.holding-row--selected { background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); box-shadow: inset 3px 0 0 var(--tc-accent); }
+.holding-row b { color: var(--tc-text); }
+.holding-row > span:nth-child(n + 3), .holding-detail dd, .evolution-row__meta strong { font-variant-numeric: tabular-nums; }
+.holding-row small { color: var(--tc-text-muted); }
+.holding-detail { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
+.detail-title { border-color: var(--tc-border); }
+.detail-title small, .holding-detail dt { color: var(--tc-text-muted); }
+.detail-title h3, .holding-detail dd { color: var(--tc-text); }
+.detail-title p { color: var(--tc-text-muted); }
+.detail-title button, .pager button { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-accent-soft); }
+.detail-title button:disabled, .pager button:disabled { color: var(--tc-text-subtle); opacity: .58; }
+.evolution-row { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.evolution-row__label strong, .evolution-row__meta strong { color: var(--tc-text); }
+.evolution-row__label span, .evolution-row__meta { color: var(--tc-text-muted); }
+.empty-state, .state-line, .notice { color: var(--tc-text-muted); }
+.search-field input, .toolbar input, .toolbar select { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.holdings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 @media (max-width: 1100px) {
   .holdings-view {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .holdings-sidebar {
+    min-width: 0;
     max-height: 280px;
     border-right: 0;
     border-bottom: 1px solid #171717;
   }
   .toolbar,
   .holdings-browser {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .diff-metrics,
   .diff-highlights {
@@ -2183,6 +2309,65 @@ button.holding-row:hover,
   }
   .holding-row span:nth-child(n + 4) {
     display: none;
+  }
+}
+@media (max-width: 600px) {
+  .holdings-view,
+  .holdings-sidebar,
+  .holdings-main,
+  .workspace-panel,
+  .holdings-browser,
+  .holdings-table,
+  .holding-detail {
+    min-width: 0;
+  }
+  .holdings-main {
+    padding: 10px;
+  }
+  .panel-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .panel-title-row > div,
+  .panel-meta,
+  .snapshot-lineage,
+  .snapshot-lineage > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .panel-meta {
+    justify-content: flex-start;
+  }
+  .workspace-panel,
+  .overlap-panel,
+  .overlap-family-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .overlap-panel > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .snapshot-lineage > div {
+    flex: 1 1 100%;
+  }
+  .snapshot-lineage dd,
+  .snapshot-lineage time {
+    overflow-wrap: anywhere;
+  }
+  .toolbar,
+  .holdings-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toolbar > *,
+  .holdings-browser > * {
+    min-width: 0;
+  }
+  .holdings-table {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 }
 </style>

@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-23T00:02:22.557463+00:00",
+  "starting_staging_sha": "0e342512e53ba2268425294d61c50e219eaafa4f",
+  "staging_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
+  "sources": [
+    {
+      "branch": "fix/strategy-staging-quality",
+      "sha": "3d26dd34da6c1682d33b843a62a0ef0f2d31be92"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/39866387942",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad: https://github.com/jagnelo/charting-platform/actions/runs/39866387942 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/39866387942', 'status': 'in_progress', 'conclusion': None}]"
+}

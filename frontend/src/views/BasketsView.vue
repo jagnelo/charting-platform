@@ -870,4 +870,22 @@ function humanize(value: string) {
     align-items: stretch;
   }
 }
+.basket-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); font-size: 12px; }
+.basket-sidebar { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.basket-sidebar__head { border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.basket-sidebar__head h1, .panel-title-row h2, .member-toolbar h3, .modal h3 { color: var(--tc-text); }
+.basket-sidebar__head p, .panel-title-row p, .member-toolbar span, .basket-card__meta, .modal p { color: var(--tc-text-muted); }
+.basket-panel, .basket-card, .modal { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
+.basket-new { border-color: var(--tc-accent); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-accent-soft); }
+.basket-card:hover, .basket-card--active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.basket-card__name { color: var(--tc-text); }
+.basket-list__state, .empty-state, .field-label { color: var(--tc-text-muted); }
+.member-table { border-color: var(--tc-border); }
+.member-row { border-color: var(--tc-border); background: var(--tc-window-bg); color: var(--tc-text); }
+.member-row--head { background: var(--tc-header-bottom); color: var(--tc-text-muted); }
+.form-input, .form-select, .form-textarea { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); }
+.btn { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); }
+.btn-primary { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-control-bg)); color: var(--tc-accent-soft); }
+.btn-danger, .remove-btn { border-color: color-mix(in srgb, var(--tc-negative) 55%, var(--tc-border)); background: color-mix(in srgb, var(--tc-negative) 12%, var(--tc-control-bg)); color: var(--tc-negative); }
+.basket-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

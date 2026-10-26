@@ -13,7 +13,7 @@
             <div class="notif-title">{{ n.title }}</div>
             <div class="notif-msg">{{ n.message }}</div>
           </div>
-          <button class="notif-close">✕</button>
+          <button class="notif-close" type="button" aria-label="Dismiss notification">✕</button>
         </div>
       </TransitionGroup>
     </div>
@@ -113,28 +113,32 @@ onUnmounted(() => window.removeEventListener('chart:alert-triggered', handleAler
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  background: #1a1a1a;
-  border-radius: 6px;
+  background: var(--tc-window-bg, #15191e);
+  border: 1px solid var(--tc-border, #303940);
+  border-radius: var(--tc-radius, 0px);
   padding: 12px 16px;
   min-width: 280px;
   max-width: 360px;
   box-shadow: 0 4px 20px rgba(0,0,0,0.5);
   pointer-events: all;
   cursor: pointer;
-  border-left: 3px solid #64b5f6;
+  border-left: 3px solid var(--tc-accent, #68b6e9);
+  color: var(--tc-text, #d5dde4);
+  font-family: var(--tc-font-family, "Segoe UI", Arial, sans-serif);
 }
 
-.notification--alert { border-left-color: #ffb74d; }
-.notification--error  { border-left-color: #ef5350; }
+.notification--alert { border-left-color: var(--tc-warning, #dfbd82); }
+.notification--error  { border-left-color: var(--tc-negative, #ed9696); }
 
 .notif-icon { font-size: 18px; flex-shrink: 0; margin-top: 1px; }
 
 .notif-body { flex: 1; }
-.notif-title { font-weight: 600; color: #eee; font-size: 13px; margin-bottom: 2px; }
-.notif-msg   { font-size: 11px; color: #888; font-family: monospace; }
+.notif-title { font-weight: 600; color: var(--tc-text, #d5dde4); font-size: 13px; margin-bottom: 2px; }
+.notif-msg   { font-size: 11px; color: var(--tc-text-muted, #81909a); overflow-wrap: anywhere; }
 
-.notif-close { background: none; border: none; color: #555; cursor: pointer; font-size: 12px; padding: 0; }
-.notif-close:hover { color: #aaa; }
+.notif-close { background: transparent; border: 1px solid transparent; color: var(--tc-text-muted, #81909a); cursor: pointer; font: inherit; font-size: 12px; padding: 2px 4px; }
+.notif-close:hover { color: var(--tc-text, #d5dde4); border-color: var(--tc-border, #303940); }
+.notif-close:focus-visible { outline: 2px solid var(--tc-accent, #68b6e9); outline-offset: 2px; }
 
 .notif-enter-active, .notif-leave-active { transition: all 0.3s ease; }
 .notif-enter-from { transform: translateX(40px); opacity: 0; }

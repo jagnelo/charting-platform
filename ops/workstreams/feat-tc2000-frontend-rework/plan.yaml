@@ -3,9 +3,35 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 628c1634f4894403339687586adee74d45637d51
-latest_staging_merge_sha: enclosing_merge_commit
-dependency_authorization: "Human-approved consumer dependency on feat/market-data-provider-platform and feat/etf-holdings-constituents; coordinator released exact combined Provider+ETF staging628c1634f4894403339687586adee74d45637d51 for TC-owned consumer reconciliation."
+latest_staging_parent_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
+latest_staging_merge_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
+dependency_authorization: >-
+  Current coordinator release 2026-10-26: exact accepted synchronized-green
+  staging 6d0a85da34ba276bca69c82a932a0602e783d7a1 (canonical receipt
+  20261026T061035Z-6d0a85da34ba.json; exact staging CI40270957631) is authorized
+  for adoption into this TC-owned branch. Its ETF delta adds fresh-AsyncSession
+  eager reparse response serialization and deterministic same-date
+  knowledge-time/id ordering with tests and ETF-owned records. This is source
+  adoption only: Root has accepted the 6d0 private correction/API/functional
+  baseline. This does not accept the whole-frontend presentation work or the
+  complete roadmap. Preserve the consumed119-request history and do not replay
+  acquisition. The TC full
+  profile, F8y, official V25 parity and broader roadmap remain open. The prior
+  15b5/3ff/5b/cdc baselines and bounded checkpoint remain history.
+  Earlier accepted 15b5 release follows as history: exact synchronized-green
+  staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 (canonical receipt
+  20261025T235546Z-15b5c22f0e68.json; CI40241357259) carried the accepted ETF
+  retained-IWM correction: honest SEC percentage points, equity/right
+  classification and admin offline append-only reparse. Genuine acquisition
+  occurred once; no replay. Root-owned target correction/UI acceptance remain
+  separate from this source adoption.
+  Earlier accepted a6b9 release authorization follows as history:
+  Human-approved four-feature integration; coordinator released exact synchronized
+  Provider+ETF+TC2000+Strategy staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  (canonical green receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726
+  attempt 1) for guarded adoption into this TC-owned branch. The prior accepted
+  baseline 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad and intermediate f04 release
+  remain in history; this adoption does not close the full TC roadmap or V25 parity.
 human_intent_authorization: >-
   The human approved implementation of the TC2000 V25-inspired workstation roadmap
   and, on 2026-09-15, explicitly approved a scope replan so this branch consumes
@@ -16,37 +42,56 @@ human_intent_authorization: >-
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
 human_closure_authorization: >-
-  Root accepts bounded checkpoint closure under the recorded 2026-10-20
-  standing delegation and the human's literal authorization: "Yes—approve that
-  initial scope and handle checkpoint acceptance." This accepts only the
-  bounded checkpoint, not the whole feature, staging integration, deployment,
-  or promotion.
+  Root accepts this bounded whole-frontend TC presentation checkpoint under the
+  human's standing 2026-10-20 integration delegation and recorded literal
+  authorization: "Yes—approve that initial scope and handle checkpoint acceptance."
+  Root's delegated technical acceptance is documented in
+  .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
+  (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
+  This is bounded checkpoint acceptance, not personal human visual review,
+  full V25/roadmap completion, staging integration, promotion, or deployment.
 closure_summary: |-
   integration_capture: exact branch HEAD
-  Root accepted the bounded TC2000 checkpoint on validated implementation
-  f206029f16c94e32616ccccf81f65675f224e67c after exact attempt-1 CI
-  39701994384 succeeded: Backend 3421 unit + 459 integration at 83%, Frontend
-  Unit and Branch Declared green, E2E 191 passed/110 declared skips/0 failures/
-  0 flakes/0 retry markers in 15.3 minutes; Exhaustive Feature Integration
-  Gate was an expected skip, not staging acceptance. Local functional on f206
-  passed 195 with 2 unchanged declared skips and zero retries in 23.8 minutes.
-  Strict visual 104/104 remains qualified to visual-test source
-  a7c8ecba208ce6c79d8f1a5d7294500122e462e5 with unchanged product image
-  05664729ea612d4bc27812cf86ab9fca02603880; FE coverage/build evidence is
-  likewise qualified to unchanged product inputs, not represented as f206
-  reruns. Fresh/upgrade migration compatibility was validated for 628c to 6a6e
-  migration inputs; no migration/backend product bytes changed in f206.
-  Deployment impact/defaults were not changed or newly verified; fixture-only
-  controls are not deployment evidence. The 475-path shared-contract review
-  records 350 immutable byte-verified paths and 29 narrow approved adaptations,
-  including Provider/ETF consumer dispositions. Historical failures remain
-  preserved. Full roadmap AC1-AC9 work beyond these bounded dispositions,
-  official REF-HELP-V25 parity, and broader feature acceptance remain open.
-  Provider/issuer HTTP, paid access, live provider/ETF tests, deployment and
-  promotion remain disabled or unperformed. The final closure-metadata commit
-  HEAD is to be captured by exact branch HEAD after publication; its exact-head
-  CI must be green before coordinator staging integration. Strategy release
-  remains gated on actual green TC staging.
+  Root accepted validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039
+  under the recorded human standing delegation. Acceptance receipt:
+  .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
+  (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
+  Exact profile evidence:
+  .ai/staging-attempts/tcf2d0-full-profile-green-20261026.json (SHA256
+  163726442ff7a338abe8abd4cf7b00186bf22f5ac86e8f1a0d2c11a02c381f8b).
+  This is Root-delegated technical acceptance, not personal human visual
+  review or full workstream/V25 completion.
+
+  On implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039, local functional
+  passed196 with2 existing canonical opt-in skips,0 failures/retries in21.7m;
+  strict visual passed104/104 across four profiles,0 retries in13.7m. Exact
+  attempt-1 branch CI40330168827 passed. F8y, F8y-tag-columns, F8y-combo and
+  10,000-cell Market Map passed. Assertions, references, masks,0.005 tolerance,
+  canonical trace policy and F8y60s timeout were unchanged.
+
+  Root reviewed actual route/mobile presentation and canonical /chart geometry
+  at1280x720,1920x1080 and TCClassic390x800. Candidate frontend container
+  6aa401759b64bc3995b6ba0b08114332404121017c59124805ca6996f0b2b195 used image
+  sha256:ff7c817b5d60086c345de2e729293e74227252854aaddf6a645efa0326c48994.
+  Root verified the seven other fixture services, effective retained34/52/11
+  inventory, original33/51/11 baseline, Stremio-specific endpoint receipt,
+  private85c quota/FINRA state and rollback images after both gates. Earlier
+  interrupted157a red and all prior failures remain historical evidence.
+
+  This packet changes only TC-owned records; product/test/config/reference
+  inputs remain identical to validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039.
+  No migration, backend product bytes, or deployment defaults changed or were
+  newly verified. No provider/SEC request, acquisition replay, paid/trial/native/
+  broker/capital action, target mutation, data reset or service cleanup occurred.
+  Holds remain. Private deployment, final human guide, staging integration and
+  promotion remain Root-owned and pending.
+
+  AC1-AC9 and the complete roadmap remain preserved. Broader Study/Strategy,
+  security, accessibility, endurance and operational work remains. Official
+  TC2000 REF-HELP-V25 parity is unfinished; the approved local Help reference is
+  not an official V25 reference. The two canonical opt-in cases remain skipped.
+  Final closure-record HEAD is captured by exact branch HEAD after publication;
+  its exact CI is required before Root's supported staging integration.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -60,26 +105,702 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Root accepted bounded checkpoint acceptance for validated implementation
-  f206029f16c94e32616ccccf81f65675f224e67c after exact CI39701994384 passed
-  every mandatory job. The final workstream-record publication still requires
-  exact branch-head CI before coordinator staging integration. This checkpoint
-  does not complete the full AC1-AC9 roadmap or official REF-HELP-V25 parity;
-  no deployment, provider activation, paid access, live provider/ETF test, or
-  staging integration is claimed.
+  Root accepted the bounded whole-frontend TC presentation checkpoint on
+  implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039. Exact local functional
+  196/2 existing skips/0 failures, strict visual104/104, and attempt-1
+  CI40330168827 passed. The records-only closure HEAD still requires exact CI
+  before Root-supported staging integration. Full AC1-AC9 and official
+  REF-HELP-V25 remain open; deployment/promotion remain Root-owned and pending.
+
+  Superseded candidate notes follow as historical context and do not describe
+  the current blocker:
+  Latest candidate work is a narrow mobile layout correction on published
+  source 47de8ca6838be35f6d184c30b6235730aca10c0b. Root's route review found
+  the legacy chart's fixed watchlist and open indicator rail consumed the
+  390px viewport, clipping both chart and header controls; it also measured
+  ETF metadata min-content overflow beyond the screen. The current patch gives
+  chart rails a compact, user-toggleable default on narrow viewports, wraps
+  chart header controls, constrains flex/grid minimums, and keeps ETF lineage,
+  filters and status inside the screen while the wide holdings table scrolls
+  within its own wrapper. Focused component/view tests and the Vue/Vite build
+  pass; actual rendered geometry remains pending Root's isolated review. The
+  fixture, seven non-frontend services, data and all protected resources were
+  untouched. This does not qualify whole-frontend acceptance.
+
+  Current 2026-10-26: the human explicitly requires one TC2000 look and feel
+  across the entire frontend, not only ETF. The root route inventory cross-check
+  is whole-frontend-route-acceptance-inventory-20261026.json; this branch
+  independently resolved 13 route views and 110 reachable Vue SFCs into 112
+  exact shell/route/theme/component paths, each pinned to its f809 source blob.
+  TC is the sole presentation writer. Provider and ETF domain reviews require
+  preserving null-versus-zero quota/usage, disabled/unknown capability, no
+  provider acquisition on appearance, server-selected/default-series behavior,
+  and ETF IWM parser-correction history: preserve all 1,946 rows, actual
+  knowledge times and unresolved identities; same-date parser churn is not
+  turnover. Strategy inspector/navigation and immutable Study identity remain.
+  Root has accepted the 6d0 private correction/API/functional baseline; it is
+  not whole-frontend UI acceptance.
+  Published candidate 8457e90299b1d8de2becb75911668c8810a64845 was rejected
+  as final whole-frontend presentation acceptance after Root reproduced a real
+  CSS cascade defect: ordinary and selected ETF holding buttons had identical
+  computed background/text. The published correction 9a0bbf451b3037e4786705b3e2b981275cf0f232
+  was independently verified by Root: ordinary controls remain neutral while
+  selected holding controls receive the accent surface/text. The current dirty
+  source review also identified Strategy v2 resources as `.is-selected` plus
+  `aria-current=true`; App selected rules now recognize that class and the
+  computed-style regression exercises the actual Strategy button without
+  treating shared-nav `aria-current=page` as data selection. Named token/radius/
+  typography adaptations cover legacy Dashboard, Chart, Alerts, Settings,
+  Watchlist, Screener, Radar, Baskets, both Strategy screens, ETF Holdings and
+  Study controls; shared teleports receive token radius and controls. Broad base
+  card/header selectors now use zero-specificity wrappers so component styles
+  can override them. Same-date differing ETF parser versions display raw
+  correction/audit labels and preserve actual known_at, rows and raw metrics;
+  normal different-date comparisons retain Gross churn/activity wording. Root's
+  85c desktop/mobile review also found missing workstation route discovery,
+  component-level legacy colors/typography, and a shared-shell mobile grid
+  overflow. The current source addresses those observed findings, keeps narrow
+  data/workstation surfaces intact, and uses the reviewed existing navigation
+  schema. The final ETF presentation separates stored snapshots from API
+  current-analysis eligibility; controlled fixtures stay labeled synthetic,
+  real SEC date/source/known_at are retained, exact capability reasons remain
+  scope-qualified, and internal symbol_audit.next_action is not exposed.
+  Settings distinguishes unknown/null usage, zero calls with reliability not
+  observed, and positive calls with a genuine 0.0% success rate. Teleported
+  Notes labels/help/inputs use shared readable tokens.
+  The final affected eight-file frontend slice passed 104/104, and npm run build
+  passed vue-tsc plus Vite (530 modules; existing large Workstation chunk
+  advisory). Scope self-tests passed 42/42. The staged full scope guard passed
+  for 1,055 changed paths, including 872 byte-verified immutable imports, 29
+  exact Provider adaptations and 112 exact presentation paths. Unique-key
+  plan/ownership YAML, session, journal-prefix, workstream and diff checks are
+  recorded at closure. These
+  source checks do not establish browser appearance. Exact candidate CI and
+  Root-assigned route-state/full functional/strict-visual evidence remain
+  pending. F8y and official V25 remain open; references, masks, 0.005 tolerance
+  and zero retries are unchanged.
+  Preserve AC1-AC9, official V25, original references/masks/tolerances/zero
+  retries, all holds and the complete roadmap.
+  Historical adoption snapshot follows:
+  At adoption time 2026-10-26: exact accepted synchronized-green staging
+  6d0a85da34ba276bca69c82a932a0602e783d7a1 (canonical receipt
+  20261026T061035Z-6d0a85da34ba.json, staging CI40270957631) is assembled in
+  this TC branch from prior adopted staging 15b5 without conflicts. The only
+  new product/test paths are ETF-owned fresh-session eager reparse response
+  serialization and deterministic same-date knowledge-time/id ordering; ETF
+  records also advance. TC frontend, tag/date-sort/favorites implementation
+  and tests remain unchanged and unreleased. The 877-path frozen-import snapshot
+  and byte-identical receipt are recorded here. Stack-free checks passed:
+  35/35 scope self-tests; full scope guard over 1037 changed paths with 877
+  immutable imports byte-verified and 29 approved adaptations; unique-key YAML,
+  receipt/manifest/record and workstream checks. No TC consumer tests ran because
+  TC consumer source/tests did not change. Root's independent master gate is
+  pending; hold push until Root releases. No exact branch CI exists for this
+  candidate. No acquisition/provider request is replayed; actual private target
+  correction and UI acceptance remain Root-owned and pending. F8y, the full
+  local profile, AC1-AC9, SX/IX, official REF-HELP-V25 and all provider/data/
+  service holds remain open.
+
+  Historical blocker (superseded by the current cdc authorization) follows:
+  Current 2026-10-23T20:12Z: coordinator reports Provider fix
+  ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7 is present at published Provider
+  tip5b02caf509107856195ef8cfb2374e2ab6120612. It applies selected-default
+  filtering to range and per-timeframe summary coverage and adds a mapped-default
+  versus later-alternate regression. This is source-level evidence only: the fix
+  has not been delivered to TC through a synchronized green staging release and
+  has not been proven in deployed a6b9. Do not duplicate it or invent a client
+  identity/filter contract. TC remains at c9719521bfe8c558f1a743df683a12bef85fffe4
+  with CI40010646181 green for Backend, Frontend, Branch-declared and E2E
+  (192 passed/110 declared skips); feature EIG was expected skipped. The full
+  local profile remains unrun. F8y is spent with inputValue latency unresolved;
+  preserve provider/data/service holds, full AC1-AC9, SX/IX and official
+  REF-HELP-V25 as open.
+
+  Prior 2026-10-23T20:03Z record follows as historical context:
+  Current 2026-10-23T20:03Z: exact accepted a6b9 release is merged at
+  c9719521bfe8c558f1a743df683a12bef85fffe4. Exact branch CI40010646181 is
+  terminal green for Backend, Frontend, Branch-declared and E2E; the feature
+  Exhaustive Integration Gate was an expected skip. E2E reported 192 passed
+  and 110 declared skips. Read-only review confirms the previously reproduced
+  selected-default coverage mismatch remains in Provider-owned
+  backend/app/routers/coverage.py: both coverage queries aggregate by
+  instrument/timeframe without MarketSeriesDefault, whereas canonical reads
+  use the selected-series predicate. Historical runtime reproduction is
+  qualified to source51ab; current c971 confirms unchanged query shape but has
+  not been runtime-reproduced. TC ownership excludes this router and its tests;
+  coordinate a Provider-owned fix/regression rather than duplicating producer
+  logic. F8y remains spent with inputValue latency unresolved; keep all tests,
+  timeouts, retries, provider/data holds, full AC1-AC9, SX/IX unknowns and
+  official REF-HELP-V25 open.
+
+  Prior 2026-10-23T19:17Z adoption snapshot follows, retained as history:
+  Current 2026-10-23T19:17Z: accepted four-feature release a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  is now merged into the TC feature branch after the required handoff-only
+  capacity audit commit. Exact pre-merge CI40003951941 on 1e8f9803f4ddd225cb4649db3a9cf9f30e83580f
+  is terminal green for Backend, Frontend, Branch-declared and E2E; the feature
+  Exhaustive Integration Gate was an expected skip. The new combined branch
+  source has not yet run its own exact CI. The accepted release adds the
+  additive market_series_default created_at/updated_at migration after
+  slv2_0011, with fresh/retained mapping compatibility covered in its green
+  migration gates; TC's selected-default consumer and identity behavior remain
+  unchanged. The merge also carries the narrow F8m initial-rail/SPY fixture
+  setup and exact migration-path classifier tests. Stack-free checks passed on
+  the merge worktree: 18 classifier/workflow tests, the migration-head
+  compatibility test, 864 byte-verified imports/29 approved adaptations, and
+  workstream validation. No local DB, fixture, browser, service, seed or
+  provider action was run. The spent F8y slot and its
+  inputValue latency remain unresolved; retain all assertions/timeouts/retry
+  policy, full AC1-AC9, SX/IX unknowns, provider/data holds, and official
+  REF-HELP-V25. Publish this merge candidate for its own exact-source CI before
+  treating the accepted dependency merge as branch-qualified.
+
+  Historical detailed F8y trace findings: the F8y slot TC-SLOT-20261023T1400Z remains
+  consumed once on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
+  with zero retries. A closer saved-trace review confirms the locator-wait log
+  is delayed 53917 ms after the Playwright call starts; the select then resolves
+  over 12996 ms. During After Hooks, the browserDiagnostics fixture's
+  250-ms page.waitForTimeout takes 16022 ms. A prior frame snapshot shows the
+  selector already present with value1; the initial watchlist POST returned200
+  in about198ms, and nearby workspace snapshot PUTs took about329/445ms. The
+  trace frame-snapshot collection itself took27302ms. Read-only inspection of
+  pinned Playwright1.62.1 coreBundle confirms collectionTime is measured with
+  page performance.now around the injected snapshotter's document/shadow-DOM
+  traversal and stylesheet snapshot work; the after-call snapshot separately
+  took4164ms. This proves substantial browser-page snapshot generation during
+  the stalled command. The immediately preceding after@call@85 snapshot showed
+  the same watchlist select with value1 and took310.6ms at35.100s, only about
+  1.2s before inputValue began; no network request occurred between these
+  snapshots. Fixed DOM size alone is therefore insufficient to explain the
+  27.3-second spike, making a transient page/host scheduling stall more
+  plausible without proving it. The later lock POST at flows.spec.ts:7592 was not
+  reached and the network trace has no /lock request. No F8y source fix or
+  replay is supported; preserve its60-second timeout, assertions and zero
+  retries. The preceding toHaveValue call passed. Frame.inputValue begins
+  at36.325s and its before snapshot completes at89.051s, a52.726s pre-poll
+  interval. Of that,27.303s is page-measured snapshot collection and about
+  25.423s lies outside that measurement; locator waiting then lasts about
+  12.996s. This further localizes the stall to the browser/driver/page path but
+  does not distinguish host scheduling, transport, renderer, or transient DOM
+  change.
+
+  Separately, source review found CustomDateSortLocalEvidence did not validate
+  the symbol identity in the canonical-local coverage response before using
+  that response to authorize local-bar reads. The backend contract returns
+  symbol for the requested instrument. A focused regression was baseline red
+  (wrong-symbol ready coverage was accepted and local bars were read); a local
+  guard now fails closed with coverage_identity_mismatch before the bar read.
+  The two Custom Date Sort unit files pass 21/21 after adding a malformed
+  coverage-response case with no symbol; it is rejected before the local-bar
+  read. Vue type-check remains green for the product change. This is an
+  uncommitted working-tree change only; global coverage, exact-source CI, and
+  full F8y parent-host browser proof remain pending. SX/IX comparator
+  identity, weighting, point-in-time membership and history lineage remain
+  unresolved and unavailable. A separate one-file WorkstationToolContent
+  coverage diagnostic passed all23 focused tests but measured19.13% functions
+  for that component; narrowed coverage also emitted the unchanged global
+  threshold errors. This is not a global coverage result or acceptance gate.
+  A newer bounded one-file diagnostic on mounted-parent test SHA
+  4bcaeb9f0ed6378a90db195e08bae61930ab826f2cc65fe5f917a37ef54c1380 passed
+  25/25 tests and measured45.48% statements/lines,54.35% branches, and19.71%
+  functions for this component; narrowed-profile threshold errors remain
+  expected and are not a global gate.
+  A mounted WorkstationToolContent test now confirms that mismatched SPY
+  coverage is surfaced as “Coverage was returned for a different instrument.”
+  without presenting a calculated result. The two Custom Date Sort libraries
+  and mounted parent suite pass46/46 in one worker; Vue type-check exits0 after
+  adding a second mounted regression that discards an SPY coverage response
+  after the chart changes to QQQ. Its first test attempt exposed a test-fixture
+  store-key mismatch, which was corrected to match the component's instance key;
+  that was not a product failure. Those focused results were superseded by the
+  full V8 receipt above; no exact-source CI or full F8y browser proof is yet
+  recorded for the candidate.
+
+  Historical F8y status at 2026-10-23T15:39Z: F8y slot TC-SLOT-20261023T1400Z was consumed once
+  on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 with zero retries.
+  Its unchanged 60-second timeout was reported at the later lock POST line, but
+  the saved trace confirms no lock request was dispatched. The first
+  watchlistSelect.inputValue() call began at 35991.181 ms, with protocol call
+  start at 36325.479 ms; pinned Playwright 1.62.1 logs “waiting for locator”
+  immediately before selector polling, but that log appears only at 90242.395
+  ms. The select resolves at 103238.115 ms and the command completes at
+  103278.200 ms; After Hooks began at 67068.977 ms. This narrows the delay to
+  before locator polling, followed by about13 seconds to resolve, but does not
+  distinguish test-driver dispatch, server scheduling, renderer, or transport.
+  The saved runner log reports the timeout without a lower-level cause.
+  Positive list/Tag Column actions after timeout ran during teardown and are
+  not acceptance evidence. No source fix is supported. Preserve all artifacts,
+  the 60-second timeout and assertions, and zero retries. Do not replay the
+  consumed slot or alter source/fixture absent new evidence and coordinator
+  authorization.
+
+  Historical F8y build result (2026-10-23 14:52Z; superseded by the later
+  revised 1024 MiB/one-CPU/no-extra-swap allowance, one canonical frontend
+  `npm run build` with a 768 MiB Node heap reached 765.9 MiB use and failed in
+  `vue-tsc` after 90.22s (child exit134; outer build exit1). The BuildKit
+  container was not OOM-killed; Vite did not start and no frontend image was
+  produced. Exact read-only checks show no image and no app project containers,
+  volumes, or networks. The exact builder is running with 1024 MiB memory and
+  equal memory-plus-swap, existing one-CPU quota, and OOMKilled=false. Do not
+  attempt another heap/build recipe under this allowance: the slot explicitly
+  requires a new evidence-based coordinator decision after a resource failure.
+  At that 14:52 checkpoint F8y remained unrun; this historical status is
+  superseded by the current result above. The later 14:54 packaging allowance
+  produced the exact candidate image and the single test attempt.
+
+  Historical F8y slot result (2026-10-23 14:38Z): released slot
+  TC-SLOT-20261023T1400Z was used only for one-case preparation. The exact
+  current-source backend image built, but no frontend image was produced
+  within the approved 768 MiB/1 CPU/no-swap builder; bounded vue-tsc and Vite
+  attempts exhausted Node heaps. Therefore no app fixture, browser, or F8y
+  test ran. The exact candidate project remains absent and the private builder
+  is stopped with cache preserved. Do not reuse an older frontend image or
+  repeat builds at the exhausted cap. Resumption requires a revised bounded
+  build allowance or a verified immutable frontend artifact for these exact
+  app inputs. Retained services/data, assertions, thresholds, references, and
+  retry policies remain unchanged.
+
+  Superseding current validation (2026-10-23 14:06Z): branch HEAD remains
+  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 and origin-synchronized; preserve
+  all six existing dirty paths. One authorized full frontend V8 run on the
+  then-current mounted-parent test SHA
+  `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5` passed
+  144/144 files and 1,401/1,401 tests in 180.42s. Global coverage was 70.01%
+  functions, 82.67% statements/lines, and 73.24% branches, passing the
+  unchanged 70% function threshold. Exact log SHA256
+  `191e82423372072458c277472b07ae53089392d89fa49e5b09ae2cf9e882b826` and
+  LCOV SHA256 `6ce1420418c5a3d3d12e4db5df17fd741ee385d8e40b3dcd4ae1362756c15aa9`.
+  WorkstationToolContent.vue was 66/345 functions, 1,830/4,332 lines, and
+  304/611 branches; tagColumns.ts remained 7/7 functions. One additional
+  mounted-parent regression was added after the full run: canonical workspace
+  Tag Column configuration must win over a stale virtual-tool snapshot. The
+  current focused file passes 23/23 at SHA256
+  `61972a13f0f9216fdc32925045d7e494634e44724fa1f956073176c210f11a9c`; current
+  Vue type-check passes. The full result is qualified to the prior test-file
+  hash; no second full coverage run was authorized. No production source,
+  F8y E2E assertion, threshold, or coverage rule changed. F8y ordinary browser
+  proof remains pending Root's next exact fixture slot. Preserve all positive
+  and locked-target/no-DELETE parent assertions. Committed exact CI39935342169
+  remains red at 69.04% on its committed source; distinguish it from this
+  dirty working-tree local coverage result. Full AC1-AC9, SX/IX semantics,
+  official REF-HELP-V25 and broader integration remain open.
+  Current TC continuation (2026-10-23 12:43Z): branch HEAD remains
+  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 and origin-synchronized; preserve
+  the six existing dirty F8y/test/workstream paths. Root's isolated F8m repair
+  has exact CI39935920665 green and a separate pinned Noble 1.62.1, zero-retry
+  1/1 ordinary-click proof; its Purple/Yellow/Grey and SPY/QQQ isolation
+  assertions passed. This is Root-owned evidence, not a TC source change or
+  full checkpoint acceptance.
+
+  One bounded full frontend V8 coverage pass completed at working-tree source
+  hash `57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`
+  for the mounted-parent test file, before six later mounted-parent tests
+  described below. Vitest ran 144 files/1,384 tests, all passing, but the unchanged global
+  function threshold remains red at 69.46% versus 70%; statements/branches/lines
+  were 82.18%/73.21%/82.18%. Fresh LCOV reports
+  WorkstationToolContent.vue at 49/342 functions, confirming a broad SFC branch
+  denominator rather than a Tag Column helper gap; the tagColumns.ts helper is
+  fully covered at 7/7 functions. Coverage artifacts are
+  `/tmp/tc-a83-coverage-20261023-current.log` (SHA256
+  8be42b1022ac0be6732b2f7f72dcc86bfd1408936f05d4118f7f05762ce94f8a) and
+  `frontend/coverage/lcov.info` (SHA256
+  a281257fbc3da12ff62d362370324728030120cedc759762b0317e89e0c5bb7b).
+  Preserve the 70% threshold; do not change source-wide
+  include/exclude rules to improve the metric.
+
+  The full-coverage run preceded six later mounted-parent tests. The
+  updated focused parent file now passes 11/11. Its added cases exercise row selection through
+  WorkstationToolContent (emitted symbol plus instrument identity), a live
+  unlocked-to-locked target transition (Remove disables without DELETE), named
+  list creation/configuration preservation, creation failure/retry preserving
+  the name and current selection/configuration, resolved-symbol addition to the selected list, and a
+  rejected symbol lookup preserving the draft without emitting a mutation.
+  The updated file passes 11/11 in a 1-worker capped run; this
+  is parent-path behavior evidence, not the pending F8y browser proof. During
+  test construction, a jsdom assertion that the second virtualized row was
+  mounted failed because the zero-size viewport mounted only the first row;
+  that assertion was removed while API/store membership checks passed. Keep
+  all positive/locked-negative parent assertions until the ordinary browser
+  flow proves both behaviors. F8y remains pending a safe seeded browser slot.
+  No browser, Compose fixture, build, or full matrix was started here. Full V25
+  roadmap, SX/IX semantics, and official REF-HELP-V25 remain open.
+  Superseding update 2026-10-23 12:43Z: the single coordinator-authorized
+  full V8 run used parent-test SHA
+  `116b88ac132e9ff67c9ce52b51d9ceb16c60f06d6e8edc712a29dec849eedaeb` and
+  completed 144 files/1,390 tests, all passed, with 69.60% functions (below
+  unchanged 70%), 82.30% statements/lines and 73.24% branches. Current LCOV
+  SHA256 is `33bd23edd8e447d23558424f65dc1c96ddf5514b6968b3d502b830cc6c6f0bba`;
+  WorkstationToolContent.vue is 54/342 functions, while tagColumns.ts is 7/7.
+  The run log is `/tmp/tc-a83-tag-columns-coverage-20261023.log`, SHA256
+  `273fac9866eccca37a0a0499d52a0266b3a6293cc3cb84ac5a9a970bd82a008f`.
+  The two subsequently added parent tests are not in that global result. The
+  current parent file passes 13/13 and now covers failed Tag Column removal
+  without false membership/configuration updates plus rename/copy/delete while
+  retaining Tag Column configuration. Product source is unchanged.
+
+  A fresh in-memory SQLite reproduction on 51ab confirms both generic coverage
+  endpoints count an alternate-only D1 row: selected-default helper count 1,
+  summary/range coverage count 2, range reported ready through the alternate
+  row's date. The exact route and selector paths are outside TC ownership
+  (`coverage.py` is not in `owned_paths`; its router tests are excluded except
+  for the narrow released-envelope adaptation; `market_data.py` is Provider
+  excluded). TC made no product/test edit. Provider owns the minimal selector
+  reuse and mapped-default/alternate-only router regression. Provider migration
+  repair 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is published but exact CI
+  39923818426 terminated cancelled: Frontend test/coverage steps completed,
+  Backend unit tests were cancelled, and E2E/Branch/Exhaustive jobs were
+  cancelled before starting. This is neither a product failure nor a green
+  release; the commit is not imported or treated as staging.
+
+  Latest dependency adoption: exact staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+  is canonically green (receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
+  attempt 1) and merged into this TC branch at source merge commit
+  acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, with merge base 4687bd0c. The
+  merge imports the accepted hidden-request initiation observer and tests;
+  its focused unit file passes 9/9. Checkpoint b59b489 preserved the four dirty
+  TC records before merge. Published TC source 5d7573900449a3007de8b76cf2bae59661d0cbc6
+  has exact remote parity. Its first exact branch CI 39905888099 has Frontend
+  and Backend green but Branch-declared Tests failed because the 4687 frozen
+  manifest still pinned hidden_request_observation.ts to its older blob; E2E
+  was still running when recorded and no full CI pass is claimed. The F04 exact
+  receipt and complete 858-path repinned manifest are now added locally;
+  scope self-tests (35), actual guard (1000 changed paths, 858 immutable imports,
+  29 adaptations), workstream validation (45 records), and diff check pass.
+  Publish this narrowly scoped scope-index repair and follow its exact CI. The
+  following fe4a status text is preserved as pre-F04 history.
+
+  The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+  at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
+  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published
+  HEAD fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref.
+  Exact CI39892894561 attempt 1 completed successfully on fe4a at 03:47:13Z.
+  Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E passed;
+  Exhaustive Integration Gate was an expected skip. E2E passed 191 with 110
+  declared skips and no failures or flakes. This is branch CI, not completion of
+  the held TC local parent-runtime/full-profile gate or the full roadmap.
+  The explicitly accepted 4687 release is already an ancestor through merge
+  f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Do not treat later staging-ref
+  movement as a release; another staging SHA requires its own exact green
+  receipt and coordinator release.
+
+  The TC-owned Favorites toggle race was reproduced on published a7e5 (1
+  failed/8 passed): two rapid chart-star toggles during a pending add coalesced
+  into one add, losing the second intent. The fix serializes toggle intents by
+  instrument and reevaluates membership after prior mutations; distinct
+  instruments remain concurrent. Focused Favorites/WatchList suites passed
+  103/103, Vue type-check exited 0, workstream/scope validation passed, and the
+  exact implementation is published at fe4a. Its hosted CI is green; these
+  focused checks and branch CI do not substitute for the held TC local
+  parent-runtime/full-profile gate.
+
+  The F8y ordinary-click parent-host-to-mutation browser proof and full local
+  profile remain pending Root's single-owner fixture slot. Official Custom
+  Date Sort help identifies the `vs. Sub Industry` comparator as the related
+  Sector Index and the `vs. Industry` comparator as the main Industry Index;
+  the related index families use SX and IX ticker symbols. TC-owned source
+  stores sector/industry labels but no source-backed mapping from those labels
+  to the corresponding SX/IX instruments. Weighting, point-in-time membership,
+  and canonical local-history lineage also remain unresolved. Keep relative
+  modes unavailable until those contracts exist; do not infer a comparator
+  instrument or series. Preserve
+  all assertions, the 70% function-coverage threshold,
+  screenshot references/masks/0.005 tolerance and zero-retry policy. Full
+  AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
+  operations, deployment and promotion remain disabled/unperformed.
+  Superseding local test update 2026-10-23 12:51Z: the current mounted-parent
+  file (SHA256 `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4`)
+  passes 14/14 and Vue type-check passes. Its newest Tag Column negative test
+  verifies a failed add leaves membership absent, shows the existing parent
+  alert, and emits no configuration mutation. Playwright `--list` with the
+  line reporter collects exactly the one F8y-tag-columns case; an earlier
+  list attempt failed only because the default HTML reporter could not write
+  its read-only report path. No browser or fixture ran. The 69.60% full
+  coverage result predates the three newest mounted-parent tests, so their
+  effect on the global threshold remains unknown.
+  Superseding local coverage/test update 2026-10-23 13:14Z: the one authorized
+  full V8 pass on source a83 and pre-expansion parent-test SHA
+  `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4` ran
+  144 files/1,393 tests successfully, but remains red at 69.69% functions
+  versus the unchanged 70% threshold (82.39% statements/lines, 73.26% branches).
+  WorkstationToolContent.vue measured 57/342 functions; tagColumns.ts is 7/7.
+  Full log `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.log` SHA256
+  `c8dd9084e803fa3705519d6242449f752f29814e56e4e13d659cbd6affae3234`; its
+  LCOV is preserved at `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.lcov.info`
+  SHA256 `e62b35dec3165f1410f24cb9d62c68e1716132e2d20d24c5f783ff55eea69017`.
+  Eight subsequent mounted-parent tests exercise ordinary chart/Python/condition
+  drops, multi-output rejection, condition-save failure, saved Tag Column
+  visibility, and personal/non-personal membership callbacks; the current file
+  SHA256 is `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`
+  and the focused suite passes 22/22. Focused V8 comparison against the saved
+  full-run LCOV finds 11 previously-zero function entries now hit, projecting
+  a 70.02% global function floor if all other full-suite coverage is unchanged;
+  this is not a refreshed full-gate measurement. The filtered three-file V8
+  report exits red because its partial denominator is below global thresholds.
+  No threshold/include rule changed. F8y browser proof remains pending the
+  separately released slot; preserve the positive/locked-negative assertions.
+  Superseding current local validation 2026-10-23T17:06Z: on the dirty
+  working tree based on HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9, the
+  bounded one-worker full V8 command exited0 with 144/144 files and 1,406/1,406
+  tests passing. Global coverage is 82.86% statements/lines, 73.37% branches,
+  and 70.07% functions, above the unchanged 70% floor. The six source/test
+  paths used by that run have patch SHA256
+  05720a427bb4f45e3838a233391e097609f326662dbc592c1ac0bb1699ebe686; current
+  LCOV is SHA256 44fc9b914263f132344e6f50d36cd6b88bd8cb5696df33cbd4964c10a70d6e70.
+  This remains uncommitted local evidence: exact CI39935342169 is still red on
+  committed HEAD at 69.04%, and there is no exact CI result for these dirty
+  files. F8y remains unresolved; its consumed zero-retry run stalled in
+  Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
-  Bounded TC2000 implementation checkpoint accepted by Root on 2026-10-22 under
-  the recorded human standing authorization and literal checkpoint delegation.
-  Validated implementation is f206029f16c94e32616ccccf81f65675f224e67c; exact
-  attempt-1 CI39701994384 is fully green for mandatory Backend (3421 unit + 459
-  integration, 83%), Frontend Unit, Branch Declared and E2E (191 passed,110
-  declared skips,0 failures,0 flakes,0 retry markers). EIG is an expected
-  skip. Local functional is 195 passed/2 unchanged declared skips/0 retries on
-  f206; strict104 visual, frontend coverage/build and 628c-to-6a6e migration
-  compatibility remain qualified to their unchanged inputs. Apply the staged
-  four-record packet after Root's cached-diff review; after publication capture
-  the resulting exact branch HEAD and require its CI before Root's staging
-  integration. Preserve full roadmap and official REF-HELP-V25 gap.
+  Current 2026-10-26: Root accepted the bounded whole-frontend presentation
+  checkpoint on validated source f2d0228a491a9e5baeb4fdb048da3ed37e485039.
+  Functional196 passed with2 existing canonical opt-in skips/0 failures/0
+  retries; strict visual104/104 passed across four profiles; exact attempt-1
+  CI40330168827 is green. Root's actual route/mobile and canonical workstation
+  geometry reviews passed. The complete roadmap and official REF-HELP-V25 remain
+  open. Final records-only branch HEAD needs exact CI before Root's supported
+  staging integration; deployment/promotion remain Root-owned and pending.
+
+  Superseded checkpoint status follows as preserved historical context:
+  Current 2026-10-26: exact accepted synchronized-green staging6d0 is assembled
+  over the already adopted15b5 baseline with no conflicts. Its ETF
+  fresh-AsyncSession eager reparse response serialization and deterministic
+  same-date knowledge-time/id ordering code, tests and owned records are
+  imported; no TC consumer code changed. The TC frontend and
+  tag/date-sort/favorites tests remain preserved and unreleased. ETF's accepted
+  closing tip cc4358d6d373439a86173289801921d929931df9, exact CI40267718389 and
+  ERF3 completion are recorded by ETF as past accepted source evidence; they do
+  not establish target/UI acceptance here. Root owns current target correction
+  and UI acceptance, with no target/deployment evidence inferred. The local
+  merge is not published and has no exact branch CI; hold push for Root's
+  independent master gate. F8y, the full local profile, TCP4/TCP5, full
+  AC1-AC9, SX/IX, official REF-HELP-V25 and all provider/data/service holds
+  remain open.
+
+  Historical checkpoint status (superseded by current reconciliation) follows:
+  Current 2026-10-23T20:12Z: TC remains on exact source
+  c9719521bfe8c558f1a743df683a12bef85fffe4 with CI40010646181 terminal green
+  for Backend, Frontend, Branch-declared and E2E; feature EIG was expected
+  skipped. Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
+  at published tip5b02caf509107856195ef8cfb2374e2ab6120612, with selected-default
+  coverage predicates and regression coverage. This is not a synchronized
+  staging release or deployed a6b9 proof; do not adopt or duplicate it. Full
+  local profile, F8y latency, full AC1-AC9, SX/IX, and official REF-HELP-V25
+  remain open, as do all provider/data/service holds.
+
+  Prior 2026-10-23T20:03Z checkpoint record follows as history:
+  Current 2026-10-23T20:03Z: exact accepted release
+  a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e is merged at
+  c9719521bfe8c558f1a743df683a12bef85fffe4; exact CI40010646181 passed
+  Backend, Frontend, Branch-declared and E2E, with feature EIG expected
+  skipped. E2E reported 192 passed/110 declared skips. No local full profile
+  was run. The selected-default coverage endpoint mismatch remains a
+  Provider-owned contract issue; the historical in-memory reproduction is on
+  source51ab, and the c971 review is source inspection only. TC does not own
+  the router/tests and has not changed them. Full current-source local
+  integration/visual profile, F8y latency resolution, full AC1-AC9, SX/IX,
+  and official REF-HELP-V25 remain open.
+
+  Previous 2026-10-23T19:17Z checkpoint snapshot follows, retained as history:
+  Current 2026-10-23T19:17Z: exact green staging/master a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+  (canonical receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726) has
+  been merged into the TC-owned branch with the handoff-only retained-runtime
+  audit preserved in commit 996a975f3b6276a8e86a47bd509e93ca2f0f030a. Current
+  combined branch exact CI is pending publication; the previous exact
+  CI40003951941 was green only for its pre-merge 1e8f source. The accepted
+  migration is additive ORM timestamp parity on market_series_default, based
+  on slv2_0011, not a historical rewrite; accepted migration tests cover fresh
+  and retained rows. No local migration DB or retained service was touched.
+  Branch changes include a narrow test/setup adjustment for F8m and automated
+  classification of this exact inert timestamp-only migration shape. The
+  merged worktree passed 18 targeted classifier tests, the migration-head
+  compatibility test, the full scope guard with 864 immutable imports/29
+  adaptations, and workstream validation. F8y's
+  60-second inputValue stall remains unproven and its one browser slot remains
+  consumed. Full AC1-AC9, V25 Help parity, and broader validation remain open.
+
+  Historical 14:54 coordinator slot result: the saved test failure was
+  originally reported at flows.spec.ts:7592; later trace review proved the
+  lock POST was not sent. Target membership setup/checks before the stall
+  passed; the lock/no-DELETE phase did not complete. Full error-context, trace,
+  video, and local service logs remain preserved in the private F8y artifacts directory. Exact browser and synthetic project containers/volumes/networks have been removed; retained
+  services/data were not touched. No retries, assertion/timeout/oracle changes,
+  or broader matrix were made.
+
+  Earlier 14:54 slot evidence (historical): the exact source frontend image and
+  one F8y browser attempt were produced. The lock route was not reached. All
+  later positive actions in teardown are not acceptance.
+
+  Full error-context, trace, video, and local service logs
+  remain preserved in the private F8y artifacts directory. Exact browser and
+  synthetic project containers/volumes/networks have been removed; retained
+  services/data were not touched. No retries, assertion/timeout/oracle changes,
+  or broader matrix were made.
+
+  Historical F8y slot result (2026-10-23 14:38Z): the released one-case
+  slot produced an exact-source backend image but no frontend image under the
+  768 MiB/1 CPU/no-swap cap. The F8y case did not run; no fixture/browser was
+  started and no F8y pass or failure is claimed. The builder is stopped with
+  cache retained, and the candidate project has no containers, volumes, or
+  networks. Resumption requires a revised bounded build allowance or a
+  verified artifact built from exact candidate app inputs.
+
+  Committed local/remote TC HEAD is synchronized at
+  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9. Exact own-branch CI39935342169
+  attempt 1 is terminal red: Frontend job120353389277 ran all 1,381 tests but
+  failed the unchanged function-coverage threshold (69.04% versus 70%);
+  Backend job120353388553 and Branch-declared job120362123490 passed, while
+  E2E job120362124695 and Exhaustive job120362125598 were skipped. Earlier
+  CI39925201913 ran on source 1892607 only and its frontend function coverage
+  was 75.61%. A fresh bounded local V8 coverage run on the five-test mounted
+  parent file state completed 144 files/1,384 tests successfully, but remained
+  below the unchanged global function gate at 69.46% (threshold 70%); statement,
+  branch, and line coverage were 82.18%, 73.21%, and 82.18%. The exact report
+  shows WorkstationToolContent.vue 49/342 functions and tagColumns.ts 7/7, so
+  Tag Column helper coverage is not the missing behavior. After that report,
+  mounted-parent regressions were added for row selection (emitting `SPY` with
+  instrument ID 101), reactive lock transition (disabling Remove without a
+  DELETE), non-empty list creation with Tag Column preservation, failed list
+  creation and successful retry preserving current selection/configuration,
+  resolved-symbol
+  addition to the selected list, and unresolved-symbol rejection without
+  mutation. The updated focused parent file passes 11/11 under one worker. The
+  full coverage run predates those six
+  added tests and does not establish their effect on the global percentage.
+  This is not a replacement for F8y's ordinary browser positive and
+  locked-target negative proof. Preserve the parent assertions and threshold;
+  no browser, fixture, typecheck, or full profile has run for the updated test
+  file. Root's isolated F8m repair and exact CI are green; do not duplicate it.
+
+  The previously published TC source 51ab9d03dd139b8959808a23b4f8cc272f8556aa
+  contains the exact green F04 adoption
+  at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, preserved checkpoint
+  b59b489913dd4359b6205139e4b4f934d0952667, canonical F04 receipt
+  20261023T051709Z-f04fb2a26c63.json, and corrected 858-path manifest.
+  Exact TC CI39908879710 passed all mandatory jobs on attempt 1; E2E was
+  192 passed/110 declared skips and Exhaustive Integration Gate was skipped as
+  expected. The pending language below records an earlier snapshot and is
+  superseded by this exact-source result. This does not establish F8y local
+  parent-runtime proof, full browser acceptance, full roadmap completion, or
+  official REF-HELP-V25 parity.
+  Latest local follow-up 2026-10-23 12:51Z: full V8 coverage was run once on
+  the 11-test parent-file SHA above (not on the three-test-later current file); all
+  1,390 tests passed, but functions measured 69.60% against the unchanged 70%
+  threshold. Statements/lines were 82.30%, branches 73.24%; component metrics
+  were WorkstationToolContent.vue 54/342 and tagColumns.ts 7/7. The current
+  14-test mounted-parent suite and Vue type-check pass. Three tests were added
+  after coverage, including failed Tag Column add/removal truthfulness and list
+  rename/copy/delete configuration preservation; their effect on global
+  coverage remains unmeasured. Playwright line-reporter collection finds only
+  F8y-tag-columns; the default reporter's read-only report write failure was
+  setup-only. A separately authorized coverage refresh and F8y browser proof
+  remain pending; no browser or fixture was started.
+
+  TC source adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+  at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 over merge base
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad. The four pre-merge dirty TC
+  records were preserved in b59b489913dd4359b6205139e4b4f934d0952667. Exact
+  source 5d7573900449a3007de8b76cf2bae59661d0cbc6 is published and remote-verified.
+  Exact CI39905888099 has a branch-guard failure caused by the stale 4687 helper
+  blob pin; Frontend and Backend passed, while E2E was still running at last
+  observation. The local F04 receipt/858-path replacement manifest now passes
+  scope self-tests and actual guard; own corrective publication and exact CI
+  remain pending. Focused F04 observer unit is 9/9. This does not duplicate
+  Root's observer repair or establish a new local browser profile.
+  The older fe4a checkpoint details below remain historical and are retained.
+
+  Current continuation at 2026-10-23: published feature HEAD
+  fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref and contains
+  accepted staging 4687. Exact CI39892894561 attempt 1 completed successfully
+  on fe4a at 03:47:13Z: Backend Tests, Frontend Unit Tests, Branch-declared
+  Tests, and E2E passed; Exhaustive Integration Gate was an expected skip. E2E
+  passed 191 with 110 declared skips and no failures or flakes. The
+  per-instrument Favorites toggle
+  serialization fix and two deferred regressions are published in fe4a; the
+  published-source baseline red was 1 failed/8 passed and focused store/WatchList
+  suites passed103/103, with Vue type-check, workstream validation and scope
+  guards green. The full local browser slot remains held by Root; F8y parent-host
+  runtime proof is still pending. Official Custom Date Sort guides identify the
+  related Sector Index (SX) for `vs. Sub Industry` and the main Industry Index
+  (IX) for `vs. Industry`; current TC-owned source has no mapping from stored
+  sector/industry labels to those instruments. Weighting, point-in-time
+  membership, and canonical local-history lineage remain unresolved, so these
+  modes stay unavailable. Full AC1–AC9 and official REF-HELP-V25 remain
+  open.
+
+  The following F8y source details describe the pre-404fe history; latest
+  publication and CI state is stated above and in current_blocker.
+
+  The current TC source merges the coordinator-accepted GREEN staging release
+  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad at branch merge commit
+  f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Canonical receipt
+  20261023T000222Z-4687bd0cd21a.json binds CI39866387942 attempt 1 to the exact
+  source. Merge-base and source review confirmed a clean merge from TC
+  candidate 4a88aaf8388b72f1b3eb22b21b2f50312bf12500 with no conflicts. The
+  receipt-pinned scope manifest repins 858 frozen import paths to 4687 and
+  adds the six new non-TC-owned paths from that release; the two workstation
+  Market Map files stay governed by the pre-existing narrow shared-path
+  exceptions. The previous 0e release remains in history but is superseded by
+  this latest adoption.
+
+  TC's ordinary-click F8y Tag Column test configures the target list through
+  the actual workstation, invokes its row context-menu action, observes the
+  target WatchList POST and verifies the separate control list remains
+  unchanged. It was collected on the earlier 570c source but has not run in a
+  browser; positive/negative parent-host-to-mutation runtime proof remains
+  pending the coordinator's full local fixture slot. Do not substitute helper,
+  parser or collection results. Exact branch CI39877709985 on c5da was RED at
+  this case after the target mutation POST succeeded: returning to the target
+  list rendered XLE without the configured Tag Column membership cell, and its
+  built-in retry also failed. The working-tree repair was motivated by the
+  stale-props binding in publishWatchlistConfiguration; it now merges the
+  selection over liveToolConfiguration. Its baseline-red source-binding test
+  failed with 1 failure and 8 passes before wiring and now passes; affected
+  suites pass104/104,
+  vue-tsc --noEmit exits0, and the unchanged Playwright case collects. Repair
+  publication and exact CI remain pending; none of these checks is browser
+  proof. No assertions, references, masks, tolerances, retries, thresholds,
+  provider behavior, datasets, or deployment settings were changed. The full
+  AC1–AC9 roadmap and official REF-HELP-V25 parity remain open; TCP bounded
+  checkpoint evidence does not close either.
+
+  The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
+  implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
+  human standing authorization and literal checkpoint delegation. Its exact
+  attempt-1 CI39701994384 was green for mandatory Backend (3421 unit +459
+  integration,83%), Frontend Unit, Branch Declared and E2E (191 passed/110
+  declared skips/0 failures/0 flakes/0 retry markers); EIG was an expected skip.
+  Local functional (195 passed/2 unchanged declared skips/0 retries), strict104
+  visual, frontend coverage/build, and 628c-to-6a6e migration compatibility
+  remain qualified to their unchanged inputs. The four-record closing packet
+  was published on febc6fbb7a033534f3c486f766dd437780954d09 before the later
+  staging adoption.
+
+  On 2026-10-22, the coordinator released exact combined Provider+ETF+TC2000+
+  Strategy staging 0e342512e53ba2268425294d61c50e219eaafa4f with green CI
+  39827786248. This TC branch adopted that exact SHA as an ancestor through the
+  guarded update and pushed only its assigned feature ref; adoption parity was
+  independently verified. The branch has since continued, and its current
+  published implementation is 5ca3423e553e27e36dc8002be5f11996bbd4cf9e, also
+  independently verified as the current feature-ref tip. The
+  scope guard passes for that receipt-approved fast-forward and pins 858
+  frozen paths to exact release blobs/deletions; 29 approved TC adaptations
+  remain separate. This is not full AC1-AC9 or official REF-HELP-V25 completion.
+  Custom Date Sort is the current TC-owned roadmap item. The formula/range core
+  and exact-scope canonical-local coverage gate are published; the loader checks
+  historical coverage first and reads at most 5000 canonical local bars only
+  after matching ready evidence. The current candidate wires Shift+T to an
+  ordinary chart drag, snaps fractional plot positions to the nearest loaded
+  bar, and requests only the existing local-history contract. It adds a strictly
+  parsed range-specific percent column and a new WatchList window for an
+  explicitly selected existing personal list; per-symbol calculations use
+  coverage-first canonical local history with a four-worker bound and explicit
+  unavailable outcomes. Ordinary WatchList default sorting remains unchanged.
+  Three focused suites pass 108/108 and Vue type-check passes on published
+  implementation 5ca3423. These are unit/type-check results only; no live app/database,
+  browser, full frontend coverage/build, or exact candidate CI was run. The
+  existing canonical W1/MN route may locally materialize derived bars from D1.
+  A trustworthy existing sub-industry/industry comparison series remains open,
+  so relative modes stay unavailable. No deployment, live provider/ETF test,
+  paid access, or visual reference change is claimed.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -490,29 +1211,36 @@ historical_blocker_archive: >-
   tolerance. Full integration and broader AC4-AC7/R1/R5/R6 remain open; provider
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
-  name: TC2000 F8m/F8n/F8s renderer and menu lifecycle repair
-  status: five_path_reviewed_and_published_by_this_changeset_exact_CI_and_browser_pending
-  commit_sha: enclosing_changeset_commit
-  remote_sha: enclosing_changeset_commit
+  name: TC2000 personal WatchList Tag Columns
+  status: mounted_parent_mutation_unit_proof_local_23_of_23_uncommitted;exact_head_CI39935342169_red_coverage;F8y_slot_consumed_timeout_before_lock_POST_cause_unknown
+  commit_sha: a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
+  remote_sha: a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
   intent: >-
-    Preserve uPlot identity across semantically equivalent renderer initialization
-    and prevent shell-menu listener synchronization from moving a fixed menu
-    between ordinary pointer press and release. Keep genuine renderer changes,
-    data updates, resize/scroll positioning, keyboard access and ordinary menu
-    activation intact.
+    Persist explicit personal WatchList targets as Tag Columns, display membership
+    from canonical target-list rows, and let Alt+click or the accessible row menu
+    add/remove only that target list's membership. Preserve unavailable/locked
+    evidence as read-only and retain ordinary row selection behavior.
   owned_paths:
-    - frontend/src/components/chart/UPlotChart.vue
-    - frontend/src/lib/uplot/rendererLifecycle.ts
-    - frontend/src/views/WorkstationView.vue
-    - frontend/tests/unit/lib/test_renderer_lifecycle.test.ts
-    - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+    - frontend/src/components/workstation/VirtualWatchlistTool.vue
+    - frontend/src/components/workstation/WorkstationToolContent.vue
+    - frontend/src/lib/workstation/tagColumns.ts
+    - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
+    - frontend/tests/unit/components/test_workstation_tool_content_tag_columns.test.ts
+    - frontend/tests/unit/lib/test_tag_columns.test.ts
+    - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Publish this coherent candidate once; verify exact refs and automatic CI.
-    Then submit a refreshed source-qualified proposal to reuse only the existing
-    owned runtime for frontend-only functional and strict104 visual gates. Do not
-    execute build/runtime/browser work before coordinator review; preserve all
-    screenshot references, masks, retries and 0.005 tolerance. No TCP2 full-gate
-    closure or downstream checkpoint acceptance is claimed.
+    Preserve the current 23/23 mounted-parent test result as local evidence; its
+    test SHA differs from the earlier 70.01% full-coverage receipt, and these
+    dirty tests are not in exact-head CI39935342169. That committed run is
+    terminal red at 69.04% function coverage and must not be described as
+    pending or green. The one F8y browser slot was consumed at zero retries and
+    timed out before the lock POST was dispatched. Do not replay it, change its
+    60-second timeout/assertions, or use the retained charting-stack. No source
+    fix is justified by the saved trace; continue only with independently
+    supported TC work until a new coordinator-authorized observation slot is
+    available. Preserve the full visual references/masks/0.005 tolerance and
+    keep SX/IX relative modes unavailable until producer-backed identity,
+    weighting, PIT membership, and local-history lineage contracts exist.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -545,16 +1273,16 @@ human_goal_budget_authorization: none
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 roadmap_goal: "Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review."
-goal: "Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review."
+goal: "Continue the accepted TC2000 workstation checkpoint and reconcile the entire reachable frontend into one consistent TC2000 visual system across authentication, shell/navigation, workstation/popouts, dashboard/chart/alerts/radar/watchlist/screener/baskets, ETF Holdings, both Strategy screens, settings/provider controls and every reachable screen component; preserve all feature behavior/contracts and complete the existing roadmap."
 integration_checkpoint:
   id: tc2000-workstation-integration-1
   planning_authorization: "Human resumed the saved checkpoint objective on 2026-10-15, directing this existing session to read coordinator guidance, fix independent chart-template and functional/visual defects, then consume green Provider+ETF staging and prepare review."
-  acceptance: accepted_bounded_checkpoint_by_root_2026-10-22
+  acceptance: accepted_whole_frontend_tc_presentation_checkpoint_by_root_2026-10-26
   coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   downstream_consumers: [human-workstation-testing, strategy-lab-v2]
   required_contracts: [provider-coverage-preflight, etf-provenance-freshness, immutable-code-study-outputs, chart-template-interactions]
-  source_freeze: "Validated implementation source is f206029f16c94e32616ccccf81f65675f224e67c. Final closure-record HEAD is captured from the exact branch HEAD after this packet is published; exact final-head CI remains required before coordinator integration."
-  continuation: "Root accepted this bounded checkpoint only. Preserve original TCP and AC text and the full roadmap. The exact closure-record branch HEAD must pass CI before coordinator-owned staging integration; no feature-branch self-integration, deployment, or promotion."
+  source_freeze: "Validated implementation source is f2d0228a491a9e5baeb4fdb048da3ed37e485039. Final closure-record HEAD is captured from exact branch HEAD after publication; its exact CI is required before Root-supported staging integration."
+  continuation: "Root accepted this bounded whole-frontend presentation checkpoint only. Preserve original TCP and AC text and the full roadmap. Exact records-only closure HEAD CI remains required before Root-supported staging integration; no feature-branch self-integration, deployment, or promotion."
   original_criteria_disposition:
     AC1: {status: bounded_checkpoint_delivered, owner: TC, delivered: "475-path ownership manifest; 350 immutable paths byte-verified and 29 narrow adaptations", remainder: "Continue ownership enforcement and whole-roadmap review"}
     AC2: {status: consumer_contract_delivered, owner: TC, delivered: "Provider staging consumer contract from accepted 628c reconciliation", remainder: "Broader feature acceptance and future upstream contract changes"}
@@ -563,7 +1291,7 @@ integration_checkpoint:
     AC5: {status: partial_roadmap_open, owner: TC, delivered: "Existing immutable Study/Strategy consumers preserved and validated within delivered scope", remainder: "Broader engine, promotion, lineage and combined-consumer roadmap"}
     AC6: {status: partial_roadmap_open, owner: TC, delivered: "Bounded interaction and strict visual evidence without changing protected references or thresholds", remainder: "Official REF-HELP-V25 parity and broader V25 visual/state parity"}
     AC7: {status: partial_roadmap_open, owner: TC, delivered: "Qualified functional, strict visual, performance, sandbox, migration and CI evidence", remainder: "Whole-roadmap security, accessibility, endurance and broader operational evidence"}
-    AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact CI39701994384 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
+    AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact implementation CI40330168827 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
     AC9: {status: delegated_bounded_checkpoint_closure_only, owner: TC, delivered: "Clean synchronized branch and bounded checkpoint packet under recorded 2026-10-20 delegation", remainder: "Whole-roadmap review remains open; no direct merge, staging mutation, deployment or promotion"}
 acceptance_criteria:
   - {id: TCP1, text: "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."}
@@ -571,6 +1299,7 @@ acceptance_criteria:
   - {id: TCP3, text: "After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers."}
   - {id: TCP4, text: "Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI."}
   - {id: TCP5, text: "Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release."}
+  - {id: TCV1, text: "Apply the human-authorized TC2000 presentation handoff to every exact reachable route/component path in frontend_presentation_handoff; preserve all workflows, URLs, data, keyboard/accessibility/mobile behavior and upstream domain contracts; qualify with focused checks and later Root-assigned exact-source full visual/functional gates. This does not close official V25 parity or the full roadmap."}
 scope:
   - "R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved historical gate receipt durable in this workstream."
   - "R1: independently advance the TC workstation UI and behavior against the pinned V25 reference and existing acceptance evidence while upstream provider/ETF work proceeds."
@@ -580,6 +1309,7 @@ scope:
   - "R5: preserve and advance TC-specific Python/DSL/Study/Strategy behavior, immutable artifacts, lineage, and compatible promotion across workstation surfaces."
   - "R6: close V25 visual/state parity, Golden Layout/window resilience, accessibility, security, and performance evidence without weakening visual or functional oracles."
   - "R7: after provider then ETF work reaches staging, synchronize TC through the prescribed workflow, reconcile every shared path semantically, and run exact-tip validation before ready_for_human_review; do not directly merge branches, promote, deploy, or mutate another worktree."
+  - "R8: under the exact 2026-10-26 human presentation handoff, inventory and unify every reachable frontend route/component in TC style without changing feature behavior or upstream ownership; retain all original visual oracles and full roadmap gates."
 owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/src/views/StudyLabView.vue
@@ -845,13 +1575,835 @@ shared_path_exceptions:
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
 dependencies:
-  - "feat/market-data-provider-platform (provider-neutral identifiers/listings, OHLCV, capability/entitlement/health, evaluator preflight, coverage state, and durable refresh handoff); accepted green release9b230ba4c97126a2937667138c6eb2a0aa297baf is included in synchronized staging628c1634f4894403339687586adee74d45637d51 and Provider consumer reconciliation is retained."
-  - "feat/etf-holdings-constituents (ETF holdings capability, audit, and source lineage); accepted green source c2c232596cf848d83c20e5f2b9f5c502ddd01808 is included in synchronized staging628c1634f4894403339687586adee74d45637d51; TC-owned consumer reconciliation is active, while TCP3 overall remains open until consumer validation completes."
-  - "Consume both dependencies only after their changes reach staging; do not modify their worktrees or duplicate their adapters, provider routing, credentials, ingestion, or refresh workers."
-  - "Strategy Lab is intentionally not an upstream dependency for this branch; preserve TC's existing Python/DSL/Study/Strategy engine."
+  - "feat/market-data-provider-platform: accepted Provider P2 source 2178808746b3d850f33a76a064ab170f04989b91 is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve provider-owned identity, governance, selected-default coverage, and Research behavior; do not duplicate producer filtering or infer selected-series identity in the client."
+  - "feat/strategy-lab-v2: accepted Strategy SLICP is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve its inspector and Research-results navigation alongside TC-owned Python/DSL/Study/Strategy behavior and immutable Study/CodeVersion identity."
+  - "feat/etf-holdings-constituents: accepted ETF FQ1-F8 checkpoint source abdca6e6ec2b383f678995029149bbb748596af4 was adopted from green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502; the accepted retained-IWM correction was adopted from 15b5c22f0e689c973ee82d152d4bbad6125bf993; fresh-AsyncSession eager reparse response serialization and deterministic same-date knowledge-time/id ordering were adopted from exact green staging 6d0a85da34ba276bca69c82a932a0602e783d7a1. Preserve ETF acquisition/admission, historical/PIT/current-unavailable distinctions, lineage, freshness, and unknown-state checks; no acquisition is replayed. Root-owned target correction and UI acceptance remain pending."
+  - "Adoption of 6d0 does not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/628c1634f4894403339687586adee74d45637d51.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/6d0a85da34ba276bca69c82a932a0602e783d7a1.yaml
+frontend_presentation_handoff:
+  human_authorization: The goal was for, on merge/reconciliation between the all the ongoing features,
+    the tc2000 one (the main, visual makeover feature) would take over, look & feel wise, and ensure the
+    whole frontend remains consistent; “The whole dashboard/UI MUST have consistent look & feel, anything
+    else is unacceptable”.
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  status: implementation_in_progress
+  latest_candidate_parent_sha: 157a51501963625905422a999b8f48a377291b9c
+  latest_candidate_source_diff_sha256: f07780bdfb077dbfa83d9bbf0378d835258bfb5ff2eca29d7b7a580b8752add5
+  latest_candidate_validation: >-
+    On published157a the one-time full functional suite was stopped by Root
+    after12 workstation-layout failures (F3/F5 and ten chart flows; all failed
+    loggedIn readiness at helpers.ts:416 because workspace-layout-host stayed
+    hidden);3 passed,1 interrupted,182 not run, browser exit130/noOOM. No visual
+    matrix ran. Root's post-stop34/52/11/all-eight-service/image preservation
+    checks passed. Cause is the conditional-only tc-legacy-app class leaving
+    canonical workstation/popout/login's inner App root auto-height while its
+    children require definite height:100%. Candidate adds permanent
+    tc-application-root height:100% and a mounted route-mode regression.
+    Focused app-shell tests passed6/6; npm run build passed vue-tsc/Vite
+    (530 modules,13.28s). No candidate browser proof or full matrix has run.
+    Root must verify actual /chart dock/chart-tools at1280x720,1920x1080 and
+    390x800 before the unchanged full functional/strict-visual profiles.
+    No whole-frontend acceptance is claimed.
+  domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
+  accepted_domain_reviews:
+    provider: {source: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md}
+    etf: {source: 3b09233e7e8aa36db3217fdf65bf87b75460877d, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/handoff.md}
+    strategy: {source: e50198fa055cc3a980a491dcd572f6581b8baf13, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/handoff.md}
+  contracts_to_preserve:
+    - Provider usage/quota null is unknown or unreported, never numeric zero; retain quota versus estimate versus unknown, admin-only writes, redacted errors and no appearance-triggered acquisition.
+    - Provider-selected/default series and coverage remain server-owned; the UI does not merge alternate-series rows or turn coverage into acquisition.
+    - ETF retains all 1,946 IWM rows, actual observation and knowledge times, unresolved identities, PIT/current distinctions and same-date parser-correction audit semantics.
+    - Strategy Results-to-V2 navigation keeps owner-scoped GET-only selected Study identity and all ten pinned lineage fields across reload/back/forward; native execution remains unavailable.
+  route_inventory:
+  - path: /login
+    entry: LoginView
+    surface: Public authentication; no signed-in navigation shell.
+  - path: /
+    entry: WorkstationView
+    surface: Authenticated TC workstation and persisted tools.
+  - path: /chart
+    entry: WorkstationView
+    surface: Authenticated workstation chart.
+  - path: /chart/:symbol(.*)
+    entry: WorkstationView
+    surface: Authenticated workstation chart by symbol.
+  - path: /popout/:windowKey
+    entry: WorkstationView
+    surface: Standalone popout; preserve popout chrome and controls.
+  - path: /study-lab
+    entry: redirect to /?tab=study-lab
+    surface: Study tool deep link into the workstation.
+  - path: /legacy/dashboard
+    entry: DashboardView
+    surface: Dashboard widgets and loading/empty/error states.
+  - path: /legacy/chart
+    entry: ChartView
+    surface: Legacy chart workflow and dialogs.
+  - path: /legacy/chart/:symbol(.*)
+    entry: ChartView
+    surface: Legacy chart by symbol.
+  - path: /legacy/alerts
+    entry: AlertsView
+    surface: Alert list/create/edit and states.
+  - path: /legacy/radar
+    entry: RadarView
+    surface: Radar filters and detail preview.
+  - path: /legacy/strategy-lab
+    entry: StrategyLabView
+    surface: Strategy Lab v1; saved artifacts and workflow.
+  - path: /legacy/strategy-lab-v2
+    entry: StrategyLabV2View
+    surface: Strategy Lab v2; immutable inspector/navigation.
+  - path: /legacy/baskets
+    entry: BasketsView
+    surface: Basket management and states.
+  - path: /legacy/etf-holdings
+    entry: ETFHoldingsView
+    surface: ETF holdings; preserve current/unavailable/PIT/lineage.
+  - path: /legacy/screener
+    entry: ScreenerView
+    surface: Screener filters, results and states.
+  - path: /legacy/watchlist
+    entry: WatchlistView
+    surface: Watchlists, tags, favorites and states.
+  - path: /legacy/settings
+    entry: SettingsView
+    surface: Settings/provider controls; preserve disabled/unknown states.
+  - path: /dashboard
+    entry: redirect to /legacy/dashboard
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /alerts
+    entry: redirect to /legacy/alerts
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /radar
+    entry: redirect to /legacy/radar
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /strategy-lab
+    entry: redirect to /legacy/strategy-lab
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /strategy-lab-v2
+    entry: redirect to /legacy/strategy-lab-v2
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /baskets
+    entry: redirect to /legacy/baskets
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /etf-holdings
+    entry: redirect to /legacy/etf-holdings
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /screener
+    entry: redirect to /legacy/screener
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /watchlist
+    entry: redirect to /legacy/watchlist
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /settings
+    entry: redirect to /legacy/settings
+    surface: Compatibility alias; preserve URL and behavior.
+  route_view_paths:
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  reachable_vue_component_paths:
+  - frontend/src/App.vue
+  - frontend/src/components/alerts/AlertForm.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
+  - frontend/src/components/chart/MultiChartLayout.vue
+  - frontend/src/components/chart/TimeframeSelector.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/HoverTooltip.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/ProvenanceHint.vue
+  - frontend/src/components/common/ResizeHandle.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/common/SparkTfSelector.vue
+  - frontend/src/components/common/Sparkline.vue
+  - frontend/src/components/common/StatusBar.vue
+  - frontend/src/components/common/TagPicker.vue
+  - frontend/src/components/common/TechnicalConditionEditor.vue
+  - frontend/src/components/common/TextPromptModal.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  - frontend/src/components/dashboard/DashboardGexWidget.vue
+  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardNotesWidget.vue
+  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardRadarWidget.vue
+  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/options/OptionsChainPanel.vue
+  - frontend/src/components/options/exposure/DexLadder.vue
+  - frontend/src/components/options/exposure/GexLadder.vue
+  - frontend/src/components/options/exposure/IvSkew.vue
+  - frontend/src/components/options/exposure/OiDistribution.vue
+  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/strategy/DistributionBars.vue
+  - frontend/src/components/strategy/ExcursionBars.vue
+  - frontend/src/components/strategy/OptimizationLeaderboard.vue
+  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  - frontend/src/components/strategy/ReturnsHeatmap.vue
+  - frontend/src/components/strategy/RunComparisonTable.vue
+  - frontend/src/components/strategy/SignalReplayBreakdown.vue
+  - frontend/src/components/strategy/StrategyCoveragePanel.vue
+  - frontend/src/components/strategy/StrategyResultChart.vue
+  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  - frontend/src/components/strategy/SweepValueInput.vue
+  - frontend/src/components/strategy/SymbolPerformanceBars.vue
+  - frontend/src/components/strategy/WalkForwardSegments.vue
+  - frontend/src/components/watchlist/WatchlistPanel.vue
+  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/ConditionGroupEditor.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyDashboard.vue
+  - frontend/src/components/workstation/StudyHeatmap.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/UnknownToolRecovery.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationGlyph.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  shell_theme_paths:
+  - frontend/src/router/index.ts
+  - frontend/src/styles/workstation-tokens.css
+  exact_adaptation_paths:
+  - frontend/src/App.vue
+  - frontend/src/components/alerts/AlertForm.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
+  - frontend/src/components/chart/MultiChartLayout.vue
+  - frontend/src/components/chart/TimeframeSelector.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/HoverTooltip.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/ProvenanceHint.vue
+  - frontend/src/components/common/ResizeHandle.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/common/SparkTfSelector.vue
+  - frontend/src/components/common/Sparkline.vue
+  - frontend/src/components/common/StatusBar.vue
+  - frontend/src/components/common/TagPicker.vue
+  - frontend/src/components/common/TechnicalConditionEditor.vue
+  - frontend/src/components/common/TextPromptModal.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  - frontend/src/components/dashboard/DashboardGexWidget.vue
+  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardNotesWidget.vue
+  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardRadarWidget.vue
+  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/options/OptionsChainPanel.vue
+  - frontend/src/components/options/exposure/DexLadder.vue
+  - frontend/src/components/options/exposure/GexLadder.vue
+  - frontend/src/components/options/exposure/IvSkew.vue
+  - frontend/src/components/options/exposure/OiDistribution.vue
+  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/strategy/DistributionBars.vue
+  - frontend/src/components/strategy/ExcursionBars.vue
+  - frontend/src/components/strategy/OptimizationLeaderboard.vue
+  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  - frontend/src/components/strategy/ReturnsHeatmap.vue
+  - frontend/src/components/strategy/RunComparisonTable.vue
+  - frontend/src/components/strategy/SignalReplayBreakdown.vue
+  - frontend/src/components/strategy/StrategyCoveragePanel.vue
+  - frontend/src/components/strategy/StrategyResultChart.vue
+  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  - frontend/src/components/strategy/SweepValueInput.vue
+  - frontend/src/components/strategy/SymbolPerformanceBars.vue
+  - frontend/src/components/strategy/WalkForwardSegments.vue
+  - frontend/src/components/watchlist/WatchlistPanel.vue
+  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/ConditionGroupEditor.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyDashboard.vue
+  - frontend/src/components/workstation/StudyHeatmap.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/UnknownToolRecovery.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationGlyph.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/router/index.ts
+  - frontend/src/styles/workstation-tokens.css
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  allowed_delta: 'Presentation only: shared shell, navigation, typography, spacing, surface colors, controls,
+    tables, dialogs, status language and responsive layout. Preserve behavior, route targets, API/data
+    contracts, provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution.'
+  preserved_contracts:
+  - all public/authenticated route URLs and redirects
+  - Workstation and popout behavior
+  - feature workflows and persisted data
+  - keyboard/focus/accessibility and responsive/mobile behavior
+  - ETF historical/PIT/current-unavailable/identity/freshness/lineage and unknown-state semantics
+  - Provider capability, selected-default and routing contracts
+  - Strategy immutable Study/CodeVersion identity, inspector and Research-results navigation
+  - all assertions, timeouts, references, masks, tolerances and zero-retry policy
+  - official V25 parity and original AC1-AC9/full roadmap remain open
+approved_presentation_adaptations:
+- path: frontend/src/App.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d6c8bd945d5866bb43ed54d879a4d512eb6ddec4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/alerts/AlertForm.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: e07e87bce5b1f711865c4218d89b0ad841a64c18
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/ChartPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4f4568a23ac7fccc888f5c46a3eb665a3556fa7f
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/DrawingToolbar.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f5489eb8e7a22e6b21b218cb80e2bb5b9271a485
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/IndicatorPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 716595caa5db86533bf09fd48ccd1b764c733362
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/InstrumentInfoPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 763e147de43576c9b79b640b5a86d56a3b624b16
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/LayoutPicker.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f89d7173224bce2769e61ed67f3df184590d2451
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/MultiChartLayout.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 0c97469cd3e0315bdb81281407f25ddf7decf750
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/TimeframeSelector.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3570cd366d2f3d18c2714bba1121b1cb7eb0b441
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/UPlotChart.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4f79b1ab6e67c8a7b4032769794d97572bb3f82a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/HoverTooltip.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: bcfc16aab3f217f14625e436902a223347269f2a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/Notification.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1d5e8b015fc139f501165efb1cfe4607d5c73e7c
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/ProvenanceHint.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b2e7f36119f25b8f09b7ece292a6f0a2ed4acf87
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/ResizeHandle.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 50b0eae419b255b03227260a34a5c1487dac3b3a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/SearchBar.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 01e787347c88f9010640afa6030b19b87239bbe0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/SparkTfSelector.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b06d5a7751149479f11f13bec42e24bfcad3e439
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/Sparkline.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3cb2e8c1f092fd78c12b01ec9785a00d4270c6bf
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/StatusBar.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3a85462a1a46c91882f9ef997a77284f4631c444
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/TagPicker.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ca9c196f43227b967677510dd5b720ca6c053d2a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/TechnicalConditionEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1d6a39995d80b006d94be0169d334a4073739dea
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/TextPromptModal.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1f3db52272eb1086703529b7ac3f0a0de26a586a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ef95d8dcbf7a19dd0a70c0f893cd03ee59d73a36
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: bec651c411f54e67cb1d0805c1e91afb12c875a3
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: c6d85d2486dd8120e79c3781bfe647215c0d7d79
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardGexWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 87a227e1e7cb51a57712f485b311f8e01775aeea
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: afec6591bc3db82cd0283d7855bd82e4783a3d00
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 47bd1d58e2b2ba79852814b53501aee434cd70e7
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 6cf1e43892058d2516e7c95f039375702f66c57a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d9e0be483b4731d0e5efe25850164a7195b27bd2
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardNotesWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 881bf8f498593452f53a3f6fc334d5d529fb2a3e
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5933e7b97b20f1859064a3c0ebd101d303d605c5
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7912b14ace3cb56d03a99e5c784cfe76dcaea1e8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardRadarWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9512a2b78c24e8e42dc887c57eed2e52972b9a9f
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: eb3daa443815f8740452a3f8cf4d7e365d089a49
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7d722c42f74703fdf4a2c74d64f8607081034e96
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5e5d9010a45fa179feb1b15438f4a6d9e60623b3
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/etf/ETFHoldingsPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: fce872445d8a6e8b2687658ac326a6d04f79a139
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/OptionsChainPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f9c42ca3aafe4f4a0f759b1f99497b791747fdbc
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/DexLadder.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8fa59405d33dd6fa0c3052456307d1e8901af479
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/GexLadder.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: e04429eeffc791eb0275a86b78bf2c85a2dfaccf
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/IvSkew.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 2775f0a50f85ee7d2dce095448b079e8a59ed0f7
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/OiDistribution.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8485a838375f6056762961d2a03208c25a0efbc2
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9b208390042826a0e05fee7e1b88fbc35d1092df
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 74bc4a02d23b8ad5ec393b66bd9957e5ae8ef711
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/radar/RadarDetailPreviewChart.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 90077f6c10019a66d20dc9691fd251681a6ee164
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/DistributionBars.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: da4696eb5c372ca825f044c82bd0207b3a7f662d
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/ExcursionBars.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ab08ee3e646c71b7c8b61623f89a4eb24151c6ba
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/OptimizationLeaderboard.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8e617a4ce52977eba13d11af29c9969bbb3e66cd
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f2b4f0d60907d64d22a362475a6accd9593981b0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/ReturnsHeatmap.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4b1ddfb878de66dbb00c516889363f358f3a3b37
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/RunComparisonTable.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8b4e34933999f8314feb555469532c6d907be124
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/SignalReplayBreakdown.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d37a87b5145d45130438b674691d627c7f9bd3a9
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/StrategyCoveragePanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 681546cb77fbf71d5171a43bf89d557f763bdf23
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/StrategyResultChart.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b37ccaec01b0df02c209a305b0585e9b843d201c
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 80a65dfdda6377428ab178288820398ec1220d04
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/SweepValueInput.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d3d96bf972dcbd4233ca8ef9b28d9cbf92fb8ec0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/SymbolPerformanceBars.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 31d781ee36e4f2016a9f5dff9e280b42a8d9e98a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/WalkForwardSegments.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: bac4d28a6a4e5ccbeb2e1ebe8e38d05b9fbe861b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/watchlist/WatchlistPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: aeb16b057c60eb19f6c8a3d55c4a86a11bc6296e
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b74a17fbc0bb8728522eea48eb0579ed82cef3a8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3018ba4058f2458b7dc9ccc0090f499fa92d9a1d
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5794ee449ff06e5e48b4a782e0d4085f6a2c7e1c
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d38177ff71020c45ec34d55a970814c73f293a33
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1c1fbccaca9b55aa44740097de017bcd848c82f7
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 2821e71ee4aaa20dc07a37c5b4dfef9a53eb63ff
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ChartPlotLibrary.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: fd99000019961398c85f663b2ec92d6fc1a614d1
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ChartTemplateControl.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 564068d88946e97d0552a4568c594543d753b745
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CodeLibraryTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7cb269e629b4f9cb3ef655d05de97ff0636fff79
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ConditionGroupEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: a77be4b170f13bbcabe823966895c1ebd5104030
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CoverageSummaryTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ed05b822c41304e4d863f5d6cec741c70e69d670
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d81118b16a710be5da553ade74ebc5fa6f7a2100
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d4feb88ee4c496da4e62b8269cfc29563d0cd2db
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/EasyScanTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 811d169bab192afb3c6fd2671c01dc49a23996e2
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: cfe833b65dba1a9f2d9186c3d6c2f87a09082d78
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 55c9b07956141bbfce744dbcad8c78102219ccfa
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/InstrumentAlertsTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f8bf82c7feed054019248c39513d59f2afabc77b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/InstrumentNoteTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 07831c7ae6415ccdc8b7bd51e7a7d4294a564a4b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/MarketGaugeTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: e8ef5e87480da8580094742874570bc1c2183713
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/MarketMapTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 98de99fd027fa3ae7e73e47c66cf29ed47cb9334
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/PythonSourceEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9f5dd8447a40a17da75527b64217688ce845342f
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/RatioUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d94f5a029d56e4c738389ef8f2b5d22eeae38211
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/RelativeRotationTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 410a9e16cf1e7d04ee15c7846fbcaa6289780394
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ResearchResultsTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1736df677b0306e062b2c4d0b3478929a8e6ba84
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyBarsUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: eb29d1753d2acbbec4211f74eee9a4ee6f03b1b4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyDashboard.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3f31ef8ea99d74bbcc69e71ba4b00f35612f1107
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyHeatmap.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 923c5e980e7f7db4453a6e1f5b57439300d08ff3
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyHistogramUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5f9158ab4e3198292f762edda89bf93a7f2237f4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyLabTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 97c9cffdb4ecadbcc1d0e132c366f6aaad666402
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyRangeUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 2c0eedc109cec911a24aed2df6ecfc57464b8107
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyScatterUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 453ff547823fae106eeeb93d6171cbe2c5a09282
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudySeriesUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d28780f678748bd5c11edcbc214c5920a7565494
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ToolWindow.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 6a19db7ae8b21906c0c68e9f4cef9dfb019963da
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/UnknownToolRecovery.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: a95c02ffffcda75090a478a3788987953d1523c0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/VirtualWatchlistTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 22750c92c7439b7240934abf935c2061f28c96a8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8531de54a1c23437c5cf95d356d7fd22d3dd3b79
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/WorkstationGlyph.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 936bf11ed986c862d1f8e47717b2385fc3334be9
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/WorkstationToolContent.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9f079cdfb745e7d259c6e062b802b61e08a5a1bc
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/router/index.ts
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: c32384da24c053776b94c22e55a5b38ad54a35bc
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/styles/workstation-tokens.css
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 68b463367522e5de7f15c7c753b7cc18e6902241
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/AlertsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 21da9d3fb9cd71696badf21601b6a5a1f407e5cf
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/BasketsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 34ccb0954dfcbbd1c2c421a4088c2a1672dea148
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/ChartView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7f429a368b73e7c717cfff749859fae601131b28
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/DashboardView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 10427b2b12370ecbb790e0e3b4acffaf4ae839ee
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/ETFHoldingsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 83626c8ed79eb934cd2b0e4bce8ac812c9746fd8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/LoginView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 419000f480a3de36da7b027f3f487cfa105258d4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/RadarView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 21c76641a59a68f6c9fdd360452a1e63782aee43
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/ScreenerView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f75bee925ce154d91b2f468b6411726b9dc9228b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/SettingsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 65e872681009006f3ce27801606daa851bbfc5db
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/StrategyLabV2View.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4526c31af8181ed3b096c402084d03146cfa2059
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/StrategyLabView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 0ab361e2fb10c829355d0ef41d88b5624da647fa
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/WatchlistView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9240d3265096edad01959df04a9831008aa7fb7b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/WorkstationView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3cd504e4f64128fa60939a3a0d89b47bab6725fa
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1077,11 +2629,39 @@ approved_frozen_upstream_snapshots:
   - source_sha: 628c1634f4894403339687586adee74d45637d51
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/628c1634f4894403339687586adee74d45637d51.json
     receipt_sha256: a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc
+  - source_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/0e342512e53ba2268425294d61c50e219eaafa4f.json
+    receipt_sha256: 5159729a3231a658b1b7331d59f63f77f7bc41155b66698a988b880d12af5429
+  - source_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.json
+    receipt_sha256: 6249c01610eda62544056b1ae00a4c9b14c6d111978be14cda822b15a1c99b49
+  - source_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.json
+    receipt_sha256: 417db4c47e05f9e3119de50ef7a0d6058b790577427eff92a6c6c93bba89fa94
+  - source_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e.json
+    receipt_sha256: ca0560d37c7d387295e07b90273ac9a1e07cd01b3330e628128abb892a230050
+  - source_sha: cdc33442c19f5c387b9ada759607d961365993c0
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/cdc33442c19f5c387b9ada759607d961365993c0.json
+    receipt_sha256: 15cf9c17396ad9fdf706de110750d3287fc528784ac2b3e690206845e1790c96
+  - source_sha: 5b29620741fd82d27db45987afb927bf91396712
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/5b29620741fd82d27db45987afb927bf91396712.json
+    receipt_sha256: bb4c641bdd5dd4f8dbd529c3e3fd2df8ff62428604707c61ca6bb4f77ce7161b
+  - source_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/3ff96af855a49d42b1dee10cecb43bc6690f4502.json
+    receipt_sha256: 21c6727ae86a57ce6fb11f6c81e175521f0c5e5dc00c3820d22c9a64243e77ee
+  - source_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json
+    receipt_sha256: 8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151
+  - source_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/6d0a85da34ba276bca69c82a932a0602e783d7a1.json
+    receipt_sha256: 5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
-    exact released green staging snapshot that entered this branch through a
-    non-first-parent merge after the fixed 2b92c642 scope checkpoint.
+    exact released green staging snapshot that this branch adopted by an
+    approved fast-forward or non-first-parent merge after the fixed 2b92c642
+    scope checkpoint.
   fail_closed_boundary: >-
     Ordinary authorized(path, plan) remains unchanged. Every imported file must
     be listed exactly with snapshot blob/mode or explicit deletion state, and
@@ -1114,6 +2694,8 @@ focused_browser_provenance_correction: >-
   has Playwright collection evidence only, not browser execution. No TC-owned
   browser/build process remains; Docker socket access prevents a fresh
   container-state audit. Provider retains full local validation priority.
+  Superseding current status 2026-10-23 13:17Z: one authorized full V8 pass
+  on pre-expansion test SHA 723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4 ran 144 files/1,393 tests successfully, but measured 69.69% functions against the unchanged 70% threshold (82.39% statements/lines; 73.26% branches). Eight later mounted-parent tests bring the current file to 22/22 at SHA 522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5. Focused LCOV comparison found 11 formerly-zero function entries newly hit and projects 70.02% if other coverage is unchanged; this is not a new full-suite result. Current Vue type-check passed. F8y browser proof and locked-target no-DELETE remain pending a separately assigned slot; no browser/fixture was launched. Full roadmap, SX/IX and official REF-HELP-V25 remain open.
 human_checkpoint_acceptance_authorization:
   recorded_at: "2026-10-15T22:55:31Z"
   question: "May I accept and merge the four development checkpoints into staging once their required cross-feature contracts and full tests pass, using verified free operations only and leaving quota-held, unreviewed, paid/trial and unsafe operations explicitly disabled? This preserves the complete feature roadmaps and does not authorize deployment, paid activation, or the operational trial."
@@ -1171,15 +2753,16 @@ migration_impact: "No generic provider or ETF schema/migration work is owned her
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: ready_for_integration
 progress:
-  completed: [TCP1, TCP2, TCP3, TCP4, TCP5]
-  total: 5
-  current_phase: "bounded_checkpoint_accepted_by_root;validated_implementation_f206029;final_closure_head_CI_required_before_coordinator_staging_integration;full_AC1_AC9_roadmap_and_official_REF_HELP_V25_open"
+  completed: [TCP1, TCP2, TCP3, TCP4, TCP5, TCV1]
+  total: 6
+  current_phase: "Root-accepted bounded whole-frontend presentation checkpoint on f2d0228a491a9e5baeb4fdb048da3ed37e485039; exact closure-record HEAD CI and Root-supported staging integration remain pending"
   next_action: >-
-    Complete final four-record cached-diff review, publish once, capture the
-    resulting exact branch HEAD and verify its automatic CI. Only then may Root
-    proceed with coordinator-owned staging integration. Do not create an
-    acknowledgment-only commit or claim whole-roadmap/V25 completion.
+    Publish the coherent records-only checkpoint packet, then preserve the exact
+    resulting branch HEAD and await its normal exact-source CI before Root
+    performs supported staging integration. Keep the broader roadmap, official
+    V25 parity, target/deployment and all operational holds open.
 
+    Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
     Historical pre-acceptance continuation record (superseded by
@@ -1235,15 +2818,20 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    The narrow compatibility correction on exact source6c720 restores cached
-    capability lineage when adapter state is absent, while availability/current
-    usability remain unknown and absent optional parser/source metadata remains
-    None. Focused capability/watchlist, affected non-runner, and partitioned runner
-    evidence is green; scope/workstream validation and publication remain. Exact
-    CI39604702686 is historically red for the missing-legacy-metadata case and
-    must remain preserved; fresh exact-source CI is required. No local fixture was
-    created. TCP3 overall, TCP4/TCP5, full roadmap, and official REF-HELP-V25 remain
-    open.
+    Exact accepted 15b5 staging is assembled as the second parent of this
+    branch's local merge from source 039919a08c72bc891c896f7fd62f13fd16cd0a02.
+    The incoming retained-IWM correction and ETF records are pinned by the
+    15b5 manifest and canonical receipt; TC-owned consumer/product/test paths
+    are unchanged. Stack-free checks passed: 35/35 scope self-tests, full
+    guard over 1035 changed paths with 877 byte-verified imports and 29
+    approved adaptations, workstream validation, receipt/manifest/hash and
+    diff checks. The exact local merge is not yet
+    published or branch-CI-qualified: master CI40247103720 is still running
+    and Root holds publication. Do not push before Root releases it. No
+    acquisition or provider request is repeated. Root retains target
+    correction/UI acceptance. Preserve F8y and the full local profile as open;
+    retain the complete AC1-AC9, SX/IX, official REF-HELP-V25 roadmap and all
+    data/provider/service holds.
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
