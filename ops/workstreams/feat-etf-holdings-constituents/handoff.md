@@ -1,6 +1,80 @@
 # feat/etf-holdings-constituents
 
-## Current accepted checkpoint — retained IWM N-PORT correction source readiness
+## Current checkpoint — retained-IWM response/order repair (conditional closure prepared)
+
+Root's final local audit and technical review cover implementation
+`d34e53545e07a1052d489e8601f91505d70484d9` and accept its local behavior for
+this bounded checkpoint. The audited profile passed 5,503 backend unit cases
+with 1 existing native opt-in skip, 546 integrations with 4 existing skips at
+84.45% coverage, 1,353 frontend tests plus a fresh build, 195 functional cases
+with 2 existing live-held skips, and 104 strict visuals with zero retries.
+Cleanup/restore proof passed, all five inventory diffs were empty, no owned
+app resources remained, and private Study5/479-bar readback passed. Full
+component provenance is in `/home/m920q/charting-platform/.ai/staging-attempts/etf-d34e5354-final-local-audit-20261026.json`
+(SHA256 `3a9a42548576f35e21c2d573e239f36527079747ff9e3bdcf05a7c8e69641c80`); Root's
+technical review is `/home/m920q/charting-platform/.ai/staging-attempts/etf-d34e5354-checkpoint-source-review-20261026.md`
+(SHA256 `c005f98fabdb49efc1c93b1887307b04804128c04de2dfa4377ccbe9893aaaf0`).
+
+Exact run40256359083 is preserved as not green: Backend, Frontend and E2E
+succeeded, while Branch-declared Tests failed because the plan listed 11 checks
+and the old manifest listed 9. This checkpoint synchronizes the manifest and
+retains all old commands; it does not waive the failure. The current closure is
+recorded as `ready_for_integration` under Root's conditional review and the
+existing human-delegated authority, with final exact closing-tip CI still
+required and Root-watched. No integration may proceed until that CI is fully
+green and Root records the result. This is not a new human quote or final CI
+acceptance.
+
+The actual accepted target remains `15b5`. Root still owns its corrected retained-
+IWM reparse and normal-user API/UI acceptance; this owner made no target change,
+provider request, quota replay, route enablement, or deployment. Preserve prior
+RIW/FQ/FHSC acceptance history, AC1-AC14, `15 Tier-0 and 156 Tier-1`, all 119
+spent requests, holds/quarantines, historical raw/PIT evidence and the 30-day
+observation. Full feature-roadmap completion remains open.
+
+`integration_capture: exact branch HEAD`
+
+## Active repair details — reparse response and same-date ordering
+
+Root assigned this narrow repair after the actual target reparse attempt51385
+returned HTTP500 and was rolled back without business-data changes. The failure
+was SQLAlchemy `MissingGreenlet` in `snapshot_to_out`, where the response path
+accessed lazy `snapshot.rows` and `row.constituent_instrument` after the append.
+The router now reloads the new snapshot with both relationships eagerly loaded
+in the request's `AsyncSession` before serialization. Available-date ordering
+now uses composition date descending, `known_at` descending with nulls last, and
+snapshot ID descending for deterministic ties. Historical snapshots and PIT
+timestamps remain unchanged.
+
+The allocated initial focused run preserved the real red: the fresh-session
+HTTP regression raised `MissingGreenlet`; its companion ordering case passed.
+After the fix, the two authorized focused regression slices passed 2/2 in
+19.87s (five dependency warnings), using the Root-owned isolated tmpfs PG/Redis
+fixture and zero provider requests. The reparse regression exercises a real
+HTTP request with a new `AsyncSession` per request, full row plus nested
+constituent serialization, correction lineage, committed readback, unchanged
+raw/original snapshot, and repeat idempotence. The ordering coverage tests
+equal-known-at snapshot-ID ties and confirms the later correction sorts ahead
+of its source version. Initial red log/result and final focused log/result are
+preserved under `/tmp/erf26/`; Root owns fixture cleanup.
+
+Ruff check/format, AST parse and `git diff --check` passed. Root's final local audit
+and review now confirm the complete d34 backend/frontend/functional/strict-visual
+qualification and cleanup. Exact run40256359083 remains a failed branch gate
+because its manifest had 9 entries for 11 plan declarations; the final closing-tip
+CI is required and Root-watched after this manifest synchronization. No CI waiver
+or green claim is made. Root owns integration only after that final CI passes, and
+still owns the actual target reparse/API/UI acceptance. Preserve the prior accepted
+RIW1-RIW4 checkpoint as history, FQ/FHSC history, all AC1-AC14, `15 Tier-0 and
+156 Tier-1`, 119 spent requests, holds/quarantines, raw/PIT lineage and the 30-day
+observation. No provider/SEC call, quota replay, target mutation, normal-route
+enablement, deployment or feature completion is claimed.
+
+**Next:** Publish this coherent closure and manifest sync; Root watches the exact
+closing-tip CI. Root owns subsequent integration and target/API/UI acceptance;
+continue the full roadmap after that boundary.
+
+## Previously accepted checkpoint — retained IWM N-PORT correction source readiness
 
 Root accepted the retained-IWM N-PORT normalization and append-only correction
 at validated implementation `b640ca47f74c2251cdebadd87c32dd87a751f64c` under
@@ -16584,3 +16658,29 @@ accepted FQ1–FQ8 and FHSC source-readiness history, all fourteen AC criteria,
 `15 Tier-0 and 156 Tier-1`, the 119-request history, holds, quarantines,
 retained historical data, raw/PIT semantics and the 30-day observation. The
 full roadmap remains active.
+
+
+## Adopt synchronized-green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 — 2026-10-26
+
+The exact coordinator-approved release is recorded in canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json`:
+staging `15b5c22f0e689c973ee82d152d4bbad6125bf993`, exact CI run
+`40241357259`, including the Exhaustive Integration Gate. In this assigned ETF
+worktree, the clean prior tip `c1d5f160be0c681c99fb4204c327ed7e18174b36` was an
+ancestor and second parent of the staging merge; the feature branch fast-forwarded
+to the exact released SHA. The adopted tree is identical to the prior ETF tree
+(`99381e8b6f719b6c9470e6f910248eb706cf26bc`), so there are no foreign source
+blobs and no frozen-upstream-import manifest applies. The approved delta is the
+accepted ETF retained-IWM correction; no TC-owned unreleased frontend/tag/date-sort/
+favorites changes were imported or released by this adoption.
+
+The accepted b640 source-readiness checkpoint and its local/exact-source evidence
+remain historical and unchanged. This adoption does not apply the parser correction
+to the target or prove corrected API/UI acceptance. Root owns those target actions.
+The owned adoption records are local and the push is held until Root releases it
+after independent master CI; the eventual records commit will need its own exact-head
+CI observation. Continue preserving the full AC1-AC14 roadmap, 15 Tier-0 and 156
+Tier-1, prior accepted checkpoints and red/partial history, quarantines, disabled
+routes and holds, raw/PIT lineage, 119 spent requests, and the 30-day observation.
+After Root completes target correction/reparse and API/UI acceptance, the next
+ETF-owned roadmap step is the AC2 retained-evidence issuer audit.
