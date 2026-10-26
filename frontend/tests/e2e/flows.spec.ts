@@ -9,6 +9,46 @@ import { closePopupWhenOpen } from './popup_cleanup'
 import { installBrowserRequestObservation, requireObservedRequestCoverage, requestsStartedWhileHidden } from './hidden_request_observation'
 import type { Locator, Page, Request } from '@playwright/test'
 
+// Capture a trace only for the first failed run of these two cases. Playwright's
+// configured trace:on-first-retry explains why their existing artifacts only
+// showed successful retries; this test-scoped fixture leaves that policy and
+// the retry/failOnFlaky settings unchanged for every other test.
+const firstAttemptTraceTest = test.extend<{ firstAttemptFailureTrace: void }>({
+  firstAttemptFailureTrace: [async ({ page }, use, testInfo) => {
+    const traceOption = testInfo.project.use.trace
+    const traceMode = typeof traceOption === 'string' ? traceOption : traceOption.mode
+    const runnerCapturesFirstAttempt = [
+      'on',
+      'retain-on-failure',
+      'retain-on-first-failure',
+      'retain-on-failure-and-retries',
+    ].includes(traceMode)
+
+    if (testInfo.retry !== 0 || runnerCapturesFirstAttempt) {
+      await use()
+      return
+    }
+
+    const context = page.context()
+    let traceStarted = false
+    try {
+      await context.tracing.start({ screenshots: true, snapshots: true, sources: true })
+      traceStarted = true
+      await use()
+    } finally {
+      if (traceStarted) {
+        if (testInfo.status !== testInfo.expectedStatus) {
+          const tracePath = testInfo.outputPath('first-attempt-trace.zip')
+          await context.tracing.stop({ path: tracePath })
+          await testInfo.attach('first-attempt-trace', { path: tracePath, contentType: 'application/zip' })
+        } else {
+          await context.tracing.stop()
+        }
+      }
+    }
+  }, { auto: true }],
+})
+
 async function findNarrowVisibleChart(page: Page): Promise<Locator> {
   const charts = page.locator('.chart-tool:visible')
   await expect.poll(() => charts.count(), { timeout: 15_000 }).toBeGreaterThan(0)
@@ -3771,7 +3811,7 @@ test.describe('TC2000 workstation', () => {
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
-  test('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
+  firstAttemptTraceTest('F8e.native-indicator-selection — chart-item selection uses native keyboard controls without swallowing row actions', async ({ page, browserDiagnostics }) => {
     test.setTimeout(120_000)
     await page.goto('about:blank')
     await page.goto('/legacy/chart/SPY')
@@ -7507,6 +7547,116 @@ test.describe('Dashboard', () => {
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toBeVisible({ timeout: 10_000 })
     await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLK' })).toBeVisible({ timeout: 10_000 })
 
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  firstAttemptTraceTest('F8y-tag-columns — ordinary row action reaches the selected WatchList mutation through its parent host', async ({ page, browserDiagnostics }) => {
+    test.setTimeout(60_000)
+    await page.goto('/chart/SPY')
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    page.once('dialog', dialog => dialog.accept())
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes('/reset-factory') && response.request().method() === 'POST' && response.status() === 200),
+      page.getByRole('button', { name: 'Reset', exact: true }).click(),
+    ])
+    await expect(page.getByRole('region', { name: 'Major US benchmarks' })).toBeVisible({ timeout: 10_000 })
+    await page.getByRole('button', { name: 'Add tool' }).click()
+    const toolMenu = page.locator('.workstation__tool-library-menu')
+    await expect(toolMenu).toBeVisible({ timeout: 10_000 })
+    await toolMenu.getByRole('menuitem', { name: 'WatchList', exact: true }).click()
+    const watchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+    await expect(watchlistTab).toBeVisible({ timeout: 10_000 })
+    if (!(await watchlistTab.evaluate(tab => tab.classList.contains('lm_active')))) await watchlistTab.click()
+    const personal = page.locator('.tool-window--active .personal-watchlist-tool').last()
+    await expect(personal).toBeVisible({ timeout: 10_000 })
+    await expect(personal).toHaveAttribute('aria-busy', 'false')
+
+    const suffix = crypto.randomUUID()
+    const sourceName = `E2E Tag source ${suffix}`
+    const targetName = `E2E Tag target ${suffix}`
+    const controlName = `E2E Tag control ${suffix}`
+    const listName = personal.getByRole('textbox', { name: 'Personal watchlist name', exact: true })
+    const watchlistSelect = personal.getByRole('combobox', { name: 'Personal watchlist', exact: true })
+    const createList = personal.getByRole('button', { name: 'Create personal watchlist', exact: true })
+
+    await listName.fill(sourceName)
+    await createList.click()
+    await expect(watchlistSelect).toHaveValue(/\d+/)
+    const sourceId = await watchlistSelect.inputValue()
+
+    await listName.fill(targetName)
+    await createList.click()
+    await expect(watchlistSelect).not.toHaveValue(sourceId)
+    const targetId = await watchlistSelect.inputValue()
+
+    await listName.fill(controlName)
+    await createList.click()
+    await expect(watchlistSelect).not.toHaveValue(targetId)
+    const controlId = await watchlistSelect.inputValue()
+
+    await watchlistSelect.selectOption(sourceId)
+    const symbolInput = personal.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true })
+    await symbolInput.fill('XLE')
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes(`/watchlists/${sourceId}/items`) && response.request().method() === 'POST' && response.ok()),
+      personal.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click(),
+    ])
+    const sourceRow = personal.locator('.watchlist__row').filter({ hasText: 'XLE' })
+    await expect(sourceRow).toBeVisible({ timeout: 10_000 })
+
+    await personal.getByRole('button', { name: 'Columns', exact: true }).click()
+    const editor = personal.getByRole('dialog', { name: 'Column editor', exact: true })
+    const targetSelect = editor.getByRole('combobox', { name: 'Tag Column target WatchList', exact: true })
+    await targetSelect.selectOption(targetId)
+    await editor.getByRole('button', { name: 'Add Tag Column', exact: true }).click()
+    await expect(personal.locator('.watchlist__header')).toContainText(`Tag · ${targetName}`, { timeout: 10_000 })
+    await personal.getByRole('button', { name: 'Columns', exact: true }).click()
+
+    await sourceRow.click({ button: 'right' })
+    const addAction = personal.getByRole('menuitem', { name: `Add XLE to Tag · ${targetName}`, exact: true })
+    await expect(addAction).toBeEnabled()
+    await Promise.all([
+      page.waitForResponse(response => response.url().includes(`/watchlists/${targetId}/items`) && response.request().method() === 'POST' && response.ok()),
+      addAction.click(),
+    ])
+
+    await watchlistSelect.selectOption(controlId)
+    await expect(personal.locator('.watchlist__row')).toHaveCount(0)
+    await watchlistSelect.selectOption(targetId)
+    await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toBeVisible({ timeout: 10_000 })
+    await expect(personal.locator('.watchlist__row').filter({ hasText: 'XLE' })).toContainText('In')
+
+    const lockedTargetDeleteRequests: string[] = []
+    page.on('request', request => {
+      if (request.method() === 'DELETE' && request.url().includes(`/watchlists/${targetId}/items`)) {
+        lockedTargetDeleteRequests.push(request.url())
+      }
+    })
+    const lockToken = await page.evaluate(() => localStorage.getItem('access_token'))
+    expect(lockToken).toBeTruthy()
+    const lockResponse = await page.request.post(`/api/v1/watchlists/${targetId}/lock`, {
+      headers: { Authorization: `Bearer ${lockToken}` },
+    })
+    expect(lockResponse.status()).toBe(200)
+    await page.reload()
+    const reloadedWatchlistTab = page.locator('.lm_tab').filter({ hasText: 'WatchList' }).last()
+    await expect(reloadedWatchlistTab).toBeVisible({ timeout: 10_000 })
+    if (!(await reloadedWatchlistTab.evaluate(tab => tab.classList.contains('lm_active')))) {
+      await reloadedWatchlistTab.click()
+    }
+    await expect(personal).toBeVisible({ timeout: 10_000 })
+    await expect(personal).toHaveAttribute('aria-busy', 'false')
+    await expect(watchlistSelect.locator('option').filter({ hasText: `${targetName} · Locked` })).toHaveCount(1, { timeout: 10_000 })
+    await watchlistSelect.selectOption(targetId)
+    const lockedSourceRow = personal.locator('.watchlist__row').filter({ hasText: 'XLE' })
+    await expect(lockedSourceRow).toBeVisible({ timeout: 10_000 })
+    await lockedSourceRow.click({ button: 'right' })
+    const lockedRemoveAction = personal.getByRole('menuitem', {
+      name: `Remove XLE from Tag · ${targetName}`,
+      exact: true,
+    })
+    await expect(lockedRemoveAction).toBeDisabled()
+    expect(lockedTargetDeleteRequests).toEqual([])
     await browserDiagnostics.expectNoCriticalIssues()
   })
 

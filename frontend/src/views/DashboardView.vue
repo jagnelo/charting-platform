@@ -1385,8 +1385,8 @@ function onDashboardClick() {
   align-items: center;
   gap: 4px;
   padding: 8px 18px;
-  border-bottom: 1px solid #171717;
-  background: #0a0a0a;
+  border-bottom: 1px solid var(--tc-border);
+  background: var(--tc-panel-bg);
   flex-shrink: 0;
   overflow-x: auto;
   flex-wrap: nowrap;
@@ -1443,8 +1443,8 @@ function onDashboardClick() {
 .widget-catalog {
   width: 216px;
   padding: 10px;
-  border-right: 1px solid #181818;
-  background: #0a0a0a;
+  border-right: 1px solid var(--tc-border);
+  background: var(--tc-window-bg);
   overflow-y: auto;
   flex-shrink: 0;
 }
@@ -1508,9 +1508,9 @@ function onDashboardClick() {
   min-width: 0;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid #222;
-  border-radius: 6px;
-  background: #0d0d0d;
+  border: 1px solid var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-panel-bg);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
 }
 .dashboard-widget.editing {
@@ -1523,8 +1523,8 @@ function onDashboardClick() {
   justify-content: space-between;
   gap: 8px;
   padding: 0 9px;
-  border-bottom: 1px solid #1c1c1c;
-  background: #111;
+  border-bottom: 1px solid var(--tc-border);
+  background: var(--tc-header-bottom);
   flex-shrink: 0;
 }
 .editing .widget-header { cursor: move; }
@@ -1597,7 +1597,7 @@ function onDashboardClick() {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #555;
+  color: var(--tc-text-muted);
   font-size: 12px;
   text-align: center;
 }
@@ -1936,6 +1936,44 @@ function onDashboardClick() {
 .link-new-btn:hover {
   border-color: #3a3a3a;
   background: #1b1b1b;
+}
+
+/* Route-specific shell surfaces; widget data colors remain semantic. */
+.dashboard-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.dashboard-header { padding: 10px 12px; border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.dashboard-header h1 { color: var(--tc-text); font-size: 17px; }
+.dashboard-header p, .catalog-title, .dashboard-state { color: var(--tc-text-muted); }
+.tab-bar { gap: 0; padding: 0 8px; border-color: var(--tc-border); background: var(--tc-panel-bg); }
+.tab-btn { height: var(--tc-tab-height); border-radius: var(--tc-radius); border-color: var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text-muted); }
+.tab-btn.active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-control-bg)); color: var(--tc-accent-soft); }
+.tab-input { border-radius: var(--tc-radius); border-color: var(--tc-border-strong); background: var(--tc-input-bg); color: var(--tc-text); }
+.widget-catalog { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.catalog-item, .dash-btn, .tab-add, .widget-tools button,
+.link-group-btn, .link-unlinked-btn, .link-new-btn {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-text);
+}
+.catalog-item:hover, .dash-btn:hover, .tab-add:hover,
+.widget-tools button:hover, .link-group-btn:hover,
+.link-unlinked-btn:hover, .link-new-btn:hover { border-color: var(--tc-accent); }
+.dash-btn.primary.active, .dash-btn.primary:hover,
+.link-group-btn.active, .link-unlinked-btn.active {
+  border-color: var(--tc-accent);
+  background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-control-bg));
+  color: var(--tc-accent-soft);
+}
+.dashboard-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+.dashboard-view :is(input, select, textarea) { border-radius: var(--tc-radius); }
+.config-modal .config-field,
+.config-modal .config-help { color: var(--tc-text-muted); }
+.config-modal .config-field > :is(input, select, textarea) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
 }
 </style>
 

@@ -352,9 +352,10 @@ onMounted(async () => {
 .watchlist-view {
   display: flex;
   height: 100%;
-  background: #0a0a0a;
-  color: #ccc;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  min-width: 0;
+  background: var(--tc-window-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
   overflow: hidden;
 }
 
@@ -427,7 +428,7 @@ onMounted(async () => {
 .cf-btn.confirm { border-color: #4caf50; color: #4caf50; }
 .cf-btn.confirm:disabled { opacity: 0.4; cursor: not-allowed; }
 
-.wls-loading { padding: 16px; text-align: center; color: #444; font-size: 11px; }
+.wls-loading { padding: 16px; text-align: center; color: var(--tc-text-muted); font-size: 11px; }
 
 .wls-list { flex: 1; overflow-y: auto; }
 .wls-ghost { opacity: 0.35; background: #1a2a3a; }
@@ -575,11 +576,12 @@ onMounted(async () => {
   padding-top: 4px;
 }
 
-.wls-empty { padding: 20px; text-align: center; color: #333; font-size: 11px; }
+.wls-empty { padding: 20px; text-align: center; color: var(--tc-text-muted); font-size: 11px; }
 
 /* ── Main panel ───────────────────────────────────────────── */
 .wl-main {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -608,7 +610,7 @@ onMounted(async () => {
 .wlm-add--readonly { opacity: 0.7; }
 .wlm-readonly-msg {
   font-size: 11px;
-  color: #555;
+  color: var(--tc-text-muted);
   font-style: italic;
   flex: 1;
 }
@@ -630,7 +632,7 @@ onMounted(async () => {
   border-bottom: 1px solid #111;
   transition: background 0.1s;
 }
-.wlm-item:hover { background: #111; }
+.wlm-item:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
 .wlm-item:hover .wlmi-remove { opacity: 1; }
 
 .wlmi-left {
@@ -647,7 +649,7 @@ onMounted(async () => {
 }
 .wlmi-name {
   font-size: 10px;
-  color: #555;
+  color: var(--tc-text-muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -660,9 +662,9 @@ onMounted(async () => {
   gap: 2px;
   margin-right: 10px;
 }
-.wlmi-price { font-size: 12px; color: #ccc; }
-.wlmi-pct   { font-size: 11px; font-weight: 600; }
-.wlmi-no-price { font-size: 11px; color: #333; }
+.wlmi-price { font-size: 12px; color: var(--tc-text); font-variant-numeric: tabular-nums; }
+.wlmi-pct   { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.wlmi-no-price { font-size: 11px; color: var(--tc-text-muted); }
 
 .up   { color: #26a69a; }
 .down { color: #ef5350; }
@@ -684,7 +686,7 @@ onMounted(async () => {
 .wlm-empty {
   padding: 30px;
   text-align: center;
-  color: #333;
+  color: var(--tc-text-muted);
   font-size: 11px;
 }
 
@@ -693,7 +695,7 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #333;
+  color: var(--tc-text-muted);
   font-size: 12px;
 }
 
@@ -750,4 +752,24 @@ onMounted(async () => {
   overflow: hidden;
 }
 .slide-down-enter-from, .slide-down-leave-to { max-height: 0; opacity: 0; }
+
+/* Watchlist controls use workstation UI type; symbol data keeps its own styling. */
+.wl-sidebar { background: var(--tc-window-bg); border-color: var(--tc-border); }
+.wls-header, .wlm-header { border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.wls-title, .wlm-title { color: var(--tc-text); font-family: var(--tc-font-family); }
+.create-form, .wlm-add { border-color: var(--tc-border); background: var(--tc-panel-bg); }
+.cf-input, .wls-rename-input, .wlm-add :is(input, select) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+.wls-item { border-color: var(--tc-border); }
+.wls-item:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.wls-item.active { border-left-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.wlsi-name, .wlm-empty { color: var(--tc-text); }
+.wlsi-count { border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text-muted); }
+.wlsi-dropdown, .wls-modal { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-window-bg); color: var(--tc-text); }
+.watchlist-view :is(button, input, select, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

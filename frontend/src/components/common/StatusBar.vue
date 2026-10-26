@@ -65,28 +65,28 @@ onUnmounted(() => {
 
 <style scoped>
 .status-bar {
-  height: 24px;
+  height: var(--tc-status-height, 21px);
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 10px;
-  border-top: 1px solid #171717;
-  background: #0b0b0b;
-  color: #666;
-  font-family: 'JetBrains Mono', monospace;
+  border-top: 1px solid var(--tc-border, #303940);
+  background: var(--tc-shell-bg, #0d1013);
+  color: var(--tc-text-muted, #81909a);
+  font-family: var(--tc-font-family, "Segoe UI", Arial, sans-serif);
   font-size: 10px;
   flex-shrink: 0;
 }
 .status-pill {
   padding: 2px 6px;
-  border: 1px solid #2a2a2a;
-  border-radius: 4px;
-  color: #777;
+  border: 1px solid var(--tc-border, #303940);
+  border-radius: var(--tc-radius, 0px);
+  color: var(--tc-text-muted, #81909a);
   text-transform: uppercase;
 }
-.status-pill.ok { color: #26a69a; border-color: #1b4a43; }
-.status-pill.warn { color: #ffb74d; border-color: #4a3718; }
-.status-pill.bad { color: #ef5350; border-color: #4a1f1f; }
+.status-pill.ok { color: var(--tc-positive, #63bd85); border-color: #63bd8555; }
+.status-pill.warn { color: var(--tc-warning, #dfbd82); border-color: #dfbd8255; }
+.status-pill.bad { color: var(--tc-negative, #ed9696); border-color: #ed969655; }
 .status-item {
   min-width: 0;
   overflow: hidden;
