@@ -890,10 +890,11 @@ goal: >-
   provider-platform-integration-1 and the bounded
   provider-first-human-coverage-retained-universe-2 checkpoint, including
   adoption of synchronized-green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502
-  on this branch. Preserve all criteria, prior acceptance, and operation
-  dispositions. Root owns guarded staging integration and actual SEC
-  acquisition/target acceptance; do not self-integrate, activate providers,
-  deploy, or close the full roadmap.
+  and 15b5c22f0e689c973ee82d152d4bbad6125bf993 on this branch. The latter
+  includes the accepted retained-IWM correction, but does not establish target
+  correction or UI acceptance. Preserve all criteria, prior acceptance, and
+  operation dispositions. Root owns target acceptance and guarded promotion;
+  do not self-integrate, activate providers, deploy, or close the full roadmap.
 scope:
   - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
   - Research single/batch reads apply the selected default-series predicate before per-instrument ranking/history limits, retain set-based batching, and preserve Strategy date/calendar inference, immutable snapshot copying, digests, and persisted GET readback.
@@ -1160,19 +1161,22 @@ integration_checkpoint:
   required_gates_remaining:
     - >-
       The accepted P2 checkpoint remains part of history. Synchronized-green
-      staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 adds the ETF FQ1-FQ8
-      source checkpoint and has been adopted on this branch; it does not prove
-      a real SEC acquisition, target acceptance, or full-roadmap completion.
-      Root owns the actual one-fund SEC qualification and target acceptance.
-      Preserve all provider/issuer/SEC holds, the consumed 119-request
-      no-replay boundary, and every remaining roadmap criterion.
+      staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and its accepted ETF
+      retained-IWM correction at 15b5c22f0e689c973ee82d152d4bbad6125bf993
+      have been adopted on this branch. Root reports the genuine bounded SEC
+      acquisition occurred once; do not replay it. The actual target
+      correction and UI acceptance remain Root-owned and pending, and the
+      adoption does not claim either or full-roadmap completion. Preserve all
+      provider/issuer/SEC holds, the consumed 119-request no-replay boundary,
+      and every remaining roadmap criterion.
   next_action: >-
     After Root releases branch publication following its independent master-CI
     gate, continue the Provider-owned AC-UNIVERSE-COMPLETE and remaining
-    roadmap work from the adopted source. Root retains ownership of the actual
-    SEC sample and target acceptance. Preserve every hold and the consumed
-    119-request no-replay boundary; no new provider/issuer/SEC request, quota
-    reservation, target activation, or deployment is authorized here.
+    roadmap work from the adopted source. Root retains ownership of the target
+    correction and UI acceptance. Do not replay the completed SEC acquisition.
+    Preserve every hold and the consumed 119-request no-replay boundary; no
+    new provider/issuer/SEC request, quota reservation, target activation, or
+    deployment is authorized here.
 previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."

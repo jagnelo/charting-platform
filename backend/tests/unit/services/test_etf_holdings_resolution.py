@@ -11,9 +11,11 @@ from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdentifierType
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.services.etf_holdings import (
+    _canonical_numeric_sec_cik,
     _capability_source_tier,
     _enrich_existing_constituent_classification,
     _holding_needs_reconcile,
+    _is_safe_sec_xml_document_name,
     _resolve_or_create_constituent,
     _snapshot_hash,
     ensure_etf_profile,
@@ -26,6 +28,30 @@ from app.services.etf_holdings_adapters import CanonicalHoldingRow
 from app.services.etf_holdings_capability import evaluate_capability
 from app.services.etf_holdings_refresh import reconcile_all_etf_holdings_classifications
 from app.services.instrument_mastering import ensure_instrument_type, register_identifier
+
+
+def test_sec_cik_comparison_accepts_zero_padding_but_rejects_malformed_values():
+    assert _canonical_numeric_sec_cik("0001100663") == "1100663"
+    assert _canonical_numeric_sec_cik("1100663") == "1100663"
+    assert _canonical_numeric_sec_cik("0000000000") is None
+    assert _canonical_numeric_sec_cik("0001100x63") is None
+    assert _canonical_numeric_sec_cik(" 0001100663") is None
+
+
+@pytest.mark.parametrize(
+    ("document_name", "expected"),
+    [
+        ("primary_doc.xml", True),
+        ("PRIMARY_DOC.XML", True),
+        ("primary_doc.json", False),
+        ("prımary_doc.xml", False),
+        ("primary*.xml", False),
+        ("primary..doc.xml", False),
+        ("../primary_doc.xml", False),
+    ],
+)
+def test_retained_sec_document_name_is_ascii_safe_xml(document_name, expected):
+    assert _is_safe_sec_xml_document_name(document_name) is expected
 
 
 class AsyncSessionAdapter:
@@ -861,6 +887,75 @@ async def test_resolver_does_not_materialize_future_ticker_as_equity(db, monkeyp
     assert confidence is None
     assert "Future holding retained without constituent resolution" in note
     assert db.execute(select(Instrument)).scalars().all() == []
+
+
+@pytest.mark.asyncio
+async def test_sec_nport_without_matched_identifier_does_not_invent_placeholder_symbol(monkeypatch):
+    searched = []
+
+    async def no_identifier_match(_db, identifier_type, value):
+        if value is not None:
+            searched.append((identifier_type, value))
+        return None
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings._find_instrument_by_identifier", no_identifier_match
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        object(),
+        CanonicalHoldingRow(
+            symbol=None,
+            name="Radian Group, Inc.",
+            cusip="750236101",
+            weight=Decimal("0.00152721985047"),
+            holding_type="common_stock",
+            row_type="security",
+            extra_data={"assetCat": "EC"},
+        ),
+        source_provider="sec",
+        allow_provider_enrichment=False,
+    )
+
+    assert searched == [("cusip", "750236101")]
+    assert instrument is None
+    assert confidence is None
+    assert note == (
+        "SEC N-PORT security has no ticker or matched stable identifier; retained unresolved."
+    )
+
+
+@pytest.mark.asyncio
+async def test_sec_nport_other_right_never_enters_equity_identity_lookup(monkeypatch):
+    async def unexpected_identifier_lookup(*_args, **_kwargs):
+        raise AssertionError("SEC N-PORT rights must not resolve through the equity identity path")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings._find_instrument_by_identifier",
+        unexpected_identifier_lookup,
+    )
+
+    instrument, confidence, note = await _resolve_or_create_constituent(
+        object(),
+        CanonicalHoldingRow(
+            symbol=None,
+            name="OmniAb, Inc.",
+            cusip="00165C104",
+            weight=Decimal("0.0025"),
+            holding_type="other",
+            row_type="security",
+            extra_data={
+                "sec_asset_category": "OTHER",
+                "sec_asset_conditionals": [{"assetCat": "OTHER", "desc": "Right"}],
+            },
+        ),
+        source_provider="sec",
+        allow_provider_enrichment=False,
+    )
+
+    assert instrument is None
+    assert confidence is None
+    assert "other holding retained without constituent resolution" in note
 
 
 @pytest.mark.asyncio

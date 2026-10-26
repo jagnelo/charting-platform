@@ -31749,3 +31749,39 @@ state was changed; no tests or network calls were made.
   master CI `40210522503` is running. The next Provider-owned roadmap action,
   after Root releases publication, is `AC-UNIVERSE-COMPLETE` and remaining
   roadmap work; keep full roadmap status open and preserve all holds.
+
+## 2026-10-26 synchronized staging adoption: 15b5c22
+
+- Adopted only synchronized-green staging
+  `15b5c22f0e689c973ee82d152d4bbad6125bf993` into the existing Provider branch.
+  Canonical receipt:
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json`
+  (`state: green`); exact Actions `40241357259` passed required hosted jobs,
+  including Exhaustive Integration Gate. A live `git ls-remote` confirmed
+  `origin/staging` and `origin/master` at 15b5 and the Provider feature remote
+  at `ccd6b97a7220f6c86ed6bb3ef3e019777bda0047`. The staging merge has parents
+  `3ff96af855a49d42b1dee10cecb43bc6690f4502` and ETF source
+  `c1d5f160be0c681c99fb4204c327ed7e18174b36`; Provider pre-merge HEAD was
+  `ccd6b97a7220f6c86ed6bb3ef3e019777bda0047`, with merge base 3ff.
+- The exact 3ff-to-15b delta contains six ETF source/test paths and four
+  ETF-owned workstream records only. It contains no TC product paths and no
+  Provider workstream paths. This is ordinary accepted staging adoption; the
+  Provider workstream has no frozen-upstream-import manifest for this delta.
+  No unreleased TC frontend/tag/date-sort/favorites work was adopted or
+  modified, and this receipt does not qualify that TC work as released.
+- The accepted ETF delta is the retained-IWM correction: SEC ownership
+  percentage points, equity/right classification, and offline append-only
+  administrator reparse behavior. Root reports the genuine bounded SEC
+  acquisition occurred once; it was not replayed. Actual target correction and
+  UI acceptance remain Root-owned and pending. No actual target acceptance or
+  full Provider roadmap completion is claimed.
+- Provider records preserve the original checkpoint and all 24 roadmap
+  criteria. All provider/issuer/SEC holds, datasets, quotas, and consumed 119
+  requests remain unchanged. Validation history is append-only. No provider
+  request, reservation, quota action, target mutation, service/fixture action,
+  sibling/staging/master write, or deployment occurred.
+- The local Provider adoption merge is recorded in the accompanying
+  validation entry. Push remains held pending Root's independent master CI and
+  publication release; do not self-integrate or promote. After Root releases
+  publication, the next Provider-owned roadmap action remains
+  `AC-UNIVERSE-COMPLETE`, with all remaining criteria open.
