@@ -277,11 +277,15 @@ previously_accepted_erf_goal: >-
   or full-roadmap completion is claimed.
 goal: *etf_full_roadmap_goal
 active_changeset:
-  name: adopt exact accepted whole-frontend staging and reconcile ETF records
-  baseline: 3b09233e7e8aa36db3217fdf65bf87b75460877d
+  name: restore audited provider-tier counts in current ETF narrative after exact-CI failure
+  baseline: a558d50a9bb0ccb40554b6163be51f2b57097983
   adopted_staging_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-  merge_commit: edd72c9c3feda2cdfabd06565c010158ddd072e7
-  state: exact_green_staging_merged_locally; own_records_and_exact_tip_CI_pending
+  prior_adoption_merge: edd72c9c3feda2cdfabd06565c010158ddd072e7
+  state: >-
+    Adoption published at a558d50a9bb0ccb40554b6163be51f2b57097983; exact CI
+    40371928948 attempt1 is terminal RED for the narrative sentinel. This
+    record-only correction restores count wording from verified runtime/YAML
+    sources; product, tests and ledgers are unchanged.
   source_tree_id: 9943d5945573bbc82e9d7c1c8c430a1337046ea4
   source_tree_unchanged_from_accepted_staging: true
   imported_source_path_counts: {frontend: 47, scripts: 1, backend: 0, config: 0}
@@ -292,6 +296,16 @@ active_changeset:
     40293867135 on pre-adoption source 3b09233e7e8aa36db3217fdf65bf87b75460877d
     is terminal RED (Backend Tests failed; Frontend Unit Tests passed; dependent
     jobs skipped). It remains historical and is not waived by staging green.
+  current_branch_ci_failure: >-
+    Exact published adoption CI40371928948 attempt1, Backend job121744637801,
+    failed one unchanged narrative test (5502 passed, 1 skipped). The current
+    blocker summaries omitted the required literal `15 Tier-0 and 156 Tier-1`;
+    runtime and YAML ledgers independently confirm 15, 156 and 74 fallback.
+    Preserve the red attempt; the repaired exact tip requires new CI.
+  correction_validation: >-
+    The unchanged narrative sentinel passes 1/1 and the complete
+    test_etf_holdings_adapters.py unit module passes 632/632 under the existing
+    offline UV environment. This is bounded unit evidence, not a full suite.
   bounded_consumer_validation: >-
     After merge, 34 tests passed across five targeted frontend unit files covering
     router shell, ETF capability labels/view/panel, and application routes; no
@@ -302,7 +316,7 @@ active_changeset:
     - ops/workstreams/feat-etf-holdings-constituents/session.json
     - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
   presentation_owner: TC2000
-  next_action: Validate and publish this four-record adoption reconciliation, observe exact owner-tip CI, then wait for Root integration/target acceptance before resuming AC2 retained-evidence issuer audit.
+  next_action: Validate and publish the four-record narrative repair, then observe new exact-tip CI. Root owns integration/target acceptance; after that boundary continue AC2 retained-evidence issuer audit.
 previously_accepted_erf_changeset:
   name: retained-IWM reparse response and same-date snapshot ordering
   validated_implementation_sha: d34e53545e07a1052d489e8601f91505d70484d9
@@ -1446,7 +1460,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: 02a7_whole_frontend_green_staging_adopted_exact_owner_CI_pending
+  current_phase: 02a7_adoption_narrative_repair_validated_exact_tip_CI_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -1641,15 +1655,16 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Exact green staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92, including the
-  whole-frontend TC2000 presentation, is adopted locally. Publish the four
-  owned-record reconciliation and pass the resulting exact owner-tip CI; the
-  pre-adoption 40293867135 backend failure remains historical. Root owns
-  protected integration/promotion, private deployment and target/API/UI
-  acceptance. No fresh local browser profile, provider request, quota replay,
-  route enablement or native-current claim occurred here. Preserve the full
-  AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, 119 spent requests, holds,
-  quarantines, raw/PIT lineage and 30-day observation.
+  Adoption a558d50a9bb0ccb40554b6163be51f2b57097983 CI40371928948 attempt1
+  remains red on the current narrative sentinel; that historical result is
+  preserved. The owned narrative now restores runtime/YAML-audited 15 Tier-0
+  and 156 Tier-1 counts, and the unchanged sentinel plus full 632-case adapter
+  unit module pass. Publish this records-only correction and pass new exact-tip
+  CI. The exact staged release remains accepted; Root owns protected
+  integration/promotion, deployment and target/API/UI acceptance. No fresh
+  local browser profile, provider request, quota replay, route enablement or
+  native-current claim occurred. Preserve AC1-AC14, 119 spent requests, holds,
+  quarantines, raw/PIT lineage and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2766,8 +2781,8 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete and publish the owned-record adoption checkpoint, then observe its
-  exact-tip CI. Root owns integration and target/API/UI acceptance. After that
+  Validate and publish the four-record correction, then observe its new exact-
+  tip CI. Root owns integration and target/API/UI acceptance. After that
   boundary, resume AC2's retained-evidence issuer audit. Keep all AC1-AC14
   criteria, holds, quarantines, raw/PIT history, spent requests, and the 30-day
-  observation intact.
+  observation.

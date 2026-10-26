@@ -119,6 +119,17 @@ adoption. After the merge, 34 targeted frontend unit tests passed across five
 files covering route shell, ETF capability labels/view/panel, and application
 routes. No local full browser profile was run. The exact owner-tip CI for the
 record-reconciled adoption must still pass; staging green is not a substitute.
+The current runtime and YAML ledgers agree on 15 Tier-0 and 156 Tier-1 symbol
+investigations; these remain roadmap work, not completed issuer qualification.
+
+The first published adoption CI `40371928948` is terminal RED in Backend Tests:
+the unchanged narrative sentinel found the required `15 Tier-0 and 156 Tier-1`
+literal missing from the new current-blocker summaries. Runtime definitions
+and YAML ledgers still both compute 15 Tier-0 and 156 Tier-1 (and 74 fallback
+identities); this is an owned-record wording correction, not a product/test or
+ledger-count change. The exact unchanged sentinel now passes 1/1 and the full
+adapter unit module passes 632/632. Preserve the red receipt; publish this
+four-record repair and require a new exact-tip CI result.
 
 TC remains the sole presentation implementation owner and ETF stays out of
 presentation paths. Root owns whole-app qualification, protected integration,
