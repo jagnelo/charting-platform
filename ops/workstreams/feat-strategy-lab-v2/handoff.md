@@ -19322,3 +19322,86 @@ ETF PIT identity/admission/budget/quota behavior with Provider local-series, cov
 then continue TC immutable CodeVersion/Study-output contracts. Do not replay SEC acquisition. Hold
 push until Root's master-green release and keep target proof, full roadmap completion, and all held
 native/forward/broker/capital operations distinct.
+
+### Whole-frontend TC2000 presentation handoff and Strategy/Study contract review (2026-10-26)
+
+**Authority and ownership.** The binding human requirement is recorded in
+`/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`.
+The human requires a consistent TC2000 look and feel across the whole frontend, explicitly including
+Strategy Lab v2 and other non-ETF screens. TC2000 is the sole presentation writer for the shared
+shell, router, theme and reachable screens. Strategy records this domain/presentation contract only;
+it makes no parallel styles, presentation-path edits, backend/test edits or deployment claims.
+Root owns source integration, final gates and deployment. The deployed 6d0 build is a green functional
+baseline, not final whole-frontend acceptance. The 18-criterion roadmap and native/forward/broker/
+capital holds remain unchanged.
+
+**Reviewed routes and components (read-only at source 36e54d508963fd7709e80be53bc5a35c23e03ee8).**
+
+- `frontend/src/App.vue` selects the old sidebar/route frame/StatusBar whenever the path starts
+  `/legacy/`; this includes both Strategy routes. Its old global dark monospace styling is another
+  visible shell leak. Styling only the view component would therefore leave the navigation and
+  frame visibly outside the TC system.
+- `frontend/src/router/index.ts` maps `/legacy/strategy-lab` to `StrategyLabView.vue` and
+  `/legacy/strategy-lab-v2` to `StrategyLabV2View.vue`. Top-level `/strategy-lab` and
+  `/strategy-lab-v2` redirect to those legacy paths. `/study-lab` instead redirects into the
+  workstation (`/?tab=study-lab`). Preserve these public/deep-link behaviors while ensuring every
+  landing surface uses the consistent shell; do not hide/delete the V1 screen as a shortcut.
+- `frontend/src/components/workstation/WorkstationToolContent.vue` hosts both `StudyLabTool.vue`
+  and `ResearchResultsTool.vue` as workstation tools. Preserve the existing save/run/validation,
+  immutable CodeVersion creation, polling/cancel/reload, saved-result browsing, comparison,
+  diagnostics, exports and existing result actions. The visual handoff must not introduce another
+  Study dispatch or alter run ownership.
+- `frontend/src/components/workstation/ResearchResultsTool.vue` exposes “Inspect in Strategy Lab v2”
+  only for a completed `output_contract === 'study'` run with valid persisted IDs and a supported
+  artifact type/payload. The link carries the existing `researchRunId` and `artifactId` query values
+  to `/legacy/strategy-lab-v2`.
+- `frontend/src/views/StrategyLabV2View.vue` hydrates those route values and performs only
+  `GET /api/v1/strategy-lab/v2/study-artifact-references/{research_run_id}/{artifact_id}`. It
+  displays the read-only Strategies/Trials/Artifacts surfaces and the exact selected Study lineage;
+  the visible execution boundary states that this view starts no backtest or forward run and native,
+  broker and capital actions remain unavailable.
+- `backend/app/strategy_lab_v2/api_router.py` authenticates the principal and delegates to the
+  owner-scoped resolver. Missing/foreign owner is 404; invalid ID or invalid resolved identity is
+  422/precondition failure. The response is a ten-field selected reference: `research_run_id`,
+  `code_version_id`, `artifact_id`, `artifact_name`, `artifact_type`, `output_contract`,
+  `run_reproducibility_hash`, `code_version_digest`, `dataset_manifest_digest`, and
+  `artifact_content_digest`. These fields bind immutable Study output lineage; they are not proof of
+  a native strategy/package/parameter/seed execution graph.
+
+**Concrete TC acceptance checks.** Keep the ordinary Results-to-inspector link visible and
+keyboard-accessible, carrying the selected persisted IDs without DevTools/manual ID discovery.
+Verify normal navigation, refresh, browser back/forward and query changes retain the same selection;
+the read is GET-only, owner-scoped and has no POST/dispatch side effect. Positive readback must match
+all ten fields and survive reload. Foreign/missing ownership stays indistinguishable 404; malformed,
+repeated, nonpositive or unsafe IDs make no resolver request; nonterminal/ambiguous/missing/deleted/
+wrong-type/unverified/drifted data fails closed with an accessible error. Preserve run, artifact,
+CodeVersion and Study ownership/lineage, existing saved outputs and access-denial behavior.
+
+Use the existing focused contracts as regression anchors: `frontend/tests/unit/router/
+test_application_routes.test.ts` (workstation, legacy aliases and `/study-lab` routing),
+`frontend/tests/unit/components/test_research_results_tool.test.ts` (completed Study link, persisted
+IDs and non-Study/running exclusions), `frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts`
+(GET-only hydration, in-place query changes, exact identity/digest checks and malformed-ID denial),
+`frontend/tests/unit/components/test_study_lab_tool.test.ts` (existing Study lifecycle),
+`backend/app/strategy_lab_v2/tests/test_api_router.py::test_explicit_study_reference_route_returns_owner_scoped_pin_or_rejects`,
+and `backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py::
+test_strategy_api_authenticates_exact_study_reference_before_persistence`. These are contract pointers,
+not tests run by this read-only handoff. Whole-frontend acceptance additionally requires the existing
+full functional and strict visual gates with unchanged references, masks, tolerances and retries.
+
+**Pitfalls and boundaries.** A route-only restyle misses the `App.vue` `/legacy/` shell and old
+sidebar. Converting only V2 leaves Strategy V1 and aliases inconsistent; styling only the inactive
+`StudyLabView.vue` misses the actual `/study-lab` workstation redirect. Conversely, moving the V2
+inspector link must not lose its run/artifact query or silently select “latest.” Preserve all results,
+loading/empty/error/accessibility/mobile/keyboard behavior and do not relabel generic Study output as
+native execution. No Study rerun, trial, backtest, forward dispatch, provider/SEC call or paid/native/
+broker/capital operation is authorized by this presentation handoff.
+
+**Current evidence and next action.** Exact published adoption source
+`36e54d508963fd7709e80be53bc5a35c23e03ee8` has CI `40287903173` completed success: Frontend Unit
+Tests, Backend Tests, Branch-declared Tests and E2E Playwright succeeded; Exhaustive Integration Gate
+was skipped by feature-branch policy. The normal context preflight passed; the local Docker readiness
+probe recorded permission denied and launched no services. No tests or fixtures were run for this
+review. TC owns the next presentation implementation; Strategy's next roadmap action after the
+handoff/release is the original AC-UPSTREAM combined-consumer qualification. Full local profile,
+whole-frontend acceptance, target acceptance and the remaining roadmap stay open.
