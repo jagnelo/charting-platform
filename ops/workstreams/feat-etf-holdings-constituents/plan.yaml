@@ -32,6 +32,45 @@ human_intent_authorization: >-
   target attempt was rolled back; no target retry or provider request is part
   of this follow-up.
 planning_state: ready
+whole_frontend_presentation_reconciliation:
+  authority: /home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md
+  human_requirement_quotes:
+    - >-
+      The goal was for, on merge/reconciliation between the all the ongoing
+      features, the tc2000 one (the main, visual makeover feature) would take
+      over, look & feel wise, and ensure the whole frontend remains consistent
+    - >-
+      In that case, obviously do not focus only on the etf holdings views I'm
+      highlighting. Since you've explicitly mentioned there's more (etf
+      holdings, strategy lab v2, etc) ensure all of them are adjusted
+      accordingly. The whole dashboard/UI MUST have consistent look & feel,
+      anything else is unacceptable
+  presentation_owner: TC2000 workstream; single writer for shared shell, routing, theme, and every reachable screen
+  etf_role: Review and preserve ETF domain contracts; do not implement presentation or edit frontend paths during this handoff.
+  boundary: >-
+    ETF retains domain ownership of holdings data, source provenance, parser/PIT
+    semantics, current eligibility, unresolved identities, and basket/analysis
+    guards. TC owns presentation only; this grants no backend, provider,
+    ingestion, quota, entitlement, or hold changes.
+  reviewed_frontend_paths:
+    - frontend/src/App.vue
+    - frontend/src/router/index.ts
+    - frontend/src/views/ETFHoldingsView.vue
+    - frontend/src/components/etf/ETFHoldingsPanel.vue
+    - frontend/src/types/index.ts
+    - frontend/src/stores/workspace.ts
+    - frontend/src/views/WorkstationView.vue
+    - frontend/src/views/StrategyLabView.vue
+    - frontend/src/views/StrategyLabV2View.vue
+  acceptance_contract:
+    - Keep /legacy/etf-holdings and /etf-holdings deep links functional and authenticated, but render them in the same TC-style shell/navigation as the rest of the application; no legacy sidebar or status-bar leak.
+    - The default selection is the newest stored snapshot by composition date, known_at, then snapshot ID; identify corrected snapshot 3 and its actual knowledge/correction time separately from its 2026-03-31 composition date.
+    - Preserve both the malformed original parser version as audit history and the corrected append-only version; never present same-composition-date parser correction differences as actual fund turnover or market evolution.
+    - Keep all 1,946 holdings reachable across pagination, with search by symbol/name/CUSIP/ISIN, supported sorting/direction, stable selection, and honest unresolved identity details.
+    - Show source/provenance, source quality, composition date, known_at, publication time only when established, completeness/resolution counts, and capability/current-eligibility distinctly; historical or degraded display must not imply current-analysis eligibility.
+    - Preserve chart/open and current-basket/analysis restrictions: only verified current eligible, resolved, tradable rows may enter current flows; unknown, stale, historical, unresolved, and held rows remain unavailable for those flows.
+    - Preserve history, comparison, weight evolution, transitions, overlap, empty/error/loading states, keyboard/mobile/accessibility behavior, and all existing workflows under the shared visual system.
+    - Validate route aliases and shell identity, ETF view/panel contracts, Strategy Lab and Strategy Lab v2 snapshot consumers, and the whole reachable application route inventory under Root's complete exact-source profile; retain existing references, masks, tolerances, and zero-retry policy.
 previous_human_closure_authorization: >-
   The human delegated bounded checkpoint acceptance to the central coordinator:
   “Yes—approve that initial scope and handle checkpoint acceptance.” Under that
@@ -216,12 +255,12 @@ previously_accepted_erf_goal: >-
   or full-roadmap completion is claimed.
 goal: *etf_full_roadmap_goal
 active_changeset:
-  name: adopt accepted ETF checkpoint from synchronized green staging
-  baseline: cc4358d6d373439a86173289801921d929931df9
+  name: record ETF domain contract for TC2000 whole-frontend reconciliation
+  baseline: 9935acff6d0ac5111a255842b1c315d3e337d855
   adopted_staging_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
-  state: locally_adopted_clean_push_held_for_root_master_green
+  state: record_only_review_handoff; presentation_implementation_owned_by_TC2000
   source_tree_id: e3f54c825ded901444e490e809491d334763bf69
-  source_tree_unchanged_from_accepted_closing_tip: true
+  source_tree_unchanged: true
   imported_source_paths: []
   frozen_upstream_import_manifest: not_applicable_identical_tree_no_foreign_blobs
   owned_record_paths:
@@ -229,7 +268,8 @@ active_changeset:
     - ops/workstreams/feat-etf-holdings-constituents/handoff.md
     - ops/workstreams/feat-etf-holdings-constituents/session.json
     - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
-  next_action: Wait for Root's explicit master-green publication release; then publish this own-branch adoption. After Root completes the retained-target correction and normal-user API/UI acceptance, resume AC2's retained-evidence issuer audit.
+  presentation_owner: TC2000
+  next_action: Deliver this ETF domain-contract inventory to TC; make no presentation edits while TC is the single writer. After Root's whole-frontend qualification and release checks, resume the full ETF roadmap at AC2.
 previously_accepted_erf_changeset:
   name: retained-IWM reparse response and same-date snapshot ordering
   validated_implementation_sha: d34e53545e07a1052d489e8601f91505d70484d9
@@ -1373,7 +1413,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: full_AC1_AC14_roadmap_resumed_after_ERF_staging_adoption
+  current_phase: tc2000_whole_frontend_presentation_contract_review_handoff
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -1568,15 +1608,16 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Push of local staging adoption 6d0a85da34ba276bca69c82a932a0602e783d7a1 is
-  held pending Root's independent master-green release. Root still owns the
-  actual private-target retained-IWM correction and normal-user API/UI
-  acceptance. No target mutation, provider request, quota replay, route
-  enablement, or deployment is claimed. After Root closes those target gates,
-  ETF resumes the AC1-AC14 roadmap at the retained-evidence issuer audit (AC2).
-  Preserve the accepted ERF1-ERF3 staging checkpoint, all prior FHSC/FQ/RIW
-  histories, 15 Tier-0 and 156 Tier-1, 119 spent requests, holds/quarantines,
-  raw/PIT lineage, and the 30-day observation.
+  The human's whole-frontend TC2000 consistency requirement remains open;
+  TC2000 is the single presentation writer across the shell, routes, and all
+  reachable screens. ETF has delivered the read-only domain contract and must
+  not implement a competing theme. Root owns final whole-frontend qualification,
+  integration/promotion, and operational release checks. The actual retained
+  IWM correction was deployed and sample checks passed, but this ETF review
+  makes no new deployment, provider request, quota replay, route enablement, or
+  native-current claim. Preserve the accepted 6d0 staging checkpoint, all prior
+  FHSC/FQ/RIW histories, AC1-AC14, 15 Tier-0 and 156 Tier-1, 119 spent requests,
+  holds/quarantines, raw/PIT lineage, and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2693,10 +2734,9 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Hold push until Root explicitly confirms the independent master-green release.
-  Then publish only this existing ETF branch's local 6d0a85da staging adoption.
-  Root owns the private-target correction/reparse and normal-user API/UI
-  acceptance. After those gates, resume the original roadmap at AC2's
-  retained-evidence issuer audit; do not implement that step in this adoption
-  turn. Keep all AC1-AC14 criteria, holds, quarantines, raw/PIT history, spent
-  requests, and the 30-day observation intact.
+  Hand this ETF holdings contract to TC2000 and keep presentation paths
+  single-writer-owned there. Root coordinates complete route-wide visual and
+  functional qualification. After Root completes the remaining whole-frontend
+  and release checks, resume the full ETF roadmap at AC2's retained-evidence
+  issuer audit. Keep all AC1-AC14 criteria, holds, quarantines, raw/PIT history,
+  spent requests, and the 30-day observation intact.

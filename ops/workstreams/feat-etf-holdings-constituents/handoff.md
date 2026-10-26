@@ -1,4 +1,122 @@
-# Adopt accepted ETF checkpoint from synchronized green staging — 2026-10-26
+# Current handoff — TC2000 whole-frontend reconciliation — 2026-10-26
+
+The binding human requirement is recorded in
+`/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`:
+TC2000 owns the single presentation implementation across the shared shell,
+router/theme, and every reachable frontend screen so the whole application has
+one consistent TC-style look and feel. ETF is the domain-contract reviewer for
+this turn; it must not edit presentation paths or implement a parallel theme.
+ETF retains domain ownership of holdings, source/provenance and PIT semantics,
+current eligibility, unresolved identity, and basket/analysis guards. This
+presentation handoff does not authorize backend, ingestion, provider, quota,
+entitlement, or hold changes.
+
+## ETF holdings UI/domain contract for TC
+
+### Reviewed paths and route-shell boundary
+
+- `frontend/src/App.vue` branches on `route.path.startsWith('/legacy/')` and
+  gives legacy views the old icon-only sidebar, `.main-content`, and `StatusBar`.
+- `frontend/src/router/index.ts` mounts ETF Holdings at
+  `/legacy/etf-holdings`; `/etf-holdings` redirects there. Thus the public ETF
+  alias currently lands in the old shell. Keep both URLs, authentication,
+  browser history, and their workflows functional while ensuring neither leaks
+  the legacy shell in the reconciled experience.
+- `frontend/src/views/ETFHoldingsView.vue` is the complete ETF snapshot explorer.
+  `frontend/src/components/etf/ETFHoldingsPanel.vue` is also embedded by
+  `frontend/src/views/ChartView.vue`; both are user-facing ETF surfaces.
+- Consumer contracts also appear in `frontend/src/types/index.ts`,
+  `frontend/src/stores/workspace.ts`, `frontend/src/views/WorkstationView.vue`,
+  `frontend/src/views/BasketsView.vue`, `frontend/src/views/StrategyLabView.vue`,
+  and `frontend/src/views/StrategyLabV2View.vue`. Strategy Lab consumes selected
+  ETF snapshots in fixed-date or dynamic-universe modes; system-managed ETF
+  baskets remain read-only. Strategy Lab v2 retains its persisted-record and
+  no-execution boundary while receiving the same visual system.
+
+### Data and interaction contract
+
+- Profiles are searched/selected, and snapshot history defaults to the first
+  API-ordered date: composition date descending, `known_at` descending, then
+  snapshot ID descending. Render corrected snapshot 3 as a parser correction
+  known at its actual correction time, distinct from the filing's
+  `2026-03-31` composition date. Keep the original parser snapshot visible as
+  audit history; never rewrite it or label it current.
+- The one retained IWM filing is accession `0002071691-26-012507` with 1,946
+  holdings. All rows must remain reachable through the existing 100-row page
+  size (20 pages), search by symbol/name/CUSIP/ISIN, position/weight/value/
+  shares/symbol/name/resolution sorting, direction, selected-row details, and
+  unresolved rows. Do not invent a symbol, listing, or tradability for an
+  unresolved identity.
+- Corrected source percentages stay fractional in storage and display as
+  percentages: Radian Group is about 0.15% and Coeur Mining about 0.65%. Their
+  old 15.27%/64.81% parser values are malformed historical evidence only.
+- Preserve provenance, source, source quality, composition date, `known_at`,
+  publication time only when established, row/completeness/resolution counts,
+  and capability/current eligibility as distinct facts. Historical, stale,
+  degraded, incomplete, or unknown data may remain inspectable but must not
+  acquire current-analysis language or actions.
+- The historical malformed parser values remain audit evidence. In particular,
+  the old weights must not be shown as the corrected current values. A same-date
+  comparison between the old parser snapshot and corrected snapshot 3 describes
+  a parser/data-normalization correction, not fund additions, removals,
+  reweights, turnover, or market evolution. Comparison, weight-evolution, and
+  turnover surfaces must preserve this distinction.
+- Preserve current-flow restrictions: chart/open and current basket/current-
+  analysis consumers require the existing verified-current capability and row
+  resolution/tradability guards. A displayed last-known snapshot alone never
+  authorizes a current basket or current strategy universe. Keep explicit
+  fixed-date historical strategy selection under existing PIT semantics, with
+  its historical identity visible and never upgraded to current. Keep
+  system-managed ETF baskets read-only and preserve dynamic snapshot semantics.
+- Keep the existing loading, empty, error, capability, canary, search, sort,
+  pagination, detail, comparison, evolution, transition, overlap, and disabled
+  action states. Preserve keyboard, mobile, screen-reader/accessibility, and
+  route/deep-link behavior while aligning shell, navigation, typography,
+  spacing, controls, tables, dialogs, and status language with TC.
+
+### Acceptance checks for TC and Root
+
+1. Visit `/etf-holdings` and `/legacy/etf-holdings`; verify authentication,
+   retained deep links, identical TC-style shell/navigation, and no old sidebar
+   or legacy status-bar escape. Verify all reachable routes are in the whole-app
+   inventory; no feature is hidden or removed to make the inventory pass.
+2. On the accepted private sample, verify snapshot 3 is selected as newest,
+   display the actual correction `known_at` separately from composition date,
+   and retain the old same-date parser version for inspection without implying
+   new fund activity. The corrected sample contains 1,946 rows; search, every
+   sort, stable selected-row details, and all 20 pages preserve total/offset.
+3. Verify source/provenance/timing/quality/completeness, unresolved identity,
+   current/degraded/stale/unavailable/unknown labels, and held/disabled current
+   actions remain truthful. Current baskets/current-analysis inputs must not
+   accept historical, unresolved, or non-current rows; explicit historical
+   Strategy selection retains its existing PIT contract.
+4. Compare the two same-date parser versions and verify they are identified as
+   a correction/audit comparison, never as genuine turnover; ordinary different-
+   composition-date diff/evolution/transition/overlap workflows remain usable.
+5. Re-run existing ETF view, embedded panel, route, Strategy consumer, whole
+   route, accessibility/keyboard/mobile, functional, and visual contracts under
+   Root's exact-source qualification without changing existing references,
+   masks, tolerances, or zero-retry policy.
+
+Root reports the target correction is already deployed and the actual sample
+API/UI checks passed; this owner performed no target operation or acquisition.
+Those checks do not satisfy the new whole-frontend consistency requirement or
+accept the complete route inventory. Current published feature source is
+`9935acff6d0ac5111a255842b1c315d3e337d855`. Its exact push CI is run
+`40287948628`: backend, frontend, and branch-declared jobs passed at the last
+inspection; E2E was still running and the exhaustive integration gate was
+skipped for this branch run. Keep this run distinct from green staging and do
+not claim it terminal green.
+
+Next: TC consumes this inventory and implements presentation only in its
+claimed worktree. ETF remains out of presentation paths; Root owns whole-app
+qualification and final integration/release coordination. After those gates,
+continue ETF's full AC1-AC14 roadmap at AC2 while preserving all checkpoints,
+holds, datasets, the 119 spent requests, and the 30-day observation.
+
+---
+
+## Historical handoff — accepted staging adoption — 2026-10-26
 
 The exact Root-authorized staging source `6d0a85da34ba276bca69c82a932a0602e783d7a1`
 is verified green by run `40270957631`. Guarded owner authority is
@@ -37,13 +155,13 @@ holds/quarantines, raw/PIT lineage, datasets, and the 30-day observation. No
 provider request, quota replay, target mutation, route enablement, deployment,
 or full-roadmap completion is claimed.
 
-## Current handoff
+## Handoff state recorded at adoption (superseded by the current handoff above)
 
-Local adopted HEAD is `6d0a85da34ba276bca69c82a932a0602e783d7a1`; the own
-feature origin is still the pre-adoption closing tip until Root releases the
-push hold. First action after that release: publish this bounded local adoption
-to the existing feature branch. Continue the same roadmap and claim; do not
-start AC2 until Root completes the target/API/UI work stated above.
+At that adoption boundary the local HEAD was `6d0a85da34ba276bca69c82a932a0602e783d7a1`
+and push was held for independent master CI. Root later released publication;
+the existing record-only adoption commit was pushed as
+`9935acff6d0ac5111a255842b1c315d3e337d855`. See the current handoff above for
+its exact CI status and the new whole-frontend presentation owner boundary.
 
 ---
 
