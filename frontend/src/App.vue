@@ -201,6 +201,7 @@ body {
 }
 #app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(input,select,textarea) {
   border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
   background-color: var(--tc-input-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);
@@ -212,29 +213,31 @@ body {
 #app.tc-legacy-app :is(.dashboard-view,.chart-view,.alerts-view,.settings-view,.screener-view,.watchlist-view,.radar-view,.strategy-lab-view,.strategy-lab-v2,.basket-view,.holdings-view) :is(button,.btn,.action-button) {
   font-family: var(--tc-font-family);
 }
-#app.tc-legacy-app .tc-app-route-frame :is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"]) {
+/* Base tokens are deliberately zero-specificity so named route adaptations can override them. */
+:where(#app.tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
   border-color: var(--tc-border);
 }
-#app.tc-legacy-app .tc-app-route-frame :is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"]) {
+:where(#app.tc-legacy-app .tc-app-route-frame) :where(:is([class*="-card"],[class*="__card"],[class*="-panel"],[class*="__panel"],[class*="-section"],[class*="__section"],[class*="-sidebar"],[class*="__sidebar"],[class*="widget"])) {
   background-color: var(--tc-panel-bg);
 }
-#app.tc-legacy-app .tc-app-route-frame :is([class*="-header"],[class*="__header"],[class*="-toolbar"],[class*="__toolbar"]) {
+:where(#app.tc-legacy-app .tc-app-route-frame) :where(:is([class*="-header"],[class*="__header"],[class*="-toolbar"],[class*="__toolbar"])) {
   border-color: var(--tc-border);
   background-color: var(--tc-header-bottom);
 }
-#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]))) {
+#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))) {
   border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
   background-color: var(--tc-control-bg);
   color: var(--tc-text);
 }
-#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]))):hover {
+#app.tc-legacy-app .tc-app-route-frame :where(:is(button,.btn,.action-button):not([class*="danger"]):not([class*="error"]):not([class*="success"]):not([class*="positive"]):not([class*="negative"]):not([class*="warning"]):not([class*="status"]):not([class*="availability"]):not([class*="capability"]):not([class*="quota"]):not(:disabled):not(:is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]))):hover {
   border-color: var(--tc-accent);
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"],[role="row"],tr,[class*="-item"],[class*="-card"],[class*="-row"],[class*="-target"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]) {
+#app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"],[role="row"],tr,[class*="-item"],[class*="-card"],[class*="-row"],[class*="-target"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
   border-color: var(--tc-accent);
   background-color: #68b6e91c;
 }
-#app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class~="active"],[class~="selected"]) {
+#app.tc-legacy-app .tc-app-route-frame :is(button,[role="option"],[role="tab"]):is([aria-selected="true"],[aria-pressed="true"],[class*="--active"],[class*="--selected"],[class*="is-selected"],[class~="active"],[class~="selected"]) {
   color: var(--tc-accent-soft);
 }
 #app.tc-legacy-app .tc-app-route-frame tr:is([class*="--selected"],[class~="selected"]) > td,
@@ -260,17 +263,20 @@ body {
 }
 #app.tc-legacy-app .tc-app-route-frame :is([role="dialog"],[role="menu"],[role="listbox"]) {
   border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
   background-color: var(--tc-window-bg);
   color: var(--tc-text);
 }
 body:has(#app.tc-legacy-app) :is([role="dialog"],[role="menu"],[role="listbox"],[role="tooltip"],[class*="-modal"],[class~="modal"],[class*="-menu"],[class*="-results"],[class*="context-menu"],[class*="popover"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu,.symbol-bars__tooltip,.r-outcome-map__tooltip,.notification) {
   border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
   background-color: var(--tc-window-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);
 }
 body:has(#app.tc-legacy-app) :is([role="dialog"],[class*="-menu"],[class*="-results"],[class*="-modal"],[class~="modal"],.editor-box,.indicator-settings-dialog,.row-dropdown,.quick-link-menu) :is(button,input,select,textarea) {
   border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
   background-color: var(--tc-control-bg);
   color: var(--tc-text);
   font-family: var(--tc-font-family);

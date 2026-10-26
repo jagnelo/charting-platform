@@ -670,7 +670,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.settings-view { padding: 24px; color: #ccc; height: 100%; overflow-y: auto; box-sizing: border-box; }
+.settings-view { padding: 14px; color: #ccc; height: 100%; overflow-y: auto; box-sizing: border-box; }
 .page-title     { color: #fff; font-size: 20px; margin-bottom: 24px; }
 
 .settings-section { margin-bottom: 32px; }
@@ -688,7 +688,7 @@ onUnmounted(() => {
   border-radius: 3px;
   padding: 6px 10px;
   font-size: 13px;
-  font-family: monospace;
+  font-family: var(--tc-font-family);
   width: 100%;
 }
 
@@ -1098,4 +1098,12 @@ onUnmounted(() => {
     flex-direction: column;
   }
 }
+.settings-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.page-title { color: var(--tc-text); font-size: 18px; margin-bottom: 16px; }
+.settings-section h3 { color: var(--tc-text); border-color: var(--tc-border); }
+.hint, .form-row label { color: var(--tc-text-muted); }
+.settings-input, .provider-inline input { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); }
+.provider-card, .availability-list { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.availability-head { background: var(--tc-control-bg); color: var(--tc-text-muted); }
+.settings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

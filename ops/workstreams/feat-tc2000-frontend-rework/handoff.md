@@ -1,5 +1,77 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — route-specific TC visual reconciliation — 2026-10-26
+
+Working from published `9a0bbf451b3037e4786705b3e2b981275cf0f232`; this dirty
+candidate is not yet published or browser-qualified. The route inventory and
+three final domain reviews remain the binding coverage/contract sources. I
+adapted the shared shell's base card/header rules to zero-specificity token
+defaults so named view styles can win, added shared token radii to route
+controls and actual teleported roots, and taught selected-state rules to
+recognize `.is-selected`. I did not treat `aria-current` as generic data
+selection; shared navigation keeps its page-current contract.
+
+Named route adaptations now cover Dashboard tabs/catalog/header, legacy Chart
+controls, Alerts tables/tabs, Settings/provider controls, Watchlist list/menu,
+Screener builder shell, Radar results/detail, Baskets active cards, both
+Strategy views, and ETF Holdings profile/lineage/summary surfaces. Watchlist
+and Screener route roots use workstation UI type; monospace remains on numeric,
+expression, or serialized data. Workstation and popouts keep the existing
+canonical workstation layout. Login retains its standalone tokenized panel;
+notifications, status bar and teleported dialog/menu/results/tooltip roots use
+the shared tokens. The inventory remains 28 routes/aliases, 13 route views,
+110 reachable Vue SFCs and 112 pinned presentation paths; this source pass is
+not proof that every runtime state or viewport looks correct.
+
+ETF Holdings now classifies a comparison as parser-correction audit only when
+composition dates match and both parser versions are known and differ. It
+labels the unchanged raw counts, weights, rows and deltas as audit output,
+shows both actual snapshot `known_at` instants, and removes portfolio
+addition/removal/upweight colors and turnover wording for that case. The
+existing different-date comparison still displays Gross churn and its normal
+activity wording. No backend metric, history, row count, identity, eligibility,
+or acquisition behavior changed. Focused tests preserve the normal case and
+cover same-date v1/v2 audit display with 1,946 rows and distinct observation
+times.
+
+Latest bounded checks: `test_etf_holdings_view`, `test_app_shell`, and
+`test_strategy_lab_v2_view` passed 24/24; `npm run build` passed, including
+`vue-tsc` and Vite (530 modules, 13.12s; the existing large Workstation chunk
+warning remains). Scope self-tests passed and the full scope guard passed for
+1,050 changed paths: 872 immutable imports byte-verified, 29 exact Provider
+adaptations and 112 presentation paths. These are source checks only. No
+browser/fixture/provider request or service action ran; exact-source CI, the
+route-wide functional/visual review, the preserved 104 strict visual matrix,
+F8y evidence and whole-frontend acceptance remain pending.
+
+Next validation proposal for Root review: freeze the committed source archive
+and use a unique project `tc-whole-ui-<candidate8>-20261026`, explicit private
+fixture env, source-built project-tagged images, and loopback-only frontend /
+backend / PostgreSQL bindings at candidate ports `28408 / 28488 / 28432`.
+Those ports must be proven free and all existing assigned-resource identities
+must match before launch; if any is occupied, stop for Root to select another
+set. Build serially with the allocated bounded builder, then use the reviewed
+source-pinned `run-final.sh` phases `up`, `smoke`, `functional`, and `visual`;
+do not call the broad `make validate-integration` wrapper because its cleanup
+target can remove volumes outside this isolated fixture. Set market/instrument
+seeds only in the private test env, keep provider routing/live/paid/terms off,
+clear external credentials and use private quota/FINRA state. Backend, worker
+and research runner stay internal/egress-denied; only the pinned browser uses
+the isolated host-access network and its already-approved OneSignal allowance
+if required. Browser source and locked host `node_modules` are read-only,
+artifacts writable. Preserve the current references/masks, 0.005 tolerance,
+all assertions and zero retries. Run all existing functional flows and the
+104 strict workstation cases, plus a route smoke/state sweep for login,
+navigation/settings/provider unknown states, Dashboard, Chart, Alerts,
+Radar, Watchlist, Screener, Baskets, ETF correction/current-denial states,
+Strategy v1/v2 immutable navigation, and workstation/popouts/teleports. Clean
+only after all exact project parents and DB sessions are gone, using
+`docker compose --env-file <private-env> -p tc-whole-ui-<candidate8>-20261026
+-f docker-compose.yml -f docker-compose.e2e.yml down --volumes --remove-orphans`;
+never use the default stack-down or global cleanup. This proposal is not
+execution authorization; Root owns the reserved slot and will review exact
+source/config/identities first.
+
 ## Current continuation — selected-state CSS cascade repair — 2026-10-26
 
 Root's isolated no-data/no-network cascade fixture reproduced a real issue on

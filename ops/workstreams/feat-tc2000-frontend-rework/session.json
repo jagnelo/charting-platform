@@ -40,8 +40,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published candidate 8457e90299b1d8de2becb75911668c8810a64845 is rejected as final whole-frontend acceptance after Root reproduced a selected-button CSS specificity defect. Its exact CI status is not verified in this session. The corrected source is under focused validation; its exact-source CI and Root-assigned full functional/strict-visual profile remain pending. Do not substitute baseline f809 CI40287957823.",
-  "current_checkpoint_status": "Whole-frontend shell/theme work remains in progress, not accepted. The published 8457 candidate had a confirmed defect: ordinary and selected holding buttons computed identically. The current correction lowers neutral-button specificity with :where() and excludes selected/active/disabled controls. The computed-style regression passes across holding buttons, cards, table rows, tabs, semantic status, disabled appearance and hover declarations; the related 16 tests and Vue typecheck/build pass. Corrected-source exact CI and the Root-assigned complete functional/strict-visual profile remain pending. Preserve all routes, domain contracts, original references/masks/tolerance/zero retries, F8y evidence, AC1-AC9 and official V25.",
+  "current_candidate_ci_status": "Current dirty presentation source is based on published9a0bbf451b3037e4786705b3e2b981275cf0f232. Root's isolated computed-style proof on9a verified neutral versus selected holding styles; this candidate extends route-specific token styling, recognizes Strategy v2 .is-selected without changing aria-current navigation semantics, and labels same-date differing ETF parser versions as raw audit data. Exact candidate CI is not yet available. Do not substitute baseline f809 CI40287957823.",
+  "current_checkpoint_status": "Whole-frontend shell/theme remains in progress and unaccepted. Focused ETF, application-shell and Strategy v2 suites pass24/24; npm run build passes vue-tsc and Vite (530 modules). TC scope self-tests and full scope guard pass for1050 changed paths with872 immutable imports,29 exact Provider adaptations and112 presentation paths. Same-date parser correction wording preserves source metrics, actual known_at and rows; ordinary different-date churn remains unchanged. Root-assigned exact-source full functional/strict-visual and route-state browser evidence remain pending. Preserve all routes, domain contracts, original references/masks/0.005/zero retries, F8y evidence, AC1-AC9 and official V25.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
@@ -56,7 +56,27 @@
     },
     "visuals": "No new visual or full local profile result is claimed for the dirty candidate. Preserve F8y, original references/masks/tolerances/zero retries, full profile and official V25 as open."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/src/App.vue",
+    "frontend/src/views/AlertsView.vue",
+    "frontend/src/views/BasketsView.vue",
+    "frontend/src/views/ChartView.vue",
+    "frontend/src/views/DashboardView.vue",
+    "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/src/views/RadarView.vue",
+    "frontend/src/views/ScreenerView.vue",
+    "frontend/src/views/SettingsView.vue",
+    "frontend/src/views/StrategyLabV2View.vue",
+    "frontend/src/views/StrategyLabView.vue",
+    "frontend/src/views/StudyLabView.vue",
+    "frontend/src/views/WatchlistView.vue",
+    "frontend/tests/unit/router/test_app_shell.test.ts",
+    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -172,7 +192,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-26T09:20:13Z",
+  "last_checkpoint": "2026-10-26T10:04:00Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -207,7 +227,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "After the correction is published, inspect its exact-source CI and give Root the clean candidate for the reserved isolated full functional/strict-visual profile. Keep whole-frontend acceptance, F8y, AC1-AC9 and official V25 open.",
+  "next_action": "Finish unique-key plan/YAML/session/journal checks, recompute the plan hash, and publish this one coherent route-style plus ETF-audit candidate. Report its exact source to Root for exact CI and the reserved isolated functional/strict-visual profile with route-state coverage. Keep whole-frontend acceptance, F8y, AC1-AC9 and official V25 open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -220,7 +240,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "fbfa969ee91e594b53c47f75bf36dbbe2e5d3cc7ee0261d98801017c56d82b32",
+  "plan_hash": "526329e4efe931d98a21e1418b916960298aefd9afcd4b00a84d3830ee3f60e0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -237,11 +257,11 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "The shared visual foundation is implemented and its focused tests/typecheck/build plus scope/workstream checks are green. Root accepted the 6d0 private correction/API/functional baseline; whole-frontend acceptance remains separate. Exact candidate CI and Root’s reserved full browser profile are pending. F8y remains unproven with its consumed 60-second timeout and zero retries; preserve the full roadmap, official V25 and all provider/data/service holds.",
-    "current_phase": "whole_frontend_shared_visual_foundation_implemented;15_focused_tests_vue_typecheck_build_and_scope_checks_green;candidate_publication_then_exact_CI_and_root_full_profile_pending",
-    "next_action": "Publish this one coherent candidate to the existing TC feature branch. Then inspect its exact-source CI and give the clean source to Root for the reserved isolated full-profile slot. Do not use retained/default assigned services, relax any reference/mask/tolerance/assertion, or change retries.",
+    "current_blocker": "The route-specific shared theme and ETF same-date parser-audit presentation are implemented in the current dirty candidate. Focused 24/24 checks, vue-tsc/Vite build and scope guard are green; workstream unique-key/hash checks and coherent publication remain. Exact-source CI and Root's reserved full functional/strict-visual route-state profile are pending. F8y remains unproven at its consumed 60-second timeout and zero retries; preserve the full roadmap, official V25 and all provider/data/service holds.",
+    "current_phase": "whole_frontend_route_style_and_etf_parser_audit_changes_implemented;focused_24_vue_typecheck_build_green;scope_guard_1050_paths;records_and_publication_then_exact_CI_and_root_full_profile_pending",
+    "next_action": "Complete plan/session/journal and scope validation, publish one coherent candidate, then inspect its exact-source CI and hand the clean source to Root for the reserved isolated full profile. Do not use retained/default assigned services, relax any reference/mask/tolerance/assertion, or change retries.",
     "total": 6,
-    "updated_at": "2026-10-26T09:20:13Z"
+    "updated_at": "2026-10-26T10:04:00Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",

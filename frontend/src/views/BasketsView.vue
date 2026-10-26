@@ -870,4 +870,13 @@ function humanize(value: string) {
     align-items: stretch;
   }
 }
+.basket-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.basket-sidebar { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.basket-sidebar__head { border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.basket-sidebar__head h1, .panel-title-row h2, .member-toolbar h3, .modal h3 { color: var(--tc-text); }
+.basket-sidebar__head p, .panel-title-row p, .member-toolbar span, .basket-card__meta, .modal p { color: var(--tc-text-muted); }
+.basket-card, .basket-new, .modal { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
+.basket-card:hover, .basket-card--active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.basket-card__name { color: var(--tc-text); }
+.basket-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

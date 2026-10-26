@@ -73,6 +73,19 @@ describe('application shell', () => {
     const radarSource = readFileSync(resolve(process.cwd(), 'src/views/RadarView.vue'), 'utf8')
     expect(radarSource).toContain("'radar-view--busy': runningScan")
     expect(appSource).toContain('.radar-view')
+    const strategyV2 = readFileSync(resolve(process.cwd(), 'src/views/StrategyLabV2View.vue'), 'utf8')
+    expect(strategyV2).toContain('.strategy-lab-v2__item.is-selected')
+    expect(strategyV2).toContain('font-family: var(--tc-font-family)')
+    const dashboard = readFileSync(resolve(process.cwd(), 'src/views/DashboardView.vue'), 'utf8')
+    expect(dashboard).toContain('.tab-bar { gap: 0; padding: 0 8px;')
+    expect(dashboard).toContain('.widget-catalog { border-color: var(--tc-border)')
+    const watchlist = readFileSync(resolve(process.cwd(), 'src/views/WatchlistView.vue'), 'utf8')
+    const screener = readFileSync(resolve(process.cwd(), 'src/views/ScreenerView.vue'), 'utf8')
+    expect(watchlist).toMatch(/\.watchlist-view\s*\{[^}]*font-family:\s*var\(--tc-font-family\)/s)
+    expect(screener).toContain('.screener-view { display: flex; height: 100%; color: var(--tc-text); font-size: 12px; overflow: hidden; position: relative; font-family: var(--tc-font-family); background: var(--tc-window-bg); }')
+    expect(screener).toContain('.td-num  { color: #555; font-family: monospace; }')
+    expect(appStyles).toContain('border-radius: var(--tc-radius);\n  background-color: var(--tc-window-bg);')
+    expect(appStyles).not.toContain('[aria-current="true"]')
     expect(appSource).toContain('* { box-sizing: border-box; margin: 0; padding: 0; }')
     expect(appSource).toContain('[class*="--active"]')
     expect(appSource).toContain('[class*="status"]')
@@ -88,6 +101,10 @@ describe('application shell', () => {
     document.body.innerHTML = `
       <div id="app" class="tc-legacy-app">
         <div class="tc-app-route-frame">
+          <section class="strategy-lab-v2">
+            <button class="strategy-lab-v2__item">Ordinary Strategy resource</button>
+            <button class="strategy-lab-v2__item is-selected" aria-current="true">Selected Strategy resource</button>
+          </section>
           <button class="holding-row">Ordinary holding</button>
           <button class="holding-row holding-row--selected" aria-selected="true">IWM</button>
           <div class="basket-card">Ordinary basket</div>
@@ -109,6 +126,10 @@ describe('application shell', () => {
         getComputedStyle(frame.querySelector(selector) as Element)[property]
       expect(computed('.holding-row:not(.holding-row--selected)', 'backgroundColor'))
         .not.toBe(computed('.holding-row--selected[aria-selected="true"]', 'backgroundColor'))
+      expect(computed('.strategy-lab-v2__item:not(.is-selected)', 'backgroundColor'))
+        .not.toBe(computed('.strategy-lab-v2__item.is-selected[aria-current="true"]', 'backgroundColor'))
+      expect(computed('.strategy-lab-v2__item:not(.is-selected)', 'color'))
+        .not.toBe(computed('.strategy-lab-v2__item.is-selected[aria-current="true"]', 'color'))
       expect(computed('.holding-row:not(.holding-row--selected)', 'color'))
         .not.toBe(computed('.holding-row--selected[aria-selected="true"]', 'color'))
       expect(computed('.basket-card', 'backgroundColor')).not.toBe(computed('.basket-card--active', 'backgroundColor'))
@@ -131,6 +152,7 @@ describe('application shell', () => {
       expect(buttonHover?.style.getPropertyValue('background-color')).toBe('')
       expect(buttonHover?.style.getPropertyValue('color')).toBe('')
       expect(rules.some(rule => rule.selectorText.includes('tr:is(') && rule.selectorText.includes(':hover > td'))).toBe(true)
+      expect(rules.some(rule => rule.selectorText.includes('[class*="is-selected"]'))).toBe(true)
     } finally {
       document.body.innerHTML = ''
       style.remove()

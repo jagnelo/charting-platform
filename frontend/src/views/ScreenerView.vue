@@ -978,7 +978,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.screener-view { display: flex; height: 100%; color: #ccc; font-size: 12px; overflow: hidden; position: relative; font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+.screener-view { display: flex; height: 100%; color: var(--tc-text); font-size: 12px; overflow: hidden; position: relative; font-family: var(--tc-font-family); background: var(--tc-window-bg); }
 
 /* ── Sidebar ───────────────────────────────────────────────── */
 .screener-sidebar {
@@ -1359,4 +1359,24 @@ onUnmounted(() => {
   font-family: inherit;
 }
 .btn-browse:hover { border-color: #64b5f6; color: #64b5f6; }
+
+/* Keep builder/query numerics monospaced; route controls follow workstation UI. */
+.screener-sidebar { background: var(--tc-window-bg); border-color: var(--tc-border); }
+.sidebar-header { border-color: var(--tc-border); color: var(--tc-text); }
+.screener-item { border-color: var(--tc-border); }
+.screener-item:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.screener-item.active { border-left-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.si-name, .builder-panel h3 { color: var(--tc-text); }
+.si-meta, .section-label, .field label, .page-info { color: var(--tc-text-muted); }
+.screener-main { padding: 14px; }
+.fundamental-strip, .builder-panel, .results-panel, .saved-screen-panel {
+  border-color: var(--tc-border);
+  border-radius: var(--tc-radius);
+  background-color: var(--tc-panel-bg);
+}
+.screener-view :is(button, input, select, textarea):not(.query-editor):not(.td-num):focus-visible {
+  outline: 2px solid var(--tc-accent);
+  outline-offset: 2px;
+}
+.screener-view :is(button, input, select, textarea):not(.query-editor) { font-family: var(--tc-font-family); }
 </style>

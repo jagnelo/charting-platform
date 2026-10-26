@@ -102,18 +102,27 @@ current_blocker: >-
   Published candidate 8457e90299b1d8de2becb75911668c8810a64845 was rejected
   as final whole-frontend presentation acceptance after Root reproduced a real
   CSS cascade defect: ordinary and selected ETF holding buttons had identical
-  background/text because the shared neutral button rule's semantic exclusions
-  accumulated higher specificity. The correction keeps the exclusions inside
-  zero-specificity :where(), and prevents disabled/selected/active controls from
-  receiving neutral button skin. A computed-style regression against the actual
-  App stylesheet and canonical workstation tokens distinguishes ordinary from
-  selected holding buttons, cards, rows and tabs; it also protects semantic
-  status controls, disabled appearance, and hover-rule behavior. The three
-  related shell/route/Settings suites pass 16/16; npm run build (vue-tsc and
-  Vite) passes. Candidate 8457's exact-source CI, if any, does not qualify this
-  correction. The correction's exact-source CI and Root-assigned full
-  functional/strict-visual profile remain pending. F8y and official V25 remain
-  open; no references, masks, tolerances or retry policies changed.
+  computed background/text. The published correction 9a0bbf451b3037e4786705b3e2b981275cf0f232
+  was independently verified by Root: ordinary controls remain neutral while
+  selected holding controls receive the accent surface/text. The current dirty
+  source review also identified Strategy v2 resources as `.is-selected` plus
+  `aria-current=true`; App selected rules now recognize that class and the
+  computed-style regression exercises the actual Strategy button without
+  treating shared-nav `aria-current=page` as data selection. Named token/radius/
+  typography adaptations cover legacy Dashboard, Chart, Alerts, Settings,
+  Watchlist, Screener, Radar, Baskets, both Strategy screens, ETF Holdings and
+  Study controls; shared teleports receive token radius and controls. Broad base
+  card/header selectors now use zero-specificity wrappers so component styles
+  can override them. Same-date differing ETF parser versions display raw
+  correction/audit labels and preserve actual known_at, rows and raw metrics;
+  normal different-date comparisons retain Gross churn/activity wording.
+  Focused ETF, shell and Strategy v2 suites pass 24/24; npm run build passes
+  (vue-tsc and Vite, 530 modules). The scope self-tests and full guard passed
+  for 1,050 changed paths (872 immutable imports, 29 exact Provider adaptations,
+  112 presentation paths). These source checks do not establish browser
+  appearance. Candidate exact-source CI and Root-assigned full functional/
+  strict-visual plus route-state review remain pending. F8y and official V25
+  remain open; references, masks, 0.005 tolerance and zero retries are unchanged.
   Preserve AC1-AC9, official V25, original references/masks/tolerances/zero
   retries, all holds and the complete roadmap.
   Historical adoption snapshot follows:

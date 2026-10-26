@@ -1937,6 +1937,35 @@ function onDashboardClick() {
   border-color: #3a3a3a;
   background: #1b1b1b;
 }
+
+/* Route-specific shell surfaces; widget data colors remain semantic. */
+.dashboard-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.dashboard-header { padding: 10px 12px; border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.dashboard-header h1 { color: var(--tc-text); font-size: 17px; }
+.dashboard-header p, .catalog-title, .dashboard-state { color: var(--tc-text-muted); }
+.tab-bar { gap: 0; padding: 0 8px; border-color: var(--tc-border); background: var(--tc-panel-bg); }
+.tab-btn { height: var(--tc-tab-height); border-radius: var(--tc-radius); border-color: var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text-muted); }
+.tab-btn.active { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-control-bg)); color: var(--tc-accent-soft); }
+.tab-input { border-radius: var(--tc-radius); border-color: var(--tc-border-strong); background: var(--tc-input-bg); color: var(--tc-text); }
+.widget-catalog { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.catalog-item, .dash-btn, .tab-add, .widget-tools button,
+.link-group-btn, .link-unlinked-btn, .link-new-btn {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-text);
+}
+.catalog-item:hover, .dash-btn:hover, .tab-add:hover,
+.widget-tools button:hover, .link-group-btn:hover,
+.link-unlinked-btn:hover, .link-new-btn:hover { border-color: var(--tc-accent); }
+.dash-btn.primary.active, .dash-btn.primary:hover,
+.link-group-btn.active, .link-unlinked-btn.active {
+  border-color: var(--tc-accent);
+  background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-control-bg));
+  color: var(--tc-accent-soft);
+}
+.dashboard-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+.dashboard-view :is(input, select, textarea) { border-radius: var(--tc-radius); }
 </style>
 
 <style>

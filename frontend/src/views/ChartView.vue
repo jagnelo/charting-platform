@@ -675,9 +675,9 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #0a0a0a;
-  color: #ccc;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: var(--tc-window-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
 }
 
 .chart-header {
@@ -942,7 +942,7 @@ onUnmounted(() => {
   border-bottom: 2px solid transparent;
   color: #666;
   font-size: 11px;
-  font-family: 'JetBrains Mono', monospace;
+  font-family: var(--tc-font-family);
   padding: 5px 14px;
   cursor: pointer;
   letter-spacing: 0.04em;
@@ -1029,4 +1029,6 @@ onUnmounted(() => {
 
 .fade-enter-active, .fade-leave-active { transition: opacity 0.2s; }
 .fade-enter-from, .fade-leave-to       { opacity: 0; }
+.chart-header, .options-shell, .options-shell .options-toggle { border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.chart-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

@@ -500,6 +500,7 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('1 added')
     expect(wrapper.text()).toContain('1 changed')
     expect(wrapper.text()).toContain('Gross churn')
+    expect(wrapper.text()).not.toContain('Same-date parser correction audit')
     expect(wrapper.text()).toContain('2.00%')
     expect(wrapper.text()).toContain('Largest additions')
     expect(wrapper.text()).toContain('Largest reweights')
@@ -575,6 +576,74 @@ describe('ETFHoldingsView', () => {
     })
     expect(wrapper.text()).toContain('ETF Holdings')
     expect(wrapper.text()).toContain('No holdings match the current filters.')
+  })
+
+  it('labels same-date parser-version differences as audit data while preserving raw rows and metrics', async () => {
+    const sameDate = '2026-06-07'
+    const parserCorrection = diffPayload()
+    parserCorrection.left_snapshot = {
+      ...parserCorrection.left_snapshot,
+      composition_date: sameDate,
+      parser_version: 'issuer-html-v1',
+      known_at: '2026-06-07T03:00:00Z',
+    }
+    parserCorrection.right_snapshot = {
+      ...parserCorrection.right_snapshot,
+      composition_date: sameDate,
+      parser_version: 'issuer-html-v2',
+      known_at: '2026-06-07T04:15:00Z',
+    }
+
+    const correctionEvolution = weightEvolutionPayload()
+    correctionEvolution.from_date = sameDate
+    correctionEvolution.to_date = sameDate
+    correctionEvolution.series[0].points = [
+      { ...correctionEvolution.series[0].points[0], composition_date: sameDate, parser_version: 'issuer-html-v1' },
+      { ...correctionEvolution.series[0].points[1], composition_date: sameDate, parser_version: 'issuer-html-v2' },
+    ]
+    const correctionTimeline = transitionTimelinePayload()
+    correctionTimeline.from_date = sameDate
+    correctionTimeline.to_date = sameDate
+    correctionTimeline.transitions[0].left_snapshot = parserCorrection.left_snapshot
+    correctionTimeline.transitions[0].right_snapshot = parserCorrection.right_snapshot
+
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([profile, overlapProfile])
+      .mockResolvedValueOnce([
+        { ...dates[0], composition_date: sameDate, parser_version: 'issuer-html-v2', known_at: '2026-06-07T04:15:00Z' },
+        { ...dates[1], snapshot_id: 54, composition_date: sameDate, parser_version: 'issuer-html-v1', known_at: '2026-06-07T03:00:00Z' },
+      ])
+      .mockResolvedValueOnce(holdingsPage({ total: 1946 }))
+      .mockResolvedValueOnce(parserCorrection)
+      .mockResolvedValueOnce(correctionEvolution)
+      .mockResolvedValueOnce(correctionTimeline)
+    vi.mocked(api.post)
+      .mockResolvedValueOnce(overlapSummaryPayload())
+      .mockResolvedValueOnce(overlapMatrixPayload())
+      .mockResolvedValueOnce(overlapMatrixPayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => {
+      expect(wrapper.get('[data-testid="etf-parser-correction-audit"]').exists()).toBe(true)
+    })
+
+    const audit = wrapper.get('[data-testid="etf-parser-correction-audit"]')
+    expect(audit.text()).toContain('Same-date parser correction audit')
+    expect(audit.text()).toContain('issuer-html-v1 and issuer-html-v2')
+    expect(audit.text()).toContain('not fund activity or turnover')
+    expect(audit.findAll('time').map((time) => time.attributes('datetime')))
+      .toEqual(['2026-06-07T03:00:00Z', '2026-06-07T04:15:00Z'])
+    expect(wrapper.text()).toContain('1946 rows')
+    expect(wrapper.text()).toContain('Raw gross weight change · audit')
+    expect(wrapper.text()).toContain('2.00%')
+    expect(wrapper.text()).toContain('Raw diff status · audit')
+    expect(wrapper.text()).toContain('raw added')
+    expect(wrapper.text()).toContain('Raw parser row delta')
+    expect(wrapper.get('[data-testid="etf-parser-correction-evolution-audit"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('Gross churn')
+    expect(wrapper.text()).not.toContain('2.00% churn')
+    expect(wrapper.get('[data-testid="etf-parser-correction-transition"]').text())
+      .toContain('Same-date parser correction audit')
   })
 
   it('labels an explicitly selected older snapshot as historical and shows its own lineage', async () => {

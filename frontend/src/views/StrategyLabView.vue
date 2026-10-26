@@ -6577,4 +6577,14 @@ function humanizeBarSpan(barCount: number, timeframe: string | null | undefined)
     min-width: 0;
   }
 }
+.strategy-lab-view { background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.strategy-sidebar { border-color: var(--tc-border); background: var(--tc-window-bg); }
+.sidebar-header, .detail-header { border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.strategy-sidebar h1, .detail-header h2, .panel-head-heading { color: var(--tc-text); font-family: var(--tc-font-family); }
+.strategy-main { background: var(--tc-window-bg); }
+.panel, .mini-panel, .result-panel, .run-summary-card { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.definition-item { border-color: var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.definition-item:hover { border-color: var(--tc-border-strong); background: var(--tc-control-bg); }
+.definition-item.active, .definition-item[aria-pressed="true"] { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.strategy-lab-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

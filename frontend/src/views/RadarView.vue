@@ -2031,4 +2031,14 @@ onBeforeUnmount(() => {
   }
 }
 
+.radar-view { padding: 14px; gap: 12px; background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.page-title { color: var(--tc-text); font-size: 18px; }
+.run-meta, .radar-view :is(.hint, .empty-hint, .section-info) { color: var(--tc-text-muted); }
+.radar-busy-card, .radar-results, .radar-detail, .research-summary-card {
+  border-color: var(--tc-border);
+  border-radius: var(--tc-radius);
+  background: var(--tc-panel-bg);
+}
+.radar-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+
 </style>

@@ -352,9 +352,9 @@ onMounted(async () => {
 .watchlist-view {
   display: flex;
   height: 100%;
-  background: #0a0a0a;
-  color: #ccc;
-  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  background: var(--tc-window-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
   overflow: hidden;
 }
 
@@ -750,4 +750,24 @@ onMounted(async () => {
   overflow: hidden;
 }
 .slide-down-enter-from, .slide-down-leave-to { max-height: 0; opacity: 0; }
+
+/* Watchlist controls use workstation UI type; symbol data keeps its own styling. */
+.wl-sidebar { background: var(--tc-window-bg); border-color: var(--tc-border); }
+.wls-header, .wlm-header { border-color: var(--tc-border); background: var(--tc-header-bottom); }
+.wls-title, .wlm-title { color: var(--tc-text); font-family: var(--tc-font-family); }
+.create-form, .wlm-add { border-color: var(--tc-border); background: var(--tc-panel-bg); }
+.cf-input, .wls-rename-input, .wlm-add :is(input, select) {
+  border-color: var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-input-bg);
+  color: var(--tc-text);
+  font-family: var(--tc-font-family);
+}
+.wls-item { border-color: var(--tc-border); }
+.wls-item:hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.wls-item.active { border-left-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 13%, var(--tc-panel-bg)); }
+.wlsi-name, .wlm-empty { color: var(--tc-text); }
+.wlsi-count { border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text-muted); }
+.wlsi-dropdown, .wls-modal { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-window-bg); color: var(--tc-text); }
+.watchlist-view :is(button, input, select, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>
