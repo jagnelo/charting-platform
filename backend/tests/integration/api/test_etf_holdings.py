@@ -3662,6 +3662,43 @@ def test_csv_ingestion_normalizes_common_issuer_columns(client, admin_headers, a
     assert dates.json()[0]["composition_date"] == "2026-06-01"
 
 
+def test_available_dates_breaks_same_knowledge_time_ties_by_snapshot_id(
+    client, admin_headers, auth_headers, db
+):
+    from sqlalchemy import text
+
+    profile = seed_etf_profile(db, client, admin_headers, "DATEORDER")
+    composition_date = date(2026, 3, 31)
+    known_at = datetime.now(UTC) - timedelta(hours=1)
+    first = seed_historical_snapshot(
+        db,
+        profile=profile,
+        composition_date=composition_date,
+        known_at=known_at,
+        rows=[{"weight": "0.10"}],
+    )
+    second = seed_historical_snapshot(
+        db,
+        profile=profile,
+        composition_date=composition_date,
+        known_at=known_at,
+        rows=[{"weight": "0.20"}],
+    )
+    assert second.id > first.id
+    # With no SQL tie-breaker, a sequential scan exposes insertion order rather
+    # than inheriting the current compound-index's incidental reverse order.
+    db.execute(text("SET LOCAL enable_indexscan = off"))
+    db.execute(text("SET LOCAL enable_indexonlyscan = off"))
+    db.execute(text("SET LOCAL enable_bitmapscan = off"))
+
+    response = client.get("/api/v1/etf-holdings/DATEORDER/dates", headers=auth_headers)
+    assert response.status_code == 200, response.text
+    same_date = [
+        item for item in response.json() if item["composition_date"] == composition_date.isoformat()
+    ]
+    assert [item["snapshot_id"] for item in same_date] == [second.id, first.id]
+
+
 def test_csv_ingestion_normalizes_broader_issuer_schema_variants(
     client, admin_headers, auth_headers
 ):
