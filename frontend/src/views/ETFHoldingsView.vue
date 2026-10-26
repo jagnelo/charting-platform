@@ -2339,6 +2339,15 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
   .panel-meta {
     justify-content: flex-start;
   }
+  .workspace-panel,
+  .overlap-panel,
+  .overlap-family-controls {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .overlap-panel > * {
+    min-width: 0;
+    max-width: 100%;
+  }
   .snapshot-lineage > div {
     flex: 1 1 100%;
   }

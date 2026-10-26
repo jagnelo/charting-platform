@@ -1551,14 +1551,20 @@ frontend_presentation_handoff:
     else is unacceptable”.
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   status: implementation_in_progress
-  latest_candidate_parent_sha: 47de8ca6838be35f6d184c30b6235730aca10c0b
+  latest_candidate_parent_sha: 4d78faa3cc2ebe318142f81f2ce96ff74c2bbd99
+  latest_candidate_source_diff_sha256: 318e2e0fcd7f5128bf820bc89b2f4e4091b3abb680cf549ed023038cd02d4102
   latest_candidate_validation: >-
-    On the 47de parent, four focused frontend files passed24/24 and npm run
-    build passed vue-tsc/Vite (530 modules, 13.21s). The current candidate adds only compact Chart
-    rail/header and ETF mobile-width corrections plus a Watchlist toggle
-    regression. Actual rendered mobile geometry, exact candidate CI and the
-    complete functional/strict-visual profile remain pending; no
-    whole-frontend acceptance is claimed.
+    Root measured a remaining mobile ETF min-content overflow on the 4d78
+    source: the workspace parent retained an implicit min-content grid track,
+    and overlap-family controls retained four 120px tracks. The new candidate
+    changes only the ETF max-600px CSS parent tracks to a shrinkable single
+    column and constrains overlap children. Focused ETF view tests pass7/7;
+    npm run build passes vue-tsc and Vite (530 modules, 13.59s). Scope
+    self-tests42/42, the full1056-path guard (872 immutable imports,29 Provider
+    adaptations,112 exact presentation paths), and all46 workstream records pass.
+    Root's CSS-injected geometry prototype is diagnostic only; final source-rendered
+    geometry, candidate CI, full functional and strict-visual profile remain
+    pending. No whole-frontend acceptance is claimed.
   domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
   accepted_domain_reviews:
     provider: {source: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md}
@@ -2708,17 +2714,14 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2]
   total: 6
-  current_phase: "whole_frontend_candidate47de_mobile_chart_and_etf_layout_corrections;focused_24_tests_and_vue_typecheck_vite_build_passed;rendered_mobile_geometry_review_and_full_functional_strict_visual_gates_pending"
+  current_phase: "whole_frontend_candidate4d78_etf_parent_grid_containment;focused_7_tests_and_vue_typecheck_vite_build_passed;source_rendered_geometry_exact_CI_and_full_functional_strict_visual_gates_pending"
   next_action: >-
-    Root reviews the source-pinned frontend-only updater against the existing
-    healthy 85c fixture before updating its frontend. Then validate actual
-    390px chart/header/ETF reachability and all inventoried route states before
-    the unchanged full functional and strict-visual matrices. Do not modify or
-    launch the fixture without Root's release. Exact candidate CI and rendered
-    route geometry remain pending. Preserve F8y at its consumed
+    Publish this exact ETF parent-grid CSS correction and own-record evidence
+    once; scope and workstream checks now pass. Root then verifies rendered geometry on
+    the exact candidate frontend; do not start another fixture or full matrix
+    without Root's release. Whole-frontend acceptance, F8y at its consumed
     60-second timeout/zero retries, all assertions/references/masks/0.005
-    tolerance, AC1-AC9, official V25 and the full roadmap. Rendered mobile
-    geometry, exact candidate CI and whole-frontend acceptance remain pending.
+    tolerance, AC1-AC9, official V25 and the full roadmap remain open.
 
     Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the
