@@ -24494,3 +24494,30 @@ publication, follow exact-source branch CI and the later Root-assigned full
 local profile. Keep F8y (including its original60-second timeout and zero
 retries), full AC1-AC9/TCP roadmap, SX/IX, official REF-HELP-V25, and all
 provider/data/service holds open.
+
+
+## Accepted synchronized staging 6d0 adoption — 2026-10-26
+
+The clean TC source was `282637ec00489c2303da0e13516febea647f817d`. Exact
+coordinator-authorized green staging `6d0a85da34ba276bca69c82a932a0602e783d7a1`
+(canonical receipt `20261026T061035Z-6d0a85da34ba.json`, SHA256
+`5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b`, staging
+CI40270957631) was merged over the prior adopted15b5 baseline without conflicts.
+Its nine changed paths are two ETF runtime files, two ETF integration tests and
+five ETF-owned records. Runtime scope is fresh-AsyncSession eager reparse response
+serialization and deterministic same-date knowledge-time/id ordering. TC consumer
+source/tests and the unreleased TC frontend, tag/date-sort/favorites work remain
+unchanged. The current complete frozen-import snapshot pins 877 paths to6d0; the
+29 approved adaptations remain separately governed. Scope self-tests passed35/35,
+the full guard passed for1037 paths with all imports/adaptations verified, the
+workstream validator passed, and plan YAML duplicate-key/record checks passed. No
+TC consumer tests were run because their source did not change.
+
+The local adoption checkpoint is ready to commit; exact branch CI does not exist
+yet. Independent master CI is pending, so hold push until Root releases it. No
+provider request/acquisition, target, service, dataset or fixture action occurred.
+Root still owns private target correction/UI acceptance. F8y and its original60s
+timeout/zero retries, the full local profile, AC1-AC9, SX/IX, official REF-HELP-V25,
+and all provider/data/service holds remain open. After Root releases publication,
+publish this exact local adoption, follow its exact-source branch CI, and continue
+the original TC consumer/full-profile roadmap.

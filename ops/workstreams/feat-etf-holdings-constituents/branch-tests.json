@@ -2,6 +2,8 @@
   "schema": 1,
   "branch": "feat/etf-holdings-constituents",
   "plan_tests": [
+    "uv run --project backend pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent -q --no-cov -p no:cacheprovider",
+    "uv run --project backend pytest tests/integration/api/test_etf_holdings.py::test_available_dates_breaks_same_knowledge_time_ties_by_snapshot_id -q --no-cov -p no:cacheprovider",
     "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov",
     "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov",
     "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov",
@@ -14,39 +16,69 @@
   ],
   "commands": [
     {
+      "id": "retained-reparse-response",
+      "command": "uv run --project backend pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent -q --no-cov -p no:cacheprovider",
+      "covers": [
+        1
+      ]
+    },
+    {
+      "id": "same-date-snapshot-order",
+      "command": "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_available_dates_breaks_same_knowledge_time_ties_by_snapshot_id -q --no-cov -p no:cacheprovider",
+      "covers": [
+        2
+      ]
+    },
+    {
       "id": "full-backend-suite",
       "command": "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_adapters.py -q --no-cov && uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov && uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov",
-      "covers": [1, 2, 3]
+      "covers": [
+        3,
+        4,
+        5
+      ]
     },
     {
       "id": "offline-live-contracts",
       "command": "RUN_LIVE_ETF_HOLDINGS_TESTS=0 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov",
-      "covers": [4]
+      "covers": [
+        6
+      ]
     },
     {
       "id": "adapter-lint",
       "command": "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py",
-      "covers": [5]
+      "covers": [
+        7
+      ]
     },
     {
       "id": "workstream-validation",
       "command": "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents",
-      "covers": [6]
+      "covers": [
+        8
+      ]
     },
     {
       "id": "frontend-type-check",
       "command": "npm --prefix frontend run type-check",
-      "covers": [7]
+      "covers": [
+        9
+      ]
     },
     {
       "id": "frontend-unit",
       "command": "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts",
-      "covers": [8]
+      "covers": [
+        10
+      ]
     },
     {
       "id": "frontend-build",
       "command": "npm --prefix frontend run build",
-      "covers": [9]
+      "covers": [
+        11
+      ]
     }
   ],
   "ci_covered_commands": {

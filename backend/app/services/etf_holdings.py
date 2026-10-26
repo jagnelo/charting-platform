@@ -2836,7 +2836,11 @@ async def list_available_dates(
                     select(ETFHoldingsSnapshot).where(
                         ETFHoldingsSnapshot.etf_profile_id == profile.id
                     )
-                ).order_by(ETFHoldingsSnapshot.composition_date.desc())
+                ).order_by(
+                    ETFHoldingsSnapshot.composition_date.desc(),
+                    ETFHoldingsSnapshot.known_at.desc().nullslast(),
+                    ETFHoldingsSnapshot.id.desc(),
+                )
             )
         )
         .scalars()
