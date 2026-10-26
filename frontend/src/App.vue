@@ -1,5 +1,5 @@
 <template>
-  <div :class="{ 'tc-legacy-app': usesSharedShell }">
+  <div class="tc-application-root" :class="{ 'tc-legacy-app': usesSharedShell }">
     <template v-if="usesSharedShell">
       <header class="tc-app-header">
         <router-link class="tc-app-brand" to="/" aria-label="Charting Platform workstation">
@@ -91,6 +91,12 @@ body:has(#app .tc-legacy-app) {
 }
 #app { width: 100%; min-height: 100vh; }
 #app:not(.tc-legacy-app) { height: 100vh; overflow: hidden; }
+#app .tc-application-root {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
 #app .tc-legacy-app {
   height: 100vh;
   min-width: 0;

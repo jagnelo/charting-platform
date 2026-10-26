@@ -38,6 +38,8 @@ async function mountAt(path: string) {
     history: createMemoryHistory(),
     routes: [
       ...sharedShellNavigation.map(({ path }) => ({ path, component: page })),
+      { path: '/chart/:symbol(.*)', component: page },
+      { path: '/popout/:windowKey', component: page },
       { path: '/legacy/chart/:symbol(.*)', component: page },
       { path: '/', component: page },
       { path: '/login', component: page },
@@ -267,5 +269,21 @@ describe('application shell', () => {
     expect(login.classes()).not.toContain('tc-legacy-app')
     expect(login.find('nav[aria-label="Main navigation"]').exists()).toBe(false)
     login.unmount()
+  })
+
+  it('keeps canonical chart and popout inside a definite height-bearing application root', async () => {
+    expect(appStyles).toMatch(/#app\s+\.tc-application-root\s*\{[^}]*height:\s*100%/s)
+
+    for (const path of ['/chart/SPY', '/popout/workspace-window']) {
+      const wrapper = await mountAt(path)
+      expect(wrapper.classes()).toContain('tc-application-root')
+      expect(wrapper.classes()).not.toContain('tc-legacy-app')
+      expect(wrapper.findAll('[id="app"]')).toHaveLength(0)
+      wrapper.unmount()
+    }
+
+    const legacy = await mountAt('/legacy/chart/SPY')
+    expect(legacy.classes()).toEqual(['tc-application-root', 'tc-legacy-app'])
+    legacy.unmount()
   })
 })
