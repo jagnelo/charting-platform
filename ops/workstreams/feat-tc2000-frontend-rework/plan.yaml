@@ -3,21 +3,34 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
-latest_staging_merge_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
+latest_staging_parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+latest_staging_merge_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
 dependency_authorization: >-
-  Current coordinator release 2026-10-26: exact accepted synchronized-green
-  staging 6d0a85da34ba276bca69c82a932a0602e783d7a1 (canonical receipt
-  20261026T061035Z-6d0a85da34ba.json; exact staging CI40270957631) is authorized
-  for adoption into this TC-owned branch. Its ETF delta adds fresh-AsyncSession
-  eager reparse response serialization and deterministic same-date
-  knowledge-time/id ordering with tests and ETF-owned records. This is source
-  adoption only: Root has accepted the 6d0 private correction/API/functional
-  baseline. This does not accept the whole-frontend presentation work or the
-  complete roadmap. Preserve the consumed119-request history and do not replay
-  acquisition. The TC full
-  profile, F8y, official V25 parity and broader roadmap remain open. The prior
-  15b5/3ff/5b/cdc baselines and bounded checkpoint remain history.
+  Current accepted source adoption 2026-10-26: synchronized-green staging
+  02a7bae34c2aed145b9e46137ef3b8f041de4d92, canonical receipt
+  ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json
+  (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde),
+  exact staging CI40351346928 attempt1, is adopted into this TC-owned branch.
+  GitHub origin/staging independently resolved to this exact SHA. All required
+  backend, frontend, E2E and Exhaustive Integration Gate jobs passed; the
+  staging-policy Branch-declared job was skipped. The receipt names this TC
+  branch source 7d3da9461a131e186030a708658c832d84005c72. Release commit
+  02a7 has parents 6d0a85da34ba276bca69c82a932a0602e783d7a1 and 7d3da9461a131e186030a708658c832d84005c72;
+  its tree 65c2e2a979326fc90b7b4856a6713b01770bd70c exactly matches the
+  pre-adoption TC tree. This adoption adds accepted ancestry only, no new
+  application/backend/test/config blobs. The existing 6d0 frozen-import
+  manifest remains the byte authority for its 872 imports; no empty or duplicate
+  02a7 import manifest is created. The previous exact 7d source CI40343585691
+  also completed successfully. This adoption preserves the accepted f2d
+  whole-frontend checkpoint as history; it does not close AC1-AC9 or V25.
+  Preserve the consumed119-request history and do not replay acquisition or any
+  provider/SEC operation. Full-roadmap development resumes only after this
+  record reconciliation and its exact branch CI.
+  Prior accepted 6d0 staging adoption follows as history: its ETF delta adds
+  fresh-AsyncSession eager reparse response serialization and deterministic
+  same-date knowledge-time/id ordering with tests and ETF-owned records. Root
+  accepted its private correction/API/functional baseline. The prior 15b5/3ff/
+  5b/cdc baselines and bounded checkpoint remain history.
   Earlier accepted 15b5 release follows as history: exact synchronized-green
   staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 (canonical receipt
   20261025T235546Z-15b5c22f0e68.json; CI40241357259) carried the accepted ETF
@@ -105,12 +118,14 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Root accepted the bounded whole-frontend TC presentation checkpoint on
-  implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039. Exact local functional
-  196/2 existing skips/0 failures, strict visual104/104, and attempt-1
-  CI40330168827 passed. The records-only closure HEAD still requires exact CI
-  before Root-supported staging integration. Full AC1-AC9 and official
-  REF-HELP-V25 remain open; deployment/promotion remain Root-owned and pending.
+  Exact synchronized-green staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
+  is adopted as ancestry-only: its tree exactly matches the clean TC source
+  7d3da9461a131e186030a708658c832d84005c72. No product, test, backend, Compose,
+  dependency, migration or reference bytes changed. Canonical staging CI40351346928
+  passed all required gates; source CI40343585691 is green. The four owned
+  adoption records and exact receipt are reconciled; the resulting own
+  branch commit still needs exact-source CI. This does not close the full
+  roadmap or official V25.
 
   Superseded candidate notes follow as historical context and do not describe
   the current blocker:
@@ -550,15 +565,18 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
-  Current 2026-10-26: Root accepted the bounded whole-frontend presentation
-  checkpoint on validated source f2d0228a491a9e5baeb4fdb048da3ed37e485039.
-  Functional196 passed with2 existing canonical opt-in skips/0 failures/0
-  retries; strict visual104/104 passed across four profiles; exact attempt-1
-  CI40330168827 is green. Root's actual route/mobile and canonical workstation
-  geometry reviews passed. The complete roadmap and official REF-HELP-V25 remain
-  open. Final records-only branch HEAD needs exact CI before Root's supported
-  staging integration; deployment/promotion remain Root-owned and pending.
+  Current 2026-10-26: accepted staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
+  was fast-forward adopted into this branch after canonical receipt/run and
+  current origin/staging verification. Its exact tree matches pre-adoption
+  source7d3da9461a131e186030a708658c832d84005c72, so no source merge conflict,
+  consumer delta or new immutable import manifest was needed. The earlier Root-
+  accepted f2d whole-frontend checkpoint remains historical evidence. Exact CI
+  40351346928 is green on staging02a7 with Exhaustive Integration Gate success;
+  exact source CI40343585691 passed on7d. The new own record-reconciliation
+  commit requires its own branch CI. AC1-AC9, full roadmap and official
+  REF-HELP-V25 remain open; Root owns later integration/release actions.
 
+  Superseded checkpoint status follows as preserved historical context:
   Superseded checkpoint status follows as preserved historical context:
   Current 2026-10-26: exact accepted synchronized-green staging6d0 is assembled
   over the already adopted15b5 baseline with no conflicts. Its ETF
@@ -1212,7 +1230,7 @@ historical_blocker_archive: >-
   and ETF consumption is deferred until both branches reach staging.
 active_changeset_context:
   name: TC2000 personal WatchList Tag Columns
-  status: mounted_parent_mutation_unit_proof_local_23_of_23_uncommitted;exact_head_CI39935342169_red_coverage;F8y_slot_consumed_timeout_before_lock_POST_cause_unknown
+  status: source_preserved_in_accepted_f2d_checkpoint_and_02a7_staging_adoption;23_mounted_parent_tests_recorded;later_f2d_full_functional_passed_F8y_F8y_tag_columns_and_F8y_combo;own_adoption_CI_pending
   commit_sha: a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
   remote_sha: a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
   intent: >-
@@ -1229,18 +1247,16 @@ active_changeset_context:
     - frontend/tests/unit/lib/test_tag_columns.test.ts
     - frontend/tests/e2e/flows.spec.ts
   next_action: >-
-    Preserve the current 23/23 mounted-parent test result as local evidence; its
-    test SHA differs from the earlier 70.01% full-coverage receipt, and these
-    dirty tests are not in exact-head CI39935342169. That committed run is
-    terminal red at 69.04% function coverage and must not be described as
-    pending or green. The one F8y browser slot was consumed at zero retries and
-    timed out before the lock POST was dispatched. Do not replay it, change its
-    60-second timeout/assertions, or use the retained charting-stack. No source
-    fix is justified by the saved trace; continue only with independently
-    supported TC work until a new coordinator-authorized observation slot is
-    available. Preserve the full visual references/masks/0.005 tolerance and
-    keep SX/IX relative modes unavailable until producer-backed identity,
-    weighting, PIT membership, and local-history lineage contracts exist.
+    Keep the original Tag Columns intent, parent-owned mutation assertions and
+    historical F8y first-attempt timeout evidence. Root's later exact f2d full
+    functional profile passed F8y, F8y-tag-columns and F8y-combo with zero
+    retries; this qualifies those exact f2d tests only and does not erase the
+    earlier trace or close AC1-AC9. After the current records-only adoption
+    commit CI is green and Root releases the boundary, resume the broader AC4
+    persisted-evidence breadth/ratio/historical analytics work. Do not launch a
+    browser or fixture without a new assigned slot. Preserve producer-backed
+    identity, weighting, PIT membership and local-history lineage requirements,
+    screenshots, masks, 0.005 tolerance and all disabled-operation holds.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -2656,6 +2672,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/6d0a85da34ba276bca69c82a932a0602e783d7a1.json
     receipt_sha256: 5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b
+  - source_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json
+    receipt_sha256: fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -2751,16 +2770,18 @@ branch_tests_reason: "The branch-declared job is intentionally stack-free: it ru
 live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
 migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
-status: ready_for_integration
+status: in_progress
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5, TCV1]
   total: 6
-  current_phase: "Root-accepted bounded whole-frontend presentation checkpoint on f2d0228a491a9e5baeb4fdb048da3ed37e485039; exact closure-record HEAD CI and Root-supported staging integration remain pending"
+  current_phase: "Accepted f2d whole-frontend checkpoint preserved; exact green staging02a7 ancestry adopted without tree delta; own adoption-record CI pending; broader AC1-AC9 roadmap continues"
   next_action: >-
-    Publish the coherent records-only checkpoint packet, then preserve the exact
-    resulting branch HEAD and await its normal exact-source CI before Root
-    performs supported staging integration. Keep the broader roadmap, official
-    V25 parity, target/deployment and all operational holds open.
+    Publish the owned 02a7 adoption-record reconciliation once, then inspect
+    its exact-source branch CI. Once that is green and Root releases
+    the integration boundary, resume AC4 with persisted-evidence breadth,
+    ratio and historical analytics; preserve all provider/SEC, target, data,
+    quota, deployment and native-operation holds. Keep official V25 and the
+    remaining AC1-AC9 roadmap open.
 
     Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the

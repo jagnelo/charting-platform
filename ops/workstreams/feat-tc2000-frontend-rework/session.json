@@ -26,7 +26,7 @@
     }
   ],
   "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
-  "adoption_source_base_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+  "adoption_source_base_sha": "7d3da9461a131e186030a708658c832d84005c72",
   "branch": "feat/tc2000-frontend-rework",
   "claim": {
     "branch": "feat/tc2000-frontend-rework",
@@ -40,29 +40,58 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact published implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039 CI40330168827 is terminal success. Root accepted the bounded checkpoint after functional196/2 existing canonical opt-in skips/0 failures and strict visual104/104. This describes the validated implementation; final record-only closure commit still requires its own exact branch CI.",
-  "current_checkpoint_status": "Root accepted the bounded whole-frontend TC presentation checkpoint under recorded standing human delegation. Functional196/2 existing skips/0 failures, strict visual104/104, exact implementation CI40330168827 green, actual route/mobile and canonical workstation geometry reviewed. Full AC1-AC9 roadmap and official V25 remain open. Final metadata HEAD CI and Root-owned staging integration pending.",
+  "current_candidate_ci_status": "Accepted source 02a7 ancestry is adopted locally with no tree delta. The owned record reconciliation/push is not yet published; exact branch CI for its resulting HEAD is pending. The 02a7 staging gate is green, not this branch CI.",
+  "current_checkpoint_status": "Adoption checkpoint in progress: exact green staging 02a7 is ancestry-only over expected source 7d; four owned records and receipt are being committed. The previous f2d whole-frontend checkpoint remains accepted history; AC1-AC9, official V25 and the full roadmap remain open.",
   "current_exact_ci": {
-    "run_id": 40330168827,
-    "head_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+    "run_id": 40351346928,
+    "head_sha": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
     "status": "completed",
     "conclusion": "success",
     "attempt": 1,
     "jobs": {
       "backend": "success",
       "frontend_unit": "success",
-      "branch_declared": "success",
       "e2e": "success",
-      "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
+      "exhaustive_integration_gate": "success",
+      "branch_declared": "skipped_by_staging_policy"
     },
-    "scope": "Exact validated whole-frontend implementation f2d0228a only; not final record-only closure HEAD or staging acceptance.",
-    "functional": "196 passed, 2 existing canonical opt-in cases skipped, 0 failed, 0 retries; F8y flows passed.",
-    "visuals": "Strict visual104/104 across four profiles passed; original references/masks/0.005 and zero retries unchanged."
+    "scope": "Canonical accepted synchronized-green staging source only; own record-only adoption commit CI is pending.",
+    "receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json"
+  ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
+    ],
+    "known_bytes": 1274139552,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 1271071648,
+    "volume_count": 12,
+    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -100,15 +129,11 @@
   "finished": false,
   "finished_at": null,
   "frozen_upstream_import_guard": {
-    "approved_snapshot": "6d0a85da34ba276bca69c82a932a0602e783d7a1",
-    "baseline": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
-    "candidate_source": "282637ec00489c2303da0e13516febea647f817d",
-    "coordinator_review": "Exact synchronized-green staging 6d0 and canonical receipt authorized by coordinator on 2026-10-26 for frozen upstream import only; no source-guard policy or TC write authority changed.",
-    "immutable_paths": 877,
-    "merge_parent": "6d0a85da34ba276bca69c82a932a0602e783d7a1",
-    "receipt_sha256": "5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b",
-    "result": "Scope self-tests 35/35 passed; full guard passed for 1037 changed paths with 877 byte-verified immutable imports and 29 exact approved adaptations; workstream, unique-key YAML, receipt, manifest, historical journal prefix, ancestry and TC consumer checks passed.",
-    "trust_boundary": "This exact 6d0 release only; future snapshots require new explicit coordinator approval."
+    "approved_snapshot": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
+    "candidate_source": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
+    "coordinator_review": "Exact synchronized-green staging receipt and current origin/staging ref verified on 2026-10-26. The release tree exactly equals pre-adoption source 7d; ancestry-only fast-forward, so no imported blobs or new immutable manifest.",
+    "result": "Accepted staging CI40351346928 green; source CI40343585691 green; exact tree equality verified; existing 6d0 manifest unchanged and applicable.",
+    "trust_boundary": "This exact 02a7 ancestry adoption only; no new application bytes or scope policy change."
   },
   "functional_reconciliation_candidate": {
     "artifact": "/tmp/tc-5da-functional-red-12230757066.zip",
@@ -140,7 +165,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+  "head": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
   "implementation_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
   "integration_checkpoint": {
     "acceptance": "accepted_whole_frontend_tc_presentation_checkpoint_by_root_2026-10-26",
@@ -151,43 +176,46 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-26T14:44:29Z",
+  "last_checkpoint": "2026-10-26T17:40:02Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
-    "run_id": 40330168827,
-    "head_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+    "run_id": 40351346928,
+    "head_sha": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
     "status": "completed",
     "conclusion": "success",
     "attempt": 1,
     "jobs": {
       "backend": "success",
       "frontend_unit": "success",
-      "branch_declared": "success",
       "e2e": "success",
-      "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
+      "exhaustive_integration_gate": "success",
+      "branch_declared": "skipped_by_staging_policy"
     },
-    "scope": "Exact implementation f2d0228a; final four-record closure HEAD requires its own exact-source CI; no staging/EIG acceptance is claimed.",
-    "functional": "196 passed, 2 existing canonical opt-in cases skipped, 0 failed, 0 retries; F8y flows passed.",
-    "visuals": "Strict visual104/104 across four profiles passed; original references/masks/0.005 and zero retries unchanged."
+    "scope": "Canonical accepted synchronized-green staging source only; own record-only adoption commit CI is pending.",
+    "receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json"
   },
   "latest_staging_adoption": {
-    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json",
-    "consumer_changes": "No TC-owned frontend, tag/date-sort/favorites source or test paths changed.",
-    "incoming_paths": 10,
-    "local_consumer_tests": "Not run: imported producer change does not modify TC consumers; adoption used the established stack-free validation path.",
-    "manifest_paths": 877,
-    "master_ci_run": 40247103720,
-    "merge_base": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
-    "premerge_head": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
-    "publication": "Held pending Root release after independent master CI.",
-    "receipt_sha256": "8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151",
-    "scope_result": "1035 changed paths; 877 immutable imports byte-verified; 29 approved adaptations; TC scope tests 35/35; workstream validator and diff check passed.",
-    "staging_ci_run": 40241357259,
-    "staging_sha": "15b5c22f0e689c973ee82d152d4bbad6125bf993"
+    "staging_sha": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
+    "premerge_head": "7d3da9461a131e186030a708658c832d84005c72",
+    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json",
+    "receipt_sha256": "fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde",
+    "staging_ci_run": 40351346928,
+    "source_ci_run": 40343585691,
+    "origin_staging_verified": true,
+    "parents": [
+      "6d0a85da34ba276bca69c82a932a0602e783d7a1",
+      "7d3da9461a131e186030a708658c832d84005c72"
+    ],
+    "tree_sha": "65c2e2a979326fc90b7b4856a6713b01770bd70c",
+    "tree_matches_premerge": true,
+    "scope_result": "Ancestry-only fast-forward adoption; no product/test/backend/config/dependency/migration/reference blobs changed. Existing 6d0 frozen-import manifest remains valid; no duplicate 02a7 import manifest.",
+    "consumer_changes": "None; TC source and tests are byte-identical to expected pre-adoption source.",
+    "local_consumer_tests": "Not rerun because tree is unchanged; existing exact-source green tests and accepted staging gate are reused only for unchanged behavior.",
+    "publication": "Local adoption records pending one coherent commit/push and exact resulting branch CI."
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish this four-record closure packet once to the existing TC branch; inspect the exact automatically triggered closure-head CI. On green, Root performs supported staging integration. Keep the full AC1-AC9 roadmap and official V25 work open.",
+  "next_action": "Commit/push the coherent adoption records once, inspect exact resulting branch CI, then after Root releases integration resume AC4 persisted-evidence breadth, ratio, and historical analytics. Keep AC1-AC9 and official V25 open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -200,7 +228,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "7ba1ef1d2844d34ba8c5f33a1b23d275b9616827c53c2aca524a411cbb6dd5e5",
+  "plan_hash": "6daa5cc67d525b7010011e50568df24efeb4497060896c7608685ab9e60095e0",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -222,25 +250,25 @@
       "TCV1"
     ],
     "total": 6,
-    "current_phase": "root_accepted_bounded_whole_frontend_presentation_checkpoint_f2d; final_record_head_ci_and_root_staging_integration_pending; full_roadmap_open",
-    "current_blocker": "No implementation blocker. Final record-only branch HEAD CI is required before Root-owned staging integration; broader AC1-AC9 and official V25 remain unfinished.",
-    "next_action": "Publish this four-record closure packet once to the existing TC branch; inspect the exact automatically triggered closure-head CI. On green, Root performs supported staging integration. Keep the full AC1-AC9 roadmap and official V25 work open.",
-    "updated_at": "2026-10-26T14:50:00Z"
+    "current_phase": "Accepted 02a7 ancestry adopted locally with no tree delta; own record reconciliation and exact branch CI pending; full roadmap remains open.",
+    "current_blocker": "No source conflict or tree delta. Complete the owned adoption records, publish once, then inspect exact branch CI before Root-owned integration.",
+    "next_action": "Commit/push the coherent adoption records once, inspect exact resulting branch CI, then after Root releases integration resume AC4 persisted-evidence breadth, ratio, and historical analytics. Keep AC1-AC9 and official V25 open.",
+    "updated_at": "2026-10-26T17:40:02Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "remote": "origin",
     "command": "rtk proxy git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
-    "current_pending_range": "Validated implementation f2d0228a; next commit contains only this accepted closure packet in the four TC-owned records.",
+    "current_local_head": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
+    "remote_tracking_sha": "7d3da9461a131e186030a708658c832d84005c72",
+    "current_pending_range": "One owned record-only adoption checkpoint over accepted 02a7; source tree is unchanged.",
     "failure_category": null,
-    "remote_tracking_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
-    "status": "The validated implementation was clean and synchronized at f2d. Publish the bounded record-only closure packet once; its exact resulting branch HEAD requires CI before Root integrates."
+    "status": "Adoption receipt and owned records are being reconciled. Publish this coherent record packet once; verify remote synchronization and inspect resulting exact branch CI."
   },
-  "remote": "47de8ca6838be35f6d184c30b6235730aca10c0b",
-  "remote_sha": "47de8ca6838be35f6d184c30b6235730aca10c0b",
-  "remote_synchronized": true,
-  "remote_tracking_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+  "remote": "7d3da9461a131e186030a708658c832d84005c72",
+  "remote_sha": "7d3da9461a131e186030a708658c832d84005c72",
+  "remote_synchronized": false,
+  "remote_tracking_sha": "7d3da9461a131e186030a708658c832d84005c72",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -285,7 +313,7 @@
   ],
   "schema": 2,
   "session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
-  "state": "checkpointed",
+  "state": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-09T12:31:34.588751+00:00",
@@ -365,5 +393,35 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
+  "staging_adoption_history": [
+    {
+      "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json",
+      "consumer_changes": "No TC-owned frontend, tag/date-sort/favorites source or test paths changed.",
+      "incoming_paths": 10,
+      "local_consumer_tests": "Not run: imported producer change does not modify TC consumers; adoption used the established stack-free validation path.",
+      "manifest_paths": 877,
+      "master_ci_run": 40247103720,
+      "merge_base": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
+      "premerge_head": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+      "publication": "Held pending Root release after independent master CI.",
+      "receipt_sha256": "8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151",
+      "scope_result": "1035 changed paths; 877 immutable imports byte-verified; 29 approved adaptations; TC scope tests 35/35; workstream validator and diff check passed.",
+      "staging_ci_run": 40241357259,
+      "staging_sha": "15b5c22f0e689c973ee82d152d4bbad6125bf993"
+    }
+  ],
+  "frozen_upstream_import_history": [
+    {
+      "approved_snapshot": "6d0a85da34ba276bca69c82a932a0602e783d7a1",
+      "baseline": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
+      "candidate_source": "282637ec00489c2303da0e13516febea647f817d",
+      "coordinator_review": "Exact synchronized-green staging 6d0 and canonical receipt authorized by coordinator on 2026-10-26 for frozen upstream import only; no source-guard policy or TC write authority changed.",
+      "immutable_paths": 877,
+      "merge_parent": "6d0a85da34ba276bca69c82a932a0602e783d7a1",
+      "receipt_sha256": "5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b",
+      "result": "Scope self-tests 35/35 passed; full guard passed for 1037 changed paths with 877 byte-verified immutable imports and 29 exact approved adaptations; workstream, unique-key YAML, receipt, manifest, historical journal prefix, ancestry and TC consumer checks passed.",
+      "trust_boundary": "This exact 6d0 release only; future snapshots require new explicit coordinator approval."
+    }
+  ]
 }
