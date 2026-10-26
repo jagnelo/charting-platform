@@ -19234,3 +19234,45 @@ Root-owned and pending; current master CI `40210522503` is in progress. SEC acqu
 unchanged. The original native worker goal remains historically blocked; this Root-supervised
 bounded record correction did not resume or re-account that goal. Full-roadmap criteria and
 authoritative SPY/RSP listing-venue review remain open.
+
+
+### Accepted retained-IWM ETF staging adoption (2026-10-26)
+
+The normal context check classified this as the existing Strategy implementation worktree. The existing
+claim `02d5ffaa-53b5-4dec-b39c-0f36612b5436` and worktree id
+`feat-strategy-lab-v2-7794d9e53d` were preserved; no new claim, goal, or takeover was created. The
+required session-start preflight recorded the Docker API permission refusal for the full local profile,
+and a repeated session-start reported the clean-bootstrap boundary after the Strategy-owned
+preflight/session records were dirty. `agent-session-status` confirmed the same owner and branch. This
+bounded exact-source adoption uses stack-free checks only; no runtime profile was launched.
+
+Exact synchronized-green staging `15b5c22f0e689c973ee82d152d4bbad6125bf993` was verified from Root's
+canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json` and CI
+`40241357259`, including Exhaustive Integration Gate. The exact merge is local commit `b3704a96f3c03c91e99fb33ac55480f9497fefe4` with
+first parent `3742f612fe6bfb76366d521e7e3fa378751cd0e0` and second parent 15b5; accepted 3ff remains
+in ancestry. Root promotes this exact source through the protected master workflow. Publication remains
+held until the independent master CI passes. A default-sandbox `git ls-remote` lookup hit temporary
+GitHub DNS resolution failure; adoption relies on Root's canonical synchronized-green receipt and the
+exact source object already present locally, with no staging or master ref mutation.
+
+The 3ff-to-15b delta is ten ETF-owned paths: three ETF production files, three ETF test files, and the
+ETF handoff/plan/session/validation records. All ten resulting path blobs match the exact 15b tree.
+Strategy consumer source and tests are unchanged. No Strategy-specific frozen-upstream-import manifest
+or import scope validator exists; no manifest was invented. The accepted retained-IWM correction covers
+honest SEC percentage points, equity/right classification, and admin offline append-only reparse. The
+genuine acquisition happened once already; this turn made no acquisition request or quota operation.
+Imported ETF-owned workstream records are byte-identical to 15b. TC's unreleased frontend/tag/date-sort/
+favorites code was not imported, reset, or claimed released.
+
+The previous normal-user inspector proof remains scoped to private deployment 5b. Root owns the actual
+15b target correction, ETF sample and UI acceptance; none is claimed here. The consumed 119-request
+history, datasets, quotas and provider/data holds remain unchanged. All 18 original roadmap criteria
+remain open, and the original native worker goal remains historically blocked; this bounded adoption did
+not resume or re-account it. No tests, fixtures, provider calls, service actions, target checks, promotion,
+or deployment were performed.
+
+Next branch-owned action: continue AC-UPSTREAM combined-consumer qualification on the adopted source,
+connecting retained-IWM evidence to ETF PIT identity, Provider local-series/coverage/freshness and
+admission/budget/quota denial, then TC immutable CodeVersion/Study outputs. Do not replay SEC acquisition.
+Target-bound claims and resource work remain Root-owned pending target correction/sample release.

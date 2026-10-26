@@ -102,6 +102,7 @@ integration_checkpoint:
     exists. The exact merge preserves the imported ETF record bytes. SEC acquisition remains
     coordinator-owned and pending; the consumed 119-request history and all provider/data/quota
     holds are unchanged.
+    On 2026-10-26 this branch adopted exact green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 as local merge b3704a96f3c03c91e99fb33ac55480f9497fefe4, using canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json and CI 40241357259. The ten ETF delta paths are byte-identical to the 15b tree and contain the accepted retained-IWM percentage, equity/right, and offline append-only reparse correction; no Strategy source consumer changed and no Strategy-specific import manifest exists. Genuine SEC acquisition is not repeated. TC unreleased frontend/tag/date-sort/favorites changes remain outside this release. Root owns the target correction/UI acceptance and independent master gate; push is held until that gate passes. No tests or runtime actions were run.
   original_criterion_dispositions:
     - id: AC-DOMAIN
       disposition: partially_delivered
@@ -980,39 +981,34 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Exact synchronized-green ETF source 3ff96af855a49d42b1dee10cecb43bc6690f4502 is adopted as
-    the second parent of this branch reconciliation; its canonical receipt is
-    /home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json and exact
-    hosted CI 40202604218 passed the required jobs, including Exhaustive Integration Gate. This is
-    the accepted ETF FQ1-FQ8 source checkpoint, not the deployed target source. Root's deployment
-    receipt `/home/m920q/charting-platform/.ai/deploy/first-human/deployment-5b296207-receipt-20261025.md`
-    confirms the private target runs backend image `d5dfc32b781b59a4382e9a6d3eab02f6ec9200885de4b1f1cab62fe704cb7977`,
-    revision 5b29620741fd82d27db45987afb927bf91396712, deployed 2026-10-25 07:44:57 UTC. On that
-    5b deployment, normal-user Study run 5/artifact 7 navigation, all ten immutable readback fields,
-    reload persistence, and a separate normal-owner 404 were verified. This is proof for deployed
-    5b only, not 3ff and not native Strategy execution. The 3ff target upgrade and accepted ETF sample
-    remain Root-owned and pending; master CI 40210522503 is still in progress. SEC acquisition and
-    final target acceptance remain Root-owned and pending; the historical 119-request consumption is
-    preserved. Provider P2 selected/default-series behavior from 5b remains in direct single and
-    bounded batch Research reads. Preserve source-83 qualification and earlier red attempts as
-    source-83 evidence only; no tests/runtime work was repeated for adoption. Authoritative SPY/RSP
-    canonical listing-venue review and the full 18-criterion roadmap remain open. The original native
-    worker goal remains historically blocked; this Root-supervised bounded record correction does
-    not resume or re-account it. Native/RC6, forward, broker, capital, provider/quota, paid/trial,
-    unknown and unsafe operations remain held or disabled.
-  updated_at: "2026-10-25T16:33:33Z"
+    Exact synchronized-green ETF staging source 15b5c22f0e689c973ee82d152d4bbad6125bf993 is
+    adopted as local merge b3704a96f3c03c91e99fb33ac55480f9497fefe4, with first parent
+    3742f612fe6bfb76366d521e7e3fa378751cd0e0 and second parent
+    15b5c22f0e689c973ee82d152d4bbad6125bf993. Its canonical receipt is /home/m920q/charting-
+    platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json and run 40241357259 passed
+    all required jobs including Exhaustive Integration Gate. The ten-path delta from 3ff is
+    limited to ETF router/services/tests and ETF-owned records; each merged blob matches the
+    exact release. No Strategy consumer code changed and no Strategy import manifest exists. The
+    release corrects retained-IWM SEC percentage points, equity/right classification and admin
+    offline append-only reparse. Genuine SEC acquisition happened once and was not replayed. TC
+    unreleased frontend/tag/date-sort/favorites work was not imported or changed. Root owns
+    target correction/UI acceptance and the independent master gate; push remains held until
+    master CI passes. The earlier normal-user inspector proof remains specifically on private
+    deployment 5b, not this 15b source. Preserve the consumed 119-request history, datasets,
+    quotas and provider/data holds. All 18 roadmap criteria remain open; the original native
+    worker goal remains historically blocked and this bounded adoption did not resume or re-
+    account it.
+  updated_at: "2026-10-26T00:08:49Z"
   next_action: >-
-    Next branch-owned roadmap item is AC-UPSTREAM combined-consumer qualification on the exact
-    adopted source: stack-free review/regressions for ETF point-in-time membership, source identity,
-    admission/budget/quota denial and interaction with the already accepted Provider local-series
-    and coverage contracts, followed by TC immutable CodeVersion/Study-output qualification.
-    The normal-user deployed inspector proof is complete only for private deployment 5b; do not
-    relabel it as 3ff or native execution. Root owns the 3ff target upgrade, populated ETF sample and
-    SEC acquisition; wait for those releases before any dependent target claim or resource work.
-    Preserve ETF's held SEC acquisition and 119-request
-    history. Do not start that development in this narrow record-correction turn. Keep all 18
-    criterion dispositions open and native/RC6, forward, broker, capital, provider/quota, paid/trial,
-    unknown and unsafe operations held or disabled.
+    Next branch-owned step remains AC-UPSTREAM combined-consumer qualification on the adopted
+    source: review and test how retained-IWM percentage/classification/reparse evidence composes
+    with Strategy ETF PIT identity, Provider local-series/coverage/freshness and
+    admission/budget/quota denial, then continue TC immutable CodeVersion/Study-output
+    qualification. Do not repeat SEC acquisition or spend provider quota. Root owns actual
+    target correction, UI acceptance and the populated ETF target sample; wait for those
+    releases before target-bound claims or resource work. Keep the full 18-criterion roadmap and
+    all native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe
+    scopes open or held.
 
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
