@@ -120,13 +120,13 @@
   "head": "5b29620741fd82d27db45987afb927bf91396712",
   "implementation_sha": "b68ac81d8591064b172b92e73e701c9c3eed8b68",
   "interrupted": false,
-  "last_checkpoint": "2026-10-26T00:05:17Z",
+  "last_checkpoint": "2026-10-26T06:15:28Z",
   "last_human_progress_update": "2026-10-25T06:12:37.150207+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "After Root releases publication following independent master CI, continue Provider-owned AC-UNIVERSE-COMPLETE and remaining roadmap work from adopted staging 15b5c22f0e689c973ee82d152d4bbad6125bf993. Root reports the genuine bounded SEC acquisition occurred once; do not replay it. Root owns target correction and UI acceptance. Preserve all holds and the consumed 119-request no-replay boundary; no new provider transport, quota mutation, deployment or self-integration.",
+  "next_action": "After Root releases publication following independent master CI, continue Provider-owned AC-UNIVERSE-COMPLETE and remaining roadmap work from adopted staging 6d0a85da34ba276bca69c82a932a0602e783d7a1. Root reports the genuine bounded SEC acquisition occurred once; do not replay it. Root owns the private target update/offline IWM reparse and API/UI acceptance. Preserve all holds and the consumed 119-request no-replay boundary; no new provider transport, quota mutation, deployment or self-integration.",
   "parent_branch": "staging",
-  "plan_hash": "5c5dff0cf6048d3b32e734128078bb4d51112438dabbc54dfda30f04de20d215",
+  "plan_hash": "696399853b6c6cbdaff899ee691cd5d9c8d7d434f7e4e504a3846d9752b9c2aa",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -165,13 +165,13 @@
       "P2-RUNTIME-AND-RELEASE"
     ],
     "current_blocker": "Root's independent master-CI gate; branch publication is intentionally held until Root releases it",
-    "current_phase": "Adopted synchronized-green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 locally; accepted retained-IWM correction included; full Provider roadmap remains open",
-    "next_action": "After Root releases publication, continue Provider-owned AC-UNIVERSE-COMPLETE and remaining roadmap work. Do not replay the completed SEC acquisition; Root owns target correction and UI acceptance. Preserve all holds and the consumed 119-request no-replay boundary.",
+    "current_phase": "Adopted synchronized-green staging 6d0a85da34ba276bca69c82a932a0602e783d7a1 locally; accepted ETF reparse/serialization correction included; full Provider roadmap remains open",
+    "next_action": "After Root releases publication, continue Provider-owned AC-UNIVERSE-COMPLETE and remaining roadmap work. Do not replay the completed SEC acquisition; Root owns private target update/offline IWM reparse and API/UI acceptance. Preserve all holds and the consumed 119-request no-replay boundary.",
     "total": 5,
-    "updated_at": "2026-10-26T00:05:17.426386+00:00"
+    "updated_at": "2026-10-26T06:15:28.066641+00:00"
   },
-  "remote": "ccd6b97a7220f6c86ed6bb3ef3e019777bda0047",
-  "remote_sha": "ccd6b97a7220f6c86ed6bb3ef3e019777bda0047",
+  "remote": "8f17fe77025d770b7b4b974702ccecd06697af93",
+  "remote_sha": "8f17fe77025d770b7b4b974702ccecd06697af93",
   "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."

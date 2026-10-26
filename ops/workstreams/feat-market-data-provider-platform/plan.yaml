@@ -889,12 +889,15 @@ goal: >-
   Continue the full Provider roadmap after acceptance of
   provider-platform-integration-1 and the bounded
   provider-first-human-coverage-retained-universe-2 checkpoint, including
-  adoption of synchronized-green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502
-  and 15b5c22f0e689c973ee82d152d4bbad6125bf993 on this branch. The latter
-  includes the accepted retained-IWM correction, but does not establish target
-  correction or UI acceptance. Preserve all criteria, prior acceptance, and
-  operation dispositions. Root owns target acceptance and guarded promotion;
-  do not self-integrate, activate providers, deploy, or close the full roadmap.
+  adoption of synchronized-green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502,
+  15b5c22f0e689c973ee82d152d4bbad6125bf993, and
+  6d0a85da34ba276bca69c82a932a0602e783d7a1 on this branch. These include the
+  accepted ETF retained-IWM correction and fresh-AsyncSession eager-reparse
+  serialization/knowledge-time ordering correction, but do not establish
+  target correction or UI acceptance. Preserve all criteria, prior acceptance,
+  and operation dispositions. Root owns target acceptance and guarded
+  promotion; do not self-integrate, activate providers, deploy, or close the
+  full roadmap.
 scope:
   - Selected-default coverage summary and requested-range alignment in the coverage API/service, with regressions preserving the selected default-series behavior.
   - Research single/batch reads apply the selected default-series predicate before per-instrument ranking/history limits, retain set-based batching, and preserve Strategy date/calendar inference, immutable snapshot copying, digests, and persisted GET readback.
@@ -1161,22 +1164,25 @@ integration_checkpoint:
   required_gates_remaining:
     - >-
       The accepted P2 checkpoint remains part of history. Synchronized-green
-      staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and its accepted ETF
-      retained-IWM correction at 15b5c22f0e689c973ee82d152d4bbad6125bf993
-      have been adopted on this branch. Root reports the genuine bounded SEC
-      acquisition occurred once; do not replay it. The actual target
-      correction and UI acceptance remain Root-owned and pending, and the
-      adoption does not claim either or full-roadmap completion. Preserve all
-      provider/issuer/SEC holds, the consumed 119-request no-replay boundary,
-      and every remaining roadmap criterion.
+      staging 3ff96af855a49d42b1dee10cecb43bc6690f4502,
+      15b5c22f0e689c973ee82d152d4bbad6125bf993, and accepted staging
+      6d0a85da34ba276bca69c82a932a0602e783d7a1 have been adopted on this
+      branch. The latest ETF delta preserves the fresh-AsyncSession eager
+      reparse response serialization and deterministic same-date knowledge-time
+      and id ordering. Root reports the genuine bounded SEC acquisition
+      occurred once; do not replay it. The private target update/offline IWM
+      reparse and API/UI acceptance remain Root-owned and pending; staging does
+      not claim them or full-roadmap completion. Preserve all provider/issuer/
+      SEC holds, the consumed 119-request no-replay boundary, and every
+      remaining roadmap criterion.
   next_action: >-
     After Root releases branch publication following its independent master-CI
     gate, continue the Provider-owned AC-UNIVERSE-COMPLETE and remaining
-    roadmap work from the adopted source. Root retains ownership of the target
-    correction and UI acceptance. Do not replay the completed SEC acquisition.
-    Preserve every hold and the consumed 119-request no-replay boundary; no
-    new provider/issuer/SEC request, quota reservation, target activation, or
-    deployment is authorized here.
+    roadmap work from the adopted source. Root retains ownership of the private
+    target update/offline IWM reparse and API/UI acceptance. Do not replay the
+    completed SEC acquisition. Preserve every hold and the consumed 119-request
+    no-replay boundary; no new provider/issuer/SEC request, quota reservation,
+    target activation, or deployment is authorized here.
 previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."

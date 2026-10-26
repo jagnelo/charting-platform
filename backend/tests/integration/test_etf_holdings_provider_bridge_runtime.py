@@ -30,6 +30,7 @@ from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.etf_holdings import (
+    ETFHolding,
     ETFHoldingsAdapterState,
     ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
@@ -49,11 +50,13 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
+from app.models.user import User
 from app.services import etf_holdings_provider_bridge as bridge
 from app.services import etf_holdings_refresh as refresh
 from app.services import provider_quota_coordinator as quota_coordinator
 from app.services.etf_holdings import _hash_payload, holdings_capability_for_symbol
 from app.services.etf_holdings_adapters import (
+    CanonicalHoldingRow,
     CiFinancialHoldingsAdapter,
     IssuerCsvAdapterConfig,
     IssuerCsvHoldingsAdapter,
@@ -129,6 +132,263 @@ async def provider_db(db_engine):
             quota_engine.dispose()
         with db_engine.begin() as connection:
             connection.execute(text(f'DROP SCHEMA "{schema}" CASCADE'))
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent(
+    provider_db, monkeypatch
+):
+    """The real HTTP response serializes rows after reparsing in a fresh AsyncSession."""
+
+    from app.auth.jwt import create_access_token
+    from app.database import get_db
+    from app.main import app as api_app
+    from app.models.etf_holdings import ETFHoldingsSnapshot
+    from app.services import etf_holdings as etf_service
+
+    suffix = uuid4().hex[:10].upper()
+    symbol = f"ET{suffix}"
+    constituent_symbol = f"R{suffix}"
+    composition_date = date(2026, 3, 31)
+    imported_at = datetime(2026, 10, 25, 18, 31, tzinfo=UTC)
+    correction_at = datetime.now(UTC)
+    accession = "0002071691-26-012507"
+    filing_url = (
+        "https://www.sec.gov/Archives/edgar/data/1100663/" "000207169126012507/primary_doc.xml"
+    )
+    raw_xml = (
+        "<edgarSubmission><formData><genInfo>"
+        "<repPdDate>2026-03-31</repPdDate>"
+        "<seriesId>S000004344</seriesId><classId>C000012074</classId>"
+        "</genInfo></formData></edgarSubmission>"
+    )
+    identity = {"series_id": "S000004344", "class_id": "C000012074"}
+    legal_metadata = {
+        "source_access": "sec_filing",
+        "form": "NPORT-P",
+        "fund_identity": identity,
+    }
+    monkeypatch.setattr(etf_service, "_now", lambda: correction_at)
+    monkeypatch.setattr(
+        etf_service,
+        "parse_sec_nport_xml",
+        lambda _raw: (
+            composition_date,
+            [
+                CanonicalHoldingRow(
+                    symbol=constituent_symbol,
+                    name="Retained Filing Test Company",
+                    cusip="123456789",
+                    weight=Decimal("0.00648126"),
+                    holding_type="common_stock",
+                    row_type="security",
+                    source_row_id="1",
+                    extra_data={"assetCat": "EC"},
+                )
+            ],
+        ),
+    )
+
+    async with provider_db() as seed:
+        asset_class = AssetClass(name=f"ETF-reparse-{suffix}", description="test only")
+        seed.add(asset_class)
+        await seed.flush()
+        etf_type = InstrumentType(
+            asset_class_id=asset_class.id, name="ETF", description="test only"
+        )
+        stock_type = InstrumentType(
+            asset_class_id=asset_class.id, name="Stock", description="test only"
+        )
+        seed.add_all([etf_type, stock_type])
+        await seed.flush()
+        etf_instrument = Instrument(
+            instrument_type_id=etf_type.id,
+            symbol=symbol,
+            name="Retained Filing Test ETF",
+            currency="USD",
+            is_active=True,
+        )
+        constituent = Instrument(
+            instrument_type_id=stock_type.id,
+            symbol=constituent_symbol,
+            name="Retained Filing Test Company",
+            currency="USD",
+            is_active=True,
+        )
+        seed.add_all([etf_instrument, constituent])
+        await seed.flush()
+        profile = ETFProfile(
+            instrument_id=etf_instrument.id,
+            sec_cik="0001100663",
+            sec_series_id=identity["series_id"],
+            sec_class_id=identity["class_id"],
+            legal_metadata={"operator_context": "preserve during correction"},
+        )
+        admin = User(
+            username=f"reparse-{suffix.lower()}",
+            email=f"reparse-{suffix.lower()}@example.test",
+            hashed_password="test-only-not-used",
+            is_active=True,
+            is_admin=True,
+        )
+        seed.add_all([profile, admin])
+        await seed.flush()
+        raw = ETFHoldingsRawArtifact(
+            etf_profile_id=profile.id,
+            source_kind="sec_nport_reconstructed_holdings",
+            source_url=filing_url,
+            source_identifier=accession,
+            content_type="text/xml",
+            content_hash=_hash_payload(raw_xml),
+            composition_date=composition_date,
+            as_of_date=composition_date,
+            fetched_at=imported_at,
+            parser_version="sec-nport-v1",
+            payload_text=raw_xml,
+            payload_json=None,
+            legal_metadata=legal_metadata,
+        )
+        seed.add(raw)
+        await seed.flush()
+        original = ETFHoldingsSnapshot(
+            etf_profile_id=profile.id,
+            source_artifact_id=raw.id,
+            composition_date=composition_date,
+            as_of_date=composition_date,
+            known_at=imported_at,
+            published_at=None,
+            provenance="sec_nport_reconstructed_holdings",
+            source_provider="edgar",
+            source_url=filing_url,
+            source_identifier=accession,
+            source_quality="filing_reconstructed_holdings",
+            completeness_status="complete",
+            row_count=1,
+            resolved_count=1,
+            unresolved_count=0,
+            total_weight=Decimal("0.06481263"),
+            parser_version="sec-nport-v1",
+            snapshot_hash="original-version-hash",
+            extra_data={"legal_metadata": {"operator_context": "preserve during correction"}},
+        )
+        seed.add(original)
+        await seed.flush()
+        seed.add(
+            ETFHolding(
+                snapshot_id=original.id,
+                constituent_instrument_id=constituent.id,
+                position=1,
+                reported_symbol=constituent_symbol,
+                reported_name="Retained Filing Test Company",
+                cusip="123456789",
+                weight=Decimal("0.06481263"),
+                holding_type="common_stock",
+                row_type="security",
+                source_row_id="1",
+                source_row_hash="original-row-hash",
+                is_resolved=True,
+            )
+        )
+        await seed.commit()
+        profile_id = profile.id
+        original_id = original.id
+        raw_id = raw.id
+        admin_id = admin.id
+        original_hash = original.snapshot_hash
+
+    request_sessions = []
+
+    async def fresh_request_db():
+        async with provider_db() as session:
+            request_sessions.append(session)
+            try:
+                yield session
+                await session.commit()
+            except BaseException:
+                await session.rollback()
+                raise
+
+    prior_overrides = dict(api_app.dependency_overrides)
+    api_app.dependency_overrides[get_db] = fresh_request_db
+    token = create_access_token(admin_id)
+    headers = {"Authorization": f"Bearer {token}"}
+    transport = httpx.ASGITransport(app=api_app)
+    try:
+        async with httpx.AsyncClient(transport=transport, base_url="http://etf.test") as client:
+            first = await client.post(
+                f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+                headers=headers,
+            )
+            assert first.status_code == 200, first.text
+            body = first.json()
+            corrected_id = body["id"]
+            assert corrected_id != original_id
+            assert body["row_count"] == 1
+            assert len(body["holdings"]) == 1
+            assert body["holdings"][0]["reported_symbol"] == constituent_symbol
+            assert body["holdings"][0]["constituent_symbol"] == constituent_symbol
+            assert body["holdings"][0]["weight"] == "0.00648126"
+            correction = body["extra_data"]["parser_correction"]
+            assert correction["source_snapshot_id"] == original_id
+            assert correction["raw_artifact_id"] == raw_id
+            assert correction["source_snapshot_known_at"] == imported_at.isoformat()
+            assert body["known_at"] == correction_at.isoformat().replace("+00:00", "Z")
+
+            second = await client.post(
+                f"/api/v1/etf-holdings/{symbol}/snapshots/{original_id}/reparse-sec-nport",
+                headers=headers,
+            )
+            assert second.status_code == 200, second.text
+            assert second.json()["id"] == corrected_id
+
+            dates = await client.get(f"/api/v1/etf-holdings/{symbol}/dates", headers=headers)
+            assert dates.status_code == 200, dates.text
+            assert [row["snapshot_id"] for row in dates.json()[:2]] == [
+                corrected_id,
+                original_id,
+            ]
+    finally:
+        api_app.dependency_overrides.clear()
+        api_app.dependency_overrides.update(prior_overrides)
+
+    assert len(request_sessions) == 3
+    assert len({id(session) for session in request_sessions}) == 3
+    async with provider_db() as readback:
+        snapshots = (
+            (
+                await readback.execute(
+                    select(ETFHoldingsSnapshot)
+                    .options(
+                        selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                            ETFHolding.constituent_instrument
+                        )
+                    )
+                    .where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
+                    .order_by(ETFHoldingsSnapshot.id.asc())
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert [snapshot.id for snapshot in snapshots] == [original_id, corrected_id]
+        assert snapshots[0].snapshot_hash == original_hash
+        assert snapshots[0].known_at == imported_at
+        assert snapshots[0].source_artifact_id == raw_id
+        assert snapshots[0].rows[0].weight == Decimal("0.06481263")
+        assert snapshots[1].rows[0].weight == Decimal("0.00648126")
+        assert snapshots[1].rows[0].constituent_instrument.symbol == constituent_symbol
+        assert snapshots[1].extra_data["parser_correction"]["source_snapshot_id"] == original_id
+        assert snapshots[1].extra_data["parser_correction"]["raw_artifact_id"] == raw_id
+        profile = await readback.get(ETFProfile, profile_id)
+        assert profile.legal_metadata == {"operator_context": "preserve during correction"}
+        retained_raw = await readback.get(ETFHoldingsRawArtifact, raw_id)
+        assert retained_raw is not None
+        assert retained_raw.fetched_at == imported_at
+        assert retained_raw.content_hash == _hash_payload(raw_xml)
+        assert retained_raw.payload_text == raw_xml
+        assert retained_raw.source_identifier == accession
+        assert retained_raw.source_url == filing_url
 
 
 class _TransportRunner:

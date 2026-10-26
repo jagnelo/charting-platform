@@ -8,7 +8,12 @@ from sqlalchemy.orm import selectinload
 from app.auth.dependencies import get_current_user, require_admin
 from app.database import get_db
 from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRun
-from app.models.etf_holdings import ETFHoldingsAdapterState, ETFProfile
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsAdapterState,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.instrument import Instrument
 from app.models.user import User
 from app.schemas.basket import BasketOut
@@ -1161,7 +1166,21 @@ async def reparse_retained_sec_nport_holdings(
         )
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return snapshot_to_out(snapshot, instrument=profile.instrument)
+    response_snapshot = (
+        await db.execute(
+            select(ETFHoldingsSnapshot)
+            .options(
+                selectinload(ETFHoldingsSnapshot.rows).selectinload(
+                    ETFHolding.constituent_instrument
+                )
+            )
+            .where(ETFHoldingsSnapshot.id == snapshot.id)
+            .execution_options(populate_existing=True)
+        )
+    ).scalar_one_or_none()
+    if response_snapshot is None:
+        raise HTTPException(500, "Reparsed holdings snapshot could not be reloaded")
+    return snapshot_to_out(response_snapshot, instrument=profile.instrument)
 
 
 @router.post("/{symbol}/ingest-sec-legacy", response_model=ETFHoldingsSnapshotOut)

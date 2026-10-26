@@ -31785,3 +31785,42 @@ state was changed; no tests or network calls were made.
   publication release; do not self-integrate or promote. After Root releases
   publication, the next Provider-owned roadmap action remains
   `AC-UNIVERSE-COMPLETE`, with all remaining criteria open.
+
+## 2026-10-26 synchronized staging adoption: 6d0a85d
+
+- Verified Root's owner-adoption authority
+  `/home/m920q/charting-platform/.ai/staging-attempts/6d0a85da-green-staging-owner-adoption-authority-20261026.json`
+  (SHA-256 `1ed26d6157877387c1b127109ae11ff839ae64ea8734a2bbe52d51b30c5056c2`)
+  and its canonical receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261026T061035Z-6d0a85da34ba.json`
+  (SHA-256 `5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b`).
+  Both identify exact staging `6d0a85da34ba276bca69c82a932a0602e783d7a1` as
+  green. GitHub Actions run `40270957631` was independently read as completed
+  with success on that exact SHA; Backend, Frontend, E2E, and Exhaustive
+  Integration Gate succeeded, while Branch-declared was skipped by policy.
+  Live refs before local merge were staging/master `6d0a85d` and Provider
+  origin `8f17fe77025d770b7b4b974702ccecd06697af93`.
+- Adopted the exact staging merge whose parents are prior release
+  `15b5c22f0e689c973ee82d152d4bbad6125bf993` and ETF source
+  `cc4358d6d373439a86173289801921d929931df9`; merge base is `15b5c22`. Its
+  delta from 15b5 is limited to ETF reparse serialization/order source changes,
+  their tests, and ETF-owned workstream records. It contains no Provider source
+  or record paths and no TC frontend/tag/date-sort/favorites paths. Provider
+  consumer/runtime blobs were verified unchanged. This is ordinary
+  synchronized-green staging adoption; no Provider frozen-upstream-import
+  manifest applies or was created.
+- The adopted ETF change is fresh-AsyncSession eager-reparse response
+  serialization plus deterministic same-date knowledge-time/id ordering. The
+  accepted four-feature release does not establish the actual private-target
+  update/offline IWM reparse or API/UI acceptance; Root owns those and they
+  remain pending. Root reports the genuine SEC acquisition occurred once;
+  never replay it. Prior accepted checkpoints and the full 24-item Provider
+  roadmap remain intact.
+- All provider/issuer/SEC holds, quota history, datasets, and the consumed 119
+  requests are unchanged. Validation journal prior bytes remain preserved and
+  the new adoption evidence is appended. No product tests, heavy fixtures,
+  browser matrix, provider/native operation, service cleanup, target mutation,
+  sibling/staging/master write, or deployment occurred. Push remains held
+  until Root releases it after independent master green. Next Provider-owned
+  action remains `AC-UNIVERSE-COMPLETE`; do not implement it in this adoption
+  context.
