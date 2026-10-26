@@ -2,9 +2,9 @@ schema: 4
 branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
-parent_sha: 5b29620741fd82d27db45987afb927bf91396712
-latest_staging_merge_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
-latest_staging_parent_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+latest_staging_merge_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+latest_staging_parent_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -46,6 +46,23 @@ whole_frontend_presentation_reconciliation:
       accordingly. The whole dashboard/UI MUST have consistent look & feel,
       anything else is unacceptable
   presentation_owner: TC2000 workstream; single writer for shared shell, routing, theme, and every reachable screen
+  accepted_staging_release:
+    sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json
+    canonical_receipt_sha256: fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde
+    exact_staging_ci: 40351346928
+    required_jobs: Backend Tests, Frontend Unit Tests, E2E, Exhaustive Integration Gate
+    state: exact_green_release_adopted_locally; final_owner_branch_CI_pending
+    owner_merge_commit: edd72c9c3feda2cdfabd06565c010158ddd072e7
+    local_adoption_scope: >-
+      Exact staging source is the merge's second parent. All imported application,
+      backend, test, config, dependency and migration paths match staging; only
+      the four ETF-owned workstream records are being reconciled. No ETF-specific
+      frozen-upstream import manifest applies; imported TC manifests remain intact.
+    remaining: >-
+      Publish the coherent owner-record reconciliation and pass exact-tip branch
+      CI. This does not claim a fresh local full browser profile, target
+      deployment, or target acceptance.
   etf_role: Review and preserve ETF domain contracts; do not implement presentation or edit frontend paths during this handoff.
   boundary: >-
     ETF retains domain ownership of holdings data, source provenance, parser/PIT
@@ -71,6 +88,11 @@ whole_frontend_presentation_reconciliation:
     - Preserve chart/open and current-basket/analysis restrictions: only verified current eligible, resolved, tradable rows may enter current flows; unknown, stale, historical, unresolved, and held rows remain unavailable for those flows.
     - Preserve history, comparison, weight evolution, transitions, overlap, empty/error/loading states, keyboard/mobile/accessibility behavior, and all existing workflows under the shared visual system.
     - Validate route aliases and shell identity, ETF view/panel contracts, Strategy Lab and Strategy Lab v2 snapshot consumers, and the whole reachable application route inventory under Root's complete exact-source profile; retain existing references, masks, tolerances, and zero-retry policy.
+  adoption_state: >-
+    The accepted whole-frontend presentation implementation is now present via
+    exact green staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92. TC remains
+    presentation owner. This ETF branch has not run a fresh local browser
+    profile; exact owner-branch CI is required after the adoption-record commit.
 previous_human_closure_authorization: >-
   The human delegated bounded checkpoint acceptance to the central coordinator:
   “Yes—approve that initial scope and handle checkpoint acceptance.” Under that
@@ -255,21 +277,32 @@ previously_accepted_erf_goal: >-
   or full-roadmap completion is claimed.
 goal: *etf_full_roadmap_goal
 active_changeset:
-  name: record ETF domain contract for TC2000 whole-frontend reconciliation
-  baseline: 9935acff6d0ac5111a255842b1c315d3e337d855
-  adopted_staging_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
-  state: record_only_review_handoff; presentation_implementation_owned_by_TC2000
-  source_tree_id: e3f54c825ded901444e490e809491d334763bf69
-  source_tree_unchanged: true
-  imported_source_paths: []
-  frozen_upstream_import_manifest: not_applicable_identical_tree_no_foreign_blobs
+  name: adopt exact accepted whole-frontend staging and reconcile ETF records
+  baseline: 3b09233e7e8aa36db3217fdf65bf87b75460877d
+  adopted_staging_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+  merge_commit: edd72c9c3feda2cdfabd06565c010158ddd072e7
+  state: exact_green_staging_merged_locally; own_records_and_exact_tip_CI_pending
+  source_tree_id: 9943d5945573bbc82e9d7c1c8c430a1337046ea4
+  source_tree_unchanged_from_accepted_staging: true
+  imported_source_path_counts: {frontend: 47, scripts: 1, backend: 0, config: 0}
+  imported_paths: exact staging tree except four branch-owned ETF workstream records
+  frozen_upstream_import_manifest: not_applicable_exact_staging_parent_no_unlisted_blobs
+  existing_tc_import_manifests: preserved_unchanged_from_accepted_staging
+  previous_branch_ci: >-
+    40293867135 on pre-adoption source 3b09233e7e8aa36db3217fdf65bf87b75460877d
+    is terminal RED (Backend Tests failed; Frontend Unit Tests passed; dependent
+    jobs skipped). It remains historical and is not waived by staging green.
+  bounded_consumer_validation: >-
+    After merge, 34 tests passed across five targeted frontend unit files covering
+    router shell, ETF capability labels/view/panel, and application routes; no
+    browser or full profile was run.
   owned_record_paths:
     - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
     - ops/workstreams/feat-etf-holdings-constituents/handoff.md
     - ops/workstreams/feat-etf-holdings-constituents/session.json
     - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
   presentation_owner: TC2000
-  next_action: Deliver this ETF domain-contract inventory to TC; make no presentation edits while TC is the single writer. After Root's whole-frontend qualification and release checks, resume the full ETF roadmap at AC2.
+  next_action: Validate and publish this four-record adoption reconciliation, observe exact owner-tip CI, then wait for Root integration/target acceptance before resuming AC2 retained-evidence issuer audit.
 previously_accepted_erf_changeset:
   name: retained-IWM reparse response and same-date snapshot ordering
   validated_implementation_sha: d34e53545e07a1052d489e8601f91505d70484d9
@@ -1413,7 +1446,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: tc2000_whole_frontend_presentation_contract_review_handoff
+  current_phase: 02a7_whole_frontend_green_staging_adopted_exact_owner_CI_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -1608,16 +1641,15 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  The human's whole-frontend TC2000 consistency requirement remains open;
-  TC2000 is the single presentation writer across the shell, routes, and all
-  reachable screens. ETF has delivered the read-only domain contract and must
-  not implement a competing theme. Root owns final whole-frontend qualification,
-  integration/promotion, and operational release checks. The actual retained
-  IWM correction was deployed and sample checks passed, but this ETF review
-  makes no new deployment, provider request, quota replay, route enablement, or
-  native-current claim. Preserve the accepted 6d0 staging checkpoint, all prior
-  FHSC/FQ/RIW histories, AC1-AC14, 15 Tier-0 and 156 Tier-1, 119 spent requests,
-  holds/quarantines, raw/PIT lineage, and the 30-day observation.
+  Exact green staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92, including the
+  whole-frontend TC2000 presentation, is adopted locally. Publish the four
+  owned-record reconciliation and pass the resulting exact owner-tip CI; the
+  pre-adoption 40293867135 backend failure remains historical. Root owns
+  protected integration/promotion, private deployment and target/API/UI
+  acceptance. No fresh local browser profile, provider request, quota replay,
+  route enablement or native-current claim occurred here. Preserve the full
+  AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, 119 spent requests, holds,
+  quarantines, raw/PIT lineage and 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2734,9 +2766,8 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Hand this ETF holdings contract to TC2000 and keep presentation paths
-  single-writer-owned there. Root coordinates complete route-wide visual and
-  functional qualification. After Root completes the remaining whole-frontend
-  and release checks, resume the full ETF roadmap at AC2's retained-evidence
-  issuer audit. Keep all AC1-AC14 criteria, holds, quarantines, raw/PIT history,
-  spent requests, and the 30-day observation intact.
+  Complete and publish the owned-record adoption checkpoint, then observe its
+  exact-tip CI. Root owns integration and target/API/UI acceptance. After that
+  boundary, resume AC2's retained-evidence issuer audit. Keep all AC1-AC14
+  criteria, holds, quarantines, raw/PIT history, spent requests, and the 30-day
+  observation intact.

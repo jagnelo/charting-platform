@@ -98,21 +98,33 @@ entitlement, or hold changes.
    Root's exact-source qualification without changing existing references,
    masks, tolerances, or zero-retry policy.
 
-Root reports the target correction is already deployed and the actual sample
-API/UI checks passed; this owner performed no target operation or acquisition.
-Those checks do not satisfy the new whole-frontend consistency requirement or
-accept the complete route inventory. Current published feature source is
-`9935acff6d0ac5111a255842b1c315d3e337d855`. Its exact push CI is run
-`40287948628`: backend, frontend, and branch-declared jobs passed at the last
-inspection; E2E was still running and the exhaustive integration gate was
-skipped for this branch run. Keep this run distinct from green staging and do
-not claim it terminal green.
+Root reports the target correction is deployed and actual sample API/UI checks
+passed; this owner performed no target operation or acquisition. The accepted
+whole-frontend presentation release is now adopted from exact synchronized-green
+staging `02a7bae34c2aed145b9e46137ef3b8f041de4d92`, canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json`
+(SHA256 `fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde`),
+exact staging CI `40351346928` including Backend, Frontend Unit, E2E, and
+Exhaustive Integration Gate. This ETF branch merged that exact source as
+`edd72c9c3feda2cdfabd06565c010158ddd072e7`; its product tree and all imported
+application/backend/test/config/dependency/migration bytes match the accepted
+staging tree. Only the four ETF-owned records are being reconciled. TC's
+existing import manifests are preserved; no additional ETF import manifest
+applies.
 
-Next: TC consumes this inventory and implements presentation only in its
-claimed worktree. ETF remains out of presentation paths; Root owns whole-app
-qualification and final integration/release coordination. After those gates,
-continue ETF's full AC1-AC14 roadmap at AC2 while preserving all checkpoints,
-holds, datasets, the 119 spent requests, and the 30-day observation.
+The previous feature-tip CI `40293867135` on `3b09233e7e8aa36db3217fdf65bf87b75460877d`
+is terminal RED: Backend Tests failed and Frontend Unit Tests passed, with
+dependent jobs skipped. Preserve that result; it predates the accepted staging
+adoption. After the merge, 34 targeted frontend unit tests passed across five
+files covering route shell, ETF capability labels/view/panel, and application
+routes. No local full browser profile was run. The exact owner-tip CI for the
+record-reconciled adoption must still pass; staging green is not a substitute.
+
+TC remains the sole presentation implementation owner and ETF stays out of
+presentation paths. Root owns whole-app qualification, protected integration,
+deployment, and target/API/UI acceptance. After Root's integration and target
+acceptance, continue ETF's full AC1-AC14 roadmap at AC2 while preserving all
+checkpoints, holds, datasets, the 119 spent requests, and the 30-day observation.
 
 ---
 
