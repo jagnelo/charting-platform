@@ -40,78 +40,36 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current coherent presentation candidate is based on published 85c053b5466a0dee7d938a8f2d987ce0df4f7730. It includes the Root-reviewed navigation, route/component styling and mobile-shell corrections plus stored-ETF-snapshot/current-eligibility, same-date parser-audit, zero-call reliability, and teleported Notes-token presentation. Eight focused frontend test files passed104/104 and the production build passed vue-tsc and Vite. Exact candidate CI is pending publication; Root route-state and full functional/strict-visual profile are pending. Do not substitute CI40304902034 on parent85c.",
-  "current_checkpoint_status": "Whole-frontend source corrections are implemented but not accepted. The final affected eight-file frontend test slice passed104/104; npm run build passed vue-tsc and Vite (530 modules; existing large Workstation chunk advisory). Scope self-tests passed42/42; staged full scope guard passed for1,055 changed paths with872 immutable imports byte-verified,29 approved Provider adaptations and112 exact presentation paths. Full scope guard, unique-key plan/ownership YAML, session/plan-hash, append-only journal-prefix, workstream and final diff checks are recorded for this close. Current-source CI and Root-assigned isolated route-state/full functional/strict-visual evidence remain pending. No browser/fixture was started or changed. Keep the existing 85c fixture, archive, services and Root browser untouched. Preserve F8y at its consumed60-second timeout and zero retries, all112 presentation paths, Provider/ETF/Strategy domain contracts, original refs/masks/0.005/zero retries, AC1-AC9, official V25 and the complete roadmap.",
+  "current_candidate_ci_status": "The source candidate is a focused mobile layout correction based on published47de8ca6838be35f6d184c30b6235730aca10c0b. It scopes narrow-screen behavior to legacy Chart and ETF Holdings: compact chart rails remain user-toggleable, header controls wrap, ETF metadata wraps, and the wide holdings table scrolls locally. Focused tests passed24/24 and npm run build passed vue-tsc/Vite (530 modules, 13.21s). Exact candidate CI and rendered mobile geometry/full functional/strict-visual evidence remain pending.",
+  "current_checkpoint_status": "Current source work adds a narrow-screen layout correction to published 47de8ca6838be35f6d184c30b6235730aca10c0b after Root measured clipped legacy-chart rails/header and ETF metadata overflow at390px. Watchlist and Indicator rails start compact with their existing toggles available; user-selected Indicator state is preserved. ETF metadata/lineage wraps and the wide holdings table scrolls only within its own wrapper. Focused ChartView, ETFHoldingsView, WatchlistPanel and app-shell tests passed24/24; npm run build passed vue-tsc and Vite (530 modules, 13.21s). Scope self-tests, the full scope guard and all-workstream validation passed. These source checks are not rendered geometry proof. No browser/fixture, service, data, provider request or external integration ran or changed. The existing 47de fixture remains untouched. Exact candidate CI and the full functional/strict-visual route profile remain pending. Preserve the full original roadmap, AC1-AC9, official V25, F8y60s/zero retries, references/masks/0.005 and all domain/provider/data holds.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
-    "run_id": 40304902034,
-    "status": "Exact published parent source 85c053b5466a0dee7d938a8f2d987ce0df4f7730 CI40304902034 is terminal green. This receipt qualifies only that parent; it does not qualify the current presentation correction candidate.",
     "jobs": {
       "backend": "success",
-      "frontend_unit": "success",
       "branch_declared": "success",
       "e2e": "success",
-      "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
+      "exhaustive_integration_gate": "policy_skipped_on_feature_CI",
+      "frontend_unit": "success"
     },
+    "run_id": 40304902034,
+    "status": "Exact published parent source 85c053b5466a0dee7d938a8f2d987ce0df4f7730 CI40304902034 is terminal green. This receipt qualifies only that parent; it does not qualify the current presentation correction candidate.",
     "visuals": "85c route-review evidence identified gaps and is not whole-frontend acceptance. No full functional or strict-visual matrix has run on the current correction candidate. Preserve the original references, masks, 0.005 tolerance, zero retries, and F8y as open."
   },
   "dirty_paths": [
-    "frontend/src/App.vue",
-    "frontend/src/components/chart/IndicatorPanel.vue",
-    "frontend/src/components/common/SearchBar.vue",
-    "frontend/src/components/common/TagPicker.vue",
-    "frontend/src/components/etf/ETFHoldingsPanel.vue",
-    "frontend/src/components/strategy/StrategyRuleTreeEditor.vue",
     "frontend/src/components/watchlist/WatchlistPanel.vue",
-    "frontend/src/views/BasketsView.vue",
     "frontend/src/views/ChartView.vue",
-    "frontend/src/views/DashboardView.vue",
     "frontend/src/views/ETFHoldingsView.vue",
-    "frontend/src/views/RadarView.vue",
-    "frontend/src/views/ScreenerView.vue",
-    "frontend/src/views/SettingsView.vue",
-    "frontend/src/views/StrategyLabV2View.vue",
-    "frontend/src/views/StrategyLabView.vue",
-    "frontend/src/views/WatchlistView.vue",
-    "frontend/src/views/WorkstationView.vue",
-    "frontend/tests/unit/router/test_app_shell.test.ts",
-    "frontend/tests/unit/router/test_application_routes.test.ts",
-    "frontend/tests/unit/views/test_etf_historical_capability_labels.test.ts",
-    "frontend/tests/unit/views/test_settings_view.test.ts",
-    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+    "frontend/tests/unit/components/test_watchlist_panel.test.ts",
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 6,
-    "containers": [
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
-    ],
-    "known_bytes": 1271338202,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
-      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 1268270298,
-    "volume_count": 12,
-    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -189,7 +147,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
+  "head": "47de8ca6838be35f6d184c30b6235730aca10c0b",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -209,10 +167,10 @@
     "head_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
     "jobs": {
       "backend": "success",
-      "frontend_unit": "success",
       "branch_declared": "success",
       "e2e": "success",
-      "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
+      "exhaustive_integration_gate": "policy_skipped_on_feature_CI",
+      "frontend_unit": "success"
     },
     "run_id": 40287957823,
     "scope": "Exact published f809 source only; feature Exhaustive Integration Gate was an expected policy skip. Current dirty presentation edits have no exact CI yet.",
@@ -248,7 +206,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "3f98e5ace3fb45cc5d58f04c48459566679797619974dd3fccaf8405c5dad733",
+  "plan_hash": "fee07d653d64d5cc89b3c5d03c066e866d4d1857040df483880889b3c0c7ec23",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -265,17 +223,17 @@
       "TCP1",
       "TCP2"
     ],
-    "current_blocker": "The Root-reviewed whole-frontend correction set is implemented on parent85c. It includes usable workstation application navigation, the reviewed route/component TC styling and mobile-grid fixes, clear ETF stored-snapshot versus current-analysis labeling, raw same-date parser-audit wording, zero-call reliability wording, and readable teleported Notes controls. The final affected seven frontend test files passed104/104 and vue-tsc/Vite build passed. Candidate exact CI and Root-assigned route-state/full functional/strict-visual profile remain pending. No browser or fixture action occurred. Preserve the original F8y60-second timeout and zero retries, all references/masks/0.005, AC1-AC9, official V25, all domain contracts and holds.",
-    "current_phase": "whole_frontend_reviewed_corrections_complete_focused_104_green_build_green;final_scope_and_records_close_then_publish;exact_candidate_CI_and_root_isolated_full_profile_pending",
-    "next_action": "Publish this coherent source and owner-record packet once, then give Root the exact candidate for CI and review. After Root allocates the slot, prepare/use a new candidate-pinned frontend-only replacement against the existing healthy 85c isolated project: prove the backend and Compose trees are unchanged, pin the new archive/source/image, replace only the owned frontend container, and compare all seven other fixture IDs plus the original 33 retained containers/volumes/networks before and after. Root must review the updated route states before any full functional and strict-visual matrix. Do not modify or launch against the existing 85c fixture before review. Keep whole-frontend acceptance, F8y, full AC1-AC9 and official V25 open.",
+    "current_blocker": "Current source work adds a narrow-screen layout correction to published 47de8ca6838be35f6d184c30b6235730aca10c0b after Root measured clipped legacy-chart rails/header and ETF metadata overflow at390px. Watchlist and Indicator rails start compact with their existing toggles available; user-selected Indicator state is preserved. ETF metadata/lineage wraps and the wide holdings table scrolls only within its own wrapper. Focused ChartView, ETFHoldingsView, WatchlistPanel and app-shell tests passed24/24; npm run build passed vue-tsc and Vite (530 modules, 13.21s). Scope self-tests, the full scope guard and all-workstream validation passed. These source checks are not rendered geometry proof. No browser/fixture, service, data, provider request or external integration ran or changed. The existing 47de fixture remains untouched. Exact candidate CI and the full functional/strict-visual route profile remain pending. Preserve the full original roadmap, AC1-AC9, official V25, F8y60s/zero retries, references/masks/0.005 and all domain/provider/data holds.",
+    "current_phase": "47de_mobile_chart_and_etf_layout_correction;focused_24_tests_and_vue_typecheck_vite_build_green;scope_workstream_publication_and_rendered_full_profile_pending",
+    "next_action": "Finish exact-source scope/workstream checks and publish one coherent source and owner-record candidate. Have Root review the source-pinned frontend-only update against the existing 47de fixture before any refresh. Then validate actual 390px chart/header/ETF geometry and the unchanged full functional and strict-visual matrices. Do not start or modify the fixture before Root release.",
     "total": 6,
-    "updated_at": "2026-10-26T11:36:06Z"
+    "updated_at": "2026-10-26T12:29:00Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
-    "current_pending_range": "The published branch and origin are at parent85c053b5466a0dee7d938a8f2d987ce0df4f7730. A coherent whole-frontend correction candidate and its owner records are being closed against that parent; publish one scoped commit after final staged checks. Do not claim CI40304902034 qualifies the new candidate.",
+    "current_local_head": "47de8ca6838be35f6d184c30b6235730aca10c0b",
+    "current_pending_range": "This source candidate applies the reviewed compact mobile layout correction on published base47de8ca6838be35f6d184c30b6235730aca10c0b. Exact candidate CI, rendered route geometry, and the full functional/strict-visual profile remain pending.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
@@ -285,8 +243,8 @@
     "remote_tracking_sha": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
     "status": "Parent85c is clean and published before this correction packet; one coherent candidate commit/push remains after scoped checks. Exact candidate CI is pending."
   },
-  "remote": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
-  "remote_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
+  "remote": "47de8ca6838be35f6d184c30b6235730aca10c0b",
+  "remote_sha": "47de8ca6838be35f6d184c30b6235730aca10c0b",
   "remote_synchronized": true,
   "remote_tracking_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
   "retained_docker_resources": [

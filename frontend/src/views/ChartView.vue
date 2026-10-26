@@ -112,7 +112,7 @@
 
     <!-- Main body: watchlist panel is always visible regardless of layout -->
     <div class="chart-body">
-      <WatchlistPanel :current-symbol="activeSymbol" @select="onSymbolSelect" :body-width="layoutStore.panelWidths.watchlist" />
+      <WatchlistPanel :current-symbol="activeSymbol" @select="onSymbolSelect" :body-width="layoutStore.panelWidths.watchlist" :compact-default="isCompactChartViewport" />
       <ResizeHandle direction="horizontal" :value="layoutStore.panelWidths.watchlist" :min="160" :max="600" @change="v => layoutStore.setPanelWidth('watchlist', v)" />
       <DrawingToolbar />
       <div v-if="layoutStore.layout === '1'" class="chart-workspace single-workspace">
@@ -253,6 +253,17 @@ const radarStore      = useRadarStore()
 // missing instrument during that handoff must not resize the chart grid.
 const indicatorPanelOpen = ref(false)
 const indicatorPanelOpenPreference = ref<boolean | null>(null)
+const isCompactChartViewport = ref(
+  typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(max-width: 600px)').matches,
+)
+let compactViewportQuery: MediaQueryList | null = null
+
+function onCompactViewportChange(event: Pick<MediaQueryListEvent, 'matches'>) {
+  isCompactChartViewport.value = event.matches
+  if (indicatorPanelOpenPreference.value === null) indicatorPanelOpen.value = !event.matches
+}
 
 function onIndicatorPanelOpenChange(open: boolean) {
   indicatorPanelOpen.value = open
@@ -260,7 +271,7 @@ function onIndicatorPanelOpenChange(open: boolean) {
 }
 
 function onIndicatorPanelInstrumentAvailable() {
-  if (indicatorPanelOpenPreference.value === null) indicatorPanelOpen.value = true
+  if (indicatorPanelOpenPreference.value === null) indicatorPanelOpen.value = !isCompactChartViewport.value
 }
 
 // Active panel store — in single mode this is the global chart store, in multi mode it's the active panel
@@ -625,6 +636,9 @@ async function confirmCreateWatchlist(name: string) {
 
 onMounted(async () => {
   const generation = lifecycleGeneration
+  compactViewportQuery = window.matchMedia?.('(max-width: 600px)') ?? null
+  compactViewportQuery?.addEventListener('change', onCompactViewportChange)
+  if (compactViewportQuery) onCompactViewportChange(compactViewportQuery)
   document.addEventListener('click', onDocClick, true)
   // Load ticker from URL param e.g. navigating from /alerts
   const sym = route.params.symbol as string | undefined
@@ -666,6 +680,8 @@ onUnmounted(() => {
   selectionGeneration += 1
   comparisonSeq += 1
   document.removeEventListener('click', onDocClick, true)
+  compactViewportQuery?.removeEventListener('change', onCompactViewportChange)
+  compactViewportQuery = null
   radarStore.clearPendingChartDetection()
 })
 </script>
@@ -878,12 +894,14 @@ onUnmounted(() => {
 .chart-body {
   display: flex;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
 .chart-workspace {
   display: flex;
   flex: 1;
+  min-width: 0;
   overflow: hidden;
 }
 
@@ -893,6 +911,7 @@ onUnmounted(() => {
 
 .chart-area {
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1031,4 +1050,24 @@ onUnmounted(() => {
 .fade-enter-from, .fade-leave-to       { opacity: 0; }
 .chart-header, .options-shell, .options-shell .options-toggle { border-color: var(--tc-border); background: var(--tc-header-bottom); }
 .chart-view :is(button, input, select, textarea):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+
+@media (max-width: 600px) {
+  .chart-header {
+    justify-content: flex-start;
+    align-items: flex-start;
+  }
+  .header-left {
+    width: 100%;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .header-center {
+    width: 100%;
+    overflow-x: auto;
+  }
+  .header-right {
+    margin-left: auto;
+  }
+}
 </style>

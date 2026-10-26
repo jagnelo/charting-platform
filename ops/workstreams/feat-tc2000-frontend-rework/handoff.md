@@ -1,5 +1,15 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — narrow mobile chart and ETF layout — 2026-10-26
+
+The current source is a focused correction on published `47de8ca6838be35f6d184c30b6235730aca10c0b`. Root's rendered-route review measured the legacy chart route at390px with its fixed 300px watchlist and open indicator rail consuming the chart row; the shell clipped the remaining chart and header content. ETF review measured `holdings-main` at366px with `scrollWidth=569`, caused by min-content metadata/toolbar layouts.
+
+On compact chart viewports, the Watchlist starts collapsed with its labeled toggle available; when opened, its panel uses a narrow responsive width. The Indicator panel's existing user choice is preserved, while its automatic initial expansion is disabled on compact screens. Chart flex items can shrink, and header search/symbol/actions wrap instead of extending beyond the screen. The change is scoped to the legacy Chart route; canonical Workstation and desktop geometry are unchanged by the compact rules.
+
+ETF's narrow grid now uses shrinkable tracks and min-width constraints, wraps the title, current capability chips and snapshot lineage, and allows the wide holdings table to scroll inside its own bounded wrapper. Snapshot IDs, provenance, eligibility, known-at values, rows and the existing table semantics are unchanged.
+
+Focused tests passed `24/24` across ChartView, ETF Holdings, WatchlistPanel and app-shell coverage, including compact Chart rail and operable Watchlist toggle regressions. `npm run build` passed `vue-tsc` and Vite (530 modules, 13.21s; existing large Workstation chunk advisory). Scope self-tests, the staged full scope guard and all-workstream validation passed. These checks do not prove rendered mobile geometry. No browser, fixture, service, data, provider request or external integration was run or changed. Root's 47de route-review fixture remains untouched. Root's next step is review of the source-pinned frontend update before any fixture refresh or full browser matrix. Preserve every assertion, reference, mask,0.005 tolerance, zero retries, F8y60s timeout, provider/data holds, AC1-AC9, official V25 and the complete roadmap.
+
 ## Current continuation — route-specific TC visual reconciliation — 2026-10-26
 
 Working from published `9a0bbf451b3037e4786705b3e2b981275cf0f232`; this dirty

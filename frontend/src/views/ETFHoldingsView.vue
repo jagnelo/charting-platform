@@ -2272,16 +2272,17 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
 .holdings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 @media (max-width: 1100px) {
   .holdings-view {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .holdings-sidebar {
+    min-width: 0;
     max-height: 280px;
     border-right: 0;
     border-bottom: 1px solid #171717;
   }
   .toolbar,
   .holdings-browser {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
   .diff-metrics,
   .diff-highlights {
@@ -2308,6 +2309,56 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
   }
   .holding-row span:nth-child(n + 4) {
     display: none;
+  }
+}
+@media (max-width: 600px) {
+  .holdings-view,
+  .holdings-sidebar,
+  .holdings-main,
+  .workspace-panel,
+  .holdings-browser,
+  .holdings-table,
+  .holding-detail {
+    min-width: 0;
+  }
+  .holdings-main {
+    padding: 10px;
+  }
+  .panel-title-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
+  .panel-title-row > div,
+  .panel-meta,
+  .snapshot-lineage,
+  .snapshot-lineage > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+  .panel-meta {
+    justify-content: flex-start;
+  }
+  .snapshot-lineage > div {
+    flex: 1 1 100%;
+  }
+  .snapshot-lineage dd,
+  .snapshot-lineage time {
+    overflow-wrap: anywhere;
+  }
+  .toolbar,
+  .holdings-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .toolbar > *,
+  .holdings-browser > * {
+    min-width: 0;
+  }
+  .holdings-table {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
   }
 }
 </style>

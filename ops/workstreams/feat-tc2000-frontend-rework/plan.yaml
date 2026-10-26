@@ -86,6 +86,19 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Latest candidate work is a narrow mobile layout correction on published
+  source 47de8ca6838be35f6d184c30b6235730aca10c0b. Root's route review found
+  the legacy chart's fixed watchlist and open indicator rail consumed the
+  390px viewport, clipping both chart and header controls; it also measured
+  ETF metadata min-content overflow beyond the screen. The current patch gives
+  chart rails a compact, user-toggleable default on narrow viewports, wraps
+  chart header controls, constrains flex/grid minimums, and keeps ETF lineage,
+  filters and status inside the screen while the wide holdings table scrolls
+  within its own wrapper. Focused component/view tests and the Vue/Vite build
+  pass; actual rendered geometry remains pending Root's isolated review. The
+  fixture, seven non-frontend services, data and all protected resources were
+  untouched. This does not qualify whole-frontend acceptance.
+
   Current 2026-10-26: the human explicitly requires one TC2000 look and feel
   across the entire frontend, not only ETF. The root route inventory cross-check
   is whole-frontend-route-acceptance-inventory-20261026.json; this branch
@@ -1538,11 +1551,14 @@ frontend_presentation_handoff:
     else is unacceptable”.
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   status: implementation_in_progress
-  latest_candidate_parent_sha: 85c053b5466a0dee7d938a8f2d987ce0df4f7730
+  latest_candidate_parent_sha: 47de8ca6838be35f6d184c30b6235730aca10c0b
   latest_candidate_validation: >-
-    Eight focused frontend test files passed104/104; vue-tsc/Vite build passed.
-    Candidate CI and Root-isolated whole-route functional/strict-visual evidence
-    remain pending, so no whole-frontend acceptance is claimed.
+    On the 47de parent, four focused frontend files passed24/24 and npm run
+    build passed vue-tsc/Vite (530 modules, 13.21s). The current candidate adds only compact Chart
+    rail/header and ETF mobile-width corrections plus a Watchlist toggle
+    regression. Actual rendered mobile geometry, exact candidate CI and the
+    complete functional/strict-visual profile remain pending; no
+    whole-frontend acceptance is claimed.
   domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
   accepted_domain_reviews:
     provider: {source: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md}
@@ -2692,22 +2708,17 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2]
   total: 6
-  current_phase: "whole_frontend_consolidated_review_corrections_implemented_on_85c_parent;route_navigation_mobile_component_and_inner_surface_styles;ETF_snapshot_capability_and_parser_audit_contracts;Provider_zero_call_reliability_contract;Notes_teleport_tokens;focused_104_pass_and_vue_typecheck_build_green;exact_candidate_CI_and_root_isolated_route_full_profile_pending"
+  current_phase: "whole_frontend_candidate47de_mobile_chart_and_etf_layout_corrections;focused_24_tests_and_vue_typecheck_vite_build_passed;rendered_mobile_geometry_review_and_full_functional_strict_visual_gates_pending"
   next_action: >-
-    Publish this coherent, focused-validated source and send Root the exact
-    candidate CI handle. After Root reviews and allocates the reserved slot,
-    reuse the existing source-pinned isolated frontend-replacement pattern on
-    the healthy 85c project: prove backend/Compose source trees unchanged, bind
-    the exact candidate frontend archive read-only, replace only that owned
-    frontend container, and preserve the exact seven non-frontend service IDs,
-    33 original retained containers, all original volumes/networks/data and
-    provider egress holds. Root reviews the corrected route/UI states before
-    releasing the unchanged full functional and strict-visual matrices. Do not
-    launch or update the fixture before Root review. Preserve F8y at its
-    consumed 60-second timeout/zero retries, all assertions/references/masks/
-    0.005 tolerance, AC1-AC9, official V25 and the complete roadmap. Exact
-    candidate CI, full route-state browser evidence and whole-frontend
-    acceptance remain pending.
+    Root reviews the source-pinned frontend-only updater against the existing
+    healthy 85c fixture before updating its frontend. Then validate actual
+    390px chart/header/ETF reachability and all inventoried route states before
+    the unchanged full functional and strict-visual matrices. Do not modify or
+    launch the fixture without Root's release. Exact candidate CI and rendered
+    route geometry remain pending. Preserve F8y at its consumed
+    60-second timeout/zero retries, all assertions/references/masks/0.005
+    tolerance, AC1-AC9, official V25 and the full roadmap. Rendered mobile
+    geometry, exact candidate CI and whole-frontend acceptance remain pending.
 
     Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the
