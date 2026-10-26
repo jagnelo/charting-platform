@@ -51,13 +51,20 @@ def parse_sec_nport_xml(raw_xml: str) -> tuple[date | None, list[CanonicalHoldin
         isin = _identifier_text(node, "isin") or _first_text(node, ["isin"])
         sedol = _identifier_text(node, "sedol") or _first_text(node, ["sedol"])
         symbol = _first_text(node, ["ticker", "tickerSymbol", "symbol"])
-        asset_type = (
-            _first_text(node, ["assetCat", "assetCategory", "securityType"]) or "equity"
-        ).lower()
+        raw_asset_type, conditional_categories = _nport_asset_category(node)
+        raw_asset_type = raw_asset_type or "equity"
+        asset_type = _normalize_nport_asset_category(raw_asset_type)
         row_type = "cash" if asset_type in {"cash", "currency"} else "security"
-        weight = _decimal(_first_text(node, ["pctVal", "percentageValue", "weight"]))
-        if weight is not None and weight > 1:
-            weight = weight / Decimal("100")
+        percentage_value = _first_text(node, ["pctVal", "percentageValue"])
+        weight = (
+            _nport_percentage_fraction(percentage_value)
+            if percentage_value is not None
+            else _decimal(_first_text(node, ["weight"]))
+        )
+        extra_data = _flatten_direct_children(node)
+        extra_data["sec_asset_category"] = raw_asset_type
+        if conditional_categories:
+            extra_data["sec_asset_conditionals"] = conditional_categories
         rows.append(
             CanonicalHoldingRow(
                 symbol=symbol,
@@ -77,7 +84,7 @@ def parse_sec_nport_xml(raw_xml: str) -> tuple[date | None, list[CanonicalHoldin
                 holding_type=asset_type,
                 row_type=row_type,
                 source_row_id=str(position),
-                extra_data=_flatten_direct_children(node),
+                extra_data=extra_data,
             )
         )
     return report_date, rows
@@ -163,22 +170,22 @@ def _parse_sec_nport_xhtml(raw_html: str) -> tuple[date | None, list[CanonicalHo
         symbol = _first_nport_value(label_map, "ticker", "ticker symbol", "symbol")
         shares = _decimal(_first_nport_value(label_map, "balance"))
         market_value = _decimal(_first_nport_value(label_map, "value"))
-        weight = _decimal(
-            _first_nport_value(label_map, "percentage value compared to net assets of the fund")
+        percentage_value = _first_nport_value(
+            label_map, "percentage value compared to net assets of the fund"
         )
-        if weight is not None and weight > 1:
-            weight = weight / Decimal("100")
+        weight = _nport_percentage_fraction(percentage_value)
         currency = _normalize_nport_currency(
             _first_nport_value(
                 label_map, "currency. indicate the currency in which the investment is denominated"
             )
             or _first_nport_value(label_map, "currency")
         )
-        holding_type = (
+        raw_holding_type = (
             _first_nport_value(label_map, "asset category")
             or _first_nport_value(label_map, "security type")
             or "equity"
-        ).lower()
+        )
+        holding_type = _normalize_nport_asset_category(raw_holding_type)
         row_type = "cash" if holding_type in {"cash", "currency"} else "security"
         if not any([name, cusip, isin, sedol, symbol]):
             continue
@@ -198,7 +205,10 @@ def _parse_sec_nport_xhtml(raw_html: str) -> tuple[date | None, list[CanonicalHo
                 holding_type=holding_type,
                 row_type=row_type,
                 source_row_id=str(position),
-                extra_data={"source": "sec_nport_xhtml"},
+                extra_data={
+                    "source": "sec_nport_xhtml",
+                    "sec_asset_category": raw_holding_type,
+                },
             )
         )
     return report_date, rows
@@ -681,6 +691,55 @@ def _decimal(value: str | None) -> Decimal | None:
     if is_parenthesized_negative:
         parsed = -parsed
     return parsed / Decimal("100") if is_percent else parsed
+
+
+def _nport_percentage_fraction(value: str | None) -> Decimal | None:
+    """Convert N-PORT percentage-unit fields to the canonical fractional weight."""
+
+    text = _clean(value)
+    parsed = _decimal(text)
+    if parsed is None or text is None:
+        return parsed
+    # An explicit percent sign is already normalized by _decimal. N-PORT's
+    # pctVal and rendered Item C.2.d values are percentage units even below 1.
+    return parsed if text.endswith("%") else parsed / Decimal("100")
+
+
+def _normalize_nport_asset_category(value: str) -> str:
+    """Map only SEC common/preferred equity categories into resolver types."""
+
+    normalized = re.sub(r"\s+", " ", value.strip().casefold())
+    return {
+        "ec": "common_stock",
+        "equity-common": "common_stock",
+        "equity common": "common_stock",
+        "ep": "preferred_stock",
+        "equity-preferred": "preferred_stock",
+        "equity preferred": "preferred_stock",
+    }.get(normalized, normalized)
+
+
+def _nport_asset_category(node: ElementTree.Element) -> tuple[str | None, list[dict[str, str]]]:
+    """Read direct or conditional SEC asset categories without an equity default."""
+
+    category = _first_text(node, ["assetCat", "assetCategory", "securityType"])
+    conditionals: list[dict[str, str]] = []
+    for child in node.iter():
+        if _local_name(child.tag).casefold() != "assetconditional":
+            continue
+        attributes = {_local_name(name): value for name, value in child.attrib.items()}
+        if attributes:
+            conditionals.append(attributes)
+        if category is None:
+            category = next(
+                (
+                    value
+                    for name, value in attributes.items()
+                    if name.casefold() == "assetcat" and value.strip()
+                ),
+                None,
+            )
+    return category, conditionals
 
 
 def _parse_date(value: str | None) -> date | None:

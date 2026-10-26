@@ -3,18 +3,20 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
-latest_staging_merge_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
+latest_staging_parent_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+latest_staging_merge_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
 dependency_authorization: >-
   Current coordinator release 2026-10-25: exact accepted synchronized green
-  staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 (canonical receipt
-  20261025T161013Z-3ff96af855a4.json; exact CI40202604218) is authorized for
-  adoption into this TC-owned branch. It includes the accepted ETF FQ1-FQ8
-  source checkpoint atop the already adopted Provider P2 and Strategy SLICP.
-  This does not complete SEC acquisition or target acceptance, which remain
-  Root-owned, and does not close the TC full profile, F8y, official V25 parity,
-  or broader roadmap. The prior 5b/cdc baselines and bounded checkpoint remain
-  history.
+  staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 (canonical receipt
+  20261025T235546Z-15b5c22f0e68.json; exact CI40241357259) is authorized for
+  adoption into this TC-owned branch. It includes the accepted ETF retained-IWM
+  correction atop the already adopted Provider P2, ETF FQ1-F8, and Strategy
+  SLICP. The correction records honest SEC percentage points, equity/right
+  classification, and admin offline append-only reparse; acquisition occurred
+  once and is not replayed. Root still owns actual target correction and UI
+  acceptance, and independent master CI is pending. This does not close the TC
+  full profile, F8y, official V25 parity, or broader roadmap. The prior 5b/cdc
+  baselines and bounded checkpoint remain history.
   Earlier accepted a6b9 release authorization follows as history:
   Human-approved four-feature integration; coordinator released exact synchronized
   Provider+ETF+TC2000+Strategy staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
@@ -76,19 +78,22 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current 2026-10-25: accepted synchronized staging 3ff96af855a49d42b1dee10cecb43bc6690f4502
-  is merged without conflicts onto TC source 0c1bebbcb9d394562a20cbd4d25378cc54649bdf.
-  Exact prior CI40168275812 for 0c completed green for Backend, Frontend Unit,
-  Branch-declared, and E2E; its Exhaustive Integration Gate was skipped by
-  feature-CI policy. This merge imports the accepted ETF FQ1-FQ8 source checkpoint
-  and ETF-owned records while retaining TC-owned files and records. The exact
-  3ff receipt and full frozen-import manifest passed scope validation. This local
-  merge has no exact branch CI because publication is held pending Root's
-  independent master CI. Do not duplicate
-  producer logic or infer selected-series identity in the client. F8y remains
-  unproven on this combined source; retain its 60-second timeout, parent-host
-  and locked-target assertions, and zero retries. AC1-AC9, SX/IX, official
-  REF-HELP-V25 and all provider/data/service holds remain open.
+  Current 2026-10-26: exact accepted synchronized-green staging
+  15b5c22f0e689c973ee82d152d4bbad6125bf993 (receipt
+  20261025T235546Z-15b5c22f0e68.json, staging CI40241357259) is merged into
+  the TC branch from pre-merge source 039919a08c72bc891c896f7fd62f13fd16cd0a02
+  without conflicts. It carries the accepted ETF retained-IWM correction and
+  ETF-owned records beyond the already adopted 3ff baseline. TC-owned frontend,
+  tag/date-sort/favorites implementation and tests remain unchanged and
+  unreleased. The exact 15b5 receipt and frozen-import manifest are recorded in
+  this workstream. Stack-free validation passed: 35/35 scope self-tests, full
+  scope guard over 1035 changed paths (877 immutable imports byte-verified and
+  29 approved adaptations), workstream validation, serialization and diff checks. Root's independent master CI40247103720 is running, so the
+  local adoption commit must not be pushed until Root releases publication. No
+  exact branch CI exists for this unpushed merge. Acquisition is not replayed;
+  actual target correction and UI acceptance remain Root-owned and pending.
+  F8y, the full local profile, AC1-AC9, SX/IX, official REF-HELP-V25 and all
+  provider/data/service holds remain open.
 
   Historical blocker (superseded by the current cdc authorization) follows:
   Current 2026-10-23T20:12Z: coordinator reports Provider fix
@@ -1453,11 +1458,11 @@ shared_path_exceptions:
 dependencies:
   - "feat/market-data-provider-platform: accepted Provider P2 source 2178808746b3d850f33a76a064ab170f04989b91 is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve provider-owned identity, governance, selected-default coverage, and Research behavior; do not duplicate producer filtering or infer selected-series identity in the client."
   - "feat/strategy-lab-v2: accepted Strategy SLICP is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve its inspector and Research-results navigation alongside TC-owned Python/DSL/Study/Strategy behavior and immutable Study/CodeVersion identity."
-  - "feat/etf-holdings-constituents: accepted ETF FQ1-FQ8 checkpoint source abdca6e6ec2b383f678995029149bbb748596af4 is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve ETF acquisition/admission, historical/PIT/current-unavailable distinctions, lineage, freshness, and unknown-state checks; genuine SEC acquisition and target acceptance remain Root-owned and pending."
-  - "Adoption of 3ff does not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
+  - "feat/etf-holdings-constituents: accepted ETF FQ1-F8 checkpoint source abdca6e6ec2b383f678995029149bbb748596af4 was adopted from green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502; the accepted retained-IWM correction is now adopted from green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993. Preserve ETF acquisition/admission, historical/PIT/current-unavailable distinctions, lineage, freshness, and unknown-state checks; acquisition is not replayed, while actual target correction and UI acceptance remain Root-owned and pending."
+  - "Adoption of 15b5 does not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/3ff96af855a49d42b1dee10cecb43bc6690f4502.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/15b5c22f0e689c973ee82d152d4bbad6125bf993.yaml
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1704,6 +1709,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/3ff96af855a49d42b1dee10cecb43bc6690f4502.json
     receipt_sha256: 21c6727ae86a57ce6fb11f6c81e175521f0c5e5dc00c3820d22c9a64243e77ee
+  - source_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json
+    receipt_sha256: 8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -1803,13 +1811,15 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2]
   total: 5
-  current_phase: "3ff96_merge_assembled_no_conflicts;ETF_FQ1_FQ8_checkpoint_adopted;875_import_manifest_scope_validated;prior_0c1bebb_CI40168275812_green;publication_held_for_master_CI;new_exact_CI_and_local_profile_pending;F8y_unproven"
+  current_phase: "15b5_merge_assembled_no_conflicts;ETF_retained_IWM_correction_adopted;15b5_import_manifest_recorded;premerge_039919_source_preserved;publication_held_for_master_CI40247103720;new_exact_CI_and_local_profile_pending;F8y_unproven"
   next_action: >-
-    Commit the bounded 3ff adoption locally. Hold push until Root releases it after independent
-    master CI. Next branch-owned development is the unresolved F8y latency and
-    parent-host/locked-target proof when Root assigns a source-matched local
-    profile. Preserve producer-owned selected-default behavior, Strategy
-    navigation, all AC1-AC9/SX/IX, official V25 parity and all holds.
+    The bounded 15b5 adoption has passed its stack-free checks and is committed
+    locally. Hold push until Root releases it after independent master
+    CI40247103720. After publication, follow exact-source branch CI and await
+    the assigned full local profile. Preserve
+    producer-owned selected-default behavior, Strategy navigation, ETF PIT and
+    immutable identity contracts, all AC1-AC9/SX/IX, official V25 parity and all
+    holds. F8y's consumed 60-second/zero-retry result remains unresolved.
 
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
@@ -1866,21 +1876,20 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
-    at published Provider tip 5b02caf509107856195ef8cfb2374e2ab6120612. It is
-    not yet a synchronized green staging release or deployed a6b9 proof; TC
-    must not duplicate/adopt it directly. Exact merged TC source
-    c9719521bfe8c558f1a743df683a12bef85fffe4 has terminal
-    green CI40010646181 for Backend, Frontend Unit, Branch-declared and E2E;
-    feature Exhaustive Integration Gate was an expected skip. E2E reported
-    192 passed and 110 declared skips. The required full local profile has not
-    been run on this merged source. A selected-default coverage mismatch is
-    still visible in Provider-owned coverage endpoints; only the historical
-    runtime reproduction on source51ab is established, while c971 evidence is
-    source review, not a runtime repro. Provider owns the endpoint/tests, so TC
-    must coordinate rather than duplicate them. F8y remains spent with
-    inputValue latency unresolved; full AC1-AC9, SX/IX and official REF-HELP-V25
-    remain open, with all data/provider/retained-service holds intact.
+    Exact accepted 15b5 staging is assembled as the second parent of this
+    branch's local merge from source 039919a08c72bc891c896f7fd62f13fd16cd0a02.
+    The incoming retained-IWM correction and ETF records are pinned by the
+    15b5 manifest and canonical receipt; TC-owned consumer/product/test paths
+    are unchanged. Stack-free checks passed: 35/35 scope self-tests, full
+    guard over 1035 changed paths with 877 byte-verified imports and 29
+    approved adaptations, workstream validation, receipt/manifest/hash and
+    diff checks. The exact local merge is not yet
+    published or branch-CI-qualified: master CI40247103720 is still running
+    and Root holds publication. Do not push before Root releases it. No
+    acquisition or provider request is repeated. Root retains target
+    correction/UI acceptance. Preserve F8y and the full local profile as open;
+    retain the complete AC1-AC9, SX/IX, official REF-HELP-V25 roadmap and all
+    data/provider/service holds.
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in

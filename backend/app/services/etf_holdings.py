@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import UTC, date, datetime, time
 from decimal import Decimal
 from typing import Any
+from urllib.parse import urlsplit
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -60,6 +61,7 @@ from app.services.etf_holdings_adapters import (
     infer_adapter_key,
 )
 from app.services.etf_holdings_capability import evaluate_capability
+from app.services.etf_holdings_sec import extract_sec_nport_filing_identity, parse_sec_nport_xml
 from app.services.instrument_mastering import (
     ingest_provider_profile,
     register_identifier,
@@ -67,6 +69,21 @@ from app.services.instrument_mastering import (
 )
 
 ETF_HOLDINGS_INTERNAL_PROVIDER = "etf_holdings_internal"
+SEC_NPORT_CORRECTION_PARSER_VERSION = "sec-nport-v2"
+_SAFE_SEC_XML_DOCUMENT_NAME = re.compile(
+    r"[A-Za-z0-9][A-Za-z0-9_.-]{0,250}\.xml", re.ASCII | re.IGNORECASE
+)
+
+
+def _canonical_numeric_sec_cik(value: str | None) -> str | None:
+    text = str(value or "")
+    if not re.fullmatch(r"[0-9]{1,10}", text):
+        return None
+    return text.lstrip("0") or None
+
+
+def _is_safe_sec_xml_document_name(value: str) -> bool:
+    return _SAFE_SEC_XML_DOCUMENT_NAME.fullmatch(value) is not None and ".." not in value
 
 
 def _now() -> datetime:
@@ -970,6 +987,15 @@ async def _resolve_or_create_constituent(
         if enriched_instrument is not None:
             return enriched_instrument, enriched_confidence, enriched_note
 
+    if not symbol and any(
+        key in (row.extra_data or {}) for key in ("assetCat", "sec_asset_category")
+    ):
+        return (
+            None,
+            None,
+            "SEC N-PORT security has no ticker or matched stable identifier; retained unresolved.",
+        )
+
     if not symbol and not row.name:
         return None, None, "No symbol/name/identifier was available to resolve this holding."
 
@@ -1136,6 +1162,8 @@ async def ingest_holdings_snapshot(
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
     manual_import: bool = False,
+    profile_legal_metadata: dict | None = None,
+    snapshot_extra_data: dict | None = None,
 ) -> ETFHoldingsSnapshot:
     now = _now()
     _ensure_holdings_dates_are_not_future(
@@ -1172,7 +1200,13 @@ async def ingest_holdings_snapshot(
         legal_metadata["source_tier"] = (
             "sec_filing" if manual_source_tier == "sec_filing" else "none"
         )
-    profile = await ensure_etf_profile(db, etf_instrument, legal_metadata=legal_metadata)
+    profile = await ensure_etf_profile(
+        db,
+        etf_instrument,
+        legal_metadata=(
+            legal_metadata if profile_legal_metadata is None else profile_legal_metadata
+        ),
+    )
     canonical_rows = [
         row
         if isinstance(row, CanonicalHoldingRow)
@@ -1300,6 +1334,7 @@ async def ingest_holdings_snapshot(
         snapshot_hash=snapshot_hash,
         notes=notes,
         extra_data={
+            **(snapshot_extra_data or {}),
             "legal_metadata": legal_metadata,
             **{key: value for key, value in capability_metadata.items() if value is not None},
         },
@@ -1373,6 +1408,182 @@ async def ingest_holdings_snapshot(
     await db.flush()
     await db.refresh(snapshot)
     return snapshot
+
+
+async def reparse_retained_sec_nport_snapshot(
+    db: AsyncSession,
+    *,
+    profile: ETFProfile,
+    snapshot_id: int,
+) -> ETFHoldingsSnapshot:
+    """Append a corrected snapshot by reparsing its already-retained SEC artifact.
+
+    This operation is deliberately offline: it validates the existing raw
+    artifact and fund identity, then uses normal snapshot ingestion with provider
+    enrichment disabled. The previous snapshot and raw artifact are immutable.
+    """
+
+    original = (
+        await db.execute(
+            select(ETFHoldingsSnapshot)
+            .where(
+                ETFHoldingsSnapshot.id == snapshot_id,
+                ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            )
+            .with_for_update()
+        )
+    ).scalar_one_or_none()
+    if original is None:
+        raise ValueError("SEC N-PORT snapshot was not found for this ETF profile")
+    if original.provenance != "sec_nport_reconstructed_holdings":
+        raise ValueError("Only retained SEC N-PORT snapshots can be reparsed")
+    if original.source_artifact_id is None or original.known_at is None:
+        raise ValueError("SEC N-PORT snapshot lacks retained raw or observation-time provenance")
+
+    artifact = await db.get(ETFHoldingsRawArtifact, original.source_artifact_id)
+    if (
+        artifact is None
+        or artifact.etf_profile_id != profile.id
+        or artifact.source_kind != original.provenance
+        or artifact.source_identifier != original.source_identifier
+        or artifact.source_url != original.source_url
+        or not artifact.payload_text
+        or artifact.payload_json is not None
+        or artifact.content_hash != _hash_payload(artifact.payload_text)
+    ):
+        raise ValueError("Retained SEC N-PORT raw artifact failed integrity or lineage checks")
+
+    metadata = dict(artifact.legal_metadata or {})
+    reviewed_identity = dict(metadata.get("fund_identity") or {})
+    actual_identity = extract_sec_nport_filing_identity(artifact.payload_text)
+    expected_series = str(profile.sec_series_id or "").strip()
+    expected_class = str(profile.sec_class_id or "").strip()
+    if (
+        metadata.get("source_access") != "sec_filing"
+        or metadata.get("form") != "NPORT-P"
+        or not expected_series
+        or not expected_class
+        or reviewed_identity.get("series_id") != expected_series
+        or reviewed_identity.get("class_id") != expected_class
+        or actual_identity.get("series_id") != expected_series
+        or actual_identity.get("class_id") != expected_class
+    ):
+        raise ValueError("Retained SEC N-PORT filing identity does not match the committed ETF")
+
+    accession = str(original.source_identifier or "")
+    cik = _canonical_numeric_sec_cik(profile.sec_cik)
+    source_url = urlsplit(original.source_url or "")
+    parts = [part for part in source_url.path.split("/") if part]
+    filing_cik = _canonical_numeric_sec_cik(parts[3]) if len(parts) > 3 else None
+    document_name = parts[5] if len(parts) == 6 else ""
+    if (
+        source_url.scheme != "https"
+        or source_url.netloc != "www.sec.gov"
+        or source_url.query
+        or source_url.fragment
+        or len(parts) != 6
+        or [part.lower() for part in parts[:3]] != ["archives", "edgar", "data"]
+        or cik is None
+        or filing_cik is None
+        or filing_cik != cik
+        or not re.fullmatch(r"[0-9]{10}-[0-9]{2}-[0-9]{6}", accession)
+        or parts[4] != accession.replace("-", "")
+        or not _is_safe_sec_xml_document_name(document_name)
+    ):
+        raise ValueError("Retained SEC N-PORT source URL does not match its CIK and accession")
+
+    # The parent row lock serializes repeat requests. A prior corrected version
+    # is returned only when its durable lineage points to this exact source.
+    existing_versions = await db.execute(
+        select(ETFHoldingsSnapshot)
+        .options(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
+        .where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            ETFHoldingsSnapshot.composition_date == original.composition_date,
+            ETFHoldingsSnapshot.provenance == original.provenance,
+            ETFHoldingsSnapshot.source_provider == original.source_provider,
+            ETFHoldingsSnapshot.parser_version == SEC_NPORT_CORRECTION_PARSER_VERSION,
+        )
+    )
+    for version in existing_versions.scalars():
+        correction = (version.extra_data or {}).get("parser_correction") or {}
+        if (
+            correction.get("source_snapshot_id") == original.id
+            and correction.get("raw_artifact_id") == artifact.id
+            and correction.get("raw_content_hash") == artifact.content_hash
+        ):
+            return version
+
+    report_date, rows = parse_sec_nport_xml(artifact.payload_text)
+    if report_date != original.composition_date or not rows:
+        raise ValueError("Retained SEC N-PORT payload no longer matches its snapshot date or rows")
+    corrected_hash = _snapshot_hash(rows)
+    if corrected_hash == original.snapshot_hash:
+        return original
+
+    collision = (
+        await db.execute(
+            select(ETFHoldingsSnapshot).where(
+                ETFHoldingsSnapshot.etf_profile_id == profile.id,
+                ETFHoldingsSnapshot.composition_date == original.composition_date,
+                ETFHoldingsSnapshot.provenance == original.provenance,
+                ETFHoldingsSnapshot.source_provider == original.source_provider,
+                ETFHoldingsSnapshot.snapshot_hash == corrected_hash,
+            )
+        )
+    ).scalar_one_or_none()
+    if collision is not None:
+        raise ValueError(
+            "Corrected SEC N-PORT content already exists without source-reparse lineage"
+        )
+
+    original_metadata = dict((original.extra_data or {}).get("legal_metadata") or metadata)
+    correction_at = _now()
+    correction_record = {
+        "source_snapshot_id": original.id,
+        "source_snapshot_hash": original.snapshot_hash,
+        "raw_artifact_id": artifact.id,
+        "raw_content_hash": artifact.content_hash,
+        "source_identifier": original.source_identifier,
+        "source_url": original.source_url,
+        "source_snapshot_known_at": original.known_at.isoformat(),
+        "raw_fetched_at": artifact.fetched_at.isoformat(),
+        "parser_version": SEC_NPORT_CORRECTION_PARSER_VERSION,
+        "recorded_at": correction_at.isoformat(),
+    }
+    corrected = await ingest_holdings_snapshot(
+        db,
+        etf_instrument=profile.instrument,
+        rows=rows,
+        composition_date=original.composition_date,
+        as_of_date=original.as_of_date,
+        known_at=correction_at,
+        published_at=original.published_at,
+        provenance=original.provenance,
+        source_provider=original.source_provider,
+        source_url=original.source_url,
+        source_identifier=original.source_identifier,
+        source_quality=original.source_quality,
+        completeness_status=original.completeness_status,
+        parser_version=SEC_NPORT_CORRECTION_PARSER_VERSION,
+        raw_payload_text=artifact.payload_text,
+        legal_metadata=original_metadata,
+        profile_legal_metadata=profile.legal_metadata,
+        snapshot_extra_data={"parser_correction": correction_record},
+        notes=f"Reparsed retained SEC N-PORT artifact; corrected version of snapshot {original.id}.",
+        allow_provider_enrichment=False,
+        manual_import=False,
+    )
+    if (
+        corrected.id == original.id
+        or corrected.source_artifact_id != artifact.id
+        or corrected.known_at != correction_at
+        or corrected.snapshot_hash != corrected_hash
+    ):
+        raise ValueError("SEC N-PORT reparse did not append a provenance-matched snapshot")
+    return corrected
 
 
 def _holding_needs_reconcile(row: ETFHolding) -> bool:

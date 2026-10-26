@@ -35,13 +35,13 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact prior TC source 0c1bebbcb9d394562a20cbd4d25378cc54649bdf passed branch CI40168275812 (Backend, Frontend Unit, Branch-declared and E2E green; Exhaustive Integration Gate skipped by feature-CI policy). Exact accepted synchronized staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 (canonical receipt SHA256 21c6727ae86a57ce6fb11f6c81e175521f0c5e5dc00c3820d22c9a64243e77ee; CI40202604218) is assembled locally without conflicts and includes accepted ETF FQ1-FQ8 source checkpoint abdca6e6ec2b383f678995029149bbb748596af4. The 875-path import manifest passed scope validation. No exact branch CI exists for this unpushed merge; push is held pending Root's independent master CI. SEC acquisition and target acceptance remain Root-owned and pending. F8y, the full local profile, AC1-AC9/TCP3-TCP5/SX/IX, official V25 parity and provider/data/service holds remain open.",
+  "current_candidate_ci_status": "No exact branch CI exists for the unpushed local 15b5 merge. Prior CI40168275812 qualifies only pre-merge source 0c1bebb and is not reused. Canonical staging CI40241357259 is green for exact 15b5; independent master CI40247103720 is running and Root holds publication.",
   "current_exact_ci": {
-    "conclusion": "success",
-    "head_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
-    "run_id": 40168275812,
-    "status": "Terminal green on exact pre-3ff TC source0c1bebbcb9d394562a20cbd4d25378cc54649bdf for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration Gate was skipped by feature-CI policy. This does not qualify the current unpushed 3ff merge. Its exact CI awaits Root's publication release; full local profile remains pending.",
-    "visuals": "No strict visual result is established by this functional CI. Existing references/masks/tolerances and zero-retry acceptance policy are unchanged."
+    "conclusion": "pending",
+    "head_sha": null,
+    "run_id": null,
+    "status": "No exact branch run exists for the unpushed 15b5 merge candidate. Historical CI40168275812 on 0c1bebb remains recorded under latest_exact_ci_audit and does not qualify this merge. Push is held pending Root release after master CI40247103720.",
+    "visuals": "No new visual or full local profile result is claimed; F8y, full local profile and official V25 remain open."
   },
   "dirty_paths": [],
   "docker": {
@@ -84,14 +84,15 @@
   "finished": false,
   "finished_at": null,
   "frozen_upstream_import_guard": {
-    "approved_snapshot": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
+    "approved_snapshot": "15b5c22f0e689c973ee82d152d4bbad6125bf993",
     "baseline": "2b92c642237ce2abde40a84ee98383d4ee4285d1",
-    "candidate_source": "f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d",
-    "coordinator_review": "Exact staging release and canonical green receipt supplied by coordinator on 2026-10-23; branch merge is authorized. No source guard policy or TC write authority was changed.",
-    "immutable_paths": 858,
-    "receipt_sha256": "6249c01610eda62544056b1ae00a4c9b14c6d111978be14cda822b15a1c99b49",
-    "result": "scope_selftests35_pass;996_changed_path_guard_pass;858_imports_byte_verified;29_adaptations_preserved;exact_4687_receipt_validated",
-    "trust_boundary": "Every future released Provider/ETF snapshot, manifest and canonical receipt requires a new explicit coordinator approval; no blanket future import authority."
+    "candidate_source": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+    "merge_parent": "15b5c22f0e689c973ee82d152d4bbad6125bf993",
+    "coordinator_review": "Exact synchronized-green staging 15b5 and canonical receipt authorized by coordinator on 2026-10-26 for frozen upstream import only; no source-guard policy or TC write authority changed.",
+    "immutable_paths": 877,
+    "receipt_sha256": "8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151",
+    "result": "Scope self-tests 35/35 passed; full guard passed for 1035 changed paths including 877 byte-verified imports and 29 approved adaptations; workstream and diff checks passed.",
+    "trust_boundary": "This exact 15b5 release only; future snapshots require new explicit coordinator approval."
   },
   "functional_reconciliation_candidate": {
     "artifact": "/tmp/tc-5da-functional-red-12230757066.zip",
@@ -123,7 +124,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
+  "head": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
   "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
   "integration_checkpoint": {
     "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
@@ -134,7 +135,7 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-25T16:19:03Z",
+  "last_checkpoint": "2026-10-26T00:16:54Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "attempt": 1,
@@ -154,7 +155,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Finish exact 3ff scope/frozen-import/workstream checks and commit the bounded adoption locally. Hold push until Root releases it after independent master CI. Then follow exact-source branch CI and await the assigned full local profile; preserve F8y assertions/60-second timeout/zero retries, ETF/PIT contracts, Strategy identity/navigation, Help/V25 disposition, the full roadmap and all holds.",
+  "next_action": "Hold push until Root releases after master CI40247103720. After release, publish this exact local merge and follow its exact-source branch CI; then continue TC consumer qualification and the assigned full local profile. Preserve F8y's consumed 60-second timeout and zero-retry policy, ETF PIT/identity contracts, Strategy navigation, the full AC1-AC9/SX/IX roadmap, official V25 work, and all holds.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -167,7 +168,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "d4c90f902c2885917dcc06f722addc6357f72984f2e316de33d486fd23bb7fe4",
+  "plan_hash": "b94e347c283d161937ffdefe6da5a580c9c4564e466881df96005a86945cb573",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -194,18 +195,18 @@
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
     "current_local_head": null,
-    "current_pending_range": "This locally committed changeset adopts exact accepted synchronized staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 into the TC feature branch and carries its exact receipt and frozen-import manifest. The merge commit hash is intentionally not self-referenced here. Push remains held until Root releases it after independent master CI; new exact-source CI follows only after authorized publication.",
+    "current_pending_range": "Local adoption is committed as the merge of pre-merge source039919a and exact accepted staging15b5, with the exact receipt/manifest and owned checkpoint records. The merge hash is intentionally not self-referenced; see final owner result. Remote feature remains at039919a. Push is held until Root releases after independent master CI40247103720; no exact branch CI is claimed.",
     "failure_category": null,
     "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
     "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
-    "status": "The bounded 3ff merge is committed locally; the verified origin feature ref remains at 0c1bebbcb9d394562a20cbd4d25378cc54649bdf. Push is explicitly held pending Root's independent master CI; no publication or new branch CI is claimed here."
+    "remote_tracking_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+    "status": "Bounded 15b5 adoption is committed locally; the resulting merge hash is captured in the owner turn result rather than self-referenced. Remote feature remains at039919a. Push is held pending Root release after master CI40247103720; no publication or new exact branch CI is claimed."
   },
   "remote": "origin",
-  "remote_sha": "0c1bebbcb9d394562a20cbd4d25378cc54649bdf",
+  "remote_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
   "remote_synchronized": false,
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
@@ -331,5 +332,23 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
+  "remote_tracking_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+  "current_checkpoint_status": "The bounded local adoption commit in this checkpoint contains exact accepted staging 15b5 as second parent of source 039919a; the resulting merge hash is captured in the owner turn result rather than self-referenced. Stack-free scope/workstream checks passed. The 10 incoming paths are only ETF retained-IWM runtime/tests and ETF-owned records; TC-owned frontend/tag/date-sort/favorites source and tests remain unchanged. Master CI40247103720 is running; push is held.",
+  "latest_staging_adoption": {
+    "premerge_head": "039919a08c72bc891c896f7fd62f13fd16cd0a02",
+    "merge_base": "3ff96af855a49d42b1dee10cecb43bc6690f4502",
+    "staging_sha": "15b5c22f0e689c973ee82d152d4bbad6125bf993",
+    "staging_ci_run": 40241357259,
+    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json",
+    "receipt_sha256": "8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151",
+    "incoming_paths": 10,
+    "manifest_paths": 877,
+    "scope_result": "1035 changed paths; 877 immutable imports byte-verified; 29 approved adaptations; TC scope tests 35/35; workstream validator and diff check passed.",
+    "consumer_changes": "No TC-owned frontend, tag/date-sort/favorites source or test paths changed.",
+    "local_consumer_tests": "Not run: imported producer change does not modify TC consumers; adoption used the established stack-free validation path.",
+    "master_ci_run": 40247103720,
+    "publication": "Held pending Root release after independent master CI."
+  },
+  "adoption_source_base_sha": "039919a08c72bc891c896f7fd62f13fd16cd0a02"
 }

@@ -24459,3 +24459,38 @@ The same current dirty source/test snapshot passed
 `timeout --signal=INT --kill-after=15s 300s env NODE_OPTIONS=--max-old-space-size=1024 npm --prefix frontend run type-check`
 with exit0 (`vue-tsc --noEmit`). This is local type evidence only; it does not
 change the committed CI result or establish F8y browser acceptance.
+
+
+## Accepted synchronized staging 15b5 adoption — 2026-10-26
+
+The original TC source was 039919a08c72bc891c896f7fd62f13fd16cd0a02.
+Exact accepted synchronized-green staging
+15b5c22f0e689c973ee82d152d4bbad6125bf993 (canonical receipt
+20261025T235546Z-15b5c22f0e68.json, SHA256
+8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151,
+staging CI40241357259) was merged from the exact prior 3ff baseline with no
+conflicts. The incoming delta is ten ETF-owned files: retained-IWM producer
+runtime and tests plus its four workstream records. The 877-entry frozen import
+manifest and byte-identical canonical receipt are recorded in this workstream.
+The existing TC frontend, Tag Columns, custom-date-sort/favorites code and tests
+are preserved unchanged and remain unreleased by this dependency adoption.
+No TC consumer test was run because no TC consumer source/test changed.
+
+The normal UV session preflight had already run. Its Docker-readiness attempt
+ended after 180 seconds with socket permission denied; it did not start or alter
+services. That exact failure remains in the append-only validation journal.
+Stack-free validation passed: 35/35 scope self-tests; full scope guard over
+1035 changed paths with 877 byte-verified imports and 29 approved adaptations;
+workstream, receipt, manifest, history and diff checks. Root's independent master CI40247103720 is
+running; keep the local adoption unpublished until Root releases the push.
+There is no exact branch CI for this unpushed merge. Do not replay the genuine
+ETF acquisition or alter quotas, holds, datasets, or the consumed119-request
+history. Actual target correction and UI acceptance remain Root-owned and
+pending.
+
+Stack-free checks passed, and this bounded adoption is committed locally.
+Hold push until Root releases after master CI40247103720. After authorized
+publication, follow exact-source branch CI and the later Root-assigned full
+local profile. Keep F8y (including its original60-second timeout and zero
+retries), full AC1-AC9/TCP roadmap, SX/IX, official REF-HELP-V25, and all
+provider/data/service holds open.
