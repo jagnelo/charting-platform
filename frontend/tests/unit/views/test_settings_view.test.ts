@@ -207,6 +207,87 @@ describe('SettingsView', () => {
     expect(wrapper.text()).not.toContain('62 requests')
   })
 
+  it('keeps unreported provider usage distinct from observed zero values', async () => {
+    const unknownUsage = {
+      ...providerUsage[0],
+      requests_24h: null,
+      requests_7d: null,
+      success_rate_24h: null,
+      failure_rate_24h: null,
+      timeout_rate_24h: null,
+      current_window_requests: null,
+      current_window_units: null,
+      current_window_utilization_pct: null,
+      limit_kind: 'unknown',
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/presets') return Promise.resolve([])
+      if (path === '/providers/policies') return Promise.resolve(providerPolicies)
+      if (path === '/providers/usage') return Promise.resolve([unknownUsage])
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
+      return Promise.resolve([])
+    })
+
+    const wrapper = mount(SettingsView, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('Not reported calls')
+    expect(wrapper.text()).toContain('Not reported success')
+    expect(wrapper.text()).toContain('Quota unknown')
+    expect(wrapper.text()).toContain('Provider quota limit is unknown')
+
+    const zeroUsage = {
+      ...unknownUsage,
+      requests_24h: 0,
+      requests_7d: 0,
+      success_rate_24h: 0,
+      failure_rate_24h: 0,
+      timeout_rate_24h: 0,
+      limit_kind: 'quota',
+      quota_limit: 100,
+      current_window_requests: 0,
+      current_window_units: 0,
+      current_window_utilization_pct: 0,
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/presets') return Promise.resolve([])
+      if (path === '/providers/policies') return Promise.resolve(providerPolicies)
+      if (path === '/providers/usage') return Promise.resolve([zeroUsage])
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    wrapper.unmount()
+
+    const zeroWrapper = mount(SettingsView, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+    const zeroText = zeroWrapper.text()
+    expect(zeroText).toContain('0 calls')
+    expect(zeroText).toContain('0.0%')
+    expect(zeroText).toContain('Quota 100 requests')
+
+    const estimatedUsage = {
+      ...zeroUsage,
+      limit_kind: 'estimated',
+      quota_limit: null,
+      estimated_quota_limit: 250,
+      current_window_units: null,
+    }
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/presets') return Promise.resolve([])
+      if (path === '/providers/policies') return Promise.resolve(providerPolicies)
+      if (path === '/providers/usage') return Promise.resolve([estimatedUsage])
+      if (path.startsWith('/providers/reconciliation/issues')) return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    zeroWrapper.unmount()
+
+    const estimatedWrapper = mount(SettingsView, { global: { plugins: [createPinia()] } })
+    await flushPromises()
+    const trackingCard = estimatedWrapper.findAll('.provider-summary-card')[3].text()
+    expect(trackingCard).toContain('Est. 250 requests')
+    expect(trackingCard).toContain('Current window usage not reported')
+  })
+
   it('keeps capability controls inside a collapsed configuration pane', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)

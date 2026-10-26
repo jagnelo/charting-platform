@@ -1,6 +1,77 @@
 # feat/tc2000-frontend-rework
 
-## Current continuation — accepted ETF FQ1-FQ8 staging adopted locally — 2026-10-25T16:17Z
+## Current continuation — whole-frontend TC style reconciliation — 2026-10-26T09:20Z
+
+The final domain review index
+`/home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json`
+records clean, published, plan-hash-verified reviews: Provider
+`57b4b1d7ea502726dec8da9ce29c38d15edc97c3`, ETF
+`3b09233e7e8aa36db3217fdf65bf87b75460877d`, and Strategy
+`e50198fa055cc3a980a491dcd572f6581b8baf13`. Their current CI observations are
+review context, not TC acceptance or target deployment proof. The Strategy
+review specifically requires the existing Results-to-V2 link to carry the
+selected persisted IDs into an owner-scoped GET-only inspector, retain all ten
+identity/digest fields through refresh and browser history, and keep native
+execution unavailable.
+
+The binding human instruction expands TC presentation ownership to the shared
+shell/theme/router and every reachable screen, not only ETF. Exact source is
+`f80995c3ed680263ca0db405d4dd03c9aafc1646`; the 28-route/alias inventory,
+13 route views, 110 reachable Vue SFCs and 112 exact pinned paths are recorded
+in `plan.yaml` and `ownership-reconciliation.yaml`. The scope guard admits only
+those explicit paths with f809 blob bindings; all other frozen imports remain
+byte-checked. The exact published f809 source CI `40287957823` is terminal green
+for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration was
+skipped by feature-CI policy. This baseline does not qualify the
+whole-frontend candidate. Root has accepted the 6d0 private correction/API/
+functional baseline; whole-UI acceptance and the candidate's exact-source full
+profile remain open. F8y is still unproven, and Root has reserved an isolated
+full-profile slot after this candidate is clean and reviewed.
+
+Provider and ETF reviews remain domain contracts only. Preserve null versus
+zero, quota versus estimated versus unknown, capability/freshness and selected
+series behavior; the UI must not trigger provider acquisition or expose
+credentials. Preserve all 1,946 IWM rows, unresolved identities and actual
+`known_at` values. Same-date parser-version churn is a correction audit, not
+fund turnover, and historical display does not grant current-analysis access.
+Keep Strategy inspector/Research-results navigation and immutable Study/
+CodeVersion identity. All workflows, route/auth/deep links, keyboard/a11y,
+mobile layouts, tests, references, masks, tolerances and zero retries remain.
+AC1-AC9, official V25 parity and the complete roadmap remain open.
+
+The current presentation candidate has no exact-source CI. It replaces
+the legacy icon rail with a responsive, labeled shared shell, applies existing
+TC tokens to legacy route roots/controls/status and teleported surfaces, updates
+the login panel, and keeps Settings null/unknown usage distinct from real zero
+and from estimated or hard quota values. Active cards/items/rows keep selected
+state above the neutral panel/button skin; warning/status/capability/quota
+controls are excluded from generic neutral button coloring. Teleported editor,
+dropdown, quick-link, results, notification and tooltip roots receive TC tokens
+at their body render location. The route decision remains in the existing
+router module; workstation and popout routes keep their existing shell.
+Focused shell/route/Settings tests pass 15/15, Vue type-check passes, and the
+production build succeeds (530 modules; existing large Workstation chunk
+warning). A route-root regression checks all eleven routed view roots against
+the shared shell theme selectors and asserts ETFHoldingsView's actual
+`.holdings-view` root. The universal zero-margin/padding reset remains present
+to preserve workstation geometry. No browser, fixture, or full frontend profile
+has run for this candidate.
+
+The actual route-root selectors were checked against each component template:
+Dashboard `.dashboard-view`; legacy Chart `.chart-view`; Alerts `.alerts-view`;
+Settings `.settings-view`; Screener `.screener-view`; Watchlist
+`.watchlist-view`; Radar `.radar-view` (with its dynamic busy modifier);
+Strategy v1 `.strategy-lab-view`; Strategy v2 `.strategy-lab-v2`; Baskets
+`.basket-view`; ETF Holdings `.holdings-view`; Login `.login-page` outside the
+signed-in shell; Workstation and popouts remain their own TC shell. Teleported
+Dashboard config/quick-link/search, Watchlist delete and shared dialogs/menus
+are styled at `body` when a legacy route is mounted. The global zero-margin/
+padding reset remains in place to preserve workstation layout geometry, and
+selected rows/buttons retain explicit active colors above the neutral control
+skin.
+
+
+## Historical continuation — accepted ETF FQ1-FQ8 staging adopted locally — 2026-10-25T16:17Z
 
 The exact accepted synchronized staging release `3ff96af855a49d42b1dee10cecb43bc6690f4502`
 (`20261025T161013Z-3ff96af855a4.json`, canonical staging CI `40202604218`)

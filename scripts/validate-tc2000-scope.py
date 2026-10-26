@@ -27,6 +27,8 @@ RELEASE_RECEIPT_PREFIX = (
 )
 HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
+PRESENTATION_ADAPTATION_KEYS = {"path", "source_sha", "accepted_blob", "delta"}
+PRESENTATION_SUFFIXES = {".vue", ".ts", ".css"}
 
 
 def git(*args: str) -> str:
@@ -122,6 +124,71 @@ def has_import_adoption_provenance(root: Path, baseline: str, source: str) -> bo
     return False
 
 
+def validate_presentation_adaptations(
+    plan: dict[str, Any], *, root: Path = ROOT
+) -> dict[str, str]:
+    """Admit only the exact, source-pinned frontend presentation handoff paths."""
+
+    handoff = plan.get("frontend_presentation_handoff")
+    entries = plan.get("approved_presentation_adaptations", [])
+    if handoff is None and not entries:
+        return {}
+    if not isinstance(handoff, dict) or not isinstance(entries, list):
+        raise ValueError("frontend presentation handoff and adaptations must be mappings/lists")
+    authority = str(handoff.get("human_authorization", ""))
+    required_authority = (
+        "The goal was for, on merge/reconciliation between the all the ongoing features",
+        "The whole dashboard/UI MUST have consistent look & feel, anything else is unacceptable",
+    )
+    if any(fragment not in authority for fragment in required_authority):
+        raise ValueError("presentation handoff lacks the exact human whole-frontend authority")
+    source = str(handoff.get("source_sha", ""))
+    if not HEX40.fullmatch(source):
+        raise ValueError("presentation handoff source must be a full lowercase commit SHA")
+    git_at(root, "cat-file", "-e", f"{source}^{{commit}}")
+    try:
+        git_at(root, "merge-base", "--is-ancestor", source, "HEAD")
+    except RuntimeError as exc:
+        raise ValueError("presentation source is not an ancestor of the current branch") from exc
+    raw_paths = handoff.get("exact_adaptation_paths")
+    if not isinstance(raw_paths, list) or not raw_paths:
+        raise ValueError("presentation handoff must list exact paths")
+    exact_paths = [exact_repo_path(value, label="presentation handoff path") for value in raw_paths]
+    if len(exact_paths) != len(set(exact_paths)):
+        raise ValueError("presentation handoff paths must be unique")
+    paths: dict[str, str] = {}
+    for entry in entries:
+        if not isinstance(entry, dict) or set(entry) != PRESENTATION_ADAPTATION_KEYS:
+            raise ValueError("presentation adaptation entries must use the exact schema")
+        path = exact_repo_path(entry.get("path"), label="presentation adaptation path")
+        accepted_blob = str(entry.get("accepted_blob", ""))
+        delta = str(entry.get("delta", "")).strip()
+        if path in paths:
+            raise ValueError(f"presentation adaptation path appears more than once: {path}")
+        if path not in exact_paths:
+            raise ValueError(f"presentation adaptation is outside the exact handoff inventory: {path}")
+        if not path.startswith("frontend/src/") or Path(path).suffix not in PRESENTATION_SUFFIXES:
+            raise ValueError(f"presentation adaptation is outside supported frontend source: {path}")
+        if entry.get("source_sha") != source or not HEX40.fullmatch(accepted_blob) or not delta:
+            raise ValueError(f"presentation adaptation lacks a pinned source/blob/delta: {path}")
+        source_entry = tree_entry(root, source, path)
+        if source_entry is None or source_entry[1] != accepted_blob:
+            raise ValueError(f"presentation accepted blob does not match its source: {path}")
+        staged_entry = index_entry(root, path)
+        target = root / path
+        if staged_entry is None or not target.is_file() or target.is_symlink():
+            raise ValueError(f"presentation adaptation must remain a regular indexed file: {path}")
+        worktree_blob = git_at(root, "hash-object", "--no-filters", "--", path)
+        worktree_mode = "100755" if target.stat().st_mode & 0o111 else "100644"
+        if staged_entry != (worktree_mode, worktree_blob):
+            raise ValueError(f"presentation adaptation index/worktree drifted: {path}")
+        paths[path] = f"human-authorized TC presentation adaptation from {source}: {delta}"
+    if set(paths) != set(exact_paths):
+        missing = sorted(set(exact_paths) - set(paths))
+        raise ValueError(f"presentation handoff/adaptation path sets differ; missing {missing[:3]}")
+    return paths
+
+
 def approved_frozen_snapshots(
     plan: dict[str, Any], *, root: Path
 ) -> dict[str, tuple[str, str, dict[str, Any]]]:
@@ -211,7 +278,8 @@ def approved_frozen_snapshots(
 
 
 def validate_frozen_imports(
-    plan: dict[str, Any], *, root: Path = ROOT
+    plan: dict[str, Any], *, root: Path = ROOT,
+    presentation_adaptations: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Validate immutable imported blobs without changing ordinary ownership."""
 
@@ -222,6 +290,8 @@ def validate_frozen_imports(
     if not isinstance(references, list):
         raise ValueError("frozen_upstream_import_manifests must be a list")
     frozen: dict[str, str] = {}
+    manifest_paths: set[str] = set()
+    presentation_adaptations = presentation_adaptations or {}
     seen_manifests: set[str] = set()
     approved = approved_frozen_snapshots(plan, root=root)
     for raw_reference in references:
@@ -313,8 +383,27 @@ def validate_frozen_imports(
             if set(entry) != required_keys or state not in {"present", "deleted"}:
                 raise ValueError(f"malformed frozen path entry in {reference}")
             path = exact_repo_path(entry.get("path"), label="frozen import path")
-            if path in frozen:
+            if path in manifest_paths:
                 raise ValueError(f"frozen import path appears more than once: {path}")
+            manifest_paths.add(path)
+            if path in presentation_adaptations:
+                if state != "present":
+                    raise ValueError(f"presentation cannot adapt a frozen deleted path: {path}")
+                mode = str(entry.get("mode", ""))
+                blob = str(entry.get("blob", ""))
+                source_path = next(
+                    item for item in plan["approved_presentation_adaptations"]
+                    if item["path"] == path
+                )
+                if mode not in {"100644", "100755"} or not HEX40.fullmatch(blob):
+                    raise ValueError(f"frozen presentation source entry is malformed: {path}")
+                snapshot_entry = tree_entry(root, source, path)
+                adaptation_entry = tree_entry(root, str(source_path["source_sha"]), path)
+                if snapshot_entry != (mode, blob) or adaptation_entry != (mode, blob):
+                    raise ValueError(
+                        f"presentation adaptation does not preserve the frozen source import: {path}"
+                    )
+                continue
             if authorized(path, plan)[0]:
                 raise ValueError(
                     f"frozen import path overlaps ordinary TC/shared write authority: {path}"
@@ -417,6 +506,11 @@ def matches(path: str, pattern: str) -> bool:
 
 
 def authorized(path: str, plan: dict[str, Any]) -> tuple[bool, str]:
+    if any(
+        isinstance(item, dict) and item.get("path") == path
+        for item in plan.get("approved_presentation_adaptations", [])
+    ):
+        return True, "exact human-authorized frontend presentation path"
     if any(matches(path, str(item)) for item in plan.get("excluded_paths", [])):
         return False, "excluded upstream or adjacent ownership"
     exceptions = {
@@ -501,6 +595,20 @@ def self_test() -> int:
         )[0],
         "unknown path fails closed": not authorized("backend/app/providers/new.py", plan)[0],
     }
+    presentation_path = "frontend/src/components/etf/ETFHoldingsPanel.vue"
+    exact_presentation_plan = {
+        "owned_paths": [],
+        "excluded_paths": ["frontend/src/components/etf/"],
+        "approved_presentation_adaptations": [{"path": presentation_path}],
+    }
+    checks["exact presentation handoff overrides only its recorded ETF view exclusion"] = (
+        authorized(presentation_path, exact_presentation_plan)[0]
+        and not authorized("frontend/src/components/etf/Other.vue", exact_presentation_plan)[0]
+    )
+    checks["presentation path patterns do not authorize concrete files"] = not authorized(
+        "frontend/src/components/etf/ETFHoldingsPanel.vue",
+        {"approved_presentation_adaptations": [{"path": "frontend/src/components/etf/*.vue"}]},
+    )[0]
     with tempfile.TemporaryDirectory(prefix="tc-scope-frozen-") as directory:
         root = Path(directory)
 
@@ -537,11 +645,16 @@ def self_test() -> int:
         fixture_git("config", "user.name", "TC scope self-test")
         fixture_git("config", "user.email", "tc-scope@example.invalid")
         (root / "gone.txt").write_text("remove me\n")
-        fixture_git("add", "gone.txt")
+        presentation_path = "frontend/src/views/ETFHoldingsView.vue"
+        presentation_file = root / presentation_path
+        presentation_file.parent.mkdir(parents=True, exist_ok=True)
+        presentation_file.write_text("<template>baseline</template>\n")
+        fixture_git("add", "gone.txt", presentation_path)
         fixture_git("commit", "-m", "baseline")
         baseline = fixture_git("rev-parse", "HEAD")
         fixture_git("checkout", "-b", "released-change")
         (root / "foreign.txt").write_text("released bytes\n")
+        presentation_file.write_text("<template>released source</template>\n")
         (root / "gone.txt").unlink()
         fixture_git("add", "--all")
         fixture_git("commit", "-m", "released change")
@@ -550,6 +663,7 @@ def self_test() -> int:
         fixture_git("merge", "--no-ff", "-m", "green staging release", imported_change)
         source = fixture_git("rev-parse", "HEAD")
         foreign_blob = fixture_git("rev-parse", f"{source}:foreign.txt")
+        presentation_blob = fixture_git("rev-parse", f"{source}:{presentation_path}")
         reference = FROZEN_MANIFEST_PREFIX + source + ".yaml"
         receipt_reference = RELEASE_RECEIPT_PREFIX + source + ".json"
         receipt_payload: dict[str, Any] = {
@@ -564,7 +678,7 @@ def self_test() -> int:
         fixture_plan = {
             "scope_guard_baseline_sha": baseline,
             "owned_paths": [FROZEN_MANIFEST_PREFIX],
-            "excluded_paths": ["foreign.txt", "gone.txt"],
+            "excluded_paths": ["foreign.txt", "gone.txt", presentation_path],
             "shared_path_exceptions": [],
             "frozen_upstream_import_manifests": [reference],
             "approved_frozen_upstream_snapshots": [
@@ -594,6 +708,12 @@ def self_test() -> int:
                     "mode": "100644",
                     "blob": foreign_blob,
                 },
+                {
+                    "path": presentation_path,
+                    "state": "present",
+                    "mode": "100644",
+                    "blob": presentation_blob,
+                },
                 {"path": "gone.txt", "state": "deleted"},
             ],
         }
@@ -602,12 +722,12 @@ def self_test() -> int:
         fixture_git("merge", "--ff-only", source)
         checks["approved fast-forward release accepts exact imported blobs"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", "gone.txt"}
+        ) == {"foreign.txt", presentation_path, "gone.txt"}
         fixture_git("checkout", "main")
         fixture_git("merge", "--no-ff", "-m", "import released", source)
         frozen = validate_frozen_imports(fixture_plan, root=root)
         checks["approved merged snapshot accepts exact present and deleted paths"] = (
-            set(frozen) == {"foreign.txt", "gone.txt"}
+            set(frozen) == {"foreign.txt", presentation_path, "gone.txt"}
         )
         checks["ordinary authorization still rejects frozen upstream paths"] = not authorized(
             "foreign.txt", fixture_plan
@@ -638,6 +758,65 @@ def self_test() -> int:
         checks["exact approved Provider adaptation accepts pinned source blob"] = (
             set(adapted_paths) == {"foreign.txt"} and not authorized("foreign.txt", adaptation_plan)[0]
         )
+
+        presentation_plan = deep_copy(fixture_plan)
+        presentation_plan["frontend_presentation_handoff"] = {
+            "human_authorization": (
+                "The goal was for, on merge/reconciliation between the all the ongoing features; "
+                "The whole dashboard/UI MUST have consistent look & feel, anything else is unacceptable"
+            ),
+            "source_sha": source,
+            "exact_adaptation_paths": [presentation_path],
+        }
+        presentation_plan["approved_presentation_adaptations"] = [
+            {
+                "path": presentation_path,
+                "source_sha": source,
+                "accepted_blob": presentation_blob,
+                "delta": "presentation only",
+            }
+        ]
+        presentation = validate_presentation_adaptations(presentation_plan, root=root)
+        presentation_frozen = validate_frozen_imports(
+            presentation_plan, root=root, presentation_adaptations=presentation
+        )
+        checks["exact presentation handoff adapts its imported path without dropping the source pin"] = (
+            set(presentation) == {presentation_path}
+            and presentation_path not in presentation_frozen
+            and presentation_path in {entry["path"] for entry in valid_manifest["paths"]}
+            and not authorized(presentation_path, presentation_plan)[1].startswith("excluded")
+        )
+        wrong_presentation_blob = deep_copy(presentation_plan)
+        wrong_presentation_blob["approved_presentation_adaptations"][0]["accepted_blob"] = "b" * 40
+        try:
+            validate_presentation_adaptations(wrong_presentation_blob, root=root)
+        except (OSError, RuntimeError, ValueError):
+            checks["presentation adaptation with a wrong source blob fails closed"] = True
+        else:
+            checks["presentation adaptation with a wrong source blob fails closed"] = False
+        wildcard_presentation = deep_copy(presentation_plan)
+        wildcard_presentation["frontend_presentation_handoff"]["exact_adaptation_paths"] = [
+            "frontend/src/views/*.vue"
+        ]
+        try:
+            validate_presentation_adaptations(wildcard_presentation, root=root)
+        except (OSError, RuntimeError, ValueError):
+            checks["presentation wildcard inventory fails closed"] = True
+        else:
+            checks["presentation wildcard inventory fails closed"] = False
+        presentation_file.write_text("<template>TC presentation</template>\n")
+        fixture_git("add", presentation_path)
+        checks["staged exact presentation adaptation remains allowed"] = (
+            bool(validate_presentation_adaptations(presentation_plan, root=root))
+        )
+        presentation_file.write_text("<template>unstaged drift</template>\n")
+        try:
+            validate_presentation_adaptations(presentation_plan, root=root)
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks["presentation index/worktree drift fails closed"] = "drifted" in str(exc)
+        else:
+            checks["presentation index/worktree drift fails closed"] = False
+        fixture_git("restore", "--worktree", presentation_path)
 
         wrong_adaptation = deep_copy(adaptation_plan)
         wrong_adaptation["approved_provider_contract_adaptations"][0]["accepted_blob"] = "b" * 40
@@ -896,7 +1075,7 @@ def self_test() -> int:
         write_yaml(reference, valid_manifest)
         checks["active MERGE_HEAD accepts the approved exact snapshot"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", "gone.txt"}
+        ) == {"foreign.txt", presentation_path, "gone.txt"}
         fixture_git("merge", "--abort")
         fixture_git("reset", "--hard", final_head)
         write_yaml(reference, valid_manifest)
@@ -921,7 +1100,10 @@ def main() -> int:
             raise ValueError("plan.yaml must declare scope_guard_baseline_sha")
         git("cat-file", "-e", f"{baseline}^{{commit}}")
         validate_ledger()
-        frozen_imports = validate_frozen_imports(plan)
+        presentation_adaptations = validate_presentation_adaptations(plan)
+        frozen_imports = validate_frozen_imports(
+            plan, presentation_adaptations=presentation_adaptations
+        )
         contract_adaptations = validate_provider_contract_adaptations(
             plan, frozen=frozen_imports
         )
@@ -944,7 +1126,8 @@ def main() -> int:
             f"TC scope guard passed: {len(paths)} changed paths since {baseline}; "
             f"all are TC-owned, documented shared seams, or one of "
             f"{len(frozen_imports)} byte-verified immutable imports and "
-            f"{len(contract_adaptations)} exact approved Provider contract adaptations."
+            f"{len(contract_adaptations)} exact approved Provider contract adaptations and "
+            f"{len(presentation_adaptations)} exact approved presentation paths."
         )
         return 0
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:

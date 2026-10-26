@@ -12,9 +12,10 @@ dependency_authorization: >-
   for adoption into this TC-owned branch. Its ETF delta adds fresh-AsyncSession
   eager reparse response serialization and deterministic same-date
   knowledge-time/id ordering with tests and ETF-owned records. This is source
-  adoption only: Root owns private target correction and UI acceptance, and
-  independent master CI is pending; hold push until Root releases it. Preserve
-  the consumed119-request history and do not replay acquisition. The TC full
+  adoption only: Root has accepted the 6d0 private correction/API/functional
+  baseline. This does not accept the whole-frontend presentation work or the
+  complete roadmap. Preserve the consumed119-request history and do not replay
+  acquisition. The TC full
   profile, F8y, official V25 parity and broader roadmap remain open. The prior
   15b5/3ff/5b/cdc baselines and bounded checkpoint remain history.
   Earlier accepted 15b5 release follows as history: exact synchronized-green
@@ -85,7 +86,37 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
-  Current 2026-10-26: exact accepted synchronized-green staging
+  Current 2026-10-26: the human explicitly requires one TC2000 look and feel
+  across the entire frontend, not only ETF. The root route inventory cross-check
+  is whole-frontend-route-acceptance-inventory-20261026.json; this branch
+  independently resolved 13 route views and 110 reachable Vue SFCs into 112
+  exact shell/route/theme/component paths, each pinned to its f809 source blob.
+  TC is the sole presentation writer. Provider and ETF domain reviews require
+  preserving null-versus-zero quota/usage, disabled/unknown capability, no
+  provider acquisition on appearance, server-selected/default-series behavior,
+  and ETF IWM parser-correction history: preserve all 1,946 rows, actual
+  knowledge times and unresolved identities; same-date parser churn is not
+  turnover. Strategy inspector/navigation and immutable Study identity remain.
+  Root has accepted the 6d0 private correction/API/functional baseline; it is
+  not whole-frontend UI acceptance.
+  Exact published f809 source CI40287957823 has all required branch jobs green;
+  Exhaustive Integration was skipped by feature policy. That receipt does not
+  qualify the current presentation candidate. The implementation gives the
+  eleven routed legacy view roots a shared TC
+  shell/theme, responsive labeled navigation, tokenized login, Settings,
+  status/notifications, teleported menus/editors and generic feature surfaces.
+  Actual root classes were checked from templates, including ETF
+  `.holdings-view`; a source-level regression protects that mapping, the
+  workstation zero-margin/padding reset, and active/status styling. Focused
+  route/shell/Settings tests pass 15/15; `vue-tsc` and the production build
+  succeed. This candidate has no exact-source CI or browser evidence. The full
+  route-by-route visual pass and exact-source browser fixture remain open; F8y
+  remains unproven; Root has reserved the isolated full browser slot for a
+  clean, reviewed candidate.
+  Preserve AC1-AC9, official V25, original references/masks/tolerances/zero
+  retries, all holds and the complete roadmap.
+  Historical adoption snapshot follows:
+  At adoption time 2026-10-26: exact accepted synchronized-green staging
   6d0a85da34ba276bca69c82a932a0602e783d7a1 (canonical receipt
   20261026T061035Z-6d0a85da34ba.json, staging CI40270957631) is assembled in
   this TC branch from prior adopted staging 15b5 without conflicts. The only
@@ -1166,7 +1197,7 @@ human_goal_budget_authorization: none
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 roadmap_goal: "Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review."
-goal: "Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review."
+goal: "Continue the accepted TC2000 workstation checkpoint and reconcile the entire reachable frontend into one consistent TC2000 visual system across authentication, shell/navigation, workstation/popouts, dashboard/chart/alerts/radar/watchlist/screener/baskets, ETF Holdings, both Strategy screens, settings/provider controls and every reachable screen component; preserve all feature behavior/contracts and complete the existing roadmap."
 integration_checkpoint:
   id: tc2000-workstation-integration-1
   planning_authorization: "Human resumed the saved checkpoint objective on 2026-10-15, directing this existing session to read coordinator guidance, fix independent chart-template and functional/visual defects, then consume green Provider+ETF staging and prepare review."
@@ -1192,6 +1223,7 @@ acceptance_criteria:
   - {id: TCP3, text: "After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers."}
   - {id: TCP4, text: "Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI."}
   - {id: TCP5, text: "Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release."}
+  - {id: TCV1, text: "Apply the human-authorized TC2000 presentation handoff to every exact reachable route/component path in frontend_presentation_handoff; preserve all workflows, URLs, data, keyboard/accessibility/mobile behavior and upstream domain contracts; qualify with focused checks and later Root-assigned exact-source full visual/functional gates. This does not close official V25 parity or the full roadmap."}
 scope:
   - "R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved historical gate receipt durable in this workstream."
   - "R1: independently advance the TC workstation UI and behavior against the pinned V25 reference and existing acceptance evidence while upstream provider/ETF work proceeds."
@@ -1201,6 +1233,7 @@ scope:
   - "R5: preserve and advance TC-specific Python/DSL/Study/Strategy behavior, immutable artifacts, lineage, and compatible promotion across workstation surfaces."
   - "R6: close V25 visual/state parity, Golden Layout/window resilience, accessibility, security, and performance evidence without weakening visual or functional oracles."
   - "R7: after provider then ETF work reaches staging, synchronize TC through the prescribed workflow, reconcile every shared path semantically, and run exact-tip validation before ready_for_human_review; do not directly merge branches, promote, deploy, or mutate another worktree."
+  - "R8: under the exact 2026-10-26 human presentation handoff, inventory and unify every reachable frontend route/component in TC style without changing feature behavior or upstream ownership; retain all original visual oracles and full roadmap gates."
 owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/src/views/StudyLabView.vue
@@ -1473,6 +1506,811 @@ dependencies:
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
   - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/6d0a85da34ba276bca69c82a932a0602e783d7a1.yaml
+frontend_presentation_handoff:
+  human_authorization: The goal was for, on merge/reconciliation between the all the ongoing features,
+    the tc2000 one (the main, visual makeover feature) would take over, look & feel wise, and ensure the
+    whole frontend remains consistent; “The whole dashboard/UI MUST have consistent look & feel, anything
+    else is unacceptable”.
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  status: implementation_in_progress
+  domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
+  accepted_domain_reviews:
+    provider: {source: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md}
+    etf: {source: 3b09233e7e8aa36db3217fdf65bf87b75460877d, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/handoff.md}
+    strategy: {source: e50198fa055cc3a980a491dcd572f6581b8baf13, handoff: /home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/handoff.md}
+  contracts_to_preserve:
+    - Provider usage/quota null is unknown or unreported, never numeric zero; retain quota versus estimate versus unknown, admin-only writes, redacted errors and no appearance-triggered acquisition.
+    - Provider-selected/default series and coverage remain server-owned; the UI does not merge alternate-series rows or turn coverage into acquisition.
+    - ETF retains all 1,946 IWM rows, actual observation and knowledge times, unresolved identities, PIT/current distinctions and same-date parser-correction audit semantics.
+    - Strategy Results-to-V2 navigation keeps owner-scoped GET-only selected Study identity and all ten pinned lineage fields across reload/back/forward; native execution remains unavailable.
+  route_inventory:
+  - path: /login
+    entry: LoginView
+    surface: Public authentication; no signed-in navigation shell.
+  - path: /
+    entry: WorkstationView
+    surface: Authenticated TC workstation and persisted tools.
+  - path: /chart
+    entry: WorkstationView
+    surface: Authenticated workstation chart.
+  - path: /chart/:symbol(.*)
+    entry: WorkstationView
+    surface: Authenticated workstation chart by symbol.
+  - path: /popout/:windowKey
+    entry: WorkstationView
+    surface: Standalone popout; preserve popout chrome and controls.
+  - path: /study-lab
+    entry: redirect to /?tab=study-lab
+    surface: Study tool deep link into the workstation.
+  - path: /legacy/dashboard
+    entry: DashboardView
+    surface: Dashboard widgets and loading/empty/error states.
+  - path: /legacy/chart
+    entry: ChartView
+    surface: Legacy chart workflow and dialogs.
+  - path: /legacy/chart/:symbol(.*)
+    entry: ChartView
+    surface: Legacy chart by symbol.
+  - path: /legacy/alerts
+    entry: AlertsView
+    surface: Alert list/create/edit and states.
+  - path: /legacy/radar
+    entry: RadarView
+    surface: Radar filters and detail preview.
+  - path: /legacy/strategy-lab
+    entry: StrategyLabView
+    surface: Strategy Lab v1; saved artifacts and workflow.
+  - path: /legacy/strategy-lab-v2
+    entry: StrategyLabV2View
+    surface: Strategy Lab v2; immutable inspector/navigation.
+  - path: /legacy/baskets
+    entry: BasketsView
+    surface: Basket management and states.
+  - path: /legacy/etf-holdings
+    entry: ETFHoldingsView
+    surface: ETF holdings; preserve current/unavailable/PIT/lineage.
+  - path: /legacy/screener
+    entry: ScreenerView
+    surface: Screener filters, results and states.
+  - path: /legacy/watchlist
+    entry: WatchlistView
+    surface: Watchlists, tags, favorites and states.
+  - path: /legacy/settings
+    entry: SettingsView
+    surface: Settings/provider controls; preserve disabled/unknown states.
+  - path: /dashboard
+    entry: redirect to /legacy/dashboard
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /alerts
+    entry: redirect to /legacy/alerts
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /radar
+    entry: redirect to /legacy/radar
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /strategy-lab
+    entry: redirect to /legacy/strategy-lab
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /strategy-lab-v2
+    entry: redirect to /legacy/strategy-lab-v2
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /baskets
+    entry: redirect to /legacy/baskets
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /etf-holdings
+    entry: redirect to /legacy/etf-holdings
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /screener
+    entry: redirect to /legacy/screener
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /watchlist
+    entry: redirect to /legacy/watchlist
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /settings
+    entry: redirect to /legacy/settings
+    surface: Compatibility alias; preserve URL and behavior.
+  route_view_paths:
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  reachable_vue_component_paths:
+  - frontend/src/App.vue
+  - frontend/src/components/alerts/AlertForm.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
+  - frontend/src/components/chart/MultiChartLayout.vue
+  - frontend/src/components/chart/TimeframeSelector.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/HoverTooltip.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/ProvenanceHint.vue
+  - frontend/src/components/common/ResizeHandle.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/common/SparkTfSelector.vue
+  - frontend/src/components/common/Sparkline.vue
+  - frontend/src/components/common/StatusBar.vue
+  - frontend/src/components/common/TagPicker.vue
+  - frontend/src/components/common/TechnicalConditionEditor.vue
+  - frontend/src/components/common/TextPromptModal.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  - frontend/src/components/dashboard/DashboardGexWidget.vue
+  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardNotesWidget.vue
+  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardRadarWidget.vue
+  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/options/OptionsChainPanel.vue
+  - frontend/src/components/options/exposure/DexLadder.vue
+  - frontend/src/components/options/exposure/GexLadder.vue
+  - frontend/src/components/options/exposure/IvSkew.vue
+  - frontend/src/components/options/exposure/OiDistribution.vue
+  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/strategy/DistributionBars.vue
+  - frontend/src/components/strategy/ExcursionBars.vue
+  - frontend/src/components/strategy/OptimizationLeaderboard.vue
+  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  - frontend/src/components/strategy/ReturnsHeatmap.vue
+  - frontend/src/components/strategy/RunComparisonTable.vue
+  - frontend/src/components/strategy/SignalReplayBreakdown.vue
+  - frontend/src/components/strategy/StrategyCoveragePanel.vue
+  - frontend/src/components/strategy/StrategyResultChart.vue
+  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  - frontend/src/components/strategy/SweepValueInput.vue
+  - frontend/src/components/strategy/SymbolPerformanceBars.vue
+  - frontend/src/components/strategy/WalkForwardSegments.vue
+  - frontend/src/components/watchlist/WatchlistPanel.vue
+  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/ConditionGroupEditor.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyDashboard.vue
+  - frontend/src/components/workstation/StudyHeatmap.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/UnknownToolRecovery.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationGlyph.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  shell_theme_paths:
+  - frontend/src/router/index.ts
+  - frontend/src/styles/workstation-tokens.css
+  exact_adaptation_paths:
+  - frontend/src/App.vue
+  - frontend/src/components/alerts/AlertForm.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
+  - frontend/src/components/chart/MultiChartLayout.vue
+  - frontend/src/components/chart/TimeframeSelector.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/HoverTooltip.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/ProvenanceHint.vue
+  - frontend/src/components/common/ResizeHandle.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/common/SparkTfSelector.vue
+  - frontend/src/components/common/Sparkline.vue
+  - frontend/src/components/common/StatusBar.vue
+  - frontend/src/components/common/TagPicker.vue
+  - frontend/src/components/common/TechnicalConditionEditor.vue
+  - frontend/src/components/common/TextPromptModal.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  - frontend/src/components/dashboard/DashboardGexWidget.vue
+  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardNotesWidget.vue
+  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardRadarWidget.vue
+  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/options/OptionsChainPanel.vue
+  - frontend/src/components/options/exposure/DexLadder.vue
+  - frontend/src/components/options/exposure/GexLadder.vue
+  - frontend/src/components/options/exposure/IvSkew.vue
+  - frontend/src/components/options/exposure/OiDistribution.vue
+  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/strategy/DistributionBars.vue
+  - frontend/src/components/strategy/ExcursionBars.vue
+  - frontend/src/components/strategy/OptimizationLeaderboard.vue
+  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  - frontend/src/components/strategy/ReturnsHeatmap.vue
+  - frontend/src/components/strategy/RunComparisonTable.vue
+  - frontend/src/components/strategy/SignalReplayBreakdown.vue
+  - frontend/src/components/strategy/StrategyCoveragePanel.vue
+  - frontend/src/components/strategy/StrategyResultChart.vue
+  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  - frontend/src/components/strategy/SweepValueInput.vue
+  - frontend/src/components/strategy/SymbolPerformanceBars.vue
+  - frontend/src/components/strategy/WalkForwardSegments.vue
+  - frontend/src/components/watchlist/WatchlistPanel.vue
+  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/ConditionGroupEditor.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyDashboard.vue
+  - frontend/src/components/workstation/StudyHeatmap.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/UnknownToolRecovery.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationGlyph.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/router/index.ts
+  - frontend/src/styles/workstation-tokens.css
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  allowed_delta: 'Presentation only: shared shell, navigation, typography, spacing, surface colors, controls,
+    tables, dialogs, status language and responsive layout. Preserve behavior, route targets, API/data
+    contracts, provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution.'
+  preserved_contracts:
+  - all public/authenticated route URLs and redirects
+  - Workstation and popout behavior
+  - feature workflows and persisted data
+  - keyboard/focus/accessibility and responsive/mobile behavior
+  - ETF historical/PIT/current-unavailable/identity/freshness/lineage and unknown-state semantics
+  - Provider capability, selected-default and routing contracts
+  - Strategy immutable Study/CodeVersion identity, inspector and Research-results navigation
+  - all assertions, timeouts, references, masks, tolerances and zero-retry policy
+  - official V25 parity and original AC1-AC9/full roadmap remain open
+approved_presentation_adaptations:
+- path: frontend/src/App.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d6c8bd945d5866bb43ed54d879a4d512eb6ddec4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/alerts/AlertForm.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: e07e87bce5b1f711865c4218d89b0ad841a64c18
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/ChartPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4f4568a23ac7fccc888f5c46a3eb665a3556fa7f
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/DrawingToolbar.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f5489eb8e7a22e6b21b218cb80e2bb5b9271a485
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/IndicatorPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 716595caa5db86533bf09fd48ccd1b764c733362
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/InstrumentInfoPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 763e147de43576c9b79b640b5a86d56a3b624b16
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/LayoutPicker.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f89d7173224bce2769e61ed67f3df184590d2451
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/MultiChartLayout.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 0c97469cd3e0315bdb81281407f25ddf7decf750
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/TimeframeSelector.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3570cd366d2f3d18c2714bba1121b1cb7eb0b441
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/chart/UPlotChart.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4f79b1ab6e67c8a7b4032769794d97572bb3f82a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/HoverTooltip.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: bcfc16aab3f217f14625e436902a223347269f2a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/Notification.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1d5e8b015fc139f501165efb1cfe4607d5c73e7c
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/ProvenanceHint.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b2e7f36119f25b8f09b7ece292a6f0a2ed4acf87
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/ResizeHandle.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 50b0eae419b255b03227260a34a5c1487dac3b3a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/SearchBar.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 01e787347c88f9010640afa6030b19b87239bbe0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/SparkTfSelector.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b06d5a7751149479f11f13bec42e24bfcad3e439
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/Sparkline.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3cb2e8c1f092fd78c12b01ec9785a00d4270c6bf
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/StatusBar.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3a85462a1a46c91882f9ef997a77284f4631c444
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/TagPicker.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ca9c196f43227b967677510dd5b720ca6c053d2a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/TechnicalConditionEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1d6a39995d80b006d94be0169d334a4073739dea
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/common/TextPromptModal.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1f3db52272eb1086703529b7ac3f0a0de26a586a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ef95d8dcbf7a19dd0a70c0f893cd03ee59d73a36
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: bec651c411f54e67cb1d0805c1e91afb12c875a3
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: c6d85d2486dd8120e79c3781bfe647215c0d7d79
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardGexWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 87a227e1e7cb51a57712f485b311f8e01775aeea
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: afec6591bc3db82cd0283d7855bd82e4783a3d00
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 47bd1d58e2b2ba79852814b53501aee434cd70e7
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 6cf1e43892058d2516e7c95f039375702f66c57a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d9e0be483b4731d0e5efe25850164a7195b27bd2
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardNotesWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 881bf8f498593452f53a3f6fc334d5d529fb2a3e
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5933e7b97b20f1859064a3c0ebd101d303d605c5
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7912b14ace3cb56d03a99e5c784cfe76dcaea1e8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardRadarWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9512a2b78c24e8e42dc887c57eed2e52972b9a9f
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: eb3daa443815f8740452a3f8cf4d7e365d089a49
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7d722c42f74703fdf4a2c74d64f8607081034e96
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5e5d9010a45fa179feb1b15438f4a6d9e60623b3
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/etf/ETFHoldingsPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: fce872445d8a6e8b2687658ac326a6d04f79a139
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/OptionsChainPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f9c42ca3aafe4f4a0f759b1f99497b791747fdbc
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/DexLadder.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8fa59405d33dd6fa0c3052456307d1e8901af479
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/GexLadder.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: e04429eeffc791eb0275a86b78bf2c85a2dfaccf
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/IvSkew.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 2775f0a50f85ee7d2dce095448b079e8a59ed0f7
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/OiDistribution.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8485a838375f6056762961d2a03208c25a0efbc2
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9b208390042826a0e05fee7e1b88fbc35d1092df
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 74bc4a02d23b8ad5ec393b66bd9957e5ae8ef711
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/radar/RadarDetailPreviewChart.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 90077f6c10019a66d20dc9691fd251681a6ee164
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/DistributionBars.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: da4696eb5c372ca825f044c82bd0207b3a7f662d
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/ExcursionBars.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ab08ee3e646c71b7c8b61623f89a4eb24151c6ba
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/OptimizationLeaderboard.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8e617a4ce52977eba13d11af29c9969bbb3e66cd
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f2b4f0d60907d64d22a362475a6accd9593981b0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/ReturnsHeatmap.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4b1ddfb878de66dbb00c516889363f358f3a3b37
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/RunComparisonTable.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8b4e34933999f8314feb555469532c6d907be124
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/SignalReplayBreakdown.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d37a87b5145d45130438b674691d627c7f9bd3a9
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/StrategyCoveragePanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 681546cb77fbf71d5171a43bf89d557f763bdf23
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/StrategyResultChart.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b37ccaec01b0df02c209a305b0585e9b843d201c
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 80a65dfdda6377428ab178288820398ec1220d04
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/SweepValueInput.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d3d96bf972dcbd4233ca8ef9b28d9cbf92fb8ec0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/SymbolPerformanceBars.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 31d781ee36e4f2016a9f5dff9e280b42a8d9e98a
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/strategy/WalkForwardSegments.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: bac4d28a6a4e5ccbeb2e1ebe8e38d05b9fbe861b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/watchlist/WatchlistPanel.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: aeb16b057c60eb19f6c8a3d55c4a86a11bc6296e
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: b74a17fbc0bb8728522eea48eb0579ed82cef3a8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3018ba4058f2458b7dc9ccc0090f499fa92d9a1d
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5794ee449ff06e5e48b4a782e0d4085f6a2c7e1c
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d38177ff71020c45ec34d55a970814c73f293a33
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1c1fbccaca9b55aa44740097de017bcd848c82f7
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 2821e71ee4aaa20dc07a37c5b4dfef9a53eb63ff
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ChartPlotLibrary.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: fd99000019961398c85f663b2ec92d6fc1a614d1
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ChartTemplateControl.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 564068d88946e97d0552a4568c594543d753b745
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CodeLibraryTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7cb269e629b4f9cb3ef655d05de97ff0636fff79
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ConditionGroupEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: a77be4b170f13bbcabe823966895c1ebd5104030
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CoverageSummaryTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: ed05b822c41304e4d863f5d6cec741c70e69d670
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d81118b16a710be5da553ade74ebc5fa6f7a2100
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d4feb88ee4c496da4e62b8269cfc29563d0cd2db
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/EasyScanTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 811d169bab192afb3c6fd2671c01dc49a23996e2
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: cfe833b65dba1a9f2d9186c3d6c2f87a09082d78
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 55c9b07956141bbfce744dbcad8c78102219ccfa
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/InstrumentAlertsTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f8bf82c7feed054019248c39513d59f2afabc77b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/InstrumentNoteTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 07831c7ae6415ccdc8b7bd51e7a7d4294a564a4b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/MarketGaugeTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: e8ef5e87480da8580094742874570bc1c2183713
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/MarketMapTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 98de99fd027fa3ae7e73e47c66cf29ed47cb9334
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/PythonSourceEditor.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9f5dd8447a40a17da75527b64217688ce845342f
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/RatioUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d94f5a029d56e4c738389ef8f2b5d22eeae38211
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/RelativeRotationTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 410a9e16cf1e7d04ee15c7846fbcaa6289780394
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ResearchResultsTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 1736df677b0306e062b2c4d0b3478929a8e6ba84
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyBarsUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: eb29d1753d2acbbec4211f74eee9a4ee6f03b1b4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyDashboard.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3f31ef8ea99d74bbcc69e71ba4b00f35612f1107
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyHeatmap.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 923c5e980e7f7db4453a6e1f5b57439300d08ff3
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyHistogramUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 5f9158ab4e3198292f762edda89bf93a7f2237f4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyLabTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 97c9cffdb4ecadbcc1d0e132c366f6aaad666402
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyRangeUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 2c0eedc109cec911a24aed2df6ecfc57464b8107
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudyScatterUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 453ff547823fae106eeeb93d6171cbe2c5a09282
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/StudySeriesUPlot.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: d28780f678748bd5c11edcbc214c5920a7565494
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/ToolWindow.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 6a19db7ae8b21906c0c68e9f4cef9dfb019963da
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/UnknownToolRecovery.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: a95c02ffffcda75090a478a3788987953d1523c0
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/VirtualWatchlistTool.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 22750c92c7439b7240934abf935c2061f28c96a8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 8531de54a1c23437c5cf95d356d7fd22d3dd3b79
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/WorkstationGlyph.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 936bf11ed986c862d1f8e47717b2385fc3334be9
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/components/workstation/WorkstationToolContent.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9f079cdfb745e7d259c6e062b802b61e08a5a1bc
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/router/index.ts
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: c32384da24c053776b94c22e55a5b38ad54a35bc
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/styles/workstation-tokens.css
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 68b463367522e5de7f15c7c753b7cc18e6902241
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/AlertsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 21da9d3fb9cd71696badf21601b6a5a1f407e5cf
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/BasketsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 34ccb0954dfcbbd1c2c421a4088c2a1672dea148
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/ChartView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 7f429a368b73e7c717cfff749859fae601131b28
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/DashboardView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 10427b2b12370ecbb790e0e3b4acffaf4ae839ee
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/ETFHoldingsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 83626c8ed79eb934cd2b0e4bce8ac812c9746fd8
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/LoginView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 419000f480a3de36da7b027f3f487cfa105258d4
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/RadarView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 21c76641a59a68f6c9fdd360452a1e63782aee43
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/ScreenerView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: f75bee925ce154d91b2f468b6411726b9dc9228b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/SettingsView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 65e872681009006f3ce27801606daa851bbfc5db
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/StrategyLabV2View.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 4526c31af8181ed3b096c402084d03146cfa2059
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/StrategyLabView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 0ab361e2fb10c829355d0ef41d88b5624da647fa
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/WatchlistView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 9240d3265096edad01959df04a9831008aa7fb7b
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+- path: frontend/src/views/WorkstationView.vue
+  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  accepted_blob: 3cd504e4f64128fa60939a3a0d89b47bab6725fa
+  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
     source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
@@ -1823,17 +2661,21 @@ deployment_impact: "No deployment or environment promotion is authorized in this
 status: in_progress
 progress:
   completed: [TCP1, TCP2]
-  total: 5
-  current_phase: "6d0_merge_assembled_no_conflicts;ETF_fresh_session_reparse_serialization_and_same_date_ordering_adopted;877_path_import_snapshot_pending_checks;publication_held_for_root_master_gate;new_exact_CI_and_full_local_profile_pending;F8y_unproven"
+  total: 6
+  current_phase: "whole_frontend_route_and_112_path_inventory_pinned_to_f80995;final_provider_etf_strategy_reviews_consumed;shared_tc_shell_theme_login_status_and_teleport_styles_implemented;provider_unknown_zero_presentation_corrected;mounted_shell_route_settings_tests_14_pass;vue_typecheck_and_production_build_pass;full_route_surface_review_and_browser_profile_pending"
   next_action: >-
-    Complete stack-free scope/workstream and record checks, then commit this
-    bounded 6d0 adoption locally. Hold push until Root releases it after
-    independent master green. After publication, follow exact-source branch CI
-    and await the assigned full local profile. Preserve
-    producer-owned selected-default behavior, Strategy navigation, ETF PIT and
-    immutable identity contracts, all AC1-AC9/SX/IX, official V25 parity and all
-    holds. F8y's consumed 60-second/zero-retry result remains unresolved.
+    Continue the route-by-route review of all 110 reachable Vue surfaces and
+    apply the shared TC tokens to inconsistent component families and every
+    exposed loading/empty/error/menu/dialog state; add focused component checks
+    without changing feature behavior or protected references. Run exact-path
+    scope/unique-key workstream checks, then freeze a clean candidate for Root
+    review before any full browser fixture. Preserve F8y, all assertions,
+    references, masks, tolerances and zero retries, AC1-AC9, official V25, all
+    provider/data holds and the complete roadmap. Published baseline f809
+    CI40287957823 is green for required branch jobs; it does not qualify this
+    dirty UI source.
 
+    Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the
     current Provider-only subphase:
     Historical pre-acceptance continuation record (superseded by

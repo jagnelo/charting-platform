@@ -413,16 +413,17 @@ function humanizeKey(value: string) {
 }
 
 function fmtCount(value: number | null | undefined, label = 'calls') {
-  return `${Math.round(value ?? 0).toLocaleString()} ${label}`
+  if (value == null) return `Not reported ${label}`
+  return `${Math.round(value).toLocaleString()} ${label}`
 }
 
 function fmtUnits(value: number | null | undefined, unitLabel: string) {
-  if (value == null) return `0 ${unitLabel}`
+  if (value == null) return `Not reported ${unitLabel}`
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${unitLabel}`
 }
 
 function fmtPct(value: number | null | undefined) {
-  if (value == null) return '0%'
+  if (value == null) return 'Not reported'
   return `${value.toFixed(1)}%`
 }
 
@@ -437,9 +438,11 @@ function formatDateTime(value: string | null | undefined) {
 }
 
 function quotaLabel(usage: ProviderUsageSummary) {
-  const limit = usage.quota_limit ?? usage.estimated_quota_limit
-  if (limit == null) return 'Quota window'
-  const kind = usage.limit_kind === 'estimated' ? 'Est.' : 'Quota'
+  if (usage.limit_kind === 'unknown') return 'Quota unknown'
+  const isEstimate = usage.limit_kind === 'estimated'
+  const limit = isEstimate ? usage.estimated_quota_limit : usage.quota_limit
+  if (limit == null) return isEstimate ? 'Estimated limit not reported' : 'Quota limit not reported'
+  const kind = isEstimate ? 'Est.' : 'Quota'
   return `${kind} ${limit} ${usage.usage_unit_label}`
 }
 
@@ -454,23 +457,29 @@ function bucketHeight(buckets: ProviderUsageBucket[], value: number) {
 }
 
 function failureCount(usage: ProviderUsageSummary | null) {
-  if (!usage) return 0
-  return Math.round(((usage.failure_rate_24h || 0) / 100) * usage.requests_24h)
+  if (!usage || usage.failure_rate_24h == null || usage.requests_24h == null) return null
+  return Math.round((usage.failure_rate_24h / 100) * usage.requests_24h)
 }
 
 function timeoutCount(usage: ProviderUsageSummary | null) {
-  if (!usage) return 0
-  return Math.round(((usage.timeout_rate_24h || 0) / 100) * usage.requests_24h)
+  if (!usage || usage.timeout_rate_24h == null || usage.requests_24h == null) return null
+  return Math.round((usage.timeout_rate_24h / 100) * usage.requests_24h)
 }
 
 function reliabilityDetail(usage: ProviderUsageSummary | null) {
-  if (!usage || usage.requests_24h === 0) return 'No recent failures recorded'
-  return `${failureCount(usage)} failed · ${timeoutCount(usage)} timed out`
+  if (!usage) return 'No reliability data available'
+  if (usage.requests_24h === 0) return 'No recent failures recorded'
+  const failures = failureCount(usage)
+  const timeouts = timeoutCount(usage)
+  if (failures == null || timeouts == null) return 'Recent failure data not reported'
+  return `${failures} failed · ${timeouts} timed out`
 }
 
 function trackingHeadline(usage: ProviderUsageSummary | null) {
   if (!usage) return 'Policy only'
-  if (usage.limit_kind !== 'unknown' && usage.current_window_units != null) return quotaLabel(usage)
+  if (usage.limit_kind === 'unknown' || usage.quota_limit != null || usage.estimated_quota_limit != null) {
+    return quotaLabel(usage)
+  }
   return hasDistinctUsageUnits(usage) ? `Tracked in ${usage.usage_unit_label}` : 'Observed calls only'
 }
 
@@ -482,6 +491,8 @@ function trackingDetail(usage: ProviderUsageSummary | null) {
     if (usage.current_window_utilization_pct != null) parts.push(`${fmtPct(usage.current_window_utilization_pct)} used`)
     return parts.join(' · ')
   }
+  if (usage.limit_kind === 'unknown') return 'Provider quota limit is unknown'
+  if (usage.quota_limit != null || usage.estimated_quota_limit != null) return 'Current window usage not reported'
   return 'No hard quota documented for this provider'
 }
 

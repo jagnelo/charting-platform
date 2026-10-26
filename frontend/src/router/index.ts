@@ -54,6 +54,29 @@ export const applicationRoutes = [
   { path: '/settings', redirect: '/legacy/settings' },
 ] as const
 
+export const sharedShellNavigation = [
+  { key: 'dashboard', label: 'Dashboard', icon: '▦', path: '/legacy/dashboard', match: '/legacy/dashboard' },
+  { key: 'chart', label: 'Chart', icon: '◷', path: '/legacy/chart', match: '/legacy/chart' },
+  { key: 'watchlist', label: 'Watchlist', icon: '☆', path: '/legacy/watchlist', match: '/legacy/watchlist' },
+  { key: 'screener', label: 'Screener', icon: '⌕', path: '/legacy/screener', match: '/legacy/screener' },
+  { key: 'radar', label: 'Radar', icon: '◎', path: '/legacy/radar', match: '/legacy/radar' },
+  { key: 'alerts', label: 'Alerts', icon: '◇', path: '/legacy/alerts', match: '/legacy/alerts' },
+  { key: 'baskets', label: 'Baskets', icon: '▤', path: '/legacy/baskets', match: '/legacy/baskets' },
+  { key: 'etf', label: 'ETF Holdings', icon: '▧', path: '/legacy/etf-holdings', match: '/legacy/etf-holdings' },
+  { key: 'strategy', label: 'Strategy Lab', icon: '⌁', path: '/legacy/strategy-lab', match: '/legacy/strategy-lab' },
+  { key: 'strategy-v2', label: 'Strategy Lab v2', icon: '⌘', path: '/legacy/strategy-lab-v2', match: '/legacy/strategy-lab-v2' },
+  { key: 'settings', label: 'Settings', icon: '⚙', path: '/legacy/settings', match: '/legacy/settings' },
+] as const
+
+export function usesSharedAppShell(path: string): boolean {
+  return path !== '/login' && path !== '/' && path !== '/chart' &&
+    !path.startsWith('/chart/') && !path.startsWith('/popout/')
+}
+
+export function isSharedNavigationItemActive(path: string, match: string): boolean {
+  return path === match || path.startsWith(`${match}/`)
+}
+
 export const router = createRouter({
   history: createWebHistory(),
   routes: applicationRoutes,
