@@ -117,6 +117,7 @@
           <div class="sc-row"><kbd>[</kbd><kbd>]</kbd> Pan 1 bar; Shift for 5 bars</div>
           <div class="sc-row"><kbd>Shift+=</kbd><kbd>Shift+-</kbd> Increase / decrease vertical projection space</div>
           <div class="sc-row"><kbd>Alt</kbd><kbd>R</kbd> Go to latest</div>
+          <div v-if="customDateSortAvailable" class="sc-row"><kbd>Shift+T</kbd> Custom Date Sort</div>
           <div class="sc-row"><kbd>L</kbd> Toggle log scale</div>
           <div class="sc-row"><kbd>?</kbd> This help</div>
           <div class="sc-row"><kbd>Del</kbd> Delete selected drawing</div>
@@ -201,6 +202,8 @@ import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useQuery } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
+import { customDateSortRangeFromChartPositions } from '@/lib/workstation/customDateSort'
+import type { CustomDateSortRange } from '@/lib/workstation/customDateSort'
 import {
   adjustChartProjectionRange,
   isChartRangeAtLatest,
@@ -270,6 +273,8 @@ const props = withDefaults(defineProps<{
   showOverlays?: boolean
   enableOverlayInteractions?: boolean
   enableKeyboard?: boolean
+  customDateSortAvailable?: boolean
+  customDateSortSelecting?: boolean
   showControls?: boolean
   chartSettings?: Record<string, unknown>
   comparisonSeries?: ChartComparisonSeries[]
@@ -281,11 +286,18 @@ const props = withDefaults(defineProps<{
   showOverlays: true,
   enableOverlayInteractions: true,
   enableKeyboard: true,
+  customDateSortAvailable: false,
+  customDateSortSelecting: false,
   showControls: true,
   workspaceLinkGroup: 'blue',
   linkedTimestamp: null,
 })
-const emit = defineEmits<{ configuration: [changes: Record<string, unknown>] }>()
+const emit = defineEmits<{
+  configuration: [changes: Record<string, unknown>]
+  'custom-date-sort-toggle': []
+  'custom-date-sort-cancel': []
+  'custom-date-sort-range': [range: CustomDateSortRange]
+}>()
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 const DEFAULT_BARS_VISIBLE  = 150
@@ -347,6 +359,14 @@ function cycleDatePointerMode() {
   else localDatePointerMode.value = next
 }
 function handleDatePointerKeydown(event: KeyboardEvent) {
+  if (props.customDateSortAvailable && event.key.toLowerCase() === 't' && event.shiftKey && !event.ctrlKey && !event.metaKey && !event.altKey && !isEditorTarget(event.target)) {
+    if (!keyboardEnabled.value) return
+    const chartPanel = rootRef.value?.closest('.chart-panel')
+    if (chartPanel && !chartPanel.classList.contains('is-active')) return
+    event.preventDefault()
+    emit('custom-date-sort-toggle')
+    return
+  }
   if (event.key !== '.' || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey || isEditorTarget(event.target)) return
   const chartPanel = rootRef.value?.closest('.chart-panel')
   if (chartPanel && !chartPanel.classList.contains('is-active')) return
@@ -473,6 +493,7 @@ const measurement = reactive<{
   start: null,
   end: null,
 })
+let customDateSortPointerCleanup: (() => void) | null = null
 
 // ── OHLCV tooltip (top-left, TradingView style) ────────────────────────────
 interface TooltipState {
@@ -658,6 +679,11 @@ function resetPriceScaleFromMenu() {
 }
 
 function handleChartEscape(event: KeyboardEvent) {
+  if (props.customDateSortSelecting) {
+    event.preventDefault()
+    emit('custom-date-sort-cancel')
+    return
+  }
   if (ctxMenu.visible) {
     event.preventDefault()
     closePriceContextMenu()
@@ -2919,6 +2945,44 @@ function setupHitDetection(u: uPlot) {
   if (!over) return
 
   over.addEventListener('pointerdown', (e) => {
+    if (
+      props.customDateSortSelecting
+      && keyboardEnabled.value
+      && e.button === 0
+      && !drawStore.activeToolType
+      && !drawStore.avwapDropActive
+    ) {
+      e.preventDefault()
+      e.stopImmediatePropagation()
+      const rect = over.getBoundingClientRect()
+      const startPosition = u.posToVal(e.clientX - rect.left, 'x')
+      const pointerId = e.pointerId
+      let cleaned = false
+      const cleanup = () => {
+        if (cleaned) return
+        cleaned = true
+        window.removeEventListener('pointerup', finish, true)
+        window.removeEventListener('pointercancel', cancel, true)
+        if (customDateSortPointerCleanup === cleanup) customDateSortPointerCleanup = null
+      }
+      const cancel = (event: PointerEvent) => {
+        if (event.pointerId === pointerId) cleanup()
+      }
+      const finish = (event: PointerEvent) => {
+        if (event.pointerId !== pointerId) return
+        cleanup()
+        if (uplot !== u || !props.customDateSortSelecting) return
+        const currentRect = over.getBoundingClientRect()
+        const endPosition = u.posToVal(event.clientX - currentRect.left, 'x')
+        const range = customDateSortRangeFromChartPositions(chartStore.bars, startPosition, endPosition)
+        if (range) emit('custom-date-sort-range', range)
+      }
+      customDateSortPointerCleanup?.()
+      customDateSortPointerCleanup = cleanup
+      window.addEventListener('pointerup', finish, true)
+      window.addEventListener('pointercancel', cancel, true)
+      return
+    }
     if (measurement.active && e.button === 0) {
       e.preventDefault()
       e.stopPropagation()
@@ -3400,6 +3464,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  customDateSortPointerCleanup?.()
+  customDateSortPointerCleanup = null
   destroyAll()
   resizeObserver?.disconnect()
   document.removeEventListener('visibilitychange', updateChartDocumentVisibility)

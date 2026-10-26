@@ -97,7 +97,7 @@
             </div>
             <div class="provider-summary-card">
               <span>Reliability</span>
-              <strong>{{ group.usage ? fmtPct(group.usage.success_rate_24h) : 'No data' }}</strong>
+              <strong>{{ group.usage ? reliabilityHeadline(group.usage) : 'No data' }}</strong>
               <small>{{ reliabilityDetail(group.usage) }}</small>
             </div>
             <div class="provider-summary-card">
@@ -413,16 +413,17 @@ function humanizeKey(value: string) {
 }
 
 function fmtCount(value: number | null | undefined, label = 'calls') {
-  return `${Math.round(value ?? 0).toLocaleString()} ${label}`
+  if (value == null) return `Not reported ${label}`
+  return `${Math.round(value).toLocaleString()} ${label}`
 }
 
 function fmtUnits(value: number | null | undefined, unitLabel: string) {
-  if (value == null) return `0 ${unitLabel}`
+  if (value == null) return `Not reported ${unitLabel}`
   return `${value.toFixed(value >= 10 ? 0 : 1)} ${unitLabel}`
 }
 
 function fmtPct(value: number | null | undefined) {
-  if (value == null) return '0%'
+  if (value == null) return 'Not reported'
   return `${value.toFixed(1)}%`
 }
 
@@ -437,9 +438,11 @@ function formatDateTime(value: string | null | undefined) {
 }
 
 function quotaLabel(usage: ProviderUsageSummary) {
-  const limit = usage.quota_limit ?? usage.estimated_quota_limit
-  if (limit == null) return 'Quota window'
-  const kind = usage.limit_kind === 'estimated' ? 'Est.' : 'Quota'
+  if (usage.limit_kind === 'unknown') return 'Quota unknown'
+  const isEstimate = usage.limit_kind === 'estimated'
+  const limit = isEstimate ? usage.estimated_quota_limit : usage.quota_limit
+  if (limit == null) return isEstimate ? 'Estimated limit not reported' : 'Quota limit not reported'
+  const kind = isEstimate ? 'Est.' : 'Quota'
   return `${kind} ${limit} ${usage.usage_unit_label}`
 }
 
@@ -454,23 +457,36 @@ function bucketHeight(buckets: ProviderUsageBucket[], value: number) {
 }
 
 function failureCount(usage: ProviderUsageSummary | null) {
-  if (!usage) return 0
-  return Math.round(((usage.failure_rate_24h || 0) / 100) * usage.requests_24h)
+  if (!usage || usage.failure_rate_24h == null || usage.requests_24h == null) return null
+  return Math.round((usage.failure_rate_24h / 100) * usage.requests_24h)
 }
 
 function timeoutCount(usage: ProviderUsageSummary | null) {
-  if (!usage) return 0
-  return Math.round(((usage.timeout_rate_24h || 0) / 100) * usage.requests_24h)
+  if (!usage || usage.timeout_rate_24h == null || usage.requests_24h == null) return null
+  return Math.round((usage.timeout_rate_24h / 100) * usage.requests_24h)
 }
 
 function reliabilityDetail(usage: ProviderUsageSummary | null) {
-  if (!usage || usage.requests_24h === 0) return 'No recent failures recorded'
-  return `${failureCount(usage)} failed · ${timeoutCount(usage)} timed out`
+  if (!usage) return 'No reliability data available'
+  if (usage.requests_24h === 0) return 'Reliability not observed because there were no calls in this window.'
+  const failures = failureCount(usage)
+  const timeouts = timeoutCount(usage)
+  if (failures == null || timeouts == null) return 'Recent failure data not reported'
+  return `${failures} failed · ${timeouts} timed out`
+}
+
+function reliabilityHeadline(usage: ProviderUsageSummary) {
+  if (usage.requests_24h == null) return 'Not reported'
+  if (usage.requests_24h === 0) return 'Not observed'
+  if (usage.success_rate_24h == null) return 'Not reported'
+  return fmtPct(usage.success_rate_24h)
 }
 
 function trackingHeadline(usage: ProviderUsageSummary | null) {
   if (!usage) return 'Policy only'
-  if (usage.limit_kind !== 'unknown' && usage.current_window_units != null) return quotaLabel(usage)
+  if (usage.limit_kind === 'unknown' || usage.quota_limit != null || usage.estimated_quota_limit != null) {
+    return quotaLabel(usage)
+  }
   return hasDistinctUsageUnits(usage) ? `Tracked in ${usage.usage_unit_label}` : 'Observed calls only'
 }
 
@@ -482,12 +498,16 @@ function trackingDetail(usage: ProviderUsageSummary | null) {
     if (usage.current_window_utilization_pct != null) parts.push(`${fmtPct(usage.current_window_utilization_pct)} used`)
     return parts.join(' · ')
   }
+  if (usage.limit_kind === 'unknown') return 'Provider quota limit is unknown'
+  if (usage.quota_limit != null || usage.estimated_quota_limit != null) return 'Current window usage not reported'
   return 'No hard quota documented for this provider'
 }
 
 function providerSummaryText(group: { usage: ProviderUsageSummary | null; enabledCount: number; capabilities: ProviderPolicyStatus[] }) {
   if (!group.usage) return `${group.enabledCount} of ${group.capabilities.length} capabilities enabled.`
-  return `${fmtCount(group.usage.requests_24h)} in the last 24h with ${fmtPct(group.usage.success_rate_24h)} success.`
+  if (group.usage.requests_24h == null) return `Not reported calls in the last 24h; reliability not reported.`
+  if (group.usage.requests_24h === 0) return `0 calls in the last 24h; reliability not observed because there were no calls.`
+  return `${fmtCount(group.usage.requests_24h)} in the last 24h with ${reliabilityHeadline(group.usage)} success.`
 }
 
 function usagePanelIntro(usage: ProviderUsageSummary) {
@@ -659,7 +679,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.settings-view { padding: 24px; color: #ccc; height: 100%; overflow-y: auto; box-sizing: border-box; }
+.settings-view { padding: 14px; color: #ccc; height: 100%; overflow-y: auto; box-sizing: border-box; }
 .page-title     { color: #fff; font-size: 20px; margin-bottom: 24px; }
 
 .settings-section { margin-bottom: 32px; }
@@ -677,7 +697,7 @@ onUnmounted(() => {
   border-radius: 3px;
   padding: 6px 10px;
   font-size: 13px;
-  font-family: monospace;
+  font-family: var(--tc-font-family);
   width: 100%;
 }
 
@@ -712,7 +732,7 @@ onUnmounted(() => {
 .preset-row button:hover { color: #ccc; }
 .preset-row .btn-danger:hover { border-color: #ef5350; color: #ef5350; }
 
-.empty-hint { color: #444; font-size: 12px; font-style: italic; }
+.empty-hint { color: var(--tc-text-muted); font-size: 12px; font-style: italic; }
 .availability-list { margin: 12px 0 16px; border: 1px solid #252525; border-radius: 6px; overflow: hidden; }
 .availability-head, .availability-row { display: grid; grid-template-columns: minmax(220px, 1.5fr) minmax(150px, 1fr) 150px 180px; gap: 10px; align-items: center; padding: 8px 10px; font-size: 11px; }
 .availability-head { background: #151515; color: #aaa; }
@@ -1077,6 +1097,12 @@ onUnmounted(() => {
   .provider-card { padding: 12px; }
   .provider-card-actions { width: 100%; }
   .provider-toggle { flex: 1 1 140px; justify-content: center; }
+  .availability-head,
+  .availability-row { grid-template-columns: minmax(0, 1fr); gap: 5px; }
+  .provider-card-head { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+  .preset-row { flex-wrap: wrap; }
+  .preset-name { min-width: min(120px, 100%); overflow-wrap: anywhere; }
+  .reconciliation-card__head { flex-wrap: wrap; }
   .telemetry-row,
   .telemetry-row--with-usage,
   .telemetry-row--errors {
@@ -1087,4 +1113,16 @@ onUnmounted(() => {
     flex-direction: column;
   }
 }
+.settings-view { min-width: 0; background: var(--tc-window-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.page-title { color: var(--tc-text); font-size: 18px; margin-bottom: 16px; }
+.settings-section h3 { color: var(--tc-text); border-color: var(--tc-border); }
+.hint, .form-row label { color: var(--tc-text-muted); }
+.settings-input, .provider-inline input { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); }
+.provider-card, .availability-list { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); }
+.provider-summary-card, .usage-meta-card { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); }
+.provider-summary-card span, .usage-meta-card span { color: var(--tc-text-muted); }
+.provider-summary-card strong, .usage-meta-card strong { color: var(--tc-text); font-size: 13px; }
+.provider-summary-card small, .usage-meta-card small { color: var(--tc-text-muted); }
+.availability-head { background: var(--tc-control-bg); color: var(--tc-text-muted); }
+.settings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

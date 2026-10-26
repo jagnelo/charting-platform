@@ -43,6 +43,7 @@ describe('useFavoritesStore', () => {
 
   it('adds idempotently and removes only the requested instrument', async () => {
     const store = useFavoritesStore()
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([favorite])
     ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
     ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
 
@@ -52,6 +53,152 @@ describe('useFavoritesStore', () => {
     await expect(store.remove(17)).resolves.toBe(true)
     expect(store.favorites).toEqual([])
     expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
+  })
+
+  it('preserves two chart-toggle intents while the first mutation is pending', async () => {
+    let resolveAdd!: (value: typeof favorite) => void
+    ;(api.put as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
+      resolveAdd = resolve
+    }))
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([favorite])
+
+    const store = useFavoritesStore()
+    const firstToggle = store.toggle(17)
+    const secondToggle = store.toggle(17)
+
+    await vi.waitFor(() => expect(api.put).toHaveBeenCalledTimes(1))
+    expect(api.put).toHaveBeenCalledTimes(1)
+    expect(api.delete).not.toHaveBeenCalled()
+    resolveAdd(favorite)
+
+    await expect(firstToggle).resolves.toBe(true)
+    await expect(secondToggle).resolves.toBe(true)
+    expect(api.put).toHaveBeenCalledTimes(1)
+    expect(api.delete).toHaveBeenCalledWith('/favorites/instruments/17')
+    expect(store.isFavorite(17)).toBe(false)
+  })
+
+  it('keeps pending chart toggles independent across instruments', async () => {
+    let resolveFirst!: (value: typeof favorite) => void
+    let resolveSecond!: (value: typeof favorite) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+    ;(api.put as ReturnType<typeof vi.fn>).mockImplementation((path: string) => new Promise(resolve => {
+      if (path.endsWith('/17')) resolveFirst = resolve
+      else if (path.endsWith('/18')) resolveSecond = resolve
+    }))
+
+    const store = useFavoritesStore()
+    await store.load()
+    const firstToggle = store.toggle(17)
+    const secondToggle = store.toggle(18)
+
+    await vi.waitFor(() => expect(api.put).toHaveBeenCalledTimes(2))
+    resolveSecond({ ...favorite, id: 5, instrument_id: 18 })
+    resolveFirst(favorite)
+
+    await expect(Promise.all([firstToggle, secondToggle])).resolves.toEqual([true, true])
+    expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18])
+  })
+
+  it('does not let a stale in-flight load erase a successful favorite addition', async () => {
+    let resolveLoad!: (rows: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
+      resolveLoad = resolve
+    })).mockResolvedValueOnce([favorite])
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    const load = store.load()
+    expect(store.loading).toBe(true)
+
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    resolveLoad([])
+    await load
+
+    expect(store.favorites).toEqual([favorite])
+    expect(store.isFavorite(17)).toBe(true)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('reloads the complete list when an add wins an incomplete initial load', async () => {
+    const otherFavorite = { ...favorite, id: 5, instrument_id: 18, position: 1, symbol: 'MSFT' }
+    let resolveInitialLoad!: (rows: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockImplementationOnce(() => new Promise(resolve => { resolveInitialLoad = resolve }))
+      .mockResolvedValueOnce([favorite, otherFavorite])
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    const initialLoad = store.load()
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    resolveInitialLoad([otherFavorite])
+    await initialLoad
+
+    await vi.waitFor(() => expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18]))
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('reloads the complete list after a failed initial load and a successful add', async () => {
+    const otherFavorite = { ...favorite, id: 5, instrument_id: 18, position: 1, symbol: 'MSFT' }
+    ;(api.get as ReturnType<typeof vi.fn>)
+      .mockRejectedValueOnce(new Error('initial list unavailable'))
+      .mockResolvedValueOnce([favorite, otherFavorite])
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    await store.load()
+    expect(store.loaded).toBe(false)
+    expect(store.error).toBe('initial list unavailable')
+
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    await vi.waitFor(() => expect(store.favorites.map(item => item.instrument_id)).toEqual([17, 18]))
+    expect(api.get).toHaveBeenCalledTimes(2)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('does not let a stale in-flight load restore a successfully removed favorite', async () => {
+    const otherFavorite = { ...favorite, id: 5, instrument_id: 18, position: 1, symbol: 'MSFT' }
+    let resolveLoad!: (rows: typeof favorite[]) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise(resolve => {
+      resolveLoad = resolve
+    })).mockResolvedValueOnce([otherFavorite])
+    ;(api.delete as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
+
+    const store = useFavoritesStore()
+    const load = store.load()
+    await expect(store.remove(17)).resolves.toBe(true)
+    resolveLoad([favorite, otherFavorite])
+    await load
+
+    expect(store.favorites).toEqual([otherFavorite])
+    expect(store.isFavorite(17)).toBe(false)
+    expect(store.isFavorite(18)).toBe(true)
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
+  })
+
+  it('does not surface a stale load error after a favorite mutation succeeds', async () => {
+    let rejectLoad!: (cause: Error) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementationOnce(() => new Promise((_resolve, reject) => {
+      rejectLoad = reject
+    })).mockResolvedValueOnce([favorite])
+    ;(api.put as ReturnType<typeof vi.fn>).mockResolvedValueOnce(favorite)
+
+    const store = useFavoritesStore()
+    const load = store.load()
+    await expect(store.add(17)).resolves.toEqual(favorite)
+    rejectLoad(new Error('stale load failed'))
+    await load
+
+    expect(store.error).toBe('')
+    expect(store.favorites).toEqual([favorite])
+    expect(store.loaded).toBe(true)
+    expect(store.loading).toBe(false)
   })
 
   it('does not issue requests for invalid instrument identities', async () => {

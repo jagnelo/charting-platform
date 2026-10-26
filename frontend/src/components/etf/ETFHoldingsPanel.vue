@@ -10,15 +10,30 @@
       </button>
       <div class="header-main">
         <strong>Holdings</strong>
-        <small>{{ snapshot?.etf_symbol || props.symbol }} · {{ formatDate(snapshot?.composition_date || capability?.composition_date) }}</small>
+        <small>
+          {{ snapshot?.etf_symbol || props.symbol }} ·
+          <time v-if="snapshot" data-testid="etf-stored-composition-date" :datetime="snapshot.composition_date">{{ formatDate(snapshot.composition_date) }}</time>
+          <span v-else>{{ formatDate(capability?.composition_date) }}</span>
+        </small>
       </div>
       <div class="header-meta">
         <span v-if="capability" class="capability-pill" :class="capabilityClass(capability)">
           {{ capabilityLabel(capability) }}
         </span>
+        <span data-testid="etf-stored-snapshot-label">
+          {{ snapshot ? `Stored snapshot: ${storedSnapshotLabel}` : 'No stored holdings snapshot' }}
+        </span>
+        <span
+          v-if="capability"
+          data-testid="etf-current-analysis-eligibility"
+          :aria-label="`Current analysis eligibility: ${capabilityLabel(capability)}; ${capability.usable_for_current_analysis ? 'usable' : 'not established'}`"
+        >
+          Current analysis eligibility: {{ capabilityLabel(capability) }}
+          · {{ capability.usable_for_current_analysis ? 'usable' : 'not established' }}
+        </span>
         <span>{{ snapshot?.source_provider || capability?.source_provider || 'No source' }}</span>
         <span v-if="snapshot">{{ snapshot.source_quality }}</span>
-        <span>{{ snapshot ? `${snapshot.resolved_count ?? 0}/${snapshot.row_count ?? 0} ready` : 'No current snapshot' }}</span>
+        <span>{{ snapshot ? `${snapshot.resolved_count ?? 0}/${snapshot.row_count ?? 0} ready` : 'No stored snapshot' }}</span>
       </div>
     </header>
 
@@ -32,16 +47,16 @@
         <span v-if="capability.circuit_open_until">until {{ formatDateTime(capability.circuit_open_until) }}</span>
       </div>
       <div v-if="capability && !capability.usable_for_current_analysis" class="capability-notice">
-        <strong>{{ capabilityLabel(capability) }}</strong>
-        <span>{{ capability.reason || 'Current constituent analysis is not supported for this symbol.' }}</span>
+        <strong>Current analysis eligibility: {{ capabilityLabel(capability) }}</strong>
+        <small v-if="snapshot">
+          Stored holdings remain available for inspection; they do not establish current-analysis eligibility.
+        </small>
+        <span>Capability reason (current-analysis scope): {{ capability.reason || 'Current constituent analysis is not supported for this symbol.' }}</span>
         <small v-if="capability.displayable_last_known">
           A last-known snapshot may be displayed for historical context, but it must not be treated as current.
         </small>
         <small v-if="capability.failure_class" class="capability-failure-class">
           Last check classification: {{ formatSourceFailureClass(capability.failure_class) }}
-        </small>
-        <small v-if="capability.symbol_audit?.next_action" class="capability-next-action">
-          Next source-review action: {{ capability.symbol_audit.next_action }}
         </small>
       </div>
 
@@ -53,7 +68,7 @@
         </div>
         <div>
           <span>Known at</span>
-          <b>{{ formatDateTime(snapshot?.known_at) }}</b>
+          <b><time v-if="snapshot?.known_at" :datetime="snapshot.known_at">{{ formatDateTime(snapshot.known_at) }}</time><span v-else>Unknown</span></b>
         </div>
         <div>
           <span>Needs review</span>
@@ -200,7 +215,7 @@
       </div>
       </template>
       <div v-else class="empty-state">
-        No current holdings snapshot is available for this ETF.
+        No current holdings snapshot is available for analysis. No stored holdings snapshot is available for inspection.
       </div>
     </div>
   </section>
@@ -234,6 +249,16 @@ const canaryStatusLabel = (value?: string | null) => String(value || 'unknown').
 const provenanceLabel = computed(() =>
   String(snapshot.value?.provenance || '').replace(/_/g, ' ') || '—'
 )
+const storedSnapshotLabel = computed(() => {
+  const stored = snapshot.value
+  if (!stored) return 'No stored snapshot'
+  const provenance = [stored.provenance, stored.source_quality, stored.source_provider]
+    .filter(Boolean)
+    .join(' ')
+    .replace(/[_-]+/g, ' ')
+  if (/\bcontrolled\s+fixture\b/i.test(provenance)) return 'Controlled test fixture'
+  return String(stored.provenance || stored.source_quality || 'Stored holdings snapshot').replace(/[_-]+/g, ' ')
+})
 
 const visibleHoldings = computed(() => {
   const term = filter.value.trim().toLowerCase()
@@ -486,7 +511,9 @@ watch(visibleHoldings, rows => {
 .header-meta {
   margin-left: auto;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
   min-width: 0;
   white-space: nowrap;
@@ -799,4 +826,26 @@ watch(visibleHoldings, rows => {
   }
   .holdings-row span:nth-child(n + 4) { display: none; }
 }
+
+/* Shared feature styling; values, provenance and capability colors remain semantic. */
+.etf-holdings-panel { color: var(--tc-text); font: 12px/1.35 var(--tc-font-family); background: var(--tc-window-bg); }
+.holdings-header, .holdings-row.header-row { border-color: var(--tc-border); background: var(--tc-header-bottom); color: var(--tc-text-muted); }
+.holdings-body, .holdings-table, .holding-detail { border-color: var(--tc-border); background: var(--tc-panel-bg); color: var(--tc-text); }
+.holdings-table { border-radius: var(--tc-radius); }
+.holdings-row { border-color: var(--tc-border); color: var(--tc-text); font-family: var(--tc-font-family); }
+.holdings-row b, .detail-head strong, .detail-grid b { color: var(--tc-text); }
+.holdings-row > span:nth-child(n + 3), .detail-grid b, .identifier-list dd { font-variant-numeric: tabular-nums; }
+.holdings-row > span:first-child b, .detail-head strong, .identifier-list dd { font-family: ui-monospace, "SFMono-Regular", Consolas, monospace; }
+.holdings-row small, .detail-head small, .detail-head span, .detail-grid span, .identifier-list dt { color: var(--tc-text-muted); }
+.detail-head span, .detail-grid span, .identifier-list dt { font-family: var(--tc-font-family); }
+.holdings-row:not(.header-row):hover { background: color-mix(in srgb, var(--tc-accent) 6%, var(--tc-panel-bg)); }
+.holdings-row.selected { background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); box-shadow: inset 3px 0 0 var(--tc-accent); }
+.holding-detail { border-radius: var(--tc-radius); }
+.detail-head { border-color: var(--tc-border); }
+.detail-actions button { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-accent-soft); font-family: var(--tc-font-family); }
+.detail-actions button:disabled { color: var(--tc-text-subtle); opacity: .58; cursor: not-allowed; }
+.detail-grid div, .empty-state { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-control-bg); }
+.empty-state, .resolution-note { color: var(--tc-text-muted); font-family: var(--tc-font-family); }
+.holdings-tools input, .holdings-tools select { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); font: inherit; }
+.etf-holdings-panel :is(button, input, select):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 </style>

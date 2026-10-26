@@ -389,4 +389,13 @@ function forwardAddGroup(nodeId: string, type: 'all' | 'any' | 'not') {
   color: #e5e5e5;
   font-size: 12px;
 }
+/* Shared workstation tokens for the imported rule-tree editor. */
+.group-card, .condition-card { border-color: var(--tc-border); border-radius: var(--tc-radius); background: var(--tc-panel-bg); color: var(--tc-text); }
+.group-head p, .field-label, .empty-inline { color: var(--tc-text-muted); }
+.condition-head strong, .group-head strong { color: var(--tc-text); }
+.form-select { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background-color: var(--tc-input-bg); color: var(--tc-text); }
+.builder-action, .icon-btn, .help-dot { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-control-bg); color: var(--tc-text); }
+.builder-action:hover, .builder-action--primary:hover, .icon-btn:hover { border-color: var(--tc-accent); background: color-mix(in srgb, var(--tc-accent) 10%, var(--tc-control-bg)); color: var(--tc-accent-soft); }
+.icon-btn--danger:hover { border-color: var(--tc-negative); color: var(--tc-negative); }
+.rule-node :is(button, input, select):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 1px; }
 </style>

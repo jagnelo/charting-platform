@@ -298,3 +298,364 @@ contract_ownership:
   tc:
     owns: [workstation_ui, visual_parity, tc_readiness_composition, market_map_and_breadth_consumers, python_dsl, study, strategy, compatible_artifact_promotion, tc_user_workflows]
     exclusion_rule: "TC composite readiness is derived only from explicit upstream evidence plus TC analytic requirements; stale displayable holdings are never current analysis input."
+tc_presentation_handoff:
+  authority: The goal was for, on merge/reconciliation between the all the ongoing features, the tc2000
+    one (the main, visual makeover feature) would take over, look & feel wise, and ensure the whole frontend
+    remains consistent; “The whole dashboard/UI MUST have consistent look & feel, anything else is unacceptable”.
+  owner: TC2000 is sole presentation writer; ETF, Provider and Strategy owners retain domain contracts
+    and review only.
+  source_baseline: f80995c3ed680263ca0db405d4dd03c9aafc1646
+  domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
+  domain_review_sources:
+    provider: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3
+    etf: 3b09233e7e8aa36db3217fdf65bf87b75460877d
+    strategy: e50198fa055cc3a980a491dcd572f6581b8baf13
+  domain_contract_summary: >-
+    Preserve Provider null/zero/estimated/unknown/quota/admin/credential and
+    selected-default-series semantics; do not initiate acquisition from visual
+    state. Preserve ETF IWM 1,946-row history, observation/known_at provenance,
+    unresolved identity, PIT/current denial and same-date parser-correction
+    audit semantics. Preserve Strategy owner-scoped GET-only Study inspection,
+    all ten persisted identity/digest fields, navigation/history behavior and
+    the no-native-execution boundary.
+  route_inventory:
+  - path: /login
+    entry: LoginView
+    surface: Public authentication; no signed-in navigation shell.
+  - path: /
+    entry: WorkstationView
+    surface: Authenticated TC workstation and persisted tools.
+  - path: /chart
+    entry: WorkstationView
+    surface: Authenticated workstation chart.
+  - path: /chart/:symbol(.*)
+    entry: WorkstationView
+    surface: Authenticated workstation chart by symbol.
+  - path: /popout/:windowKey
+    entry: WorkstationView
+    surface: Standalone popout; preserve popout chrome and controls.
+  - path: /study-lab
+    entry: redirect to /?tab=study-lab
+    surface: Study tool deep link into the workstation.
+  - path: /legacy/dashboard
+    entry: DashboardView
+    surface: Dashboard widgets and loading/empty/error states.
+  - path: /legacy/chart
+    entry: ChartView
+    surface: Legacy chart workflow and dialogs.
+  - path: /legacy/chart/:symbol(.*)
+    entry: ChartView
+    surface: Legacy chart by symbol.
+  - path: /legacy/alerts
+    entry: AlertsView
+    surface: Alert list/create/edit and states.
+  - path: /legacy/radar
+    entry: RadarView
+    surface: Radar filters and detail preview.
+  - path: /legacy/strategy-lab
+    entry: StrategyLabView
+    surface: Strategy Lab v1; saved artifacts and workflow.
+  - path: /legacy/strategy-lab-v2
+    entry: StrategyLabV2View
+    surface: Strategy Lab v2; immutable inspector/navigation.
+  - path: /legacy/baskets
+    entry: BasketsView
+    surface: Basket management and states.
+  - path: /legacy/etf-holdings
+    entry: ETFHoldingsView
+    surface: ETF holdings; preserve current/unavailable/PIT/lineage.
+  - path: /legacy/screener
+    entry: ScreenerView
+    surface: Screener filters, results and states.
+  - path: /legacy/watchlist
+    entry: WatchlistView
+    surface: Watchlists, tags, favorites and states.
+  - path: /legacy/settings
+    entry: SettingsView
+    surface: Settings/provider controls; preserve disabled/unknown states.
+  - path: /dashboard
+    entry: redirect to /legacy/dashboard
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /alerts
+    entry: redirect to /legacy/alerts
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /radar
+    entry: redirect to /legacy/radar
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /strategy-lab
+    entry: redirect to /legacy/strategy-lab
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /strategy-lab-v2
+    entry: redirect to /legacy/strategy-lab-v2
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /baskets
+    entry: redirect to /legacy/baskets
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /etf-holdings
+    entry: redirect to /legacy/etf-holdings
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /screener
+    entry: redirect to /legacy/screener
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /watchlist
+    entry: redirect to /legacy/watchlist
+    surface: Compatibility alias; preserve URL and behavior.
+  - path: /settings
+    entry: redirect to /legacy/settings
+    surface: Compatibility alias; preserve URL and behavior.
+  route_view_paths:
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  reachable_vue_component_paths:
+  - frontend/src/App.vue
+  - frontend/src/components/alerts/AlertForm.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
+  - frontend/src/components/chart/MultiChartLayout.vue
+  - frontend/src/components/chart/TimeframeSelector.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/HoverTooltip.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/ProvenanceHint.vue
+  - frontend/src/components/common/ResizeHandle.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/common/SparkTfSelector.vue
+  - frontend/src/components/common/Sparkline.vue
+  - frontend/src/components/common/StatusBar.vue
+  - frontend/src/components/common/TagPicker.vue
+  - frontend/src/components/common/TechnicalConditionEditor.vue
+  - frontend/src/components/common/TextPromptModal.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  - frontend/src/components/dashboard/DashboardGexWidget.vue
+  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardNotesWidget.vue
+  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardRadarWidget.vue
+  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/options/OptionsChainPanel.vue
+  - frontend/src/components/options/exposure/DexLadder.vue
+  - frontend/src/components/options/exposure/GexLadder.vue
+  - frontend/src/components/options/exposure/IvSkew.vue
+  - frontend/src/components/options/exposure/OiDistribution.vue
+  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/strategy/DistributionBars.vue
+  - frontend/src/components/strategy/ExcursionBars.vue
+  - frontend/src/components/strategy/OptimizationLeaderboard.vue
+  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  - frontend/src/components/strategy/ReturnsHeatmap.vue
+  - frontend/src/components/strategy/RunComparisonTable.vue
+  - frontend/src/components/strategy/SignalReplayBreakdown.vue
+  - frontend/src/components/strategy/StrategyCoveragePanel.vue
+  - frontend/src/components/strategy/StrategyResultChart.vue
+  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  - frontend/src/components/strategy/SweepValueInput.vue
+  - frontend/src/components/strategy/SymbolPerformanceBars.vue
+  - frontend/src/components/strategy/WalkForwardSegments.vue
+  - frontend/src/components/watchlist/WatchlistPanel.vue
+  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/ConditionGroupEditor.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyDashboard.vue
+  - frontend/src/components/workstation/StudyHeatmap.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/UnknownToolRecovery.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationGlyph.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  shell_theme_paths:
+  - frontend/src/router/index.ts
+  - frontend/src/styles/workstation-tokens.css
+  exact_adaptation_paths:
+  - frontend/src/App.vue
+  - frontend/src/components/alerts/AlertForm.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/DrawingToolbar.vue
+  - frontend/src/components/chart/IndicatorPanel.vue
+  - frontend/src/components/chart/InstrumentInfoPanel.vue
+  - frontend/src/components/chart/LayoutPicker.vue
+  - frontend/src/components/chart/MultiChartLayout.vue
+  - frontend/src/components/chart/TimeframeSelector.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/HoverTooltip.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/ProvenanceHint.vue
+  - frontend/src/components/common/ResizeHandle.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/common/SparkTfSelector.vue
+  - frontend/src/components/common/Sparkline.vue
+  - frontend/src/components/common/StatusBar.vue
+  - frontend/src/components/common/TagPicker.vue
+  - frontend/src/components/common/TechnicalConditionEditor.vue
+  - frontend/src/components/common/TextPromptModal.vue
+  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
+  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
+  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
+  - frontend/src/components/dashboard/DashboardGexWidget.vue
+  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
+  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
+  - frontend/src/components/dashboard/DashboardNotesWidget.vue
+  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
+  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
+  - frontend/src/components/dashboard/DashboardRadarWidget.vue
+  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
+  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
+  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
+  - frontend/src/components/etf/ETFHoldingsPanel.vue
+  - frontend/src/components/options/OptionsChainPanel.vue
+  - frontend/src/components/options/exposure/DexLadder.vue
+  - frontend/src/components/options/exposure/GexLadder.vue
+  - frontend/src/components/options/exposure/IvSkew.vue
+  - frontend/src/components/options/exposure/OiDistribution.vue
+  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
+  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/strategy/DistributionBars.vue
+  - frontend/src/components/strategy/ExcursionBars.vue
+  - frontend/src/components/strategy/OptimizationLeaderboard.vue
+  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
+  - frontend/src/components/strategy/ReturnsHeatmap.vue
+  - frontend/src/components/strategy/RunComparisonTable.vue
+  - frontend/src/components/strategy/SignalReplayBreakdown.vue
+  - frontend/src/components/strategy/StrategyCoveragePanel.vue
+  - frontend/src/components/strategy/StrategyResultChart.vue
+  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
+  - frontend/src/components/strategy/SweepValueInput.vue
+  - frontend/src/components/strategy/SymbolPerformanceBars.vue
+  - frontend/src/components/strategy/WalkForwardSegments.vue
+  - frontend/src/components/watchlist/WatchlistPanel.vue
+  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
+  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
+  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
+  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/ChartPlotLibrary.vue
+  - frontend/src/components/workstation/ChartTemplateControl.vue
+  - frontend/src/components/workstation/CodeLibraryTool.vue
+  - frontend/src/components/workstation/ConditionGroupEditor.vue
+  - frontend/src/components/workstation/CoverageSummaryTool.vue
+  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
+  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
+  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
+  - frontend/src/components/workstation/InstrumentAlertsTool.vue
+  - frontend/src/components/workstation/InstrumentNoteTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/PythonSourceEditor.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ResearchResultsTool.vue
+  - frontend/src/components/workstation/StudyBarsUPlot.vue
+  - frontend/src/components/workstation/StudyDashboard.vue
+  - frontend/src/components/workstation/StudyHeatmap.vue
+  - frontend/src/components/workstation/StudyHistogramUPlot.vue
+  - frontend/src/components/workstation/StudyLabTool.vue
+  - frontend/src/components/workstation/StudyRangeUPlot.vue
+  - frontend/src/components/workstation/StudyScatterUPlot.vue
+  - frontend/src/components/workstation/StudySeriesUPlot.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/UnknownToolRecovery.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationGlyph.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/router/index.ts
+  - frontend/src/styles/workstation-tokens.css
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/BasketsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/DashboardView.vue
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/views/LoginView.vue
+  - frontend/src/views/RadarView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/StrategyLabV2View.vue
+  - frontend/src/views/StrategyLabView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  boundaries:
+  - No backend/domain/provider/ETF parsing/PIT/provenance/Strategy execution changes.
+  - 'Provider: preserve server-selected/default-series reads, quota versus estimated versus unknown, null
+    versus zero, freshness and capability states; visual work must not start acquisition or expose credentials.'
+  - 'ETF: retain the 1,946-row IWM evidence, unresolved identities, source and observed knowledge times;
+    same-date parser-version churn is a correction audit, not fund turnover; current analysis remains
+    denied unless existing contracts allow it.'
+  - 'Strategy: preserve fixed-date PIT behavior, immutable Study/CodeVersion identity, inspector and Research-results
+    navigation.'
+  - Preserve route/auth/deep-link behavior, keyboard/accessibility/mobile behavior, all assertions, references,
+    masks, tolerance and zero retries; full AC1-AC9 and official V25 remain open.
+  domain_review_documents:
+  - /home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/handoff.md#ETF-holdings-UI-domain-contract-for-TC
+  - /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md#2026-10-26-Provider-domain-review-for-whole-frontend-TC2000-reconciliation
+  - /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-route-acceptance-inventory-20261026.json
