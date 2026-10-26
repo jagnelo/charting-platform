@@ -42,37 +42,56 @@ human_intent_authorization: >-
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
 human_closure_authorization: >-
-  Root accepts bounded checkpoint closure under the recorded 2026-10-20
-  standing delegation and the human's literal authorization: "Yes—approve that
-  initial scope and handle checkpoint acceptance." This accepts only the
-  bounded checkpoint, not the whole feature, staging integration, deployment,
-  or promotion.
+  Root accepts this bounded whole-frontend TC presentation checkpoint under the
+  human's standing 2026-10-20 integration delegation and recorded literal
+  authorization: "Yes—approve that initial scope and handle checkpoint acceptance."
+  Root's delegated technical acceptance is documented in
+  .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
+  (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
+  This is bounded checkpoint acceptance, not personal human visual review,
+  full V25/roadmap completion, staging integration, promotion, or deployment.
 closure_summary: |-
   integration_capture: exact branch HEAD
-  Root accepted the bounded TC2000 checkpoint on validated implementation
-  f206029f16c94e32616ccccf81f65675f224e67c after exact attempt-1 CI
-  39701994384 succeeded: Backend 3421 unit + 459 integration at 83%, Frontend
-  Unit and Branch Declared green, E2E 191 passed/110 declared skips/0 failures/
-  0 flakes/0 retry markers in 15.3 minutes; Exhaustive Feature Integration
-  Gate was an expected skip, not staging acceptance. Local functional on f206
-  passed 195 with 2 unchanged declared skips and zero retries in 23.8 minutes.
-  Strict visual 104/104 remains qualified to visual-test source
-  a7c8ecba208ce6c79d8f1a5d7294500122e462e5 with unchanged product image
-  05664729ea612d4bc27812cf86ab9fca02603880; FE coverage/build evidence is
-  likewise qualified to unchanged product inputs, not represented as f206
-  reruns. Fresh/upgrade migration compatibility was validated for 628c to 6a6e
-  migration inputs; no migration/backend product bytes changed in f206.
-  Deployment impact/defaults were not changed or newly verified; fixture-only
-  controls are not deployment evidence. The 475-path shared-contract review
-  records 350 immutable byte-verified paths and 29 narrow approved adaptations,
-  including Provider/ETF consumer dispositions. Historical failures remain
-  preserved. Full roadmap AC1-AC9 work beyond these bounded dispositions,
-  official REF-HELP-V25 parity, and broader feature acceptance remain open.
-  Provider/issuer HTTP, paid access, live provider/ETF tests, deployment and
-  promotion remain disabled or unperformed. The final closure-metadata commit
-  HEAD is to be captured by exact branch HEAD after publication; its exact-head
-  CI must be green before coordinator staging integration. Strategy release
-  remains gated on actual green TC staging.
+  Root accepted validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039
+  under the recorded human standing delegation. Acceptance receipt:
+  .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
+  (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
+  Exact profile evidence:
+  .ai/staging-attempts/tcf2d0-full-profile-green-20261026.json (SHA256
+  163726442ff7a338abe8abd4cf7b00186bf22f5ac86e8f1a0d2c11a02c381f8b).
+  This is Root-delegated technical acceptance, not personal human visual
+  review or full workstream/V25 completion.
+
+  On implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039, local functional
+  passed196 with2 existing canonical opt-in skips,0 failures/retries in21.7m;
+  strict visual passed104/104 across four profiles,0 retries in13.7m. Exact
+  attempt-1 branch CI40330168827 passed. F8y, F8y-tag-columns, F8y-combo and
+  10,000-cell Market Map passed. Assertions, references, masks,0.005 tolerance,
+  canonical trace policy and F8y60s timeout were unchanged.
+
+  Root reviewed actual route/mobile presentation and canonical /chart geometry
+  at1280x720,1920x1080 and TCClassic390x800. Candidate frontend container
+  6aa401759b64bc3995b6ba0b08114332404121017c59124805ca6996f0b2b195 used image
+  sha256:ff7c817b5d60086c345de2e729293e74227252854aaddf6a645efa0326c48994.
+  Root verified the seven other fixture services, effective retained34/52/11
+  inventory, original33/51/11 baseline, Stremio-specific endpoint receipt,
+  private85c quota/FINRA state and rollback images after both gates. Earlier
+  interrupted157a red and all prior failures remain historical evidence.
+
+  This packet changes only TC-owned records; product/test/config/reference
+  inputs remain identical to validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039.
+  No migration, backend product bytes, or deployment defaults changed or were
+  newly verified. No provider/SEC request, acquisition replay, paid/trial/native/
+  broker/capital action, target mutation, data reset or service cleanup occurred.
+  Holds remain. Private deployment, final human guide, staging integration and
+  promotion remain Root-owned and pending.
+
+  AC1-AC9 and the complete roadmap remain preserved. Broader Study/Strategy,
+  security, accessibility, endurance and operational work remains. Official
+  TC2000 REF-HELP-V25 parity is unfinished; the approved local Help reference is
+  not an official V25 reference. The two canonical opt-in cases remain skipped.
+  Final closure-record HEAD is captured by exact branch HEAD after publication;
+  its exact CI is required before Root's supported staging integration.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -86,6 +105,15 @@ human_interim_help_reference_authorization: >-
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
 current_blocker: >-
+  Root accepted the bounded whole-frontend TC presentation checkpoint on
+  implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039. Exact local functional
+  196/2 existing skips/0 failures, strict visual104/104, and attempt-1
+  CI40330168827 passed. The records-only closure HEAD still requires exact CI
+  before Root-supported staging integration. Full AC1-AC9 and official
+  REF-HELP-V25 remain open; deployment/promotion remain Root-owned and pending.
+
+  Superseded candidate notes follow as historical context and do not describe
+  the current blocker:
   Latest candidate work is a narrow mobile layout correction on published
   source 47de8ca6838be35f6d184c30b6235730aca10c0b. Root's route review found
   the legacy chart's fixed watchlist and open indicator rail consumed the
@@ -522,6 +550,16 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
+  Current 2026-10-26: Root accepted the bounded whole-frontend presentation
+  checkpoint on validated source f2d0228a491a9e5baeb4fdb048da3ed37e485039.
+  Functional196 passed with2 existing canonical opt-in skips/0 failures/0
+  retries; strict visual104/104 passed across four profiles; exact attempt-1
+  CI40330168827 is green. Root's actual route/mobile and canonical workstation
+  geometry reviews passed. The complete roadmap and official REF-HELP-V25 remain
+  open. Final records-only branch HEAD needs exact CI before Root's supported
+  staging integration; deployment/promotion remain Root-owned and pending.
+
+  Superseded checkpoint status follows as preserved historical context:
   Current 2026-10-26: exact accepted synchronized-green staging6d0 is assembled
   over the already adopted15b5 baseline with no conflicts. Its ETF
   fresh-AsyncSession eager reparse response serialization and deterministic
@@ -1239,12 +1277,12 @@ goal: "Continue the accepted TC2000 workstation checkpoint and reconcile the ent
 integration_checkpoint:
   id: tc2000-workstation-integration-1
   planning_authorization: "Human resumed the saved checkpoint objective on 2026-10-15, directing this existing session to read coordinator guidance, fix independent chart-template and functional/visual defects, then consume green Provider+ETF staging and prepare review."
-  acceptance: accepted_bounded_checkpoint_by_root_2026-10-22
+  acceptance: accepted_whole_frontend_tc_presentation_checkpoint_by_root_2026-10-26
   coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
   downstream_consumers: [human-workstation-testing, strategy-lab-v2]
   required_contracts: [provider-coverage-preflight, etf-provenance-freshness, immutable-code-study-outputs, chart-template-interactions]
-  source_freeze: "Validated implementation source is f206029f16c94e32616ccccf81f65675f224e67c. Final closure-record HEAD is captured from the exact branch HEAD after this packet is published; exact final-head CI remains required before coordinator integration."
-  continuation: "Root accepted this bounded checkpoint only. Preserve original TCP and AC text and the full roadmap. The exact closure-record branch HEAD must pass CI before coordinator-owned staging integration; no feature-branch self-integration, deployment, or promotion."
+  source_freeze: "Validated implementation source is f2d0228a491a9e5baeb4fdb048da3ed37e485039. Final closure-record HEAD is captured from exact branch HEAD after publication; its exact CI is required before Root-supported staging integration."
+  continuation: "Root accepted this bounded whole-frontend presentation checkpoint only. Preserve original TCP and AC text and the full roadmap. Exact records-only closure HEAD CI remains required before Root-supported staging integration; no feature-branch self-integration, deployment, or promotion."
   original_criteria_disposition:
     AC1: {status: bounded_checkpoint_delivered, owner: TC, delivered: "475-path ownership manifest; 350 immutable paths byte-verified and 29 narrow adaptations", remainder: "Continue ownership enforcement and whole-roadmap review"}
     AC2: {status: consumer_contract_delivered, owner: TC, delivered: "Provider staging consumer contract from accepted 628c reconciliation", remainder: "Broader feature acceptance and future upstream contract changes"}
@@ -1253,7 +1291,7 @@ integration_checkpoint:
     AC5: {status: partial_roadmap_open, owner: TC, delivered: "Existing immutable Study/Strategy consumers preserved and validated within delivered scope", remainder: "Broader engine, promotion, lineage and combined-consumer roadmap"}
     AC6: {status: partial_roadmap_open, owner: TC, delivered: "Bounded interaction and strict visual evidence without changing protected references or thresholds", remainder: "Official REF-HELP-V25 parity and broader V25 visual/state parity"}
     AC7: {status: partial_roadmap_open, owner: TC, delivered: "Qualified functional, strict visual, performance, sandbox, migration and CI evidence", remainder: "Whole-roadmap security, accessibility, endurance and broader operational evidence"}
-    AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact CI39701994384 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
+    AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact implementation CI40330168827 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
     AC9: {status: delegated_bounded_checkpoint_closure_only, owner: TC, delivered: "Clean synchronized branch and bounded checkpoint packet under recorded 2026-10-20 delegation", remainder: "Whole-roadmap review remains open; no direct merge, staging mutation, deployment or promotion"}
 acceptance_criteria:
   - {id: TCP1, text: "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."}
@@ -2713,18 +2751,16 @@ branch_tests_reason: "The branch-declared job is intentionally stack-free: it ru
 live_test_impact: "Authenticated workstation evidence may be required. Upstream live provider/ETF evidence remains owner-supplied; TC uses bounded consumer probes only and never exposes or invents credentials."
 migration_impact: "No generic provider or ETF schema/migration work is owned here. Add TC-specific schema only when necessary for workstation or Study/Strategy behavior, with migration and rollback evidence."
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
-status: in_progress
+status: ready_for_integration
 progress:
-  completed: [TCP1, TCP2]
+  completed: [TCP1, TCP2, TCP3, TCP4, TCP5, TCV1]
   total: 6
-  current_phase: "whole_frontend_candidate157a_shared_application_root_height;focused_6_tests_and_vue_typecheck_vite_build_passed;source_rendered_chart_geometry_exact_CI_and_full_matrices_pending"
+  current_phase: "Root-accepted bounded whole-frontend presentation checkpoint on f2d0228a491a9e5baeb4fdb048da3ed37e485039; exact closure-record HEAD CI and Root-supported staging integration remain pending"
   next_action: >-
-    Publish this exact App root-height repair and owned evidence once after
-    scope/workstream checks. Prepare a source-pinned frontend-only updater for
-    the current157a fixture, then obtain Root's rendered canonical /chart dock
-    proof at1280x720,1920x1080 and390x800 before any full functional/104 visual
-    rerun. Preserve F8y60s/zero retries, all assertions/references/masks/0.005,
-    AC1-AC9, official V25 and the complete roadmap.
+    Publish the coherent records-only checkpoint packet, then preserve the exact
+    resulting branch HEAD and await its normal exact-source CI before Root
+    performs supported staging integration. Keep the broader roadmap, official
+    V25 parity, target/deployment and all operational holds open.
 
     Historical next-action records follow unchanged:
     Historical next-action record follows unchanged, superseded only for the

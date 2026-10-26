@@ -40,33 +40,26 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact published157a source CI40325838393 was running when Root stopped the local matrix; it qualifies only157a and may reproduce the same layout failure. The one local functional attempt on157a ended after Root's targeted stop:12 failed at helpers.ts:416 `.workspace-layout-host` visibility (F3/F5 and ten chart flows),3 passed,1 interrupted,182 not run,3.8m,exit130/noOOM; wait/log0 and owned browser removed after exit. Post-stop effective34/52/11, all-eight-fixture, image and rollback checks passed. The current candidate is an App root-height repair: permanent `tc-application-root` with height100% and a mounted chart/popout/legacy root-mode regression (source+test patch SHA256 f07780bdfb077dbfa83d9bbf0378d835258bfb5ff2eca29d7b7a580b8752add5). App-shell tests passed6/6; npm run build passed Vue typecheck/Vite (530 modules,13.28s). This new source has not been browser-tested; the published157a frontend remains in the owned fixture.",
-  "current_checkpoint_status": "Exact published157a source CI40325838393 was running when Root stopped the local matrix; it qualifies only157a and may reproduce the same layout failure. The one local functional attempt on157a ended after Root's targeted stop:12 failed at helpers.ts:416 `.workspace-layout-host` visibility (F3/F5 and ten chart flows),3 passed,1 interrupted,182 not run,3.8m,exit130/noOOM; wait/log0 and owned browser removed after exit. Post-stop effective34/52/11, all-eight-fixture, image and rollback checks passed. The current candidate is an App root-height repair: permanent `tc-application-root` with height100% and a mounted chart/popout/legacy root-mode regression (source+test patch SHA256 f07780bdfb077dbfa83d9bbf0378d835258bfb5ff2eca29d7b7a580b8752add5). App-shell tests passed6/6; npm run build passed Vue typecheck/Vite (530 modules,13.28s). This new source has not been browser-tested; the published157a frontend remains in the owned fixture. No visual matrix ran. No readiness helper/assertion/timeout/reference/mask/tolerance/retry, backend, data, provider, SEC, or retained-service behavior changed. Whole-frontend acceptance, F8y60s/zero retries, AC1-AC9, official V25 and full roadmap remain open.",
+  "current_candidate_ci_status": "Exact published implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039 CI40330168827 is terminal success. Root accepted the bounded checkpoint after functional196/2 existing canonical opt-in skips/0 failures and strict visual104/104. This describes the validated implementation; final record-only closure commit still requires its own exact branch CI.",
+  "current_checkpoint_status": "Root accepted the bounded whole-frontend TC presentation checkpoint under recorded standing human delegation. Functional196/2 existing skips/0 failures, strict visual104/104, exact implementation CI40330168827 green, actual route/mobile and canonical workstation geometry reviewed. Full AC1-AC9 roadmap and official V25 remain open. Final metadata HEAD CI and Root-owned staging integration pending.",
   "current_exact_ci": {
+    "run_id": 40330168827,
+    "head_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+    "status": "completed",
     "conclusion": "success",
-    "head_sha": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
+    "attempt": 1,
     "jobs": {
       "backend": "success",
+      "frontend_unit": "success",
       "branch_declared": "success",
       "e2e": "success",
-      "exhaustive_integration_gate": "policy_skipped_on_feature_CI",
-      "frontend_unit": "success"
+      "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
     },
-    "run_id": 40304902034,
-    "status": "Exact published parent source 85c053b5466a0dee7d938a8f2d987ce0df4f7730 CI40304902034 is terminal green. This receipt qualifies only that parent; it does not qualify the current presentation correction candidate.",
-    "visuals": "85c route-review evidence identified gaps and is not whole-frontend acceptance. No full functional or strict-visual matrix has run on the current correction candidate. Preserve the original references, masks, 0.005 tolerance, zero retries, and F8y as open."
+    "scope": "Exact validated whole-frontend implementation f2d0228a only; not final record-only closure HEAD or staging acceptance.",
+    "functional": "196 passed, 2 existing canonical opt-in cases skipped, 0 failed, 0 retries; F8y flows passed.",
+    "visuals": "Strict visual104/104 across four profiles passed; original references/masks/0.005 and zero retries unchanged."
   },
-  "dirty_paths": [
-    "frontend/src/components/watchlist/WatchlistPanel.vue",
-    "frontend/src/views/ChartView.vue",
-    "frontend/src/views/ETFHoldingsView.vue",
-    "frontend/tests/unit/components/test_watchlist_panel.test.ts",
-    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -147,10 +140,10 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "47de8ca6838be35f6d184c30b6235730aca10c0b",
-  "implementation_sha": "f206029f16c94e32616ccccf81f65675f224e67c",
+  "head": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+  "implementation_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
   "integration_checkpoint": {
-    "acceptance": "accepted_bounded_checkpoint_by_root_2026-10-22",
+    "acceptance": "accepted_whole_frontend_tc_presentation_checkpoint_by_root_2026-10-26",
     "adopted_staging_ci": 39866387942,
     "adopted_staging_sha": "4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad",
     "coordinator_guidance": "/home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md",
@@ -158,23 +151,24 @@
     "roadmap_preserved_in": "plan.yaml:roadmap_goal,roadmap_acceptance_criteria"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-26T10:04:00Z",
+  "last_checkpoint": "2026-10-26T14:44:29Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
-    "attempt": 1,
+    "run_id": 40330168827,
+    "head_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+    "status": "completed",
     "conclusion": "success",
-    "e2e_summary": "Exact published source f80995c3ed680263ca0db405d4dd03c9aafc1646 CI40287957823 completed green for Backend, Frontend Unit, Branch-declared and E2E; Exhaustive Integration Gate was skipped by feature-CI policy. This receipt predates and does not qualify the current dirty whole-frontend presentation candidate.",
-    "head_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
+    "attempt": 1,
     "jobs": {
       "backend": "success",
+      "frontend_unit": "success",
       "branch_declared": "success",
       "e2e": "success",
-      "exhaustive_integration_gate": "policy_skipped_on_feature_CI",
-      "frontend_unit": "success"
+      "exhaustive_integration_gate": "policy_skipped_on_feature_CI"
     },
-    "run_id": 40287957823,
-    "scope": "Exact published f809 source only; feature Exhaustive Integration Gate was an expected policy skip. Current dirty presentation edits have no exact CI yet.",
-    "visuals": "No full local profile or strict visual result is established for the current dirty candidate; F8y remains unproven."
+    "scope": "Exact implementation f2d0228a; final four-record closure HEAD requires its own exact-source CI; no staging/EIG acceptance is claimed.",
+    "functional": "196 passed, 2 existing canonical opt-in cases skipped, 0 failed, 0 retries; F8y flows passed.",
+    "visuals": "Strict visual104/104 across four profiles passed; original references/masks/0.005 and zero retries unchanged."
   },
   "latest_staging_adoption": {
     "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json",
@@ -193,7 +187,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the App root-height correction and owned records once after checks, then prepare a source-pinned frontend-only update on the existing157a fixture. Root must prove actual canonical /chart dock and chart controls at1280x720,1920x1080 and390x800 before releasing full functional and104 strict-visual matrices.",
+  "next_action": "Publish this four-record closure packet once to the existing TC branch; inspect the exact automatically triggered closure-head CI. On green, Root performs supported staging integration. Keep the full AC1-AC9 roadmap and official V25 work open.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -206,7 +200,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "5fba7ff87ee7f81b2e94a1321adb99cb728a5ebabd889729f25097caeb9e3bce",
+  "plan_hash": "7ba1ef1d2844d34ba8c5f33a1b23d275b9616827c53c2aca524a411cbb6dd5e5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -221,27 +215,27 @@
   "progress": {
     "completed": [
       "TCP1",
-      "TCP2"
+      "TCP2",
+      "TCP3",
+      "TCP4",
+      "TCP5",
+      "TCV1"
     ],
-    "current_blocker": "Exact published157a source CI40325838393 was running when Root stopped the local matrix; it qualifies only157a and may reproduce the same layout failure. The one local functional attempt on157a ended after Root's targeted stop:12 failed at helpers.ts:416 `.workspace-layout-host` visibility (F3/F5 and ten chart flows),3 passed,1 interrupted,182 not run,3.8m,exit130/noOOM; wait/log0 and owned browser removed after exit. Post-stop effective34/52/11, all-eight-fixture, image and rollback checks passed. The current candidate is an App root-height repair: permanent `tc-application-root` with height100% and a mounted chart/popout/legacy root-mode regression (source+test patch SHA256 f07780bdfb077dbfa83d9bbf0378d835258bfb5ff2eca29d7b7a580b8752add5). App-shell tests passed6/6; npm run build passed Vue typecheck/Vite (530 modules,13.28s). This new source has not been browser-tested; the published157a frontend remains in the owned fixture. No visual matrix ran. No readiness helper/assertion/timeout/reference/mask/tolerance/retry, backend, data, provider, SEC, or retained-service behavior changed. Whole-frontend acceptance, F8y60s/zero retries, AC1-AC9, official V25 and full roadmap remain open.",
-    "current_phase": "157a_functional_layout_red_preserved;App_root_height_fix_focused_6_and_build_green;source_geometry_and_full_matrices_pending",
-    "next_action": "Publish the App root-height correction and owned records once after checks, then prepare a source-pinned frontend-only update on the existing157a fixture. Root must prove actual canonical /chart dock and chart controls at1280x720,1920x1080 and390x800 before releasing full functional and104 strict-visual matrices.",
     "total": 6,
-    "updated_at": "2026-10-26T13:20:38Z"
+    "current_phase": "root_accepted_bounded_whole_frontend_presentation_checkpoint_f2d; final_record_head_ci_and_root_staging_integration_pending; full_roadmap_open",
+    "current_blocker": "No implementation blocker. Final record-only branch HEAD CI is required before Root-owned staging integration; broader AC1-AC9 and official V25 remain unfinished.",
+    "next_action": "Publish this four-record closure packet once to the existing TC branch; inspect the exact automatically triggered closure-head CI. On green, Root performs supported staging integration. Keep the full AC1-AC9 roadmap and official V25 work open.",
+    "updated_at": "2026-10-26T14:50:00Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "command": "rtk git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "47de8ca6838be35f6d184c30b6235730aca10c0b",
-    "current_pending_range": "This source candidate applies the reviewed compact mobile layout correction on published base47de8ca6838be35f6d184c30b6235730aca10c0b. Exact candidate CI, rendered route geometry, and the full functional/strict-visual profile remain pending.",
-    "failure_category": null,
-    "head_at_product_checkpoint": "9e2fb9605619553e4dbae2e467351a977e2bc38d",
-    "last_attempted_local_head": "13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "last_attempted_range": "5da1dab3fb448165dced330c8bf61eecfcdc8aea..13ee184268ab8ef2b144241a05ecc30e16c1a1a7",
-    "range_at_product_checkpoint": "b03a99b15ae763a435fe8cc881bf19bfddcd7221..9e2fb9605619553e4dbae2e467351a977e2bc38d",
     "remote": "origin",
-    "remote_tracking_sha": "85c053b5466a0dee7d938a8f2d987ce0df4f7730",
-    "status": "Parent85c is clean and published before this correction packet; one coherent candidate commit/push remains after scoped checks. Exact candidate CI is pending."
+    "command": "rtk proxy git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
+    "current_local_head": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+    "current_pending_range": "Validated implementation f2d0228a; next commit contains only this accepted closure packet in the four TC-owned records.",
+    "failure_category": null,
+    "remote_tracking_sha": "f2d0228a491a9e5baeb4fdb048da3ed37e485039",
+    "status": "The validated implementation was clean and synchronized at f2d. Publish the bounded record-only closure packet once; its exact resulting branch HEAD requires CI before Root integrates."
   },
   "remote": "47de8ca6838be35f6d184c30b6235730aca10c0b",
   "remote_sha": "47de8ca6838be35f6d184c30b6235730aca10c0b",
