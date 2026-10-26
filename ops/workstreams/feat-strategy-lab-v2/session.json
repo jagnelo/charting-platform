@@ -36,8 +36,25 @@
   },
   "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-strategy-lab-v2-7794d9e5",
+      "charting-stack-feat-strategy-lab-v2-7794d9e5"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
   "docker_ready": {
     "ready": true,
@@ -67,14 +84,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "36e54d508963fd7709e80be53bc5a35c23e03ee8",
-  "implementation_sha": "6d0a85da34ba276bca69c82a932a0602e783d7a1",
-  "last_checkpoint": "2026-10-26T08:34:05Z",
+  "head": "b2fd76cf8aa32a01eae74385112f28d68ed6895c",
+  "implementation_sha": "b2fd76cf8aa32a01eae74385112f28d68ed6895c",
+  "last_checkpoint": "2026-10-26T17:42:44Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Deliver the Strategy/Study presentation and immutable-lineage contract inventory to the TC2000 single writer for whole-frontend reconciliation; Strategy must not edit presentation paths or create a parallel theme. After TC's presentation pass and Root's release of the source boundary, resume the original AC-UPSTREAM combined-consumer roadmap with accepted Provider/ETF/TC contracts. Do not repeat SEC acquisition or spend provider quota. Root owns full local/CI/staging/master gates, deployment and target acceptance. Keep the full 18-criterion roadmap and all native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe scopes open or held.",
   "parent_branch": "staging",
-  "plan_hash": "78f87d83cfd74744890dd903301955cbb9d6d750bbc234660398064f265556f8",
+  "plan_hash": "f9ae494d306ae518d3ae7b02113f6e747fa5c76fd7232aee9b47bfaf52bcde18",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -104,15 +121,15 @@
       "FH4",
       "FH5"
     ],
-    "current_blocker": "Strategy source 36e54d508963fd7709e80be53bc5a35c23e03ee8 is published and synchronized with its own feature origin; exact adoption CI 40287903173 completed successfully (Frontend Unit Tests, Backend Tests, Branch-declared Tests and E2E Playwright succeeded; Exhaustive Integration Gate was skipped by feature-branch policy). The normal assigned-worktree preflight passed its context check but its bounded local Docker readiness probe recorded permission denied and started no services. The binding whole-frontend TC2000 presentation requirement remains unresolved. TC is the sole presentation writer; Strategy's current action is to hand off the concrete Study/Results and V2 immutable-lineage contract for TC review. Root owns final source integration, full gates, deployment and target acceptance. The 6d0 deployment is a functional baseline, not final whole-frontend acceptance. Preserve the consumed 119-request history, datasets, quotas, provider holds and disabled paid/trial/native/forward/broker/capital scopes. All 18 roadmap criteria remain open; the original native worker goal remains historically blocked and this review did not resume or re-account it.",
+    "current_blocker": "Exact accepted TC2000 whole-frontend staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92 is adopted as local merge b2fd76cf8aa32a01eae74385112f28d68ed6895c, preserving Strategy's published review and append-only evidence. Canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde) and exact staging CI 40351346928 are green; Branch-declared Tests was skipped by feature policy. Live origin/staging matched 02a7bae. All imported tracked bytes match staging except the four inventoried Strategy- owned workstream records. The Strategy exact-source CI after this adoption remains pending publication; no local full profile/browser matrix was run. Whole-frontend implementation is in accepted staging, but final target/deployment acceptance remains Root-owned. Preserve the original FH1-FH5 checkpoint history, full 18-criterion roadmap, 119-request history, datasets, quotas/provider holds and disabled paid/trial/native/forward/broker/capital scopes. The original native worker goal remains historically blocked; this adoption did not resume or re-account it.",
     "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
-    "next_action": "Deliver the Strategy/Study presentation and immutable-lineage contract inventory to the TC2000 single writer for whole-frontend reconciliation; Strategy must not edit presentation paths or create a parallel theme. After TC's presentation pass and Root's release of the source boundary, resume the original AC-UPSTREAM combined-consumer roadmap with accepted Provider/ETF/TC contracts. Do not repeat SEC acquisition or spend provider quota. Root owns full local/CI/staging/master gates, deployment and target acceptance. Keep the full 18-criterion roadmap and all native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe scopes open or held.",
+    "next_action": "Publish this exact adoption to the existing Strategy origin and inspect the resulting branch CI; do not claim it green before its terminal result is verified. Reuse 02a staging evidence only for imported byte-identical behavior and do not rerun the local full profile/browser matrix. After exact branch qualification and Root's release of this adoption checkpoint, resume the original AC-UPSTREAM combined-consumer roadmap across Provider canonical series/coverage/admission, ETF PIT identity and TC immutable CodeVersion/Study outputs. Root owns protected staging/master, deployment and target acceptance. Do not repeat SEC/IWM acquisition or spend provider quota. Keep all 18 criteria and native/RC6, forward, broker, capital, paid/trial, provider/quota, unknown and unsafe scopes open or held.",
     "total": 5,
-    "updated_at": "2026-10-26T08:34:05Z"
+    "updated_at": "2026-10-26T17:42:44Z"
   },
-  "remote": "36e54d508963fd7709e80be53bc5a35c23e03ee8",
-  "remote_sha": "36e54d508963fd7709e80be53bc5a35c23e03ee8",
-  "remote_synchronized": true,
+  "remote": "e50198fa055cc3a980a491dcd572f6581b8baf13",
+  "remote_sha": "e50198fa055cc3a980a491dcd572f6581b8baf13",
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",

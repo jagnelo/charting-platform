@@ -69,14 +69,13 @@ integration_checkpoint:
       preserve the existing live CI without rerun/cancellation. Root performs actual deployed
       positive/negative acceptance only after source qualification.
     - >-
-      Whole-frontend visual consistency is a binding unresolved release requirement. TC2000 is the
-      single writer for the shared shell/navigation/theme and every reachable route. Strategy's
-      review contract covers normal completed Study output navigation into the read-only V2
-      inspector, immutable owner-scoped lineage and persisted-result behavior only; it does not
-      qualify native execution. Acceptance must verify all route aliases/deep links, including the
-      Strategy routes, no legacy-shell leakage, and unchanged domain/accessibility behavior under
-      the full existing oracles. Keep the 6d0 deployed functional baseline distinct from final
-      whole-frontend acceptance.
+      Whole-frontend visual consistency is a binding requirement, and accepted staging 02a7bae now
+      carries the TC2000 shared shell/navigation/theme across reachable routes, including Strategy
+      Lab v1/v2 and Study handoffs. TC remains the sole presentation owner. Strategy's review
+      contract covers the normal completed Study-output path, immutable owner-scoped lineage and
+      persisted-result behavior only; it does not qualify native execution. This branch still needs
+      its own exact-source CI after adoption, and Root owns final deployment/target acceptance. Keep
+      the earlier 6d0 deployment distinct from the later accepted whole-frontend source.
   prerequisite_source_commits:
     - sha: 344f87f835f392bd103c20db2044aa0de72148df
       scope: Persisted Study payload and immutable-reference validation shape.
@@ -118,6 +117,23 @@ integration_checkpoint:
     exists. The exact merge preserves the imported ETF record bytes. SEC acquisition remains
     coordinator-owned and pending; the consumed 119-request history and all provider/data/quota
     holds are unchanged.
+    On 2026-10-26 exact staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92 was verified green and
+    adopted as local merge b2fd76cf8aa32a01eae74385112f28d68ed6895c, with first parent
+    e50198fa055cc3a980a491dcd572f6581b8baf13 and second parent 02a7bae. Canonical reconciled-green
+    receipt /home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json
+    (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde), hosted CI 40351346928.
+    Backend, Frontend, E2E and Exhaustive Integration Gate succeeded; Branch-declared Tests was
+    skipped by feature-branch policy. Direct origin/staging matched 02a7bae. The release delta from
+    common base 6d0 contains 71 paths. The merge had no conflicts. Full tracked-tree comparison
+    against exact 02a7bae found differences only in the four Strategy-owned handoff/plan/session/
+    validation files; imported application/backend/test/configuration and TC-owned records/manifests
+    match staging byte-for-byte. No Strategy-specific frozen import manifest existed or was
+    required because the exact tree comparison is the scope proof; TC-owned manifests/receipts remain
+    as released. The imported App shell, route/navigation, Strategy V1/V2 presentation and workstation
+    components were reviewed; V2 immutable-reference request/domain behavior is unchanged. Relevant
+    route, Study and Results consumers are covered by the exact green staging CI. No local profile or
+    browser rerun occurred. This is an adoption checkpoint, not final target/deployment acceptance or
+    full-roadmap completion; exact Strategy branch CI remains pending.
     On 2026-10-26 this branch adopted exact green staging 15b5c22f0e689c973ee82d152d4bbad6125bf993 as local merge b3704a96f3c03c91e99fb33ac55480f9497fefe4, using canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json and CI 40241357259. The ten ETF delta paths are byte-identical to the 15b tree and contain the accepted retained-IWM percentage, equity/right, and offline append-only reparse correction; no Strategy source consumer changed and no Strategy-specific import manifest exists. Genuine SEC acquisition is not repeated. TC unreleased frontend/tag/date-sort/favorites changes remain outside this release. Root owns the target correction/UI acceptance and independent master gate; push is held until that gate passes. No tests or runtime actions were run.
   original_criterion_dispositions:
     - id: AC-DOMAIN
@@ -997,29 +1013,30 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: ready_for_integration
   current_blocker: >-
-    Strategy source 36e54d508963fd7709e80be53bc5a35c23e03ee8 is published and synchronized with its
-    own feature origin; exact adoption CI 40287903173 completed successfully (Frontend Unit Tests,
-    Backend Tests, Branch-declared Tests and E2E Playwright succeeded; Exhaustive Integration Gate
-    was skipped by feature-branch policy). The normal assigned-worktree preflight passed its context
-    check but its bounded local Docker readiness probe recorded permission denied and started no
-    services. The binding whole-frontend TC2000 presentation requirement remains unresolved. TC is
-    the sole presentation writer; Strategy's current action is to hand off the concrete Study/Results
-    and V2 immutable-lineage contract for TC review. Root owns final source integration, full gates,
-    deployment and target acceptance. The 6d0 deployment is a functional baseline, not final
-    whole-frontend acceptance. Preserve the consumed 119-request history, datasets, quotas, provider
-    holds and disabled paid/trial/native/forward/broker/capital scopes. All 18 roadmap criteria
-    remain open; the original native worker goal remains historically blocked and this review did
-    not resume or re-account it.
-  updated_at: "2026-10-26T08:34:05Z"
+    Exact accepted TC2000 whole-frontend staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92 is
+    adopted as local merge b2fd76cf8aa32a01eae74385112f28d68ed6895c, preserving Strategy's published
+    review and append-only evidence. Canonical receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json
+    (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde) and exact staging CI
+    40351346928 are green; Branch-declared Tests was skipped by feature policy. Live origin/staging
+    matched 02a7bae. All imported tracked bytes match staging except the four inventoried Strategy-
+    owned workstream records. The Strategy exact-source CI after this adoption remains pending
+    publication; no local full profile/browser matrix was run. Whole-frontend implementation is in
+    accepted staging, but final target/deployment acceptance remains Root-owned. Preserve the
+    original FH1-FH5 checkpoint history, full 18-criterion roadmap, 119-request history, datasets,
+    quotas/provider holds and disabled paid/trial/native/forward/broker/capital scopes. The original
+    native worker goal remains historically blocked; this adoption did not resume or re-account it.
+  updated_at: "2026-10-26T17:42:44Z"
   next_action: >-
-    Deliver this Strategy/Study presentation and immutable-lineage contract inventory to the TC2000
-    single writer for whole-frontend reconciliation; Strategy must not edit presentation paths or
-    create a parallel theme. After TC's presentation pass and Root's release of the source boundary,
-    resume the original AC-UPSTREAM combined-consumer roadmap with accepted Provider/ETF/TC
-    contracts. Do not repeat SEC acquisition or spend provider quota. Root owns full local/CI/staging/
-    master gates, deployment and target acceptance. Keep the full 18-criterion roadmap and all
-    native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe scopes open
-    or held.
+    Publish this exact adoption to the existing Strategy origin and inspect the resulting branch CI;
+    do not claim it green before its terminal result is verified. Reuse 02a staging evidence only for
+    imported byte-identical behavior and do not rerun the local full profile/browser matrix. After
+    exact branch qualification and Root's release of this adoption checkpoint, resume the original
+    AC-UPSTREAM combined-consumer roadmap across Provider canonical series/coverage/admission, ETF
+    PIT identity and TC immutable CodeVersion/Study outputs. Root owns protected staging/master,
+    deployment and target acceptance. Do not repeat SEC/IWM acquisition or spend provider quota.
+    Keep all 18 criteria and native/RC6, forward, broker, capital, paid/trial, provider/quota, unknown
+    and unsafe scopes open or held.
 
 branch: feat/strategy-lab-v2
 base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35

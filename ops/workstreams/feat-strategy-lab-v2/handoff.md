@@ -19405,3 +19405,54 @@ probe recorded permission denied and launched no services. No tests or fixtures 
 review. TC owns the next presentation implementation; Strategy's next roadmap action after the
 handoff/release is the original AC-UPSTREAM combined-consumer qualification. Full local profile,
 whole-frontend acceptance, target acceptance and the remaining roadmap stay open.
+
+### Accepted whole-frontend staging adoption (2026-10-26)
+
+The existing Strategy branch started this adoption at clean/published source
+`e50198fa055cc3a980a491dcd572f6581b8baf13`. The same worktree and claim
+`02d5ffaa-53b5-4dec-b39c-0f36612b5436` were verified with `make agent-context` and
+`make agent-session-status`; no new claim or takeover was created. The canonical session-start action
+was not used because this worktree already has that active claim. No other worktree was touched.
+
+Before mutation, direct `origin/staging` verification matched exact
+`02a7bae34c2aed145b9e46137ef3b8f041de4d92`. Canonical green receipt:
+`/home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json`, SHA256
+`fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde`; linked staging CI
+`40351346928` is terminal green on the exact SHA (Backend, Frontend, E2E and Exhaustive Integration
+Gate passed; Branch-declared Tests was skipped under feature policy). The prior degraded interrupted
+watch receipt remains historical; the later canonical receipt explicitly reconciles it.
+
+Only this exact staging commit was merged, as `b2fd76cf8aa32a01eae74385112f28d68ed6895c`, with
+first parent `e50198fa055cc3a980a491dcd572f6581b8baf13` and second parent 02a. The merge had no
+conflicts. It imports the accepted TC2000 whole-frontend shell/navigation/theme and presentation
+across the workstation, ETF, V1/V2 Strategy routes, legacy aliases and shared tools. In the affected
+Strategy surfaces, `App.vue` replaces the old `/legacy/` sidebar shell with TC shared navigation;
+`router/index.ts` adds shared-shell active-route helpers without changing route paths or redirects;
+`StrategyLabView.vue` and `StrategyLabV2View.vue` receive TC presentation tokens/styles; V2's
+read-only selected-Study request/domain logic is unchanged. `ResearchResultsTool.vue` retains its
+completed-Study-only “Inspect in Strategy Lab v2” link and persisted run/artifact query IDs. TC's
+`WorkstationToolContent.vue` also carries accepted watchlist/date-sort/tag/favorites work and tests;
+these are imported from the accepted release, not Strategy-authored changes.
+
+Scope proof: exact Git tree comparison of the merge commit against staging 02a found differences
+only in the four Strategy-owned `handoff.md`, `plan.yaml`, `session.json`, and append-only
+`validation.jsonl` files. All other tracked blobs, including frontend/backend/tests/configuration and
+the TC workstream's own manifests/receipts, are byte-identical to accepted staging. There is no
+Strategy-specific frozen-import manifest or validator in this workstream; the complete tree equality
+check is the immutable import proof, so no duplicate manifest was invented. All four Strategy
+records and pre-existing evidence remain preserved.
+
+Relevant behavior qualification is reused from exact staging CI 40351346928 because the imported
+application and test blobs match that source. In particular, the staged route/shell tests and the
+existing Study, Results and V2 inspector tests passed as part of that run. No local test, browser
+matrix, Docker fixture or runtime action was started. The exact Strategy branch CI after this merge
+is a separate required gate and remains pending; no fresh local full profile or branch
+green is claimed. The earlier 6d0 deployment remains only a functional baseline. Root owns protected
+integration/master, private deployment and final target acceptance. This adoption closes no new
+roadmap criterion: the accepted FH1-FH5 source-checkpoint history remains distinct, all 18 original
+criteria remain open, and native/forward/broker/capital/paid/trial/unsafe operations remain disabled.
+
+Next: publish this adoption and inspect its exact branch CI. After exact branch qualification and
+Root's release, continue AC-UPSTREAM combined-consumer qualification across Provider canonical
+series/coverage/admission, ETF PIT identity and TC immutable CodeVersion/Study outputs. Do not replay
+SEC/IWM acquisition or mutate provider/quota history.
