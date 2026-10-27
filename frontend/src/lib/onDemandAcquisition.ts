@@ -106,8 +106,8 @@ export const HISTORY_TIMEFRAME_SECONDS: Record<Timeframe, number> = {
   MN: 2592000,
 }
 
-// Consumer-side conservative lookbacks: all defaults fit the Provider's
-// inclusive 2,000-slot ceiling and stay within Massive's public two-year window.
+// Conservative application defaults fit the inclusive slot budget. Provider-
+// specific history coverage and entitlement limits remain backend-owned.
 export const HISTORY_RANGE_LIMIT_DAYS: Record<Timeframe, number> = {
   M1: 1,
   M5: 6,

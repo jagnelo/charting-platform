@@ -24891,10 +24891,11 @@ both endpoints counted and a hard maximum of2,000. The consumer now mirrors
 that map for M1/M5/M15/M30/H1/H2/H4/H12/D1/W1/MN and rejects any range above
 the inclusive-slot ceiling in addition to its per-timeframe day cap. Defaults
 are M1=1d, M5=6d, M15=20d, M30=30d, H1=60d, H2/H4/H12=90d, D1=180d and
-W1/MN=700d; each computes to <=2,000 slots. W1/MN no longer default beyond the
-public two-year Massive free-history window. Source-specific missing coverage
-may still produce a held or partial outcome; advanced-range copy makes that
-limit clear and cached chart data remains available.
+W1/MN=700d; each computes to <=2,000 slots. These are conservative application
+defaults, not a claim about a provider's availability or entitlement. Backend
+APIs own those decisions; source-specific missing coverage may still produce a
+held or partial outcome. Advanced-range copy makes that limit clear and cached
+chart data remains available.
 
 Boundary tests pin the full timeframe-seconds map, calculate the slot count
 for every default, and distinguish exactly2,000 slots from2,001. The six
@@ -24904,3 +24905,15 @@ advisory). No Provider/ETF source was imported or executed; no provider/SEC
 call, fixture, service, dataset or quota operation occurred. Exact-source CI,
 producer staging/runtime qualification and full functional/visual profiles
 remain pending; the previous 99-test record is historical and unchanged.
+
+### Provider boundary correction — 2026-10-27
+
+Exact CI40520454281 on source a47329aec5e440743faa55e57425a4b6fcd94720
+failed only the unchanged frontend provider-boundary test because a source
+comment named a provider. The comment now describes the limits as conservative
+application defaults and leaves source-specific coverage/entitlement to backend
+APIs. The boundary test passed unchanged (1/1) against this correction. The
+prior 101/101 focused tests and successful frontend build remain evidence for
+the unchanged behavior; this comment-only source correction has not yet passed
+its own exact-source CI. No producer source/runtime, provider/SEC request,
+fixture or service was used.

@@ -196,9 +196,10 @@ on_demand_consumer_implementation: |-
   `TIMEFRAME_SECONDS` semantics: ceil(elapsed/timeframe)+1 inclusive slots <=
   2000. Daily defaults cover180days; defaults/caps are M1 1d, M5 6d, M15 20d,
   M30 30d, H1 60d, H2/H4/H12 90d, D1 180d, and W1/MN 700d. Weekly/monthly
-  limits remain inside Massive's public two-year free history window. Provider
-  may still return partial/held outcomes when its source-specific history is
-  unavailable; the UI says so and preserves cached data. No
+  limits are conservative application defaults. Provider APIs own
+  source-specific coverage and entitlement decisions and may return partial or
+  held outcomes when history is unavailable; the UI says so and preserves
+  cached data. No
   mount/typeahead/navigation source call was added. Only
   successful/partial history completion emits the existing local-only chart
   reload; held/no-data/failure retains current bars.
@@ -221,8 +222,8 @@ on_demand_consumer_implementation: |-
   design only. Range semantics were checked read-only against Provider
   `instruments.py` and `ohlcv.py` (source hashes7cb5c61f/cee00e29); the
   inclusive max request budget is2000 and the timeframe map is mirrored in
-  focused tests. Massive's source comment describes two years for its free
-  Stocks Basic history. Provider/ETF source was not imported or run; exact green
+  focused tests. These are application-side bounds, not assertions about any
+  source's availability or entitlement. Provider/ETF source was not imported or run; exact green
   producer staging, runtime/full browser qualification and exact candidate CI
   remain pending. Current consumer tests/build do not imply source, deployment
   or roadmap acceptance.
@@ -231,9 +232,9 @@ current_blocker: >-
   is terminal green, and its whole-frontend release is deployed. The interactive
   acquisition consumer UI and mocked contract tests are staged against the
   coordinator-reviewed DTO design, not accepted producer source. Timeframe
-  defaults now obey the current reviewed Provider inclusive 2,000-slot rule
-  and stay within the public Massive two-year window; source-specific partial or
-  held results remain possible and visible. Exact producer staging,
+  defaults now obey the reviewed inclusive 2,000-slot rule; provider-specific
+  availability and entitlement remain backend-owned, and partial/held results
+  remain possible and visible. Exact producer staging,
   runtime/full browser qualification and exact candidate CI remain pending; no
   source/API/SEC request was made. This task does not close AC1-AC9 or official
   V25.
