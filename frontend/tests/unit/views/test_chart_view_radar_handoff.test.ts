@@ -4,6 +4,7 @@ import { defineComponent, nextTick, watch } from 'vue'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ChartView from '@/views/ChartView.vue'
+import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
 import { useAlertsStore } from '@/stores/alerts'
 import { useChartStore, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
@@ -142,6 +143,27 @@ describe('ChartView radar handoff', () => {
     expect(chart.wrapper.get('.watchlist-panel-stub').attributes('data-compact-default')).toBe('true')
     expect(chart.wrapper.get('.chart-body').exists()).toBe(true)
     chart.wrapper.unmount()
+  })
+
+  it('refreshes newly acquired history from local storage without clearing cached bars', async () => {
+    const { chartStore, globalLoad, releasePresets, wrapper } = mountDeferredPresetsChart()
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+    const cachedBars = [{
+      ts: '2026-05-05T14:30:00Z', open: 100, high: 105, low: 99, close: 103, is_adjusted: true,
+    }]
+    chartStore.bars = cachedBars as typeof chartStore.bars
+    globalLoad.mockClear()
+    const control = wrapper.findComponent(HistoryAcquisitionControl)
+
+    expect(control.exists()).toBe(true)
+    control.vm.$emit('loaded', { status: 'complete' })
+    await flushPromises()
+
+    expect(globalLoad).toHaveBeenCalledWith('SPY', 'D1', chartStore.barType, true)
+    expect(chartStore.bars).toEqual(cachedBars)
+    wrapper.unmount()
   })
 
   it('keeps the indicator rail geometry across a keyed active-panel switch while the new panel is loading', async () => {
@@ -328,7 +350,7 @@ describe('ChartView radar handoff', () => {
     await (wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }).onSymbolSelect('TSLA')
     await flushPromises()
 
-    expect(loadBarsSpy).toHaveBeenCalledWith('TSLA', 'D1')
+    expect(loadBarsSpy).toHaveBeenCalledWith('TSLA', 'D1', 'candles', true)
     expect(loadChartDetectionsSpy).toHaveBeenCalledTimes(1)
     expect(loadChartDetectionsSpy).toHaveBeenCalledWith(7, 'D1', 42)
     expect(radarStore.activeChartDetectionIds).toEqual([42])
@@ -397,7 +419,7 @@ describe('ChartView radar handoff', () => {
     const { globalLoad, layoutStore, p0Load, p1Load, releasePresets, wrapper } = mountDeferredPresetsChart()
 
     await flushPromises()
-    expect(globalLoad).toHaveBeenCalledWith('SPY', 'D1')
+    expect(globalLoad).toHaveBeenCalledWith('SPY', 'D1', 'candles', true)
 
     layoutStore.setLayout('2h')
     layoutStore.setActivePanel('p1')
@@ -405,8 +427,8 @@ describe('ChartView radar handoff', () => {
     releasePresets()
 
     await vi.waitFor(() => {
-      expect(p0Load).toHaveBeenCalledWith('SPY', 'D1')
-      expect(p1Load).toHaveBeenCalledWith('SPY', 'H4')
+      expect(p0Load).toHaveBeenCalledWith('SPY', 'D1', 'candles', true)
+      expect(p1Load).toHaveBeenCalledWith('SPY', 'H4', 'candles', true)
     })
     expect(layoutStore.panels.map(panel => panel.symbol)).toEqual(['SPY', 'SPY'])
     wrapper.unmount()

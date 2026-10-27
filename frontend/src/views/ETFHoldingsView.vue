@@ -4,7 +4,7 @@
       <div class="sidebar-head">
         <div>
           <h1>ETF Holdings</h1>
-          <p>Search an ETF to bootstrap or inspect its holdings snapshots.</p>
+          <p>Search a canonical ETF, inspect stored holdings, or explicitly request one issuer snapshot.</p>
         </div>
       </div>
 
@@ -19,6 +19,7 @@
           :allow-expressions="false"
           :show-recent="false"
           :show-screener-link="false"
+          :allow-source-discovery="true"
           @select="selectProfileFromSearch"
         />
       </div>
@@ -55,12 +56,13 @@
       <section class="workspace-panel">
         <div class="panel-title-row">
           <div>
-            <h2>{{ selectedProfile?.symbol || 'Select an ETF' }}</h2>
+            <h2>{{ selectedProfile?.symbol || pendingFund?.symbol || 'Select an ETF' }}</h2>
             <p v-if="page" class="snapshot-date-line">
               {{ page.snapshot.etf_name }} · Composition {{ page.snapshot.composition_date }} ·
               <span data-testid="etf-selected-snapshot-kind">{{ selectedSnapshotKind }}</span>
             </p>
-            <p v-else>Choose an ETF to prepare its holdings workspace and inspect available snapshots.</p>
+            <p v-else-if="pendingFund">No stored snapshot is selected. Choose Load stored holdings or request issuer holdings.</p>
+            <p v-else>Choose a fund to inspect stored snapshots or explicitly request issuer holdings.</p>
           </div>
           <div v-if="page" class="panel-meta">
             <span>{{ page.snapshot.source_provider }}</span>
@@ -104,6 +106,21 @@
         </dl>
 
         <div v-if="loadError" class="notice notice--error">{{ loadError }}</div>
+
+        <section v-if="pendingFund" class="holdings-acquisition-actions" aria-label="Selected ETF holdings actions">
+          <p>
+            {{ pendingFund.symbol }} · Stored snapshots remain historical evidence; current-analysis eligibility is shown separately.
+          </p>
+          <button type="button" data-testid="etf-check-stored" :disabled="holdingsActionBusy" @click="runHoldingsAction(false)">
+            {{ identityResolutionBusy ? 'Checking fund…' : holdingsActionBusy && !holdingsActionRefresh ? 'Loading stored holdings…' : 'Load stored holdings' }}
+          </button>
+          <button type="button" data-testid="etf-request-issuer" :disabled="holdingsActionBusy" @click="runHoldingsAction(true)">
+            {{ identityResolutionBusy ? 'Checking fund…' : holdingsActionBusy && holdingsActionRefresh ? 'Requesting issuer holdings…' : selectedProfile?.latest_snapshot_id == null ? 'Request holdings from issuer' : 'Refresh issuer holdings' }}
+          </button>
+          <p v-if="identityResolutionError" role="alert">{{ identityResolutionError }}</p>
+          <p v-if="holdingsActionMessage" role="status" aria-live="polite">{{ holdingsActionMessage }}</p>
+          <p v-if="holdingsActionError" role="alert">{{ holdingsActionError }}</p>
+        </section>
 
         <div
           v-if="selectedCapability?.last_canary_at"
@@ -229,8 +246,8 @@
                 <h3>{{ holdingSymbol(selectedHolding) }}</h3>
                 <p>{{ holdingName(selectedHolding) }}</p>
               </div>
-              <button type="button" :disabled="!openableSymbol(selectedHolding)" @click="openChart(selectedHolding)">
-                Open chart
+              <button type="button" :disabled="!canViewHoldingHistory(selectedHolding)" @click="openHoldingHistory(selectedHolding)">
+                View history
               </button>
             </div>
             <dl>
@@ -663,8 +680,8 @@
           </div>
         </section>
 
-        <div v-if="!selectedProfile && !loadError" class="empty-state">
-          Select an ETF to load or bootstrap its holdings research workspace.
+        <div v-if="!selectedProfile && !pendingFund && !loadError" class="empty-state">
+          Select an ETF to inspect stored holdings or explicitly request an issuer snapshot.
         </div>
         <div v-else-if="page && !page.holdings.length" class="empty-state">
           No holdings match the current filters.
@@ -679,6 +696,7 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
+import { acquireETFHoldings, resolveExistingInstrument, type ETFProfileAcquireResponse } from '@/lib/onDemandAcquisition'
 import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
 import type {
   ETFHolding,
@@ -703,31 +721,23 @@ interface ETFSearchResult {
   name: string
   exchange: string
   type: string
-}
-
-interface ETFProfileBootstrapResponse {
-  profile: ETFProfile
-  latest_snapshot: ETFHoldingsSnapshot | null
-  probe: {
-    adapter_key: string
-    source_provider?: string | null
-    confidence: string | number
-    status: string
-    reason?: string | null
-    source_url?: string | null
-    issuer_product_id?: string | null
-    required_identifiers: string[]
-  }
-  refresh_attempted: boolean
-  refresh_succeeded: boolean
-  capability?: ETFHoldingsCapability | null
-  message?: string | null
+  instrument_id?: number | null
+  identity_status?: string
+  explicitlyResolved?: boolean
 }
 
 const router = useRouter()
 
 const profiles = ref<ETFProfile[]>([])
 const selectedProfile = ref<ETFProfile | null>(null)
+const pendingFund = ref<{ symbol: string; name: string; verifiedInstrumentId: number | null } | null>(null)
+const identityResolutionBusy = ref(false)
+const identityResolutionError = ref('')
+const holdingsActionBusy = ref(false)
+const holdingsActionRefresh = ref(false)
+const holdingsActionMessage = ref('')
+const holdingsActionError = ref('')
+let fundSelectionGeneration = 0
 const page = ref<ETFHoldingsPage | null>(null)
 const diff = ref<ETFHoldingsDiff | null>(null)
 const weightEvolution = ref<ETFHoldingsWeightEvolution | null>(null)
@@ -873,6 +883,9 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
 }
 
 function resetWorkspaceSelection() {
+  holdingsActionBusy.value = false
+  holdingsActionRefresh.value = false
+  identityResolutionBusy.value = false
   selectedProfile.value = null
   page.value = null
   diff.value = null
@@ -889,79 +902,58 @@ function resetWorkspaceSelection() {
 async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult) {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return
+  fundSelectionGeneration += 1
   profileSearch.value = normalized
   loadError.value = ''
-
-  try {
-    const bootstrap = await api.post<ETFProfileBootstrapResponse>(
-      `/etf-holdings/${encodeURIComponent(normalized)}/bootstrap`,
-      {
-        name: result?.name || undefined,
-      },
-    )
-
-    await loadProfiles('', false)
-    const matchedProfile = profiles.value.find(
-      profile => profile.id === bootstrap.profile.id || profile.symbol.toUpperCase() === normalized,
-    ) ?? bootstrap.profile
-
-    if (bootstrap.latest_snapshot || matchedProfile.latest_snapshot_id != null) {
-      await selectProfile(matchedProfile)
-      if (bootstrap.message && !bootstrap.refresh_succeeded) {
-        loadError.value = bootstrap.message
-      }
-      return
-    }
-
-    resetWorkspaceSelection()
-    selectedProfile.value = matchedProfile
-    overlapIssuer.value = matchedProfile.issuer || ''
-    overlapFundFamily.value = matchedProfile.fund_family || ''
-    loadError.value = bootstrap.message
-      || `No ETF holdings snapshot is stored yet for ${normalized}.`
-  } catch (error) {
-    resetWorkspaceSelection()
-    loadError.value = error instanceof Error ? error.message : `Could not prepare ETF holdings for ${normalized}.`
+  holdingsActionMessage.value = ''
+  holdingsActionError.value = ''
+  identityResolutionError.value = ''
+  holdingsActionBusy.value = false
+  holdingsActionRefresh.value = false
+  identityResolutionBusy.value = false
+  const matchedProfile = profiles.value.find(profile => profile.symbol.toUpperCase() === normalized)
+  const resolvedId = result?.explicitlyResolved
+    && Number.isSafeInteger(result.instrument_id)
+    && Number(result.instrument_id) > 0
+    ? Number(result.instrument_id)
+    : null
+  pendingFund.value = {
+    symbol: normalized,
+    name: result?.name || matchedProfile?.name || normalized,
+    // Only the explicit discovery->resolve action may carry identity across
+    // this component boundary. A local row ID is not authority by itself.
+    verifiedInstrumentId: resolvedId,
   }
+  if (matchedProfile) {
+    await selectProfile(matchedProfile, resolvedId)
+    return
+  }
+  resetWorkspaceSelection()
+  overlapIssuer.value = ''
+  overlapFundFamily.value = ''
 }
 
-async function selectProfile(profile: ETFProfile) {
-  if (profile.latest_snapshot_id == null) {
-    try {
-      const bootstrap = await api.post<ETFProfileBootstrapResponse>(
-        `/etf-holdings/${encodeURIComponent(profile.symbol)}/bootstrap`,
-        {
-          name: profile.name || undefined,
-        },
-      )
-      const bootstrappedProfile = bootstrap.profile
-      const index = profiles.value.findIndex(item => item.id === bootstrappedProfile.id)
-      if (index >= 0) {
-        profiles.value.splice(index, 1, bootstrappedProfile)
-      } else {
-        profiles.value = [bootstrappedProfile, ...profiles.value]
-      }
-      if (bootstrap.message && !bootstrap.refresh_succeeded) {
-        loadError.value = bootstrap.message
-      }
-      profile = bootstrappedProfile
-      if (profile.latest_snapshot_id == null) {
-        resetWorkspaceSelection()
-        selectedProfile.value = profile
-        overlapIssuer.value = profile.issuer || ''
-        overlapFundFamily.value = profile.fund_family || ''
-        loadError.value = bootstrap.message
-          || `No ETF holdings snapshot is stored yet for ${profile.symbol}.`
-        return
-      }
-    } catch (error) {
-      loadError.value = error instanceof Error
-        ? error.message
-        : `Could not prepare ETF holdings for ${profile.symbol}.`
-      return
-    }
+async function selectProfile(profile: ETFProfile, verifiedInstrumentId: number | null = null) {
+  if (pendingFund.value?.symbol !== profile.symbol) fundSelectionGeneration += 1
+  loadError.value = ''
+  holdingsActionMessage.value = ''
+  holdingsActionError.value = ''
+  identityResolutionError.value = ''
+  holdingsActionBusy.value = false
+  holdingsActionRefresh.value = false
+  identityResolutionBusy.value = false
+  pendingFund.value = {
+    symbol: profile.symbol,
+    name: profile.name,
+    verifiedInstrumentId,
   }
   selectedProfile.value = profile
+  page.value = null
+  diff.value = null
+  weightEvolution.value = null
+  transitionTimeline.value = null
+  snapshotOptions.value = []
+  selectedHolding.value = null
   holdingsSearch.value = ''
   offset.value = 0
   selectedSnapshotId.value = ''
@@ -973,10 +965,103 @@ async function selectProfile(profile: ETFProfile) {
   overlapFundFamily.value = profile.fund_family || ''
   overlapQuery.value = ''
   await loadSnapshotOptions()
+  if (profile.latest_snapshot_id == null) {
+    page.value = null
+    loadError.value = `No stored snapshot is available for ${profile.symbol}. Choose an explicit holdings action to check stored data or request issuer data.`
+    return
+  }
   await loadHoldings()
   await loadDiff()
   await loadWeightEvolution()
   await loadTransitionTimeline()
+}
+
+async function runHoldingsAction(refresh: boolean) {
+  const fund = pendingFund.value
+  if (!fund || holdingsActionBusy.value) return
+  const generation = fundSelectionGeneration
+  let resolvedFund = fund
+  holdingsActionBusy.value = true
+  holdingsActionRefresh.value = refresh
+  identityResolutionBusy.value = false
+  holdingsActionError.value = ''
+  holdingsActionMessage.value = ''
+  identityResolutionError.value = ''
+  try {
+    if (fund.verifiedInstrumentId == null) {
+      identityResolutionBusy.value = true
+      let identity
+      try {
+        identity = await resolveExistingInstrument(fund.symbol)
+      } catch {
+        if (generation === fundSelectionGeneration) {
+          identityResolutionError.value = `Could not verify ${fund.symbol}; no holdings request was sent.`
+        }
+        return
+      } finally {
+        if (generation === fundSelectionGeneration) identityResolutionBusy.value = false
+      }
+      if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== fund.symbol) return
+      if (identity.status !== 'resolved' || !identity.instrument
+        || identity.instrument.symbol.trim().toUpperCase() !== fund.symbol.trim().toUpperCase()
+        || !Number.isSafeInteger(identity.instrument.instrument_id) || identity.instrument.instrument_id <= 0) {
+        pendingFund.value = { ...fund, verifiedInstrumentId: null }
+        identityResolutionError.value = identity.status === 'identity_conflict'
+          ? `The identity for ${fund.symbol} conflicts with another instrument; no holdings request was sent.`
+          : identity.status === 'held'
+            ? `Verification of ${fund.symbol} is currently held; no holdings request was sent.`
+            : `Could not verify ${fund.symbol}; no holdings request was sent.`
+        return
+      }
+      resolvedFund = { ...fund, verifiedInstrumentId: identity.instrument.instrument_id }
+      pendingFund.value = resolvedFund
+    }
+
+    const result: ETFProfileAcquireResponse = await acquireETFHoldings(fund.symbol, refresh)
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== fund.symbol) return
+    const returnedProfile = result.capability
+      ? { ...result.profile, holdings_capability: result.capability }
+      : result.profile
+    const index = profiles.value.findIndex(profile => profile.id === returnedProfile.id)
+    if (index >= 0) profiles.value.splice(index, 1, returnedProfile)
+    else profiles.value = [returnedProfile, ...profiles.value]
+    resolvedFund = { ...resolvedFund, name: returnedProfile.name }
+    pendingFund.value = resolvedFund
+    const profileChanged = selectedProfile.value?.symbol !== returnedProfile.symbol
+      || selectedProfile.value?.latest_snapshot_id !== returnedProfile.latest_snapshot_id
+    if (profileChanged) {
+      await selectProfile(returnedProfile, resolvedFund.verifiedInstrumentId)
+      if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== fund.symbol) return
+      if (generation === fundSelectionGeneration && pendingFund.value?.symbol === fund.symbol) {
+        holdingsActionBusy.value = true
+        holdingsActionRefresh.value = refresh
+      }
+    } else selectedProfile.value = returnedProfile
+    holdingsActionMessage.value = result.outcome === 'cached'
+      ? result.refresh
+        ? 'A stored snapshot was returned; no successful issuer refresh is claimed.'
+        : 'Stored holdings are available; no issuer refresh was requested.'
+      : result.outcome === 'acquired' && result.refresh && result.refresh_attempted && result.refresh_succeeded
+        ? 'Issuer holdings request completed. Snapshot dates and current-analysis capability remain separate.'
+        : result.refresh && result.refresh_attempted && !result.refresh_succeeded
+          ? 'Issuer refresh did not complete. Any previously stored snapshot remains available.'
+          : result.outcome === 'held'
+            ? (result.message?.trim() || 'Issuer holdings request is held. Any previously stored snapshot remains available.')
+            : result.outcome === 'no_data'
+              ? 'No stored snapshot was returned for this fund.'
+              : result.outcome === 'failed'
+                ? 'Issuer holdings request failed. Any previous snapshot remains available.'
+                : 'Issuer holdings action completed.'
+  } catch {
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === fund.symbol) {
+      holdingsActionError.value = 'ETF holdings action failed. Previously stored snapshots remain available.'
+    }
+  } finally {
+    if (generation === fundSelectionGeneration) {
+      holdingsActionBusy.value = false
+      identityResolutionBusy.value = false
+    }
+  }
 }
 
 async function reloadHoldings() {
@@ -1257,17 +1342,6 @@ function statusClass(row: ETFHolding) {
   }
 }
 
-function openableSymbol(row: ETFHolding) {
-  if (!selectedCapability.value?.identity_verified
-    || selectedCapability.value.availability !== 'current'
-    || !selectedCapability.value.usable_for_current_analysis) {
-    return ''
-  }
-  if (!isTradableHolding(row)) return ''
-  const constituent = isSyntheticHoldingSymbol(row.constituent_symbol) ? '' : row.constituent_symbol
-  return constituent || row.reported_symbol || ''
-}
-
 function venueLabel(row: ETFHolding) {
   return [row.exchange, row.country].filter(Boolean).join(' · ') || '—'
 }
@@ -1330,9 +1404,27 @@ function evolutionDotClass(series: ETFHoldingsWeightEvolutionSeries, value: numb
   }
 }
 
-function openChart(row: ETFHolding) {
-  const symbol = openableSymbol(row)
-  if (symbol) router.push(`/chart/${encodeURIComponent(symbol)}`)
+function canViewHoldingHistory(row: ETFHolding) {
+  return row.is_resolved
+    && row.constituent_instrument_id != null
+    && Number.isInteger(row.constituent_instrument_id)
+    && !isReferenceHolding(row)
+    && Boolean(row.constituent_symbol && !isSyntheticHoldingSymbol(row.constituent_symbol))
+}
+
+function openHoldingHistory(row: ETFHolding) {
+  if (!page.value || !canViewHoldingHistory(row)) return
+  const symbol = row.constituent_symbol!
+  void router.push({
+    path: `/chart/${encodeURIComponent(symbol)}`,
+    query: {
+      holding_snapshot_id: String(page.value.snapshot.id),
+      holding_composition_date: page.value.snapshot.composition_date,
+      holding_known_at: page.value.snapshot.known_at ?? '',
+      holding_provenance: page.value.snapshot.provenance,
+      holding_instrument_id: String(row.constituent_instrument_id),
+    },
+  })
 }
 
 onMounted(loadProfiles)

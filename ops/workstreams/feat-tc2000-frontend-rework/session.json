@@ -40,8 +40,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Accepted source 02a7 ancestry is adopted locally with no tree delta. The owned record reconciliation/push is not yet published; exact branch CI for its resulting HEAD is pending. The 02a7 staging gate is green, not this branch CI.",
-  "current_checkpoint_status": "Adoption checkpoint in progress: exact green staging 02a7 is ancestry-only over expected source 7d; four owned records and receipt are being committed. The previous f2d whole-frontend checkpoint remains accepted history; AC1-AC9, official V25 and the full roadmap remain open.",
+  "current_candidate_ci_status": "Baseline 7e6eeb44d04e4df839466277e51070ef107a65e4 remains exact-CI green at40371068968. The unpublished TC on-demand acquisition candidate has six focused files passing101/101 tests and a successful vue-tsc/Vite build; exact-source CI and producer runtime qualification are pending. Prior whole-frontend acceptance does not qualify these edits.",
+  "current_checkpoint_status": "TC-owned one-click history and selected-ETF actions preserve local coverage, identity, cache-only/issuer-refresh and stale-result safeguards. Provider's reviewed inclusive ceil(elapsed/timeframe)+1 rule is mirrored with a 2,000-slot maximum; all timeframe defaults fit, with W1/MN capped at700 days. Six focused files passed101/101 and vue-tsc/Vite build passed. Producer source was reviewed read-only, not imported or executed; exact-source CI, accepted producer runtime qualification and full functional/visual profile remain pending. AC1-AC9, official V25 and the full roadmap remain open.",
   "current_exact_ci": {
     "run_id": 40351346928,
     "head_sha": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
@@ -59,11 +59,22 @@
     "receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json"
   },
   "dirty_paths": [
+    "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+    "frontend/src/components/common/SearchBar.vue",
+    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/views/ChartView.vue",
+    "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+    "frontend/tests/unit/components/test_search_bar.test.ts",
+    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
+    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
+    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -215,7 +226,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Commit/push the coherent adoption records once, inspect exact resulting branch CI, then after Root releases integration resume AC4 persisted-evidence breadth, ratio, and historical analytics. Keep AC1-AC9 and official V25 open.",
+  "next_action": "Complete final scoped workstream/source checks, publish this coherent consumer candidate once, then follow its exact-source CI; keep producer/runtime and full browser qualification pending. Preserve AC1-AC9, official V25 and all holds.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -228,7 +239,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "6daa5cc67d525b7010011e50568df24efeb4497060896c7608685ab9e60095e0",
+  "plan_hash": "d17e586f25c4ff0d7e563645eaacac233800bbc2d85e03315ceaaa5ead7fadc8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -250,25 +261,25 @@
       "TCV1"
     ],
     "total": 6,
-    "current_phase": "Accepted 02a7 ancestry adopted locally with no tree delta; own record reconciliation and exact branch CI pending; full roadmap remains open.",
-    "current_blocker": "No source conflict or tree delta. Complete the owned adoption records, publish once, then inspect exact branch CI before Root-owned integration.",
-    "next_action": "Commit/push the coherent adoption records once, inspect exact resulting branch CI, then after Root releases integration resume AC4 persisted-evidence breadth, ratio, and historical analytics. Keep AC1-AC9 and official V25 open.",
-    "updated_at": "2026-10-26T17:40:02Z"
+    "current_phase": "TC on-demand acquisition consumer UX: bounded one-click history and selected-ETF actions, focused mocked validation complete; publication and exact-source CI pending.",
+    "current_blocker": "No local blocker. Provider semantics were checked read-only; no producer source/runtime was imported or executed. Exact candidate CI and assigned runtime/full-browser qualification remain pending.",
+    "next_action": "Complete final scoped workstream/source checks, publish this coherent consumer candidate once, then follow its exact-source CI; keep producer/runtime and full browser qualification pending. Preserve AC1-AC9, official V25 and all holds.",
+    "updated_at": "2026-10-27T14:20:08Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "remote": "origin",
     "command": "rtk proxy git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
-    "remote_tracking_sha": "7d3da9461a131e186030a708658c832d84005c72",
-    "current_pending_range": "One owned record-only adoption checkpoint over accepted 02a7; source tree is unchanged.",
+    "current_local_head": "7e6eeb44d04e4df839466277e51070ef107a65e4",
+    "remote_tracking_sha": "7e6eeb44d04e4df839466277e51070ef107a65e4",
+    "current_pending_range": "TC on-demand acquisition consumer candidate is staged for coherent publication; no exact-source CI exists until push.",
     "failure_category": null,
-    "status": "Adoption receipt and owned records are being reconciled. Publish this coherent record packet once; verify remote synchronization and inspect resulting exact branch CI."
+    "status": "Consumer candidate has focused mocked tests/build evidence; publication and exact-source branch CI pending."
   },
-  "remote": "7d3da9461a131e186030a708658c832d84005c72",
-  "remote_sha": "7d3da9461a131e186030a708658c832d84005c72",
-  "remote_synchronized": false,
-  "remote_tracking_sha": "7d3da9461a131e186030a708658c832d84005c72",
+  "remote": "7e6eeb44d04e4df839466277e51070ef107a65e4",
+  "remote_sha": "7e6eeb44d04e4df839466277e51070ef107a65e4",
+  "remote_synchronized": true,
+  "remote_tracking_sha": "7e6eeb44d04e4df839466277e51070ef107a65e4",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -423,5 +434,6 @@
       "result": "Scope self-tests 35/35 passed; full guard passed for 1037 changed paths with 877 byte-verified immutable imports and 29 exact approved adaptations; workstream, unique-key YAML, receipt, manifest, historical journal prefix, ancestry and TC consumer checks passed.",
       "trust_boundary": "This exact 6d0 release only; future snapshots require new explicit coordinator approval."
     }
-  ]
+  ],
+  "updated_at": "2026-10-27T14:20:08Z"
 }

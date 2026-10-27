@@ -117,7 +117,128 @@ human_interim_help_reference_authorization: >-
   key/description separation, all-row scrolling and keyboard access, and
   unclipped/non-overlapping content at all four visual profiles after any
   source repair.
+on_demand_market_acquisition_proposal: |-
+  Human authorization: “Ok, so proceed then”; coordination contract and safety
+  boundary: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-market-acquisition-contract-20261027.md.
+  This is a TC-consumer proposal only. Provider and ETF owners must first review
+  reusable APIs and return additive wire shapes; no UI/shared/backend
+  implementation or live validation has begun.
+
+  Existing paths reviewed: WorkstationView's 120ms search calls GET
+  /instruments/search?q=...&canonical_only=true; selecting a result resolves
+  canonical identity and loadSymbolData calls chartStore.loadBars(..., true),
+  which reads /ohlcv/local for ordinary bars. It cannot discover tickers outside
+  the local catalog. The shared SearchBar used by ChartView and ETF searches
+  /instruments/search without canonical_only; backend search defaults false, so
+  typing may invoke provider search. ChartView selection calls chartStore.loadBars
+  with localOnly=false by default; /ohlcv also defaults local_only=false and can
+  fetch through a provider. Workstation comparisons use /ohlcv/local. The
+  CoverageSummaryTool reads /coverage/instruments/{symbol}/ohlcv. Keep cached
+  rendering read-only; require explicit discovery/history actions, not calls on
+  mount, render, or each search keystroke.
+
+  ETFHoldingsView lists profiles via GET /etf-holdings, but selecting a search
+  result or a profile without a stored snapshot currently posts
+  /etf-holdings/{symbol}/bootstrap. Make this intent visible as an explicit Load
+  holdings action after selection. Existing snapshots are read through /dates
+  and /holdings; ETFHoldingsPanel separately reads /latest and /capability.
+  Preserve composition date, known_at, source/provenance, identity/resolution,
+  stored-snapshot and current-analysis distinctions. MarketMapTool already has
+  an explicit Load ETF action for constituent-universe bootstrap; it is not a
+  constituent-bar request. Current ETF constituent chart links are gated by a
+  resolved tradable row plus current-analysis capability. A resolved security
+  from a historical snapshot should still have an explicit read-only historical
+  chart path, independent of parent-fund current-analysis eligibility. This
+  cannot upgrade the fund snapshot's eligibility or feed it into current
+  analysis; ETF owner review must confirm the row-identity contract.
+
+  Minimal user flow: (1) Typing shows local canonical suggestions only. A
+  keyboard-accessible Search free sources action explicitly starts bounded
+  discovery for an unknown ticker. Label candidates with normalized symbol/name,
+  exchange/type, source and supported/held state; choosing one must return a
+  producer-issued canonical instrument ID. (2) Open its chart without clearing
+  cached bars. If local coverage shows a gap for the selected symbol/timeframe,
+  offer Load missing history for that one instrument, timeframe and bounded date
+  range. (3) ETF selection shows stored snapshots and current-analysis eligibility
+  separately; a deliberate Load holdings action requests one selected fund.
+  (4) A resolved constituent can open its own historical chart even when the
+  parent ETF snapshot is historical/not current. Only an explicit Load missing
+  history action may request that one constituent's bars. Never fan out over
+  fund members or describe the ETF snapshot as current.
+
+  Required consumer API semantics, pending owner-designed wire shapes: explicit
+  bounded discovery returns candidates with identity/source/availability and
+  safe no-match/held reasons; candidate selection resolves to a persistent
+  canonical ID. A history request accepts one canonical ID, timeframe and date
+  range and returns stable request identity, truthful lifecycle state, source,
+  covered range and refreshed coverage. A single-fund holdings request returns
+  status and snapshot identity, composition date, known_at, provenance, row/
+  resolution counts and current-analysis capability. A resolved constituent
+  history request reuses the Provider-owned one-instrument contract and does
+  not require parent-fund current-analysis eligibility. Distinguish
+  queued/running/partial/complete, held, unsupported/no-free-source, no-data
+  and failed; report only real progress and safe error text. Preserve cached
+  bars/snapshots while requests run. Announce status accessibly; retries remain
+  explicit. Retain Arrow/Enter/Escape, visible focus and narrow-screen access.
+  These are consumer requirements, not a guessed endpoint or frozen JSON schema.
+
+  Existing behavior is source evidence only. Provider/ETF owner review is the
+  next technical prerequisite, not a human-testing gate. Keep all original
+  AC1-AC9, frozen imported byte pins, quotas/data holds and assertion/reference/
+  mask/tolerance/retry policies unchanged. Do not replay the consumed119-request
+  allowance, SEC acquisition or IWM reparse.
+on_demand_consumer_implementation: |-
+  Current TC-owned mocked implementation at the staged candidate: the chart has
+  one ordinary “Load missing history” action. Its explicit click checks
+  selected-timeframe local coverage first, resolves the returned canonical
+  identity only when gaps exist, validates matching symbol and safe positive ID,
+  and requests one bounded history range. The range guard mirrors Provider
+  `TIMEFRAME_SECONDS` semantics: ceil(elapsed/timeframe)+1 inclusive slots <=
+  2000. Daily defaults cover180days; defaults/caps are M1 1d, M5 6d, M15 20d,
+  M30 30d, H1 60d, H2/H4/H12 90d, D1 180d, and W1/MN 700d. Weekly/monthly
+  limits remain inside Massive's public two-year free history window. Provider
+  may still return partial/held outcomes when its source-specific history is
+  unavailable; the UI says so and preserves cached data. No
+  mount/typeahead/navigation source call was added. Only
+  successful/partial history completion emits the existing local-only chart
+  reload; held/no-data/failure retains current bars.
+
+  ETF selected-fund buttons resolve identity internally before one cache-only
+  (`refresh:false`) or explicit issuer (`refresh:true`) request. A denied,
+  mismatched or unsafe identity sends no holdings request; a resolved identity
+  is retained for later actions. Historical snapshot lineage remains separate
+  from current-analysis capability, and held refreshes retain cached rows and
+  `known_at`. No Search/ETF mount or navigation action requests a source.
+  Focused tests cover single-click sequencing, sufficient/failed local coverage,
+  held and denied outcomes, symbol/timeframe generation fencing, chart cache and
+  local reload, ETF cache-only versus refresh, denied identity, selected-snapshot
+  retention, native keyboard controls and bounded dates.
+
+  The wire review at
+  `/home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json`
+  reconciles additive `cache_hit`, optional empty exchange, candidate-symbol
+  consistency and nonempty timezone-aware history bounds. It remains wire
+  design only. Range semantics were checked read-only against Provider
+  `instruments.py` and `ohlcv.py` (source hashes7cb5c61f/cee00e29); the
+  inclusive max request budget is2000 and the timeframe map is mirrored in
+  focused tests. Massive's source comment describes two years for its free
+  Stocks Basic history. Provider/ETF source was not imported or run; exact green
+  producer staging, runtime/full browser qualification and exact candidate CI
+  remain pending. Current consumer tests/build do not imply source, deployment
+  or roadmap acceptance.
 current_blocker: >-
+  Current 2026-10-27: the exact 02a7 source is accepted, own branch CI40371068968
+  is terminal green, and its whole-frontend release is deployed. The interactive
+  acquisition consumer UI and mocked contract tests are staged against the
+  coordinator-reviewed DTO design, not accepted producer source. Timeframe
+  defaults now obey the current reviewed Provider inclusive 2,000-slot rule
+  and stay within the public Massive two-year window; source-specific partial or
+  held results remain possible and visible. Exact producer staging,
+  runtime/full browser qualification and exact candidate CI remain pending; no
+  source/API/SEC request was made. This task does not close AC1-AC9 or official
+  V25.
+
+  Historical blocker snapshot at prior 7e checkpoint follows unchanged:
   Exact synchronized-green staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
   is adopted as ancestry-only: its tree exactly matches the clean TC source
   7d3da9461a131e186030a708658c832d84005c72. No product, test, backend, Compose,
@@ -565,6 +686,23 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
+  Current 2026-10-27: clean pushed source7e6eeb44d04e4df839466277e51070ef107a65e4
+  has terminal-green exact CI40371068968 and ancestry-adopts synchronized-green
+  staging/master02a7bae34c2aed145b9e46137ef3b8f041de4d92. The accepted tree
+  exactly matched pre-adoption TC source7d3da9461a131e186030a708658c832d84005c72.
+  Root deployment/postcheck receipts are .ai/deploy/first-human/ui-rollout-
+  02a7bae34c2a/completed.json and authenticated-postchecks.json; deployed UI
+  source is validated f2d0228a with frontend image ff7c817b. This is a released
+  checkpoint, not full-roadmap acceptance. The current staged task is TC-owned,
+  explicit on-demand acquisition UI against the reviewed Provider/ETF DTO
+  design. Its range guard now mirrors Provider's inclusive
+  ceil(elapsed/timeframe)+1 <= 2,000 slot rule, and every timeframe default
+  fits that budget while W1/MN remain within 700 days. Six focused files passed
+  101 mocked tests and vue-tsc/Vite build passed. Accepted producer staging,
+  runtime qualification and exact candidate CI remain pending.
+  AC1-AC9 and official REF-HELP-V25 remain open; all holds remain in force.
+
+  Previous checkpoint narratives and their historical states follow unchanged:
   Current 2026-10-26: accepted staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
   was fast-forward adopted into this branch after canonical receipt/run and
   current origin/staging verification. Its exact tree matches pre-adoption
@@ -1328,6 +1466,8 @@ scope:
   - "R8: under the exact 2026-10-26 human presentation handoff, inventory and unify every reachable frontend route/component in TC style without changing feature behavior or upstream ownership; retain all original visual oracles and full roadmap gates."
 owned_paths:
   - frontend/src/views/WorkstationView.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/lib/onDemandAcquisition.ts
   - frontend/src/views/StudyLabView.vue
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/components/workstation/
@@ -2031,7 +2171,7 @@ approved_presentation_adaptations:
 - path: frontend/src/components/common/SearchBar.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 01e787347c88f9010640afa6030b19b87239bbe0
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: TC shell/theme/navigation plus separately authorized explicit source-discovery and canonical-resolution actions; ordinary typeahead remains local and candidates are not identity authority
 - path: frontend/src/components/common/SparkTfSelector.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: b06d5a7751149479f11f13bec42e24bfcad3e439
@@ -2774,8 +2914,16 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5, TCV1]
   total: 6
-  current_phase: "Accepted f2d whole-frontend checkpoint preserved; exact green staging02a7 ancestry adopted without tree delta; own adoption-record CI pending; broader AC1-AC9 roadmap continues"
+  current_phase: "TC on-demand acquisition consumer UX: one-click bounded history and selected-ETF cache/issuer actions are implemented with mocked focused tests/build; no live producer source or runtime qualification; full AC1-AC9 roadmap continues"
   next_action: >-
+    Finish the scoped workstream, source-guard and journal checks for this
+    candidate and provide the exact staged diff/source hashes to Root. Before
+    runtime qualification, consume only accepted green Provider/ETF staging
+    and have Root confirm producer range limits. Preserve local cached
+    rendering, producer-owned identity, historical/current labels, holds and
+    all assertions. Keep official V25 and all original acceptance criteria open.
+
+    Prior next-action text is preserved as historical context:
     Publish the owned 02a7 adoption-record reconciliation once, then inspect
     its exact-source branch CI. Once that is green and Root releases
     the integration boundary, resume AC4 with persisted-evidence breadth,
@@ -2839,20 +2987,13 @@ progress:
     owned behavior, then revalidate. Keep full functional/visual gates and the
     complete V25 roadmap open.
   current_blocker: >-
-    Exact accepted 15b5 staging is assembled as the second parent of this
-    branch's local merge from source 039919a08c72bc891c896f7fd62f13fd16cd0a02.
-    The incoming retained-IWM correction and ETF records are pinned by the
-    15b5 manifest and canonical receipt; TC-owned consumer/product/test paths
-    are unchanged. Stack-free checks passed: 35/35 scope self-tests, full
-    guard over 1035 changed paths with 877 byte-verified imports and 29
-    approved adaptations, workstream validation, receipt/manifest/hash and
-    diff checks. The exact local merge is not yet
-    published or branch-CI-qualified: master CI40247103720 is still running
-    and Root holds publication. Do not push before Root releases it. No
-    acquisition or provider request is repeated. Root retains target
-    correction/UI acceptance. Preserve F8y and the full local profile as open;
-    retain the complete AC1-AC9, SX/IX, official REF-HELP-V25 roadmap and all
-    data/provider/service holds.
+    This TC consumer candidate is staged but not published or exact-CI/runtime
+    qualified. The coordinator-reviewed DTO design is not accepted producer
+    source; Root must confirm the conservative timeframe caps against accepted
+    Provider limits and allocate any runtime/full-profile slot. No producer
+    source was imported or called. Keep the complete AC1-AC9, SX/IX, official
+    REF-HELP-V25 roadmap, F8y history, all data/provider/service holds and all
+    prior red evidence intact.
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -3475,3 +3616,97 @@ remaining_gaps:
   - "At pushed TC branch tip 9b04cee36d32d5064fc4edb3c512d98b88c38040 (product source 3958886632af62e0207fb02ed6961b16fd1a600c), pinned Chromium functional E2E ran 178 cases (167 passed, 6 documented skips, 5 failed); a six-case focused serial replay passed all five failed flows. The complete pinned four-viewport visual matrix ran 104 cases (93 passed); the ten known workspace-floating, Study structured-result, and 1080p Study sandbox-error screenshot differences remain. One transient visual fixture startup failure passed its focused replay. The authenticated Add Tool capability-boundary flow passed 1/1 after the matrix. No screenshot policy changed."
   - "The Chart Plot Library's exact open/search styling still lacks an authoritative V25 capture. The authenticated current-app screenshot and F9e search test are implementation evidence only; do not treat them as a visual baseline or change the existing 104-case board policy."
   - "At product commit 1d52ab41372b6cbf12efdf8d533e00e858b4966f, WorkstationView retains the latest explicit linked-timeframe choice while default workspace hydration is pending, publishes it immediately, and replays it after hydration so persisted settings cannot overwrite user intent. Focused workstation tests passed 35/35; the full serial frontend suite passed 129 files / 1,204 tests; Vue type-check and Vite production build passed. Fresh seeded authenticated Chromium passed 172 cases, skipped five documented cases, and had zero failures. The four-project visual matrix passed 94/104, with ten screenshot-only differences: workspace-floating at all four viewports; Study structured-result at all four; Study sandbox-error at 1080p/100 and 1080p/125. Focused E2E replays for delayed Add Tool, cross-window linked state, and narrow Rotation passed 3/3. Artifacts: functional `/tmp/tc2000-functional-final-hydration.dqcQ36`, visual `/tmp/tc2000-visual-final-hydration.oNjrBN`, focused `/tmp/tc2000-final-focused.7EKFG9`. No visual baseline, mask, threshold, skip, or acceptance policy changed. Backend combined coverage passed 1,621 unit and 409 integration tests at 82.26%; Ruff, production build, Compose contracts, workstream validation, and scope guard passed. The generic integration helper remains unavailable because the host lacks Docker Buildx. Latest direct refs: staging `8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35`, provider platform `88132e9145a08d1c935a0111b3dba0fbd88bdff1`, and ETF holdings `26d9f84b5ac35ed0fe0b31d196caae1a6ee05139`; neither upstream tip is an ancestor of staging, so defer R2/R3 consumption and shared-path reconciliation."
+
+
+on_demand_acquisition_consumer_implementation_20261027:
+  coordinator_contract: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-acquisition-reviewed-contract-20261027.md
+  state: ui_consumer_implementation_in_progress_mocked_contract_only_producer_stage_and_qualification_pending
+  wire_design_review: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json
+  current_implementation:
+    evidence_level: TC-owned client and mocked tests only; no producer runtime or exact-staging qualification
+    focused_validation: 78/78 mocked tests across five files; vue-tsc and Vite build passed; exact scope/self-test and workstream checks passed
+    provider_design: >-
+      Uses distinct Provider status envelopes, provisional discovery candidates,
+      producer-resolved instrument.instrument_id, UUID request_id values, and
+      one instrument/range history requests. Discovery is explicit; no local row
+      or typed ticker is treated as identity authority.
+    etf_design: >-
+      Uses ETF outcome and refresh boolean as distinct fields; false is an
+      explicit cache-only request and true is an explicit one-fund issuer
+      request. Historical holding navigation carries snapshot lineage and does
+      not promote parent current-analysis eligibility.
+    provider_wire_review_sha256: 53e4f6bb785ef5eb92cda7fdfe1d19981bfd38923fdf5e84672a3326d6e19c31
+    provider_schema_hash_drift: >-
+      Reviewed DTO file hash a3e92de138b17991da302a10d3729368bdf3c4e7d4f66a591839aad357123345 differs from current read 958c7b7c8991137e3ce1ebe1ccf9be69cf0d667910e9267ad7a99c9ec68328fc; current file adds optional legal_metadata. Reconcile this review pin before producer qualification.
+    etf_schema_hash_verified: d0f9d7c1ef999276c96d75fcca2dd955c1ae0e7088101ada815a3786715491d2
+    qualification_pending: exact green producer staging adoption, current-source CI and any allocated runtime profile
+  reviewed_producer_sources_at_inspection:
+    provider_branch: feat/market-data-provider-platform
+    provider_schema_path: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/backend/app/schemas/instrument_acquisition.py
+    provider_schema_sha256_at_review: a3e92de138b17991da302a10d3729368bdf3c4e7d4f66a591839aad357123345
+    provider_schema_sha256_current_read: 958c7b7c8991137e3ce1ebe1ccf9be69cf0d667910e9267ad7a99c9ec68328fc
+    etf_branch: feat/etf-holdings-constituents
+    etf_schema_path: /home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/backend/app/schemas/etf_holdings.py
+    etf_schema_sha256_at_review: d0f9d7c1ef999276c96d75fcca2dd955c1ae0e7088101ada815a3786715491d2
+    evidence_limit: >-
+      The DTOs were read as wire design only; their worktree sources are not
+      accepted staged source and were not imported or executed. Provider's
+      current DTO file hash differs from the wire-review pin and includes an
+      additive legal_metadata field; root must reconcile this provenance before
+      producer-qualified validation. Exact green producer staging and runtime
+      compatibility remain required before claiming integration.
+  provisional_provider_contract_from_owner_proposal:
+    discover: >-
+      POST /api/v1/instruments/discover with query, types, limit and request_id;
+      proposed envelope has request_id/status/candidates/source_outcomes.
+    resolve_selected_candidate: >-
+      POST /api/v1/instruments/acquire with selected symbol, optional candidate
+      binding and request_id; proposed outcomes include canonical identity or
+      typed held/no_match/identity_conflict. A discovery candidate is not an ID.
+    history: >-
+      POST /api/v1/instruments/{instrument_id}/history-acquisitions with one
+      timeframe, adjusted flag, finite UTC start/end and request_id. Proposed
+      response includes truthful complete/partial/held/no_data/failed status,
+      canonical coverage/missing slices and safe source outcomes.
+    exact_missing: >-
+      Published request/response model names, required/nullability rules, exact
+      status enums/error envelope, request_id constraints/idempotence, accepted
+      timeframe/range limits, candidate-binding semantics, and final normalized
+      path/types are not yet present in the inspected producer source.
+  provisional_etf_contract_from_owner_proposal:
+    issuer_holdings: >-
+      Coordinator prefers POST /api/v1/etf-holdings/{symbol}/acquire with
+      request_id and refresh boolean. Proposed response reuses profile/snapshot/
+      capability facts and adds status/source outcomes; this endpoint/schema is
+      not yet published. Existing bootstrap remains compatible and is not safe to
+      call from selection until source isolation is explicitly guaranteed.
+    exact_missing: >-
+      Final route/body/response types and status semantics; explicit issuer-only
+      mode that suppresses SEC enrichment and fallback; request identity and
+      idempotence; cache-age/reuse versus refresh semantics; how retained dated
+      snapshots and capability reasons are represented on held/failure; and the
+      exact row canonical instrument ID plus snapshot/provenance navigation
+      contract for a resolved constituent. Do not guess these in TC.
+  minimal_tc_patch_after_schemas:
+    - Keep ordinary typeahead, cached charts, stored holdings reads and evaluators local-only.
+    - Add explicit Search free sources, then explicit resolve of the selected candidate; never infer canonical identity from ticker text.
+    - Open the resolved chart from retained local bars; show Load missing history only for a confirmed coverage gap and send one canonical instrument/range per explicit action.
+    - Replace implicit ETF bootstrap-on-selection with deliberate one-fund Load holdings/Refresh; preserve prior snapshots and show dated provenance separately from current-analysis eligibility.
+    - Let a resolved historical holding navigate to its own historical chart without changing parent ETF eligibility; unresolved rows have no guessed route, and current basket/analysis gates remain intact.
+    - Keep cached content visible and distinguish actual running/terminal/partial/held/no-data/failed states; do not synthesize queued progress or fan out over constituents.
+  bounded_frontend_test_cases_after_types_publish:
+    - Local canonical typeahead and existing cache rendering make no discovery/acquisition request on mount, render, keystroke, or ordinary chart navigation.
+    - Explicit discovery submits once with bounded query/types/limit/request identity; candidates remain provisional, and only explicit selection resolves identity.
+    - Held/no_match/identity_conflict resolution never invents an ID or navigates to unverified history.
+    - A coverage gap reveals an explicit single-instrument history action; pending/partial/complete/held/no_data/failed UI preserves cached bars and reports only returned status.
+    - ETF initial load and snapshot selection are read-only; explicit holdings load/refresh targets one issuer and preserves old snapshot/date/known_at/provenance on held or failure.
+    - Resolved historical holding opens its own chart while current-analysis remains denied; unresolved holding cannot navigate and constituent loading never fans out.
+    - Keyboard focus, Enter/Escape behavior, accessible status announcements and narrow layout cover discovery, resolution, history load and issuer load.
+  validation_boundary: >-
+    After exact schemas are published, add focused mocked component/API tests and
+    run the bounded one-worker frontend subset, Vue type-check, scope/workstream
+    checks and build as warranted. No full browser fixture, provider/SEC call,
+    quota use, sibling merge, staging/master/deployment change or roadmap closure
+    is included here. Preserve AC1-AC9, frozen imports, cached local behavior, all
+    historical/current distinctions and existing assertions/references/masks/
+    tolerances/timeouts/retry policy.
