@@ -60,6 +60,23 @@ from app.services.provider_usage import summarize_provider_usage
 router = APIRouter(prefix="/providers", tags=["providers"])
 
 
+def _quota_review_basis(quota_contract: dict) -> str:
+    """Label the reviewed basis without asserting native usage observations."""
+
+    dimensions = quota_contract.get("dimensions")
+    if not isinstance(dimensions, list) or not dimensions:
+        return "contract_review"
+    application_only = [
+        isinstance(dimension, dict) and dimension.get("application_usage_only") is True
+        for dimension in dimensions
+    ]
+    if all(application_only):
+        return "application_budget_only"
+    if any(application_only):
+        return "mixed_contract_review"
+    return "quota_contract_review"
+
+
 class ProviderPolicyUpdate(BaseModel):
     is_enabled: bool | None = None
     is_pinned: bool | None = None
@@ -197,7 +214,13 @@ class ETFPublisherProvisionRequest(BaseModel):
     quota_source: str = Field(min_length=1, max_length=240)
     quota_evidence_version: str = Field(min_length=1, max_length=120)
     quota_contract: dict
-    quota_verified_at: datetime
+    quota_verified_at: datetime = Field(
+        description=(
+            "Timestamp of the submitted quota-contract review. For dimensions marked "
+            "application_usage_only, this records application-budget review only; it "
+            "does not verify native provider usage, remaining quota, or reset time."
+        )
+    )
     max_concurrency: int = Field(gt=0)
     tokens_per_minute: int = Field(gt=0)
     burst_capacity: int = Field(gt=0)
@@ -506,7 +529,8 @@ async def provision_etf_publisher(
         "quota_review": {
             "evidence_source": body.quota_source,
             "evidence_version": body.quota_evidence_version,
-            "verified_at": body.quota_verified_at.isoformat(),
+            "review_basis": _quota_review_basis(body.quota_contract),
+            "reviewed_at": body.quota_verified_at.isoformat(),
             "reviewed_by_user_id": current_user.id,
         },
         "entitlement_review": {
@@ -589,6 +613,7 @@ async def provision_etf_publisher(
         "data_source_id": data_source.id,
         "policy_enabled": False,
         "live_probe_status": entitlement.live_probe_status,
+        "quota_review_basis": _quota_review_basis(body.quota_contract),
         "routable": False,
     }
 
