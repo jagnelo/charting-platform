@@ -113,8 +113,8 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
     start = datetime(2026, 1, 5, 14, 30, tzinfo=UTC)
     end = start + timedelta(days=1)
 
-    async with on_demand_history_database.begin() as db:
-        db.add_all(
+    async with on_demand_history_database.begin() as setup_db:
+        setup_db.add_all(
             [
                 AssetClass(id=1, name="Equity", description="fixture"),
                 InstrumentType(id=1, asset_class_id=1, name="ETF", description="fixture"),
@@ -134,7 +134,7 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
                 ),
             ]
         )
-        await db.flush()
+        await setup_db.flush()
         instrument = Instrument(
             id=1,
             instrument_type_id=1,
@@ -148,9 +148,9 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
             is_active=True,
             is_synthetic=False,
         )
-        db.add(instrument)
-        await db.flush()
-        db.add(
+        setup_db.add(instrument)
+        await setup_db.flush()
+        setup_db.add(
             InstrumentListing(
                 instrument_id=instrument.id,
                 exchange_id=1,
@@ -191,9 +191,9 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
             source_series_key="fixture:alternate:D1",
             provenance={"fixture": "alternate"},
         )
-        db.add_all([selected, alternate])
-        await db.flush()
-        db.add(
+        setup_db.add_all([selected, alternate])
+        await setup_db.flush()
+        setup_db.add(
             MarketSeriesDefault(
                 instrument_id=instrument.id,
                 timeframe="D1",
@@ -204,13 +204,14 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
             )
         )
         for offset in range(2):
-            db.add(
+            setup_db.add(
                 OHLCVBar(
                     instrument_id=instrument.id,
                     data_source_id=1,
                     market_series_id=alternate.id,
                     timeframe=Timeframe.D1,
                     ts=start + timedelta(days=offset),
+                    scope_key=f"series:{alternate.id}:regular",
                     open=Decimal("11"),
                     high=Decimal("12"),
                     low=Decimal("10"),
@@ -222,8 +223,12 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
                     provenance={"fixture": "alternate-only"},
                 )
             )
-        await db.flush()
+        await setup_db.flush()
 
+    # The real get_db dependency yields a plain request-scoped AsyncSession.
+    # Setup is committed above; use a fresh session for the endpoint because
+    # the production acquisition path commits before its persisted readback.
+    async with on_demand_history_database() as db:
         fetch_scopes: list[frozenset[str] | None] = []
 
         async def persist_selected_default_rows(*_args, **_kwargs):
@@ -237,6 +242,7 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
                         market_series_id=selected.id,
                         timeframe=Timeframe.D1,
                         ts=start + timedelta(days=offset),
+                        scope_key=f"series:{selected.id}:regular",
                         open=Decimal("20"),
                         high=Decimal("21"),
                         low=Decimal("19"),
@@ -249,6 +255,9 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
                     )
                 )
             await db.flush()
+            # The real fetch_ohlcv implementation commits successful provider
+            # rows before the acquisition endpoint performs persisted readback.
+            await db.commit()
             return []
 
         monkeypatch.setattr(instruments_router, "fetch_ohlcv", persist_selected_default_rows)
