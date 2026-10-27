@@ -14,6 +14,8 @@ from app.services.etf_holdings_refresh import (
     _bootstrap_from_sec_filings,
     _issuer_product_identifier,
     _refresh_adapter_route,
+    _resolve_canonical_fund_instrument,
+    acquire_etf_holdings_profile,
     bootstrap_etf_holdings_profile,
     holdings_snapshot_is_bootstrap_ready,
     refresh_etf_holdings_for_date,
@@ -824,3 +826,424 @@ async def test_bootstrap_accepts_sync_nested_transaction_wrappers(monkeypatch):
     assert result.refresh_succeeded is True
     assert db.nested_enters == 1
     assert db.nested_exits == 1
+
+
+class _FundResolutionResult:
+    def __init__(self, matches):
+        self.matches = matches
+
+    def scalars(self):
+        return self
+
+    def all(self):
+        return self.matches
+
+
+class _FundResolutionDB:
+    def __init__(self, matches):
+        self.matches = matches
+
+    async def execute(self, _statement):
+        return _FundResolutionResult(self.matches)
+
+
+def _canonical_fund_instrument(**overrides):
+    values = {
+        "id": 81,
+        "symbol": "OIH",
+        "name": "VanEck Oil Services ETF",
+        "is_active": True,
+        "is_synthetic": False,
+        "identity_status": "resolved",
+        "instrument_type": SimpleNamespace(name="ETF", asset_class=SimpleNamespace(name="Equity")),
+    }
+    values.update(overrides)
+    return SimpleNamespace(**values)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("instrument", "matches", "expected"),
+    [
+        (_canonical_fund_instrument(), 1, True),
+        (
+            _canonical_fund_instrument(
+                instrument_type=SimpleNamespace(
+                    name="ETF", asset_class=SimpleNamespace(name="Commodity")
+                )
+            ),
+            1,
+            True,
+        ),
+        (_canonical_fund_instrument(identity_status="provisional"), 1, False),
+        (
+            _canonical_fund_instrument(
+                instrument_type=SimpleNamespace(
+                    name="Stock", asset_class=SimpleNamespace(name="Equity")
+                )
+            ),
+            1,
+            False,
+        ),
+        (_canonical_fund_instrument(is_active=False), 1, False),
+        (_canonical_fund_instrument(is_synthetic=True), 1, False),
+        (_canonical_fund_instrument(), 2, False),
+    ],
+)
+async def test_acquire_resolves_only_one_active_canonical_fund(instrument, matches, expected):
+    resolved = await _resolve_canonical_fund_instrument(
+        _FundResolutionDB([instrument] * matches), "OIH"
+    )
+
+    assert (resolved is not None) is expected
+
+
+@pytest.mark.asyncio
+async def test_acquire_cache_only_is_read_only_and_never_probes(monkeypatch):
+    db = FakeBootstrapDB()
+    instrument = _canonical_fund_instrument()
+    profile = SimpleNamespace(id=21, instrument_id=81, instrument=instrument)
+    cached = SimpleNamespace(id=99, source_provider="vaneck")
+
+    async def profile_for_instrument(_db, instrument_id):
+        assert instrument_id == instrument.id
+        return profile
+
+    async def latest_snapshot(_db, instrument_id, **kwargs):
+        assert instrument_id == instrument.id
+        assert kwargs == {"include_holdings": True, "include_controlled_fixture": False}
+        return cached
+
+    async def must_not_be_called(*_args, **_kwargs):
+        raise AssertionError("cache-only acquisition must not perform source work")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        profile_for_instrument,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.get_latest_snapshot", latest_snapshot)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._apply_known_route_metadata", must_not_be_called
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter", must_not_be_called
+    )
+
+    result = await acquire_etf_holdings_profile(
+        db, symbol="OIH", request_id="f30d76c2-f0da-4d90-b713-52c7d0e2f847", refresh=False
+    )
+
+    assert result is not None
+    assert result.outcome == "cached"
+    assert result.snapshot is cached
+    assert result.refresh_attempted is False
+    assert result.provider_request_log_ids == []
+    assert db.flush_calls == 0
+
+
+async def _async_value(value):
+    return value
+
+
+@pytest.mark.asyncio
+async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(monkeypatch):
+    db = FakeBootstrapDB()
+    instrument = _canonical_fund_instrument()
+    profile = SimpleNamespace(
+        id=22,
+        instrument_id=81,
+        instrument=None,
+        adapter_key=None,
+        provider_aliases={},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    acquired_snapshot = SimpleNamespace(id=111)
+    captured = {}
+    profile_creations = []
+    success_records = []
+
+    class FakeAdapter:
+        source_provider = "vaneck"
+        supports_issuer_only_acquire = True
+
+        def probe(self, **kwargs):
+            assert kwargs["symbol"] == "OIH"
+            return SimpleNamespace(status="ready", reason=None, confidence=0.9)
+
+    async def profile_for_instrument(_db, _instrument_id):
+        return None
+
+    async def ensure_profile(_db, supplied_instrument):
+        profile_creations.append(supplied_instrument)
+        return profile
+
+    async def latest_snapshot(_db, _instrument_id, **_kwargs):
+        return None
+
+    async def refresh_route(_db, supplied_profile, **kwargs):
+        assert supplied_profile is profile
+        kwargs["request_log_ids_out"].append(481)
+        captured.update(kwargs)
+        return acquired_snapshot
+
+    async def record_success(_db, supplied_profile, *, snapshot):
+        success_records.append((supplied_profile, snapshot))
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        profile_for_instrument,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.known_etf_route_metadata",
+        lambda symbol: {
+            "provider_aliases": {
+                "holdings_adapter": "vaneck",
+                "product_slug": "oil-services-etf-oih",
+            }
+        }
+        if symbol == "OIH"
+        else None,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.ensure_etf_profile", ensure_profile)
+
+    def apply_curated_route(supplied_profile):
+        supplied_profile.adapter_key = "vaneck"
+        supplied_profile.provider_aliases = {
+            "holdings_adapter": "vaneck",
+            "product_slug": "oil-services-etf-oih",
+        }
+        return True
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._apply_known_route_metadata", apply_curated_route
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.get_latest_snapshot", latest_snapshot)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda key: FakeAdapter() if key == "vaneck" else None,
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh._refresh_adapter_route", refresh_route)
+    monkeypatch.setattr("app.services.etf_holdings_refresh._record_success", record_success)
+
+    result = await acquire_etf_holdings_profile(
+        db, symbol="OIH", request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d", refresh=True
+    )
+
+    assert result is not None
+    assert result.outcome == "acquired"
+    assert result.snapshot_id == acquired_snapshot.id
+    assert result.refresh_attempted is True
+    assert profile.instrument is instrument
+    assert profile_creations == [instrument]
+    assert captured["acquisition_request_id"] == "7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d"
+    assert captured["atomic_ingest_savepoint"] is True
+    assert captured["request_log_ids_out"] == result.provider_request_log_ids
+    assert result.provider_request_log_ids == [481]
+    assert success_records == [(profile, acquired_snapshot)]
+    assert db.flush_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_acquire_rejects_unknown_fund_without_creating_profile(monkeypatch):
+    async def no_profile_or_creation(*_args, **_kwargs):
+        raise AssertionError("invalid identities must be rejected before profile access")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(None),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        no_profile_or_creation,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile", no_profile_or_creation
+    )
+
+    result = await acquire_etf_holdings_profile(
+        FakeBootstrapDB(),
+        symbol="NOTAETF",
+        request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+        refresh=True,
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_acquire_cache_only_does_not_create_missing_profile(monkeypatch):
+    instrument = _canonical_fund_instrument()
+
+    async def no_profile_or_creation(*_args, **_kwargs):
+        raise AssertionError("cache-only must not create an ETF profile")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        lambda *_args: _async_value(None),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile", no_profile_or_creation
+    )
+
+    result = await acquire_etf_holdings_profile(
+        FakeBootstrapDB(),
+        symbol="OIH",
+        request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+        refresh=False,
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_acquire_holds_unproven_adapter_without_transport(monkeypatch):
+    instrument = _canonical_fund_instrument()
+    snapshot = SimpleNamespace(id=98)
+    profile = SimpleNamespace(
+        id=25,
+        instrument_id=81,
+        instrument=instrument,
+        adapter_key="vaneck",
+        provider_aliases={"holdings_adapter": "vaneck", "product_slug": "oil-services-etf-oih"},
+    )
+
+    class UnreviewedAdapter:
+        source_provider = "vaneck"
+
+        def probe(self, **_kwargs):
+            raise AssertionError("issuer-only eligibility must be checked before probing")
+
+    async def refresh_must_not_run(*_args, **_kwargs):
+        raise AssertionError("unreviewed adapter must not reach shared transport")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        lambda *_args: _async_value(profile),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._apply_known_route_metadata", lambda _profile: False
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot",
+        lambda *_args, **_kwargs: _async_value(snapshot),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda _key: UnreviewedAdapter(),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route", refresh_must_not_run
+    )
+
+    result = await acquire_etf_holdings_profile(
+        FakeBootstrapDB(),
+        symbol="OIH",
+        request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+        refresh=True,
+    )
+
+    assert result is not None
+    assert result.outcome == "held"
+    assert result.refresh_attempted is False
+    assert result.snapshot is snapshot
+    assert result.provider_request_log_ids == []
+
+
+@pytest.mark.asyncio
+async def test_acquire_failure_preserves_existing_profile_and_snapshot(monkeypatch):
+    db = FakeBootstrapDB()
+    instrument = _canonical_fund_instrument()
+    prior_snapshot = SimpleNamespace(id=98, source_provider="vaneck")
+    profile = SimpleNamespace(
+        id=24,
+        instrument_id=81,
+        instrument=instrument,
+        adapter_key="vaneck",
+        provider_aliases={
+            "holdings_adapter": "vaneck",
+            "product_slug": "oil-services-etf-oih",
+        },
+        issuer="VanEck",
+        sponsor="VanEck",
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    failure = RuntimeError("bounded test failure")
+    failure_records = []
+
+    class FakeAdapter:
+        source_provider = "vaneck"
+        supports_issuer_only_acquire = True
+
+        def probe(self, **_kwargs):
+            return SimpleNamespace(status="ready", reason=None, confidence=0.9)
+
+    async def profile_for_instrument(_db, _instrument_id):
+        return profile
+
+    async def latest_snapshot(_db, _instrument_id, **_kwargs):
+        return prior_snapshot
+
+    async def refresh_route(*_args, **_kwargs):
+        _kwargs["request_log_ids_out"].append(582)
+        raise failure
+
+    async def record_failure(_db, supplied_profile, observed_failure):
+        failure_records.append((supplied_profile, observed_failure))
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        profile_for_instrument,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._apply_known_route_metadata", lambda _profile: False
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh.get_latest_snapshot", latest_snapshot)
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda _key: FakeAdapter(),
+    )
+    monkeypatch.setattr("app.services.etf_holdings_refresh._refresh_adapter_route", refresh_route)
+    monkeypatch.setattr("app.services.etf_holdings_refresh._record_failure", record_failure)
+
+    result = await acquire_etf_holdings_profile(
+        db, symbol="OIH", request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d", refresh=True
+    )
+
+    assert result is not None
+    assert result.outcome == "failed"
+    assert result.snapshot is prior_snapshot
+    assert result.snapshot_id == prior_snapshot.id
+    assert result.refresh_attempted is True
+    assert result.refresh_succeeded is False
+    assert result.provider_request_log_ids == [582]
+    assert failure_records == [(profile, failure)]

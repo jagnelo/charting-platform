@@ -12,7 +12,7 @@ from io import BytesIO, StringIO
 from typing import Any
 
 import httpx as _httpx
-from sqlalchemy import inspect, select
+from sqlalchemy import func, inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -112,6 +112,21 @@ class ETFHoldingsBootstrapResult:
     probe: HoldingsAdapterProbe
     refresh_attempted: bool
     refresh_succeeded: bool
+    message: str | None = None
+
+
+@dataclass(slots=True)
+class ETFHoldingsAcquireResult:
+    profile: ETFProfile
+    outcome: str
+    refresh: bool
+    refresh_attempted: bool
+    refresh_succeeded: bool
+    snapshot: Any | None
+    snapshot_id: int | None
+    source_provider: str | None
+    source_operation: str | None
+    provider_request_log_ids: list[int]
     message: str | None = None
 
 
@@ -1300,6 +1315,264 @@ async def probe_etf_holdings_adapter_route(
     return probe
 
 
+async def _resolve_canonical_fund_instrument(
+    db: AsyncSession,
+    symbol: str,
+) -> Instrument | None:
+    """Resolve one existing, canonical ETF/fund symbol without creating identity."""
+
+    if not symbol:
+        return None
+    statement = (
+        select(Instrument)
+        .join(Instrument.instrument_type)
+        .options(selectinload(Instrument.instrument_type))
+        .where(func.upper(Instrument.symbol) == symbol)
+        .limit(2)
+    )
+    matches = (await db.execute(statement)).scalars().all()
+    if len(matches) != 1:
+        return None
+    instrument = matches[0]
+    if (
+        not instrument.is_active
+        or instrument.is_synthetic
+        or instrument.identity_status != "resolved"
+        or instrument.instrument_type.name.strip().casefold()
+        not in {"etf", "index etf", "mutual fund", "closed-end fund"}
+    ):
+        return None
+    return instrument
+
+
+def _acquisition_validation(
+    request_id: str | None,
+    validation: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    if not request_id:
+        return validation
+    return {**(validation or {}), "application_request_id": request_id}
+
+
+async def acquire_etf_holdings_profile(
+    db: AsyncSession,
+    *,
+    symbol: str,
+    request_id: str,
+    refresh: bool,
+) -> ETFHoldingsAcquireResult | None:
+    """Acquire only the selected ETF's configured issuer route through Provider.
+
+    Unlike bootstrap, this function never creates instrument/catalog rows,
+    performs SEC ticker enrichment, or falls back to EDGAR. A missing ETF
+    profile may be created only for an already-resolved canonical fund and only
+    on an explicit refresh. Cache-only requests are read-only. The shared ETF
+    bridge remains the admission seam for policy, quota, cost, and settlement.
+    """
+
+    normalized_symbol = str(symbol or "").strip().upper()
+    instrument = await _resolve_canonical_fund_instrument(db, normalized_symbol)
+    if instrument is None:
+        return None
+
+    route_metadata = known_etf_route_metadata(normalized_symbol)
+    route_aliases = route_metadata.get("provider_aliases") if route_metadata else None
+    curated_adapter_key = (
+        str(route_aliases.get("holdings_adapter") or "").strip().lower()
+        if isinstance(route_aliases, dict)
+        else ""
+    )
+    profile = await get_etf_profile_for_instrument(db, instrument.id)
+    profile_created = False
+    if profile is None:
+        if not refresh or not curated_adapter_key:
+            return None
+        profile = await ensure_etf_profile(db, instrument)
+        # The new row was created by foreign key only. Keep the already-loaded
+        # canonical instrument attached so subsequent route metadata/probing
+        # never triggers async lazy loading on this explicit acquire request.
+        profile.instrument = instrument
+        _apply_known_route_metadata(profile)
+        profile_created = True
+
+    snapshot = await get_latest_snapshot(
+        db,
+        profile.instrument_id,
+        include_holdings=True,
+        include_controlled_fixture=False,
+    )
+    if not refresh:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="cached" if snapshot is not None else "no_data",
+            refresh=False,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=(snapshot.source_provider if snapshot else None),
+            source_operation=None,
+            provider_request_log_ids=[],
+            message=(
+                "Returned the latest stored holdings snapshot; no source request was made."
+                if snapshot is not None
+                else "No stored holdings snapshot exists; no source request was made. Set refresh=true to request one."
+            ),
+        )
+
+    configured_adapter_key = str(profile.adapter_key or "").strip().lower()
+    profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
+    reviewed_adapter_key = curated_adapter_key or profile_adapter_key
+    if not profile_created and curated_adapter_key:
+        _apply_known_route_metadata(profile)
+        configured_adapter_key = str(profile.adapter_key or "").strip().lower()
+    if (
+        not reviewed_adapter_key
+        or configured_adapter_key != reviewed_adapter_key
+        or (not curated_adapter_key and profile_adapter_key != configured_adapter_key)
+    ):
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=None,
+            source_operation=None,
+            provider_request_log_ids=[],
+            message="No committed issuer-only holdings route is configured; no request was made.",
+        )
+    adapter = get_holdings_adapter(profile.adapter_key)
+    if adapter is None or profile.instrument is None:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=None,
+            source_operation=None,
+            provider_request_log_ids=[],
+            message="No configured issuer holdings adapter is available for this ETF profile.",
+        )
+
+    source_provider = str(getattr(adapter, "source_provider", "")).strip().lower() or None
+    operation = "fetch_etf_holdings_latest"
+    if getattr(adapter, "supports_issuer_only_acquire", False) is not True:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=[],
+            message="The selected adapter is not proven issuer-only; no request was made.",
+        )
+
+    if source_provider == "vaneck" and not _first_alias(_string_aliases(profile), "product_slug"):
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=[],
+            message="VanEck acquisition requires its committed fund-specific product slug.",
+        )
+
+    probe = adapter.probe(
+        symbol=profile.instrument.symbol,
+        name=profile.instrument.name,
+        identifiers=_string_aliases(profile),
+    )
+    if probe.status != "ready":
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=[],
+            message=bounded_redact_provider_message(
+                probe.reason or "The selected issuer route is not ready.", max_length=1000
+            ),
+        )
+
+    request_log_ids: list[int] = []
+    try:
+        acquired = await _refresh_adapter_route(
+            db,
+            profile,
+            probe=probe,
+            acquisition_request_id=request_id,
+            atomic_ingest_savepoint=True,
+            request_log_ids_out=request_log_ids,
+        )
+        await _record_success(db, profile, snapshot=acquired)
+        await db.flush()
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="acquired",
+            refresh=True,
+            refresh_attempted=True,
+            refresh_succeeded=True,
+            snapshot=None,
+            snapshot_id=acquired.id,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=request_log_ids,
+            message="Fetched and stored the selected ETF issuer snapshot through shared Provider admission.",
+        )
+    except (ETFHoldingsRouteHeldError, ETFHoldingsRouteNotReadyError) as exc:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=True,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=request_log_ids,
+            message=bounded_redact_provider_message(exc, max_length=1000)
+            or "The shared Provider route held this request.",
+        )
+    except Exception as exc:
+        await _record_failure(db, profile, exc)
+        await db.flush()
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="failed",
+            refresh=True,
+            refresh_attempted=True,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=request_log_ids,
+            message=bounded_redact_provider_message(exc, max_length=1000)
+            or "The selected issuer request failed; prior stored evidence was preserved.",
+        )
+
+
 async def bootstrap_etf_holdings_profile(
     db: AsyncSession,
     *,
@@ -2377,7 +2650,15 @@ def _ensure_artifact_identity_is_safe(validation: dict[str, Any]) -> None:
         )
 
 
-async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
+async def _refresh_adapter_route(
+    db: AsyncSession,
+    profile: ETFProfile,
+    *,
+    probe: HoldingsAdapterProbe | None = None,
+    acquisition_request_id: str | None = None,
+    atomic_ingest_savepoint: bool = False,
+    request_log_ids_out: list[int] | None = None,
+):
     aliases = _aliases(profile)
     if profile.instrument is None:
         raise ValueError("ETF profile is missing its linked instrument.")
@@ -2389,7 +2670,9 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     symbol = profile.instrument.symbol
     identifiers = _string_aliases(profile)
     issuer_product_id = _issuer_product_identifier(identifiers)
-    probe = adapter.probe(symbol=symbol, name=profile.instrument.name, identifiers=identifiers)
+    probe = probe or adapter.probe(
+        symbol=symbol, name=profile.instrument.name, identifiers=identifiers
+    )
     if probe.status != "ready":
         required = ", ".join(probe.required_identifiers) or "provider-specific route"
         raise ETFHoldingsRouteNotReadyError(
@@ -2411,14 +2694,27 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
                 identifiers=identifiers,
             )
         except BaseException as exc:
+            if request_log_ids_out is not None:
+                request_log_ids_out.extend(
+                    request_log_id
+                    for request_log_id in request_binding.request_log_ids
+                    if request_log_id not in request_log_ids_out
+                )
             await _retain_rejected_fetch_artifact(
                 db,
                 profile,
                 adapter,
                 request_binding,
                 failure=exc,
+                validation=_acquisition_validation(acquisition_request_id),
             )
             raise
+    if request_log_ids_out is not None:
+        request_log_ids_out.extend(
+            request_log_id
+            for request_log_id in request_binding.request_log_ids
+            if request_log_id not in request_log_ids_out
+        )
     if not fetch_result.rows:
         failure = ValueError("Issuer holdings route returned no parseable rows.")
         await _retain_rejected_fetch_artifact(
@@ -2428,6 +2724,7 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             request_binding,
             fetch_result=fetch_result,
             failure=failure,
+            validation=_acquisition_validation(acquisition_request_id),
         )
         raise failure
     artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
@@ -2441,12 +2738,16 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             request_binding,
             fetch_result=fetch_result,
             failure=exc,
-            validation=artifact_identity_validation,
+            validation=_acquisition_validation(
+                acquisition_request_id,
+                artifact_identity_validation,
+            ),
         )
         raise
 
     result_metadata = {
         **(fetch_result.legal_metadata or {}),
+        **({"application_request_id": acquisition_request_id} if acquisition_request_id else {}),
         "provider_request_log_ids": request_binding.request_log_ids,
         "provider_request_attempts": _provider_request_attempts(request_binding),
     }
@@ -2482,7 +2783,10 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             request_binding,
             fetch_result=fetch_result,
             failure=exc,
-            validation={"status": "future_dated"},
+            validation=_acquisition_validation(
+                acquisition_request_id,
+                {"status": "future_dated"},
+            ),
         )
         raise
     cadence = result_metadata.get("expected_cadence")
@@ -2499,7 +2803,10 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             request_binding,
             fetch_result=fetch_result,
             failure=failure,
-            validation={"status": "stale", "freshness_deadline": deadline.isoformat()},
+            validation=_acquisition_validation(
+                acquisition_request_id,
+                {"status": "stale", "freshness_deadline": deadline.isoformat()},
+            ),
         )
         raise failure
     parser_version = str(
@@ -2521,7 +2828,10 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             request_binding,
             fetch_result=fetch_result,
             failure=exc,
-            validation={"status": "schema_drift"},
+            validation=_acquisition_validation(
+                acquisition_request_id,
+                {"status": "schema_drift"},
+            ),
         )
         raise
 
@@ -2551,50 +2861,63 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
     }
 
     try:
-        snapshot = await ingest_holdings_snapshot(
-            db,
-            etf_instrument=profile.instrument,
-            rows=fetch_result.rows,
-            composition_date=composition_date,
-            as_of_date=as_of_date,
-            known_at=known_at,
-            published_at=published_at,
-            provenance=str(
-                result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
-            ),
-            source_provider=str(source_provider),
-            source_url=fetch_result.source_url,
-            source_identifier=fetch_result.source_identifier or issuer_product_id,
-            source_quality=str(
-                result_metadata.get("source_quality")
-                or aliases.get("holdings_source_quality")
-                or "self_snapshotted_holdings"
-            ),
-            completeness_status=_holdings_completeness_status(result_metadata, aliases),
-            parser_version=parser_version,
-            raw_payload_text=fetch_result.raw_text,
-            raw_payload_json=fetch_result.raw_json,
-            legal_metadata={
-                **(fetch_result.legal_metadata or {}),
-                "provider_request_log_ids": request_binding.request_log_ids,
-                "provider_request_attempts": _provider_request_attempts(request_binding),
-                "terms_note": aliases.get("terms_note"),
-                "probe_status": probe.status,
-                "probe_confidence": str(probe.confidence),
-                "artifact_identity_validation": artifact_identity_validation,
-                "timing_provenance": timing_provenance,
-            },
-            notes=(
-                "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
-                "provider-specific adapter."
-                if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
-                else "Fetched through the ETF profile's issuer holdings adapter route."
-            ),
-            # Keep refresh bounded and provider-neutral.  Constituent resolution
-            # uses canonical symbols/identifiers first; optional enrichment is a
-            # separate job, never part of the issuer download transaction.
-            allow_provider_enrichment=False,
-        )
+
+        async def ingest_selected_result():
+            return await ingest_holdings_snapshot(
+                db,
+                etf_instrument=profile.instrument,
+                rows=fetch_result.rows,
+                composition_date=composition_date,
+                as_of_date=as_of_date,
+                known_at=known_at,
+                published_at=published_at,
+                provenance=str(
+                    result_metadata.get("snapshot_provenance") or "issuer_self_snapshotted_holdings"
+                ),
+                source_provider=str(source_provider),
+                source_url=fetch_result.source_url,
+                source_identifier=fetch_result.source_identifier or issuer_product_id,
+                source_quality=str(
+                    result_metadata.get("source_quality")
+                    or aliases.get("holdings_source_quality")
+                    or "self_snapshotted_holdings"
+                ),
+                completeness_status=_holdings_completeness_status(result_metadata, aliases),
+                parser_version=parser_version,
+                raw_payload_text=fetch_result.raw_text,
+                raw_payload_json=fetch_result.raw_json,
+                legal_metadata={
+                    **(fetch_result.legal_metadata or {}),
+                    **(
+                        {"application_request_id": acquisition_request_id}
+                        if acquisition_request_id
+                        else {}
+                    ),
+                    "provider_request_log_ids": request_binding.request_log_ids,
+                    "provider_request_attempts": _provider_request_attempts(request_binding),
+                    "terms_note": aliases.get("terms_note"),
+                    "probe_status": probe.status,
+                    "probe_confidence": str(probe.confidence),
+                    "artifact_identity_validation": artifact_identity_validation,
+                    "timing_provenance": timing_provenance,
+                },
+                notes=(
+                    "Reconstructed from SEC EDGAR holdings filings through the ETF profile's "
+                    "provider-specific adapter."
+                    if result_metadata.get("route_resolution") == "sec_edgar_filing_fallback"
+                    else "Fetched through the ETF profile's issuer holdings adapter route."
+                ),
+                # Keep refresh bounded and provider-neutral.  Constituent resolution
+                # uses canonical symbols/identifiers first; optional enrichment is a
+                # separate job, never part of the issuer download transaction.
+                allow_provider_enrichment=False,
+            )
+
+        if atomic_ingest_savepoint:
+            async with _bootstrap_savepoint(db):
+                snapshot = await ingest_selected_result()
+        else:
+            snapshot = await ingest_selected_result()
     except BaseException as exc:
         await _retain_rejected_fetch_artifact(
             db,
@@ -2603,11 +2926,14 @@ async def _refresh_adapter_route(db: AsyncSession, profile: ETFProfile):
             request_binding,
             fetch_result=fetch_result,
             failure=exc,
-            validation={
-                "status": "ingest_rejected",
-                "composition_date": composition_date.isoformat(),
-                "as_of_date": as_of_date.isoformat() if as_of_date else None,
-            },
+            validation=_acquisition_validation(
+                acquisition_request_id,
+                {
+                    "status": "ingest_rejected",
+                    "composition_date": composition_date.isoformat(),
+                    "as_of_date": as_of_date.isoformat() if as_of_date else None,
+                },
+            ),
         )
         raise
     profile.adapter_status = "success"

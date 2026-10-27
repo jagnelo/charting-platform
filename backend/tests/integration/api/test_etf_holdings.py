@@ -562,6 +562,271 @@ def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
     assert latest.json()["row_count"] == 2
 
 
+def test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit(
+    client, db, auth_headers, monkeypatch
+):
+    """An explicit refresh can start from a canonical ETF with no local profile."""
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import ETFProfile
+    from app.models.instrument import Instrument
+    from app.services.etf_holdings import ingest_holdings_snapshot
+    from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+    equity = db.query(AssetClass).filter_by(name="Equity").one_or_none()
+    if equity is None:
+        equity = AssetClass(name="Equity", description="Equity")
+        db.add(equity)
+        db.flush()
+    etf_type = (
+        db.query(InstrumentType).filter_by(asset_class_id=equity.id, name="ETF").one_or_none()
+    )
+    if etf_type is None:
+        etf_type = InstrumentType(
+            asset_class_id=equity.id,
+            name="ETF",
+            description="ETF",
+        )
+        db.add(etf_type)
+        db.flush()
+    assert db.query(Instrument).filter_by(symbol="OIH").count() == 0
+    instrument = Instrument(
+        instrument_type_id=etf_type.id,
+        symbol="OIH",
+        name="VanEck Oil Services ETF",
+        is_active=True,
+        identity_status="resolved",
+        is_synthetic=False,
+    )
+    db.add(instrument)
+    db.flush()
+    assert db.query(ETFProfile).filter_by(instrument_id=instrument.id).one_or_none() is None
+    observed_at = datetime.now(UTC)
+    acquired_request_ids = []
+
+    async def fake_refresh_adapter_route(request_db, selected_profile, **kwargs):
+        acquired_request_ids.append(kwargs["acquisition_request_id"])
+        return await ingest_holdings_snapshot(
+            request_db,
+            etf_instrument=selected_profile.instrument,
+            rows=[
+                CanonicalHoldingRow(
+                    symbol="SLB",
+                    name="SLB Limited",
+                    weight=Decimal("0.20000000"),
+                    currency="USD",
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_id="offline-mock-1",
+                )
+            ],
+            composition_date=date(2026, 10, 26),
+            as_of_date=date(2026, 10, 26),
+            known_at=observed_at,
+            published_at=None,
+            provenance="issuer_self_snapshotted_holdings",
+            source_provider="vaneck",
+            source_url=(
+                "https://www.vaneck.com/us/en/investments/"
+                "oil-services-etf-oih/downloads/holdings/?cken=true"
+            ),
+            source_identifier="oil-services-etf-oih",
+            source_quality="self_snapshotted_holdings",
+            completeness_status="unknown",
+            parser_version="test-mock-v1",
+            raw_payload_text="ticker,name,weight\nSLB,SLB Limited,20.0",
+            raw_payload_json={"fixture": "offline-mock"},
+            legal_metadata={"application_request_id": kwargs["acquisition_request_id"]},
+            notes="Mocked issuer result for endpoint serialization regression.",
+            allow_provider_enrichment=False,
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route",
+        fake_refresh_adapter_route,
+    )
+    request_id = "e525f027-344b-4f80-93c5-13d21b1be25b"
+    response = client.post(
+        "/api/v1/etf-holdings/OIH/acquire",
+        headers=auth_headers,
+        json={"request_id": request_id, "refresh": True},
+    )
+
+    assert response.status_code == 200, response.text
+    payload = response.json()
+    assert payload["request_id"] == request_id
+    assert payload["outcome"] == "acquired"
+    assert payload["refresh_attempted"] is True
+    assert payload["refresh_succeeded"] is True
+    assert payload["profile"]["symbol"] == "OIH"
+    assert payload["profile"]["adapter_key"] == "vaneck"
+    assert payload["snapshot"]["composition_date"] == "2026-10-26"
+    assert payload["snapshot"]["known_at"] == observed_at.isoformat().replace("+00:00", "Z")
+    assert payload["snapshot"]["row_count"] == 1
+    assert payload["snapshot"]["holdings"][0]["reported_symbol"] == "SLB"
+    assert payload["snapshot"]["holdings"][0]["reported_name"] == "SLB Limited"
+    assert (
+        payload["snapshot"]["extra_data"]["legal_metadata"]["application_request_id"] == request_id
+    )
+    assert payload["provider_request_log_ids"] == []
+    assert acquired_request_ids == [request_id]
+
+
+@pytest.mark.asyncio
+async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
+    db_engine, monkeypatch
+):
+    """Fresh AsyncSession creates only a local profile and serializes committed rows."""
+    from sqlalchemy import select
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import ETFProfile
+    from app.models.instrument import Instrument
+    from app.routers.etf_holdings import acquire_holdings_profile
+    from app.schemas.etf_holdings import ETFProfileAcquireRequest
+    from app.services.etf_holdings import ingest_holdings_snapshot
+    from app.services.etf_holdings_adapters import CanonicalHoldingRow
+
+    async_url = db_engine.url.set(drivername="postgresql+asyncpg")
+    async_engine = create_async_engine(async_url, pool_pre_ping=True)
+    observed_at = datetime.now(UTC)
+    try:
+        async with async_engine.connect() as connection:
+            outer_transaction = await connection.begin()
+            session_factory = async_sessionmaker(
+                bind=connection,
+                expire_on_commit=False,
+                join_transaction_mode="create_savepoint",
+            )
+            async with session_factory() as seed_db:
+                instrument_matches = (
+                    (
+                        await seed_db.execute(
+                            select(Instrument).where(Instrument.symbol == "OIH").limit(2)
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                assert instrument_matches == [], "The test requires a newly canonical OIH identity"
+                equity = (
+                    await seed_db.execute(select(AssetClass).where(AssetClass.name == "Equity"))
+                ).scalar_one_or_none()
+                if equity is None:
+                    equity = AssetClass(name="Equity", description="Equity")
+                    seed_db.add(equity)
+                    await seed_db.flush()
+                etf_type = (
+                    await seed_db.execute(
+                        select(InstrumentType).where(
+                            InstrumentType.asset_class_id == equity.id,
+                            InstrumentType.name == "ETF",
+                        )
+                    )
+                ).scalar_one_or_none()
+                if etf_type is None:
+                    etf_type = InstrumentType(
+                        asset_class_id=equity.id,
+                        name="ETF",
+                        description="ETF",
+                    )
+                    seed_db.add(etf_type)
+                    await seed_db.flush()
+                instrument = Instrument(
+                    instrument_type_id=etf_type.id,
+                    symbol="OIH",
+                    name="VanEck Oil Services ETF",
+                    is_active=True,
+                    identity_status="resolved",
+                )
+                seed_db.add(instrument)
+                await seed_db.flush()
+                profile = await seed_db.scalar(
+                    select(ETFProfile).where(ETFProfile.instrument_id == instrument.id)
+                )
+                assert profile is None
+                await seed_db.commit()
+
+            # A second independent session verifies absence, then the request
+            # gets a completely fresh identity map and must create the profile.
+            async with session_factory() as verify_db:
+                assert (
+                    await verify_db.scalar(
+                        select(ETFProfile.id).where(ETFProfile.instrument_id == instrument.id)
+                    )
+                    is None
+                )
+            async with session_factory() as request_db:
+                assert len(request_db.identity_map) == 0
+
+                async def fake_refresh_adapter_route(session, selected_profile, **kwargs):
+                    assert kwargs["acquisition_request_id"] == (
+                        "e525f027-344b-4f80-93c5-13d21b1be25b"
+                    )
+                    return await ingest_holdings_snapshot(
+                        session,
+                        etf_instrument=selected_profile.instrument,
+                        rows=[
+                            CanonicalHoldingRow(
+                                symbol="SLB",
+                                name="SLB Limited",
+                                weight=Decimal("0.20"),
+                                currency="USD",
+                                holding_type="equity",
+                                row_type="security",
+                                source_row_id="async-session-mock-1",
+                            )
+                        ],
+                        composition_date=date(2026, 10, 26),
+                        as_of_date=date(2026, 10, 26),
+                        known_at=observed_at,
+                        published_at=None,
+                        provenance="issuer_self_snapshotted_holdings",
+                        source_provider="vaneck",
+                        source_url=(
+                            "https://www.vaneck.com/us/en/investments/"
+                            "oil-services-etf-oih/downloads/holdings/?cken=true"
+                        ),
+                        source_identifier="oil-services-etf-oih",
+                        source_quality="self_snapshotted_holdings",
+                        completeness_status="unknown",
+                        parser_version="test-async-session-v1",
+                        raw_payload_text="mocked issuer body",
+                        raw_payload_json={"fixture": "offline-mock"},
+                        legal_metadata={"application_request_id": kwargs["acquisition_request_id"]},
+                        notes="Mocked acquisition for fresh AsyncSession serialization.",
+                        allow_provider_enrichment=False,
+                    )
+
+                monkeypatch.setattr(
+                    "app.services.etf_holdings_refresh._refresh_adapter_route",
+                    fake_refresh_adapter_route,
+                )
+                response = await acquire_holdings_profile(
+                    symbol="OIH",
+                    body=ETFProfileAcquireRequest(
+                        request_id="e525f027-344b-4f80-93c5-13d21b1be25b",
+                        refresh=True,
+                    ),
+                    db=request_db,
+                    current_user=None,
+                )
+                payload = response.model_dump(mode="json")
+                assert payload["outcome"] == "acquired"
+                assert payload["profile"]["symbol"] == "OIH"
+                assert payload["profile"]["issuer"] == "VanEck"
+                assert payload["snapshot"]["row_count"] == 1
+                assert payload["snapshot"]["known_at"].startswith("2026-10-27T")
+                assert payload["snapshot"]["holdings"][0]["reported_symbol"] == "SLB"
+                assert (
+                    payload["snapshot"]["extra_data"]["legal_metadata"]["application_request_id"]
+                    == "e525f027-344b-4f80-93c5-13d21b1be25b"
+                )
+            await outer_transaction.rollback()
+    finally:
+        await async_engine.dispose()
+
+
 def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(client, auth_headers, monkeypatch):
     async def fake_bootstrap_from_sec_filings(db, profile):
         return None

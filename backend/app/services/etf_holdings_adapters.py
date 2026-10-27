@@ -5643,6 +5643,9 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     _HOLDINGS_URL_TEMPLATE = (
         "https://www.vaneck.com/us/en/investments/{product_slug}/downloads/holdings/?cken=true"
     )
+    # The explicit acquisition surface accepts only the direct fund workbook.
+    # This does not change legacy bootstrap's separate SEC fallback semantics.
+    supports_issuer_only_acquire = True
     _REQUIRED_HEADERS = frozenset(
         {
             "Number",

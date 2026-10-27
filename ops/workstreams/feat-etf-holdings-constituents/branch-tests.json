@@ -12,7 +12,9 @@
     "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents",
     "npm --prefix frontend run type-check",
     "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts",
-    "npm --prefix frontend run build"
+    "npm --prefix frontend run build",
+    "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py -q --no-cov -p no:cacheprovider",
+    "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider"
   ],
   "commands": [
     {
@@ -78,6 +80,20 @@
       "command": "npm --prefix frontend run build",
       "covers": [
         11
+      ]
+    },
+    {
+      "id": "on-demand-selected-fund-unit",
+      "command": "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py -q --no-cov -p no:cacheprovider",
+      "covers": [
+        12
+      ]
+    },
+    {
+      "id": "on-demand-selected-fund-api",
+      "command": "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider",
+      "covers": [
+        13
       ]
     }
   ],

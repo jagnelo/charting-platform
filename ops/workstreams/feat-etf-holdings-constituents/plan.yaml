@@ -277,46 +277,218 @@ previously_accepted_erf_goal: >-
   or full-roadmap completion is claimed.
 goal: *etf_full_roadmap_goal
 active_changeset:
-  name: restore audited provider-tier counts in current ETF narrative after exact-CI failure
-  baseline: a558d50a9bb0ccb40554b6163be51f2b57097983
-  adopted_staging_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-  prior_adoption_merge: edd72c9c3feda2cdfabd06565c010158ddd072e7
+  name: explicit selected-fund ETF issuer acquisition
+  baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
+  authorization: >-
+    Human-authorized on-demand acquisition continuation in the same ETF thread;
+    implementation follows /home/m920q/charting-platform/.ai/staging-attempts/on-demand-acquisition-reviewed-contract-20261027.md.
+    TC's mocked consumer contract is /home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json.
   state: >-
-    Adoption published at a558d50a9bb0ccb40554b6163be51f2b57097983; exact CI
-    40371928948 attempt1 is terminal RED for the narrative sentinel. This
-    record-only correction restores count wording from verified runtime/YAML
-    sources; product, tests and ledgers are unchanged.
-  source_tree_id: 9943d5945573bbc82e9d7c1c8c430a1337046ea4
-  source_tree_unchanged_from_accepted_staging: true
-  imported_source_path_counts: {frontend: 47, scripts: 1, backend: 0, config: 0}
-  imported_paths: exact staging tree except four branch-owned ETF workstream records
-  frozen_upstream_import_manifest: not_applicable_exact_staging_parent_no_unlisted_blobs
-  existing_tc_import_manifests: preserved_unchanged_from_accepted_staging
-  previous_branch_ci: >-
-    40293867135 on pre-adoption source 3b09233e7e8aa36db3217fdf65bf87b75460877d
-    is terminal RED (Backend Tests failed; Frontend Unit Tests passed; dependent
-    jobs skipped). It remains historical and is not waived by staging green.
-  current_branch_ci_failure: >-
-    Exact published adoption CI40371928948 attempt1, Backend job121744637801,
-    failed one unchanged narrative test (5502 passed, 1 skipped). The current
-    blocker summaries omitted the required literal `15 Tier-0 and 156 Tier-1`;
-    runtime and YAML ledgers independently confirm 15, 156 and 74 fallback.
-    Preserve the red attempt; the repaired exact tip requires new CI.
-  correction_validation: >-
-    The unchanged narrative sentinel passes 1/1 and the complete
-    test_etf_holdings_adapters.py unit module passes 632/632 under the existing
-    offline UV environment. This is bounded unit evidence, not a full suite.
-  bounded_consumer_validation: >-
-    After merge, 34 tests passed across five targeted frontend unit files covering
-    router shell, ETF capability labels/view/panel, and application routes; no
-    browser or full profile was run.
-  owned_record_paths:
-    - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
-    - ops/workstreams/feat-etf-holdings-constituents/handoff.md
-    - ops/workstreams/feat-etf-holdings-constituents/session.json
-    - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
-  presentation_owner: TC2000
-  next_action: Validate and publish the four-record narrative repair, then observe new exact-tip CI. Root owns integration/target acceptance; after that boundary continue AC2 retained-evidence issuer audit.
+    Additive authenticated selected-fund action and offline regressions are
+    implemented locally. The action resolves one existing active/resolved fund
+    identity; it never creates a canonical instrument, invokes bootstrap, does
+    SEC discovery/fallback, enriches each constituent, or fans out candles.
+    A missing ETFProfile is created only for an explicit refresh and curated
+    issuer route; the new profile is linked to the already loaded instrument.
+    Cache-only is read-only. All attempted issuer work still goes through the
+    existing ETF shared Provider bridge. Provider's request-only/manual scope
+    remains unreleased, source-rights and application/native quota facts are
+    unresolved, and no real source/Provider request or quota reservation ran.
+    No source checkpoint acceptance, branch CI, full backend or full app gate
+    is claimed.
+  request_response_contract:
+    route: POST /api/v1/etf-holdings/{symbol}/acquire
+    request: ETFProfileAcquireRequest
+    request_fields: [request_id: UUID required, refresh: boolean]
+    refresh_semantics: false is cache-only; true is the explicit selected-source action
+    response: ETFProfileAcquireOut
+    outcome_enum: [cached, no_data, acquired, held, failed]
+    response_fields: [request_id, outcome, refresh, refresh_attempted, refresh_succeeded, profile, snapshot, capability, source_provider, source_operation, provider_request_log_ids, message]
+    snapshot_holding_field: holdings
+    consumer_contract: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json
+  current_validation:
+    focused_unit: 31 passed in 4.50s; UV offline; test_etf_holdings_bootstrap.py
+    focused_api_attempt_1: preserved red; both tests asserted snapshot.rows instead of the existing snapshot.holdings field
+    focused_api_attempt_2: 2 passed in 19.14s against one fresh Testcontainers PostgreSQL/Redis session; no Provider/issuer HTTP
+    cleanup_receipt: /tmp/etf-acquire-api-20261027/attempt-2/cleanup-receipt.json
+    full_gates: pending; no source acceptance claimed
+  source_scope:
+    - backend/app/routers/etf_holdings.py
+    - backend/app/schemas/etf_holdings.py
+    - backend/app/services/etf_holdings.py
+    - backend/app/services/etf_holdings_adapters.py
+    - backend/app/services/etf_holdings_refresh.py
+    - backend/tests/integration/api/test_etf_holdings.py
+    - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  owned_records: [ops/workstreams/feat-etf-holdings-constituents/plan.yaml, ops/workstreams/feat-etf-holdings-constituents/handoff.md, ops/workstreams/feat-etf-holdings-constituents/session.json, ops/workstreams/feat-etf-holdings-constituents/validation.jsonl, ops/workstreams/feat-etf-holdings-constituents/branch-tests.json]
+  source_acceptance: pending_exact_source_full_local_and_hosted_gates
+on_demand_market_acquisition_implementation:
+  id: etf-on-demand-market-acquisition-implementation-20261027
+  source_baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
+  state: focused_offline_and_isolated_api_components_passed_provider_source_scope_and_full_gates_pending
+  wire_contract: >-
+    Authenticated POST /api/v1/etf-holdings/{symbol}/acquire accepts
+    ETFProfileAcquireRequest {request_id: UUID, refresh: bool}; refresh=false
+    is cache-only/read-only, refresh=true is the explicit issuer action. The
+    ETFProfileAcquireOut outcome is cached|no_data|acquired|held|failed and
+    snapshot rows are serialized as snapshot.holdings. This is the reviewed TC
+    contract; request_id is correlation, not deduplication.
+  implementation_scope: >-
+    The action accepts only one existing active/resolved canonical ETF/fund
+    identity and an issuer-only adapter opt-in. It does not create a canonical
+    instrument, invoke legacy bootstrap, perform SEC discovery/fallback,
+    enrich constituents, or fan out history. A local profile may be created
+    only for explicit refresh against curated issuer metadata and remains
+    linked to the resolved instrument. All source work goes through the
+    existing ETF shared Provider bridge; cache-only does not create a profile.
+  source_readiness:
+    evidence: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-target-source-readiness-20261027.json
+    massive_oih_history: >-
+      Massive DataSource is present and active. The target currently has
+      instrument search and metadata policies enabled at priority 20 and
+      PRICE_HISTORY enabled at priority 80, each with tokens_per_minute 5.
+      Its source-setting seed chain omits Massive from PRICE_HISTORY; the
+      persisted policy is authoritative for target state and must not be
+      overwritten from source defaults. Global routing=false, free_only=true,
+      paid=false. Observed common fields are configured_plan=free-stocks-basic,
+      is_free=true, live_probe_status=passed, quota_verified_date=2026-10-23,
+      max_concurrency=null. These do not prove current native headroom, active
+      reservations/holds, effective admission while global routing is off, or
+      the exact OIH operation cost. Public Massive Stocks Basic documentation
+      says free EOD, two-year history and five calls/minute; that is not current
+      account quota evidence. Next: supported Provider reads of account,
+      operation/cost, policy, quota, holds and effective routing; canonical OIH
+      identity; then an exact-green manual scope for one instrument, operation,
+      interval and task preserving shared admission and durable settlement.
+      Read controls are GET /api/v1/providers, /policies, /entitlements,
+      /usage/account, /health, /availability and GET
+      /api/v1/market-data/quota and /quota-coordinator. Do not call the
+      provider-polling POST /api/v1/providers/usage/account/refresh during
+      read-only review.
+      Do not change target policy/global routing or request data before a new
+      exact scope and current admission review.
+    vaneck_oih_holdings: >-
+      VanEck DataSource and policy rows are absent on target, not merely
+      disabled. The code candidate is provider vaneck, capability ETF_HOLDINGS,
+      operation fetch_etf_holdings_latest, selected only for OIH; this does not
+      mean it is registered/admitted. The public OIH page advertises a workbook;
+      no workbook was fetched and no response/completeness/host contract is proven. Public US
+      legal text allows personal electronic copies but reserves commercial use
+      and third-party identifier rights; application and identifier rights
+      remain unestablished. Retained robots.txt states a 25-second crawl delay;
+      the current adapter follows redirects and retries timeout up to three
+      calls with 0.25/0.50-second waits. Producer/Root must resolve rights,
+      exact host/redirect allowlist, response/cost and retry/crawl-delay
+      compatibility, and account scope before any request. Then use supported
+      admin-only POST /api/v1/providers/etf-publishers to register the missing
+      DataSource and create only a disabled policy. That operation requires a
+      registered adapter, configured provider/account scope, exact hostnames,
+      reviewed operation costs, complete quota-contract dimensions, publisher
+      and entitlement evidence, and explicit capacity values; with unknown
+      facts there is no truthful request body to submit. Read policy,
+      entitlement and quota state back through supported controls. Keep native
+      quota/billing unknown;
+      an app-only finite budget requires separate review and shared-ledger
+      application_usage_only=true. Unknown rights/cost/scope/headroom/holds
+      remain deny/hold; never infer is_free=true or enable routing.
+  current_validation:
+    stack_free_unit: 31_passed_in_4.50s
+    focused_api_attempt_1: preserved_red_snapshot_rows_assertion_did_not_match_snapshot_holdings_wire_field
+    focused_api_attempt_2: 2_passed_in_19.14s_corrected_source_zero_provider_http
+    cleanup_receipt: /tmp/etf-acquire-api-20261027/attempt-2/cleanup-receipt.json
+    full_backend_exact_ci_provider_scope_and_consumer_full_qualification: pending
+  roadmap: AC1-AC14_remain_open; preserve_15_Tier0_156_Tier1_74_fallback_119_spent_requests_quarantines_raw_PIT_holds_and_30_day_observation
+  next_action: obtain exact Provider source-specific scope/readiness and complete required source gates before any Root-authorized single-source acquisition
+on_demand_market_acquisition_proposal:
+  id: etf-on-demand-market-acquisition-1
+  baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
+  authorization: >-
+    On 2026-10-27 the human said “Ok, so proceed then” to the concrete
+    on-demand acquisition workflow in
+    /home/m920q/charting-platform/.ai/staging-attempts/on-demand-market-acquisition-contract-20261027.md.
+    This proposal is coordinator-only and awaits contract review; it authorizes
+    no provider/issuer/SEC request, quota use, source code, or runtime change.
+  disposition: proposal_prepared_pending_coordinator_contract_review
+  scope: >-
+    One explicitly selected ETF holdings acquisition (OIH is the candidate in
+    the coordinator contract) and identity-safe navigation from a resolved
+    holding to a historical constituent chart. Any missing-candle request is a
+    separate explicit, single-instrument demand owned by Provider. No holdings-
+    universe or constituent-history fanout.
+  retained_evidence:
+    oih: >-
+      The coordinator contract records OIH identity 43 with no candles or
+      holdings in the deployed baseline. Static ETF route metadata maps OIH to
+      VanEck adapter `vaneck` and product slug `oil-services-etf-oih`; the
+      adapter probe can resolve that configured slug and the workbook parser
+      has deterministic tests. These are route/parser facts, not proof of
+      current reachability, source terms, complete live rows, or route
+      admission. The opt-in live test entry is not evidence that it ran.
+    admission: >-
+      The coordinator contract records global routing and schedules disabled.
+      Retained branch evidence does not establish an active, reviewed VanEck
+      ETF_HOLDINGS policy/entitlement, exact account-scope binding, publisher
+      host/operation rights, quota dimensions/costs, or verified-free shared
+      commitment. Do not infer that a missing row was checked on the target;
+      treat each item as unproven and keep transport unavailable pending an
+      authorized read-only review and evidence-backed admission.
+    bootstrap: >-
+      Existing authenticated POST /api/v1/etf-holdings/{symbol}/bootstrap
+      creates/reconciles the profile, applies canonical route metadata, reuses
+      a bootstrap-ready stored snapshot, or probes and refreshes through the
+      shared ETF Provider bridge. It also opportunistically performs SEC fund-
+      ticker enrichment when profile CIK is absent and attempts SEC N-PORT/legacy
+      fallback when the issuer route is not ready or fails. A bootstrap-ready
+      snapshot suppresses a fetch based on completeness/resolution but has no
+      explicit age check. Therefore this endpoint is not yet a source-isolated
+      VanEck-only request contract; do not call it as such without coordinator
+      agreement on preventing implicit SEC transport and defining freshness/
+      reuse behavior.
+  proposed_contract:
+    holdings_request: >-
+      Reuse the existing selected-symbol bootstrap surface if coordinator
+      review confirms a minimal explicit issuer-only request mode that suppresses
+      both opportunistic SEC CIK enrichment and SEC fallback for that invocation.
+      Bind one committed canonical instrument/profile to OIH and its curated
+      VanEck slug; make one bounded adapter invocation only through the existing
+      shared Provider bridge, accounting for every physical request/redirect
+      under its reviewed operation contract. If source admission is absent, held, unknown, or
+      mismatched, return a source-specific unavailable/held result before
+      transport. Preserve the existing default bootstrap behavior for callers
+      that do not select this mode until a separate compatibility review.
+    dates_and_provenance: >-
+      Preserve issuer composition/as-of date from the workbook separately from
+      actual response-observation `known_at`; set publication time only when
+      the artifact explicitly supplies it. A recent observation or daily-route
+      label alone does not make a snapshot current-analysis eligible. Preserve
+      older snapshots and show cache reuse as stored evidence, not as a new
+      refresh. A later explicit refresh must be one selected fund, use the
+      reviewed source route, and retain append-only history and shared request
+      audit. Existing `POST /{symbol}/refresh-date` is admin-only and
+      date-specific, so it is not the normal-user latest-refresh contract.
+    constituent_navigation: >-
+      Permit a resolved holding with a canonical constituent instrument identity
+      to open its historical chart, carrying snapshot ID, composition date,
+      known_at, and provenance context. Label the view historical/last-known;
+      do not infer current-analysis eligibility from the holding or chart
+      navigation. Keep current baskets/analysis behind existing current,
+      identity, tradability, and capability gates. Unresolved holdings have no
+      guessed symbol route. If a user explicitly requests missing candles,
+      pass one canonical instrument identity (and its validated symbol),
+      timeframe, and requested/missing interval to the Provider-owned demand
+      contract; ETF performs no candle HTTP or fanout. Exact Provider endpoint
+      and wire shape remain for Provider/Root review, not guessed here.
+  required_review_before_implementation:
+    - Confirm the source-isolated bootstrap behavior and cache freshness/reuse semantics with Root and Provider.
+    - Review current VanEck issuer terms, host/redirect scope, operation, quota dimensions/cost, account scope, entitlement, and aggregate commitment from retained/authorized evidence; keep routing disabled until all are verified.
+    - Agree the Provider-owned selected-instrument missing-candle request/response contract before TC consumes it.
+    - Define offline deny, cache-reuse, one-fund admitted-call, source failure, historical-chart, unresolved-identity, current-analysis-denial, no-fanout, and one-symbol Provider delegation tests.
+  roadmap_preservation: >-
+    No AC1-AC14 criterion is closed by this proposal. Preserve the audited
+    narrative `15 Tier-0 and 156 Tier-1` and `74 fallback identities`, all
+    prior accepted checkpoints, holds/quarantines, the 119 spent validation
+    requests, and the 30-day observation. The proposed OIH sample is not a
+    promotion of its fallback status or proof of native/current support.
 previously_accepted_erf_changeset:
   name: retained-IWM reparse response and same-date snapshot ordering
   validated_implementation_sha: d34e53545e07a1052d489e8601f91505d70484d9
@@ -1369,6 +1541,8 @@ branch_tests:
   - "npm --prefix frontend run type-check"
   - "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts"
   - "npm --prefix frontend run build"
+  - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py -q --no-cov -p no:cacheprovider"
+  - "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider"
 integration_checkpoint:
   id: etf-retained-iwm-reparse-response-order-1
   planning_authorization: >-
@@ -1460,7 +1634,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: 02a7_adoption_narrative_repair_validated_exact_tip_CI_pending
+  current_phase: on_demand_selected_etf_acquire_focused_api_pass_provider_scope_and_full_gates_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -1655,16 +1829,17 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Adoption a558d50a9bb0ccb40554b6163be51f2b57097983 CI40371928948 attempt1
-  remains red on the current narrative sentinel; that historical result is
-  preserved. The owned narrative now restores runtime/YAML-audited 15 Tier-0
-  and 156 Tier-1 counts, and the unchanged sentinel plus full 632-case adapter
-  unit module pass. Publish this records-only correction and pass new exact-tip
-  CI. The exact staged release remains accepted; Root owns protected
-  integration/promotion, deployment and target/API/UI acceptance. No fresh
-  local browser profile, provider request, quota replay, route enablement or
-  native-current claim occurred. Preserve AC1-AC14, 119 spent requests, holds,
-  quarantines, raw/PIT lineage and the 30-day observation.
+  Focused source checks pass, but the selected-acquisition source remains
+  unaccepted and full backend/consumer/exact-source gates are pending. The
+  request-only Provider context is not yet exact-green staging. Massive is
+  present with persisted PRICE_HISTORY enabled, but global routing is false,
+  max_concurrency is null, and current quota/headroom/holds/effective admission
+  need supported read review; do not overwrite target policy from the seed.
+  VanEck DataSource/policy rows are absent; workbook rights, host/redirect,
+  retry/crawl-delay, operation cost, and account scope remain unresolved. Keep
+  both sources held pending source-specific evidence and Root/Provider release.
+  Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, AC1-AC14, 119 spent
+  requests, holds/quarantines, raw/PIT lineage and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2781,8 +2956,11 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Validate and publish the four-record correction, then observe its new exact-
-  tip CI. Root owns integration and target/API/UI acceptance. After that
-  boundary, resume AC2's retained-evidence issuer audit. Keep all AC1-AC14
-  criteria, holds, quarantines, raw/PIT history, spent requests, and the 30-day
-  observation.
+  Obtain Provider's exact source-specific readiness/admission evidence for
+  Massive OIH PRICE_HISTORY and a reviewed VanEck publisher-registration and
+  disabled-policy proposal; keep requests held until exact-green scope and
+  current quota/rights/cost/hold review. Then complete Root-allocated exact
+  source backend and consumer gates before any separately authorized single
+  OIH acquisition. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, `74 fallback
+  identities`, holds, quarantines, raw/PIT history, 119 spent requests, and the
+  30-day observation.
