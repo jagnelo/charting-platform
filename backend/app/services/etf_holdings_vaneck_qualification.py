@@ -27,7 +27,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.services.etf_holdings import _hash_payload
+from app.services.etf_holdings import ETF_HOLDINGS_INTERNAL_PROVIDER, _hash_payload
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ETFVaneckInitialQualificationBudget,
@@ -214,6 +214,7 @@ async def qualify_vaneck_oih_fund(
     operation_db = AsyncSession(bind=db.bind, expire_on_commit=False)
     lock_db = AsyncSession(bind=db.bind, expire_on_commit=False)
     attempt: ETFHoldingsBackfillJob | None = None
+    attempt_id: int | None = None
     try:
         if lock_db.get_bind().dialect.name != "postgresql":
             raise ETFHoldingsRouteHeldError(
@@ -373,6 +374,8 @@ async def qualify_vaneck_oih_fund(
             },
         )
         operation_db.add(attempt)
+        await operation_db.flush()
+        attempt_id = int(attempt.id)
         await operation_db.commit()
         await operation_db.refresh(attempt)
 
@@ -398,7 +401,7 @@ async def qualify_vaneck_oih_fund(
             review_revision=int(entitlement.revision or 1),
             expires_at=datetime.fromisoformat(scope["expires_at"]),
         )
-        with binder_context:
+        with binder_context as provider_authority:
             request_log_ids: list[int] = []
             snapshot = await _refresh_adapter_route(
                 operation_db,
@@ -406,6 +409,7 @@ async def qualify_vaneck_oih_fund(
                 request_log_ids_out=request_log_ids,
                 vaneck_initial_qualification_job_id=attempt.id,
                 vaneck_initial_qualification_budget=budget,
+                vaneck_initial_qualification_authority=provider_authority,
             )
 
         attempt = await operation_db.scalar(
@@ -472,12 +476,12 @@ async def qualify_vaneck_oih_fund(
         await operation_db.commit()
         return attempt
     except asyncio.CancelledError:
-        if attempt is not None:
+        if attempt is not None and attempt_id is not None:
             await operation_db.rollback()
             await _await_shielded_finalizer(
                 _finish_failed_qualification(
                     db.bind,
-                    attempt_id=attempt.id,
+                    attempt_id=attempt_id,
                     status="interrupted",
                     reason="VanEck OIH qualification was cancelled; replay denied.",
                     redirect_location=None,
@@ -485,19 +489,19 @@ async def qualify_vaneck_oih_fund(
             )
         raise
     except BaseException as exc:
-        if attempt is not None:
+        if attempt is not None and attempt_id is not None:
             await operation_db.rollback()
             location = getattr(exc, "location", None)
             await _await_shielded_finalizer(
                 _finish_failed_qualification(
                     db.bind,
-                    attempt_id=attempt.id,
+                    attempt_id=attempt_id,
                     status="failed",
                     reason=str(exc) or type(exc).__name__,
                     redirect_location=location,
                 )
             )
-            result = await operation_db.get(ETFHoldingsBackfillJob, attempt.id)
+            result = await operation_db.get(ETFHoldingsBackfillJob, attempt_id)
             if result is not None:
                 return result
         if isinstance(exc, Exception):
@@ -534,10 +538,16 @@ async def _verify_success_evidence(
             "VanEck workbook did not produce dated OIH snapshot provenance."
         )
     artifact = await db.get(ETFHoldingsRawArtifact, snapshot.source_artifact_id)
+    internal_source_id = await db.scalar(
+        select(DataSource.id).where(DataSource.name == ETF_HOLDINGS_INTERNAL_PROVIDER)
+    )
     if (
         artifact is None
         or artifact.etf_profile_id != profile.id
-        or artifact.data_source_id != source.id
+        or artifact.data_source_id != snapshot.data_source_id
+        or snapshot.data_source_id is None
+        or internal_source_id is None
+        or artifact.data_source_id != internal_source_id
         or artifact.source_kind != snapshot.provenance
         or artifact.source_url != VANECK_OIH_INITIAL_URL
         or artifact.source_identifier != VANECK_OIH_PRODUCT_SLUG
@@ -545,6 +555,8 @@ async def _verify_success_evidence(
         or not isinstance(artifact.payload_json, dict)
         or not isinstance(artifact.payload_json.get("raw_workbook_base64"), str)
         or artifact.content_hash != _hash_payload(artifact.payload_json)
+        or (artifact.legal_metadata or {}).get("source_provider") != "vaneck"
+        or (artifact.legal_metadata or {}).get("initial_qualification") is not True
     ):
         raise ETFHoldingsRouteHeldError("VanEck raw workbook artifact is incomplete or mismatched.")
     raw = artifact.payload_json["raw_workbook_base64"]

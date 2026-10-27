@@ -38,14 +38,17 @@ from app.models.provider_runtime import (
     ProviderCapability,
     ProviderEntitlement,
     ProviderPolicy,
+    ProviderRequestLog,
 )
 from app.providers.telemetry import observe_response
 from app.services.provider_quota_coordinator import account_scope_for_provider
 from app.services.provider_recurring_costs import provider_recurring_cost_status
 from app.services.provider_runtime import (
+    _VANECK_INITIAL_QUALIFICATION_CONTEXT,
     ProviderExecutionResult,
     _bind_etf_initial_qualification_authority,
     _ETFInitialQualificationAuthority,
+    _vaneck_initial_qualification_matches,
     execute_provider_call,
 )
 
@@ -108,6 +111,8 @@ class ETFHoldingsRequestBinding:
     sec_budget: Any | None = None
     initial_qualification_authority: _ETFInitialQualificationAuthority | None = None
     vaneck_initial_qualification_budget: Any | None = None
+    vaneck_initial_qualification_job_id: int | None = None
+    vaneck_initial_qualification_authority: Any | None = None
 
 
 @dataclass(slots=True)
@@ -174,6 +179,8 @@ def bind_etf_holdings_request_context(
     provider_symbol: str,
     operation: str,
     vaneck_initial_qualification_budget: ETFVaneckInitialQualificationBudget | None = None,
+    vaneck_initial_qualification_job_id: int | None = None,
+    vaneck_initial_qualification_authority: Any | None = None,
 ):
     """Bind the caller-loop DB session and exact ETF operation during one fetch."""
 
@@ -189,6 +196,34 @@ def bind_etf_holdings_request_context(
         raise ETFHoldingsRouteHeldError(
             "VanEck initial qualification transport limits do not match the bound OIH route"
         )
+    if (vaneck_initial_qualification_job_id is None) != (
+        vaneck_initial_qualification_authority is None
+    ) or (
+        vaneck_initial_qualification_job_id is not None
+        and (
+            vaneck_initial_qualification_budget is None
+            or isinstance(vaneck_initial_qualification_job_id, bool)
+            or vaneck_initial_qualification_job_id <= 0
+            or str(getattr(adapter, "source_provider", "")).strip().lower() != "vaneck"
+            or operation != "fetch_etf_holdings_latest"
+            or str(provider_symbol).strip().upper() != "OIH"
+            or profile_id is None
+            or profile_id <= 0
+            or getattr(vaneck_initial_qualification_authority, "job_id", None)
+            != vaneck_initial_qualification_job_id
+            or getattr(vaneck_initial_qualification_authority, "fund_profile_id", None)
+            != profile_id
+            or getattr(vaneck_initial_qualification_authority, "instrument_id", None)
+            != instrument_id
+            or str(getattr(vaneck_initial_qualification_authority, "provider_symbol", ""))
+            .strip()
+            .upper()
+            != "OIH"
+        )
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "VanEck initial qualification context does not match its exact OIH job"
+        )
     binding = ETFHoldingsRequestBinding(
         db=db,
         adapter=adapter,
@@ -200,6 +235,8 @@ def bind_etf_holdings_request_context(
         request_log_ids=[],
         request_urls_by_log_id={},
         vaneck_initial_qualification_budget=vaneck_initial_qualification_budget,
+        vaneck_initial_qualification_job_id=vaneck_initial_qualification_job_id,
+        vaneck_initial_qualification_authority=vaneck_initial_qualification_authority,
     )
     token = _REQUEST_BINDING.set(binding)
     try:
@@ -966,6 +1003,107 @@ def _sec_request_matches_profile_cik(
     )
 
 
+async def _vaneck_initial_job_scope_matches(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    operation: str,
+    request_url: str,
+    account_scope: str,
+    policy: ProviderPolicy,
+    entitlement: ProviderEntitlement,
+) -> bool:
+    """Validate the sealed Provider permit against its committed ETF job."""
+
+    binding = _REQUEST_BINDING.get()
+    if (
+        binding is None
+        or binding.vaneck_initial_qualification_job_id is None
+        or binding.vaneck_initial_qualification_authority is None
+        or binding.vaneck_initial_qualification_budget is None
+        or provider_name != "vaneck"
+        or operation != "fetch_etf_holdings_latest"
+        or binding.operation != operation
+        or binding.profile_id != profile_id
+        or binding.instrument_id != instrument_id
+        or binding.provider_symbol.strip().upper() != "OIH"
+        or provider_symbol.strip().upper() != "OIH"
+        or policy.is_enabled
+    ):
+        return False
+
+    authority = binding.vaneck_initial_qualification_authority
+    if (
+        authority is not _VANECK_INITIAL_QUALIFICATION_CONTEXT.get()
+        or not _vaneck_initial_qualification_matches(
+            provider_name=provider_name,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation=operation,
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+            profile_id=profile_id,
+            policy=policy,
+            entitlement=entitlement,
+        )
+        or authority.job_id != binding.vaneck_initial_qualification_job_id
+        or authority.fund_profile_id != profile_id
+        or authority.instrument_id != instrument_id
+        or authority.provider_symbol != "OIH"
+        or authority.account_scope != account_scope
+        or authority.review_revision != int(entitlement.revision or 1)
+        or authority.expires_at <= datetime.now(UTC)
+    ):
+        return False
+
+    budget = binding.vaneck_initial_qualification_budget
+    if (
+        _canonical_request_url(request_url) != _canonical_request_url(budget.expected_url)
+        or _normalized_host(request_url) != "www.vaneck.com"
+    ):
+        return False
+    job = await db.get(ETFHoldingsBackfillJob, authority.job_id)
+    if (
+        job is None
+        or job.id != binding.vaneck_initial_qualification_job_id
+        or job.job_type != "vaneck_oih_initial_qualification"
+        or job.source_provider != "vaneck"
+        or job.etf_profile_id != profile_id
+        or job.status != "running"
+        or job.started_at is None
+    ):
+        return False
+    scope = (job.extra_data or {}).get("qualification_scope")
+    if not isinstance(scope, dict):
+        return False
+    raw_expiry = scope.get("expires_at")
+    try:
+        scope_expiry = datetime.fromisoformat(raw_expiry)
+    except (TypeError, ValueError):
+        return False
+    return bool(
+        scope.get("provider") == "vaneck"
+        and scope.get("capability") == ProviderCapability.ETF_HOLDINGS.value
+        and scope.get("operation") == operation
+        and scope.get("profile_id") == profile_id
+        and scope.get("instrument_id") == instrument_id
+        and scope.get("provider_symbol") == "OIH"
+        and scope.get("product_slug") == "oil-services-etf-oih"
+        and scope.get("request_url") == budget.expected_url
+        and scope.get("allowed_initial_host") == "www.vaneck.com"
+        and scope.get("account_scope") == account_scope
+        and scope.get("review_revision") == authority.review_revision
+        and scope_expiry.tzinfo is not None
+        and scope_expiry.utcoffset() is not None
+        and scope_expiry.astimezone(UTC) == authority.expires_at
+        and scope_expiry > datetime.now(UTC)
+        and job.started_at <= datetime.now(UTC)
+        and not (job.extra_data or {}).get("provider_request_log_ids")
+    )
+
+
 async def _review_attempt_context(
     db: AsyncSession,
     *,
@@ -1035,8 +1173,8 @@ async def _review_attempt_context(
             ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
         )
     )
-    if policy is None or not policy.is_enabled:
-        raise ETFHoldingsRouteHeldError("ETF publisher capability is not explicitly enabled")
+    if policy is None:
+        raise ETFHoldingsRouteHeldError("ETF publisher capability has no reviewed policy")
 
     config = data_source.config if isinstance(data_source.config, dict) else {}
     review = config.get("etf_holdings_review")
@@ -1081,6 +1219,30 @@ async def _review_attempt_context(
         raise ETFHoldingsRouteHeldError(
             "ETF publisher review is bound to a different account scope"
         )
+
+    request_binding = _REQUEST_BINDING.get()
+    has_vaneck_qualification_job = bool(
+        request_binding is not None
+        and request_binding.vaneck_initial_qualification_job_id is not None
+    )
+    if has_vaneck_qualification_job:
+        if not await _vaneck_initial_job_scope_matches(
+            db,
+            provider_name=provider_name,
+            profile_id=profile_id,
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+            operation=operation,
+            request_url=request_url,
+            account_scope=account_scope,
+            policy=policy,
+            entitlement=entitlement,
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "VanEck initial qualification context is missing or does not match its committed job."
+            )
+    elif not policy.is_enabled:
+        raise ETFHoldingsRouteHeldError("ETF publisher capability is not explicitly enabled")
 
     binding = _REQUEST_BINDING.get()
     authority = binding.initial_qualification_authority if binding is not None else None
@@ -1201,8 +1363,17 @@ async def execute_etf_holdings_request_attempt(
 
     async def retain_qualification_log_ids(runtime_db: AsyncSession) -> None:
         authority = binding.initial_qualification_authority if binding is not None else None
-        if authority is None or not attempt_log_ids:
+        vaneck_job_id = binding.vaneck_initial_qualification_job_id if binding is not None else None
+        if not attempt_log_ids or (authority is None and vaneck_job_id is None):
             return
+        if authority is not None and vaneck_job_id is not None:
+            raise ETFHoldingsRouteHeldError(
+                "A Provider attempt cannot link SEC and VanEck qualification jobs together"
+            )
+        if vaneck_job_id is not None:
+            await retain_vaneck_qualification_log_ids(runtime_db)
+            return
+
         job = await runtime_db.get(ETFHoldingsBackfillJob, authority.attempt_id)
         if (
             job is None
@@ -1219,6 +1390,78 @@ async def execute_etf_holdings_request_attempt(
             if request_log_id not in request_log_ids:
                 request_log_ids.append(request_log_id)
         extra_data["provider_request_log_ids"] = request_log_ids
+        job.extra_data = extra_data
+        await runtime_db.flush()
+
+    async def retain_vaneck_qualification_log_ids(runtime_db: AsyncSession) -> None:
+        if binding is None or binding.vaneck_initial_qualification_job_id is None:
+            return
+        job_id = binding.vaneck_initial_qualification_job_id
+        authority = binding.vaneck_initial_qualification_authority
+        job = await runtime_db.get(ETFHoldingsBackfillJob, job_id)
+        if (
+            authority is None
+            or authority is not _VANECK_INITIAL_QUALIFICATION_CONTEXT.get()
+            or authority.job_id != job_id
+            or job is None
+            or job.id != job_id
+            or job.job_type != "vaneck_oih_initial_qualification"
+            or job.source_provider != "vaneck"
+            or job.etf_profile_id != binding.profile_id
+            or job.status != "running"
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "VanEck initial qualification job is missing or no longer active"
+            )
+        extra_data = dict(job.extra_data or {})
+        scope = extra_data.get("qualification_scope")
+        if (
+            not isinstance(scope, dict)
+            or scope.get("provider") != "vaneck"
+            or scope.get("capability") != ProviderCapability.ETF_HOLDINGS.value
+            or scope.get("operation") != binding.operation
+            or scope.get("profile_id") != binding.profile_id
+            or scope.get("instrument_id") != binding.instrument_id
+            or scope.get("provider_symbol") != binding.provider_symbol.strip().upper()
+            or scope.get("account_scope") != authority.account_scope
+            or scope.get("review_revision") != authority.review_revision
+            or scope.get("expires_at") != authority.expires_at.isoformat()
+            or scope.get("request_url") != binding.vaneck_initial_qualification_budget.expected_url
+            or extra_data.get("provider_request_log_ids")
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "VanEck request logs cannot be linked to a mismatched qualification job"
+            )
+        source = await runtime_db.scalar(select(DataSource).where(DataSource.name == "vaneck"))
+        logs = list(
+            (
+                await runtime_db.scalars(
+                    select(ProviderRequestLog).where(ProviderRequestLog.id.in_(attempt_log_ids))
+                )
+            ).all()
+        )
+        if (
+            source is None
+            or len(logs) != len(attempt_log_ids)
+            or len(set(attempt_log_ids)) != len(attempt_log_ids)
+            or {row.id for row in logs} != set(attempt_log_ids)
+            or any(
+                row.data_source_id != source.id
+                or row.capability != ProviderCapability.ETF_HOLDINGS
+                or row.operation != binding.operation
+                or row.instrument_id != binding.instrument_id
+                or (row.provider_symbol or "").strip().upper()
+                != binding.provider_symbol.strip().upper()
+                or row.http_requests != 1
+                or row.completed_at is None
+                or row.settled_usage_units is None
+                for row in logs
+            )
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "VanEck qualification request logs are incomplete or outside its exact scope"
+            )
+        extra_data["provider_request_log_ids"] = list(attempt_log_ids)
         job.extra_data = extra_data
         await runtime_db.flush()
 

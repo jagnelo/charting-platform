@@ -2729,6 +2729,7 @@ async def _refresh_adapter_route(
     request_log_ids_out: list[int] | None = None,
     vaneck_initial_qualification_job_id: int | None = None,
     vaneck_initial_qualification_budget: Any | None = None,
+    vaneck_initial_qualification_authority: Any | None = None,
 ):
     aliases = _aliases(profile)
     if profile.instrument is None:
@@ -2758,6 +2759,8 @@ async def _refresh_adapter_route(
         provider_symbol=symbol,
         operation="fetch_etf_holdings_latest",
         vaneck_initial_qualification_budget=vaneck_initial_qualification_budget,
+        vaneck_initial_qualification_job_id=vaneck_initial_qualification_job_id,
+        vaneck_initial_qualification_authority=vaneck_initial_qualification_authority,
     ) as request_binding:
         try:
             if vaneck_initial_qualification_job_id is not None:
