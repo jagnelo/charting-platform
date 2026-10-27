@@ -40,8 +40,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact CI40520454281 on published source a47329aec5e440743faa55e57425a4b6fcd94720 failed one unchanged backend frontend-provider-boundary test because its source comment named a provider; 5502 backend cases passed and1 skipped. The comment is corrected in the local follow-up and the unchanged boundary test passes1/1. The prior101 focused frontend tests and build remain behavioral evidence for the otherwise comment-only change. Corrected source CI is pending publication; no source/runtime qualification is claimed.",
-  "current_checkpoint_status": "The on-demand consumer candidate retains its one-click coverage/identity/history flow, cache safeguards, and conservative timeframe defaults. Provider boundary CI40520454281 found a provider name in a frontend comment; the comment is now provider-neutral, describing application defaults and backend-owned source coverage/entitlements. The unchanged boundary test passes1/1. The prior101 focused frontend tests and vue-tsc/Vite build passed for behavior unchanged by this comment-only fix. Corrected-source CI, producer runtime and full functional/visual profiles remain pending. AC1-AC9, official V25 and the full roadmap remain open.",
+  "current_candidate_ci_status": "Published a47329aec5e440743faa55e57425a4b6fcd94720 exact CI40520454281 was terminal red on the unchanged backend frontend-provider-boundary test; the source comment correction was published as5df725acde15f4c37ffa1689a10d78d8dab9c067. Exact CI40523758494 on5df was terminal red only on F8k-search-states because canonical empty/loading/error messages were outside the zero-height listbox. The current unpublished follow-up renders those states inside the listbox, keeps source actions outside, and passes Workstation53/53 plus vue-tsc/Vite build. New exact-source CI is pending publication.",
+  "current_checkpoint_status": "The on-demand consumer flow uses conservative defaults and explicit one-click source actions. CI40520454281/a473 found a provider-name comment, corrected in5df; CI40523758494/5df then failed only F8k-search-states because canonical messages were outside an empty listbox. The current correction moves canonical loading/empty/error messages inside that listbox while keeping explicit source actions separate; Workstation tests passed53/53 and vue-tsc/Vite build passed. Full candidate CI, producer/runtime and full functional/visual profiles remain pending. AC1-AC9, official V25 and the full roadmap remain open.",
   "current_exact_ci": {
     "run_id": 40351346928,
     "head_sha": "02a7bae34c2aed145b9e46137ef3b8f041de4d92",
@@ -59,7 +59,8 @@
     "receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json"
   },
   "dirty_paths": [
-    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -215,7 +216,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the provider-neutral comment correction in one coherent commit, verify its exact-source CI, and retain runtime/producer/full-profile gates as pending. Preserve the full roadmap and all holds.",
+  "next_action": "Publish the focused search-state correction and owned receipt once, follow exact-source CI, then retain producer/runtime and full functional/visual qualification as pending. Preserve all original criteria and holds.",
   "pending_library_save_candidate": {
     "base_sha": "fd681152d831054ce4b440e0ce606b48b6d8d39f",
     "ci_scope": "Run39022982335 validates evidence tip137250816 including product commit977add9; later F8u product commit918b81e requires fresh exact-source CI",
@@ -228,7 +229,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "6a08d206903be6c11869117c3ce1cea5df458d3423499fa606f1caf4eeb0c673",
+  "plan_hash": "09059d7867809294adfd7d93b533425ebdc315c52d3301ace96deb089411a7fe",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -250,10 +251,10 @@
       "TCV1"
     ],
     "total": 6,
-    "current_phase": "TC on-demand consumer candidate: narrow provider-boundary comment correction after exact CI failure; unchanged boundary test passed, corrected-source CI pending.",
-    "current_blocker": "No local blocker. Exact CI40520454281 on a473 failed the unchanged frontend provider-boundary test due to a provider name in a comment; corrected comment passes the same test locally. New exact-source CI is pending.",
-    "next_action": "Publish the provider-neutral comment correction in one coherent commit, verify its exact-source CI, and retain runtime/producer/full-profile gates as pending. Preserve the full roadmap and all holds.",
-    "updated_at": "2026-10-27T14:42:02Z"
+    "current_phase": "TC on-demand acquisition follow-up: restore canonical loading/empty/error states inside the symbol-search listbox; focused Workstation tests/build pass, publication and exact-source CI pending.",
+    "current_blocker": "No local blocker. CI40523758494 on published source5df was terminal red only on F8k-search-states; the current local markup correction and mounted regression pass. Corrected-source CI is pending publication.",
+    "next_action": "Publish the focused search-state correction and owned receipt once, follow exact-source CI, then retain producer/runtime and full functional/visual qualification as pending. Preserve all original criteria and holds.",
+    "updated_at": "2026-10-27T15:37:23Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -261,9 +262,9 @@
     "command": "rtk proxy git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
     "current_local_head": "7e6eeb44d04e4df839466277e51070ef107a65e4",
     "remote_tracking_sha": "7e6eeb44d04e4df839466277e51070ef107a65e4",
-    "current_pending_range": "Provider-neutral comment correction is locally validated and unpublished on top of a47329aec5e440743faa55e57425a4b6fcd94720.",
+    "current_pending_range": "Focused canonical search-state correction and owned receipt are staged locally above published5df725acde15f4c37ffa1689a10d78d8dab9c067.",
     "failure_category": null,
-    "status": "Prior candidate a473 published; its exact CI has one backend boundary-test failure. Corrected candidate awaits coherent publication and exact CI."
+    "status": "Published5df exact CI40523758494 is terminal red only on F8k-search-states. The local listbox correction passes focused tests/build; corrected-source exact CI pending."
   },
   "remote": "7e6eeb44d04e4df839466277e51070ef107a65e4",
   "remote_sha": "7e6eeb44d04e4df839466277e51070ef107a65e4",
@@ -424,5 +425,5 @@
       "trust_boundary": "This exact 6d0 release only; future snapshots require new explicit coordinator approval."
     }
   ],
-  "updated_at": "2026-10-27T14:42:02Z"
+  "updated_at": "2026-10-27T15:37:23Z"
 }

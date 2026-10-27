@@ -24917,3 +24917,19 @@ prior 101/101 focused tests and successful frontend build remain evidence for
 the unchanged behavior; this comment-only source correction has not yet passed
 its own exact-source CI. No producer source/runtime, provider/SEC request,
 fixture or service was used.
+
+### Search-state listbox correction — 2026-10-27
+
+Exact CI40523758494 on source5df725acde15f4c37ffa1689a10d78d8dab9c067 was
+still running when reviewed; Root identified a separate F8k-search-states
+failure from the prior a473 E2E run. Canonical loading, error and no-result
+messages were siblings of the canonical-symbol listbox, so an empty search left
+the asserted listbox at zero height. Those three canonical states now render
+inside the listbox. Explicit source-discovery messages and the source-action
+group remain outside it, preserving their separate user action semantics.
+The mounted Workstation regression checks loading/empty/error text within the
+listbox, zero selectable options for no results, and source-action containment
+outside the listbox. Workstation tests passed53/53; the frontend build passed
+vue-tsc/Vite (534 modules,13.89s; existing large Workstation chunk advisory).
+Exact CI on this corrected source is pending. The older a473 red and all
+original E2E assertions remain preserved; no browser matrix was run.

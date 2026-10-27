@@ -149,6 +149,9 @@
         </div>
         <div v-if="searchPanelVisible" class="workstation__symbol-results">
           <div :id="symbolResultsId" class="workstation__canonical-symbol-options" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
+            <div v-if="searchLoading" class="workstation__symbol-search-message" role="status">Searching canonical instruments…</div>
+            <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
+            <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
             <button
               v-for="(result, index) in searchResults"
               :key="`${result.symbol}:${result.exchange}`"
@@ -159,9 +162,6 @@
               @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id)"
             ><strong>{{ result.symbol }}</strong><span>{{ result.name }}</span><small>{{ result.exchange || result.type }}</small></button>
           </div>
-          <div v-if="searchLoading" class="workstation__symbol-search-message" role="status">Searching canonical instruments…</div>
-          <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
-          <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
           <div v-if="sourceDiscoveryMessage" class="workstation__symbol-search-message" role="status" aria-live="polite">{{ sourceDiscoveryMessage }}</div>
           <div v-if="sourceDiscoveryError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ sourceDiscoveryError }}</div>
           <div class="workstation__source-actions" role="group" aria-label="Explicit free source actions">

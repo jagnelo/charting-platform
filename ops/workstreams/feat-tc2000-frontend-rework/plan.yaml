@@ -232,12 +232,15 @@ current_blocker: >-
   is terminal green, and its whole-frontend release is deployed. The interactive
   acquisition consumer UI and mocked contract tests are staged against the
   coordinator-reviewed DTO design, not accepted producer source. Timeframe
-  defaults now obey the reviewed inclusive 2,000-slot rule; provider-specific
-  availability and entitlement remain backend-owned, and partial/held results
-  remain possible and visible. Exact producer staging,
-  runtime/full browser qualification and exact candidate CI remain pending; no
-  source/API/SEC request was made. This task does not close AC1-AC9 or official
-  V25.
+  defaults obey the reviewed inclusive 2,000-slot rule; provider-specific
+  availability and entitlement remain backend-owned. Exact CI40520454281 on
+  a47329 was red for a frontend provider-boundary comment; the comment has been
+  corrected and the unchanged boundary test passed. That exact CI also found
+  F8k-search-states listbox visibility; loading/empty/error states are now
+  rendered within the canonical listbox and source actions remain separate.
+  Focused component tests/build pass for this correction; its exact CI and
+  producer/runtime/full browser qualification remain pending. No source/API/SEC
+  request was made. AC1-AC9 and official V25 remain open.
 
   Historical blocker snapshot at prior 7e checkpoint follows unchanged:
   Exact synchronized-green staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
@@ -696,11 +699,14 @@ current_checkpoint_status: >-
   source is validated f2d0228a with frontend image ff7c817b. This is a released
   checkpoint, not full-roadmap acceptance. The current staged task is TC-owned,
   explicit on-demand acquisition UI against the reviewed Provider/ETF DTO
-  design. Its range guard now mirrors Provider's inclusive
-  ceil(elapsed/timeframe)+1 <= 2,000 slot rule, and every timeframe default
-  fits that budget while W1/MN remain within 700 days. Six focused files passed
-  101 mocked tests and vue-tsc/Vite build passed. Accepted producer staging,
-  runtime qualification and exact candidate CI remain pending.
+  design. Its range guard mirrors the inclusive ceil(elapsed/timeframe)+1 <=
+  2,000 slot rule; all defaults fit. CI40520454281 on a47329 was red for a
+  provider-name comment and F8k listbox visibility. The provider-neutral comment
+  correction passed the unchanged backend boundary test. The listbox correction
+  places canonical loading/empty/error states inside the listbox and leaves
+  explicit source actions outside; Workstation tests passed53/53 and
+  vue-tsc/Vite build passed. Exact CI for the corrected source, producer/runtime
+  qualification and full functional/visual profiles remain pending.
   AC1-AC9 and official REF-HELP-V25 remain open; all holds remain in force.
 
   Previous checkpoint narratives and their historical states follow unchanged:
