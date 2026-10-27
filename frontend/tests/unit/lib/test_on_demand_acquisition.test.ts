@@ -12,6 +12,7 @@ import {
   HISTORY_TIMEFRAME_SECONDS,
   historyRangeFitsBarBudget,
   historyRangeIsAllowed,
+  makeAcquisitionRequestId,
   requestedHistoryBarSlots,
   resolveDiscoveredInstrument,
   type InstrumentDiscoveryCandidate,
@@ -28,6 +29,26 @@ beforeEach(() => {
 })
 
 describe('explicit acquisition API contracts', () => {
+  it('uses the secure-context UUID API when available', () => {
+    expect(makeAcquisitionRequestId()).toBe('f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d')
+  })
+
+  it('creates an RFC 4122 version 4 ID from cryptographic bytes when randomUUID is unavailable', () => {
+    vi.stubGlobal('crypto', {
+      getRandomValues: (bytes: Uint8Array) => {
+        bytes.set(Array.from({ length: 16 }, (_, index) => index))
+        return bytes
+      },
+    } as unknown as Crypto)
+
+    expect(makeAcquisitionRequestId()).toBe('00010203-0405-4607-8809-0a0b0c0d0e0f')
+  })
+
+  it('fails closed when no cryptographic random source is available', () => {
+    vi.stubGlobal('crypto', {} as Crypto)
+    expect(() => makeAcquisitionRequestId()).toThrow('A cryptographic random source is required')
+  })
+
   it('submits bounded discovery only through its explicit service call', async () => {
     vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'r1', status: 'complete', candidates: [], source_outcomes: [] })
     await discoverInstruments(' OIH ', ['ETF'], 100)

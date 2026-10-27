@@ -36,11 +36,15 @@ import {
 } from '@/lib/onDemandAcquisition'
 import type { Timeframe } from '@/types'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   symbol: string
   timeframe: Timeframe
   adjusted?: boolean
-}>()
+}>(), {
+  // Vue casts an absent Boolean prop to false unless a default is explicit.
+  // Charts use adjusted candles by default, so acquisition must match them.
+  adjusted: true,
+})
 const emit = defineEmits<{ loaded: [result: HistoryAcquisitionResponse] }>()
 const startDate = ref('')
 const endDate = ref('')

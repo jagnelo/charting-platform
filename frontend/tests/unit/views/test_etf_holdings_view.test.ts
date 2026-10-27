@@ -524,7 +524,7 @@ describe('ETFHoldingsView', () => {
 
     await wrapper.find('.detail-title button').trigger('click')
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/chart/MSFT',
+      path: '/legacy/chart/MSFT',
       query: {
         holding_snapshot_id: '55',
         holding_composition_date: '2026-06-07',
@@ -615,7 +615,7 @@ describe('ETFHoldingsView', () => {
     expect(historyButton.attributes('disabled')).toBeUndefined()
     await historyButton.trigger('click')
     expect(routerPush).toHaveBeenCalledWith({
-      path: '/chart/MSFT',
+      path: '/legacy/chart/MSFT',
       query: {
         holding_snapshot_id: '55',
         holding_composition_date: '2026-06-07',

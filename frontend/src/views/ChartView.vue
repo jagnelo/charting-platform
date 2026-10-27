@@ -509,7 +509,7 @@ async function onSymbolSelect(symbol: string) {
     recentStore.add(symbol)
   }
   if (route.params.symbol !== symbol) {
-    router.replace(`/chart/${encodeURIComponent(symbol)}`)
+    router.replace(`/legacy/chart/${encodeURIComponent(symbol)}`)
   }
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
@@ -555,12 +555,7 @@ async function onSymbolSelect(symbol: string) {
 
 function refreshActiveChartLocally() {
   if (!activeSymbol.value) return
-  if (layoutStore.layout === '1') {
-    void chartStore.loadBars(activeSymbol.value, chartStore.timeframe, chartStore.barType, true)
-    return
-  }
-  const activeStore = activePanelStore.value
-  void activeStore.loadBars(activeSymbol.value, activeStore.timeframe, activeStore.barType, true)
+  void activePanelStore.value.refreshLocalBars()
 }
 
 async function syncRadarOverlays() {

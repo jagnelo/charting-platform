@@ -88,6 +88,32 @@ describe('HistoryAcquisitionControl', () => {
     expect(wrapper.emitted('loaded')?.[0]?.[0]).toMatchObject({ status: 'partial', instrument_id: 43 })
   })
 
+  it('defaults omitted adjustment mode to adjusted history and preserves an explicit raw choice', async () => {
+    const run = async (adjusted?: boolean) => {
+      vi.mocked(api.get).mockReset().mockResolvedValueOnce(missingCoverage as never)
+      vi.mocked(api.post)
+        .mockReset()
+        .mockResolvedValueOnce(resolvedIdentity as never)
+        .mockResolvedValueOnce(partialHistory as never)
+      const wrapper = mount(HistoryAcquisitionControl, {
+        props: {
+          symbol: 'OIH',
+          timeframe: 'D1',
+          ...(adjusted === undefined ? {} : { adjusted }),
+        },
+      })
+      await wrapper.get('[data-testid="history-load-missing"]').trigger('click')
+      await vi.waitFor(() => expect(wrapper.get('[data-testid="history-load-missing"]').text()).toBe('Load missing history'))
+      const coverageParams = vi.mocked(api.get).mock.calls[0][1] as { adjusted: boolean }
+      const historyRequest = vi.mocked(api.post).mock.calls[1][1] as { adjusted: boolean }
+      wrapper.unmount()
+      return { coverageAdjusted: coverageParams.adjusted, historyAdjusted: historyRequest.adjusted }
+    }
+
+    expect(await run()).toEqual({ coverageAdjusted: true, historyAdjusted: true })
+    expect(await run(false)).toEqual({ coverageAdjusted: false, historyAdjusted: false })
+  })
+
   it('does not resolve identity or call a source when local coverage is sufficient', async () => {
     vi.mocked(api.get).mockResolvedValueOnce({ status: 'ready', bar_count: 180, missing_slices: [] })
     const wrapper = mount(HistoryAcquisitionControl, {

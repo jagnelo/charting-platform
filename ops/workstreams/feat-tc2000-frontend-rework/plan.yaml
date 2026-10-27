@@ -120,9 +120,12 @@ human_interim_help_reference_authorization: >-
 on_demand_market_acquisition_proposal: |-
   Human authorization: “Ok, so proceed then”; coordination contract and safety
   boundary: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-market-acquisition-contract-20261027.md.
-  This is a TC-consumer proposal only. Provider and ETF owners must first review
-  reusable APIs and return additive wire shapes; no UI/shared/backend
-  implementation or live validation has begun.
+  At the time of the initial proposal, Provider and ETF owners still needed to
+  review reusable APIs and return additive wire shapes. Their later reviewed
+  DTO designs were used for a TC-owned UI implementation and controlled-response
+  tests; the current implementation evidence and limits are recorded in
+  current_checkpoint_status. No sibling source was imported, and no live source
+  validation has occurred.
 
   Existing paths reviewed: WorkstationView's 120ms search calls GET
   /instruments/search?q=...&canonical_only=true; selecting a result resolves
@@ -215,6 +218,18 @@ on_demand_consumer_implementation: |-
   local reload, ETF cache-only versus refresh, denied identity, selected-snapshot
   retention, native keyboard controls and bounded dates.
 
+  The main Workstation front door now has a conditional action in the focused
+  chart tool: after local search/discovery and canonical identity resolution,
+  an empty settled chart offers the same explicit bounded history control.
+  Mount, typing, layout hydration, linked-chart activity and other symbols stay
+  local-only. The control binds to the focused symbol/timeframe, requests one
+  selected instrument only after an ordinary user click, and refreshes local
+  bars after success. Its mounted test covers no acquisition on mount/inactive
+  focus, explicit-click request sequencing and local readback. A controlled
+  Chromium case now exercises the real Workstation entrypoint from absent local
+  ticker through discovery, identity resolution, chart focus, bounded history
+  request and visible local bars; its fixture responses are software-only.
+
   The wire review at
   `/home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json`
   reconciles additive `cache_hit`, optional empty exchange, candidate-symbol
@@ -228,18 +243,24 @@ on_demand_consumer_implementation: |-
   remain pending. Current consumer tests/build do not imply source, deployment
   or roadmap acceptance.
 current_blocker: >-
-  Current 2026-10-27: the exact 02a7 source is accepted, own branch CI40371068968
-  is terminal green, and its whole-frontend release is deployed. The interactive
-  acquisition consumer UI and mocked contract tests are staged against the
-  coordinator-reviewed DTO design, not accepted producer source. Timeframe
-  defaults obey the reviewed inclusive 2,000-slot rule; provider-specific
-  availability and entitlement remain backend-owned. Exact CI40520454281 on
-  a47329 was red for a frontend provider-boundary comment; the comment has been
-  corrected and the unchanged boundary test passed. That exact CI also found
-  F8k-search-states listbox visibility; loading/empty/error states are now
-  rendered within the canonical listbox and source actions remain separate.
-  Focused component tests/build pass for this correction; its exact CI and
-  producer/runtime/full browser qualification remain pending. No source/API/SEC
+  Current 2026-10-27: the TC-owned on-demand consumer candidate remains local
+  and unpublished over cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e. Attempt 12's
+  three controlled-response cases passed on image a76c9628, but its first case
+  used the legacy chart route and did not exercise the main Workstation front
+  door. The current-source attempt 17 passed all four controlled-response
+  cases on frontend image
+  sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758,
+  including local unknown-symbol search, explicit discovery and identity
+  resolution, focused-chart activation, bounded M1 history, and local bar
+  readback. It ran with one worker and zero retries, exit 0, no OOM. Attempts
+  13-16 and their fixture/focus-order failures remain preserved. The initial
+  1.5 GiB builder OOM remains build/setup evidence; the current owned builder
+  was verified at 3 GiB memory/swap and two CPUs with serial build parallelism.
+  Focused unit tests passed85/85 and the vue-tsc/Vite build passed before the
+  test-only route/focus-order correction. These are client/software-fixture
+  results, not genuine Provider/ETF evidence. The dirty candidate has no
+  exact-source branch CI; base CI is not evidence for it. Green ETF staging
+  adoption and the later full combined profile remain pending. No live source
   request was made. AC1-AC9 and official V25 remain open.
 
   Historical blocker snapshot at prior 7e checkpoint follows unchanged:
@@ -690,24 +711,32 @@ current_blocker: >-
   files. F8y remains unresolved; its consumed zero-retry run stalled in
   Playwright inputValue/trace collection before any lock request was dispatched.
 current_checkpoint_status: >-
-  Current 2026-10-27: clean pushed source7e6eeb44d04e4df839466277e51070ef107a65e4
-  has terminal-green exact CI40371068968 and ancestry-adopts synchronized-green
-  staging/master02a7bae34c2aed145b9e46137ef3b8f041de4d92. The accepted tree
-  exactly matched pre-adoption TC source7d3da9461a131e186030a708658c832d84005c72.
-  Root deployment/postcheck receipts are .ai/deploy/first-human/ui-rollout-
-  02a7bae34c2a/completed.json and authenticated-postchecks.json; deployed UI
-  source is validated f2d0228a with frontend image ff7c817b. This is a released
-  checkpoint, not full-roadmap acceptance. The current staged task is TC-owned,
-  explicit on-demand acquisition UI against the reviewed Provider/ETF DTO
-  design. Its range guard mirrors the inclusive ceil(elapsed/timeframe)+1 <=
-  2,000 slot rule; all defaults fit. CI40520454281 on a47329 was red for a
-  provider-name comment and F8k listbox visibility. The provider-neutral comment
-  correction passed the unchanged backend boundary test. The listbox correction
-  places canonical loading/empty/error states inside the listbox and leaves
-  explicit source actions outside; Workstation tests passed53/53 and
-  vue-tsc/Vite build passed. Exact CI for the corrected source, producer/runtime
-  qualification and full functional/visual profiles remain pending.
-  AC1-AC9 and official REF-HELP-V25 remain open; all holds remain in force.
+  Current 2026-10-27: the active TC candidate is the existing unpublished
+  changeset over cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e. WorkstationToolContent
+  now presents a bounded history action only for the active chart when local
+  bars are empty and loading/error states are settled; no action runs on mount,
+  typing, layout hydration, or other tool focus. Its mounted regression verifies
+  no POST on mount, ordinary-click acquisition, and local chart refresh/readback.
+  Browser attempt 17 passed all four controlled-response Chromium cases in
+  23.0s, one worker, zero retries, exit 0/no OOM. Browser container
+  b63d595724dacac86c063d5c1da91581b3068c7fd09175c9081eada77f4f6c17 used pinned
+  Noble image sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+  with source mounted read-only, against frontend container 9931954959a3/image
+  sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758.
+  The cases cover the earlier explicit legacy-chart and ETF flows plus the
+  main Workstation unknown-ticker path; the first attempt-12 result is only
+  three-case legacy/ETF evidence and is preserved as such. Attempts 13-16 and
+  attempt-11 older-image failure remain historical diagnostics. Focused unit
+  files passed85/85 and vue-tsc/Vite passed on the current product source;
+  Playwright collected four cases. The exact candidate is not committed/pushed
+  and has no current-source branch CI. Green ETF staging adoption and the full
+  combined functional/visual profile remain pending. The local TC fixture,
+  owned browser containers, and 3-GiB owned builder were active at receipt time;
+  baseline audit confirmed all original33 containers,51 volumes,11 networks,
+  and56 image IDs remained present with original container image/state unchanged.
+  ETF's two owned containers remained separate and unchanged. No Provider/ETF
+  source HTTP occurred. The 02a7 checkpoint remains separate; AC1-AC9, TCP1-TCP5,
+  official V25, and the full roadmap remain open.
 
   Previous checkpoint narratives and their historical states follow unchanged:
   Current 2026-10-26: accepted staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
@@ -1454,6 +1483,25 @@ integration_checkpoint:
     AC7: {status: partial_roadmap_open, owner: TC, delivered: "Qualified functional, strict visual, performance, sandbox, migration and CI evidence", remainder: "Whole-roadmap security, accessibility, endurance and broader operational evidence"}
     AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact implementation CI40330168827 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
     AC9: {status: delegated_bounded_checkpoint_closure_only, owner: TC, delivered: "Clean synchronized branch and bounded checkpoint packet under recorded 2026-10-20 delegation", remainder: "Whole-roadmap review remains open; no direct merge, staging mutation, deployment or promotion"}
+current_software_checkpoint:
+  id: tc-on-demand-workstation-consumer-20261027
+  objective: "Implement and qualify explicit, bounded on-demand instrument discovery, selected-chart history and ETF issuer/holding-history consumer flows while preserving cached rendering, identity, lineage and current-analysis safeguards."
+  status: in_progress
+  planning_authorization: ".ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md; this defines planning scope only and is not acceptance."
+  acceptance: pending
+  source_capture: "integration_capture: exact branch HEAD. The source and owned records are committed locally as this current branch HEAD; exact-source CI has not run."
+  prior_checkpoint_history: "The accepted tc2000-workstation-integration-1 object above and its TCP1-TCP5/TCV1 criteria, closure evidence and AC1-AC9 dispositions are preserved unchanged as historical truth. The current checkpoint does not supersede or extend that acceptance."
+  progress:
+    completed: []
+    total: 6
+  acceptance_criteria:
+    - {id: TCO1, text: "Adopt only Root-released synchronized green staging containing accepted Provider and repaired ETF checkpoints; preserve owned preparation/history, classify shared paths, upstream ownership and immutable Study outputs."}
+    - {id: TCO2, text: "Main Workstation and chart UI support explicit unknown-symbol source discovery and verified identity selection; cryptographic request IDs work on actual private HTTP origins; mount, typing and hydration remain local-only."}
+    - {id: TCO3, text: "Explicit bounded selected-chart history requests use verified identity/timeframe/range/adjustment/source, preserve explicit adjusted=false, prevent fanout/stale-scope updates, and render local readback; held/error retains cache and TC does not implement provider routing/ingestion."}
+    - {id: TCO4, text: "Explicit first-use ETF issuer acquisition and resolved holding-chart handoff preserve composition date, known-at, provenance and snapshot identity; historical/stale data remains display-only and never silently becomes current analytic input."}
+    - {id: TCO5, text: "Source-matched required local unit/build/lint, functional and strict visual profile and exact branch CI pass without changing ordinary-click, keyboard/mobile, TC appearance, references, masks, tolerances or zero retries; controlled cases are preparation, not full combined or genuine source proof."}
+    - {id: TCO6, text: "Durable handoff records exact implementation/closing source and image inputs, tested contracts/defaults/migration impact, limitations and all nine roadmap dispositions; only owned cleanup is proved while persistent and sibling resources remain preserved; Root acceptance stays pending until gates/review pass."}
+  roadmap_disposition: "All nine original AC IDs and texts remain unchanged under roadmap_acceptance_criteria. No AC, TCP criterion, full V25 item, or producer/target acceptance is closed by this in-progress software checkpoint."
 acceptance_criteria:
   - {id: TCP1, text: "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."}
   - {id: TCP2, text: "Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work."}
@@ -1475,6 +1523,7 @@ owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/src/components/chart/HistoryAcquisitionControl.vue
   - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/tests/e2e/on_demand_acquisition.spec.ts
   - frontend/src/views/StudyLabView.vue
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/components/workstation/
@@ -2506,7 +2555,7 @@ approved_presentation_adaptations:
 - path: frontend/src/components/workstation/WorkstationToolContent.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 9f079cdfb745e7d259c6e062b802b61e08a5a1bc
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: TC workstation presentation adaptation with an explicit focused-chart bounded history action; preserve routes, local-only navigation, and no acquisition before user action
 - path: frontend/src/router/index.ts
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: c32384da24c053776b94c22e55a5b38ad54a35bc
@@ -2921,14 +2970,15 @@ status: in_progress
 progress:
   completed: [TCP1, TCP2, TCP3, TCP4, TCP5, TCV1]
   total: 6
-  current_phase: "TC on-demand acquisition consumer UX: one-click bounded history and selected-ETF cache/issuer actions are implemented with mocked focused tests/build; no live producer source or runtime qualification; full AC1-AC9 roadmap continues"
+  current_phase: "TC on-demand acquisition consumer UX: bounded history is wired to ChartView and the focused main Workstation chart; selected-ETF cache/issuer actions remain; four controlled-response Chromium cases and 85 focused unit tests pass, source remains local/unpublished, and producer staging/full combined profile remain pending; full AC1-AC9 roadmap continues"
   next_action: >-
-    Finish the scoped workstream, source-guard and journal checks for this
-    candidate and provide the exact staged diff/source hashes to Root. Before
-    runtime qualification, consume only accepted green Provider/ETF staging
-    and have Root confirm producer range limits. Preserve local cached
-    rendering, producer-owned identity, historical/current labels, holds and
-    all assertions. Keep official V25 and all original acceptance criteria open.
+    Await Root's exact green ETF staging release and later source-matched profile
+    allocation. Keep this local checkpoint unpublished; adopt only the released
+    green staging through the supported workflow, then complete the assigned
+    combined gates without changing controls, references, assertions,
+    tolerances, timeouts or zero-retry policy. Keep Provider-owned identity,
+    cached rendering, historical/current separation, holds, AC1-AC9 and official
+    V25 open.
 
     Prior next-action text is preserved as historical context:
     Publish the owned 02a7 adoption-record reconciliation once, then inspect
@@ -3717,3 +3767,30 @@ on_demand_acquisition_consumer_implementation_20261027:
     is included here. Preserve AC1-AC9, frozen imports, cached local behavior, all
     historical/current distinctions and existing assertions/references/masks/
     tolerances/timeouts/retry policy.
+  playwright_regression_preparation:
+    state: prepared_unpublished_execution_pending_green_producer_staging_and_full_ui_profile
+    base_source_sha: cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e
+    file: frontend/tests/e2e/on_demand_acquisition.spec.ts
+    cases:
+      - Unknown TCNEW workstation query has no local canonical result and remains acquisition-free until explicit fixture-source discovery/identity resolution; its bounded M1 history action returns held without losing the chart surface.
+      - Selected IWM issuer action preserves the existing snapshot and eligibility metadata; resolved AMD history navigation carries snapshot/composition/known_at/provenance, remains outside current-analysis eligibility, and a held request retains the chart surface.
+      - Existing local OIH scaffold with no stored ETF profile is explicitly discovered and resolved to its local canonical ID; one fixture-only issuer acquisition returns a dated snapshot/holding row, then resolved AMD opens a lineage-preserving chart and a partial history response with one request-window-aligned minute bar is confirmed by local OHLCV readback.
+    fixture_boundary: >-
+      Reuses the logged-in E2E fixture and its seeded local IWM/AMD/OIH identity
+      data. Explicit acquisition endpoints and only the selected OIH profile,
+      dated holdings, missing-to-partial coverage and successful post-acquisition local
+      readback states are deterministic, clearly labelled test fixtures;
+      canonical identity search and unrelated local fixture reads remain local.
+      This is software contract coverage, not genuine source evidence.
+    checks: >-
+      Playwright --list --reporter=line collected exactly3 Chromium cases, and
+      strict standalone TypeScript checking of the spec/shared helper passed.
+      These are static checks only; no browser was launched and all E2E cases
+      remain unexecuted.
+    visual_impact: >-
+      Functional E2E-only addition. No visual spec, screenshot, reference, mask,
+      tolerance or retry policy changed.
+    pending: >-
+      Keep unpublished until exact green Provider/ETF staging is adopted and the
+      normal source-matched full UI profile is allocated; then execute this spec
+      within that accepted profile and record its exact-source outcome.

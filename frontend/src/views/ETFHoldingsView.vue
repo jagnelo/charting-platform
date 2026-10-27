@@ -1416,7 +1416,7 @@ function openHoldingHistory(row: ETFHolding) {
   if (!page.value || !canViewHoldingHistory(row)) return
   const symbol = row.constituent_symbol!
   void router.push({
-    path: `/chart/${encodeURIComponent(symbol)}`,
+    path: `/legacy/chart/${encodeURIComponent(symbol)}`,
     query: {
       holding_snapshot_id: String(page.value.snapshot.id),
       holding_composition_date: page.value.snapshot.composition_date,

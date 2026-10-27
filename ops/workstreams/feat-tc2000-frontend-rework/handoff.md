@@ -24933,3 +24933,167 @@ outside the listbox. Workstation tests passed53/53; the frontend build passed
 vue-tsc/Vite (534 modules,13.89s; existing large Workstation chunk advisory).
 Exact CI on this corrected source is pending. The older a473 red and all
 original E2E assertions remain preserved; no browser matrix was run.
+
+## On-demand acquisition Playwright preparation — 2026-10-27
+
+Current published base: `cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e` (the
+coordinator reports exact component CI40532952411 green). The new local-only
+spec is `frontend/tests/e2e/on_demand_acquisition.spec.ts`; it is intentionally
+unpublished and its three browser cases have not been executed. Its exact path
+is added to the TC scope allowlist; no wildcard or scope-guard exception was
+introduced.
+
+The first case uses an unknown `TCNEW` ticker: the real local canonical search
+returns no row, and mount/typeahead cause no discovery, identity or history
+request. Ordinary clicks explicitly search a controlled source and resolve its
+selected candidate to a clearly labelled fixture ID before the missing-history
+action. Discovery/identity/history POSTs use `test-fixture` envelopes;
+canonical search and coverage remain local reads. The outgoing history body is
+checked for a timezone-aware, positive M1 range within the 2,000-inclusive-slot
+contract. A held response leaves the chart surface available. This is software
+contract coverage, not genuine source evidence.
+
+The second case reuses seeded IWM snapshot/holdings and the real local AMD
+constituent ID. It verifies mount/search are acquisition-free, explicitly
+resolves the actual requested symbol/ID, requests one issuer refresh and returns
+a fixture-held response. Stored row count, snapshot provenance/known-at and
+current-eligibility text must remain unchanged. An ordinary click through
+`View history` must carry the snapshot ID, composition date, known-at time,
+provenance and resolved AMD ID into chart navigation. A held AMD history request
+preserves the historical-context notice and chart canvas; only explicit
+acquisition POSTs are intercepted. Historical navigation remains separate
+from current ETF eligibility.
+
+The third case uses the existing local OIH scaffold and its real canonical
+instrument ID, which has no stored ETF profile. Typing remains acquisition-free;
+the user explicitly searches the fixture source and resolves OIH before one
+fixture-only issuer acquisition returns a clearly labelled snapshot and AMD
+holding with AMD's actual local canonical ID. `View history` preserves that
+snapshot's date/known-at/provenance without granting current-analysis
+eligibility. The explicit bounded AMD history action returns a partial fixture
+response with one minute-aligned bar inside the posted range and truthful
+remaining missing slices; coverage changes from missing to partial after the
+acquisition instead of claiming a full-day load. A following local OHLCV GET
+reads back the same bar, proving the chart's post-acquisition reload path. This
+is mocked software behavior, not real provider or issuer evidence.
+
+Validation is static only: Playwright `--list --reporter=line` collected all
+three Chromium cases, and strict standalone TypeScript checking passed using a
+temporary declaration for the shared helper's Node `process` global. The earlier
+default HTML reporter hit `EACCES` writing
+`frontend/playwright-report/index.html`; line-only collection avoids that
+report path. No browser case has run. No screenshots, visual references, masks,
+tolerance, assertion, timeout or retry policy changed. The addition is a
+functional E2E spec only.
+
+Producer implementation513's software checkpoint is accepted, but records-only
+f019ae5 exact CI40564285973 and accepted green Producer/ETF staging are still
+pending; no sibling source was merged or executed. Keep the spec unpublished
+until accepted staging is adopted and Root allocates the normal source-matched
+full UI profile. Preserve all nine roadmap criteria and existing source,
+provider/SEC, target, quota, dataset, service and operational holds.
+
+## Main Workstation on-demand history entry — 2026-10-27
+
+The coordinator correctly identified that the earlier three-case pass did not
+exercise the ordinary main Workstation path: attempt12's first case used
+`/legacy/chart`. The current local candidate adds a conditional, explicit
+“Load missing history” action to the focused Workstation chart only when its
+canonical symbol is selected, local bars are empty, and loading/error states
+are settled. It uses the existing bounded acquisition control. Search,
+discovery typing, mount, layout hydration, linked-chart activity and other
+symbols remain free of acquisition requests. The user first performs explicit
+source discovery and identity resolution; only a deliberate click can request
+the selected instrument/timeframe/range. A successful response refreshes the
+local chart readback. Existing cache/held/error behavior and stale-scope guards
+remain in place.
+
+The new mounted test verifies no request on mount or while the chart tool is
+inactive, then verifies ordinary-click request ordering and local chart
+refresh/readback. The controlled Playwright spec now has four cases. Attempt17
+passed all four in23.0s with one worker, zero retries, exit0 and no OOM. Its
+first case uses the real Workstation route: unknown local `TCNEW` search,
+explicit fixture discovery, explicit canonical identity resolution, focused
+chart activation, explicit bounded M1 history and visible fixture bar readback.
+The other cases retain the held unknown-symbol path, seeded IWM lineage/held
+history path, and first-use OIH issuer plus partial AMD history/readback path.
+All acquisition responses are test fixtures; this is not genuine Provider or
+ETF source evidence.
+
+Attempt17 source manifest is
+`/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/source-files.json`
+(SHA256 `3005619d2060d65681740ec86d8e9f8b96fa0875a303558aef9ba08322370d62`);
+the E2E spec SHA256 is
+`221470faefb7fd9a538a46ad24902d13a06f87014864e594ed74c324cc99cd08`. It used
+current source-built frontend image
+`sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758`
+and frontend container
+`9931954959a31b51dd55a34297f65ff74919705a33002fe8d48e23e75e4e6628`. The
+owned browser was
+`b63d595724dacac86c063d5c1da91581b3068c7fd09175c9081eada77f4f6c17`, using
+the pinned Noble Playwright image and a read-only source mount. Attempt log SHA256
+is `bd207c63482c6a4b2d6723b26ba10f861cfca0f830f6f0556cd3a602ff823019`.
+
+Five focused Vitest files passed85/85 with one fork; vue-tsc/Vite build passed
+(534 modules; existing Workstation chunk advisory); Playwright collection lists
+four cases; the unchanged Provider boundary test passed1/1. Scope self-tests
+passed42/42 and the full TC guard passed1064 changed paths,872 immutable imports,
+29 approved Provider adaptations and112 presentation paths. These checks do not
+constitute exact-source branch CI or a full combined profile. Earlier attempt11
+and attempts13-16 remain preserved with their actual failures. Attempt12 remains
+qualified only for its three legacy-chart/ETF cases. The 1.5-GiB builder OOM is
+setup evidence; the successful build used the separately owned 3-GiB/no-extra-
+swap/two-CPU builder with serial parallelism.
+
+Protected-resource comparison passed after attempt17: all33 original container
+IDs retained their prior image IDs and states; all51 original volumes,11 network
+IDs and56 image IDs remained present. The eight-container TC fixture and its
+browser evidence are separately owned; ETF's two containers remained separate
+and unchanged. No provider, issuer or SEC HTTP occurred. The candidate remains
+local/unpublished and has no exact-source branch CI. Green ETF staging adoption
+and the later full combined functional/visual profile remain pending. Existing
+assertions, visual references, masks, tolerances, timeouts and zero-retry policy
+were not changed; AC1-AC9 and official V25 remain open.
+
+## Active software checkpoint plan — 2026-10-27
+
+Per Root's planning direction
+`.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md`,
+the active in-progress software checkpoint is
+`tc-on-demand-workstation-consumer-20261027`. It has six open criteria covering
+(1) only released-green Provider/repaired-ETF staging adoption and semantic
+reconciliation, (2) Workstation/chart unknown-symbol discovery and verified
+identity with local-only passive paths, (3) bounded single-instrument history,
+adjusted choice, stale-scope/cache protections and local readback, (4) ETF
+issuer/holding history with preserved lineage and current-analysis denial,
+(5) source-matched required local/full functional/strict-visual/exact-CI gates,
+and (6) exact source/image/handoff evidence plus owned-only cleanup and retained
+resource proof. The exact acceptance criteria are in the plan's
+`current_software_checkpoint`; all six are currently in progress/open. The
+four-case controlled run is preparation evidence only. No current checkpoint
+acceptance, producer integration, or exact-source branch CI is claimed.
+
+The previously accepted `tc2000-workstation-integration-1` presentation
+checkpoint, its TCP1-TCP5/TCV1 criteria, closure receipt, source evidence and
+AC1-AC9 dispositions remain intact as historical truth. The nine original AC
+IDs and texts are unchanged and none is closed by the active software plan.
+Next gate is Root's release of the exact green ETF staging baseline for
+supported adoption and later full combined qualification; until then keep the
+candidate local and preserve all Provider/ETF/data/quota/target and operational
+holds.
+
+After attempt17 evidence was captured, only the owned
+`tc-on-demand-cc4b-20261027` fixture was removed: 8 project containers, 5 exited
+browser containers, 6 project volumes and 3 project networks; its dedicated idle
+3-GiB/two-CPU builder and four newly built unreferenced fixture images were also
+removed. The pre-existing pinned browser image was retained. Before/after
+ownership receipts are
+`/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json`
+(SHA256 `8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf`) and
+`cleanup-after.json` (SHA256
+`3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b`). The
+after-check found no missing or changed baseline container, volume, network or
+image identity: all33 original containers retained their image/state;51 volumes,
+11 networks and56 baseline image IDs remained. ETF's separate Postgres/Redis
+containers remained running unchanged. No global prune or retained/sibling
+cleanup occurred.
