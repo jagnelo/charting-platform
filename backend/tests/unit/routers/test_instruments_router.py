@@ -4,6 +4,7 @@ from decimal import Decimal
 
 import pytest
 
+from app.config import settings
 from app.lib.time_utils import wire_datetime
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
@@ -77,6 +78,78 @@ def test_instrument_response_schemas_keep_pydantic_datetime_json_contract():
     assert listing.model_dump(mode="json")["known_at"] == "2026-09-12T16:30:00Z"
     assert identifier.model_dump(mode="json")["effective_at"] == "2026-09-12T14:30:00Z"
     assert identifier.model_dump(mode="json")["known_at"] == "2026-09-12T16:30:00Z"
+
+
+def test_request_driven_mode_preserves_ordinary_local_instrument_reads(
+    client, auth_headers, instrument, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+
+    def forbidden_transport(*_args, **_kwargs):
+        raise AssertionError("ordinary local instrument reads must not query providers")
+
+    monkeypatch.setattr(
+        "app.routers.instruments.search_provider_instruments_async", forbidden_transport
+    )
+    monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", forbidden_transport)
+    monkeypatch.setattr("app.routers.instruments._create_from_provider", forbidden_transport)
+    monkeypatch.setattr("app.routers.instruments._needs_52w_stats_refresh", lambda _row: False)
+
+    search = client.get(
+        "/api/v1/instruments/search", params={"q": instrument.symbol}, headers=auth_headers
+    )
+    assert search.status_code == 200, search.text
+    assert any(row["symbol"] == instrument.symbol for row in search.json())
+
+    detail = client.get(f"/api/v1/instruments/{instrument.symbol}", headers=auth_headers)
+    assert detail.status_code == 200, detail.text
+
+    unknown = client.get("/api/v1/instruments/UNKNOWN_ON_DEMAND", headers=auth_headers)
+    assert unknown.status_code == 404
+    unknown_search = client.get(
+        "/api/v1/instruments/search",
+        params={"q": "UNKNOWN_ON_DEMAND"},
+        headers=auth_headers,
+    )
+    assert unknown_search.status_code == 200
+    assert unknown_search.json() == []
+
+    expression = client.post(
+        "/api/v1/instruments/resolve-expression",
+        json={"expression": f"=UNKNOWNONDEMAND/{instrument.symbol}"},
+        headers=auth_headers,
+    )
+    assert expression.status_code == 404
+
+
+def test_legacy_search_keeps_provider_discovery_when_request_driven_mode_is_disabled(
+    client, auth_headers, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    calls = 0
+
+    async def _search(*_args, **_kwargs):
+        nonlocal calls
+        calls += 1
+        return [
+            {
+                "symbol": "UNSEEDED_PROVIDER_SYMBOL",
+                "name": "Provider Search Result",
+                "exchange": "XNYS",
+                "type": "EQUITY",
+            }
+        ]
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    response = client.get(
+        "/api/v1/instruments/search",
+        params={"q": "UNSEEDED_PROVIDER_SYMBOL"},
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200, response.text
+    assert response.json()[0]["symbol"] == "UNSEEDED_PROVIDER_SYMBOL"
+    assert calls == 1
 
 
 class TestInstrumentAutoCreate:

@@ -374,7 +374,12 @@ async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] |
     now = datetime.now(UTC)
     merged: list[dict] = []
     seen: set[str] = set()
-    for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_SEARCH):
+    for resolved in await resolve_provider_chain(
+        db,
+        ProviderCapability.INSTRUMENT_SEARCH,
+        operation="search_instruments",
+        provider_symbol=query,
+    ):
         snapshot = (
             await db.execute(
                 select(InstrumentSearchSnapshot)
@@ -436,7 +441,13 @@ async def _fresh_profile_from_cache(
     now = datetime.now(UTC)
     provider_ids = {
         resolved.data_source.id: resolved.policy.freshness_seconds
-        for resolved in await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_METADATA)
+        for resolved in await resolve_provider_chain(
+            db,
+            ProviderCapability.INSTRUMENT_METADATA,
+            operation="get_instrument_profile",
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+        )
     }
     snapshots = (
         (
@@ -1119,6 +1130,7 @@ async def _fetch_provider(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        provider_symbol=instrument.symbol,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(
             instrument, provider_name
         ),
@@ -1648,6 +1660,7 @@ async def _fetch_provider_latest(
         ProviderCapability.PRICE_HISTORY,
         f"fetch_latest_ohlcv:{timeframe.value}",
         instrument_id=instrument.id,
+        provider_symbol=instrument.symbol,
         usage_identity=lambda provider_name: provider_symbol_for_instrument(
             instrument, provider_name
         ),
@@ -1751,12 +1764,38 @@ def get_current_price(provider_symbol: str) -> float | None:
     raise RuntimeError("get_current_price() is no longer used; use get_current_price_async()")
 
 
-async def search_provider_instruments_async(db: AsyncSession, query: str) -> list[dict]:
+async def search_provider_instruments_async(
+    db: AsyncSession,
+    query: str,
+    *,
+    source_outcomes: list[dict[str, Any]] | None = None,
+) -> list[dict]:
     cached = await _fresh_search_from_cache(db, query)
     if cached is not None:
+        if source_outcomes is not None:
+            source_outcomes.extend(
+                {
+                    "provider": str(item.get("provider") or "unknown"),
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "cache_hit",
+                    "reason_code": "fresh_search_snapshot",
+                    "result_count": sum(
+                        1
+                        for candidate in cached
+                        if candidate.get("provider") == item.get("provider")
+                    ),
+                }
+                for item in {row.get("provider"): row for row in cached if row.get("provider")}
+            )
         return sorted(cached, key=lambda item: _search_priority(query, item))[:10]
 
-    chain = await resolve_provider_chain(db, ProviderCapability.INSTRUMENT_SEARCH)
+    chain = await resolve_provider_chain(
+        db,
+        ProviderCapability.INSTRUMENT_SEARCH,
+        operation="search_instruments",
+        provider_symbol=query,
+    )
     merged: list[dict] = []
     seen: set[str] = set()
     for resolved in chain:
@@ -1765,6 +1804,8 @@ async def search_provider_instruments_async(db: AsyncSession, query: str) -> lis
                 db,
                 ProviderCapability.INSTRUMENT_SEARCH,
                 "search_instruments",
+                provider_symbol=query,
+                usage_identity=query,
                 provider_name=resolved.provider_name,
                 invoke=lambda provider, _provider_symbol: provider.search_instruments(
                     query, limit=10
@@ -1772,7 +1813,18 @@ async def search_provider_instruments_async(db: AsyncSession, query: str) -> lis
                 response_items=lambda result: len(result),
                 treat_empty_as_failure=False,
             )
-        except Exception:
+        except Exception as exc:
+            if source_outcomes is not None:
+                source_outcomes.append(
+                    {
+                        "provider": resolved.provider_name,
+                        "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                        "operation": "search_instruments",
+                        "status": "failed",
+                        "reason_code": "provider_request_failed",
+                        "error_type": type(exc).__name__,
+                    }
+                )
             continue
         await store_search_snapshot(
             db,
@@ -1799,6 +1851,20 @@ async def search_provider_instruments_async(db: AsyncSession, query: str) -> lis
                 continue
             seen.add(symbol)
             merged.append(item)
+        if source_outcomes is not None:
+            provider_results = [
+                item for item in merged if item.get("provider") == execution.provider_name
+            ]
+            source_outcomes.append(
+                {
+                    "provider": execution.provider_name,
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned" if provider_results else "no_match",
+                    "reason_code": None if provider_results else "no_provider_match",
+                    "result_count": len(provider_results),
+                }
+            )
     return sorted(merged, key=lambda item: _search_priority(query, item))[:10]
 
 

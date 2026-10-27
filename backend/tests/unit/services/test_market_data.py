@@ -196,7 +196,7 @@ async def test_provider_refresh_assigns_scoped_market_series(monkeypatch):
     monkeypatch.setattr(market_data, "_record_bar_observations", fake_record)
     monkeypatch.setattr(market_data, "_touch_ohlcv_dataset_state", fake_touch)
 
-    instrument = SimpleNamespace(id=42)
+    instrument = SimpleNamespace(id=42, symbol="AAPL")
     result = await market_data._fetch_provider(
         object(),
         instrument,
@@ -261,7 +261,7 @@ async def test_latest_provider_refresh_assigns_scoped_market_series(monkeypatch)
 
     result = await market_data._fetch_provider_latest(
         object(),
-        SimpleNamespace(id=42),
+        SimpleNamespace(id=42, symbol="AAPL"),
         Timeframe.D1,
         10,
         True,

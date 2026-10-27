@@ -85,6 +85,14 @@ _ETF_INITIAL_QUALIFICATION_SEAL = object()
 _ETF_INITIAL_QUALIFICATION_CONTEXT: contextvars.ContextVar[object | None] = contextvars.ContextVar(
     "provider_runtime_etf_initial_qualification", default=None
 )
+_VANECK_INITIAL_QUALIFICATION_SEAL = object()
+_VANECK_INITIAL_QUALIFICATION_CONTEXT: contextvars.ContextVar[object | None] = (
+    contextvars.ContextVar("provider_runtime_vaneck_initial_qualification", default=None)
+)
+_EXPLICIT_ACQUISITION_SEAL = object()
+_EXPLICIT_ACQUISITION_CONTEXT: contextvars.ContextVar[object | None] = contextvars.ContextVar(
+    "provider_runtime_explicit_acquisition", default=None
+)
 _ETF_INITIAL_QUALIFICATION_OPERATIONS = frozenset(
     {
         "fetch_etf_holdings_sec_submissions",
@@ -92,6 +100,123 @@ _ETF_INITIAL_QUALIFICATION_OPERATIONS = frozenset(
         "fetch_etf_holdings_sec_filing",
     }
 )
+EXPLICIT_ETF_HOLDINGS_OPERATION = frozenset(
+    {(ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest")}
+)
+
+
+@dataclass(frozen=True, slots=True)
+class _ExplicitAcquisitionScope:
+    seal: object
+    request_id: str
+    operations: frozenset[tuple[ProviderCapability, str]]
+    instrument_id: int | None = None
+    symbol: str | None = None
+    provider_names: frozenset[str] | None = None
+
+
+@contextmanager
+def bind_explicit_provider_acquisition(
+    *,
+    request_id: str,
+    operations: frozenset[tuple[ProviderCapability, str]],
+    instrument_id: int | None = None,
+    symbol: str | None = None,
+    provider_names: frozenset[str] | None = None,
+):
+    """Bind server-minted authority for one explicit, bounded API action."""
+
+    normalized_symbol = str(symbol or "").strip().upper() or None
+    normalized_request_id = str(request_id).strip()
+    if (
+        not normalized_request_id
+        or len(normalized_request_id) > 120
+        or not operations
+        or instrument_id is not None
+        and instrument_id <= 0
+        or symbol is not None
+        and not normalized_symbol
+    ):
+        raise ValueError("invalid explicit acquisition scope")
+    allowed_operations = {
+        (ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"),
+        (ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile"),
+        (ProviderCapability.PRICE_HISTORY, "fetch_ohlcv"),
+        (ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest"),
+    }
+    if not operations.issubset(allowed_operations):
+        raise ValueError("explicit acquisition scope contains an unsupported operation")
+    normalized_providers = (
+        frozenset(str(provider).strip().lower() for provider in provider_names)
+        if provider_names is not None
+        else None
+    )
+    if normalized_providers is not None and (
+        not normalized_providers or "" in normalized_providers or "*" in normalized_providers
+    ):
+        raise ValueError("explicit acquisition provider binding must be exact")
+    scope = _ExplicitAcquisitionScope(
+        seal=_EXPLICIT_ACQUISITION_SEAL,
+        request_id=normalized_request_id,
+        operations=operations,
+        instrument_id=instrument_id,
+        symbol=normalized_symbol,
+        provider_names=normalized_providers,
+    )
+    token = _EXPLICIT_ACQUISITION_CONTEXT.set(scope)
+    try:
+        yield scope
+    finally:
+        _EXPLICIT_ACQUISITION_CONTEXT.reset(token)
+
+
+@contextmanager
+def bind_explicit_etf_holdings_acquisition(
+    *, request_id: str, instrument_id: int, symbol: str, issuer_provider_name: str
+):
+    """Bind an ETF request to its exact committed issuer/publisher bridge.
+
+    The caller supplies the provider resolved from the committed fund profile
+    and issuer adapter. This issuer-only path deliberately rejects SEC/EDGAR:
+    public-filings acquisition is a separate operation and cannot be a fallback.
+    """
+
+    provider_name = str(issuer_provider_name).strip().lower()
+    if not provider_name or provider_name in {"edgar", "sec"}:
+        raise ValueError("ETF holdings acquisition requires an exact issuer provider")
+
+    with bind_explicit_provider_acquisition(
+        request_id=request_id,
+        operations=EXPLICIT_ETF_HOLDINGS_OPERATION,
+        instrument_id=instrument_id,
+        symbol=symbol,
+        provider_names=frozenset({provider_name}),
+    ) as scope:
+        yield scope
+
+
+def _explicit_acquisition_scope_denial(
+    *,
+    capability: ProviderCapability,
+    operation: str | None,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+) -> str | None:
+    scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+    if (
+        not isinstance(scope, _ExplicitAcquisitionScope)
+        or scope.seal is not _EXPLICIT_ACQUISITION_SEAL
+    ):
+        return "explicit_acquisition_required" if settings.PROVIDER_REQUEST_DRIVEN_ONLY else None
+    operation_family = (operation or "").split(":", 1)[0].strip()
+    if (capability, operation_family) not in scope.operations:
+        return "explicit_acquisition_scope_mismatch"
+    if scope.instrument_id is not None and instrument_id != scope.instrument_id:
+        return "explicit_acquisition_scope_mismatch"
+    if scope.symbol is not None:
+        if provider_symbol is None or str(provider_symbol).strip().upper() != scope.symbol:
+            return "explicit_acquisition_scope_mismatch"
+    return None
 
 
 @dataclass(frozen=True, slots=True)
@@ -108,6 +233,134 @@ class _ETFInitialQualificationAuthority:
     provider_symbol: str
     account_scope: str
     expires_at: datetime
+
+
+@dataclass(slots=True)
+class _VanEckInitialQualificationAuthority:
+    """One-shot task-local authority for VanEck's first genuine issuer sample."""
+
+    seal: object
+    job_id: int
+    provider_name: str
+    capability: ProviderCapability
+    operation: str
+    fund_profile_id: int
+    instrument_id: int
+    provider_symbol: str
+    account_scope: str
+    review_revision: int
+    expires_at: datetime
+    started: bool = False
+
+
+@contextmanager
+def bind_vaneck_initial_etf_qualification(
+    *,
+    job_id: int,
+    fund_profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    account_scope: str,
+    review_revision: int,
+    expires_at: datetime,
+):
+    """Bind one committed VanEck qualification job to its exact runtime scope.
+
+    ETF may call this only after it has committed and claimed its one-shot
+    qualification job and verified the current reviewed publisher revision.
+    The helper binds only VanEck's issuer operation; it cannot authorize SEC,
+    another fund, normal routing, or a second execute_provider_call.
+    """
+
+    normalized_symbol = str(provider_symbol).strip().upper()
+    normalized_scope = str(account_scope).strip()
+    if (
+        isinstance(job_id, bool)
+        or not isinstance(job_id, int)
+        or job_id <= 0
+        or isinstance(fund_profile_id, bool)
+        or not isinstance(fund_profile_id, int)
+        or fund_profile_id <= 0
+        or isinstance(instrument_id, bool)
+        or not isinstance(instrument_id, int)
+        or instrument_id <= 0
+        or not normalized_symbol
+        or normalized_symbol in {"*", "ALL", "ANY"}
+        or not normalized_scope
+        or normalized_scope in {"*", "ALL", "ANY"}
+        or isinstance(review_revision, bool)
+        or not isinstance(review_revision, int)
+        or review_revision <= 0
+        or not isinstance(expires_at, datetime)
+        or expires_at.tzinfo is None
+        or expires_at.utcoffset() is None
+        or expires_at <= datetime.now(UTC)
+    ):
+        raise ValueError("invalid VanEck initial qualification scope")
+
+    authority = _VanEckInitialQualificationAuthority(
+        seal=_VANECK_INITIAL_QUALIFICATION_SEAL,
+        job_id=job_id,
+        provider_name="vaneck",
+        capability=ProviderCapability.ETF_HOLDINGS,
+        operation="fetch_etf_holdings_latest",
+        fund_profile_id=fund_profile_id,
+        instrument_id=instrument_id,
+        provider_symbol=normalized_symbol,
+        account_scope=normalized_scope,
+        review_revision=review_revision,
+        expires_at=expires_at.astimezone(UTC),
+    )
+    with bind_explicit_etf_holdings_acquisition(
+        request_id=f"vaneck-fq:{job_id}",
+        instrument_id=instrument_id,
+        symbol=normalized_symbol,
+        issuer_provider_name="vaneck",
+    ):
+        token = _VANECK_INITIAL_QUALIFICATION_CONTEXT.set(authority)
+        try:
+            yield authority
+        finally:
+            _VANECK_INITIAL_QUALIFICATION_CONTEXT.reset(token)
+
+
+def _vaneck_initial_qualification_matches(
+    *,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str | None,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    profile_id: int | None,
+    policy: ProviderPolicy,
+    entitlement: ProviderEntitlement,
+) -> bool:
+    authority = _VANECK_INITIAL_QUALIFICATION_CONTEXT.get()
+    if (
+        not isinstance(authority, _VanEckInitialQualificationAuthority)
+        or authority.seal is not _VANECK_INITIAL_QUALIFICATION_SEAL
+        or authority.expires_at <= datetime.now(UTC)
+        or authority.provider_name != "vaneck"
+        or provider_name.strip().lower() != authority.provider_name
+        or capability != ProviderCapability.ETF_HOLDINGS
+        or operation != "fetch_etf_holdings_latest"
+        or operation != authority.operation
+        or instrument_id != authority.instrument_id
+        or profile_id != authority.fund_profile_id
+        or str(provider_symbol or "").strip().upper() != authority.provider_symbol
+        or str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run"
+        or int(entitlement.revision or 1) != authority.review_revision
+    ):
+        return False
+    try:
+        from app.services.provider_quota_coordinator import (  # noqa: PLC0415
+            account_scope_for_provider,
+        )
+
+        actual_scope = account_scope_for_provider(provider_name, str(policy.quota_scope or ""))
+    except Exception:  # noqa: BLE001 - an unresolved account is not an authority match.
+        return False
+    return actual_scope == authority.account_scope
 
 
 def _new_etf_initial_qualification_authority(
@@ -513,6 +766,14 @@ class ProviderNoDataError(LookupError):
     """Raised when providers resolve successfully but none return usable data."""
 
 
+class ProviderRequestScopeDeniedError(ProviderNoDataError):
+    """Request-driven mode denied a provider call outside its server scope."""
+
+    def __init__(self, reason_code: str):
+        super().__init__(reason_code)
+        self.reason_code = reason_code
+
+
 class ProviderQuotaUnknownError(RuntimeError):
     """Raised when no documentation-backed quota contract is available."""
 
@@ -540,6 +801,8 @@ def _checkpoint_operation_family(operation: str) -> tuple[str, str]:
 def provider_checkpoint_operation_hold_reason(
     provider_name: str,
     operation: str | None,
+    *,
+    force_checkpoint: bool = False,
 ) -> str | None:
     """Return the explicit checkpoint hold for one provider operation.
 
@@ -549,7 +812,7 @@ def provider_checkpoint_operation_hold_reason(
     lacks the exact evidence required by the accepted checkpoint.
     """
 
-    if not settings.PROVIDER_FREE_ONLY_CHECKPOINT:
+    if not settings.PROVIDER_FREE_ONLY_CHECKPOINT and not force_checkpoint:
         return None
     hold_config = settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS
     if not isinstance(hold_config, dict):
@@ -2616,6 +2879,31 @@ async def resolve_provider_chain(
     history_start: HistoryStartSpec | None = None,
     etf_holdings_adapters: dict[str, Any] | None = None,
 ) -> list[ResolvedProvider]:
+    scope_denial = _explicit_acquisition_scope_denial(
+        capability=capability,
+        operation=operation,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+    )
+    if scope_denial is not None:
+        return []
+    request_scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+    scoped_acquisition = (
+        isinstance(request_scope, _ExplicitAcquisitionScope)
+        and request_scope.seal is _EXPLICIT_ACQUISITION_SEAL
+    )
+    vaneck_qualification = _VANECK_INITIAL_QUALIFICATION_CONTEXT.get()
+    allow_disabled_vaneck_policy = (
+        isinstance(vaneck_qualification, _VanEckInitialQualificationAuthority)
+        and vaneck_qualification.seal is _VANECK_INITIAL_QUALIFICATION_SEAL
+        and vaneck_qualification.started
+        and vaneck_qualification.expires_at > datetime.now(UTC)
+        and capability == ProviderCapability.ETF_HOLDINGS
+        and operation == "fetch_etf_holdings_latest"
+        and instrument_id == vaneck_qualification.instrument_id
+        and profile_id == vaneck_qualification.fund_profile_id
+        and str(provider_symbol or "").strip().upper() == vaneck_qualification.provider_symbol
+    )
     await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
         return []
@@ -2639,6 +2927,20 @@ async def resolve_provider_chain(
                 ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
             ),
         )
+    policy_enabled_filter = ProviderPolicy.is_enabled.is_(True)
+    if allow_disabled_vaneck_policy:
+        # Only the exact sealed first-sample context may inspect a disabled
+        # VanEck ETF policy. The row still must pass every normal admission
+        # check below, and the matching authority additionally requires the
+        # entitlement to remain `not_run` at its bound revision.
+        policy_enabled_filter = or_(
+            policy_enabled_filter,
+            and_(
+                ProviderPolicy.is_enabled.is_(False),
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                DataSource.name == "vaneck",
+            ),
+        )
     rows = (
         await db.execute(
             select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
@@ -2655,7 +2957,7 @@ async def resolve_provider_chain(
             )
             .where(
                 ProviderPolicy.capability == capability,
-                ProviderPolicy.is_enabled.is_(True),
+                policy_enabled_filter,
                 entitlement_candidate_filter,
             )
         )
@@ -2682,6 +2984,24 @@ async def resolve_provider_chain(
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
+        vaneck_initial_qualification = _vaneck_initial_qualification_matches(
+            provider_name=data_source.name,
+            capability=capability,
+            operation=operation,
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+            profile_id=profile_id,
+            policy=policy,
+            entitlement=entitlement,
+        )
+        if not policy.is_enabled and not vaneck_initial_qualification:
+            continue
+        if (
+            scoped_acquisition
+            and request_scope.provider_names is not None
+            and data_source.name.strip().lower() not in request_scope.provider_names
+        ):
+            continue
         etf_adapter = (etf_holdings_adapters or {}).get(data_source.name)
         uses_etf_adapter = capability == ProviderCapability.ETF_HOLDINGS
         if uses_etf_adapter and (
@@ -2710,11 +3030,19 @@ async def resolve_provider_chain(
         if (
             not unreviewed_usage_bootstrap
             and not provider_entitlement_admission(
-                entitlement, provider_name=data_source.name, capability=capability
+                entitlement,
+                provider_name=data_source.name,
+                capability=capability,
+                checkpoint_free_only=True if scoped_acquisition else None,
+                allow_paid=False if scoped_acquisition else None,
             )["allowed"]
         ):
             continue
-        if provider_checkpoint_operation_hold_reason(data_source.name, operation):
+        if provider_checkpoint_operation_hold_reason(
+            data_source.name,
+            operation,
+            force_checkpoint=scoped_acquisition,
+        ):
             # Checkpoint exclusions precede adapter construction, durable quota
             # reservation, and transport. They cannot be bypassed by the paid
             # routing flag or by a smaller call fitting current headroom.
@@ -2749,9 +3077,8 @@ async def resolve_provider_chain(
             str(entitlement.live_probe_status or "not_run").strip().lower()
             in _POSITIVE_LIVE_PROBE_STATUSES
         )
-        initial_etf_qualification = (
-            not live_probe_is_positive
-            and _etf_initial_qualification_matches(
+        initial_etf_qualification = not live_probe_is_positive and (
+            _etf_initial_qualification_matches(
                 provider_name=data_source.name,
                 capability=capability,
                 operation=operation,
@@ -2760,6 +3087,7 @@ async def resolve_provider_chain(
                 profile_id=profile_id,
                 policy=policy,
             )
+            or vaneck_initial_qualification
         )
         if not live_probe_is_positive and not initial_etf_qualification:
             continue
@@ -2965,16 +3293,48 @@ async def execute_provider_call(
         raise TypeError(
             "provider invoke callback must be synchronous; async callbacks are not awaited"
         )
+    vaneck_qualification = _VANECK_INITIAL_QUALIFICATION_CONTEXT.get()
+    if (
+        isinstance(vaneck_qualification, _VanEckInitialQualificationAuthority)
+        and vaneck_qualification.seal is _VANECK_INITIAL_QUALIFICATION_SEAL
+    ):
+        # Consume the task-local permit before any awaited resolver, quota, or
+        # transport work. Failure/cancellation therefore cannot reuse this
+        # context for another canonical operation.
+        if vaneck_qualification.started:
+            raise ProviderRequestScopeDeniedError("etf_initial_qualification_replay_denied")
+        vaneck_qualification.started = True
+        if (
+            provider_name != "vaneck"
+            or capability != ProviderCapability.ETF_HOLDINGS
+            or operation != "fetch_etf_holdings_latest"
+            or instrument_id != vaneck_qualification.instrument_id
+            or profile_id != vaneck_qualification.fund_profile_id
+            or str(provider_symbol or "").strip().upper() != vaneck_qualification.provider_symbol
+        ):
+            raise ProviderRequestScopeDeniedError("etf_initial_qualification_scope_mismatch")
+    scope_denial = _explicit_acquisition_scope_denial(
+        capability=capability,
+        operation=operation,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+    )
+    if scope_denial is not None:
+        raise ProviderRequestScopeDeniedError(scope_denial)
 
     resolve_kwargs: dict[str, Any] = {
         "instrument_id": instrument_id,
+        "provider_symbol": provider_symbol,
         "operation": operation,
         "operation_cost_overrides": operation_cost_overrides,
         "adjusted": adjusted,
         "history_start": history_start,
         "etf_holdings_adapters": etf_holdings_adapters,
     }
-    if _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None:
+    if (
+        _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None
+        or _VANECK_INITIAL_QUALIFICATION_CONTEXT.get() is not None
+    ):
         resolve_kwargs.update(provider_symbol=provider_symbol, profile_id=profile_id)
     chain = await resolve_provider_chain(db, capability, **resolve_kwargs)
     if provider_name is not None:
