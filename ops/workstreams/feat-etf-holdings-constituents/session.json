@@ -64,13 +64,19 @@
       "api_attempt_2": "2 passed in 19.14s on corrected source; fresh Testcontainers PG/Redis; zero Provider requests; exact inventories restored.",
       "attempt_2_result": "/tmp/etf-acquire-api-20261027/attempt-2/result.json",
       "cleanup_receipt": "/tmp/etf-acquire-api-20261027/attempt-2/cleanup-receipt.json",
-      "full_gates": "Pending complete source-matched backend coverage, full-stack/browser profile, cleanup audit, and exact owner-branch CI.",
+      "full_gates": "Owner is proceeding with the allocated complete source-matched backend/frontend/build/full-stack-browser profile; no complete gate result is claimed yet. Exact closing-tip CI will be observed after publication.",
       "unit": "31 passed in 4.50s, offline UV",
       "provider_scope_unit": "82 passed in 7.86s; UV offline; ETF acquisition/bootstrap, ETF qualification, and Provider explicit-acquisition modules",
-      "real_provider_binder_regression": "Updated fresh-AsyncSession test delegates to the actual Provider binder and asserts exact task-local scope, mismatch denial, and reset; collected only, not rerun against PostgreSQL after staging adoption"
+      "real_provider_binder_regression": "Updated fresh-AsyncSession test delegates to the actual Provider binder and asserts exact task-local scope, mismatch denial, and reset; collected only, not rerun against PostgreSQL after staging adoption",
+      "vaneck_unit": "67 passed in 7.55s; UV offline; exact sealed job/scope/revision/expiry mismatch denial and current-review revision-change guard",
+      "vaneck_real_provider_runtime_pg": "2 passed in 26.12s on final source; real qualify_vaneck_oih_fund -> shared bridge pre-review -> Provider execute_provider_call; independent PostgreSQL sessions; HTTPX MockTransport only; matched OIH and contradictory SMH cases",
+      "vaneck_final_static": "Ruff check, Ruff format --check, py_compile on five changed files, and git diff --check passed on source 7157269",
+      "vaneck_attempt_history": "Earlier setup failures and real-red/assertion-diagnostic logs remain under /tmp/etf-on-demand-consumer-20261027; final attempt12 is green. No attempt used external HTTP or credentials.",
+      "vaneck_final_pg_log": "/tmp/etf-on-demand-consumer-20261027/vaneck-initial-qualification-focused-attempt12.log",
+      "provider_source_review": "Provider independent exact-7157269 re-review found no concrete blocker; review is not full-profile acceptance."
     },
     "name": "explicit selected-fund ETF issuer acquisition",
-    "next_action": "Complete the allocated source-matched backend/full-stack browser profile in isolated project etf-on-demand-consumer-20261027, then publish one coherent six-criterion checkpoint and pass exact closing-tip CI. Keep actual source/account qualification and target OIH acceptance Root-owned.",
+    "next_action": "Run the allocated complete source-matched backend, frontend/type/build and isolated full-stack/browser/visual profile for implementation 7157269abced8fc975f9dffd9441b81c11ebed08 using only project etf-on-demand-consumer-20261027; publish this candidate so exact-tip CI runs concurrently. Preserve all attempts and complete every collected backend ID with 50-test unit processes and at-most-100-ID integration batches under 300s/900s limits, then verify full app cleanup/inventories. Root owns acceptance and any source/target operation.",
     "owned_record_paths": [
       "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
       "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
@@ -86,7 +92,7 @@
       "massive": "Target DataSource active; persisted search/metadata policies enabled at priority 20 and PRICE_HISTORY at priority 80, all 5 tokens/minute. Seed chain omits Massive for PRICE_HISTORY; do not overwrite persisted target policy. Global routing false, free-only true, paid false; observed free-stocks-basic/is_free/probe-pass are dated 2026-10-23, max_concurrency null. Current quota/headroom/holds/cost/effective admission remain unverified.",
       "vaneck": "Target DataSource and policy absent. OIH workbook advertised, not fetched. Commercial app and third-party identifier rights unresolved. robots crawl-delay 25s conflicts with adapter redirect/retry behavior (up to 3 attempts); Producer review required before any request."
     },
-    "state": "Provider green staging 6bff adopted conflict-free in local merge f959ed3, preserving preparation commit fe08b99. Focused actual-binder ETF/Provider tests pass 82/82. The source-matched independent-PG test now uses the real issuer binder; full backend/full-stack browser profile, cleanup proof, and exact-tip CI remain pending. No external source calls, quota use, target mutation or route activation."
+    "state": "focused_source_repair_committed_full_source_matched_profile_and_exact_CI_in_progress"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -137,15 +143,10 @@
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
   },
-  "current_blocker_latest": "The explicit issuer-only consumer seam is prepared over cd94b8e3286cbaa89dba3e593700fbb1bee67bc9 and the focused fresh-AsyncSession PostgreSQL regression passed 1/1 with a mocked Provider binder. Provider release 6bff091d7d43de0731284dfabcafa09514d226a6 is verified green and ready for own-branch adoption; the real Producer helper contract has not yet been exercised. After adoption, prove exact scope binding, mismatch/hold denial, reset and unrelated-route exclusion against the imported helper. The full source-matched profile needs Root-assigned capacity. Actual OIH workbook identity remains unverified; no source request, quota, target or policy action occurred. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, AC1-AC14, all holds/quarantines, raw/PIT lineage, 119 spent requests and the 30-day observation.",
+  "current_blocker_latest": "VanEck disabled-policy pre-review and durable Provider request-log linkage are repaired in implementation 7157269abced8fc975f9dffd9441b81c11ebed08. Focused evidence: 67 UV-offline unit tests passed and both matched-OIH/contradictory-SMH real-PostgreSQL cases passed in 26.12s using HTTPX MockTransport only; Ruff, format, compilation and diff checks passed. Provider's independent code review found no concrete blocker (review receipt in current handoff), but this is not full-profile acceptance; the two focused cases do not individually establish every cancellation/concurrency path. The allocated complete source-matched profile is the owner's active next phase; exact closing-tip CI starts with publication and is pending. No live source HTTP/credentials/quota/activation/target change occurred. Preserve all six ODC criteria and AC1-AC14, 15 Tier-0/156 Tier-1/74 fallback, 119 spent requests, holds, quarantines, raw/PIT lineage and 30-day observation; actual OIH qualification and target acceptance remain Root-owned.",
   "current_checkpoint_objective": "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support.",
-  "current_local_delta": "Local changes add authenticated explicit selected-fund acquisition with the reviewed TC DTO, missing-profile handling only for a resolved canonical fund on refresh=true, and focused unit/API regressions. Offline bootstrap unit module passed 33/33 and VanEck route metadata test 1/1. The corrected fresh-AsyncSession PostgreSQL regression passed 1/1 in 13.60s using a mocked Provider binder; it proves committed first-use route visibility from a distinct live connection, serialized snapshot.holdings/provenance, and post-request persistence, but not the real Provider helper contract. Exact Provider staging 6bff091d7d43de0731284dfabcafa09514d226a6 is green and released for owner adoption; current branch remains cd94 until adopted. Full source-matched qualification awaits Root capacity. Actual OIH body identity, account admission and rights remain unverified; no source request, target/policy mutation, quota reservation, or positive qualification occurred.",
+  "current_local_delta": "VanEck disabled-policy pre-review and durable Provider request-log linkage are repaired in implementation 7157269abced8fc975f9dffd9441b81c11ebed08. Focused evidence: 67 UV-offline unit tests passed and both matched-OIH/contradictory-SMH real-PostgreSQL cases passed in 26.12s using HTTPX MockTransport only; Ruff, format, compilation and diff checks passed. Provider's independent code review found no concrete blocker (review receipt in current handoff), but this is not full-profile acceptance; the two focused cases do not individually establish every cancellation/concurrency path. The allocated complete source-matched profile is the owner's active next phase; exact closing-tip CI starts with publication and is pending. No live source HTTP/credentials/quota/activation/target change occurred. Preserve all six ODC criteria and AC1-AC14, 15 Tier-0/156 Tier-1/74 fallback, 119 spent requests, holds, quarantines, raw/PIT lineage and 30-day observation; actual OIH qualification and target acceptance remain Root-owned.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings_adapters.py",
-    "backend/app/services/etf_holdings_refresh.py",
-    "backend/tests/integration/api/test_etf_holdings.py",
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
@@ -176,8 +177,8 @@
   "goal_request_state": "ready",
   "goal_state": "active_full_roadmap_continuation_goal; prior bounded checkpoint goal completed after exact green staging acceptance and same-branch adoption; original goal accounting preserved",
   "goal_unavailable_reason": null,
-  "head": "cd94b8e3286cbaa89dba3e593700fbb1bee67bc9",
-  "implementation_sha": "d34e53545e07a1052d489e8601f91505d70484d9",
+  "head": "7157269abced8fc975f9dffd9441b81c11ebed08",
+  "implementation_sha": "7157269abced8fc975f9dffd9441b81c11ebed08",
   "integration_checkpoint": {
     "acceptance_criteria": [
       {
@@ -381,9 +382,9 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-27T21:06:36.267620Z",
+  "last_checkpoint": "2026-10-27T21:58:52Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "Current checkpoint etf-on-demand-consumer-20261027 is in progress. Exact synchronized-green Provider staging6bff091d7d43de0731284dfabcafa09514d226a6 was adopted conflict-free in local merge f959ed3963da4e3f7d161c940e68c345763be009 after preserving preparation commit fe08b99e8f387cafd8b8a7dd2f378fb1008bd49b. Focused actual-binder stack-free tests pass82/82; the independent PostgreSQL test now exercises the actual binder but is not rerun post-adoption. Complete backend/full-stack browser profile, cleanup audit, and exact owner-tip CI remain pending. No live source HTTP/quota/target mutation or activation. Preserve all14 roadmap criteria, 15 Tier-0 and 156 Tier-1, 74 fallback, 119 spent requests, holds/quarantines, raw/PIT history and30-day observation.",
+  "latest_checkpoint": "On-demand consumer checkpoint remains in_progress. Implementation 7157269abced8fc975f9dffd9441b81c11ebed08 repairs the Provider-reviewed disabled-policy pre-review and durable VanEck request-log linkage; focused offline tests (67) and matched/wrong-fund real-PostgreSQL MockTransport cases (2) pass. Provider's independent review found no concrete blocker, but is not acceptance; the two cases do not individually establish all cancellation/concurrency behavior. The complete source-matched backend, frontend/build, full-stack/browser/visual profile and exact closing-tip CI remain pending and are the owner's active qualification work. Preserve the setup-only bus red, later diagnostic reds, all14 roadmap criteria and holds. No real source HTTP/quota/target operation or policy activation.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
     "recorded_at": "2026-10-26T18:08:23Z",
@@ -468,8 +469,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Complete the allocated source-matched backend/full-stack browser profile in isolated project etf-on-demand-consumer-20261027, then publish one coherent six-criterion checkpoint and pass exact closing-tip CI. Keep actual source/account qualification and target OIH acceptance Root-owned.",
-  "plan_hash": "a0c91305fb3f6f8ad8427251dfce474636a489b62426e24ad45e0c0e0166c629",
+  "next_action": "Run the allocated complete source-matched backend, frontend/type/build and isolated full-stack/browser/visual profile for implementation 7157269abced8fc975f9dffd9441b81c11ebed08 using only project etf-on-demand-consumer-20261027; publish this candidate so exact-tip CI runs concurrently. Preserve all attempts and complete every collected backend ID with 50-test unit processes and at-most-100-ID integration batches under 300s/900s limits, then verify full app cleanup/inventories. Root owns acceptance and any source/target operation.",
+  "plan_hash": "3dce92eae6e3c8c4d99dfb9b316708d8499f28d2d25c9134ff2dbfb703020309",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -1093,11 +1094,11 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "The allocated source-matched complete backend and full-stack/browser profile, final resource cleanup audit and exact owner-tip CI remain pending. Focused stack-free ETF/Provider actual-binder contracts pass82/82. The previously passed 1/1 independent PostgreSQL run used a mock binder, so the updated actual-binder regression is still required in the new profile. No external source request, quota, target mutation or policy activation. Preserve 15 Tier-0 and 156 Tier-1, all14 AC roadmap criteria,74 fallback identities,119 spent requests, holds/quarantines, raw/PIT lineage and the30-day observation.",
-    "current_phase": "on_demand_consumer_checkpoint_in_progress_provider_staging_adopted_focused_binders_passed_full_profile_pending",
-    "next_action": "Complete the allocated source-matched backend/full-stack browser profile in isolated project etf-on-demand-consumer-20261027, then publish one coherent six-criterion checkpoint and pass exact closing-tip CI. Keep actual source/account qualification and target OIH acceptance Root-owned.",
+    "current_blocker": "Complete source-matched backend, frontend/type/build, full-stack/browser/visual gates, exact cleanup/inventory audit, and exact owner-tip CI are not yet complete. Focused ODC3 source and controlled PostgreSQL cases pass; Provider independent code review found no blocker but is not acceptance. The two focused cases do not individually prove all cancellation/concurrency paths. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, all14 AC1-AC14, 119 spent requests, holds, quarantines, raw/PIT lineage and the30-day observation; actual source/account qualification and target acceptance remain Root-owned.",
+    "current_phase": "implementation_7157269_committed_focus_and_independent_provider_review_green_complete_profile_and_exact_CI_in_progress",
+    "next_action": "Run the allocated complete source-matched backend, frontend/type/build and isolated full-stack/browser/visual profile for implementation 7157269abced8fc975f9dffd9441b81c11ebed08 using only project etf-on-demand-consumer-20261027; publish this candidate so exact-tip CI runs concurrently. Preserve all attempts and complete every collected backend ID with 50-test unit processes and at-most-100-ID integration batches under 300s/900s limits, then verify full app cleanup/inventories. Root owns acceptance and any source/target operation.",
     "total": 14,
-    "updated_at": "2026-10-27T21:06:36.267620Z"
+    "updated_at": "2026-10-27T21:58:52Z"
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -1120,9 +1121,9 @@
     "status": "accepted_and_released_in_synchronized_green_staging"
   },
   "remote": "cd94b8e3286cbaa89dba3e593700fbb1bee67bc9",
-  "remote_observation": "At 2026-10-26T18:08:23Z, owner branch origin/feat/etf-holdings-constituents is at published adoption a558d50a9bb0ccb40554b6163be51f2b57097983. Exact CI40371928948 attempt1 is terminal red on the current blocker narrative sentinel; this local records-only repair is not yet published.",
-  "remote_sha": "cd94b8e3286cbaa89dba3e593700fbb1bee67bc9",
-  "remote_synchronized": true,
+  "remote_observation": "At the pre-publication record checkpoint, origin/feat/etf-holdings-constituents was observed at a3a90ae1964f88ab01b624e06f7a1a2122831770. Implementation 7157269abced8fc975f9dffd9441b81c11ebed08 and this record update are the candidate to publish; exact remote result will be reported externally without a self-referential metadata commit.",
+  "remote_sha": "a3a90ae1964f88ab01b624e06f7a1a2122831770",
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -1207,7 +1208,7 @@
     "static_contract_review": "The merged shared execute_provider_call is async with a synchronous non-awaitable invoke callback; ETF uses _sync_provider_invoke and the shared ETF_HOLDINGS capability. Source inspection only; runtime validation remains open.",
     "status": "merged_locally_no_conflicts_final_owner_record_commit_and_single_push_pending"
   },
-  "state": "ready_for_integration",
+  "state": "in_progress",
   "status": "in_progress",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
@@ -1321,19 +1322,21 @@
     "source_baseline": "f959ed3963da4e3f7d161c940e68c345763be009",
     "completed_acceptance": [
       "ODC1",
-      "ODC2"
+      "ODC2",
+      "ODC3"
     ],
     "pending_acceptance": [
-      "ODC3",
       "ODC4",
       "ODC5",
       "ODC6"
     ],
     "source_capture": "exact branch HEAD",
-    "status": "provider_helper_consumer_units_green_full_source_matched_profile_pending",
+    "status": "ODC1_ODC3_focused_components_passed_complete_source_matched_profile_and_exact_CI_in_progress",
     "accepted_staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6",
     "exact_staging_ci": 40570735471,
     "fixture_project": "etf-on-demand-consumer-20261027",
-    "next_action": "Complete the allocated source-matched backend/full-stack browser profile in isolated project etf-on-demand-consumer-20261027, then publish one coherent six-criterion checkpoint and pass exact closing-tip CI. Keep actual source/account qualification and target OIH acceptance Root-owned."
+    "next_action": "Run the allocated complete source-matched backend, frontend/type/build and isolated full-stack/browser/visual profile for implementation 7157269abced8fc975f9dffd9441b81c11ebed08 using only project etf-on-demand-consumer-20261027; publish this candidate so exact-tip CI runs concurrently. Preserve all attempts and complete every collected backend ID with 50-test unit processes and at-most-100-ID integration batches under 300s/900s limits, then verify full app cleanup/inventories. Root owns acceptance and any source/target operation.",
+    "source_sha": "7157269abced8fc975f9dffd9441b81c11ebed08",
+    "summary": "VanEck disabled-policy pre-review and durable Provider request-log linkage are repaired in implementation 7157269abced8fc975f9dffd9441b81c11ebed08. Focused evidence: 67 UV-offline unit tests passed and both matched-OIH/contradictory-SMH real-PostgreSQL cases passed in 26.12s using HTTPX MockTransport only; Ruff, format, compilation and diff checks passed. Provider's independent code review found no concrete blocker (review receipt in current handoff), but this is not full-profile acceptance; the two focused cases do not individually establish every cancellation/concurrency path. The allocated complete source-matched profile is the owner's active next phase; exact closing-tip CI starts with publication and is pending. No live source HTTP/credentials/quota/activation/target change occurred. Preserve all six ODC criteria and AC1-AC14, 15 Tier-0/156 Tier-1/74 fallback, 119 spent requests, holds, quarantines, raw/PIT lineage and 30-day observation; actual OIH qualification and target acceptance remain Root-owned."
   }
 }

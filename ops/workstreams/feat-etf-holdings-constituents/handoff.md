@@ -17387,3 +17387,71 @@ task-local helper and test exact binding, mismatch/hold denial, reset and
 unrelated-route exclusion. The source-matched complete consumer profile and
 exact branch CI remain pending Root-assigned capacity. Keep all source requests,
 target/policy changes, quota use and actual VanEck qualification held.
+
+## VanEck disabled-policy pre-review and durable audit-link correction — 2026-10-27
+
+Provider's exact review of candidate a3a90ae1964f88ab01b624e06f7a1a2122831770
+identified two real bridge gaps: disabled policy was rejected before the sealed
+initial VanEck context could be considered, and Provider request-log IDs were
+durable only for SEC qualification jobs. The repair is source commit
+7157269abced8fc975f9dffd9441b81c11ebed08, limited to the ETF bridge,
+qualification/refresh pass-through, and focused ETF tests. It does not change
+Provider-owned source. The disabled-policy pre-review now opens only for the
+current Provider-sealed authority bound to the exact committed running OIH
+job, profile/instrument/symbol, VanEck capability/operation, account scope,
+review revision, unexpired URL/host, and empty prior request-ID list. Ordinary
+disabled routes still stop before transport; Provider's global stop, free-only,
+entitlement, host, account, holds, quota reservation/settlement and execution
+checks remain required.
+
+The shared runtime's independent transaction now links only its exact settled
+VanEck request logs to that same active job and scope; the SEC linkage path is
+unchanged. Qualification verifies the durable provider log and content-addressed
+raw workbook, with the raw artifact bound to the internal ETF holdings data
+source used by snapshot ingestion and its separate VanEck source metadata. The
+failure finalizer uses a scalar job ID captured before commit/rollback, avoiding
+lazy access to expired ORM state.
+
+Focused evidence on the final product source:
+
+- UV offline test_etf_holdings_vaneck_qualification.py and
+  test_etf_holdings_provider_bridge.py: 67 passed in 7.55s. This covers exact
+  job/scope/revision/expiry mismatch denial and the existing current-review
+  revision-change guard.
+- Real isolated PostgreSQL plus HTTPX MockTransport for
+  test_vaneck_initial_qualification_uses_disabled_policy_and_durably_links_real_runtime_log:
+  2 passed in 26.12s on the matched OIH and contradictory SMH workbook cases.
+  The positive fixture proves ordinary disabled policy makes zero requests,
+  exact initial context reaches the real Provider runtime once, the committed
+  settled request-log ID is linked to the correct job and raw/snapshot evidence,
+  context is reset, policy stays disabled, and replay is denied. The wrong-fund
+  fixture proves terminal nonqualification, durable failure/raw-body audit,
+  no snapshot, no positive probe marker, and no replay. The fixture used no
+  external issuer/provider egress or credentials; it is not actual VanEck source
+  qualification.
+- Changed-file Ruff, format, compilation and git diff --check pass. Final logs:
+  /tmp/etf-on-demand-consumer-20261027/vaneck-initial-qualification-focused-attempt12.log
+  (SHA256 e8e3abff758cbbc6ca2195f9fa9fbe6a340d90a598b4af8fe0d8a9e0895968d9)
+  and attempt 11 (a prior 2/2 pass before the final scalar-ID ordering tweak) are
+  retained. Earlier systemd setup refusal, initial artifact-verifier failure,
+  and assertion-diagnostic reds remain intact under the same /tmp namespace.
+
+This closes focused ODC3 source/consumer evidence only. ODC4's selected-fund
+fresh-session API run, ODC5's complete source-matched backend/frontend/build/
+full-stack/browser/cleanup profile, ODC6 and exact closing-tip CI remain
+pending. CI on predecessor a3a90ae is not final-source evidence. No actual
+source request, quota reservation, policy activation, target operation or
+native qualification occurred. Root owns the next complete profile, checkpoint
+acceptance, and any later OIH source/target operation. Preserve all six ODC
+criteria, AC1–AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119
+spent requests, holds/quarantines, raw/PIT lineage and the 30-day observation.
+
+## Full source-matched qualification in progress — 2026-10-27
+
+The repaired implementation is committed locally as `7157269abced8fc975f9dffd9441b81c11ebed08` after the Provider review of the disabled-policy pre-review and durable VanEck request-log linkage. The focused offline unit slice passed 67 tests; the final controlled real-PostgreSQL/MockTransport qualification passed both matched-OIH and contradictory-SMH cases in 26.12s. The earlier user-scope-bus failure remains a setup-only red receipt; attempt 12 is the actual green test result.
+
+The ETF owner now continues the already allocated complete source-matched profile in isolated project `etf-on-demand-consumer-20261027`. It must freshly collect every current backend node ID, run all unit-like IDs in 50-test processes with the canonical 300-second per-process cap, run every integration ID in sequential batches of at most 100 with the canonical 900-second cap, and combine only this source's coverage against the unchanged 75% floor. No predecessor coverage or omitted IDs qualify. Frontend/type/build and the full isolated functional/browser/visual checks remain required with original assertions, references, masks, tolerances and retry policy. Protected persistent baseline resources and TC's separately labelled fixture are inventoried independently; cleanup may touch only exact ETF-owned resources.
+
+The exact implementation and current record checkpoint are being published so exact-tip hosted CI runs concurrently with local qualification. No full gate has passed yet. Preserve all red attempts; stop on a real assertion/timeout without retrying unchanged. No source credentials, provider/issuer/SEC HTTP, quota reservation, target mutation, native activation or policy change is part of this software profile. Root owns final acceptance, later target/source qualification, integration and deployment. ODC1–ODC3 focused components are recorded; ODC4–ODC6 remain open until the complete criteria are evidenced. Keep AC1–AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage and the 30-day observation intact.
+
+Provider's independent review of exact implementation `7157269abced8fc975f9dffd9441b81c11ebed08` found no concrete blocker; see `/home/m920q/charting-platform/.ai/staging-attempts/provider-etf-7157269-repair-review-20261027.md`. This is a bounded code review, not checkpoint acceptance or full-profile evidence. The two focused PostgreSQL cases prove the controlled matched-OIH path and contradictory-fund denial; cancellation/concurrency scenarios remain qualified only by the eventual complete suite and are not individually established by those two cases.
