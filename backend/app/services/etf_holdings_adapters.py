@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import base64
 import csv
+import hashlib
 import html
 import json
 import re
@@ -12,7 +13,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 from dataclasses import dataclass, field, replace
-from datetime import date, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from html.parser import HTMLParser
 from io import BytesIO, StringIO
@@ -5663,6 +5664,14 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         "disclaimer%3Dtrue%26foreigntax%3Dfalse%26foreigntaxdisclaimer%3Dfalse; "
         "ve-country=current%3Dus%26previous%3D; visitortype=user; sitelanguage=en"
     )
+    INITIAL_QUALIFICATION_MAX_BODY_BYTES = 5 * 1024 * 1024
+
+    class InitialQualificationRedirect(ValueError):
+        """A first-probe redirect was recorded but deliberately not followed."""
+
+        def __init__(self, location: str | None):
+            super().__init__("VanEck initial qualification stopped at an unreviewed redirect.")
+            self.location = location
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -5738,6 +5747,161 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
             },
         )
+
+    async def fetch_initial_qualification(
+        self,
+        *,
+        symbol: str,
+        issuer_product_id: str | None = None,
+        identifiers: dict[str, str] | None = None,
+    ) -> HoldingsFetchResult:
+        """Fetch one exact OIH workbook attempt with no retry or redirect follow."""
+
+        normalized_symbol = symbol.strip().upper()
+        normalized_identifiers = identifiers or {}
+        product_slug = issuer_product_id or _identifier(
+            normalized_identifiers, "product_slug", "issuer_product_id", "fund_slug"
+        )
+        if normalized_symbol != "OIH" or product_slug != "oil-services-etf-oih":
+            raise ValueError("VanEck first qualification is restricted to the reviewed OIH route.")
+        request_url = self._holdings_url(product_slug)
+        async with httpx.AsyncClient(
+            timeout=120.0,
+            follow_redirects=False,
+            max_redirects=0,
+        ) as client:
+            response = await client.get(
+                request_url,
+                headers=self._request_headers(product_slug=product_slug),
+                follow_redirects=False,
+            )
+        if response.status_code in {301, 302, 303, 307, 308}:
+            raise self.InitialQualificationRedirect(response.headers.get("location"))
+        response.raise_for_status()
+        raw_workbook = response.content
+        if not raw_workbook or len(raw_workbook) > self.INITIAL_QUALIFICATION_MAX_BODY_BYTES:
+            raise ValueError("VanEck OIH workbook is empty or exceeds the reviewed 5 MiB limit.")
+        rows, composition_date = self._parse_workbook(raw_workbook)
+        if composition_date is None:
+            raise ValueError("VanEck OIH workbook has no valid composition date.")
+        if composition_date > datetime.now(UTC).date():
+            raise ValueError("VanEck OIH workbook composition date is in the future.")
+        workbook_rows = parse_xlsx_table(raw_workbook)
+        body_identity_status, body_identity_evidence = self._initial_workbook_identity(
+            raw_workbook, workbook_rows
+        )
+        raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
+        return HoldingsFetchResult(
+            rows=rows,
+            raw_text=_table_to_text(workbook_rows),
+            raw_json={
+                "source_format": "xlsx",
+                "workbook_rows": workbook_rows,
+                "raw_workbook_base64": base64.b64encode(raw_workbook).decode("ascii"),
+                "raw_workbook_sha256": raw_sha256,
+                "raw_workbook_bytes": len(raw_workbook),
+            },
+            source_url=str(response.url),
+            source_identifier=product_slug,
+            legal_metadata={
+                "source_access": "vaneck_fund_scoped_daily_holdings_xlsx",
+                "source_provider": "vaneck",
+                "adapter_key": self.adapter_key,
+                "source_format": "xlsx",
+                "route_resolution": "vaneck_us_disclosure_cookie_fund_workbook",
+                "product_slug": product_slug,
+                "snapshot_provenance": "vaneck_native_daily_holdings_workbook",
+                "raw_workbook_sha256": raw_sha256,
+                "raw_workbook_bytes": len(raw_workbook),
+                "composition_date": composition_date.isoformat(),
+                "initial_qualification": True,
+                "body_identity_status": body_identity_status,
+                "body_identity_evidence": body_identity_evidence,
+                **(
+                    {
+                        "source_quality": "issuer_reported_dated_complete_holdings",
+                        "completeness_status": "complete",
+                    }
+                    if body_identity_status == "matched" and composition_date is not None and rows
+                    else {}
+                ),
+            },
+        )
+
+    @classmethod
+    def _initial_workbook_identity(
+        cls, raw_workbook: bytes, workbook_rows: list[list[Any]]
+    ) -> tuple[str, list[str]]:
+        """Use independent workbook title metadata; the request URL is not body identity."""
+
+        title_cells: list[str] = []
+        try:
+            with zipfile.ZipFile(BytesIO(raw_workbook)) as workbook:
+                if "docProps/core.xml" in workbook.namelist():
+                    properties = ET.fromstring(workbook.read("docProps/core.xml"))
+                    allowed = {"title", "subject", "description", "keywords"}
+                    title_cells.extend(
+                        value.strip()[:300]
+                        for node in properties.iter()
+                        if node.tag.rsplit("}", 1)[-1].lower() in allowed
+                        and (value := (node.text or "").strip())
+                    )
+        except (ET.ParseError, OSError, zipfile.BadZipFile):
+            return "unverified", []
+
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(workbook_rows[:20])
+                if cls._REQUIRED_HEADERS.issubset({_clean(value) or "" for value in row})
+            ),
+            len(workbook_rows[:10]),
+        )
+        identity_rows = workbook_rows[:header_index]
+        title_cells.extend(
+            str(value).strip()[:300]
+            for row in identity_rows
+            for value in row
+            if value is not None and str(value).strip()
+        )
+        title_cells = title_cells[:40]
+        title_text = " ".join(title_cells).casefold()
+        explicit_tickers = [
+            value
+            for row in identity_rows
+            for index, label in enumerate(row[:-1])
+            if _clean(label)
+            and _clean(label).casefold() in {"ticker", "fund ticker", "symbol", "fund symbol"}
+            and (value := _clean(row[index + 1]))
+            and re.fullmatch(r"[A-Za-z][A-Za-z0-9.-]{0,11}", value)
+        ]
+        explicit_tickers.extend(
+            re.findall(
+                r"\b(?:fund\s+)?(?:ticker|symbol)\s*[:=#-]\s*([a-z][a-z0-9.-]{0,11})\b",
+                title_text,
+                flags=re.IGNORECASE,
+            )
+        )
+
+        # A known contradictory fund identity takes precedence even if a stale
+        # OIH label also appears elsewhere in workbook metadata.
+        if (
+            any(ticker.upper() != "OIH" for ticker in explicit_tickers)
+            or "semiconductor etf" in title_text
+            or "steel etf" in title_text
+            or re.search(r"\b(?:smh|slx)\b", title_text)
+            or (
+                "vaneck" in title_text and " etf" in title_text and "oil services" not in title_text
+            )
+        ):
+            return "mismatch", title_cells
+        if (
+            "OIH" in {ticker.upper() for ticker in explicit_tickers}
+            or re.search(r"\boih\b", title_text)
+            or "oil services etf" in title_text
+        ):
+            return "matched", title_cells
+        return "unverified", title_cells
 
     @staticmethod
     async def _get_with_timeout_retry(

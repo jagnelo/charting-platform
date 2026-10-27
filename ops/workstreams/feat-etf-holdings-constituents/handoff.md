@@ -73,6 +73,78 @@ reservation, SEC request, target mutation, or route/policy enablement occurred.
   consumer qualification remain open. No checkpoint is accepted and the full
   AC1–AC14 roadmap remains active.
 
+## VanEck/OIH initial issuer-qualification component — 2026-10-27
+
+This is a bounded local source candidate on published baseline
+`b9939d13928749765319475d77fe754102c33e6a`. It adds one administrator-only,
+one-shot OIH qualification operation and an issuer-specific adapter method.
+The current ETF consumer requires the Provider-owned context manager with this
+exact reviewed interface:
+
+`bind_vaneck_initial_etf_qualification(*, job_id: int, fund_profile_id: int, instrument_id: int, provider_symbol: str, account_scope: str, review_revision: int, expires_at: aware_datetime)`.
+
+It resolves that binder dynamically and fails closed before creating a job if
+the helper is absent. No Provider sibling code is copied or imported. Until the
+helper is present in exact green Provider staging and adopted through Root's
+release, this component cannot make an admitted request. The separate job is
+restricted to canonical OIH, its curated `oil-services-etf-oih` slug, the
+`ETF_HOLDINGS` capability and `fetch_etf_holdings_latest` operation. It keeps
+the ordinary policy disabled and entitlement `not_run` on every nonpositive
+result. It uses the current reviewed application limits: concurrency 1, at
+least 30 seconds between physical requests, burst 1, at most 3 physical
+requests, 120 seconds total, 5 MiB cumulative body, and zero retries. Redirects
+are not followed; the Location is retained for review. The shared Provider
+transport/admission and settlement path is still mandatory.
+
+Before positive finalization, the service locks and refreshes the persisted job,
+active DataSource, disabled policy and entitlement with `FOR UPDATE` plus
+`populate_existing`. It compares the persisted job scope, entitlement revision
+and `not_run` state, source review fingerprint and current account binding to
+the committed scope. A mid-fetch review change rejects qualification instead
+of overwriting its revision. Mocked tests cover this concurrency boundary.
+
+Qualification also requires body-level OIH identity and a valid composition
+date no later than the current UTC date. The adapter checks workbook core title
+metadata, title cells preceding the holdings header, and explicit fund ticker
+fields. A known contradictory fund identity is rejected; absent/ambiguous
+identity remains `unverified` and cannot set a positive marker. No actual OIH
+workbook body has been received in this work, so whether the real workbook
+contains an independent identity field remains unknown. The fund-specific URL
+and request slug alone are not body identity; Root technical review is needed
+before any live qualification decision.
+
+When a returned workbook body is rejected for identity, the existing rejected-
+fetch path retains the complete adapter payload, including base64 original
+workbook bytes, raw SHA-256 and byte length, under the existing
+`issuer_adapter_rejected_fetch` content-addressed artifact. Its metadata links
+the Provider request-log IDs and attempt evidence. The artifact's
+`content_hash` is the existing canonical JSON payload hash, distinct from the
+raw workbook-byte SHA. The one-shot job latch denies automatic re-fetch. A
+redirect response has no workbook body to retain; its Location and Provider
+response audit are retained instead.
+
+Focused offline run: 14 passed, 678 deselected. Exact selected cases were:
+
+- `tests/unit/services/test_etf_holdings_vaneck_qualification.py::test_review_revision_changed_during_fetch_denies_positive_finalization`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains_raw_bytes`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_oih_qualification_records_redirect_without_following`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_qualification_does_not_retry_timeout`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_workbook_identity_comes_from_body_not_requested_slug` (5 parameter cases: contradictory title, contradictory structured ticker, matching structured ticker, unverified title, matching OIH title)
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_oih_rejects_invalid_or_future_workbook_date` (invalid and future date cases)
+- `tests/unit/services/test_etf_holdings_provider_bridge.py::test_vaneck_initial_transport_streams_and_stops_at_cumulative_body_cap`
+- `tests/unit/services/test_etf_holdings_provider_bridge.py::test_vaneck_initial_transport_refuses_send_after_slow_setup_crosses_deadline`
+- `tests/unit/services/test_etf_holdings_provider_bridge.py::test_vaneck_initial_transport_cancels_in_flight_send_at_deadline`
+
+Ruff, format check, Python compilation and `git diff --check` passed on the
+changed source/tests. The earlier local focused run that exposed a missing UTC
+import and a malformed test date/header was corrected before the final 14-case
+green run. No issuer/Provider/SEC HTTP, target provisioning or policy change,
+quota reservation, live qualification, database fixture, full backend/browser
+profile or runtime acceptance was performed. New exact-source CI starts on the
+publication commit and remains pending until observed. All AC1–AC14, 15 Tier-0,
+156 Tier-1, 74 fallback identities, the 119 spent-request history, and all
+holds/quarantines remain intact.
+
 ## OIH source and shared-admission boundary
 
 The current target facts are in Root's read-only receipt

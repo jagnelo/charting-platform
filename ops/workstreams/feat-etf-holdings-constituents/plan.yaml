@@ -1536,13 +1536,14 @@ branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov"
   - "RUN_LIVE_ETF_HOLDINGS_TESTS=0 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov"
-  - "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py"
+  - "uv run --project backend ruff check backend/app/routers/etf_holdings.py backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_edgar.py backend/app/services/etf_holdings_provider_bridge.py backend/app/services/etf_holdings_refresh.py backend/app/services/etf_holdings_vaneck_qualification.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_provider_bridge.py backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py backend/tests/live/test_etf_holdings_live_providers.py"
   - "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents"
   - "npm --prefix frontend run type-check"
   - "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts"
   - "npm --prefix frontend run build"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py -q --no-cov -p no:cacheprovider"
   - "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider"
+  - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py -q --no-cov -p no:cacheprovider"
 integration_checkpoint:
   id: etf-retained-iwm-reparse-response-order-1
   planning_authorization: >-
@@ -1634,7 +1635,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: on_demand_selected_etf_acquire_focused_api_pass_provider_scope_and_full_gates_pending
+  current_phase: vaneck_oih_initial_qualification_component_prepared_provider_staging_and_workbook_identity_review_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -1829,17 +1830,21 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Focused source checks pass, but the selected-acquisition source remains
-  unaccepted and full backend/consumer/exact-source gates are pending. The
-  request-only Provider context is not yet exact-green staging. Massive is
-  present with persisted PRICE_HISTORY enabled, but global routing is false,
-  max_concurrency is null, and current quota/headroom/holds/effective admission
-  need supported read review; do not overwrite target policy from the seed.
-  VanEck DataSource/policy rows are absent; workbook rights, host/redirect,
-  retry/crawl-delay, operation cost, and account scope remain unresolved. Keep
-  both sources held pending source-specific evidence and Root/Provider release.
-  Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, AC1-AC14, 119 spent
-  requests, holds/quarantines, raw/PIT lineage and the 30-day observation.
+  The issuer-only OIH initial-qualification consumer is locally implemented on
+  published baseline b9939d13928749765319475d77fe754102c33e6a; its 14 focused
+  offline cases and static checks pass, but the component is not accepted.
+  Provider's exact binder/provisioning implementation is still pending green
+  staging; no sibling code is imported. The actual OIH workbook body has not
+  been received, so independent fund identity remains unknown. Only workbook
+  title/ticker identity that matches OIH can qualify; contradictory or absent
+  identity and invalid/future composition dates fail closed. No source request,
+  account provisioning, policy mutation, quota use, or positive qualification
+  occurred. New-source full gates and exact-tip CI remain pending. Massive
+  remains separately unresolved: persisted PRICE_HISTORY is enabled while
+  global routing is false, max_concurrency is null, and current quota/headroom/
+  holds/effective admission need supported read review. Preserve 15 Tier-0 and
+  156 Tier-1, 74 fallback identities, AC1-AC14, 119 spent requests,
+  holds/quarantines, raw/PIT lineage and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -2956,11 +2961,14 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Obtain Provider's exact source-specific readiness/admission evidence for
-  Massive OIH PRICE_HISTORY and a reviewed VanEck publisher-registration and
-  disabled-policy proposal; keep requests held until exact-green scope and
-  current quota/rights/cost/hold review. Then complete Root-allocated exact
-  source backend and consumer gates before any separately authorized single
-  OIH acquisition. Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, `74 fallback
-  identities`, holds, quarantines, raw/PIT history, 119 spent requests, and the
-  30-day observation.
+  After Provider publishes the exact reviewed VanEck binder/provisioning
+  contract in synchronized green staging, adopt only through Root's release
+  and complete the consumer's exact-source profile. Root must review the
+  actual workbook's independent OIH identity under a new narrow runtime scope;
+  if the body is contradictory or has no independent identity, preserve the
+  bounded raw bytes/audit and stop without replay. Keep policy disabled until
+  separate reviewed activation. Then continue the separate Massive
+  OIH PRICE_HISTORY source-readiness work and Root-allocated full gates.
+  Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, `74 fallback identities`,
+  holds, quarantines, raw/PIT history, 119 spent requests, and the 30-day
+  observation.

@@ -107,6 +107,46 @@ class ETFHoldingsRequestBinding:
     request_urls_by_log_id: dict[int, str]
     sec_budget: Any | None = None
     initial_qualification_authority: _ETFInitialQualificationAuthority | None = None
+    vaneck_initial_qualification_budget: Any | None = None
+
+
+@dataclass(slots=True)
+class ETFVaneckInitialQualificationBudget:
+    """ETF-side transport limits for the one reviewed VanEck OIH sample."""
+
+    expected_url: str
+    deadline_monotonic: float
+    max_physical_requests: int = 3
+    minimum_interval_seconds: float = 30.0
+    max_response_bytes: int = 5 * 1024 * 1024
+    physical_requests: int = 0
+    last_attempt_monotonic: float | None = None
+
+    async def before_attempt(self, request_url: str) -> None:
+        if _canonical_request_url(request_url) != _canonical_request_url(self.expected_url):
+            raise ETFHoldingsRouteHeldError(
+                "VanEck initial qualification URL is outside its exact reviewed route."
+            )
+        if self.physical_requests >= self.max_physical_requests:
+            raise ETFHoldingsRouteHeldError(
+                "VanEck initial qualification exhausted its physical request limit."
+            )
+        now = time.monotonic()
+        if now >= self.deadline_monotonic:
+            raise ETFHoldingsRouteHeldError("VanEck initial qualification deadline expired.")
+        if self.last_attempt_monotonic is not None:
+            delay = self.minimum_interval_seconds - (now - self.last_attempt_monotonic)
+            if delay > 0:
+                await asyncio.sleep(delay)
+        now = time.monotonic()
+        if now >= self.deadline_monotonic:
+            raise ETFHoldingsRouteHeldError("VanEck initial qualification deadline expired.")
+        self.last_attempt_monotonic = now
+        self.physical_requests += 1
+
+    def ensure_before_deadline(self) -> None:
+        if time.monotonic() >= self.deadline_monotonic:
+            raise ETFHoldingsRouteHeldError("VanEck initial qualification deadline expired.")
 
 
 @dataclass(frozen=True)
@@ -133,11 +173,22 @@ def bind_etf_holdings_request_context(
     instrument_id: int,
     provider_symbol: str,
     operation: str,
+    vaneck_initial_qualification_budget: ETFVaneckInitialQualificationBudget | None = None,
 ):
     """Bind the caller-loop DB session and exact ETF operation during one fetch."""
 
     if operation not in _ETF_OPERATIONS:
         raise ETFHoldingsRouteHeldError("ETF holdings operation is not in the reviewed contract")
+    if vaneck_initial_qualification_budget is not None and (
+        str(getattr(adapter, "source_provider", "")).strip().lower() != "vaneck"
+        or operation != "fetch_etf_holdings_latest"
+        or str(provider_symbol).strip().upper() != "OIH"
+        or profile_id is None
+        or profile_id <= 0
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "VanEck initial qualification transport limits do not match the bound OIH route"
+        )
     binding = ETFHoldingsRequestBinding(
         db=db,
         adapter=adapter,
@@ -148,6 +199,7 @@ def bind_etf_holdings_request_context(
         sec_request=False,
         request_log_ids=[],
         request_urls_by_log_id={},
+        vaneck_initial_qualification_budget=vaneck_initial_qualification_budget,
     )
     token = _REQUEST_BINDING.set(binding)
     try:
@@ -306,6 +358,11 @@ class ProviderBackedHTTPXClient:
         current_kwargs = dict(kwargs)
         current_client_kwargs = dict(self._client_kwargs)
         sec_budget = binding.sec_budget
+        vaneck_budget = binding.vaneck_initial_qualification_budget
+        if vaneck_budget is not None and follow_redirects:
+            raise ETFHoldingsRouteHeldError(
+                "VanEck first qualification must stop before following redirects."
+            )
         if binding.sec_request:
             if sec_budget is None:
                 raise ETFHoldingsRouteHeldError(
@@ -321,6 +378,8 @@ class ProviderBackedHTTPXClient:
             client_params=client_params,
             request_params=request_params,
         )
+        if vaneck_budget is not None:
+            await vaneck_budget.before_attempt(current_url)
         history: list[httpx.Response] = []
         previous_origin = _http_origin(current_url)
         for redirect_count in range(max_redirects + 1):
@@ -333,6 +392,8 @@ class ProviderBackedHTTPXClient:
                 client_kwargs={**current_client_kwargs, "cookies": self._cookies},
                 sec_budget=sec_budget,
                 sec_operation=binding.operation,
+                max_response_bytes=(vaneck_budget.max_response_bytes if vaneck_budget else None),
+                deadline_monotonic=(vaneck_budget.deadline_monotonic if vaneck_budget else None),
             )
             result = await execute_etf_holdings_request_attempt(
                 binding.db,
@@ -344,6 +405,8 @@ class ProviderBackedHTTPXClient:
                 single_attempt=attempt,
             )
             response = result.result
+            if vaneck_budget is not None:
+                vaneck_budget.ensure_before_deadline()
             if sec_budget is not None and response.status_code in {403, 429}:
                 sec_budget.latch_terminal(f"SEC access limit returned HTTP {response.status_code}")
             if response.extensions.get(_ETF_SEC_RESPONSE_LIMIT_MARKER):
@@ -485,6 +548,8 @@ class LoopLocalHTTPXAttempt:
     transport_factory: Callable[[], httpx.AsyncBaseTransport] | None = None
     sec_budget: Any | None = None
     sec_operation: str | None = None
+    max_response_bytes: int | None = None
+    deadline_monotonic: float | None = None
 
     async def execute(self) -> httpx.Response:
         if "follow_redirects" in self.request_kwargs:
@@ -501,6 +566,8 @@ class LoopLocalHTTPXAttempt:
             # timeout; that is recomputed after request construction below.
             await self.sec_budget.start_attempt()
             self.sec_budget.attempt_timeout_seconds()
+        if self.deadline_monotonic is not None and time.monotonic() >= self.deadline_monotonic:
+            raise ETFHoldingsRouteHeldError("VanEck initial qualification deadline expired.")
         transport = self.transport_factory() if self.transport_factory is not None else None
         async with httpx.AsyncClient(
             transport=transport,
@@ -508,13 +575,57 @@ class LoopLocalHTTPXAttempt:
             **self.client_kwargs,
         ) as client:
             request = client.build_request(self.method, self.url, **self.request_kwargs)
-            if self.sec_budget is None:
+            if self.sec_budget is None and self.max_response_bytes is None:
                 response = await client.send(request, follow_redirects=False, stream=True)
                 try:
                     await response.aread()
                     return response
                 finally:
                     await response.aclose()
+
+            if self.sec_budget is None:
+                if self.deadline_monotonic is None or self.max_response_bytes is None:
+                    raise ETFHoldingsRouteHeldError(
+                        "VanEck initial qualification transport bounds are incomplete."
+                    )
+                response = None
+                try:
+                    if time.monotonic() >= self.deadline_monotonic:
+                        raise ETFHoldingsRouteHeldError(
+                            "VanEck initial qualification deadline expired before transport."
+                        )
+                    async with asyncio.timeout_at(self.deadline_monotonic):
+                        response = await client.send(request, follow_redirects=False, stream=True)
+                        if (
+                            self.deadline_monotonic is not None
+                            and time.monotonic() >= self.deadline_monotonic
+                        ):
+                            raise ETFHoldingsRouteHeldError(
+                                "VanEck initial qualification deadline expired."
+                            )
+                        declared_length = response.headers.get("content-length")
+                        if declared_length is not None:
+                            try:
+                                if int(declared_length) > self.max_response_bytes:
+                                    raise ETFHoldingsRouteHeldError(
+                                        "VanEck workbook exceeded the reviewed 5 MiB response limit."
+                                    )
+                            except ValueError:
+                                # Malformed length metadata is ignored; streamed byte counting
+                                # below remains the authoritative limit.
+                                pass
+                        chunks = bytearray()
+                        async for chunk in response.aiter_bytes():
+                            if len(chunks) + len(chunk) > self.max_response_bytes:
+                                raise ETFHoldingsRouteHeldError(
+                                    "VanEck workbook exceeded the reviewed 5 MiB response limit."
+                                )
+                            chunks.extend(chunk)
+                        response._content = bytes(chunks)
+                        return response
+                finally:
+                    if response is not None:
+                        await response.aclose()
 
             response = None
             try:

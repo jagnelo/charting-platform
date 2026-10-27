@@ -27,6 +27,18 @@ from app.services.etf_holdings_provider_bridge import (
 )
 
 
+class _ChunkStream(httpx.AsyncByteStream):
+    def __init__(self, chunks: list[bytes]):
+        self.chunks = chunks
+
+    async def __aiter__(self):
+        for chunk in self.chunks:
+            yield chunk
+
+    async def aclose(self):
+        return None
+
+
 def test_publisher_host_requires_https_and_normalizes_idna():
     assert _normalized_host("https://WWW.Example.com:443/path") == "www.example.com"
     assert _normalized_host("https://münich.example/holdings") == "xn--mnich-kva.example"
@@ -41,6 +53,85 @@ def test_edgar_ip_scope_requires_namespaced_shared_account_mapping():
     assert not bridge._has_explicit_account_scope_mapping(
         "edgar", "ip", {"edgar": "incorrect-provider-level-alias"}
     )
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_transport_streams_and_stops_at_cumulative_body_cap():
+    body = _ChunkStream([b"abc", b"def", b"ghi"])
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://www.vaneck.com/oih.xlsx",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=lambda: httpx.MockTransport(
+            lambda request: httpx.Response(
+                200,
+                headers={"content-length": "1"},
+                stream=body,
+                request=request,
+            )
+        ),
+        max_response_bytes=5,
+        deadline_monotonic=time.monotonic() + 2,
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="5 MiB response limit"):
+        await attempt.execute()
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_transport_refuses_send_after_slow_setup_crosses_deadline():
+    sends = 0
+
+    async def handler(request):
+        nonlocal sends
+        sends += 1
+        return httpx.Response(200, content=b"ok", request=request)
+
+    def slow_transport_factory():
+        time.sleep(0.04)
+        return httpx.MockTransport(handler)
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://www.vaneck.com/oih.xlsx",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=slow_transport_factory,
+        max_response_bytes=1024,
+        deadline_monotonic=time.monotonic() + 0.01,
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="expired before transport"):
+        await attempt.execute()
+    assert sends == 0
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_transport_cancels_in_flight_send_at_deadline():
+    cancelled = asyncio.Event()
+
+    async def handler(request):
+        try:
+            await asyncio.sleep(1)
+        except asyncio.CancelledError:
+            cancelled.set()
+            raise
+        return httpx.Response(200, content=b"late", request=request)
+
+    attempt = LoopLocalHTTPXAttempt(
+        method="GET",
+        url="https://www.vaneck.com/oih.xlsx",
+        request_kwargs={},
+        client_kwargs={},
+        transport_factory=lambda: httpx.MockTransport(handler),
+        max_response_bytes=1024,
+        deadline_monotonic=time.monotonic() + 0.03,
+    )
+
+    with pytest.raises(TimeoutError):
+        await attempt.execute()
+    assert cancelled.is_set()
 
 
 @pytest.mark.asyncio

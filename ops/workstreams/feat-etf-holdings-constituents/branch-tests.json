@@ -8,13 +8,14 @@
     "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py -q --no-cov",
     "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_issuer_route_drift.py -q --no-cov",
     "RUN_LIVE_ETF_HOLDINGS_TESTS=0 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q --no-cov",
-    "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py",
+    "uv run --project backend ruff check backend/app/routers/etf_holdings.py backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_edgar.py backend/app/services/etf_holdings_provider_bridge.py backend/app/services/etf_holdings_refresh.py backend/app/services/etf_holdings_vaneck_qualification.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_provider_bridge.py backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py backend/tests/live/test_etf_holdings_live_providers.py",
     "uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-etf-holdings-constituents",
     "npm --prefix frontend run type-check",
     "npm --prefix frontend test -- --run tests/unit/components/test_etf_holdings_panel.test.ts tests/unit/views/test_etf_holdings_view.test.ts",
     "npm --prefix frontend run build",
     "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py -q --no-cov -p no:cacheprovider",
-    "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider"
+    "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider",
+    "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py -q --no-cov -p no:cacheprovider"
   ],
   "commands": [
     {
@@ -49,7 +50,7 @@
     },
     {
       "id": "adapter-lint",
-      "command": "uv run --project backend ruff check backend/app/services/etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/live/test_etf_holdings_live_providers.py",
+      "command": "uv run --project backend ruff check backend/app/routers/etf_holdings.py backend/app/services/etf_holdings_adapters.py backend/app/services/etf_holdings_edgar.py backend/app/services/etf_holdings_provider_bridge.py backend/app/services/etf_holdings_refresh.py backend/app/services/etf_holdings_vaneck_qualification.py backend/tests/unit/services/test_etf_holdings_adapters.py backend/tests/unit/services/test_etf_holdings_provider_bridge.py backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py backend/tests/live/test_etf_holdings_live_providers.py",
       "covers": [
         7
       ]
@@ -94,6 +95,13 @@
       "command": "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider",
       "covers": [
         13
+      ]
+    },
+    {
+      "id": "on-demand-vaneck-qualification-unit",
+      "command": "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py -q --no-cov -p no:cacheprovider",
+      "covers": [
+        14
       ]
     }
   ],

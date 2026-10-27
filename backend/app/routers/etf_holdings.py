@@ -141,6 +141,7 @@ from app.services.etf_holdings_refresh import (
     refresh_etf_holdings_for_date,
 )
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
+from app.services.etf_holdings_vaneck_qualification import qualify_vaneck_oih_fund
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
 
@@ -1328,6 +1329,28 @@ async def qualify_initial_sec_nport_fund_for_etf(
         return await qualify_sec_nport_fund(
             db,
             profile_id=profile.id,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/vaneck-initial-qualification",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def qualify_initial_vaneck_oih_for_etf(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Run the one-use administrator-only VanEck OIH qualification."""
+
+    if symbol.strip().upper() != "OIH":
+        raise HTTPException(status_code=422, detail="VanEck initial qualification is OIH-only")
+    try:
+        return await qualify_vaneck_oih_fund(
+            db,
             requested_by_user_id=current_user.id,
         )
     except ETFHoldingsRouteHeldError as exc:

@@ -2658,6 +2658,8 @@ async def _refresh_adapter_route(
     acquisition_request_id: str | None = None,
     atomic_ingest_savepoint: bool = False,
     request_log_ids_out: list[int] | None = None,
+    vaneck_initial_qualification_job_id: int | None = None,
+    vaneck_initial_qualification_budget: Any | None = None,
 ):
     aliases = _aliases(profile)
     if profile.instrument is None:
@@ -2686,13 +2688,30 @@ async def _refresh_adapter_route(
         instrument_id=profile.instrument.id,
         provider_symbol=symbol,
         operation="fetch_etf_holdings_latest",
+        vaneck_initial_qualification_budget=vaneck_initial_qualification_budget,
     ) as request_binding:
         try:
-            fetch_result = await adapter.fetch_latest(
-                symbol=symbol,
-                issuer_product_id=issuer_product_id,
-                identifiers=identifiers,
-            )
+            if vaneck_initial_qualification_job_id is not None:
+                if (
+                    vaneck_initial_qualification_job_id <= 0
+                    or profile.instrument.symbol.strip().upper() != "OIH"
+                    or str(getattr(adapter, "source_provider", "")).strip().lower() != "vaneck"
+                    or not callable(getattr(adapter, "fetch_initial_qualification", None))
+                ):
+                    raise ETFHoldingsRouteHeldError(
+                        "VanEck initial qualification is restricted to its reviewed OIH adapter."
+                    )
+                fetch_result = await adapter.fetch_initial_qualification(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+            else:
+                fetch_result = await adapter.fetch_latest(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
         except BaseException as exc:
             if request_log_ids_out is not None:
                 request_log_ids_out.extend(
@@ -2751,6 +2770,46 @@ async def _refresh_adapter_route(
         "provider_request_log_ids": request_binding.request_log_ids,
         "provider_request_attempts": _provider_request_attempts(request_binding),
     }
+    if vaneck_initial_qualification_job_id is not None and (
+        result_metadata.get("initial_qualification") is not True
+        or result_metadata.get("source_provider") != "vaneck"
+        or result_metadata.get("product_slug") != "oil-services-etf-oih"
+        or not result_metadata.get("composition_date")
+        or not (fetch_result.raw_json or {}).get("raw_workbook_sha256")
+    ):
+        failure = ValueError("VanEck OIH qualification response lacks exact workbook provenance.")
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=failure,
+            validation={"status": "qualification_provenance_incomplete"},
+        )
+        raise failure
+    if (
+        vaneck_initial_qualification_job_id is not None
+        and result_metadata.get("body_identity_status") != "matched"
+    ):
+        identity_status = result_metadata.get("body_identity_status") or "unverified"
+        failure = ValueError(
+            f"VanEck OIH workbook body identity is {identity_status}; qualification denied."
+        )
+        await _retain_rejected_fetch_artifact(
+            db,
+            profile,
+            adapter,
+            request_binding,
+            fetch_result=fetch_result,
+            failure=failure,
+            validation={
+                "status": "fund_identity_rejected",
+                "body_identity_status": identity_status,
+                "body_identity_evidence": result_metadata.get("body_identity_evidence"),
+            },
+        )
+        raise failure
     result_metadata = {
         **result_metadata,
         "expected_cadence": result_metadata.get("expected_cadence")
