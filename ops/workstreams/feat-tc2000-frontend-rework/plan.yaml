@@ -54,57 +54,13 @@ human_intent_authorization: >-
   Keep branch history; reconcile file and semantic overlaps after upstream work
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
-human_closure_authorization: >-
-  Root accepts this bounded whole-frontend TC presentation checkpoint under the
-  human's standing 2026-10-20 integration delegation and recorded literal
-  authorization: "Yes—approve that initial scope and handle checkpoint acceptance."
-  Root's delegated technical acceptance is documented in
-  .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
-  (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
-  This is bounded checkpoint acceptance, not personal human visual review,
-  full V25/roadmap completion, staging integration, promotion, or deployment.
-closure_summary: |-
+human_closure_authorization: "No acceptance or closure is claimed for tc-on-demand-workstation-consumer-20261027. The prior accepted tc2000-workstation-integration-1 authorization and receipt are preserved verbatim under historical_checkpoint_archive. This current six-criterion checkpoint remains in progress pending exact green ETF staging adoption and full combined qualification."
+closure_summary: |
   integration_capture: exact branch HEAD
-  Root accepted validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039
-  under the recorded human standing delegation. Acceptance receipt:
-  .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
-  (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
-  Exact profile evidence:
-  .ai/staging-attempts/tcf2d0-full-profile-green-20261026.json (SHA256
-  163726442ff7a338abe8abd4cf7b00186bf22f5ac86e8f1a0d2c11a02c381f8b).
-  This is Root-delegated technical acceptance, not personal human visual
-  review or full workstream/V25 completion.
-
-  On implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039, local functional
-  passed196 with2 existing canonical opt-in skips,0 failures/retries in21.7m;
-  strict visual passed104/104 across four profiles,0 retries in13.7m. Exact
-  attempt-1 branch CI40330168827 passed. F8y, F8y-tag-columns, F8y-combo and
-  10,000-cell Market Map passed. Assertions, references, masks,0.005 tolerance,
-  canonical trace policy and F8y60s timeout were unchanged.
-
-  Root reviewed actual route/mobile presentation and canonical /chart geometry
-  at1280x720,1920x1080 and TCClassic390x800. Candidate frontend container
-  6aa401759b64bc3995b6ba0b08114332404121017c59124805ca6996f0b2b195 used image
-  sha256:ff7c817b5d60086c345de2e729293e74227252854aaddf6a645efa0326c48994.
-  Root verified the seven other fixture services, effective retained34/52/11
-  inventory, original33/51/11 baseline, Stremio-specific endpoint receipt,
-  private85c quota/FINRA state and rollback images after both gates. Earlier
-  interrupted157a red and all prior failures remain historical evidence.
-
-  This packet changes only TC-owned records; product/test/config/reference
-  inputs remain identical to validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039.
-  No migration, backend product bytes, or deployment defaults changed or were
-  newly verified. No provider/SEC request, acquisition replay, paid/trial/native/
-  broker/capital action, target mutation, data reset or service cleanup occurred.
-  Holds remain. Private deployment, final human guide, staging integration and
-  promotion remain Root-owned and pending.
-
-  AC1-AC9 and the complete roadmap remain preserved. Broader Study/Strategy,
-  security, accessibility, endurance and operational work remains. Official
-  TC2000 REF-HELP-V25 parity is unfinished; the approved local Help reference is
-  not an official V25 reference. The two canonical opt-in cases remain skipped.
-  Final closure-record HEAD is captured by exact branch HEAD after publication;
-  its exact CI is required before Root's supported staging integration.
+  Current implementation source: 74b854d93a2e6853e2c59db1ea29293504b65071. The current checkpoint tc-on-demand-workstation-consumer-20261027 is in progress with acceptance pending.
+  Preparation evidence is limited to four controlled-response browser flows and 85 focused unit tests on this current source candidate; these are not genuine Provider/ETF source proof, exact-source branch CI, or the full combined functional/strict-visual profile.
+  Next gate: await Root release of exact synchronized-green ETF staging, adopt only through the supported workflow, then complete the required source-matched combined profile and exact-source CI.
+  No producer source adoption, full checkpoint acceptance, target/deployment acceptance, or full roadmap/V25 completion is claimed. AC1-AC9 and all operational/data/provider holds remain open and unchanged.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -242,757 +198,8 @@ on_demand_consumer_implementation: |-
   producer staging, runtime/full browser qualification and exact candidate CI
   remain pending. Current consumer tests/build do not imply source, deployment
   or roadmap acceptance.
-current_blocker: >-
-  Current 2026-10-27: the TC-owned on-demand consumer candidate remains local
-  and unpublished over cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e. Attempt 12's
-  three controlled-response cases passed on image a76c9628, but its first case
-  used the legacy chart route and did not exercise the main Workstation front
-  door. The current-source attempt 17 passed all four controlled-response
-  cases on frontend image
-  sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758,
-  including local unknown-symbol search, explicit discovery and identity
-  resolution, focused-chart activation, bounded M1 history, and local bar
-  readback. It ran with one worker and zero retries, exit 0, no OOM. Attempts
-  13-16 and their fixture/focus-order failures remain preserved. The initial
-  1.5 GiB builder OOM remains build/setup evidence; the current owned builder
-  was verified at 3 GiB memory/swap and two CPUs with serial build parallelism.
-  Focused unit tests passed85/85 and the vue-tsc/Vite build passed before the
-  test-only route/focus-order correction. These are client/software-fixture
-  results, not genuine Provider/ETF evidence. The dirty candidate has no
-  exact-source branch CI; base CI is not evidence for it. Green ETF staging
-  adoption and the later full combined profile remain pending. No live source
-  request was made. AC1-AC9 and official V25 remain open.
-
-  Historical blocker snapshot at prior 7e checkpoint follows unchanged:
-  Exact synchronized-green staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
-  is adopted as ancestry-only: its tree exactly matches the clean TC source
-  7d3da9461a131e186030a708658c832d84005c72. No product, test, backend, Compose,
-  dependency, migration or reference bytes changed. Canonical staging CI40351346928
-  passed all required gates; source CI40343585691 is green. The four owned
-  adoption records and exact receipt are reconciled; the resulting own
-  branch commit still needs exact-source CI. This does not close the full
-  roadmap or official V25.
-
-  Superseded candidate notes follow as historical context and do not describe
-  the current blocker:
-  Latest candidate work is a narrow mobile layout correction on published
-  source 47de8ca6838be35f6d184c30b6235730aca10c0b. Root's route review found
-  the legacy chart's fixed watchlist and open indicator rail consumed the
-  390px viewport, clipping both chart and header controls; it also measured
-  ETF metadata min-content overflow beyond the screen. The current patch gives
-  chart rails a compact, user-toggleable default on narrow viewports, wraps
-  chart header controls, constrains flex/grid minimums, and keeps ETF lineage,
-  filters and status inside the screen while the wide holdings table scrolls
-  within its own wrapper. Focused component/view tests and the Vue/Vite build
-  pass; actual rendered geometry remains pending Root's isolated review. The
-  fixture, seven non-frontend services, data and all protected resources were
-  untouched. This does not qualify whole-frontend acceptance.
-
-  Current 2026-10-26: the human explicitly requires one TC2000 look and feel
-  across the entire frontend, not only ETF. The root route inventory cross-check
-  is whole-frontend-route-acceptance-inventory-20261026.json; this branch
-  independently resolved 13 route views and 110 reachable Vue SFCs into 112
-  exact shell/route/theme/component paths, each pinned to its f809 source blob.
-  TC is the sole presentation writer. Provider and ETF domain reviews require
-  preserving null-versus-zero quota/usage, disabled/unknown capability, no
-  provider acquisition on appearance, server-selected/default-series behavior,
-  and ETF IWM parser-correction history: preserve all 1,946 rows, actual
-  knowledge times and unresolved identities; same-date parser churn is not
-  turnover. Strategy inspector/navigation and immutable Study identity remain.
-  Root has accepted the 6d0 private correction/API/functional baseline; it is
-  not whole-frontend UI acceptance.
-  Published candidate 8457e90299b1d8de2becb75911668c8810a64845 was rejected
-  as final whole-frontend presentation acceptance after Root reproduced a real
-  CSS cascade defect: ordinary and selected ETF holding buttons had identical
-  computed background/text. The published correction 9a0bbf451b3037e4786705b3e2b981275cf0f232
-  was independently verified by Root: ordinary controls remain neutral while
-  selected holding controls receive the accent surface/text. The current dirty
-  source review also identified Strategy v2 resources as `.is-selected` plus
-  `aria-current=true`; App selected rules now recognize that class and the
-  computed-style regression exercises the actual Strategy button without
-  treating shared-nav `aria-current=page` as data selection. Named token/radius/
-  typography adaptations cover legacy Dashboard, Chart, Alerts, Settings,
-  Watchlist, Screener, Radar, Baskets, both Strategy screens, ETF Holdings and
-  Study controls; shared teleports receive token radius and controls. Broad base
-  card/header selectors now use zero-specificity wrappers so component styles
-  can override them. Same-date differing ETF parser versions display raw
-  correction/audit labels and preserve actual known_at, rows and raw metrics;
-  normal different-date comparisons retain Gross churn/activity wording. Root's
-  85c desktop/mobile review also found missing workstation route discovery,
-  component-level legacy colors/typography, and a shared-shell mobile grid
-  overflow. The current source addresses those observed findings, keeps narrow
-  data/workstation surfaces intact, and uses the reviewed existing navigation
-  schema. The final ETF presentation separates stored snapshots from API
-  current-analysis eligibility; controlled fixtures stay labeled synthetic,
-  real SEC date/source/known_at are retained, exact capability reasons remain
-  scope-qualified, and internal symbol_audit.next_action is not exposed.
-  Settings distinguishes unknown/null usage, zero calls with reliability not
-  observed, and positive calls with a genuine 0.0% success rate. Teleported
-  Notes labels/help/inputs use shared readable tokens.
-  The final affected eight-file frontend slice passed 104/104, and npm run build
-  passed vue-tsc plus Vite (530 modules; existing large Workstation chunk
-  advisory). Scope self-tests passed 42/42. The staged full scope guard passed
-  for 1,055 changed paths, including 872 byte-verified immutable imports, 29
-  exact Provider adaptations and 112 exact presentation paths. Unique-key
-  plan/ownership YAML, session, journal-prefix, workstream and diff checks are
-  recorded at closure. These
-  source checks do not establish browser appearance. Exact candidate CI and
-  Root-assigned route-state/full functional/strict-visual evidence remain
-  pending. F8y and official V25 remain open; references, masks, 0.005 tolerance
-  and zero retries are unchanged.
-  Preserve AC1-AC9, official V25, original references/masks/tolerances/zero
-  retries, all holds and the complete roadmap.
-  Historical adoption snapshot follows:
-  At adoption time 2026-10-26: exact accepted synchronized-green staging
-  6d0a85da34ba276bca69c82a932a0602e783d7a1 (canonical receipt
-  20261026T061035Z-6d0a85da34ba.json, staging CI40270957631) is assembled in
-  this TC branch from prior adopted staging 15b5 without conflicts. The only
-  new product/test paths are ETF-owned fresh-session eager reparse response
-  serialization and deterministic same-date knowledge-time/id ordering; ETF
-  records also advance. TC frontend, tag/date-sort/favorites implementation
-  and tests remain unchanged and unreleased. The 877-path frozen-import snapshot
-  and byte-identical receipt are recorded here. Stack-free checks passed:
-  35/35 scope self-tests; full scope guard over 1037 changed paths with 877
-  immutable imports byte-verified and 29 approved adaptations; unique-key YAML,
-  receipt/manifest/record and workstream checks. No TC consumer tests ran because
-  TC consumer source/tests did not change. Root's independent master gate is
-  pending; hold push until Root releases. No exact branch CI exists for this
-  candidate. No acquisition/provider request is replayed; actual private target
-  correction and UI acceptance remain Root-owned and pending. F8y, the full
-  local profile, AC1-AC9, SX/IX, official REF-HELP-V25 and all provider/data/
-  service holds remain open.
-
-  Historical blocker (superseded by the current cdc authorization) follows:
-  Current 2026-10-23T20:12Z: coordinator reports Provider fix
-  ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7 is present at published Provider
-  tip5b02caf509107856195ef8cfb2374e2ab6120612. It applies selected-default
-  filtering to range and per-timeframe summary coverage and adds a mapped-default
-  versus later-alternate regression. This is source-level evidence only: the fix
-  has not been delivered to TC through a synchronized green staging release and
-  has not been proven in deployed a6b9. Do not duplicate it or invent a client
-  identity/filter contract. TC remains at c9719521bfe8c558f1a743df683a12bef85fffe4
-  with CI40010646181 green for Backend, Frontend, Branch-declared and E2E
-  (192 passed/110 declared skips); feature EIG was expected skipped. The full
-  local profile remains unrun. F8y is spent with inputValue latency unresolved;
-  preserve provider/data/service holds, full AC1-AC9, SX/IX and official
-  REF-HELP-V25 as open.
-
-  Prior 2026-10-23T20:03Z record follows as historical context:
-  Current 2026-10-23T20:03Z: exact accepted a6b9 release is merged at
-  c9719521bfe8c558f1a743df683a12bef85fffe4. Exact branch CI40010646181 is
-  terminal green for Backend, Frontend, Branch-declared and E2E; the feature
-  Exhaustive Integration Gate was an expected skip. E2E reported 192 passed
-  and 110 declared skips. Read-only review confirms the previously reproduced
-  selected-default coverage mismatch remains in Provider-owned
-  backend/app/routers/coverage.py: both coverage queries aggregate by
-  instrument/timeframe without MarketSeriesDefault, whereas canonical reads
-  use the selected-series predicate. Historical runtime reproduction is
-  qualified to source51ab; current c971 confirms unchanged query shape but has
-  not been runtime-reproduced. TC ownership excludes this router and its tests;
-  coordinate a Provider-owned fix/regression rather than duplicating producer
-  logic. F8y remains spent with inputValue latency unresolved; keep all tests,
-  timeouts, retries, provider/data holds, full AC1-AC9, SX/IX unknowns and
-  official REF-HELP-V25 open.
-
-  Prior 2026-10-23T19:17Z adoption snapshot follows, retained as history:
-  Current 2026-10-23T19:17Z: accepted four-feature release a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-  is now merged into the TC feature branch after the required handoff-only
-  capacity audit commit. Exact pre-merge CI40003951941 on 1e8f9803f4ddd225cb4649db3a9cf9f30e83580f
-  is terminal green for Backend, Frontend, Branch-declared and E2E; the feature
-  Exhaustive Integration Gate was an expected skip. The new combined branch
-  source has not yet run its own exact CI. The accepted release adds the
-  additive market_series_default created_at/updated_at migration after
-  slv2_0011, with fresh/retained mapping compatibility covered in its green
-  migration gates; TC's selected-default consumer and identity behavior remain
-  unchanged. The merge also carries the narrow F8m initial-rail/SPY fixture
-  setup and exact migration-path classifier tests. Stack-free checks passed on
-  the merge worktree: 18 classifier/workflow tests, the migration-head
-  compatibility test, 864 byte-verified imports/29 approved adaptations, and
-  workstream validation. No local DB, fixture, browser, service, seed or
-  provider action was run. The spent F8y slot and its
-  inputValue latency remain unresolved; retain all assertions/timeouts/retry
-  policy, full AC1-AC9, SX/IX unknowns, provider/data holds, and official
-  REF-HELP-V25. Publish this merge candidate for its own exact-source CI before
-  treating the accepted dependency merge as branch-qualified.
-
-  Historical detailed F8y trace findings: the F8y slot TC-SLOT-20261023T1400Z remains
-  consumed once on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
-  with zero retries. A closer saved-trace review confirms the locator-wait log
-  is delayed 53917 ms after the Playwright call starts; the select then resolves
-  over 12996 ms. During After Hooks, the browserDiagnostics fixture's
-  250-ms page.waitForTimeout takes 16022 ms. A prior frame snapshot shows the
-  selector already present with value1; the initial watchlist POST returned200
-  in about198ms, and nearby workspace snapshot PUTs took about329/445ms. The
-  trace frame-snapshot collection itself took27302ms. Read-only inspection of
-  pinned Playwright1.62.1 coreBundle confirms collectionTime is measured with
-  page performance.now around the injected snapshotter's document/shadow-DOM
-  traversal and stylesheet snapshot work; the after-call snapshot separately
-  took4164ms. This proves substantial browser-page snapshot generation during
-  the stalled command. The immediately preceding after@call@85 snapshot showed
-  the same watchlist select with value1 and took310.6ms at35.100s, only about
-  1.2s before inputValue began; no network request occurred between these
-  snapshots. Fixed DOM size alone is therefore insufficient to explain the
-  27.3-second spike, making a transient page/host scheduling stall more
-  plausible without proving it. The later lock POST at flows.spec.ts:7592 was not
-  reached and the network trace has no /lock request. No F8y source fix or
-  replay is supported; preserve its60-second timeout, assertions and zero
-  retries. The preceding toHaveValue call passed. Frame.inputValue begins
-  at36.325s and its before snapshot completes at89.051s, a52.726s pre-poll
-  interval. Of that,27.303s is page-measured snapshot collection and about
-  25.423s lies outside that measurement; locator waiting then lasts about
-  12.996s. This further localizes the stall to the browser/driver/page path but
-  does not distinguish host scheduling, transport, renderer, or transient DOM
-  change.
-
-  Separately, source review found CustomDateSortLocalEvidence did not validate
-  the symbol identity in the canonical-local coverage response before using
-  that response to authorize local-bar reads. The backend contract returns
-  symbol for the requested instrument. A focused regression was baseline red
-  (wrong-symbol ready coverage was accepted and local bars were read); a local
-  guard now fails closed with coverage_identity_mismatch before the bar read.
-  The two Custom Date Sort unit files pass 21/21 after adding a malformed
-  coverage-response case with no symbol; it is rejected before the local-bar
-  read. Vue type-check remains green for the product change. This is an
-  uncommitted working-tree change only; global coverage, exact-source CI, and
-  full F8y parent-host browser proof remain pending. SX/IX comparator
-  identity, weighting, point-in-time membership and history lineage remain
-  unresolved and unavailable. A separate one-file WorkstationToolContent
-  coverage diagnostic passed all23 focused tests but measured19.13% functions
-  for that component; narrowed coverage also emitted the unchanged global
-  threshold errors. This is not a global coverage result or acceptance gate.
-  A newer bounded one-file diagnostic on mounted-parent test SHA
-  4bcaeb9f0ed6378a90db195e08bae61930ab826f2cc65fe5f917a37ef54c1380 passed
-  25/25 tests and measured45.48% statements/lines,54.35% branches, and19.71%
-  functions for this component; narrowed-profile threshold errors remain
-  expected and are not a global gate.
-  A mounted WorkstationToolContent test now confirms that mismatched SPY
-  coverage is surfaced as “Coverage was returned for a different instrument.”
-  without presenting a calculated result. The two Custom Date Sort libraries
-  and mounted parent suite pass46/46 in one worker; Vue type-check exits0 after
-  adding a second mounted regression that discards an SPY coverage response
-  after the chart changes to QQQ. Its first test attempt exposed a test-fixture
-  store-key mismatch, which was corrected to match the component's instance key;
-  that was not a product failure. Those focused results were superseded by the
-  full V8 receipt above; no exact-source CI or full F8y browser proof is yet
-  recorded for the candidate.
-
-  Historical F8y status at 2026-10-23T15:39Z: F8y slot TC-SLOT-20261023T1400Z was consumed once
-  on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 with zero retries.
-  Its unchanged 60-second timeout was reported at the later lock POST line, but
-  the saved trace confirms no lock request was dispatched. The first
-  watchlistSelect.inputValue() call began at 35991.181 ms, with protocol call
-  start at 36325.479 ms; pinned Playwright 1.62.1 logs “waiting for locator”
-  immediately before selector polling, but that log appears only at 90242.395
-  ms. The select resolves at 103238.115 ms and the command completes at
-  103278.200 ms; After Hooks began at 67068.977 ms. This narrows the delay to
-  before locator polling, followed by about13 seconds to resolve, but does not
-  distinguish test-driver dispatch, server scheduling, renderer, or transport.
-  The saved runner log reports the timeout without a lower-level cause.
-  Positive list/Tag Column actions after timeout ran during teardown and are
-  not acceptance evidence. No source fix is supported. Preserve all artifacts,
-  the 60-second timeout and assertions, and zero retries. Do not replay the
-  consumed slot or alter source/fixture absent new evidence and coordinator
-  authorization.
-
-  Historical F8y build result (2026-10-23 14:52Z; superseded by the later
-  revised 1024 MiB/one-CPU/no-extra-swap allowance, one canonical frontend
-  `npm run build` with a 768 MiB Node heap reached 765.9 MiB use and failed in
-  `vue-tsc` after 90.22s (child exit134; outer build exit1). The BuildKit
-  container was not OOM-killed; Vite did not start and no frontend image was
-  produced. Exact read-only checks show no image and no app project containers,
-  volumes, or networks. The exact builder is running with 1024 MiB memory and
-  equal memory-plus-swap, existing one-CPU quota, and OOMKilled=false. Do not
-  attempt another heap/build recipe under this allowance: the slot explicitly
-  requires a new evidence-based coordinator decision after a resource failure.
-  At that 14:52 checkpoint F8y remained unrun; this historical status is
-  superseded by the current result above. The later 14:54 packaging allowance
-  produced the exact candidate image and the single test attempt.
-
-  Historical F8y slot result (2026-10-23 14:38Z): released slot
-  TC-SLOT-20261023T1400Z was used only for one-case preparation. The exact
-  current-source backend image built, but no frontend image was produced
-  within the approved 768 MiB/1 CPU/no-swap builder; bounded vue-tsc and Vite
-  attempts exhausted Node heaps. Therefore no app fixture, browser, or F8y
-  test ran. The exact candidate project remains absent and the private builder
-  is stopped with cache preserved. Do not reuse an older frontend image or
-  repeat builds at the exhausted cap. Resumption requires a revised bounded
-  build allowance or a verified immutable frontend artifact for these exact
-  app inputs. Retained services/data, assertions, thresholds, references, and
-  retry policies remain unchanged.
-
-  Superseding current validation (2026-10-23 14:06Z): branch HEAD remains
-  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 and origin-synchronized; preserve
-  all six existing dirty paths. One authorized full frontend V8 run on the
-  then-current mounted-parent test SHA
-  `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5` passed
-  144/144 files and 1,401/1,401 tests in 180.42s. Global coverage was 70.01%
-  functions, 82.67% statements/lines, and 73.24% branches, passing the
-  unchanged 70% function threshold. Exact log SHA256
-  `191e82423372072458c277472b07ae53089392d89fa49e5b09ae2cf9e882b826` and
-  LCOV SHA256 `6ce1420418c5a3d3d12e4db5df17fd741ee385d8e40b3dcd4ae1362756c15aa9`.
-  WorkstationToolContent.vue was 66/345 functions, 1,830/4,332 lines, and
-  304/611 branches; tagColumns.ts remained 7/7 functions. One additional
-  mounted-parent regression was added after the full run: canonical workspace
-  Tag Column configuration must win over a stale virtual-tool snapshot. The
-  current focused file passes 23/23 at SHA256
-  `61972a13f0f9216fdc32925045d7e494634e44724fa1f956073176c210f11a9c`; current
-  Vue type-check passes. The full result is qualified to the prior test-file
-  hash; no second full coverage run was authorized. No production source,
-  F8y E2E assertion, threshold, or coverage rule changed. F8y ordinary browser
-  proof remains pending Root's next exact fixture slot. Preserve all positive
-  and locked-target/no-DELETE parent assertions. Committed exact CI39935342169
-  remains red at 69.04% on its committed source; distinguish it from this
-  dirty working-tree local coverage result. Full AC1-AC9, SX/IX semantics,
-  official REF-HELP-V25 and broader integration remain open.
-  Current TC continuation (2026-10-23 12:43Z): branch HEAD remains
-  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 and origin-synchronized; preserve
-  the six existing dirty F8y/test/workstream paths. Root's isolated F8m repair
-  has exact CI39935920665 green and a separate pinned Noble 1.62.1, zero-retry
-  1/1 ordinary-click proof; its Purple/Yellow/Grey and SPY/QQQ isolation
-  assertions passed. This is Root-owned evidence, not a TC source change or
-  full checkpoint acceptance.
-
-  One bounded full frontend V8 coverage pass completed at working-tree source
-  hash `57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8`
-  for the mounted-parent test file, before six later mounted-parent tests
-  described below. Vitest ran 144 files/1,384 tests, all passing, but the unchanged global
-  function threshold remains red at 69.46% versus 70%; statements/branches/lines
-  were 82.18%/73.21%/82.18%. Fresh LCOV reports
-  WorkstationToolContent.vue at 49/342 functions, confirming a broad SFC branch
-  denominator rather than a Tag Column helper gap; the tagColumns.ts helper is
-  fully covered at 7/7 functions. Coverage artifacts are
-  `/tmp/tc-a83-coverage-20261023-current.log` (SHA256
-  8be42b1022ac0be6732b2f7f72dcc86bfd1408936f05d4118f7f05762ce94f8a) and
-  `frontend/coverage/lcov.info` (SHA256
-  a281257fbc3da12ff62d362370324728030120cedc759762b0317e89e0c5bb7b).
-  Preserve the 70% threshold; do not change source-wide
-  include/exclude rules to improve the metric.
-
-  The full-coverage run preceded six later mounted-parent tests. The
-  updated focused parent file now passes 11/11. Its added cases exercise row selection through
-  WorkstationToolContent (emitted symbol plus instrument identity), a live
-  unlocked-to-locked target transition (Remove disables without DELETE), named
-  list creation/configuration preservation, creation failure/retry preserving
-  the name and current selection/configuration, resolved-symbol addition to the selected list, and a
-  rejected symbol lookup preserving the draft without emitting a mutation.
-  The updated file passes 11/11 in a 1-worker capped run; this
-  is parent-path behavior evidence, not the pending F8y browser proof. During
-  test construction, a jsdom assertion that the second virtualized row was
-  mounted failed because the zero-size viewport mounted only the first row;
-  that assertion was removed while API/store membership checks passed. Keep
-  all positive/locked-negative parent assertions until the ordinary browser
-  flow proves both behaviors. F8y remains pending a safe seeded browser slot.
-  No browser, Compose fixture, build, or full matrix was started here. Full V25
-  roadmap, SX/IX semantics, and official REF-HELP-V25 remain open.
-  Superseding update 2026-10-23 12:43Z: the single coordinator-authorized
-  full V8 run used parent-test SHA
-  `116b88ac132e9ff67c9ce52b51d9ceb16c60f06d6e8edc712a29dec849eedaeb` and
-  completed 144 files/1,390 tests, all passed, with 69.60% functions (below
-  unchanged 70%), 82.30% statements/lines and 73.24% branches. Current LCOV
-  SHA256 is `33bd23edd8e447d23558424f65dc1c96ddf5514b6968b3d502b830cc6c6f0bba`;
-  WorkstationToolContent.vue is 54/342 functions, while tagColumns.ts is 7/7.
-  The run log is `/tmp/tc-a83-tag-columns-coverage-20261023.log`, SHA256
-  `273fac9866eccca37a0a0499d52a0266b3a6293cc3cb84ac5a9a970bd82a008f`.
-  The two subsequently added parent tests are not in that global result. The
-  current parent file passes 13/13 and now covers failed Tag Column removal
-  without false membership/configuration updates plus rename/copy/delete while
-  retaining Tag Column configuration. Product source is unchanged.
-
-  A fresh in-memory SQLite reproduction on 51ab confirms both generic coverage
-  endpoints count an alternate-only D1 row: selected-default helper count 1,
-  summary/range coverage count 2, range reported ready through the alternate
-  row's date. The exact route and selector paths are outside TC ownership
-  (`coverage.py` is not in `owned_paths`; its router tests are excluded except
-  for the narrow released-envelope adaptation; `market_data.py` is Provider
-  excluded). TC made no product/test edit. Provider owns the minimal selector
-  reuse and mapped-default/alternate-only router regression. Provider migration
-  repair 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is published but exact CI
-  39923818426 terminated cancelled: Frontend test/coverage steps completed,
-  Backend unit tests were cancelled, and E2E/Branch/Exhaustive jobs were
-  cancelled before starting. This is neither a product failure nor a green
-  release; the commit is not imported or treated as staging.
-
-  Latest dependency adoption: exact staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
-  is canonically green (receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
-  attempt 1) and merged into this TC branch at source merge commit
-  acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, with merge base 4687bd0c. The
-  merge imports the accepted hidden-request initiation observer and tests;
-  its focused unit file passes 9/9. Checkpoint b59b489 preserved the four dirty
-  TC records before merge. Published TC source 5d7573900449a3007de8b76cf2bae59661d0cbc6
-  has exact remote parity. Its first exact branch CI 39905888099 has Frontend
-  and Backend green but Branch-declared Tests failed because the 4687 frozen
-  manifest still pinned hidden_request_observation.ts to its older blob; E2E
-  was still running when recorded and no full CI pass is claimed. The F04 exact
-  receipt and complete 858-path repinned manifest are now added locally;
-  scope self-tests (35), actual guard (1000 changed paths, 858 immutable imports,
-  29 adaptations), workstream validation (45 records), and diff check pass.
-  Publish this narrowly scoped scope-index repair and follow its exact CI. The
-  following fe4a status text is preserved as pre-F04 history.
-
-  The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-  at merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted
-  0e342512e53ba2268425294d61c50e219eaafa4f is already an ancestor. Published
-  HEAD fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref.
-  Exact CI39892894561 attempt 1 completed successfully on fe4a at 03:47:13Z.
-  Backend Tests, Frontend Unit Tests, Branch-declared Tests, and E2E passed;
-  Exhaustive Integration Gate was an expected skip. E2E passed 191 with 110
-  declared skips and no failures or flakes. This is branch CI, not completion of
-  the held TC local parent-runtime/full-profile gate or the full roadmap.
-  The explicitly accepted 4687 release is already an ancestor through merge
-  f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Do not treat later staging-ref
-  movement as a release; another staging SHA requires its own exact green
-  receipt and coordinator release.
-
-  The TC-owned Favorites toggle race was reproduced on published a7e5 (1
-  failed/8 passed): two rapid chart-star toggles during a pending add coalesced
-  into one add, losing the second intent. The fix serializes toggle intents by
-  instrument and reevaluates membership after prior mutations; distinct
-  instruments remain concurrent. Focused Favorites/WatchList suites passed
-  103/103, Vue type-check exited 0, workstream/scope validation passed, and the
-  exact implementation is published at fe4a. Its hosted CI is green; these
-  focused checks and branch CI do not substitute for the held TC local
-  parent-runtime/full-profile gate.
-
-  The F8y ordinary-click parent-host-to-mutation browser proof and full local
-  profile remain pending Root's single-owner fixture slot. Official Custom
-  Date Sort help identifies the `vs. Sub Industry` comparator as the related
-  Sector Index and the `vs. Industry` comparator as the main Industry Index;
-  the related index families use SX and IX ticker symbols. TC-owned source
-  stores sector/industry labels but no source-backed mapping from those labels
-  to the corresponding SX/IX instruments. Weighting, point-in-time membership,
-  and canonical local-history lineage also remain unresolved. Keep relative
-  modes unavailable until those contracts exist; do not infer a comparator
-  instrument or series. Preserve
-  all assertions, the 70% function-coverage threshold,
-  screenshot references/masks/0.005 tolerance and zero-retry policy. Full
-  AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid
-  operations, deployment and promotion remain disabled/unperformed.
-  Superseding local test update 2026-10-23 12:51Z: the current mounted-parent
-  file (SHA256 `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4`)
-  passes 14/14 and Vue type-check passes. Its newest Tag Column negative test
-  verifies a failed add leaves membership absent, shows the existing parent
-  alert, and emits no configuration mutation. Playwright `--list` with the
-  line reporter collects exactly the one F8y-tag-columns case; an earlier
-  list attempt failed only because the default HTML reporter could not write
-  its read-only report path. No browser or fixture ran. The 69.60% full
-  coverage result predates the three newest mounted-parent tests, so their
-  effect on the global threshold remains unknown.
-  Superseding local coverage/test update 2026-10-23 13:14Z: the one authorized
-  full V8 pass on source a83 and pre-expansion parent-test SHA
-  `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4` ran
-  144 files/1,393 tests successfully, but remains red at 69.69% functions
-  versus the unchanged 70% threshold (82.39% statements/lines, 73.26% branches).
-  WorkstationToolContent.vue measured 57/342 functions; tagColumns.ts is 7/7.
-  Full log `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.log` SHA256
-  `c8dd9084e803fa3705519d6242449f752f29814e56e4e13d659cbd6affae3234`; its
-  LCOV is preserved at `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.lcov.info`
-  SHA256 `e62b35dec3165f1410f24cb9d62c68e1716132e2d20d24c5f783ff55eea69017`.
-  Eight subsequent mounted-parent tests exercise ordinary chart/Python/condition
-  drops, multi-output rejection, condition-save failure, saved Tag Column
-  visibility, and personal/non-personal membership callbacks; the current file
-  SHA256 is `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`
-  and the focused suite passes 22/22. Focused V8 comparison against the saved
-  full-run LCOV finds 11 previously-zero function entries now hit, projecting
-  a 70.02% global function floor if all other full-suite coverage is unchanged;
-  this is not a refreshed full-gate measurement. The filtered three-file V8
-  report exits red because its partial denominator is below global thresholds.
-  No threshold/include rule changed. F8y browser proof remains pending the
-  separately released slot; preserve the positive/locked-negative assertions.
-  Superseding current local validation 2026-10-23T17:06Z: on the dirty
-  working tree based on HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9, the
-  bounded one-worker full V8 command exited0 with 144/144 files and 1,406/1,406
-  tests passing. Global coverage is 82.86% statements/lines, 73.37% branches,
-  and 70.07% functions, above the unchanged 70% floor. The six source/test
-  paths used by that run have patch SHA256
-  05720a427bb4f45e3838a233391e097609f326662dbc592c1ac0bb1699ebe686; current
-  LCOV is SHA256 44fc9b914263f132344e6f50d36cd6b88bd8cb5696df33cbd4964c10a70d6e70.
-  This remains uncommitted local evidence: exact CI39935342169 is still red on
-  committed HEAD at 69.04%, and there is no exact CI result for these dirty
-  files. F8y remains unresolved; its consumed zero-retry run stalled in
-  Playwright inputValue/trace collection before any lock request was dispatched.
-current_checkpoint_status: >-
-  Current 2026-10-27: the active TC candidate is the existing unpublished
-  changeset over cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e. WorkstationToolContent
-  now presents a bounded history action only for the active chart when local
-  bars are empty and loading/error states are settled; no action runs on mount,
-  typing, layout hydration, or other tool focus. Its mounted regression verifies
-  no POST on mount, ordinary-click acquisition, and local chart refresh/readback.
-  Browser attempt 17 passed all four controlled-response Chromium cases in
-  23.0s, one worker, zero retries, exit 0/no OOM. Browser container
-  b63d595724dacac86c063d5c1da91581b3068c7fd09175c9081eada77f4f6c17 used pinned
-  Noble image sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
-  with source mounted read-only, against frontend container 9931954959a3/image
-  sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758.
-  The cases cover the earlier explicit legacy-chart and ETF flows plus the
-  main Workstation unknown-ticker path; the first attempt-12 result is only
-  three-case legacy/ETF evidence and is preserved as such. Attempts 13-16 and
-  attempt-11 older-image failure remain historical diagnostics. Focused unit
-  files passed85/85 and vue-tsc/Vite passed on the current product source;
-  Playwright collected four cases. The exact candidate is not committed/pushed
-  and has no current-source branch CI. Green ETF staging adoption and the full
-  combined functional/visual profile remain pending. The local TC fixture,
-  owned browser containers, and 3-GiB owned builder were active at receipt time;
-  baseline audit confirmed all original33 containers,51 volumes,11 networks,
-  and56 image IDs remained present with original container image/state unchanged.
-  ETF's two owned containers remained separate and unchanged. No Provider/ETF
-  source HTTP occurred. The 02a7 checkpoint remains separate; AC1-AC9, TCP1-TCP5,
-  official V25, and the full roadmap remain open.
-
-  Previous checkpoint narratives and their historical states follow unchanged:
-  Current 2026-10-26: accepted staging02a7bae34c2aed145b9e46137ef3b8f041de4d92
-  was fast-forward adopted into this branch after canonical receipt/run and
-  current origin/staging verification. Its exact tree matches pre-adoption
-  source7d3da9461a131e186030a708658c832d84005c72, so no source merge conflict,
-  consumer delta or new immutable import manifest was needed. The earlier Root-
-  accepted f2d whole-frontend checkpoint remains historical evidence. Exact CI
-  40351346928 is green on staging02a7 with Exhaustive Integration Gate success;
-  exact source CI40343585691 passed on7d. The new own record-reconciliation
-  commit requires its own branch CI. AC1-AC9, full roadmap and official
-  REF-HELP-V25 remain open; Root owns later integration/release actions.
-
-  Superseded checkpoint status follows as preserved historical context:
-  Superseded checkpoint status follows as preserved historical context:
-  Current 2026-10-26: exact accepted synchronized-green staging6d0 is assembled
-  over the already adopted15b5 baseline with no conflicts. Its ETF
-  fresh-AsyncSession eager reparse response serialization and deterministic
-  same-date knowledge-time/id ordering code, tests and owned records are
-  imported; no TC consumer code changed. The TC frontend and
-  tag/date-sort/favorites tests remain preserved and unreleased. ETF's accepted
-  closing tip cc4358d6d373439a86173289801921d929931df9, exact CI40267718389 and
-  ERF3 completion are recorded by ETF as past accepted source evidence; they do
-  not establish target/UI acceptance here. Root owns current target correction
-  and UI acceptance, with no target/deployment evidence inferred. The local
-  merge is not published and has no exact branch CI; hold push for Root's
-  independent master gate. F8y, the full local profile, TCP4/TCP5, full
-  AC1-AC9, SX/IX, official REF-HELP-V25 and all provider/data/service holds
-  remain open.
-
-  Historical checkpoint status (superseded by current reconciliation) follows:
-  Current 2026-10-23T20:12Z: TC remains on exact source
-  c9719521bfe8c558f1a743df683a12bef85fffe4 with CI40010646181 terminal green
-  for Backend, Frontend, Branch-declared and E2E; feature EIG was expected
-  skipped. Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
-  at published tip5b02caf509107856195ef8cfb2374e2ab6120612, with selected-default
-  coverage predicates and regression coverage. This is not a synchronized
-  staging release or deployed a6b9 proof; do not adopt or duplicate it. Full
-  local profile, F8y latency, full AC1-AC9, SX/IX, and official REF-HELP-V25
-  remain open, as do all provider/data/service holds.
-
-  Prior 2026-10-23T20:03Z checkpoint record follows as history:
-  Current 2026-10-23T20:03Z: exact accepted release
-  a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e is merged at
-  c9719521bfe8c558f1a743df683a12bef85fffe4; exact CI40010646181 passed
-  Backend, Frontend, Branch-declared and E2E, with feature EIG expected
-  skipped. E2E reported 192 passed/110 declared skips. No local full profile
-  was run. The selected-default coverage endpoint mismatch remains a
-  Provider-owned contract issue; the historical in-memory reproduction is on
-  source51ab, and the c971 review is source inspection only. TC does not own
-  the router/tests and has not changed them. Full current-source local
-  integration/visual profile, F8y latency resolution, full AC1-AC9, SX/IX,
-  and official REF-HELP-V25 remain open.
-
-  Previous 2026-10-23T19:17Z checkpoint snapshot follows, retained as history:
-  Current 2026-10-23T19:17Z: exact green staging/master a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-  (canonical receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726) has
-  been merged into the TC-owned branch with the handoff-only retained-runtime
-  audit preserved in commit 996a975f3b6276a8e86a47bd509e93ca2f0f030a. Current
-  combined branch exact CI is pending publication; the previous exact
-  CI40003951941 was green only for its pre-merge 1e8f source. The accepted
-  migration is additive ORM timestamp parity on market_series_default, based
-  on slv2_0011, not a historical rewrite; accepted migration tests cover fresh
-  and retained rows. No local migration DB or retained service was touched.
-  Branch changes include a narrow test/setup adjustment for F8m and automated
-  classification of this exact inert timestamp-only migration shape. The
-  merged worktree passed 18 targeted classifier tests, the migration-head
-  compatibility test, the full scope guard with 864 immutable imports/29
-  adaptations, and workstream validation. F8y's
-  60-second inputValue stall remains unproven and its one browser slot remains
-  consumed. Full AC1-AC9, V25 Help parity, and broader validation remain open.
-
-  Historical 14:54 coordinator slot result: the saved test failure was
-  originally reported at flows.spec.ts:7592; later trace review proved the
-  lock POST was not sent. Target membership setup/checks before the stall
-  passed; the lock/no-DELETE phase did not complete. Full error-context, trace,
-  video, and local service logs remain preserved in the private F8y artifacts directory. Exact browser and synthetic project containers/volumes/networks have been removed; retained
-  services/data were not touched. No retries, assertion/timeout/oracle changes,
-  or broader matrix were made.
-
-  Earlier 14:54 slot evidence (historical): the exact source frontend image and
-  one F8y browser attempt were produced. The lock route was not reached. All
-  later positive actions in teardown are not acceptance.
-
-  Full error-context, trace, video, and local service logs
-  remain preserved in the private F8y artifacts directory. Exact browser and
-  synthetic project containers/volumes/networks have been removed; retained
-  services/data were not touched. No retries, assertion/timeout/oracle changes,
-  or broader matrix were made.
-
-  Historical F8y slot result (2026-10-23 14:38Z): the released one-case
-  slot produced an exact-source backend image but no frontend image under the
-  768 MiB/1 CPU/no-swap cap. The F8y case did not run; no fixture/browser was
-  started and no F8y pass or failure is claimed. The builder is stopped with
-  cache retained, and the candidate project has no containers, volumes, or
-  networks. Resumption requires a revised bounded build allowance or a
-  verified artifact built from exact candidate app inputs.
-
-  Committed local/remote TC HEAD is synchronized at
-  a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9. Exact own-branch CI39935342169
-  attempt 1 is terminal red: Frontend job120353389277 ran all 1,381 tests but
-  failed the unchanged function-coverage threshold (69.04% versus 70%);
-  Backend job120353388553 and Branch-declared job120362123490 passed, while
-  E2E job120362124695 and Exhaustive job120362125598 were skipped. Earlier
-  CI39925201913 ran on source 1892607 only and its frontend function coverage
-  was 75.61%. A fresh bounded local V8 coverage run on the five-test mounted
-  parent file state completed 144 files/1,384 tests successfully, but remained
-  below the unchanged global function gate at 69.46% (threshold 70%); statement,
-  branch, and line coverage were 82.18%, 73.21%, and 82.18%. The exact report
-  shows WorkstationToolContent.vue 49/342 functions and tagColumns.ts 7/7, so
-  Tag Column helper coverage is not the missing behavior. After that report,
-  mounted-parent regressions were added for row selection (emitting `SPY` with
-  instrument ID 101), reactive lock transition (disabling Remove without a
-  DELETE), non-empty list creation with Tag Column preservation, failed list
-  creation and successful retry preserving current selection/configuration,
-  resolved-symbol
-  addition to the selected list, and unresolved-symbol rejection without
-  mutation. The updated focused parent file passes 11/11 under one worker. The
-  full coverage run predates those six
-  added tests and does not establish their effect on the global percentage.
-  This is not a replacement for F8y's ordinary browser positive and
-  locked-target negative proof. Preserve the parent assertions and threshold;
-  no browser, fixture, typecheck, or full profile has run for the updated test
-  file. Root's isolated F8m repair and exact CI are green; do not duplicate it.
-
-  The previously published TC source 51ab9d03dd139b8959808a23b4f8cc272f8556aa
-  contains the exact green F04 adoption
-  at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32, preserved checkpoint
-  b59b489913dd4359b6205139e4b4f934d0952667, canonical F04 receipt
-  20261023T051709Z-f04fb2a26c63.json, and corrected 858-path manifest.
-  Exact TC CI39908879710 passed all mandatory jobs on attempt 1; E2E was
-  192 passed/110 declared skips and Exhaustive Integration Gate was skipped as
-  expected. The pending language below records an earlier snapshot and is
-  superseded by this exact-source result. This does not establish F8y local
-  parent-runtime proof, full browser acceptance, full roadmap completion, or
-  official REF-HELP-V25 parity.
-  Latest local follow-up 2026-10-23 12:51Z: full V8 coverage was run once on
-  the 11-test parent-file SHA above (not on the three-test-later current file); all
-  1,390 tests passed, but functions measured 69.60% against the unchanged 70%
-  threshold. Statements/lines were 82.30%, branches 73.24%; component metrics
-  were WorkstationToolContent.vue 54/342 and tagColumns.ts 7/7. The current
-  14-test mounted-parent suite and Vue type-check pass. Three tests were added
-  after coverage, including failed Tag Column add/removal truthfulness and list
-  rename/copy/delete configuration preservation; their effect on global
-  coverage remains unmeasured. Playwright line-reporter collection finds only
-  F8y-tag-columns; the default reporter's read-only report write failure was
-  setup-only. A separately authorized coverage refresh and F8y browser proof
-  remain pending; no browser or fixture was started.
-
-  TC source adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
-  at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 over merge base
-  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad. The four pre-merge dirty TC
-  records were preserved in b59b489913dd4359b6205139e4b4f934d0952667. Exact
-  source 5d7573900449a3007de8b76cf2bae59661d0cbc6 is published and remote-verified.
-  Exact CI39905888099 has a branch-guard failure caused by the stale 4687 helper
-  blob pin; Frontend and Backend passed, while E2E was still running at last
-  observation. The local F04 receipt/858-path replacement manifest now passes
-  scope self-tests and actual guard; own corrective publication and exact CI
-  remain pending. Focused F04 observer unit is 9/9. This does not duplicate
-  Root's observer repair or establish a new local browser profile.
-  The older fe4a checkpoint details below remain historical and are retained.
-
-  Current continuation at 2026-10-23: published feature HEAD
-  fe4a1fcba32fe640c6b9e2f1f6e6503f86788418 matches the feature ref and contains
-  accepted staging 4687. Exact CI39892894561 attempt 1 completed successfully
-  on fe4a at 03:47:13Z: Backend Tests, Frontend Unit Tests, Branch-declared
-  Tests, and E2E passed; Exhaustive Integration Gate was an expected skip. E2E
-  passed 191 with 110 declared skips and no failures or flakes. The
-  per-instrument Favorites toggle
-  serialization fix and two deferred regressions are published in fe4a; the
-  published-source baseline red was 1 failed/8 passed and focused store/WatchList
-  suites passed103/103, with Vue type-check, workstream validation and scope
-  guards green. The full local browser slot remains held by Root; F8y parent-host
-  runtime proof is still pending. Official Custom Date Sort guides identify the
-  related Sector Index (SX) for `vs. Sub Industry` and the main Industry Index
-  (IX) for `vs. Industry`; current TC-owned source has no mapping from stored
-  sector/industry labels to those instruments. Weighting, point-in-time
-  membership, and canonical local-history lineage remain unresolved, so these
-  modes stay unavailable. Full AC1–AC9 and official REF-HELP-V25 remain
-  open.
-
-  The following F8y source details describe the pre-404fe history; latest
-  publication and CI state is stated above and in current_blocker.
-
-  The current TC source merges the coordinator-accepted GREEN staging release
-  4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad at branch merge commit
-  f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Canonical receipt
-  20261023T000222Z-4687bd0cd21a.json binds CI39866387942 attempt 1 to the exact
-  source. Merge-base and source review confirmed a clean merge from TC
-  candidate 4a88aaf8388b72f1b3eb22b21b2f50312bf12500 with no conflicts. The
-  receipt-pinned scope manifest repins 858 frozen import paths to 4687 and
-  adds the six new non-TC-owned paths from that release; the two workstation
-  Market Map files stay governed by the pre-existing narrow shared-path
-  exceptions. The previous 0e release remains in history but is superseded by
-  this latest adoption.
-
-  TC's ordinary-click F8y Tag Column test configures the target list through
-  the actual workstation, invokes its row context-menu action, observes the
-  target WatchList POST and verifies the separate control list remains
-  unchanged. It was collected on the earlier 570c source but has not run in a
-  browser; positive/negative parent-host-to-mutation runtime proof remains
-  pending the coordinator's full local fixture slot. Do not substitute helper,
-  parser or collection results. Exact branch CI39877709985 on c5da was RED at
-  this case after the target mutation POST succeeded: returning to the target
-  list rendered XLE without the configured Tag Column membership cell, and its
-  built-in retry also failed. The working-tree repair was motivated by the
-  stale-props binding in publishWatchlistConfiguration; it now merges the
-  selection over liveToolConfiguration. Its baseline-red source-binding test
-  failed with 1 failure and 8 passes before wiring and now passes; affected
-  suites pass104/104,
-  vue-tsc --noEmit exits0, and the unchanged Playwright case collects. Repair
-  publication and exact CI remain pending; none of these checks is browser
-  proof. No assertions, references, masks, tolerances, retries, thresholds,
-  provider behavior, datasets, or deployment settings were changed. The full
-  AC1–AC9 roadmap and official REF-HELP-V25 parity remain open; TCP bounded
-  checkpoint evidence does not close either.
-
-  The bounded TC2000 checkpoint remains narrowly accepted by Root on validated
-  implementation f206029f16c94e32616ccccf81f65675f224e67c under the recorded
-  human standing authorization and literal checkpoint delegation. Its exact
-  attempt-1 CI39701994384 was green for mandatory Backend (3421 unit +459
-  integration,83%), Frontend Unit, Branch Declared and E2E (191 passed/110
-  declared skips/0 failures/0 flakes/0 retry markers); EIG was an expected skip.
-  Local functional (195 passed/2 unchanged declared skips/0 retries), strict104
-  visual, frontend coverage/build, and 628c-to-6a6e migration compatibility
-  remain qualified to their unchanged inputs. The four-record closing packet
-  was published on febc6fbb7a033534f3c486f766dd437780954d09 before the later
-  staging adoption.
-
-  On 2026-10-22, the coordinator released exact combined Provider+ETF+TC2000+
-  Strategy staging 0e342512e53ba2268425294d61c50e219eaafa4f with green CI
-  39827786248. This TC branch adopted that exact SHA as an ancestor through the
-  guarded update and pushed only its assigned feature ref; adoption parity was
-  independently verified. The branch has since continued, and its current
-  published implementation is 5ca3423e553e27e36dc8002be5f11996bbd4cf9e, also
-  independently verified as the current feature-ref tip. The
-  scope guard passes for that receipt-approved fast-forward and pins 858
-  frozen paths to exact release blobs/deletions; 29 approved TC adaptations
-  remain separate. This is not full AC1-AC9 or official REF-HELP-V25 completion.
-  Custom Date Sort is the current TC-owned roadmap item. The formula/range core
-  and exact-scope canonical-local coverage gate are published; the loader checks
-  historical coverage first and reads at most 5000 canonical local bars only
-  after matching ready evidence. The current candidate wires Shift+T to an
-  ordinary chart drag, snaps fractional plot positions to the nearest loaded
-  bar, and requests only the existing local-history contract. It adds a strictly
-  parsed range-specific percent column and a new WatchList window for an
-  explicitly selected existing personal list; per-symbol calculations use
-  coverage-first canonical local history with a four-worker bound and explicit
-  unavailable outcomes. Ordinary WatchList default sorting remains unchanged.
-  Three focused suites pass 108/108 and Vue type-check passes on published
-  implementation 5ca3423. These are unit/type-check results only; no live app/database,
-  browser, full frontend coverage/build, or exact candidate CI was run. The
-  existing canonical W1/MN route may locally materialize derived bars from D1.
-  A trustworthy existing sub-industry/industry comparison series remains open,
-  so relative modes stay unavailable. No deployment, live provider/ETF test,
-  paid access, or visual reference change is claimed.
+current_blocker: "The current on-demand consumer checkpoint remains in progress. The source candidate has four controlled-response browser-flow passes and 85 focused unit passes, but exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI are pending."
+current_checkpoint_status: "The canonical current checkpoint is tc-on-demand-workstation-consumer-20261027 with six criteria in progress and acceptance pending. Current implementation source is 74b854d93a2e6853e2c59db1ea29293504b65071. Four controlled-response browser flows and 85 focused units are preparation evidence only; no producer staging has been adopted, no exact-source CI or full combined profile has passed, and no current checkpoint acceptance is claimed. All nine original AC criteria and the full official V25 roadmap remain open."
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1463,52 +670,1041 @@ human_goal_budget_authorization: none
 previous_branch: feat/tc2000-frontend-rework (old master-based history, fully merged into staging)
 previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 roadmap_goal: "Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after staging promotion, and stopping at ready_for_human_review."
-goal: "Continue the accepted TC2000 workstation checkpoint and reconcile the entire reachable frontend into one consistent TC2000 visual system across authentication, shell/navigation, workstation/popouts, dashboard/chart/alerts/radar/watchlist/screener/baskets, ETF Holdings, both Strategy screens, settings/provider controls and every reachable screen component; preserve all feature behavior/contracts and complete the existing roadmap."
+goal: "Implement and qualify explicit, bounded on-demand instrument discovery, selected-chart history and ETF issuer/holding-history consumer flows while preserving cached rendering, identity, lineage and current-analysis safeguards."
+historical_checkpoint_archive:
+  recorded_from_commit: 74b854d93a2e6853e2c59db1ea29293504b65071
+  recorded_at: '2026-10-27T22:28:35Z'
+  goal: Continue the accepted TC2000 workstation checkpoint and reconcile the entire
+    reachable frontend into one consistent TC2000 visual system across authentication,
+    shell/navigation, workstation/popouts, dashboard/chart/alerts/radar/watchlist/screener/baskets,
+    ETF Holdings, both Strategy screens, settings/provider controls and every reachable
+    screen component; preserve all feature behavior/contracts and complete the existing
+    roadmap.
+  integration_checkpoint:
+    id: tc2000-workstation-integration-1
+    planning_authorization: Human resumed the saved checkpoint objective on 2026-10-15,
+      directing this existing session to read coordinator guidance, fix independent
+      chart-template and functional/visual defects, then consume green Provider+ETF
+      staging and prepare review.
+    acceptance: accepted_whole_frontend_tc_presentation_checkpoint_by_root_2026-10-26
+    coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
+    downstream_consumers:
+    - human-workstation-testing
+    - strategy-lab-v2
+    required_contracts:
+    - provider-coverage-preflight
+    - etf-provenance-freshness
+    - immutable-code-study-outputs
+    - chart-template-interactions
+    source_freeze: Validated implementation source is f2d0228a491a9e5baeb4fdb048da3ed37e485039.
+      Final closure-record HEAD is captured from exact branch HEAD after publication;
+      its exact CI is required before Root-supported staging integration.
+    continuation: Root accepted this bounded whole-frontend presentation checkpoint
+      only. Preserve original TCP and AC text and the full roadmap. Exact records-only
+      closure HEAD CI remains required before Root-supported staging integration; no
+      feature-branch self-integration, deployment, or promotion.
+    original_criteria_disposition:
+      AC1:
+        status: bounded_checkpoint_delivered
+        owner: TC
+        delivered: 475-path ownership manifest; 350 immutable paths byte-verified and
+          29 narrow adaptations
+        remainder: Continue ownership enforcement and whole-roadmap review
+      AC2:
+        status: consumer_contract_delivered
+        owner: TC
+        delivered: Provider staging consumer contract from accepted 628c reconciliation
+        remainder: Broader feature acceptance and future upstream contract changes
+      AC3:
+        status: consumer_contract_delivered
+        owner: TC
+        delivered: ETF holdings capability, identity, freshness and lineage consumer
+          contract from accepted 628c reconciliation
+        remainder: Broader feature acceptance and future upstream contract changes
+      AC4:
+        status: partial_roadmap_open
+        owner: TC
+        delivered: Bounded workstation flows and component evidence in this checkpoint
+        remainder: Complete persisted-input workflows, breadth/ratios/historical analytics
+          and full V25 roadmap
+      AC5:
+        status: partial_roadmap_open
+        owner: TC
+        delivered: Existing immutable Study/Strategy consumers preserved and validated
+          within delivered scope
+        remainder: Broader engine, promotion, lineage and combined-consumer roadmap
+      AC6:
+        status: partial_roadmap_open
+        owner: TC
+        delivered: Bounded interaction and strict visual evidence without changing protected
+          references or thresholds
+        remainder: Official REF-HELP-V25 parity and broader V25 visual/state parity
+      AC7:
+        status: partial_roadmap_open
+        owner: TC
+        delivered: Qualified functional, strict visual, performance, sandbox, migration
+          and CI evidence
+        remainder: Whole-roadmap security, accessibility, endurance and broader operational
+          evidence
+      AC8:
+        status: line_level_reconciliation_delivered_after_exact_green_ci
+        owner: TC
+        delivered: Provider/ETF shared paths have line-level dispositions under the
+          475/350/29 manifest; exact implementation CI40330168827 is green
+        remainder: Continue reconciliation for future upstream changes and broader combined
+          validation
+      AC9:
+        status: delegated_bounded_checkpoint_closure_only
+        owner: TC
+        delivered: Clean synchronized branch and bounded checkpoint packet under recorded
+          2026-10-20 delegation
+        remainder: Whole-roadmap review remains open; no direct merge, staging mutation,
+          deployment or promotion
+  acceptance_criteria:
+  - id: TCP1
+    text: 'COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009
+      merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727
+      verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance
+      or staging-integration authority.'
+  - id: TCP2
+    text: Resolve TC-owned functional/visual failures without weakening checks; review
+      and adopt only the human-authorized local Help reference after all four profiles
+      pass, while keeping official V25 Help parity as unfinished roadmap work.
+  - id: TCP3
+    text: After Provider and ETF reach synchronized green staging, merge that staging
+      into this clean unfrozen source and reconcile all shared paths and actual provider
+      coverage/preflight and ETF lineage/freshness consumers.
+  - id: TCP4
+    text: Validate usable combined workstation and immutable Study consumers, success
+      and unavailable paths, with the required full integration/browser profile and
+      exact-source branch CI.
+  - id: TCP5
+    text: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review;
+      retain pending human acceptance and coordinator-only staging integration/freeze
+      release.
+  - id: TCV1
+    text: Apply the human-authorized TC2000 presentation handoff to every exact reachable
+      route/component path in frontend_presentation_handoff; preserve all workflows,
+      URLs, data, keyboard/accessibility/mobile behavior and upstream domain contracts;
+      qualify with focused checks and later Root-assigned exact-source full visual/functional
+      gates. This does not close official V25 parity or the full roadmap.
+  human_closure_authorization: 'Root accepts this bounded whole-frontend TC presentation
+    checkpoint under the human''s standing 2026-10-20 integration delegation and recorded
+    literal authorization: "Yes—approve that initial scope and handle checkpoint acceptance."
+    Root''s delegated technical acceptance is documented in .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
+    (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5). This
+    is bounded checkpoint acceptance, not personal human visual review, full V25/roadmap
+    completion, staging integration, promotion, or deployment.'
+  closure_summary: 'integration_capture: exact branch HEAD
+
+    Root accepted validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039
+
+    under the recorded human standing delegation. Acceptance receipt:
+
+    .ai/staging-attempts/tcf2d0-whole-frontend-checkpoint-acceptance-20261026.md
+
+    (SHA256 36ecefc0e1e28ad5d6041d3282617cd63a892b449bdae9a51fad3b1e359eddf5).
+
+    Exact profile evidence:
+
+    .ai/staging-attempts/tcf2d0-full-profile-green-20261026.json (SHA256
+
+    163726442ff7a338abe8abd4cf7b00186bf22f5ac86e8f1a0d2c11a02c381f8b).
+
+    This is Root-delegated technical acceptance, not personal human visual
+
+    review or full workstream/V25 completion.
+
+
+    On implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039, local functional
+
+    passed196 with2 existing canonical opt-in skips,0 failures/retries in21.7m;
+
+    strict visual passed104/104 across four profiles,0 retries in13.7m. Exact
+
+    attempt-1 branch CI40330168827 passed. F8y, F8y-tag-columns, F8y-combo and
+
+    10,000-cell Market Map passed. Assertions, references, masks,0.005 tolerance,
+
+    canonical trace policy and F8y60s timeout were unchanged.
+
+
+    Root reviewed actual route/mobile presentation and canonical /chart geometry
+
+    at1280x720,1920x1080 and TCClassic390x800. Candidate frontend container
+
+    6aa401759b64bc3995b6ba0b08114332404121017c59124805ca6996f0b2b195 used image
+
+    sha256:ff7c817b5d60086c345de2e729293e74227252854aaddf6a645efa0326c48994.
+
+    Root verified the seven other fixture services, effective retained34/52/11
+
+    inventory, original33/51/11 baseline, Stremio-specific endpoint receipt,
+
+    private85c quota/FINRA state and rollback images after both gates. Earlier
+
+    interrupted157a red and all prior failures remain historical evidence.
+
+
+    This packet changes only TC-owned records; product/test/config/reference
+
+    inputs remain identical to validated implementation f2d0228a491a9e5baeb4fdb048da3ed37e485039.
+
+    No migration, backend product bytes, or deployment defaults changed or were
+
+    newly verified. No provider/SEC request, acquisition replay, paid/trial/native/
+
+    broker/capital action, target mutation, data reset or service cleanup occurred.
+
+    Holds remain. Private deployment, final human guide, staging integration and
+
+    promotion remain Root-owned and pending.
+
+
+    AC1-AC9 and the complete roadmap remain preserved. Broader Study/Strategy,
+
+    security, accessibility, endurance and operational work remains. Official
+
+    TC2000 REF-HELP-V25 parity is unfinished; the approved local Help reference is
+
+    not an official V25 reference. The two canonical opt-in cases remain skipped.
+
+    Final closure-record HEAD is captured by exact branch HEAD after publication;
+
+    its exact CI is required before Root''s supported staging integration.'
+  progress:
+    completed:
+    - TCP1
+    - TCP2
+    - TCP3
+    - TCP4
+    - TCP5
+    - TCV1
+    total: 6
+    current_phase: 'TC on-demand acquisition consumer UX: bounded history is wired to
+      ChartView and the focused main Workstation chart; selected-ETF cache/issuer actions
+      remain; four controlled-response Chromium cases and 85 focused unit tests pass,
+      source remains local/unpublished, and producer staging/full combined profile remain
+      pending; full AC1-AC9 roadmap continues'
+    next_action: 'Await Root''s exact green ETF staging release and later source-matched
+      profile allocation. Keep this local checkpoint unpublished; adopt only the released
+      green staging through the supported workflow, then complete the assigned combined
+      gates without changing controls, references, assertions, tolerances, timeouts
+      or zero-retry policy. Keep Provider-owned identity, cached rendering, historical/current
+      separation, holds, AC1-AC9 and official V25 open.
+
+      Prior next-action text is preserved as historical context: Publish the owned 02a7
+      adoption-record reconciliation once, then inspect its exact-source branch CI.
+      Once that is green and Root releases the integration boundary, resume AC4 with
+      persisted-evidence breadth, ratio and historical analytics; preserve all provider/SEC,
+      target, data, quota, deployment and native-operation holds. Keep official V25
+      and the remaining AC1-AC9 roadmap open.
+
+      Historical next-action records follow unchanged: Historical next-action record
+      follows unchanged, superseded only for the current Provider-only subphase: Historical
+      pre-acceptance continuation record (superseded by current_checkpoint_status below):
+      TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor through
+      merge d4274a9fa3119c212a9aaf2c0006c20d921812e8; no second merge is needed. Focused
+      local Chromium checks passed without retries: populated RSP chip ordinary Plots
+      open/close and Remove before and after template restore; date-pointer cycled through
+      all modes and persisted off through a successful snapshot PUT and page reload.
+      Prior exact-source Actions run 38827799889 on ancestor 3963da11 terminated with
+      188 passed, 110 skipped, and one retry-passing F9c template-comparison flake (E2E
+      job 116741553254; first ordinary Plots click intercepted by Remove RSP); it is
+      not clean acceptance. Its skipped hosted visuals are not screenshot evidence.
+      Current HEAD 59bbb968 already contains merge d4274a9 with exact green common repair
+      82d881e7 as second parent. Exact-current-source full local/CI validation remains
+      open. Before TCP4, execute the exact-source full local/combined opted-in visual
+      matrix in a documented deterministic browser/font environment. Preserve assigned
+      runtime/data/listener 15190 and keep official V25 Help parity unfinished. Keep
+      official V25 Help parity required_missing. Do not duplicate the coordinator-owned
+      pointer repair. Remaining TC work includes R1/R5/R6 and V25 Favorites, custom-date
+      sorting, and Tag Column gaps. Provider/ETF product integration, TCP3/TCP4, complete
+      roadmap validation, and exact-source clean CI remain open. Preserve the integration
+      gate and assigned runtime/data. Historical next action: Continue TC-owned R1/R5/R6
+      implementation and trace the Help screenshot layout-state mismatch. Ctrl+M now
+      opens explicit list membership actions, and Shift/Ctrl divider drag now evenly
+      resizes the selected side with persisted Golden Layout proportions. Shift+N now
+      opens Notes for the active linked symbol from shell focus while preserving editor/control
+      ownership. Remaining V25 design gaps include Favorites, custom-date sorting, and
+      Tag Column ownership. Keep the full visual matrix and cleanup-safe exact integration
+      gate open. Defer upstream consumption/reconciliation until both dependencies reach
+      staging. Stop at ready_for_human_review. Current continuation (2026-10-16): exact
+      mounted-app observers on 43e2c0275/run38846672417 are narrowly accepted (189 passed,
+      110 expected skips, zero retries/flakes/failures); this evidence does not cover
+      later changes. The additive ToolWindow alias and unit assertion are in d9e1187fb;
+      exact run38849132666 matched that source, with 11/11 ToolWindow unit tests and
+      clean required jobs, but all visuals were skipped. Current F8b cleanup candidate
+      is 73fba9d4acc815e963d06cf5085db7497ccac1f7; exact CI38852207578 attempt1 is terminal
+      success. All required jobs succeeded; Playwright reports 189 passed/110 skipped/zero
+      retries, flakes, or failures. F8b close, F8n pop-out crosshair, and F8u real plot
+      drag appeared in the first-attempt run. The standard workflow passed only STACK_URL
+      and did not opt into screenshot parity; hosted visual skips are not pixel acceptance.
+      Complete local functional and all104 unchanged visual checks after Provider releases
+      the heavy local slot. Provider and ETF are not yet released as green product staging
+      baselines; do not merge them early or import feature branches. Latest next action:
+      diagnose run38868618416 F8m failure at flows.spec.ts:2377 from its retained exact
+      CI evidence and current source; preserve ordinary Grey-menu action and chart assertions,
+      fix only proven owned behavior, then revalidate. Keep full functional/visual gates
+      and the complete V25 roadmap open.'
+    current_blocker: This TC consumer candidate is staged but not published or exact-CI/runtime
+      qualified. The coordinator-reviewed DTO design is not accepted producer source;
+      Root must confirm the conservative timeframe caps against accepted Provider limits
+      and allocate any runtime/full-profile slot. No producer source was imported or
+      called. Keep the complete AC1-AC9, SX/IX, official REF-HELP-V25 roadmap, F8y history,
+      all data/provider/service holds and all prior red evidence intact.
+  current_blocker: 'Current 2026-10-27: the TC-owned on-demand consumer candidate remains
+    local and unpublished over cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e. Attempt 12''s
+    three controlled-response cases passed on image a76c9628, but its first case used
+    the legacy chart route and did not exercise the main Workstation front door. The
+    current-source attempt 17 passed all four controlled-response cases on frontend
+    image sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758, including
+    local unknown-symbol search, explicit discovery and identity resolution, focused-chart
+    activation, bounded M1 history, and local bar readback. It ran with one worker and
+    zero retries, exit 0, no OOM. Attempts 13-16 and their fixture/focus-order failures
+    remain preserved. The initial 1.5 GiB builder OOM remains build/setup evidence;
+    the current owned builder was verified at 3 GiB memory/swap and two CPUs with serial
+    build parallelism. Focused unit tests passed85/85 and the vue-tsc/Vite build passed
+    before the test-only route/focus-order correction. These are client/software-fixture
+    results, not genuine Provider/ETF evidence. The dirty candidate has no exact-source
+    branch CI; base CI is not evidence for it. Green ETF staging adoption and the later
+    full combined profile remain pending. No live source request was made. AC1-AC9 and
+    official V25 remain open.
+
+    Historical blocker snapshot at prior 7e checkpoint follows unchanged: Exact synchronized-green
+    staging02a7bae34c2aed145b9e46137ef3b8f041de4d92 is adopted as ancestry-only: its
+    tree exactly matches the clean TC source 7d3da9461a131e186030a708658c832d84005c72.
+    No product, test, backend, Compose, dependency, migration or reference bytes changed.
+    Canonical staging CI40351346928 passed all required gates; source CI40343585691
+    is green. The four owned adoption records and exact receipt are reconciled; the
+    resulting own branch commit still needs exact-source CI. This does not close the
+    full roadmap or official V25.
+
+    Superseded candidate notes follow as historical context and do not describe the
+    current blocker: Latest candidate work is a narrow mobile layout correction on published
+    source 47de8ca6838be35f6d184c30b6235730aca10c0b. Root''s route review found the
+    legacy chart''s fixed watchlist and open indicator rail consumed the 390px viewport,
+    clipping both chart and header controls; it also measured ETF metadata min-content
+    overflow beyond the screen. The current patch gives chart rails a compact, user-toggleable
+    default on narrow viewports, wraps chart header controls, constrains flex/grid minimums,
+    and keeps ETF lineage, filters and status inside the screen while the wide holdings
+    table scrolls within its own wrapper. Focused component/view tests and the Vue/Vite
+    build pass; actual rendered geometry remains pending Root''s isolated review. The
+    fixture, seven non-frontend services, data and all protected resources were untouched.
+    This does not qualify whole-frontend acceptance.
+
+    Current 2026-10-26: the human explicitly requires one TC2000 look and feel across
+    the entire frontend, not only ETF. The root route inventory cross-check is whole-frontend-route-acceptance-inventory-20261026.json;
+    this branch independently resolved 13 route views and 110 reachable Vue SFCs into
+    112 exact shell/route/theme/component paths, each pinned to its f809 source blob.
+    TC is the sole presentation writer. Provider and ETF domain reviews require preserving
+    null-versus-zero quota/usage, disabled/unknown capability, no provider acquisition
+    on appearance, server-selected/default-series behavior, and ETF IWM parser-correction
+    history: preserve all 1,946 rows, actual knowledge times and unresolved identities;
+    same-date parser churn is not turnover. Strategy inspector/navigation and immutable
+    Study identity remain. Root has accepted the 6d0 private correction/API/functional
+    baseline; it is not whole-frontend UI acceptance. Published candidate 8457e90299b1d8de2becb75911668c8810a64845
+    was rejected as final whole-frontend presentation acceptance after Root reproduced
+    a real CSS cascade defect: ordinary and selected ETF holding buttons had identical
+    computed background/text. The published correction 9a0bbf451b3037e4786705b3e2b981275cf0f232
+    was independently verified by Root: ordinary controls remain neutral while selected
+    holding controls receive the accent surface/text. The current dirty source review
+    also identified Strategy v2 resources as `.is-selected` plus `aria-current=true`;
+    App selected rules now recognize that class and the computed-style regression exercises
+    the actual Strategy button without treating shared-nav `aria-current=page` as data
+    selection. Named token/radius/ typography adaptations cover legacy Dashboard, Chart,
+    Alerts, Settings, Watchlist, Screener, Radar, Baskets, both Strategy screens, ETF
+    Holdings and Study controls; shared teleports receive token radius and controls.
+    Broad base card/header selectors now use zero-specificity wrappers so component
+    styles can override them. Same-date differing ETF parser versions display raw correction/audit
+    labels and preserve actual known_at, rows and raw metrics; normal different-date
+    comparisons retain Gross churn/activity wording. Root''s 85c desktop/mobile review
+    also found missing workstation route discovery, component-level legacy colors/typography,
+    and a shared-shell mobile grid overflow. The current source addresses those observed
+    findings, keeps narrow data/workstation surfaces intact, and uses the reviewed existing
+    navigation schema. The final ETF presentation separates stored snapshots from API
+    current-analysis eligibility; controlled fixtures stay labeled synthetic, real SEC
+    date/source/known_at are retained, exact capability reasons remain scope-qualified,
+    and internal symbol_audit.next_action is not exposed. Settings distinguishes unknown/null
+    usage, zero calls with reliability not observed, and positive calls with a genuine
+    0.0% success rate. Teleported Notes labels/help/inputs use shared readable tokens.
+    The final affected eight-file frontend slice passed 104/104, and npm run build passed
+    vue-tsc plus Vite (530 modules; existing large Workstation chunk advisory). Scope
+    self-tests passed 42/42. The staged full scope guard passed for 1,055 changed paths,
+    including 872 byte-verified immutable imports, 29 exact Provider adaptations and
+    112 exact presentation paths. Unique-key plan/ownership YAML, session, journal-prefix,
+    workstream and diff checks are recorded at closure. These source checks do not establish
+    browser appearance. Exact candidate CI and Root-assigned route-state/full functional/strict-visual
+    evidence remain pending. F8y and official V25 remain open; references, masks, 0.005
+    tolerance and zero retries are unchanged. Preserve AC1-AC9, official V25, original
+    references/masks/tolerances/zero retries, all holds and the complete roadmap. Historical
+    adoption snapshot follows: At adoption time 2026-10-26: exact accepted synchronized-green
+    staging 6d0a85da34ba276bca69c82a932a0602e783d7a1 (canonical receipt 20261026T061035Z-6d0a85da34ba.json,
+    staging CI40270957631) is assembled in this TC branch from prior adopted staging
+    15b5 without conflicts. The only new product/test paths are ETF-owned fresh-session
+    eager reparse response serialization and deterministic same-date knowledge-time/id
+    ordering; ETF records also advance. TC frontend, tag/date-sort/favorites implementation
+    and tests remain unchanged and unreleased. The 877-path frozen-import snapshot and
+    byte-identical receipt are recorded here. Stack-free checks passed: 35/35 scope
+    self-tests; full scope guard over 1037 changed paths with 877 immutable imports
+    byte-verified and 29 approved adaptations; unique-key YAML, receipt/manifest/record
+    and workstream checks. No TC consumer tests ran because TC consumer source/tests
+    did not change. Root''s independent master gate is pending; hold push until Root
+    releases. No exact branch CI exists for this candidate. No acquisition/provider
+    request is replayed; actual private target correction and UI acceptance remain Root-owned
+    and pending. F8y, the full local profile, AC1-AC9, SX/IX, official REF-HELP-V25
+    and all provider/data/ service holds remain open.
+
+    Historical blocker (superseded by the current cdc authorization) follows: Current
+    2026-10-23T20:12Z: coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
+    is present at published Provider tip5b02caf509107856195ef8cfb2374e2ab6120612. It
+    applies selected-default filtering to range and per-timeframe summary coverage and
+    adds a mapped-default versus later-alternate regression. This is source-level evidence
+    only: the fix has not been delivered to TC through a synchronized green staging
+    release and has not been proven in deployed a6b9. Do not duplicate it or invent
+    a client identity/filter contract. TC remains at c9719521bfe8c558f1a743df683a12bef85fffe4
+    with CI40010646181 green for Backend, Frontend, Branch-declared and E2E (192 passed/110
+    declared skips); feature EIG was expected skipped. The full local profile remains
+    unrun. F8y is spent with inputValue latency unresolved; preserve provider/data/service
+    holds, full AC1-AC9, SX/IX and official REF-HELP-V25 as open.
+
+    Prior 2026-10-23T20:03Z record follows as historical context: Current 2026-10-23T20:03Z:
+    exact accepted a6b9 release is merged at c9719521bfe8c558f1a743df683a12bef85fffe4.
+    Exact branch CI40010646181 is terminal green for Backend, Frontend, Branch-declared
+    and E2E; the feature Exhaustive Integration Gate was an expected skip. E2E reported
+    192 passed and 110 declared skips. Read-only review confirms the previously reproduced
+    selected-default coverage mismatch remains in Provider-owned backend/app/routers/coverage.py:
+    both coverage queries aggregate by instrument/timeframe without MarketSeriesDefault,
+    whereas canonical reads use the selected-series predicate. Historical runtime reproduction
+    is qualified to source51ab; current c971 confirms unchanged query shape but has
+    not been runtime-reproduced. TC ownership excludes this router and its tests; coordinate
+    a Provider-owned fix/regression rather than duplicating producer logic. F8y remains
+    spent with inputValue latency unresolved; keep all tests, timeouts, retries, provider/data
+    holds, full AC1-AC9, SX/IX unknowns and official REF-HELP-V25 open.
+
+    Prior 2026-10-23T19:17Z adoption snapshot follows, retained as history: Current
+    2026-10-23T19:17Z: accepted four-feature release a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+    is now merged into the TC feature branch after the required handoff-only capacity
+    audit commit. Exact pre-merge CI40003951941 on 1e8f9803f4ddd225cb4649db3a9cf9f30e83580f
+    is terminal green for Backend, Frontend, Branch-declared and E2E; the feature Exhaustive
+    Integration Gate was an expected skip. The new combined branch source has not yet
+    run its own exact CI. The accepted release adds the additive market_series_default
+    created_at/updated_at migration after slv2_0011, with fresh/retained mapping compatibility
+    covered in its green migration gates; TC''s selected-default consumer and identity
+    behavior remain unchanged. The merge also carries the narrow F8m initial-rail/SPY
+    fixture setup and exact migration-path classifier tests. Stack-free checks passed
+    on the merge worktree: 18 classifier/workflow tests, the migration-head compatibility
+    test, 864 byte-verified imports/29 approved adaptations, and workstream validation.
+    No local DB, fixture, browser, service, seed or provider action was run. The spent
+    F8y slot and its inputValue latency remain unresolved; retain all assertions/timeouts/retry
+    policy, full AC1-AC9, SX/IX unknowns, provider/data holds, and official REF-HELP-V25.
+    Publish this merge candidate for its own exact-source CI before treating the accepted
+    dependency merge as branch-qualified.
+
+    Historical detailed F8y trace findings: the F8y slot TC-SLOT-20261023T1400Z remains
+    consumed once on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 with zero
+    retries. A closer saved-trace review confirms the locator-wait log is delayed 53917
+    ms after the Playwright call starts; the select then resolves over 12996 ms. During
+    After Hooks, the browserDiagnostics fixture''s 250-ms page.waitForTimeout takes
+    16022 ms. A prior frame snapshot shows the selector already present with value1;
+    the initial watchlist POST returned200 in about198ms, and nearby workspace snapshot
+    PUTs took about329/445ms. The trace frame-snapshot collection itself took27302ms.
+    Read-only inspection of pinned Playwright1.62.1 coreBundle confirms collectionTime
+    is measured with page performance.now around the injected snapshotter''s document/shadow-DOM
+    traversal and stylesheet snapshot work; the after-call snapshot separately took4164ms.
+    This proves substantial browser-page snapshot generation during the stalled command.
+    The immediately preceding after@call@85 snapshot showed the same watchlist select
+    with value1 and took310.6ms at35.100s, only about 1.2s before inputValue began;
+    no network request occurred between these snapshots. Fixed DOM size alone is therefore
+    insufficient to explain the 27.3-second spike, making a transient page/host scheduling
+    stall more plausible without proving it. The later lock POST at flows.spec.ts:7592
+    was not reached and the network trace has no /lock request. No F8y source fix or
+    replay is supported; preserve its60-second timeout, assertions and zero retries.
+    The preceding toHaveValue call passed. Frame.inputValue begins at36.325s and its
+    before snapshot completes at89.051s, a52.726s pre-poll interval. Of that,27.303s
+    is page-measured snapshot collection and about 25.423s lies outside that measurement;
+    locator waiting then lasts about 12.996s. This further localizes the stall to the
+    browser/driver/page path but does not distinguish host scheduling, transport, renderer,
+    or transient DOM change.
+
+    Separately, source review found CustomDateSortLocalEvidence did not validate the
+    symbol identity in the canonical-local coverage response before using that response
+    to authorize local-bar reads. The backend contract returns symbol for the requested
+    instrument. A focused regression was baseline red (wrong-symbol ready coverage was
+    accepted and local bars were read); a local guard now fails closed with coverage_identity_mismatch
+    before the bar read. The two Custom Date Sort unit files pass 21/21 after adding
+    a malformed coverage-response case with no symbol; it is rejected before the local-bar
+    read. Vue type-check remains green for the product change. This is an uncommitted
+    working-tree change only; global coverage, exact-source CI, and full F8y parent-host
+    browser proof remain pending. SX/IX comparator identity, weighting, point-in-time
+    membership and history lineage remain unresolved and unavailable. A separate one-file
+    WorkstationToolContent coverage diagnostic passed all23 focused tests but measured19.13%
+    functions for that component; narrowed coverage also emitted the unchanged global
+    threshold errors. This is not a global coverage result or acceptance gate. A newer
+    bounded one-file diagnostic on mounted-parent test SHA 4bcaeb9f0ed6378a90db195e08bae61930ab826f2cc65fe5f917a37ef54c1380
+    passed 25/25 tests and measured45.48% statements/lines,54.35% branches, and19.71%
+    functions for this component; narrowed-profile threshold errors remain expected
+    and are not a global gate. A mounted WorkstationToolContent test now confirms that
+    mismatched SPY coverage is surfaced as “Coverage was returned for a different instrument.”
+    without presenting a calculated result. The two Custom Date Sort libraries and mounted
+    parent suite pass46/46 in one worker; Vue type-check exits0 after adding a second
+    mounted regression that discards an SPY coverage response after the chart changes
+    to QQQ. Its first test attempt exposed a test-fixture store-key mismatch, which
+    was corrected to match the component''s instance key; that was not a product failure.
+    Those focused results were superseded by the full V8 receipt above; no exact-source
+    CI or full F8y browser proof is yet recorded for the candidate.
+
+    Historical F8y status at 2026-10-23T15:39Z: F8y slot TC-SLOT-20261023T1400Z was
+    consumed once on exact source a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9 with zero
+    retries. Its unchanged 60-second timeout was reported at the later lock POST line,
+    but the saved trace confirms no lock request was dispatched. The first watchlistSelect.inputValue()
+    call began at 35991.181 ms, with protocol call start at 36325.479 ms; pinned Playwright
+    1.62.1 logs “waiting for locator” immediately before selector polling, but that
+    log appears only at 90242.395 ms. The select resolves at 103238.115 ms and the command
+    completes at 103278.200 ms; After Hooks began at 67068.977 ms. This narrows the
+    delay to before locator polling, followed by about13 seconds to resolve, but does
+    not distinguish test-driver dispatch, server scheduling, renderer, or transport.
+    The saved runner log reports the timeout without a lower-level cause. Positive list/Tag
+    Column actions after timeout ran during teardown and are not acceptance evidence.
+    No source fix is supported. Preserve all artifacts, the 60-second timeout and assertions,
+    and zero retries. Do not replay the consumed slot or alter source/fixture absent
+    new evidence and coordinator authorization.
+
+    Historical F8y build result (2026-10-23 14:52Z; superseded by the later revised
+    1024 MiB/one-CPU/no-extra-swap allowance, one canonical frontend `npm run build`
+    with a 768 MiB Node heap reached 765.9 MiB use and failed in `vue-tsc` after 90.22s
+    (child exit134; outer build exit1). The BuildKit container was not OOM-killed; Vite
+    did not start and no frontend image was produced. Exact read-only checks show no
+    image and no app project containers, volumes, or networks. The exact builder is
+    running with 1024 MiB memory and equal memory-plus-swap, existing one-CPU quota,
+    and OOMKilled=false. Do not attempt another heap/build recipe under this allowance:
+    the slot explicitly requires a new evidence-based coordinator decision after a resource
+    failure. At that 14:52 checkpoint F8y remained unrun; this historical status is
+    superseded by the current result above. The later 14:54 packaging allowance produced
+    the exact candidate image and the single test attempt.
+
+    Historical F8y slot result (2026-10-23 14:38Z): released slot TC-SLOT-20261023T1400Z
+    was used only for one-case preparation. The exact current-source backend image built,
+    but no frontend image was produced within the approved 768 MiB/1 CPU/no-swap builder;
+    bounded vue-tsc and Vite attempts exhausted Node heaps. Therefore no app fixture,
+    browser, or F8y test ran. The exact candidate project remains absent and the private
+    builder is stopped with cache preserved. Do not reuse an older frontend image or
+    repeat builds at the exhausted cap. Resumption requires a revised bounded build
+    allowance or a verified immutable frontend artifact for these exact app inputs.
+    Retained services/data, assertions, thresholds, references, and retry policies remain
+    unchanged.
+
+    Superseding current validation (2026-10-23 14:06Z): branch HEAD remains a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
+    and origin-synchronized; preserve all six existing dirty paths. One authorized full
+    frontend V8 run on the then-current mounted-parent test SHA `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`
+    passed 144/144 files and 1,401/1,401 tests in 180.42s. Global coverage was 70.01%
+    functions, 82.67% statements/lines, and 73.24% branches, passing the unchanged 70%
+    function threshold. Exact log SHA256 `191e82423372072458c277472b07ae53089392d89fa49e5b09ae2cf9e882b826`
+    and LCOV SHA256 `6ce1420418c5a3d3d12e4db5df17fd741ee385d8e40b3dcd4ae1362756c15aa9`.
+    WorkstationToolContent.vue was 66/345 functions, 1,830/4,332 lines, and 304/611
+    branches; tagColumns.ts remained 7/7 functions. One additional mounted-parent regression
+    was added after the full run: canonical workspace Tag Column configuration must
+    win over a stale virtual-tool snapshot. The current focused file passes 23/23 at
+    SHA256 `61972a13f0f9216fdc32925045d7e494634e44724fa1f956073176c210f11a9c`; current
+    Vue type-check passes. The full result is qualified to the prior test-file hash;
+    no second full coverage run was authorized. No production source, F8y E2E assertion,
+    threshold, or coverage rule changed. F8y ordinary browser proof remains pending
+    Root''s next exact fixture slot. Preserve all positive and locked-target/no-DELETE
+    parent assertions. Committed exact CI39935342169 remains red at 69.04% on its committed
+    source; distinguish it from this dirty working-tree local coverage result. Full
+    AC1-AC9, SX/IX semantics, official REF-HELP-V25 and broader integration remain open.
+    Current TC continuation (2026-10-23 12:43Z): branch HEAD remains a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9
+    and origin-synchronized; preserve the six existing dirty F8y/test/workstream paths.
+    Root''s isolated F8m repair has exact CI39935920665 green and a separate pinned
+    Noble 1.62.1, zero-retry 1/1 ordinary-click proof; its Purple/Yellow/Grey and SPY/QQQ
+    isolation assertions passed. This is Root-owned evidence, not a TC source change
+    or full checkpoint acceptance.
+
+    One bounded full frontend V8 coverage pass completed at working-tree source hash
+    `57599232e306bae2f01559d1f2912099f5d6aaa706ceca71b3d58af88a346fa8` for the mounted-parent
+    test file, before six later mounted-parent tests described below. Vitest ran 144
+    files/1,384 tests, all passing, but the unchanged global function threshold remains
+    red at 69.46% versus 70%; statements/branches/lines were 82.18%/73.21%/82.18%. Fresh
+    LCOV reports WorkstationToolContent.vue at 49/342 functions, confirming a broad
+    SFC branch denominator rather than a Tag Column helper gap; the tagColumns.ts helper
+    is fully covered at 7/7 functions. Coverage artifacts are `/tmp/tc-a83-coverage-20261023-current.log`
+    (SHA256 8be42b1022ac0be6732b2f7f72dcc86bfd1408936f05d4118f7f05762ce94f8a) and `frontend/coverage/lcov.info`
+    (SHA256 a281257fbc3da12ff62d362370324728030120cedc759762b0317e89e0c5bb7b). Preserve
+    the 70% threshold; do not change source-wide include/exclude rules to improve the
+    metric.
+
+    The full-coverage run preceded six later mounted-parent tests. The updated focused
+    parent file now passes 11/11. Its added cases exercise row selection through WorkstationToolContent
+    (emitted symbol plus instrument identity), a live unlocked-to-locked target transition
+    (Remove disables without DELETE), named list creation/configuration preservation,
+    creation failure/retry preserving the name and current selection/configuration,
+    resolved-symbol addition to the selected list, and a rejected symbol lookup preserving
+    the draft without emitting a mutation. The updated file passes 11/11 in a 1-worker
+    capped run; this is parent-path behavior evidence, not the pending F8y browser proof.
+    During test construction, a jsdom assertion that the second virtualized row was
+    mounted failed because the zero-size viewport mounted only the first row; that assertion
+    was removed while API/store membership checks passed. Keep all positive/locked-negative
+    parent assertions until the ordinary browser flow proves both behaviors. F8y remains
+    pending a safe seeded browser slot. No browser, Compose fixture, build, or full
+    matrix was started here. Full V25 roadmap, SX/IX semantics, and official REF-HELP-V25
+    remain open. Superseding update 2026-10-23 12:43Z: the single coordinator-authorized
+    full V8 run used parent-test SHA `116b88ac132e9ff67c9ce52b51d9ceb16c60f06d6e8edc712a29dec849eedaeb`
+    and completed 144 files/1,390 tests, all passed, with 69.60% functions (below unchanged
+    70%), 82.30% statements/lines and 73.24% branches. Current LCOV SHA256 is `33bd23edd8e447d23558424f65dc1c96ddf5514b6968b3d502b830cc6c6f0bba`;
+    WorkstationToolContent.vue is 54/342 functions, while tagColumns.ts is 7/7. The
+    run log is `/tmp/tc-a83-tag-columns-coverage-20261023.log`, SHA256 `273fac9866eccca37a0a0499d52a0266b3a6293cc3cb84ac5a9a970bd82a008f`.
+    The two subsequently added parent tests are not in that global result. The current
+    parent file passes 13/13 and now covers failed Tag Column removal without false
+    membership/configuration updates plus rename/copy/delete while retaining Tag Column
+    configuration. Product source is unchanged.
+
+    A fresh in-memory SQLite reproduction on 51ab confirms both generic coverage endpoints
+    count an alternate-only D1 row: selected-default helper count 1, summary/range coverage
+    count 2, range reported ready through the alternate row''s date. The exact route
+    and selector paths are outside TC ownership (`coverage.py` is not in `owned_paths`;
+    its router tests are excluded except for the narrow released-envelope adaptation;
+    `market_data.py` is Provider excluded). TC made no product/test edit. Provider owns
+    the minimal selector reuse and mapped-default/alternate-only router regression.
+    Provider migration repair 3e5ddec14a4185c2620990ac47aa8a95a41e7dc4 is published
+    but exact CI 39923818426 terminated cancelled: Frontend test/coverage steps completed,
+    Backend unit tests were cancelled, and E2E/Branch/Exhaustive jobs were cancelled
+    before starting. This is neither a product failure nor a green release; the commit
+    is not imported or treated as staging.
+
+    Latest dependency adoption: exact staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61
+    is canonically green (receipt 20261023T051709Z-f04fb2a26c63.json; CI39896524209
+    attempt 1) and merged into this TC branch at source merge commit acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32,
+    with merge base 4687bd0c. The merge imports the accepted hidden-request initiation
+    observer and tests; its focused unit file passes 9/9. Checkpoint b59b489 preserved
+    the four dirty TC records before merge. Published TC source 5d7573900449a3007de8b76cf2bae59661d0cbc6
+    has exact remote parity. Its first exact branch CI 39905888099 has Frontend and
+    Backend green but Branch-declared Tests failed because the 4687 frozen manifest
+    still pinned hidden_request_observation.ts to its older blob; E2E was still running
+    when recorded and no full CI pass is claimed. The F04 exact receipt and complete
+    858-path repinned manifest are now added locally; scope self-tests (35), actual
+    guard (1000 changed paths, 858 immutable imports, 29 adaptations), workstream validation
+    (45 records), and diff check pass. Publish this narrowly scoped scope-index repair
+    and follow its exact CI. The following fe4a status text is preserved as pre-F04
+    history.
+
+    The branch contains accepted staging 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad at
+    merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d; earlier accepted 0e342512e53ba2268425294d61c50e219eaafa4f
+    is already an ancestor. Published HEAD fe4a1fcba32fe640c6b9e2f1f6e6503f86788418
+    matches the feature ref. Exact CI39892894561 attempt 1 completed successfully on
+    fe4a at 03:47:13Z. Backend Tests, Frontend Unit Tests, Branch-declared Tests, and
+    E2E passed; Exhaustive Integration Gate was an expected skip. E2E passed 191 with
+    110 declared skips and no failures or flakes. This is branch CI, not completion
+    of the held TC local parent-runtime/full-profile gate or the full roadmap. The explicitly
+    accepted 4687 release is already an ancestor through merge f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d.
+    Do not treat later staging-ref movement as a release; another staging SHA requires
+    its own exact green receipt and coordinator release.
+
+    The TC-owned Favorites toggle race was reproduced on published a7e5 (1 failed/8
+    passed): two rapid chart-star toggles during a pending add coalesced into one add,
+    losing the second intent. The fix serializes toggle intents by instrument and reevaluates
+    membership after prior mutations; distinct instruments remain concurrent. Focused
+    Favorites/WatchList suites passed 103/103, Vue type-check exited 0, workstream/scope
+    validation passed, and the exact implementation is published at fe4a. Its hosted
+    CI is green; these focused checks and branch CI do not substitute for the held TC
+    local parent-runtime/full-profile gate.
+
+    The F8y ordinary-click parent-host-to-mutation browser proof and full local profile
+    remain pending Root''s single-owner fixture slot. Official Custom Date Sort help
+    identifies the `vs. Sub Industry` comparator as the related Sector Index and the
+    `vs. Industry` comparator as the main Industry Index; the related index families
+    use SX and IX ticker symbols. TC-owned source stores sector/industry labels but
+    no source-backed mapping from those labels to the corresponding SX/IX instruments.
+    Weighting, point-in-time membership, and canonical local-history lineage also remain
+    unresolved. Keep relative modes unavailable until those contracts exist; do not
+    infer a comparator instrument or series. Preserve all assertions, the 70% function-coverage
+    threshold, screenshot references/masks/0.005 tolerance and zero-retry policy. Full
+    AC1–AC9 and official REF-HELP-V25 parity remain open; provider/live/paid operations,
+    deployment and promotion remain disabled/unperformed. Superseding local test update
+    2026-10-23 12:51Z: the current mounted-parent file (SHA256 `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4`)
+    passes 14/14 and Vue type-check passes. Its newest Tag Column negative test verifies
+    a failed add leaves membership absent, shows the existing parent alert, and emits
+    no configuration mutation. Playwright `--list` with the line reporter collects exactly
+    the one F8y-tag-columns case; an earlier list attempt failed only because the default
+    HTML reporter could not write its read-only report path. No browser or fixture ran.
+    The 69.60% full coverage result predates the three newest mounted-parent tests,
+    so their effect on the global threshold remains unknown. Superseding local coverage/test
+    update 2026-10-23 13:14Z: the one authorized full V8 pass on source a83 and pre-expansion
+    parent-test SHA `723ab63bd33abaa2d4092afd262716bf9bbd7a67666b7ff0c119cf32e06c12c4`
+    ran 144 files/1,393 tests successfully, but remains red at 69.69% functions versus
+    the unchanged 70% threshold (82.39% statements/lines, 73.26% branches). WorkstationToolContent.vue
+    measured 57/342 functions; tagColumns.ts is 7/7. Full log `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.log`
+    SHA256 `c8dd9084e803fa3705519d6242449f752f29814e56e4e13d659cbd6affae3234`; its LCOV
+    is preserved at `/tmp/tc-a83-tag-columns-coverage-refresh-20261023.lcov.info` SHA256
+    `e62b35dec3165f1410f24cb9d62c68e1716132e2d20d24c5f783ff55eea69017`. Eight subsequent
+    mounted-parent tests exercise ordinary chart/Python/condition drops, multi-output
+    rejection, condition-save failure, saved Tag Column visibility, and personal/non-personal
+    membership callbacks; the current file SHA256 is `522a6f6a45442b9103fc858b159bcf52f5410e803eb0186c7bfce8e176a87ab5`
+    and the focused suite passes 22/22. Focused V8 comparison against the saved full-run
+    LCOV finds 11 previously-zero function entries now hit, projecting a 70.02% global
+    function floor if all other full-suite coverage is unchanged; this is not a refreshed
+    full-gate measurement. The filtered three-file V8 report exits red because its partial
+    denominator is below global thresholds. No threshold/include rule changed. F8y browser
+    proof remains pending the separately released slot; preserve the positive/locked-negative
+    assertions. Superseding current local validation 2026-10-23T17:06Z: on the dirty
+    working tree based on HEAD a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9, the bounded
+    one-worker full V8 command exited0 with 144/144 files and 1,406/1,406 tests passing.
+    Global coverage is 82.86% statements/lines, 73.37% branches, and 70.07% functions,
+    above the unchanged 70% floor. The six source/test paths used by that run have patch
+    SHA256 05720a427bb4f45e3838a233391e097609f326662dbc592c1ac0bb1699ebe686; current
+    LCOV is SHA256 44fc9b914263f132344e6f50d36cd6b88bd8cb5696df33cbd4964c10a70d6e70.
+    This remains uncommitted local evidence: exact CI39935342169 is still red on committed
+    HEAD at 69.04%, and there is no exact CI result for these dirty files. F8y remains
+    unresolved; its consumed zero-retry run stalled in Playwright inputValue/trace collection
+    before any lock request was dispatched.'
+  current_checkpoint_status: 'Current 2026-10-27: the active TC candidate is the existing
+    unpublished changeset over cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e. WorkstationToolContent
+    now presents a bounded history action only for the active chart when local bars
+    are empty and loading/error states are settled; no action runs on mount, typing,
+    layout hydration, or other tool focus. Its mounted regression verifies no POST on
+    mount, ordinary-click acquisition, and local chart refresh/readback. Browser attempt
+    17 passed all four controlled-response Chromium cases in 23.0s, one worker, zero
+    retries, exit 0/no OOM. Browser container b63d595724dacac86c063d5c1da91581b3068c7fd09175c9081eada77f4f6c17
+    used pinned Noble image sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e
+    with source mounted read-only, against frontend container 9931954959a3/image sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758.
+    The cases cover the earlier explicit legacy-chart and ETF flows plus the main Workstation
+    unknown-ticker path; the first attempt-12 result is only three-case legacy/ETF evidence
+    and is preserved as such. Attempts 13-16 and attempt-11 older-image failure remain
+    historical diagnostics. Focused unit files passed85/85 and vue-tsc/Vite passed on
+    the current product source; Playwright collected four cases. The exact candidate
+    is not committed/pushed and has no current-source branch CI. Green ETF staging adoption
+    and the full combined functional/visual profile remain pending. The local TC fixture,
+    owned browser containers, and 3-GiB owned builder were active at receipt time; baseline
+    audit confirmed all original33 containers,51 volumes,11 networks, and56 image IDs
+    remained present with original container image/state unchanged. ETF''s two owned
+    containers remained separate and unchanged. No Provider/ETF source HTTP occurred.
+    The 02a7 checkpoint remains separate; AC1-AC9, TCP1-TCP5, official V25, and the
+    full roadmap remain open.
+
+    Previous checkpoint narratives and their historical states follow unchanged: Current
+    2026-10-26: accepted staging02a7bae34c2aed145b9e46137ef3b8f041de4d92 was fast-forward
+    adopted into this branch after canonical receipt/run and current origin/staging
+    verification. Its exact tree matches pre-adoption source7d3da9461a131e186030a708658c832d84005c72,
+    so no source merge conflict, consumer delta or new immutable import manifest was
+    needed. The earlier Root- accepted f2d whole-frontend checkpoint remains historical
+    evidence. Exact CI 40351346928 is green on staging02a7 with Exhaustive Integration
+    Gate success; exact source CI40343585691 passed on7d. The new own record-reconciliation
+    commit requires its own branch CI. AC1-AC9, full roadmap and official REF-HELP-V25
+    remain open; Root owns later integration/release actions.
+
+    Superseded checkpoint status follows as preserved historical context: Superseded
+    checkpoint status follows as preserved historical context: Current 2026-10-26: exact
+    accepted synchronized-green staging6d0 is assembled over the already adopted15b5
+    baseline with no conflicts. Its ETF fresh-AsyncSession eager reparse response serialization
+    and deterministic same-date knowledge-time/id ordering code, tests and owned records
+    are imported; no TC consumer code changed. The TC frontend and tag/date-sort/favorites
+    tests remain preserved and unreleased. ETF''s accepted closing tip cc4358d6d373439a86173289801921d929931df9,
+    exact CI40267718389 and ERF3 completion are recorded by ETF as past accepted source
+    evidence; they do not establish target/UI acceptance here. Root owns current target
+    correction and UI acceptance, with no target/deployment evidence inferred. The local
+    merge is not published and has no exact branch CI; hold push for Root''s independent
+    master gate. F8y, the full local profile, TCP4/TCP5, full AC1-AC9, SX/IX, official
+    REF-HELP-V25 and all provider/data/service holds remain open.
+
+    Historical checkpoint status (superseded by current reconciliation) follows: Current
+    2026-10-23T20:12Z: TC remains on exact source c9719521bfe8c558f1a743df683a12bef85fffe4
+    with CI40010646181 terminal green for Backend, Frontend, Branch-declared and E2E;
+    feature EIG was expected skipped. Coordinator reports Provider fix ee3d8680d9c59f9c5973db0297f5bcbf3f7e0ac7
+    at published tip5b02caf509107856195ef8cfb2374e2ab6120612, with selected-default
+    coverage predicates and regression coverage. This is not a synchronized staging
+    release or deployed a6b9 proof; do not adopt or duplicate it. Full local profile,
+    F8y latency, full AC1-AC9, SX/IX, and official REF-HELP-V25 remain open, as do all
+    provider/data/service holds.
+
+    Prior 2026-10-23T20:03Z checkpoint record follows as history: Current 2026-10-23T20:03Z:
+    exact accepted release a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e is merged at c9719521bfe8c558f1a743df683a12bef85fffe4;
+    exact CI40010646181 passed Backend, Frontend, Branch-declared and E2E, with feature
+    EIG expected skipped. E2E reported 192 passed/110 declared skips. No local full
+    profile was run. The selected-default coverage endpoint mismatch remains a Provider-owned
+    contract issue; the historical in-memory reproduction is on source51ab, and the
+    c971 review is source inspection only. TC does not own the router/tests and has
+    not changed them. Full current-source local integration/visual profile, F8y latency
+    resolution, full AC1-AC9, SX/IX, and official REF-HELP-V25 remain open.
+
+    Previous 2026-10-23T19:17Z checkpoint snapshot follows, retained as history: Current
+    2026-10-23T19:17Z: exact green staging/master a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
+    (canonical receipt 20261023T150603Z-a6b9cc8d4fc2.json; CI39962134726) has been merged
+    into the TC-owned branch with the handoff-only retained-runtime audit preserved
+    in commit 996a975f3b6276a8e86a47bd509e93ca2f0f030a. Current combined branch exact
+    CI is pending publication; the previous exact CI40003951941 was green only for its
+    pre-merge 1e8f source. The accepted migration is additive ORM timestamp parity on
+    market_series_default, based on slv2_0011, not a historical rewrite; accepted migration
+    tests cover fresh and retained rows. No local migration DB or retained service was
+    touched. Branch changes include a narrow test/setup adjustment for F8m and automated
+    classification of this exact inert timestamp-only migration shape. The merged worktree
+    passed 18 targeted classifier tests, the migration-head compatibility test, the
+    full scope guard with 864 immutable imports/29 adaptations, and workstream validation.
+    F8y''s 60-second inputValue stall remains unproven and its one browser slot remains
+    consumed. Full AC1-AC9, V25 Help parity, and broader validation remain open.
+
+    Historical 14:54 coordinator slot result: the saved test failure was originally
+    reported at flows.spec.ts:7592; later trace review proved the lock POST was not
+    sent. Target membership setup/checks before the stall passed; the lock/no-DELETE
+    phase did not complete. Full error-context, trace, video, and local service logs
+    remain preserved in the private F8y artifacts directory. Exact browser and synthetic
+    project containers/volumes/networks have been removed; retained services/data were
+    not touched. No retries, assertion/timeout/oracle changes, or broader matrix were
+    made.
+
+    Earlier 14:54 slot evidence (historical): the exact source frontend image and one
+    F8y browser attempt were produced. The lock route was not reached. All later positive
+    actions in teardown are not acceptance.
+
+    Full error-context, trace, video, and local service logs remain preserved in the
+    private F8y artifacts directory. Exact browser and synthetic project containers/volumes/networks
+    have been removed; retained services/data were not touched. No retries, assertion/timeout/oracle
+    changes, or broader matrix were made.
+
+    Historical F8y slot result (2026-10-23 14:38Z): the released one-case slot produced
+    an exact-source backend image but no frontend image under the 768 MiB/1 CPU/no-swap
+    cap. The F8y case did not run; no fixture/browser was started and no F8y pass or
+    failure is claimed. The builder is stopped with cache retained, and the candidate
+    project has no containers, volumes, or networks. Resumption requires a revised bounded
+    build allowance or a verified artifact built from exact candidate app inputs.
+
+    Committed local/remote TC HEAD is synchronized at a83af4133cbd31e741c5a4ae5bc6ee9954fa56a9.
+    Exact own-branch CI39935342169 attempt 1 is terminal red: Frontend job120353389277
+    ran all 1,381 tests but failed the unchanged function-coverage threshold (69.04%
+    versus 70%); Backend job120353388553 and Branch-declared job120362123490 passed,
+    while E2E job120362124695 and Exhaustive job120362125598 were skipped. Earlier CI39925201913
+    ran on source 1892607 only and its frontend function coverage was 75.61%. A fresh
+    bounded local V8 coverage run on the five-test mounted parent file state completed
+    144 files/1,384 tests successfully, but remained below the unchanged global function
+    gate at 69.46% (threshold 70%); statement, branch, and line coverage were 82.18%,
+    73.21%, and 82.18%. The exact report shows WorkstationToolContent.vue 49/342 functions
+    and tagColumns.ts 7/7, so Tag Column helper coverage is not the missing behavior.
+    After that report, mounted-parent regressions were added for row selection (emitting
+    `SPY` with instrument ID 101), reactive lock transition (disabling Remove without
+    a DELETE), non-empty list creation with Tag Column preservation, failed list creation
+    and successful retry preserving current selection/configuration, resolved-symbol
+    addition to the selected list, and unresolved-symbol rejection without mutation.
+    The updated focused parent file passes 11/11 under one worker. The full coverage
+    run predates those six added tests and does not establish their effect on the global
+    percentage. This is not a replacement for F8y''s ordinary browser positive and locked-target
+    negative proof. Preserve the parent assertions and threshold; no browser, fixture,
+    typecheck, or full profile has run for the updated test file. Root''s isolated F8m
+    repair and exact CI are green; do not duplicate it.
+
+    The previously published TC source 51ab9d03dd139b8959808a23b4f8cc272f8556aa contains
+    the exact green F04 adoption at merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32,
+    preserved checkpoint b59b489913dd4359b6205139e4b4f934d0952667, canonical F04 receipt
+    20261023T051709Z-f04fb2a26c63.json, and corrected 858-path manifest. Exact TC CI39908879710
+    passed all mandatory jobs on attempt 1; E2E was 192 passed/110 declared skips and
+    Exhaustive Integration Gate was skipped as expected. The pending language below
+    records an earlier snapshot and is superseded by this exact-source result. This
+    does not establish F8y local parent-runtime proof, full browser acceptance, full
+    roadmap completion, or official REF-HELP-V25 parity. Latest local follow-up 2026-10-23
+    12:51Z: full V8 coverage was run once on the 11-test parent-file SHA above (not
+    on the three-test-later current file); all 1,390 tests passed, but functions measured
+    69.60% against the unchanged 70% threshold. Statements/lines were 82.30%, branches
+    73.24%; component metrics were WorkstationToolContent.vue 54/342 and tagColumns.ts
+    7/7. The current 14-test mounted-parent suite and Vue type-check pass. Three tests
+    were added after coverage, including failed Tag Column add/removal truthfulness
+    and list rename/copy/delete configuration preservation; their effect on global coverage
+    remains unmeasured. Playwright line-reporter collection finds only F8y-tag-columns;
+    the default reporter''s read-only report write failure was setup-only. A separately
+    authorized coverage refresh and F8y browser proof remain pending; no browser or
+    fixture was started.
+
+    TC source adopts exact green staging f04fb2a26c6363c6090e76c2658cfcfe7adabf61 at
+    merge acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32 over merge base 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.
+    The four pre-merge dirty TC records were preserved in b59b489913dd4359b6205139e4b4f934d0952667.
+    Exact source 5d7573900449a3007de8b76cf2bae59661d0cbc6 is published and remote-verified.
+    Exact CI39905888099 has a branch-guard failure caused by the stale 4687 helper blob
+    pin; Frontend and Backend passed, while E2E was still running at last observation.
+    The local F04 receipt/858-path replacement manifest now passes scope self-tests
+    and actual guard; own corrective publication and exact CI remain pending. Focused
+    F04 observer unit is 9/9. This does not duplicate Root''s observer repair or establish
+    a new local browser profile. The older fe4a checkpoint details below remain historical
+    and are retained.
+
+    Current continuation at 2026-10-23: published feature HEAD fe4a1fcba32fe640c6b9e2f1f6e6503f86788418
+    matches the feature ref and contains accepted staging 4687. Exact CI39892894561
+    attempt 1 completed successfully on fe4a at 03:47:13Z: Backend Tests, Frontend Unit
+    Tests, Branch-declared Tests, and E2E passed; Exhaustive Integration Gate was an
+    expected skip. E2E passed 191 with 110 declared skips and no failures or flakes.
+    The per-instrument Favorites toggle serialization fix and two deferred regressions
+    are published in fe4a; the published-source baseline red was 1 failed/8 passed and
+    focused store/WatchList suites passed103/103, with Vue type-check, workstream validation
+    and scope guards green. The full local browser slot remains held by Root; F8y parent-host
+    runtime proof is still pending. Official Custom Date Sort guides identify the related
+    Sector Index (SX) for `vs. Sub Industry` and the main Industry Index (IX) for `vs.
+    Industry`; current TC-owned source has no mapping from stored sector/industry labels
+    to those instruments. Weighting, point-in-time membership, and canonical local-history
+    lineage remain unresolved, so these modes stay unavailable. Full AC1–AC9 and official
+    REF-HELP-V25 remain open.
+
+    The following F8y source details describe the pre-404fe history; latest publication
+    and CI state is stated above and in current_blocker.
+
+    The current TC source merges the coordinator-accepted GREEN staging release 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
+    at branch merge commit f704aa2ed1ca4c3b6e40fbe6940d564a4827ff5d. Canonical receipt
+    20261023T000222Z-4687bd0cd21a.json binds CI39866387942 attempt 1 to the exact source.
+    Merge-base and source review confirmed a clean merge from TC candidate 4a88aaf8388b72f1b3eb22b21b2f50312bf12500
+    with no conflicts. The receipt-pinned scope manifest repins 858 frozen import paths
+    to 4687 and adds the six new non-TC-owned paths from that release; the two workstation
+    Market Map files stay governed by the pre-existing narrow shared-path exceptions.
+    The previous 0e release remains in history but is superseded by this latest adoption.
+
+    TC''s ordinary-click F8y Tag Column test configures the target list through the
+    actual workstation, invokes its row context-menu action, observes the target WatchList
+    POST and verifies the separate control list remains unchanged. It was collected
+    on the earlier 570c source but has not run in a browser; positive/negative parent-host-to-mutation
+    runtime proof remains pending the coordinator''s full local fixture slot. Do not
+    substitute helper, parser or collection results. Exact branch CI39877709985 on c5da
+    was RED at this case after the target mutation POST succeeded: returning to the
+    target list rendered XLE without the configured Tag Column membership cell, and
+    its built-in retry also failed. The working-tree repair was motivated by the stale-props
+    binding in publishWatchlistConfiguration; it now merges the selection over liveToolConfiguration.
+    Its baseline-red source-binding test failed with 1 failure and 8 passes before wiring
+    and now passes; affected suites pass104/104, vue-tsc --noEmit exits0, and the unchanged
+    Playwright case collects. Repair publication and exact CI remain pending; none of
+    these checks is browser proof. No assertions, references, masks, tolerances, retries,
+    thresholds, provider behavior, datasets, or deployment settings were changed. The
+    full AC1–AC9 roadmap and official REF-HELP-V25 parity remain open; TCP bounded checkpoint
+    evidence does not close either.
+
+    The bounded TC2000 checkpoint remains narrowly accepted by Root on validated implementation
+    f206029f16c94e32616ccccf81f65675f224e67c under the recorded human standing authorization
+    and literal checkpoint delegation. Its exact attempt-1 CI39701994384 was green for
+    mandatory Backend (3421 unit +459 integration,83%), Frontend Unit, Branch Declared
+    and E2E (191 passed/110 declared skips/0 failures/0 flakes/0 retry markers); EIG
+    was an expected skip. Local functional (195 passed/2 unchanged declared skips/0
+    retries), strict104 visual, frontend coverage/build, and 628c-to-6a6e migration
+    compatibility remain qualified to their unchanged inputs. The four-record closing
+    packet was published on febc6fbb7a033534f3c486f766dd437780954d09 before the later
+    staging adoption.
+
+    On 2026-10-22, the coordinator released exact combined Provider+ETF+TC2000+ Strategy
+    staging 0e342512e53ba2268425294d61c50e219eaafa4f with green CI 39827786248. This
+    TC branch adopted that exact SHA as an ancestor through the guarded update and pushed
+    only its assigned feature ref; adoption parity was independently verified. The branch
+    has since continued, and its current published implementation is 5ca3423e553e27e36dc8002be5f11996bbd4cf9e,
+    also independently verified as the current feature-ref tip. The scope guard passes
+    for that receipt-approved fast-forward and pins 858 frozen paths to exact release
+    blobs/deletions; 29 approved TC adaptations remain separate. This is not full AC1-AC9
+    or official REF-HELP-V25 completion. Custom Date Sort is the current TC-owned roadmap
+    item. The formula/range core and exact-scope canonical-local coverage gate are published;
+    the loader checks historical coverage first and reads at most 5000 canonical local
+    bars only after matching ready evidence. The current candidate wires Shift+T to
+    an ordinary chart drag, snaps fractional plot positions to the nearest loaded bar,
+    and requests only the existing local-history contract. It adds a strictly parsed
+    range-specific percent column and a new WatchList window for an explicitly selected
+    existing personal list; per-symbol calculations use coverage-first canonical local
+    history with a four-worker bound and explicit unavailable outcomes. Ordinary WatchList
+    default sorting remains unchanged. Three focused suites pass 108/108 and Vue type-check
+    passes on published implementation 5ca3423. These are unit/type-check results only;
+    no live app/database, browser, full frontend coverage/build, or exact candidate
+    CI was run. The existing canonical W1/MN route may locally materialize derived bars
+    from D1. A trustworthy existing sub-industry/industry comparison series remains
+    open, so relative modes stay unavailable. No deployment, live provider/ETF test,
+    paid access, or visual reference change is claimed.'
 integration_checkpoint:
-  id: tc2000-workstation-integration-1
-  planning_authorization: "Human resumed the saved checkpoint objective on 2026-10-15, directing this existing session to read coordinator guidance, fix independent chart-template and functional/visual defects, then consume green Provider+ETF staging and prepare review."
-  acceptance: accepted_whole_frontend_tc_presentation_checkpoint_by_root_2026-10-26
-  coordinator_guidance: /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md
-  downstream_consumers: [human-workstation-testing, strategy-lab-v2]
-  required_contracts: [provider-coverage-preflight, etf-provenance-freshness, immutable-code-study-outputs, chart-template-interactions]
-  source_freeze: "Validated implementation source is f2d0228a491a9e5baeb4fdb048da3ed37e485039. Final closure-record HEAD is captured from exact branch HEAD after publication; its exact CI is required before Root-supported staging integration."
-  continuation: "Root accepted this bounded whole-frontend presentation checkpoint only. Preserve original TCP and AC text and the full roadmap. Exact records-only closure HEAD CI remains required before Root-supported staging integration; no feature-branch self-integration, deployment, or promotion."
-  original_criteria_disposition:
-    AC1: {status: bounded_checkpoint_delivered, owner: TC, delivered: "475-path ownership manifest; 350 immutable paths byte-verified and 29 narrow adaptations", remainder: "Continue ownership enforcement and whole-roadmap review"}
-    AC2: {status: consumer_contract_delivered, owner: TC, delivered: "Provider staging consumer contract from accepted 628c reconciliation", remainder: "Broader feature acceptance and future upstream contract changes"}
-    AC3: {status: consumer_contract_delivered, owner: TC, delivered: "ETF holdings capability, identity, freshness and lineage consumer contract from accepted 628c reconciliation", remainder: "Broader feature acceptance and future upstream contract changes"}
-    AC4: {status: partial_roadmap_open, owner: TC, delivered: "Bounded workstation flows and component evidence in this checkpoint", remainder: "Complete persisted-input workflows, breadth/ratios/historical analytics and full V25 roadmap"}
-    AC5: {status: partial_roadmap_open, owner: TC, delivered: "Existing immutable Study/Strategy consumers preserved and validated within delivered scope", remainder: "Broader engine, promotion, lineage and combined-consumer roadmap"}
-    AC6: {status: partial_roadmap_open, owner: TC, delivered: "Bounded interaction and strict visual evidence without changing protected references or thresholds", remainder: "Official REF-HELP-V25 parity and broader V25 visual/state parity"}
-    AC7: {status: partial_roadmap_open, owner: TC, delivered: "Qualified functional, strict visual, performance, sandbox, migration and CI evidence", remainder: "Whole-roadmap security, accessibility, endurance and broader operational evidence"}
-    AC8: {status: line_level_reconciliation_delivered_after_exact_green_ci, owner: TC, delivered: "Provider/ETF shared paths have line-level dispositions under the 475/350/29 manifest; exact implementation CI40330168827 is green", remainder: "Continue reconciliation for future upstream changes and broader combined validation"}
-    AC9: {status: delegated_bounded_checkpoint_closure_only, owner: TC, delivered: "Clean synchronized branch and bounded checkpoint packet under recorded 2026-10-20 delegation", remainder: "Whole-roadmap review remains open; no direct merge, staging mutation, deployment or promotion"}
+  id: tc-on-demand-workstation-consumer-20261027
+  objective: Implement and qualify explicit, bounded on-demand instrument discovery,
+    selected-chart history and ETF issuer/holding-history consumer flows while preserving
+    cached rendering, identity, lineage and current-analysis safeguards.
+  status: in_progress
+  acceptance: pending; no checkpoint acceptance is claimed
+  planning_authorization: /home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md
+  source_capture: 'integration_capture: exact branch HEAD; implementation source 74b854d93a2e6853e2c59db1ea29293504b65071;
+    this metadata-only commit does not change implementation inputs.'
+  criteria_ids:
+  - TCO1
+  - TCO2
+  - TCO3
+  - TCO4
+  - TCO5
+  - TCO6
+  criteria_total: 6
+  criteria_completed: []
+  required_next_gate: Await Root release of exact synchronized-green ETF staging; adopt
+    only that source through the supported workflow, then run the source-matched combined
+    gates and exact-source CI.
+  full_roadmap: AC1-AC9, official REF-HELP-V25 parity, and all broader native/live/target
+    criteria remain open.
 current_software_checkpoint:
   id: tc-on-demand-workstation-consumer-20261027
-  objective: "Implement and qualify explicit, bounded on-demand instrument discovery, selected-chart history and ETF issuer/holding-history consumer flows while preserving cached rendering, identity, lineage and current-analysis safeguards."
+  objective: Implement and qualify explicit, bounded on-demand instrument discovery,
+    selected-chart history and ETF issuer/holding-history consumer flows while preserving
+    cached rendering, identity, lineage and current-analysis safeguards.
   status: in_progress
-  planning_authorization: ".ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md; this defines planning scope only and is not acceptance."
-  acceptance: pending
-  source_capture: "integration_capture: exact branch HEAD. The source and owned records are committed locally as this current branch HEAD; exact-source CI has not run."
-  prior_checkpoint_history: "The accepted tc2000-workstation-integration-1 object above and its TCP1-TCP5/TCV1 criteria, closure evidence and AC1-AC9 dispositions are preserved unchanged as historical truth. The current checkpoint does not supersede or extend that acceptance."
+  planning_authorization: .ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md;
+    this defines planning scope only and is not acceptance.
+  acceptance: pending; no checkpoint acceptance is claimed
+  source_capture: 'integration_capture: exact branch HEAD; implementation source 74b854d93a2e6853e2c59db1ea29293504b65071;
+    this metadata-only commit does not change implementation inputs.'
+  prior_checkpoint_history: The previously accepted whole-frontend checkpoint and TCP1-TCP5/TCV1
+    records are preserved verbatim in historical_checkpoint_archive; this current checkpoint
+    is separate and unaccepted.
   progress:
     completed: []
     total: 6
   acceptance_criteria:
-    - {id: TCO1, text: "Adopt only Root-released synchronized green staging containing accepted Provider and repaired ETF checkpoints; preserve owned preparation/history, classify shared paths, upstream ownership and immutable Study outputs."}
-    - {id: TCO2, text: "Main Workstation and chart UI support explicit unknown-symbol source discovery and verified identity selection; cryptographic request IDs work on actual private HTTP origins; mount, typing and hydration remain local-only."}
-    - {id: TCO3, text: "Explicit bounded selected-chart history requests use verified identity/timeframe/range/adjustment/source, preserve explicit adjusted=false, prevent fanout/stale-scope updates, and render local readback; held/error retains cache and TC does not implement provider routing/ingestion."}
-    - {id: TCO4, text: "Explicit first-use ETF issuer acquisition and resolved holding-chart handoff preserve composition date, known-at, provenance and snapshot identity; historical/stale data remains display-only and never silently becomes current analytic input."}
-    - {id: TCO5, text: "Source-matched required local unit/build/lint, functional and strict visual profile and exact branch CI pass without changing ordinary-click, keyboard/mobile, TC appearance, references, masks, tolerances or zero retries; controlled cases are preparation, not full combined or genuine source proof."}
-    - {id: TCO6, text: "Durable handoff records exact implementation/closing source and image inputs, tested contracts/defaults/migration impact, limitations and all nine roadmap dispositions; only owned cleanup is proved while persistent and sibling resources remain preserved; Root acceptance stays pending until gates/review pass."}
-  roadmap_disposition: "All nine original AC IDs and texts remain unchanged under roadmap_acceptance_criteria. No AC, TCP criterion, full V25 item, or producer/target acceptance is closed by this in-progress software checkpoint."
+  - id: TCO1
+    text: Adopt only Root-released synchronized green staging containing accepted Provider
+      and repaired ETF checkpoints; preserve owned preparation/history, classify shared
+      paths, upstream ownership and immutable Study outputs.
+  - id: TCO2
+    text: Main Workstation and chart UI support explicit unknown-symbol source discovery
+      and verified identity selection; cryptographic request IDs work on actual private
+      HTTP origins; mount, typing and hydration remain local-only.
+  - id: TCO3
+    text: Explicit bounded selected-chart history requests use verified identity/timeframe/range/adjustment/source,
+      preserve explicit adjusted=false, prevent fanout/stale-scope updates, and render
+      local readback; held/error retains cache and TC does not implement provider routing/ingestion.
+  - id: TCO4
+    text: Explicit first-use ETF issuer acquisition and resolved holding-chart handoff
+      preserve composition date, known-at, provenance and snapshot identity; historical/stale
+      data remains display-only and never silently becomes current analytic input.
+  - id: TCO5
+    text: Source-matched required local unit/build/lint, functional and strict visual
+      profile and exact branch CI pass without changing ordinary-click, keyboard/mobile,
+      TC appearance, references, masks, tolerances or zero retries; controlled cases
+      are preparation, not full combined or genuine source proof.
+  - id: TCO6
+    text: Durable handoff records exact implementation/closing source and image inputs,
+      tested contracts/defaults/migration impact, limitations and all nine roadmap dispositions;
+      only owned cleanup is proved while persistent and sibling resources remain preserved;
+      Root acceptance stays pending until gates/review pass.
+  roadmap_disposition: All nine original AC IDs and texts remain unchanged under roadmap_acceptance_criteria.
+    No AC, TCP criterion, full V25 item, or producer/target acceptance is closed by
+    this in-progress software checkpoint.
+  candidate_source: 74b854d93a2e6853e2c59db1ea29293504b65071
+  local_evidence: Four controlled-response browser flows and 85 focused units are preparation
+    evidence only. Exact green ETF staging adoption, source-matched combined functional/strict-visual
+    gates and exact-source CI remain pending.
 acceptance_criteria:
-  - {id: TCP1, text: "COMPLETE (narrow coordinator technical acceptance only): green staging 82d881e76be8de538abb6ec5c454d96afe0ee56a/run38805309009 merged by d4274a9fa3119c212a9aaf2c0006c20d921812e8; implementation 7f33b07dfc7ffa57d5285e04981448732e3eb727 verified by exact attempt-1 CI 38835330075. This is not whole-checkpoint acceptance or staging-integration authority."}
-  - {id: TCP2, text: "Resolve TC-owned functional/visual failures without weakening checks; review and adopt only the human-authorized local Help reference after all four profiles pass, while keeping official V25 Help parity as unfinished roadmap work."}
-  - {id: TCP3, text: "After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers."}
-  - {id: TCP4, text: "Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI."}
-  - {id: TCP5, text: "Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release."}
-  - {id: TCV1, text: "Apply the human-authorized TC2000 presentation handoff to every exact reachable route/component path in frontend_presentation_handoff; preserve all workflows, URLs, data, keyboard/accessibility/mobile behavior and upstream domain contracts; qualify with focused checks and later Root-assigned exact-source full visual/functional gates. This does not close official V25 parity or the full roadmap."}
+  - id: TCO1
+    text: Adopt only Root-released synchronized green staging containing accepted Provider
+      and repaired ETF checkpoints; preserve owned preparation/history, classify shared
+      paths, upstream ownership and immutable Study outputs.
+  - id: TCO2
+    text: Main Workstation and chart UI support explicit unknown-symbol source discovery
+      and verified identity selection; cryptographic request IDs work on actual private
+      HTTP origins; mount, typing and hydration remain local-only.
+  - id: TCO3
+    text: Explicit bounded selected-chart history requests use verified identity/timeframe/range/adjustment/source,
+      preserve explicit adjusted=false, prevent fanout/stale-scope updates, and render
+      local readback; held/error retains cache and TC does not implement provider routing/ingestion.
+  - id: TCO4
+    text: Explicit first-use ETF issuer acquisition and resolved holding-chart handoff
+      preserve composition date, known-at, provenance and snapshot identity; historical/stale
+      data remains display-only and never silently becomes current analytic input.
+  - id: TCO5
+    text: Source-matched required local unit/build/lint, functional and strict visual
+      profile and exact branch CI pass without changing ordinary-click, keyboard/mobile,
+      TC appearance, references, masks, tolerances or zero retries; controlled cases
+      are preparation, not full combined or genuine source proof.
+  - id: TCO6
+    text: Durable handoff records exact implementation/closing source and image inputs,
+      tested contracts/defaults/migration impact, limitations and all nine roadmap dispositions;
+      only owned cleanup is proved while persistent and sibling resources remain preserved;
+      Root acceptance stays pending until gates/review pass.
 scope:
   - "R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved historical gate receipt durable in this workstream."
   - "R1: independently advance the TC workstation UI and behavior against the pinned V25 reference and existing acceptance evidence while upstream provider/ETF work proceeds."
@@ -2968,89 +3164,16 @@ migration_impact: "No generic provider or ETF schema/migration work is owned her
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed: [TCP1, TCP2, TCP3, TCP4, TCP5, TCV1]
+  completed: []
   total: 6
-  current_phase: "TC on-demand acquisition consumer UX: bounded history is wired to ChartView and the focused main Workstation chart; selected-ETF cache/issuer actions remain; four controlled-response Chromium cases and 85 focused unit tests pass, source remains local/unpublished, and producer staging/full combined profile remain pending; full AC1-AC9 roadmap continues"
-  next_action: >-
-    Await Root's exact green ETF staging release and later source-matched profile
-    allocation. Keep this local checkpoint unpublished; adopt only the released
-    green staging through the supported workflow, then complete the assigned
-    combined gates without changing controls, references, assertions,
-    tolerances, timeouts or zero-retry policy. Keep Provider-owned identity,
-    cached rendering, historical/current separation, holds, AC1-AC9 and official
-    V25 open.
-
-    Prior next-action text is preserved as historical context:
-    Publish the owned 02a7 adoption-record reconciliation once, then inspect
-    its exact-source branch CI. Once that is green and Root releases
-    the integration boundary, resume AC4 with persisted-evidence breadth,
-    ratio and historical analytics; preserve all provider/SEC, target, data,
-    quota, deployment and native-operation holds. Keep official V25 and the
-    remaining AC1-AC9 roadmap open.
-
-    Historical next-action records follow unchanged:
-    Historical next-action record follows unchanged, superseded only for the
-    current Provider-only subphase:
-    Historical pre-acceptance continuation record (superseded by
-    current_checkpoint_status below): TCP1 source 82d881e76be8de538abb6ec5c454d96afe0ee56a is already an ancestor
-    through merge d4274a9fa3119c212a9aaf2c0006c20d921812e8; no second merge is
-    needed. Focused local Chromium checks passed without retries: populated RSP
-    chip ordinary Plots open/close and Remove before and after template restore;
-    date-pointer cycled through all modes and persisted off through a successful
-    snapshot PUT and page reload. Prior exact-source Actions run 38827799889
-    on ancestor 3963da11 terminated with 188 passed, 110 skipped, and one
-    retry-passing F9c template-comparison flake (E2E job 116741553254; first
-    ordinary Plots click intercepted by Remove RSP); it is not clean
-    acceptance. Its skipped hosted visuals are not screenshot evidence.
-    Current HEAD 59bbb968 already contains merge d4274a9 with exact green
-    common repair 82d881e7 as second parent. Exact-current-source full local/CI
-    validation remains open. Before TCP4, execute the exact-source full
-    local/combined opted-in visual matrix in a documented deterministic
-    browser/font environment. Preserve assigned runtime/data/listener 15190
-    and keep official V25 Help parity unfinished.
-    Keep official V25 Help parity required_missing. Do not duplicate the
-    coordinator-owned pointer repair. Remaining TC work includes R1/R5/R6 and
-    V25 Favorites, custom-date sorting, and Tag Column gaps. Provider/ETF
-    product integration, TCP3/TCP4, complete roadmap validation, and
-    exact-source clean CI remain open. Preserve the integration gate and
-    assigned runtime/data.
-    Historical next action: Continue TC-owned R1/R5/R6 implementation and trace the Help screenshot
-    layout-state mismatch. Ctrl+M now opens explicit list membership actions,
-    and Shift/Ctrl divider drag now evenly resizes the selected side with
-    persisted Golden Layout proportions. Shift+N now opens Notes for the active
-    linked symbol from shell focus while preserving editor/control ownership.
-    Remaining V25 design gaps include Favorites, custom-date sorting, and Tag
-    Column ownership. Keep the full visual matrix and cleanup-safe exact
-    integration gate open. Defer upstream consumption/reconciliation until both
-    dependencies reach staging. Stop at ready_for_human_review.
-    Current continuation (2026-10-16): exact mounted-app observers on
-    43e2c0275/run38846672417 are narrowly accepted (189 passed, 110 expected
-    skips, zero retries/flakes/failures); this evidence does not cover later
-    changes. The additive ToolWindow alias and unit assertion are in d9e1187fb;
-    exact run38849132666 matched that source, with 11/11 ToolWindow unit tests
-    and clean required jobs, but all visuals were skipped. Current F8b cleanup
-    candidate is 73fba9d4acc815e963d06cf5085db7497ccac1f7; exact CI38852207578
-    attempt1 is terminal success. All required jobs succeeded; Playwright reports
-    189 passed/110 skipped/zero retries, flakes, or failures. F8b close, F8n
-    pop-out crosshair, and F8u real plot drag appeared in the first-attempt run.
-    The standard workflow passed only STACK_URL and did not opt into screenshot
-    parity; hosted visual skips are not pixel acceptance. Complete local
-    functional and all104 unchanged visual checks after Provider releases the
-    heavy local slot. Provider and ETF are not yet released as green product
-    staging baselines; do not merge them early or import feature branches.
-    Latest next action: diagnose run38868618416 F8m failure at
-    flows.spec.ts:2377 from its retained exact CI evidence and current source;
-    preserve ordinary Grey-menu action and chart assertions, fix only proven
-    owned behavior, then revalidate. Keep full functional/visual gates and the
-    complete V25 roadmap open.
-  current_blocker: >-
-    This TC consumer candidate is staged but not published or exact-CI/runtime
-    qualified. The coordinator-reviewed DTO design is not accepted producer
-    source; Root must confirm the conservative timeframe caps against accepted
-    Provider limits and allocate any runtime/full-profile slot. No producer
-    source was imported or called. Keep the complete AC1-AC9, SX/IX, official
-    REF-HELP-V25 roadmap, F8y history, all data/provider/service holds and all
-    prior red evidence intact.
+  current_phase: On-demand workstation consumer implementation is prepared locally;
+    the four controlled-response flows and 85 focused unit tests are preparation evidence
+    only.
+  next_action: Await Root exact green ETF staging release. Adopt only the released SHA
+    through the supported workflow, then complete source-matched combined functional/strict-visual
+    gates and exact-source CI. Preserve AC1-AC9, official V25 and all provider/data/target/service
+    holds.
+  updated_at: '2026-10-27T22:28:35Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in

@@ -25097,3 +25097,8 @@ image identity: all33 original containers retained their image/state;51 volumes,
 11 networks and56 baseline image IDs remained. ETF's separate Postgres/Redis
 containers remained running unchanged. No global prune or retained/sibling
 cleanup occurred.
+
+
+## Canonical on-demand checkpoint fields corrected — 2026-10-27
+
+The execution-facing top-level checkpoint is now `tc-on-demand-workstation-consumer-20261027` with TCO1–TCO6 in progress, acceptance pending, and progress at0/6. The former accepted `tc2000-workstation-integration-1` integration checkpoint, its TCP1–TCP5/TCV1 criteria, authorization, closure summary, progress and status context are preserved in `plan.yaml:historical_checkpoint_archive` and the corresponding `session.json` archive; all nine AC1–AC9 roadmap IDs/text remain unchanged. Implementation source remains74b854d93a2e6853e2c59db1ea29293504b65071. Four controlled browser flows and85 focused units remain preparation evidence only; exact green ETF staging adoption, combined profile and exact-source CI are pending. This records-field correction does not alter native goal state/accounting, product/test inputs, or publication status.
