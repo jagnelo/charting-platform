@@ -135,6 +135,16 @@ SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
 _BENCHMARK_FAMILY_ROLES = ("cap_weight", "equal_weight", "value", "growth")
 USABLE_HOLDINGS_COMPLETENESS = frozenset({"complete", "filing_reconstructed"})
 
+
+def _explicit_etf_acquisition_binder():
+    """Return the staged Provider binder without supplying a local fallback."""
+
+    from app.services import provider_runtime  # noqa: PLC0415
+
+    binder = getattr(provider_runtime, "bind_explicit_etf_holdings_acquisition", None)
+    return binder if callable(binder) else None
+
+
 _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY = {
     "filing_reconstructed_holdings": "filing_reconstructed",
     "issuer_reported_dated_complete_holdings": "complete",
@@ -1384,6 +1394,7 @@ async def acquire_etf_holdings_profile(
     )
     profile = await get_etf_profile_for_instrument(db, instrument.id)
     profile_created = False
+    curated_route_applied = False
     if profile is None:
         if not refresh or not curated_adapter_key:
             return None
@@ -1392,8 +1403,17 @@ async def acquire_etf_holdings_profile(
         # canonical instrument attached so subsequent route metadata/probing
         # never triggers async lazy loading on this explicit acquire request.
         profile.instrument = instrument
-        _apply_known_route_metadata(profile)
+        curated_route_applied = _apply_known_route_metadata(profile)
         profile_created = True
+        # The shared Provider bridge validates the committed profile identity
+        # before issuing a request. Persist only this explicitly requested,
+        # already-canonical fund profile and curated local route state, then
+        # reload it with its instrument relationship before entering that bridge.
+        await db.flush()
+        await db.commit()
+        profile = await get_etf_profile_for_instrument(db, instrument.id)
+        if profile is None:
+            return None
 
     snapshot = await get_latest_snapshot(
         db,
@@ -1424,7 +1444,7 @@ async def acquire_etf_holdings_profile(
     profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
     reviewed_adapter_key = curated_adapter_key or profile_adapter_key
     if not profile_created and curated_adapter_key:
-        _apply_known_route_metadata(profile)
+        curated_route_applied = _apply_known_route_metadata(profile)
         configured_adapter_key = str(profile.adapter_key or "").strip().lower()
     if (
         not reviewed_adapter_key
@@ -1444,6 +1464,15 @@ async def acquire_etf_holdings_profile(
             provider_request_log_ids=[],
             message="No committed issuer-only holdings route is configured; no request was made.",
         )
+    if curated_route_applied and not profile_created:
+        # Explicit refresh may repair an older profile with current curated
+        # issuer-route metadata. Make that specific profile state durable before
+        # the shared bridge validates the committed route.
+        await db.flush()
+        await db.commit()
+        profile = await get_etf_profile_for_instrument(db, instrument.id)
+        if profile is None:
+            return None
     adapter = get_holdings_adapter(profile.adapter_key)
     if adapter is None or profile.instrument is None:
         return ETFHoldingsAcquireResult(
@@ -1514,16 +1543,56 @@ async def acquire_etf_holdings_profile(
             ),
         )
 
+    if not source_provider:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=None,
+            source_operation=operation,
+            provider_request_log_ids=[],
+            message="The selected issuer route has no trusted Provider identity; no request was made.",
+        )
+
+    acquisition_binder = _explicit_etf_acquisition_binder()
+    if acquisition_binder is None:
+        return ETFHoldingsAcquireResult(
+            profile=profile,
+            outcome="held",
+            refresh=True,
+            refresh_attempted=False,
+            refresh_succeeded=False,
+            snapshot=snapshot,
+            snapshot_id=snapshot.id if snapshot else None,
+            source_provider=source_provider,
+            source_operation=operation,
+            provider_request_log_ids=[],
+            message=(
+                "Explicit issuer acquisition is unavailable until the reviewed "
+                "Provider request scope is staged."
+            ),
+        )
+
     request_log_ids: list[int] = []
     try:
-        acquired = await _refresh_adapter_route(
-            db,
-            profile,
-            probe=probe,
-            acquisition_request_id=request_id,
-            atomic_ingest_savepoint=True,
-            request_log_ids_out=request_log_ids,
-        )
+        with acquisition_binder(
+            request_id=request_id,
+            instrument_id=profile.instrument.id,
+            symbol=profile.instrument.symbol,
+            issuer_provider_name=source_provider,
+        ):
+            acquired = await _refresh_adapter_route(
+                db,
+                profile,
+                probe=probe,
+                acquisition_request_id=request_id,
+                atomic_ingest_savepoint=True,
+                request_log_ids_out=request_log_ids,
+            )
         await _record_success(db, profile, snapshot=acquired)
         await db.flush()
         return ETFHoldingsAcquireResult(

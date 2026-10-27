@@ -24716,6 +24716,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         assert metadata["issuer"] == "VanEck"
         assert metadata["provider_aliases"] == {
             "holdings_adapter": "vaneck",
+            "holdings_source_provider": "vaneck",
             "product_slug": product_slug,
         }
 

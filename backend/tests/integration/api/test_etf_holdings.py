@@ -1,5 +1,6 @@
 import json
 import zipfile
+from contextlib import contextmanager
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
@@ -7,6 +8,7 @@ from xml.sax.saxutils import escape
 
 import httpx
 import pytest
+import pytest_asyncio
 
 from tests.integration.api.etf_holdings_test_fixtures import (
     seed_etf_profile,
@@ -30,6 +32,24 @@ _CURRENT_ERROR_LINEAGE_FIELDS = (
     "resolved_count",
     "unresolved_count",
 )
+
+
+def _install_explicit_etf_acquisition_scope(monkeypatch, *, request_id, instrument_id, symbol):
+    @contextmanager
+    def bind(**kwargs):
+        assert kwargs == {
+            "request_id": request_id,
+            "instrument_id": instrument_id,
+            "symbol": symbol,
+            "issuer_provider_name": "vaneck",
+        }
+        yield
+
+    monkeypatch.setattr(
+        "app.services.provider_runtime.bind_explicit_etf_holdings_acquisition",
+        bind,
+        raising=False,
+    )
 
 
 def _expected_current_error(base: dict, capability: dict) -> dict:
@@ -562,6 +582,75 @@ def test_bootstrap_endpoint_can_materialize_and_fetch_first_snapshot(
     assert latest.json()["row_count"] == 2
 
 
+@pytest_asyncio.fixture
+async def selected_fund_acquire_database(db_engine):
+    """Use an isolated schema and pooled sessions for independent visibility checks."""
+    from uuid import uuid4
+
+    from sqlalchemy import Table, text
+    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+
+    import app.models  # noqa: F401 - register mapped tables and FK targets
+    from app.database import Base
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import (
+        ETFHolding,
+        ETFHoldingsAdapterState,
+        ETFHoldingsRawArtifact,
+        ETFHoldingsSnapshot,
+        ETFProfile,
+    )
+    from app.models.instrument import Instrument
+
+    requested_tables = (
+        AssetClass.__table__,
+        InstrumentType.__table__,
+        Instrument.__table__,
+        ETFProfile.__table__,
+        ETFHoldingsSnapshot.__table__,
+        ETFHolding.__table__,
+        ETFHoldingsRawArtifact.__table__,
+        ETFHoldingsAdapterState.__table__,
+    )
+    tables_by_key: dict[str, Table] = {}
+    pending = list(requested_tables)
+    while pending:
+        table = pending.pop()
+        if table.key in tables_by_key:
+            continue
+        tables_by_key[table.key] = table
+        pending.extend(foreign_key.column.table for foreign_key in table.foreign_keys)
+
+    schema = f"etf_acquire_{uuid4().hex[:12]}"
+    async_url = db_engine.url.set(drivername="postgresql+asyncpg")
+    bootstrap_engine = create_async_engine(async_url, pool_pre_ping=True)
+    test_engine = None
+    schema_created = False
+    try:
+        async with bootstrap_engine.begin() as connection:
+            await connection.execute(text(f'CREATE SCHEMA "{schema}"'))
+            schema_created = True
+            await connection.run_sync(
+                lambda sync_connection: Base.metadata.create_all(
+                    sync_connection.execution_options(schema_translate_map={None: schema}),
+                    tables=tuple(tables_by_key.values()),
+                )
+            )
+        test_engine = create_async_engine(
+            async_url,
+            pool_pre_ping=True,
+            connect_args={"server_settings": {"search_path": schema}},
+        )
+        yield async_sessionmaker(test_engine, expire_on_commit=False)
+    finally:
+        if test_engine is not None:
+            await test_engine.dispose()
+        if schema_created:
+            async with bootstrap_engine.begin() as connection:
+                await connection.execute(text(f'DROP SCHEMA IF EXISTS "{schema}" CASCADE'))
+        await bootstrap_engine.dispose()
+
+
 def test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit(
     client, db, auth_headers, monkeypatch
 ):
@@ -645,6 +734,9 @@ def test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit(
         fake_refresh_adapter_route,
     )
     request_id = "e525f027-344b-4f80-93c5-13d21b1be25b"
+    _install_explicit_etf_acquisition_scope(
+        monkeypatch, request_id=request_id, instrument_id=instrument.id, symbol="OIH"
+    )
     response = client.post(
         "/api/v1/etf-holdings/OIH/acquire",
         headers=auth_headers,
@@ -673,11 +765,10 @@ def test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit(
 
 @pytest.mark.asyncio
 async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
-    db_engine, monkeypatch
+    selected_fund_acquire_database, monkeypatch
 ):
-    """Fresh AsyncSession creates only a local profile and serializes committed rows."""
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+    """Independent PostgreSQL sessions prove committed first-use profile visibility."""
+    from sqlalchemy import select, text
 
     from app.models.asset_class import AssetClass, InstrumentType
     from app.models.etf_holdings import ETFProfile
@@ -687,144 +778,204 @@ async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
     from app.services.etf_holdings import ingest_holdings_snapshot
     from app.services.etf_holdings_adapters import CanonicalHoldingRow
 
-    async_url = db_engine.url.set(drivername="postgresql+asyncpg")
-    async_engine = create_async_engine(async_url, pool_pre_ping=True)
+    session_factory = selected_fund_acquire_database
     observed_at = datetime.now(UTC)
-    try:
-        async with async_engine.connect() as connection:
-            outer_transaction = await connection.begin()
-            session_factory = async_sessionmaker(
-                bind=connection,
-                expire_on_commit=False,
-                join_transaction_mode="create_savepoint",
+    async with session_factory.begin() as seed_db:
+        instrument_matches = (
+            (await seed_db.execute(select(Instrument).where(Instrument.symbol == "OIH").limit(2)))
+            .scalars()
+            .all()
+        )
+        assert instrument_matches == [], "The test requires a newly canonical OIH identity"
+        equity = await seed_db.scalar(select(AssetClass).where(AssetClass.name == "Equity"))
+        if equity is None:
+            equity = AssetClass(name="Equity", description="Equity")
+            seed_db.add(equity)
+            await seed_db.flush()
+        etf_type = await seed_db.scalar(
+            select(InstrumentType).where(
+                InstrumentType.asset_class_id == equity.id,
+                InstrumentType.name == "ETF",
             )
-            async with session_factory() as seed_db:
-                instrument_matches = (
-                    (
-                        await seed_db.execute(
-                            select(Instrument).where(Instrument.symbol == "OIH").limit(2)
-                        )
-                    )
-                    .scalars()
-                    .all()
-                )
-                assert instrument_matches == [], "The test requires a newly canonical OIH identity"
-                equity = (
-                    await seed_db.execute(select(AssetClass).where(AssetClass.name == "Equity"))
-                ).scalar_one_or_none()
-                if equity is None:
-                    equity = AssetClass(name="Equity", description="Equity")
-                    seed_db.add(equity)
-                    await seed_db.flush()
-                etf_type = (
-                    await seed_db.execute(
-                        select(InstrumentType).where(
-                            InstrumentType.asset_class_id == equity.id,
-                            InstrumentType.name == "ETF",
-                        )
-                    )
-                ).scalar_one_or_none()
-                if etf_type is None:
-                    etf_type = InstrumentType(
-                        asset_class_id=equity.id,
-                        name="ETF",
-                        description="ETF",
-                    )
-                    seed_db.add(etf_type)
-                    await seed_db.flush()
-                instrument = Instrument(
-                    instrument_type_id=etf_type.id,
-                    symbol="OIH",
-                    name="VanEck Oil Services ETF",
-                    is_active=True,
-                    identity_status="resolved",
-                )
-                seed_db.add(instrument)
-                await seed_db.flush()
-                profile = await seed_db.scalar(
-                    select(ETFProfile).where(ETFProfile.instrument_id == instrument.id)
-                )
-                assert profile is None
-                await seed_db.commit()
+        )
+        if etf_type is None:
+            etf_type = InstrumentType(
+                asset_class_id=equity.id,
+                name="ETF",
+                description="ETF",
+            )
+            seed_db.add(etf_type)
+            await seed_db.flush()
+        instrument = Instrument(
+            instrument_type_id=etf_type.id,
+            symbol="OIH",
+            name="VanEck Oil Services ETF",
+            is_active=True,
+            identity_status="resolved",
+        )
+        seed_db.add(instrument)
+        await seed_db.flush()
+        instrument_id = instrument.id
+        assert (
+            await seed_db.scalar(
+                select(ETFProfile.id).where(ETFProfile.instrument_id == instrument_id)
+            )
+            is None
+        )
 
-            # A second independent session verifies absence, then the request
-            # gets a completely fresh identity map and must create the profile.
-            async with session_factory() as verify_db:
-                assert (
-                    await verify_db.scalar(
-                        select(ETFProfile.id).where(ETFProfile.instrument_id == instrument.id)
-                    )
-                    is None
+    # Prove that an uncommitted profile is invisible to a second physical
+    # PostgreSQL connection, so visibility below cannot pass through a shared
+    # transaction or identity map.
+    async with session_factory() as pending_db:
+        pending_pid = await pending_db.scalar(text("SELECT pg_backend_pid()"))
+        pending_profile = ETFProfile(
+            instrument_id=instrument_id,
+            adapter_key="vaneck",
+            provider_aliases={
+                "holdings_source_provider": "vaneck",
+                "holdings_adapter": "vaneck",
+                "product_slug": "oil-services-etf-oih",
+            },
+        )
+        pending_db.add(pending_profile)
+        await pending_db.flush()
+        async with session_factory() as uncommitted_observer_db:
+            observer_pid = await uncommitted_observer_db.scalar(text("SELECT pg_backend_pid()"))
+            assert observer_pid != pending_pid
+            assert (
+                await uncommitted_observer_db.scalar(
+                    select(ETFProfile.id).where(ETFProfile.instrument_id == instrument_id)
                 )
-            async with session_factory() as request_db:
-                assert len(request_db.identity_map) == 0
+                is None
+            )
+        await pending_db.rollback()
+    async with session_factory() as after_rollback_db:
+        assert (
+            await after_rollback_db.scalar(
+                select(ETFProfile.id).where(ETFProfile.instrument_id == instrument_id)
+            )
+            is None
+        )
 
-                async def fake_refresh_adapter_route(session, selected_profile, **kwargs):
-                    assert kwargs["acquisition_request_id"] == (
-                        "e525f027-344b-4f80-93c5-13d21b1be25b"
-                    )
-                    return await ingest_holdings_snapshot(
-                        session,
-                        etf_instrument=selected_profile.instrument,
-                        rows=[
-                            CanonicalHoldingRow(
-                                symbol="SLB",
-                                name="SLB Limited",
-                                weight=Decimal("0.20"),
-                                currency="USD",
-                                holding_type="equity",
-                                row_type="security",
-                                source_row_id="async-session-mock-1",
-                            )
-                        ],
-                        composition_date=date(2026, 10, 26),
-                        as_of_date=date(2026, 10, 26),
-                        known_at=observed_at,
-                        published_at=None,
-                        provenance="issuer_self_snapshotted_holdings",
-                        source_provider="vaneck",
-                        source_url=(
-                            "https://www.vaneck.com/us/en/investments/"
-                            "oil-services-etf-oih/downloads/holdings/?cken=true"
-                        ),
-                        source_identifier="oil-services-etf-oih",
-                        source_quality="self_snapshotted_holdings",
-                        completeness_status="unknown",
-                        parser_version="test-async-session-v1",
-                        raw_payload_text="mocked issuer body",
-                        raw_payload_json={"fixture": "offline-mock"},
-                        legal_metadata={"application_request_id": kwargs["acquisition_request_id"]},
-                        notes="Mocked acquisition for fresh AsyncSession serialization.",
-                        allow_provider_enrichment=False,
-                    )
+    request_id = "e525f027-344b-4f80-93c5-13d21b1be25b"
+    _install_explicit_etf_acquisition_scope(
+        monkeypatch,
+        request_id=request_id,
+        instrument_id=instrument_id,
+        symbol="OIH",
+    )
 
-                monkeypatch.setattr(
-                    "app.services.etf_holdings_refresh._refresh_adapter_route",
-                    fake_refresh_adapter_route,
+    async with session_factory() as request_db:
+        assert len(request_db.identity_map) == 0
+
+        async def fake_refresh_adapter_route(session, selected_profile, **kwargs):
+            assert kwargs["acquisition_request_id"] == request_id
+            # This observer must acquire a different live connection while
+            # the request session is still open and performing acquisition.
+            assert session.in_transaction()
+            active_request_pid = await session.scalar(text("SELECT pg_backend_pid()"))
+            async with session_factory() as visibility_db:
+                visibility_pid = await visibility_db.scalar(text("SELECT pg_backend_pid()"))
+                assert visibility_pid != active_request_pid
+                assert len(visibility_db.identity_map) == 0
+                persisted_profile = await visibility_db.scalar(
+                    select(ETFProfile).where(ETFProfile.instrument_id == instrument_id)
                 )
-                response = await acquire_holdings_profile(
-                    symbol="OIH",
-                    body=ETFProfileAcquireRequest(
-                        request_id="e525f027-344b-4f80-93c5-13d21b1be25b",
-                        refresh=True,
-                    ),
-                    db=request_db,
-                    current_user=None,
-                )
-                payload = response.model_dump(mode="json")
-                assert payload["outcome"] == "acquired"
-                assert payload["profile"]["symbol"] == "OIH"
-                assert payload["profile"]["issuer"] == "VanEck"
-                assert payload["snapshot"]["row_count"] == 1
-                assert payload["snapshot"]["known_at"].startswith("2026-10-27T")
-                assert payload["snapshot"]["holdings"][0]["reported_symbol"] == "SLB"
-                assert (
-                    payload["snapshot"]["extra_data"]["legal_metadata"]["application_request_id"]
-                    == "e525f027-344b-4f80-93c5-13d21b1be25b"
-                )
-            await outer_transaction.rollback()
-    finally:
-        await async_engine.dispose()
+                assert persisted_profile is not None
+                assert persisted_profile.adapter_key == "vaneck"
+                assert persisted_profile.provider_aliases["holdings_source_provider"] == "vaneck"
+            return await ingest_holdings_snapshot(
+                session,
+                etf_instrument=selected_profile.instrument,
+                rows=[
+                    CanonicalHoldingRow(
+                        symbol="SLB",
+                        name="SLB Limited",
+                        weight=Decimal("0.20"),
+                        currency="USD",
+                        holding_type="equity",
+                        row_type="security",
+                        source_row_id="async-session-mock-1",
+                    )
+                ],
+                composition_date=date(2026, 10, 26),
+                as_of_date=date(2026, 10, 26),
+                known_at=observed_at,
+                published_at=None,
+                provenance="issuer_self_snapshotted_holdings",
+                source_provider="vaneck",
+                source_url=(
+                    "https://www.vaneck.com/us/en/investments/"
+                    "oil-services-etf-oih/downloads/holdings/?cken=true"
+                ),
+                source_identifier="oil-services-etf-oih",
+                source_quality="self_snapshotted_holdings",
+                completeness_status="unknown",
+                parser_version="test-async-session-v1",
+                raw_payload_text="mocked issuer body",
+                raw_payload_json={"fixture": "offline-mock"},
+                legal_metadata={"application_request_id": kwargs["acquisition_request_id"]},
+                notes="Mocked acquisition for fresh AsyncSession serialization.",
+                allow_provider_enrichment=False,
+            )
+
+        monkeypatch.setattr(
+            "app.services.etf_holdings_refresh._refresh_adapter_route",
+            fake_refresh_adapter_route,
+        )
+        response = await acquire_holdings_profile(
+            symbol="OIH",
+            body=ETFProfileAcquireRequest(
+                request_id=request_id,
+                refresh=True,
+            ),
+            db=request_db,
+            current_user=None,
+        )
+        payload = response.model_dump(mode="json")
+        assert payload["outcome"] == "acquired"
+        assert payload["request_id"] == request_id
+        assert payload["profile"]["symbol"] == "OIH"
+        assert payload["profile"]["issuer"] == "VanEck"
+        assert payload["profile"]["adapter_key"] == "vaneck"
+        assert payload["snapshot"]["row_count"] == 1
+        assert len(payload["snapshot"]["holdings"]) == 1
+        assert payload["snapshot"]["provenance"] == "issuer_self_snapshotted_holdings"
+        assert payload["snapshot"]["source_provider"] == "vaneck"
+        assert payload["snapshot"]["source_identifier"] == "oil-services-etf-oih"
+        assert payload["snapshot"]["known_at"].startswith(observed_at.date().isoformat())
+        assert payload["snapshot"]["holdings"][0]["reported_symbol"] == "SLB"
+        assert (
+            payload["snapshot"]["extra_data"]["legal_metadata"]["application_request_id"]
+            == request_id
+        )
+
+    # A fresh transaction verifies the actual request commit, not merely
+    # same-session serialization from the request's identity map.
+    async with session_factory() as committed_db:
+        from sqlalchemy.orm import selectinload
+
+        from app.models.etf_holdings import ETFHoldingsSnapshot
+
+        committed_profile = await committed_db.scalar(
+            select(ETFProfile).where(ETFProfile.instrument_id == instrument_id)
+        )
+        assert committed_profile is not None
+        committed_snapshot = await committed_db.scalar(
+            select(ETFHoldingsSnapshot)
+            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .where(ETFHoldingsSnapshot.etf_profile_id == committed_profile.id)
+        )
+        assert committed_snapshot is not None
+        assert payload["snapshot"]["id"] == committed_snapshot.id
+        assert committed_snapshot.row_count == 1
+        assert committed_snapshot.provenance == "issuer_self_snapshotted_holdings"
+        assert committed_snapshot.source_provider == "vaneck"
+        assert committed_snapshot.source_identifier == "oil-services-etf-oih"
+        assert committed_snapshot.rows[0].reported_symbol == "SLB"
+        assert (
+            committed_snapshot.extra_data["legal_metadata"]["application_request_id"] == request_id
+        )
 
 
 def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(client, auth_headers, monkeypatch):

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import asyncio
+from contextlib import contextmanager
+from contextvars import ContextVar
 from datetime import UTC, date, datetime
 from types import SimpleNamespace
 
@@ -21,6 +24,30 @@ from app.services.etf_holdings_refresh import (
     refresh_etf_holdings_for_date,
 )
 from app.services.instrument_mastering import ensure_internal_identifier
+
+_EXPLICIT_ETF_ACQUISITION_BINDING = ContextVar(
+    "test_explicit_etf_acquisition_binding", default=None
+)
+
+
+def _install_explicit_etf_acquisition_binder(monkeypatch):
+    calls = []
+
+    @contextmanager
+    def bind(**kwargs):
+        calls.append(kwargs)
+        token = _EXPLICIT_ETF_ACQUISITION_BINDING.set(kwargs)
+        try:
+            yield
+        finally:
+            _EXPLICIT_ETF_ACQUISITION_BINDING.reset(token)
+
+    monkeypatch.setattr(
+        "app.services.provider_runtime.bind_explicit_etf_holdings_acquisition",
+        bind,
+        raising=False,
+    )
+    return calls
 
 
 class AsyncSessionAdapter:
@@ -61,6 +88,7 @@ class FakeBootstrapDB:
         self.nested_enters = 0
         self.nested_exits = 0
         self.flush_calls = 0
+        self.commit_calls = 0
         self.is_active = True
 
     def begin_nested(self):
@@ -68,6 +96,9 @@ class FakeBootstrapDB:
 
     async def flush(self, *args, **kwargs):
         self.flush_calls += 1
+
+    async def commit(self):
+        self.commit_calls += 1
 
 
 class _SyncNestedContext:
@@ -624,6 +655,15 @@ async def test_bootstrap_accepts_existing_public_snapshot_schema(monkeypatch):
     async def fake_probe_etf_holdings_adapter_route(db, profile):
         return probe
 
+    def explicit_acquire_must_not_be_called(**_kwargs):
+        raise AssertionError("legacy bootstrap must not enter explicit acquisition scope")
+
+    monkeypatch.setattr(
+        "app.services.provider_runtime.bind_explicit_etf_holdings_acquisition",
+        explicit_acquire_must_not_be_called,
+        raising=False,
+    )
+
     monkeypatch.setattr(
         "app.services.etf_holdings_refresh.ensure_lightweight_etf_instrument",
         fake_ensure_lightweight_etf_instrument,
@@ -917,6 +957,15 @@ async def test_acquire_cache_only_is_read_only_and_never_probes(monkeypatch):
     async def must_not_be_called(*_args, **_kwargs):
         raise AssertionError("cache-only acquisition must not perform source work")
 
+    def explicit_acquire_must_not_be_called(**_kwargs):
+        raise AssertionError("cache-only acquisition must not bind Provider scope")
+
+    monkeypatch.setattr(
+        "app.services.provider_runtime.bind_explicit_etf_holdings_acquisition",
+        explicit_acquire_must_not_be_called,
+        raising=False,
+    )
+
     monkeypatch.setattr(
         "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
         lambda *_args: _async_value(instrument),
@@ -943,6 +992,7 @@ async def test_acquire_cache_only_is_read_only_and_never_probes(monkeypatch):
     assert result.refresh_attempted is False
     assert result.provider_request_log_ids == []
     assert db.flush_calls == 0
+    assert db.commit_calls == 0
 
 
 async def _async_value(value):
@@ -950,7 +1000,10 @@ async def _async_value(value):
 
 
 @pytest.mark.asyncio
-async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(monkeypatch):
+@pytest.mark.parametrize("binder_available", [True, False], ids=["bound", "provider-not-staged"])
+async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
+    monkeypatch, binder_available
+):
     db = FakeBootstrapDB()
     instrument = _canonical_fund_instrument()
     profile = SimpleNamespace(
@@ -971,6 +1024,12 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
     captured = {}
     profile_creations = []
     success_records = []
+    binder_calls = _install_explicit_etf_acquisition_binder(monkeypatch) if binder_available else []
+    if not binder_available:
+        monkeypatch.delattr(
+            "app.services.provider_runtime.bind_explicit_etf_holdings_acquisition",
+            raising=False,
+        )
 
     class FakeAdapter:
         source_provider = "vaneck"
@@ -980,8 +1039,12 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
             assert kwargs["symbol"] == "OIH"
             return SimpleNamespace(status="ready", reason=None, confidence=0.9)
 
+    profile_reads = 0
+
     async def profile_for_instrument(_db, _instrument_id):
-        return None
+        nonlocal profile_reads
+        profile_reads += 1
+        return None if profile_reads == 1 else profile
 
     async def ensure_profile(_db, supplied_instrument):
         profile_creations.append(supplied_instrument)
@@ -992,6 +1055,14 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
 
     async def refresh_route(_db, supplied_profile, **kwargs):
         assert supplied_profile is profile
+        assert db.commit_calls == 1
+        if binder_available:
+            assert _EXPLICIT_ETF_ACQUISITION_BINDING.get() == {
+                "request_id": "7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+                "instrument_id": instrument.id,
+                "symbol": instrument.symbol,
+                "issuer_provider_name": "vaneck",
+            }
         kwargs["request_log_ids_out"].append(481)
         captured.update(kwargs)
         return acquired_snapshot
@@ -1024,6 +1095,7 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
         supplied_profile.adapter_key = "vaneck"
         supplied_profile.provider_aliases = {
             "holdings_adapter": "vaneck",
+            "holdings_source_provider": "vaneck",
             "product_slug": "oil-services-etf-oih",
         }
         return True
@@ -1044,17 +1116,37 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
     )
 
     assert result is not None
+    assert db.commit_calls == 1
+    if not binder_available:
+        assert result.outcome == "held"
+        assert result.refresh_attempted is False
+        assert result.refresh_succeeded is False
+        assert result.provider_request_log_ids == []
+        assert captured == {}
+        assert success_records == []
+        return
+
     assert result.outcome == "acquired"
     assert result.snapshot_id == acquired_snapshot.id
     assert result.refresh_attempted is True
     assert profile.instrument is instrument
     assert profile_creations == [instrument]
+    assert profile_reads == 2
     assert captured["acquisition_request_id"] == "7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d"
     assert captured["atomic_ingest_savepoint"] is True
     assert captured["request_log_ids_out"] == result.provider_request_log_ids
     assert result.provider_request_log_ids == [481]
+    assert binder_calls == [
+        {
+            "request_id": "7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "issuer_provider_name": "vaneck",
+        }
+    ]
+    assert _EXPLICIT_ETF_ACQUISITION_BINDING.get() is None
     assert success_records == [(profile, acquired_snapshot)]
-    assert db.flush_calls == 1
+    assert db.flush_calls == 2
 
 
 @pytest.mark.asyncio
@@ -1172,7 +1264,8 @@ async def test_acquire_holds_unproven_adapter_without_transport(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_acquire_failure_preserves_existing_profile_and_snapshot(monkeypatch):
+@pytest.mark.parametrize("cancelled", [False, True], ids=["failure", "cancellation"])
+async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypatch, cancelled):
     db = FakeBootstrapDB()
     instrument = _canonical_fund_instrument()
     prior_snapshot = SimpleNamespace(id=98, source_provider="vaneck")
@@ -1193,8 +1286,9 @@ async def test_acquire_failure_preserves_existing_profile_and_snapshot(monkeypat
         sec_series_id=None,
         sec_class_id=None,
     )
-    failure = RuntimeError("bounded test failure")
+    failure = asyncio.CancelledError() if cancelled else RuntimeError("bounded test failure")
     failure_records = []
+    binder_calls = _install_explicit_etf_acquisition_binder(monkeypatch)
 
     class FakeAdapter:
         source_provider = "vaneck"
@@ -1210,6 +1304,12 @@ async def test_acquire_failure_preserves_existing_profile_and_snapshot(monkeypat
         return prior_snapshot
 
     async def refresh_route(*_args, **_kwargs):
+        assert _EXPLICIT_ETF_ACQUISITION_BINDING.get() == {
+            "request_id": "7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+            "instrument_id": instrument.id,
+            "symbol": instrument.symbol,
+            "issuer_provider_name": "vaneck",
+        }
         _kwargs["request_log_ids_out"].append(582)
         raise failure
 
@@ -1235,15 +1335,27 @@ async def test_acquire_failure_preserves_existing_profile_and_snapshot(monkeypat
     monkeypatch.setattr("app.services.etf_holdings_refresh._refresh_adapter_route", refresh_route)
     monkeypatch.setattr("app.services.etf_holdings_refresh._record_failure", record_failure)
 
-    result = await acquire_etf_holdings_profile(
-        db, symbol="OIH", request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d", refresh=True
-    )
+    if cancelled:
+        with pytest.raises(asyncio.CancelledError):
+            await acquire_etf_holdings_profile(
+                db,
+                symbol="OIH",
+                request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+                refresh=True,
+            )
+        assert failure_records == []
+    else:
+        result = await acquire_etf_holdings_profile(
+            db, symbol="OIH", request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d", refresh=True
+        )
+        assert result is not None
+        assert result.outcome == "failed"
+        assert result.snapshot is prior_snapshot
+        assert result.snapshot_id == prior_snapshot.id
+        assert result.refresh_attempted is True
+        assert result.refresh_succeeded is False
+        assert result.provider_request_log_ids == [582]
+        assert failure_records == [(profile, failure)]
 
-    assert result is not None
-    assert result.outcome == "failed"
-    assert result.snapshot is prior_snapshot
-    assert result.snapshot_id == prior_snapshot.id
-    assert result.refresh_attempted is True
-    assert result.refresh_succeeded is False
-    assert result.provider_request_log_ids == [582]
-    assert failure_records == [(profile, failure)]
+    assert len(binder_calls) == 1
+    assert _EXPLICIT_ETF_ACQUISITION_BINDING.get() is None

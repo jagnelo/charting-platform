@@ -396,9 +396,13 @@ on_demand_market_acquisition_implementation:
     focused_api_attempt_1: preserved_red_snapshot_rows_assertion_did_not_match_snapshot_holdings_wire_field
     focused_api_attempt_2: 2_passed_in_19.14s_corrected_source_zero_provider_http
     cleanup_receipt: /tmp/etf-acquire-api-20261027/attempt-2/cleanup-receipt.json
+    fresh_asyncsession_attempt_1: preserved_test_only_AttributeError_no_latest_snapshot_id
+    fresh_asyncsession_attempt_2: passed_1_in_13.60s; independent_live_backend_PIDs; mocked_provider_binder; returned_and_committed_snapshot_rows_provenance
+    fresh_asyncsession_cleanup: /tmp/etf-oih-fresh-session-focused-20261027/focused-result-and-cleanup.json
+    provider_green_staging: 6bff091d7d43de0731284dfabcafa09514d226a6_CI_40570735471_terminal_green; own_branch_adoption_pending
     full_backend_exact_ci_provider_scope_and_consumer_full_qualification: pending
   roadmap: AC1-AC14_remain_open; preserve_15_Tier0_156_Tier1_74_fallback_119_spent_requests_quarantines_raw_PIT_holds_and_30_day_observation
-  next_action: obtain exact Provider source-specific scope/readiness and complete required source gates before any Root-authorized single-source acquisition
+  next_action: adopt only exact green staging 6bff091d7d43de0731284dfabcafa09514d226a6 into the clean ETF branch; reconcile the real Provider binder/provisioning contract, then run the source-matched complete profile and exact branch CI after Root assigns capacity
 on_demand_market_acquisition_proposal:
   id: etf-on-demand-market-acquisition-1
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -1635,7 +1639,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: vaneck_oih_initial_qualification_component_test_isolation_fix_full_adapter_module_green_exact_tip_ci_pending_provider_staging_and_workbook_identity_review_pending
+  current_phase: explicit_issuer_refresh_prepared_fresh_asyncsession_pg_regression_passed_provider_green_staging_6bff_available_for_owner_adoption_full_profile_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The

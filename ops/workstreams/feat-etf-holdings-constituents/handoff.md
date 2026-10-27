@@ -1,5 +1,37 @@
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
+## Explicit Provider acquisition scope preparation — 2026-10-27
+
+On top of published source `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`, the
+local consumer now resolves the Provider-owned
+`bind_explicit_etf_holdings_acquisition(*, request_id, instrument_id, symbol,
+issuer_provider_name)` helper dynamically and enters it only around the
+`refresh=true` selected-fund issuer call. The inputs come from the request
+correlation ID, already-resolved canonical instrument, and registered adapter
+`source_provider`; no request-supplied provider name is accepted. The normal
+operation remains `fetch_etf_holdings_latest` through the existing shared ETF
+bridge. If the staged Provider helper is absent, the response is typed `held`
+with no transport. Cache-only `refresh=false`, bootstrap, scheduled refresh and
+SEC fallback do not enter this context.
+
+Explicit refresh now commits the already-canonical fund's local profile and
+curated route before the bridge, then reloads it with its instrument. Curated
+VanEck route metadata includes the trusted `holdings_source_provider=vaneck`
+field required by the shared bridge. Cache-only remains read-only. Offline
+coverage verifies exact binding, scope restoration on success/failure/cancel,
+no-scope cache/bootstrap compatibility, and missing-helper hold. The focused
+bootstrap module passed `33/33`; the VanEck route-metadata assertion passed
+`1/1`. The real-AsyncSession regression is prepared and collects, and asserts
+an independent fresh session can see the committed profile before its mocked
+refresh path; it was not executed because no DB slot is allocated here.
+
+These are local consumer-preparation changes on a dirty worktree, not a
+published or accepted source. Provider's exact implementation still requires
+accepted green staging before the helper can exist in production. No external
+issuer/Provider/SEC request, quota use, target mutation, policy activation,
+fixture, or full profile was run. OIH workbook body identity remains unknown;
+all existing fail-closed identity checks and the full AC1–AC14 roadmap remain.
+
 ## Exact-CI test-isolation correction — 2026-10-27
 
 Root's exact CI run `40525662170` / backend job `122264414829` exposed a
@@ -9,18 +41,20 @@ constructor call without `follow_redirects`. The OIH test now resets that
 list before setup and retains its strict `follow_redirects is False`, exactly
 one-request, and raw-byte-retention assertions. The complete adapter module
 passed `642/642` offline in `20.87s`; the original CI failure remains recorded
-as red, and the new exact-tip CI is pending. No production code or runtime
-behavior changed. Provider's green staged binder/provisioning dependency,
+as red. Root confirms base `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9` CI
+`40529140936` backend/frontend/branch-declared green; browser job
+`122291732853` was still running at that observation. No production code or runtime
+behavior changed in that test-only correction. Provider's green staged binder/provisioning dependency,
 actual OIH workbook identity qualification, full-source gates, and the full
 AC1–AC14 roadmap remain open.
 
-The normal publisher-owned CI run after this correction is the next source
-check; no Provider/issuer/SEC request, target mutation, quota use, or policy
-activation occurred.
+The current consumer-seam changes have not been published and have no exact-tip
+CI result yet; no Provider/issuer/SEC request, target mutation, quota use, or
+policy activation occurred.
 
 Status: implementation is local and unaccepted. Baseline published source is
-`f1bc10f9e7ec3fb934360b95a248cd1d9752e8ef`; only the test-isolation correction
-and current owned records are now dirty in this worktree. The human-authorized on-demand
+`cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`; the Provider-context/profile-commit
+consumer preparation and current owned records are local and unpublished. The human-authorized on-demand
 acquisition topic is now under the reviewed coordinator contract. The earlier
 proposal below is retained as history. No real source request, Provider quota
 reservation, SEC request, target mutation, or route/policy enablement occurred.
@@ -17235,3 +17269,74 @@ Tier-1, prior accepted checkpoints and red/partial history, quarantines, disable
 routes and holds, raw/PIT lineage, 119 spent requests, and the 30-day observation.
 After Root completes target correction/reparse and API/UI acceptance, the next
 ETF-owned roadmap step is the AC2 retained-evidence issuer audit.
+
+### Fresh-session visibility regression repair — 2026-10-27
+
+Root review found that the earlier
+`test_selected_fund_acquire_handler_serializes_with_real_async_session` used
+one connection and outer transaction for both sessions, so its route-visibility
+assertion did not prove a commit. The unpublished regression now provisions a
+unique schema from the fixture engine, seeds the canonical OIH identity in a
+committed transaction, and uses independent pooled AsyncSessions. A negative
+control flushes an uncommitted profile and verifies it is invisible from a
+different `pg_backend_pid()`; the acquire seam reads the request session's PID
+inside the live bridge callback and verifies that its committed VanEck route is
+visible from a simultaneously live session with a distinct backend PID. The
+fresh request session has an empty identity map, response
+serialization checks the complete `snapshot.holdings` row and source lineage,
+and a separate post-request session verifies the committed snapshot and row.
+
+Static checks passed: Ruff, format, Python compilation, `git diff --check`, and
+pytest collection of the exact regression (1 collected). The PostgreSQL test
+was not executed: Provider retains the runtime slot, and Root has not released
+the accepted-stage/DB validation boundary. No source HTTP, provisioning, quota,
+policy, or retained-service action occurred. The consumer preparation remains
+unpublished over baseline `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`. At this
+point in the preparation, execution against genuinely independent PostgreSQL
+connections was still pending Root's release; the released run and its results
+follow below.
+
+The released focused PostgreSQL slot then ran only this exact test. Attempt 1
+failed in the test's new post-request check because `ETFProfile` has no
+`latest_snapshot_id` attribute; the production acquire, cross-connection
+uncommitted negative control, committed route visibility and response checks
+had already passed. The test now loads the persisted snapshot by
+`etf_profile_id` and verifies its response ID, one SLB row, VanEck source
+lineage and request correlation. Attempt 2 passed `1/1` in `13.60s` using the
+same isolated-schema fixture pattern. Logs are retained at
+`/tmp/etf-oih-fresh-session-focused-20261027/test.log` (attempt 1) and
+`/tmp/etf-oih-fresh-session-focused-20261027/test-attempt2.log` (pass).
+
+The cleanup audit
+`/tmp/etf-oih-fresh-session-focused-20261027/focused-result-and-cleanup.json`
+records Testcontainers session ownership and exact pre/post inventory checks:
+33 containers, 51 volumes, 11 networks, all 61 image IDs including dangling
+images, and all 56 default image-list rows match; container fields, full mount
+entry multisets, network label entries, volumes and image references are
+unchanged. The fixture's containers were absent after normal teardown. No
+manual removal, global cleanup, live provider traffic, app stack or other test
+was run. This proves the ETF consumer seam's fresh-AsyncSession database
+behavior only; it does not prove the unpublished Provider binder contract or
+full consumer profile. Keep this preparation unpublished until synchronized-
+green Provider staging and Root's consumer reconciliation release.
+
+## Provider synchronized-green continuation release — 2026-10-27
+
+Root released the exact Provider source `f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3`
+as synchronized-green staging `6bff091d7d43de0731284dfabcafa09514d226a6`.
+Canonical staging receipt:
+`/home/m920q/charting-platform/.ai/staging-attempts/20261027T205031Z-6bff091d7d43.json`
+(SHA256 `4f39d57eb0b8da68f1c388a7ffcc2d2e0ebb1b92b4b2ec67660ae8fef7be9294`);
+exact CI `40570735471` includes the required Exhaustive Integration Gate and is
+terminal green. The release handoff records the supported staging reconciliation
+and synchronized staging ref. Preflight confirms this original ETF claim and
+worktree. The owner baseline remains `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`
+until the local preparation commit and exact staging adoption are completed.
+
+The fresh-AsyncSession case passed once against real PostgreSQL but still used a
+mocked Provider binder. It is not proof of the imported Producer contract. After
+adoption, reconcile explicit acquire and initial qualification with the real
+task-local helper and test exact binding, mismatch/hold denial, reset and
+unrelated-route exclusion. The source-matched complete consumer profile and
+exact branch CI remain pending Root-assigned capacity. Keep all source requests,
+target/policy changes, quota use and actual VanEck qualification held.

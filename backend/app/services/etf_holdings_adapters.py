@@ -3643,6 +3643,7 @@ for _vaneck_symbol, _vaneck_product_slug in {
             "issuer": "VanEck",
             "provider_aliases": {
                 "holdings_adapter": "vaneck",
+                "holdings_source_provider": "vaneck",
                 "product_slug": _vaneck_product_slug,
             },
         },
