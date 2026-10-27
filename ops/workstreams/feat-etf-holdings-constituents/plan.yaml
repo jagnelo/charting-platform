@@ -1635,7 +1635,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: vaneck_oih_initial_qualification_component_prepared_provider_staging_and_workbook_identity_review_pending
+  current_phase: vaneck_oih_initial_qualification_component_test_isolation_fix_full_adapter_module_green_exact_tip_ci_pending_provider_staging_and_workbook_identity_review_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The

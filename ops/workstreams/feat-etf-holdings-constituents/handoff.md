@@ -1,8 +1,26 @@
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
+## Exact-CI test-isolation correction — 2026-10-27
+
+Root's exact CI run `40525662170` / backend job `122264414829` exposed a
+test-isolation defect: an earlier adapter test left entries in the fake HTTP
+client's class-level `constructed` list, so the OIH no-follow test indexed a
+constructor call without `follow_redirects`. The OIH test now resets that
+list before setup and retains its strict `follow_redirects is False`, exactly
+one-request, and raw-byte-retention assertions. The complete adapter module
+passed `642/642` offline in `20.87s`; the original CI failure remains recorded
+as red, and the new exact-tip CI is pending. No production code or runtime
+behavior changed. Provider's green staged binder/provisioning dependency,
+actual OIH workbook identity qualification, full-source gates, and the full
+AC1–AC14 roadmap remain open.
+
+The normal publisher-owned CI run after this correction is the next source
+check; no Provider/issuer/SEC request, target mutation, quota use, or policy
+activation occurred.
+
 Status: implementation is local and unaccepted. Baseline published source is
-`498dd546383bc79f9ac6114ea5ab8f08f86e9585`; source, tests, and these records
-are currently dirty in this owned worktree. The human-authorized on-demand
+`f1bc10f9e7ec3fb934360b95a248cd1d9752e8ef`; only the test-isolation correction
+and current owned records are now dirty in this worktree. The human-authorized on-demand
 acquisition topic is now under the reviewed coordinator contract. The earlier
 proposal below is retained as history. No real source request, Provider quota
 reservation, SEC request, target mutation, or route/policy enablement occurred.

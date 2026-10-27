@@ -4723,6 +4723,7 @@ async def test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains
 ):
     adapter = get_holdings_adapter("vaneck")
     assert adapter is not None
+    FakeAsyncClient.constructed = []
     workbook = _xlsx_workbook(
         [
             [f"OIH | Daily Holdings (%)  {datetime.now(UTC):%m/%d/%Y}"],
