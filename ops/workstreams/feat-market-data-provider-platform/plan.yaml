@@ -825,19 +825,10 @@ parent_branch: staging
 parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
-integration_checkpoint_authorization: "Human direction received 2026-10-15 to incorporate provider-platform-integration-1 from staging commit e4d10ce0d7abc0056befca06831539fb36287043. At 2026-10-15 22:55Z the human answered: Yes—approve that initial scope and handle checkpoint acceptance. The central coordinator owns conditional technical acceptance after required exact-source contracts/tests and may integrate only a proven eligible checkpoint. This does not authorize this feature agent to self-integrate, deploy, activate paid/trial operations, start the operational trial, or clean retained data; preserve the full roadmap."
+integration_checkpoint_authorization: "Human direction on 2026-10-27 authorized implementation of provider-on-demand-acquisition-20261027 under the standing four-feature authority. The central staging coordinator's acceptance at /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only its six software-contract criteria after the recorded exact-source CI and full local profile. Root alone owns protected staging integration and all later master/deployment gates."
 planning_state: ready
 human_closure_authorization: >-
-  Under the standing human-authorized four-feature integration authority, the
-  central coordinator explicitly accepted only
-  provider-first-human-coverage-retained-universe-2 for checkpoint closure:
-  “Close ONLY the accepted provider-first-human-coverage-retained-universe-2
-  checkpoint through your existing four owned workstream records.” Exact
-  acceptance and evidence are recorded in
-  /home/m920q/charting-platform/.ai/staging-attempts/provider-b68-checkpoint-source-acceptance-20261024.md.
-  This does not complete the Provider roadmap or authorize this feature owner
-  to integrate, deploy, activate operations, or replay the consumed 119-request
-  validation allowance. Root alone owns guarded staging integration.
+  Under the human's standing four-feature integration authority and explicit 2026-10-27 direction to implement on-demand acquisition, checkpoint acceptance was delegated to the central coordinator. Root's decision in /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only provider-on-demand-acquisition-20261027 for software checkpoint closure. This records delegated human authority plus Root technical acceptance; it does not claim personal human inspection, full Provider roadmap completion, live/source/target acceptance, provider activation, or feature-owner authority to integrate, promote, or deploy.
 previous_checkpoint_closure_summary: >-
   PROPOSED FINAL CONTRACT — non-authoritative unless the exact remaining proof
   and all required current-source gates pass and the delegated central
@@ -862,23 +853,9 @@ goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
 closure_summary: >-
-  Pending for active checkpoint provider-on-demand-acquisition-20261027. The
-  accepted P2 closure, evidence, and ready_for_integration status remain
-  preserved in the historical integration_checkpoint record below. No closure
-  or integration readiness is claimed for this current implementation.
+  Accepted only the six software-contract criteria for provider-on-demand-acquisition-20261027 on implementation 51301c915d92c8ec4f8514cb4f85ac659791c33b. The central coordinator accepted this scope under the human standing four-feature authority and explicit 2026-10-27 on-demand implementation direction; this is delegated technical acceptance, not a claim of personal human inspection. The authenticated discovery, canonical identity, bounded selected-history, exact server-minted scope, free-only/hold-preserving admission, issuer-specific ETF helper, and no-network validation contracts were accepted. Exact feature CI 40540176697 is terminal green on source 51301c9. The complete 6,073-ID manifest was qualified with its declared dispositions: 5,522 unit-like IDs were covered in 221 bounded partitions (5,521 passed and one declared native RC6 skip: `app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py::test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows`); all 551 integration IDs were covered in six sequential batches (549 passed and two declared opt-in skips). Total: 6,070 passed and three declared native skips. Combined coverage was 84 percent against the unchanged 75 percent threshold and XML passed. Frontend coverage/build, 196 functional tests with two canonical live-only skips, all 104 strict visuals, and the unchanged sandbox/resource probes passed. The separate single-process integration timeout exit 124 and earlier diagnostic/environment/permission failures remain preserved as failures; the complete unchanged integration manifest subsequently passed in the authorized batches. Exact current-source cleanup restored the protected 33-container, 51-volume, 11-network, 61-image baseline. No provider/issuer/SEC HTTP, quota reservation/reset/spend, paid/trial/native/broker/capital activation, or replay of the consumed 119-request allowance occurred. No Alembic delta exists relative to deployed 02a7bae. Genuine source qualification, runtime/target acceptance, consumer integration, and the full 24-criterion roadmap remain open and Root-owned where specified. Preserve all operation holds and unknown/unverified dispositions. integration_capture: exact branch HEAD
 goal: >-
-  Continue the full Provider roadmap after acceptance of
-  provider-platform-integration-1 and the bounded
-  provider-first-human-coverage-retained-universe-2 checkpoint, including
-  adoption of synchronized-green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502,
-  15b5c22f0e689c973ee82d152d4bbad6125bf993, and
-  6d0a85da34ba276bca69c82a932a0602e783d7a1 on this branch. These include the
-  accepted ETF retained-IWM correction and fresh-AsyncSession eager-reparse
-  serialization/knowledge-time ordering correction, but do not establish
-  target correction or UI acceptance. Preserve all criteria, prior acceptance,
-  and operation dispositions. Root owns target acceptance and guarded
-  promotion; do not self-integrate, activate providers, deploy, or close the
-  full roadmap.
+  Close only the human-authorized provider-on-demand-acquisition-20261027 software checkpoint: explicit authenticated discovery, canonical selected identity, bounded selected-history acquisition, safe server-minted issuer/provider scopes, and truthful no-network validation. Preserve the accepted prior checkpoints and all 24 original Provider roadmap criteria; actual live/source/target/consumer qualification and full-roadmap completion remain open.
 scope:
   - Authenticated explicit discovery and selected candidate identity resolution only; discovery alone does not persist or qualify a candidate.
   - Authenticated one-instrument/one-timeframe bounded history acquisition using the established selected-series cache, missing-slice, coalescing, durable admission, persistence, and coverage paths.
@@ -986,8 +963,399 @@ acceptance_criteria:
   - id: ONDEMAND-ETF-CONSUMER
     text: A public Provider scope helper binds ETF_HOLDINGS/fetch_etf_holdings_latest to the exact trusted issuer provider resolved from the committed ETF profile/adapter (for example VanEck for OIH), with no SEC/EDGAR or generic-provider fallback; a separate sealed one-shot first-probe context accepts only the exact committed job/fund/instrument/provider-symbol/account/review revision while its entitlement is not_run, never persistently enables policy or writes success, and preserves every normal admission guard. Reviewed wire schemas, setting, and truthful application-budget review metadata are published for ETF/TC consumers.
   - id: ONDEMAND-VALIDATION
-    text: Focused no-network tests cover denied ordinary calls, concurrent scope isolation/reset, absent/mismatched provider_symbol, free-only admission under PROVIDER_FREE_ONLY_CHECKPOINT=false and ALLOW_PAID_PROVIDER_ROUTING=true, exact issuer binding, first-probe exact-scope/revision/not_run/one-shot/global-stop behavior, selected-default-series history readback through a real AsyncSession/PostgreSQL test, request-range/response and missing-slice ceilings, identity failures and schema limits. Exact-source CI, required full local profile, Root technical acceptance, and checkpoint closure remain pending; all 24 original roadmap criteria and the consumed 119-request no-replay boundary remain unchanged.
+    text: Focused no-network tests cover denied ordinary calls, concurrent scope isolation/reset, absent/mismatched provider_symbol, free-only admission under PROVIDER_FREE_ONLY_CHECKPOINT=false and ALLOW_PAID_PROVIDER_ROUTING=true, exact issuer binding, first-probe exact-scope/revision/not_run/one-shot/global-stop behavior, selected-default-series history readback through a real AsyncSession/PostgreSQL test, request-range/response and missing-slice ceilings, identity failures and schema limits. Exact-source CI, required full local profile, Root technical acceptance, and exact closing-head CI are required gates before integration; all 24 original roadmap criteria and the consumed 119-request no-replay boundary remain unchanged.
+# Current accepted software checkpoint. The prior P2 checkpoint remains fully archived below.
 integration_checkpoint:
+  id: provider-on-demand-acquisition-20261027
+  status: ready_for_integration
+  acceptance_state: accepted_by_coordinator_for_ready_for_integration
+  closure_summary: 'Accepted only the six software-contract criteria for provider-on-demand-acquisition-20261027 on
+    implementation 51301c915d92c8ec4f8514cb4f85ac659791c33b. The central coordinator accepted this scope under the
+    human standing four-feature authority and explicit 2026-10-27 on-demand implementation direction; this is delegated
+    technical acceptance, not a claim of personal human inspection. The authenticated discovery, canonical identity,
+    bounded selected-history, exact server-minted scope, free-only/hold-preserving admission, issuer-specific ETF
+    helper, and no-network validation contracts were accepted. Exact feature CI 40540176697 is terminal green on source
+    51301c9. The complete 6,073-ID manifest was qualified with its declared dispositions: 5,522 unit-like IDs were
+    covered in 221 bounded partitions (5,521 passed and one declared native RC6 skip:
+    `app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py::test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows`); all
+    551 integration IDs were covered in six sequential batches (549 passed and two declared opt-in skips), for 6,070
+    total passes and three declared native skips. Combined coverage was 84 percent against the unchanged 75 percent
+    threshold and XML passed.
+    Frontend coverage/build, 196 functional tests with two canonical live-only skips,
+    all 104 strict visuals, and the unchanged sandbox/resource probes passed. The separate single-process integration
+    timeout exit 124 and earlier diagnostic/environment/permission failures remain preserved as failures; the complete
+    unchanged integration manifest subsequently passed in the authorized batches. Exact current-source cleanup restored
+    the protected 33-container, 51-volume, 11-network, 61-image baseline. No provider/issuer/SEC HTTP, quota reservation/reset/spend,
+    paid/trial/native/broker/capital activation, or replay of the consumed 119-request allowance occurred. No Alembic
+    delta exists relative to deployed 02a7bae. Genuine source qualification, runtime/target acceptance, consumer integration,
+    and the full 24-criterion roadmap remain open and Root-owned where specified. Preserve all operation holds and
+    unknown/unverified dispositions. integration_capture: exact branch HEAD'
+  merge_authorized: true
+  planning_authorization: Human direction on 2026-10-27 authorized implementation of the reviewed on-demand acquisition
+    contract under the standing four-feature authority. The central coordinator's acceptance record at /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md
+    explicitly accepts only this bounded software checkpoint; protected staging integration remains coordinator-owned.
+  scope:
+  - Authenticated explicit discovery and selected candidate identity resolution only; discovery alone does not persist
+    or qualify a candidate.
+  - Authenticated one-instrument/one-timeframe bounded history acquisition using the established selected-series cache,
+    missing-slice, coalescing, durable admission, persistence, and coverage paths.
+  - Server-minted context-local capability/operation/identity/provider scope; no global routing bypass and no hidden
+    provider work from ordinary reads or schedules.
+  - Stable typed outcomes for returned, held, unavailable, identity-conflict, partial, and failed paths, published
+    for ETF/TC consumers.
+  - Preserve all existing operation holds, unknown/unverified dispositions, full-roadmap criteria, and the consumed
+    119-request no-replay boundary.
+  - Preserve ordinary cached GET reads in request-driven-only mode; only explicit POST actions may enter provider
+    acquisition scopes.
+  - Apply explicit application request-range/returned-bar and missing-repair-slice ceilings separately from native
+    provider quota admission.
+  required_contracts:
+  - ETF scope binds only ETF_HOLDINGS/fetch_etf_holdings_latest and an exact issuer provider; no SEC or generic provider
+    fallback.
+  - The OIH issuer-only action binds to the committed profile/adapter's trusted VanEck provider identity; it cannot
+    select EDGAR/SEC.
+  - Initial VanEck qualification can select its disabled `not_run` policy only under the exact server-minted one-shot
+    context; it preserves the emergency global routing switch, free-only admission, operation holds, account mapping,
+    cost and durable quota checks, and does not set a positive probe or policy-enabled state.
+  - Massive's existing five-per-rolling-60-second application ledger remains the sole configured history ceiling;
+    native remaining use/reset, concurrency and burst are not asserted from application ledger rows. No replacement/reset
+    ledger or generic 1/minute dimension is introduced.
+  - Publisher quota review timestamps and audit labels identify application-budget-only review when all dimensions
+    are explicitly application_usage_only; no native usage/reset verification is inferred.
+  - A scope with a symbol target rejects an absent provider_symbol before resolver work/transport.
+  - Any active explicit scope enforces free-only entitlement and operation holds even if PROVIDER_FREE_ONLY_CHECKPOINT=false
+    and ALLOW_PAID_PROVIDER_ROUTING=true.
+  - Concurrent tasks and all exit paths restore context; denied ordinary requests remain zero-transport.
+  - History request duration, returned bars, and missing repair slices stay under explicit application workload ceilings;
+    these ceilings do not replace per-transport quota admission or vendor limits.
+  - Persisted acquisition readback applies the same selected-default-series predicate as ordinary local history reads;
+    alternate-series bars cannot satisfy requested coverage.
+  - Canonical identity reconciliation preserves placeholders and quarantines ambiguity; the legacy get-instrument
+    bulk/events path is not used.
+  required_gates_remaining:
+  - Publish this records-only closing commit and obtain terminal-green exact-source CI for its exact branch HEAD before
+    Root's guarded staging integration.
+  - Root owns protected staging/master integration and their exact green gates; the feature owner does not integrate,
+    promote, or deploy.
+  prior_checkpoint: provider-first-human-coverage-retained-universe-2
+  deployed_baseline_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+  frozen_source_sha: 51301c915d92c8ec4f8514cb4f85ac659791c33b
+  source_test_map:
+  - backend/app/routers/providers.py; backend/app/routers/instruments.py; backend/app/routers/ohlcv.py
+  - backend/app/services/provider_runtime.py; backend/app/services/market_data.py; backend/app/schemas/instrument_acquisition.py
+  - backend/app/schemas/instrument_acquisition.py and provider/on-demand response schemas
+  - backend/tests/unit/services/test_provider_explicit_acquisition.py and provider/runtime/router tests
+  - backend/tests/integration/api/test_on_demand_history_postgres.py; backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  acceptance_criteria:
+  - id: ONDEMAND-SCOPE
+    text: Explicit provider transport is possible only inside authenticated server-minted scopes when request-driven-only
+      is enabled; each scope binds exact capability/operation and any target identity/provider, resets on all exit
+      paths, and never bypasses global routing, free-plan, holds, health, budget, quota, entitlement, or native-unknown
+      admission. Every active scope forces free-only admission and operation holds regardless of global flags.
+  - id: ONDEMAND-DISCOVERY
+    text: Authenticated explicit discovery returns typed candidates and per-source returned/held/unavailable/failure
+      outcomes without persisting candidates; ordinary search/typeahead remains local-only and cannot opt into provider
+      fanout.
+  - id: ONDEMAND-IDENTITY
+    text: Explicit selected-candidate acquisition reconciles through canonical mastering, requires stable external
+      identity, active primary listing authority, and exact provider-symbol binding, preserves/quarantines existing
+      scaffold conflicts, and never starts legacy bulk/event fanout.
+  - id: ONDEMAND-HISTORY
+    text: One-symbol/one-timeframe history acquisition uses existing selected-series cache, missing-slice repair,
+      process/distributed coalescing, durable admission/settlement, persistence, and coverage; it returns truthful
+      complete/partial/held/no_data/failed results while preserving prior local data.
+  - id: ONDEMAND-ETF-CONSUMER
+    text: A public Provider scope helper binds ETF_HOLDINGS/fetch_etf_holdings_latest to the exact trusted issuer
+      provider resolved from the committed ETF profile/adapter (for example VanEck for OIH), with no SEC/EDGAR or
+      generic-provider fallback; a separate sealed one-shot first-probe context accepts only the exact committed job/fund/instrument/provider-symbol/account/review
+      revision while its entitlement is not_run, never persistently enables policy or writes success, and preserves
+      every normal admission guard. Reviewed wire schemas, setting, and truthful application-budget review metadata
+      are published for ETF/TC consumers.
+  - id: ONDEMAND-VALIDATION
+    text: Focused no-network tests cover denied ordinary calls, concurrent scope isolation/reset, absent/mismatched
+      provider_symbol, free-only admission under PROVIDER_FREE_ONLY_CHECKPOINT=false and ALLOW_PAID_PROVIDER_ROUTING=true,
+      exact issuer binding, first-probe exact-scope/revision/not_run/one-shot/global-stop behavior, selected-default-series
+      history readback through a real AsyncSession/PostgreSQL test, request-range/response and missing-slice ceilings,
+      identity failures and schema limits. Exact-source CI, required full local profile, Root technical acceptance,
+      and checkpoint closure remain pending; all 24 original roadmap criteria and the consumed 119-request no-replay
+      boundary remain unchanged.
+  original_criterion_dispositions:
+  - id: AC-IDENTITY
+    disposition: partially_delivered
+    delivered: Added explicit selected-candidate canonical identity resolution and guarded scaffold reconciliation
+      for on-demand acquisition; prior accepted identity work remains preserved.
+    remainder: The full stable FIGI-domain identity, effective-dated listing/provider-symbol history, and source-complete
+      quarantine/reconciliation across venues remain beyond this software checkpoint.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Continue the original identity/universe work; qualify canonical identity and listing
+      authority across the complete required source set, including unresolved-candidate quarantine tests and exact-source
+      consumer evidence.
+  - id: AC-SERIES
+    disposition: partially_delivered
+    delivered: Added selected-default-series filtering and persisted readback for bounded on-demand history; no migration
+      or default-series contract was removed.
+    remainder: Full canonical series/version/provenance coverage across all providers, sessions, adjustment bases,
+      and compatibility paths remains.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Run the preserved full series/adjustment/provenance compatibility matrix and exact-source
+      PostgreSQL/full-profile validation for every accepted provider path.
+  - id: AC-CALENDAR
+    disposition: deferred
+    delivered: No calendar behavior was added or claimed; prior calendar behavior/evidence remains historical and
+      unchanged.
+    remainder: Versioned exchange sessions, time zones, holidays, early closes, overnight trade dates, and user-local
+      projections remain unqualified.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original calendar/versioning and freshness/daily-completion tests against
+      the required exchange/session cases and full integration profile.
+  - id: AC-ROUTING
+    disposition: partially_delivered
+    delivered: Added explicit server-minted request scopes that retain free-only, global-stop, hold, quota, and workload
+      admission checks.
+    remainder: Provider-wide capability/asset/venue/session/history routing, full entitlement/health/quota/cost coverage,
+      and all-worker operational observability remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original provider/capability admission matrix with exact unknown/held
+      negative cases, durable settlement/restart evidence, and required full-source profile.
+  - id: AC-RECURRING-COST
+    disposition: deferred
+    delivered: No cost ceiling or commitment semantics were changed; existing cost holds and records remain intact.
+    remainder: The durable recurring-subscription ceiling, deduplication, verified price/currency/interval evidence,
+      concurrent proposal admission, and separation from paid activation remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original cost/commitment contract and concurrency tests with reviewed
+      exact provider plan evidence; keep paid routing separately held.
+  - id: AC-REFRESH
+    disposition: partially_delivered
+    delivered: Added explicit bounded selected-symbol/timeframe history acquisition using existing cache, missing-slice,
+      coalescing, and durable admission paths.
+    remainder: Whole-universe schedules, tiered polling, local rollups, deferred broad evaluation, and safe automatic
+      retry remain unqualified or held.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original scheduled-refresh, retry/defer, rollup, and missing-slice
+      integration tests without provider work inside evaluation loops; qualify only under a separately reviewed scope.
+  - id: AC-DATA
+    disposition: partially_delivered
+    delivered: Added software paths for explicit selected discovery/history while preserving truthful held/unavailable
+      results; no new live provider or dataset qualification is claimed.
+    remainder: The approved provider roster and all listed data families, strict parsing/provenance, freshness, rights,
+      and live/source evidence remain incomplete.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original capability-by-data-family acceptance matrix with provider-owned
+      deterministic tests and separately authorized exact-scope live evidence; preserve every held disposition.
+  - id: AC-OPTIONS
+    disposition: deferred
+    delivered: No options provider/model behavior changed in this checkpoint.
+    remainder: Current option retention, Greek model/fallback provenance, and numerical edge coverage remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original options data and numerical edge-case suite with model/version/input
+      provenance in the exact-source full profile.
+  - id: AC-OPS
+    disposition: partially_delivered
+    delivered: Added authenticated on-demand discovery, identity, and selected-history API contracts with stable typed
+      outcomes.
+    remainder: The full backend-only operations and diagnostics surface for capabilities, usage/cost, decisions, coverage,
+      quarantine, queues, anomalies, and shadow remains.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original operator/diagnostic API inventory and authorization/redaction/held-state
+      tests, then qualify it in the full integration profile.
+  - id: AC-SHADOW
+    disposition: deferred
+    delivered: No routing default or shadow acceptance state was changed; schedules and unqualified operations remain
+      held.
+    remainder: The separately authorized deployed 30-day shadow and its coverage, violation, reporting, and discrepancy
+      criteria remain entirely outstanding.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Only after all prior controllable gates, obtain a separate approved shadow scope
+      and pass the original daily/final report and coverage criteria.
+  - id: AC-COMPAT
+    disposition: partially_delivered
+    delivered: Preserved ordinary cached GET behavior under request-driven-only mode and constrained explicit POST
+      acquisition to its reviewed scope.
+    remainder: All legacy aliases/yfinance compatibility semantics and broader consumer behavior remain to be qualified;
+      no default yfinance routing is introduced.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original compatibility and no-hidden-transport tests across legacy
+      consumers plus the full exact-source profile.
+  - id: AC-TEST
+    disposition: partially_delivered
+    delivered: The named software checkpoint passed its focused contracts, exact-source CI, and complete local profile
+      with declared skips and preserved failed attempts.
+    remainder: The broader criterion spans provider-specific deterministic/live evidence, migration and full backend/worker/API/numerical/PIT
+      suites and future changed-source gates; this acceptance does not complete those provider-wide obligations.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Maintain the original all-provider and full-profile matrix at each relevant exact
+      source; no skipped live operation counts as proof and all final integration gates remain required.
+  - id: AC-QUOTA-SAFETY
+    disposition: partially_delivered
+    delivered: The new explicit scope preserves unknown/native dimensions and reuses existing application-only budgets
+      without fabricating native counters or generic limits.
+    remainder: All provider contracts still require exact native limits/unknown dimensions and routing exclusion where
+      the original criterion requires them.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the per-provider quota-contract and negative-admission matrix with exact
+      shared-scope/native evidence; unknowns remain NULL/held.
+  - id: AC-RATE-FAILURE
+    disposition: deferred
+    delivered: No rate-limit/reset or retry policy was changed in this checkpoint.
+    remainder: Provider-specific reset parsing, typed capacity persistence, defer behavior, and no-storm recovery
+      remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete deterministic 429/418/quota-reset and deferred-recovery tests for each
+      supported contract; verify no retry storm or unsafe fallback.
+  - id: AC-LIVE-EVIDENCE
+    disposition: deferred
+    delivered: No provider HTTP, source qualification, allowance replay, or new live evidence was performed.
+    remainder: The complete manifest-driven keyless/credentialed live matrix and each missing-credential disposition
+      remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Use only separately reviewed bounded exact-source executions; record actual credential
+      preflight failures or evidence and preserve all holds.
+  - id: AC-SECRET-DISTRIBUTION
+    disposition: deferred
+    delivered: No secret-store or credential distribution was changed; secret values remain excluded from records
+      and routine output.
+    remainder: Separation and access controls across local, staging, master, and production secret stores remain unverified.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original nonsecret presence/scope audit for each environment and prove
+      credentials reach only trusted backend/worker processes.
+  - id: AC-PROVIDER-CONTRACT-AUDIT
+    disposition: deferred
+    delivered: This checkpoint adds no blanket provider contract claims; prior source-backed facts and unknowns remain
+      unchanged.
+    remainder: The exhaustive versioned plan/auth/quota/cost/pagination/bytes/history/venue/freshness/rights reconciliation
+      remains.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original capability-by-provider contract audit against authoritative
+      docs, account observations, and reviewed live headers; keep unresolved facts explicit.
+  - id: AC-DURABLE-DATA-RIGHTS
+    disposition: deferred
+    delivered: The previously accepted private-storage authority remains preserved; this checkpoint does not create
+      provider or embedded-third-party rights evidence.
+    remainder: Provider terms, account entitlements, and explicit third-party restrictions remain separate provider
+      facts requiring accurate qualification.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Continue the original source-specific rights and entitlement review without re-requesting
+      owner consent; demonstrate only permitted storage and use.
+  - id: AC-DURABLE-CROSS-SESSION-USAGE
+    disposition: partially_delivered
+    delivered: The explicit acquisition path reuses existing durable reservation/settlement and coalescing primitives;
+      no replacement ledger was added.
+    remainder: All-worker/process restart, shared-account, deployment storage, and CI interrupted-usage reconciliation
+      remain to be demonstrated across the full scope.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original multi-worker/restart/uncertain-settlement and shared-ledger
+      tests and exact deployment/CI reconciliation evidence.
+  - id: AC-UNIVERSE-COMPLETE
+    disposition: deferred
+    delivered: No universe acquisition, source replay, or lifecycle completeness was claimed or performed.
+    remainder: Official CTA/Nasdaq source completeness, FINRA preservation, and per-CIK SEC cursor/failure atomicity
+      plus multi-day lifecycle evidence remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Pass the original complete-source pagination/integrity, retained-row, atomic cursor/restart/no-refetch,
+      duplicate/ticker-change, and three-distinct-complete-day tests.
+  - id: AC-SEC-PRELISTING-POLICY
+    disposition: deferred
+    delivered: No SEC directory scan/materialization or prelisting policy was changed in this checkpoint.
+    remainder: Reviewed complete report generation, no-refetch materialization, provisional identity rules, and ambiguity
+      quarantine remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original staged-report/review/materialization tests using retained
+      source payloads only, with exact missing-row and ambiguous-evidence denials.
+  - id: AC-INTEGRATION-WORKFLOW
+    disposition: deferred
+    delivered: This checkpoint changes no workflow policy and does not bypass the existing exact-source CI/integration
+      gates.
+    remainder: The exhaustive workflow contract for declarations, evidence, fixtures, live scope, secrets, usage impact,
+      and deferrals remains a roadmap obligation.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Complete the original workflow validator matrix and preserve exact-source green
+      branch plus protected staging/master gates for subsequent changes.
+  - id: AC-DINARI-SANDBOX-ISOLATION
+    disposition: deferred
+    delivered: No Dinari Sandbox request or policy activation occurred; existing production holds remain.
+    remainder: The separately capped archive-only canary, noncanonical data isolation, and disabled production route
+      remain unqualified.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: Only execute after a new exact reviewed canary; prove payload retention and no writes
+      to canonical data/usage/alerts, with production still disabled.
+  - id: AC-SHADOW-FINAL-PHASE
+    disposition: deferred
+    delivered: No final shadow phase was started or authorized by this software checkpoint.
+    remainder: The original final 30-day shadow planning/authorization remains contingent on every prior controllable
+      gate.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned target/runtime
+      acceptance.
+    continuation_acceptance_test: After all earlier roadmap gates are accepted, obtain its separate scope and pass
+      the original 30-day evidence and final human closure requirements.
+  acceptance_evidence:
+  - /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md
+  - /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-cleanup-root-audit-20261027.json
+  - Exact-source feature CI 40540176697, terminal green on 51301c915d92c8ec4f8514cb4f85ac659791c33b.
+  - 'Full local profile artifacts: /tmp/provider-on-demand-full-profile-20261027-8b0ca5ed.'
+  - 'Integration batching receipt: /tmp/provider-on-demand-full-profile-20261027-8b0ca5ed/integration-batches-canonical.json.'
+  validation_tier: full_integration
+  local_validation_profile: full_stack_browser
+  exact_source_ci:
+    implementation_source_sha: 51301c915d92c8ec4f8514cb4f85ac659791c33b
+    run_id: 40540176697
+    result: success
+    jobs: Backend, Frontend Unit, Branch-declared and Playwright passed; branch Exhaustive is expected skipped and
+      remains required on staging/master.
+    qualification: Exact only for implementation source 51301c9; the records-only closure commit still requires its
+      own terminal-green exact-head CI before Root integration.
+  current_source_local_evidence:
+  - 'Canonical collected node manifest: 6,073 IDs (3,639 unit + 1,883 Strategy + 551 integration), SHA256 1e973f054693b8c94bd02fbea30e499bc2e4d74e646b920ec387f52a67880cfd.
+    All 221 unit-like partitions exit 0; preserved shards 1-118 have the recorded source/environment impact proof,
+    shards 119-205 passed under canonical 1-GiB research limit/thread pins/faulthandler diagnostic off, shard 206
+    passed 25/25 under reviewed local-socket permission, and shards 207-221 passed under the same canonical settings.
+    Original shard 114/122 failures and noncanonical 119-121 attempts remain archived.'
+  - 'All 551 integration IDs passed in six sequential processes of 100,100,100,100,100,51 IDs with the original 900-second
+    per-process cap and unchanged assertions/coverage: 549 passed and two declared opt-in Nautilus RC6 cases skipped.
+    The earlier aggregate integration process remains recorded as exit 124 after 524 reports; the focused shared-circuit
+    denial case passed 1/1 in 31.36s; no old partial integration progress was reused as a full pass.'
+  - Combined backend coverage report passed at 84% against the unchanged 75% threshold; combined XML passed. Coverage
+    before batches SHA256 23e6e924f7ee93bb1235a78df9bb911686b061b61c02534d513ad4960bd78a49; after SHA256 f0dbd55334cdd0c0d08d01867cb1b80dc2b49999477d190457ebce2f504da7e2;
+    XML SHA256 b8990cdb02a7b3ce095d2aec9c9605637ac92d2ef59380dc37da747fba34561d.
+  - Frontend 1,439 tests/coverage 83.12%, typecheck and production build passed. Functional browser passed 196 with
+    two canonical live-only skips, zero retries; strict visual passed 104/104 with original references, masks and
+    tolerances, zero retries. Unchanged provider sandbox/resource probes passed with the canonical 768-MiB memory
+    / 1,536-MiB total memory+swap research-runner limits.
+  - 'Exact fixture/project was provider-ondemand-full-20261027-8b0ca5ed; provider egress denied, live provider tests
+    off, credentials empty, and quota/token paths private and isolated. Root independently verified exact protected
+    resource identity/configuration restoration: 33 containers, 51 volumes, 11 networks, 61 images. No retained service
+    or data was changed.'
+  next_action: Validate and publish one records-only closing commit, then wait for terminal-green CI on that exact
+    commit. Root owns guarded staging integration. Keep genuine source/target/consumer acceptance and the full roadmap
+    open; no provider/issuer/SEC request, quota action, hold change, paid/trial/native/broker/capital activation,
+    or consumed-119 replay.
+  deployment_authorized: false
+  provider_activation_authorized: false
+  operational_trial_authorized: false
+previously_accepted_provider_first_human_coverage_checkpoint:
   id: provider-first-human-coverage-retained-universe-2
   status: ready_for_integration
   planning_authorization: >-
@@ -1181,48 +1549,6 @@ integration_checkpoint:
     quota reservation/reset, hold change, paid/trial/native/broker/capital
     activation, deployment, or consumed-119-request replay is authorized.
 
-# The accepted P2 integration checkpoint above remains a historical record.
-# This is the current human-authorized implementation checkpoint; it is not
-# yet technically accepted or ready for integration.
-active_on_demand_checkpoint:
-  id: provider-on-demand-acquisition-20261027
-  status: in_progress
-  acceptance_state: pending
-  closure_summary: pending
-  merge_authorized: false
-  planning_authorization: >-
-    Human direction on 2026-10-27 explicitly authorized implementation of the
-    reviewed on-demand acquisition contract. The coordinator's follow-up
-    requires publishing a server-side scope helper and exact
-    ETF_HOLDINGS/fetch_etf_holdings_latest binding, rejecting absent as well as
-    mismatched target identity, and enforcing free-only admission inside every
-    explicit scope regardless of global paid-routing configuration.
-  scope:
-    - Authenticated explicit discovery and selected candidate identity resolution only; discovery alone does not persist or qualify a candidate.
-    - Authenticated one-instrument/one-timeframe bounded history acquisition using the established selected-series cache, missing-slice, coalescing, durable admission, persistence, and coverage paths.
-    - Server-minted context-local capability/operation/identity/provider scope; no global routing bypass and no hidden provider work from ordinary reads or schedules.
-    - Stable typed outcomes for returned, held, unavailable, identity-conflict, partial, and failed paths, published for ETF/TC consumers.
-    - Preserve all existing operation holds, unknown/unverified dispositions, full-roadmap criteria, and the consumed 119-request no-replay boundary.
-    - Preserve ordinary cached GET reads in request-driven-only mode; only explicit POST actions may enter provider acquisition scopes.
-    - Apply explicit application request-range/returned-bar and missing-repair-slice ceilings separately from native provider quota admission.
-  required_contracts:
-    - ETF scope binds only ETF_HOLDINGS/fetch_etf_holdings_latest and an exact issuer provider; no SEC or generic provider fallback.
-    - The OIH issuer-only action binds to the committed profile/adapter's trusted VanEck provider identity; it cannot select EDGAR/SEC.
-    - Initial VanEck qualification can select its disabled `not_run` policy only under the exact server-minted one-shot context; it preserves the emergency global routing switch, free-only admission, operation holds, account mapping, cost and durable quota checks, and does not set a positive probe or policy-enabled state.
-    - Massive's existing five-per-rolling-60-second application ledger remains the sole configured history ceiling; native remaining use/reset, concurrency and burst are not asserted from application ledger rows. No replacement/reset ledger or generic 1/minute dimension is introduced.
-    - Publisher quota review timestamps and audit labels identify application-budget-only review when all dimensions are explicitly application_usage_only; no native usage/reset verification is inferred.
-    - A scope with a symbol target rejects an absent provider_symbol before resolver work/transport.
-    - Any active explicit scope enforces free-only entitlement and operation holds even if PROVIDER_FREE_ONLY_CHECKPOINT=false and ALLOW_PAID_PROVIDER_ROUTING=true.
-    - Concurrent tasks and all exit paths restore context; denied ordinary requests remain zero-transport.
-    - History request duration, returned bars, and missing repair slices stay under explicit application workload ceilings; these ceilings do not replace per-transport quota admission or vendor limits.
-    - Persisted acquisition readback applies the same selected-default-series predicate as ordinary local history reads; alternate-series bars cannot satisfy requested coverage.
-    - Canonical identity reconciliation preserves placeholders and quarantines ambiguity; the legacy get-instrument bulk/events path is not used.
-  required_gates_remaining:
-    - Focused no-network service, runtime, schema, and router tests.
-    - PostgreSQL-backed real AsyncSession test for selected-default history persistence/readback and exact source scope; provider transport remains mocked/denied.
-    - Ruff/format/compile and workstream validation.
-    - Exact-source CI and required full local profile; these are not yet run for this implementation.
-    - Root technical acceptance and explicit closure; no provider HTTP is authorized by this record.
 previously_accepted_integration_checkpoint:
   id: provider-platform-integration-1
   planning_authorization: "Human instruction on 2026-10-15 to consume the staging coordinator's checkpoint policy and prioritize the integration checkpoint while preserving the full roadmap. Source policy: staging commit e4d10ce0d7abc0056befca06831539fb36287043."
@@ -2000,7 +2326,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: in_progress
+status: ready_for_integration
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
@@ -7263,15 +7589,24 @@ progress:
       TC2000 consistency requirement remains the outstanding human acceptance
       gate. TC received the Provider domain review and remains sole
       presentation writer. Full Provider roadmap and all holds remain open.
-  completed: []
+    - '2026-10-27 Root accepted provider-on-demand-acquisition-20261027 on exact implementation source 51301c915d92c8ec4f8514cb4f85ac659791c33b
+      after feature CI 40540176697 and the complete isolated local profile. All six software criteria are accepted for
+      this bounded checkpoint only. The earlier P2 checkpoint is archived without changing its acceptance; all 24 roadmap
+      criteria, provider/native/paid/trial/SEC holds, the consumed 119-request boundary, and Root-owned target/source/consumer
+      work remain open. This closing records commit must receive its own exact green CI; Root owns staging integration.
+      integration_capture: exact branch HEAD'
+  completed:
+    - ONDEMAND-SCOPE
+    - ONDEMAND-DISCOVERY
+    - ONDEMAND-IDENTITY
+    - ONDEMAND-HISTORY
+    - ONDEMAND-ETF-CONSUMER
+    - ONDEMAND-VALIDATION
   total: 6
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
-  current_phase: provider_on_demand_acquisition_implementation_in_progress
+  current_phase: provider_on_demand_acquisition_software_checkpoint_accepted_waiting_for_exact_closure_ci
   current_blocker: >-
-    The active on-demand implementation is in progress. Focused no-network
-    tests and Ruff pass; exact-source CI, the required full local profile, and
-    Root technical acceptance remain pending. No provider HTTP or quota action
-    is authorized.
+    Root accepted only the six on-demand software criteria on source 51301c9. The complete local profile and implementation-source CI are green; the records-only closure head still requires its own exact terminal-green CI before Root's guarded staging integration. Actual provider/source/target/consumer qualification and the complete 24-item roadmap remain open.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -7556,11 +7891,7 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Complete focused service/runtime/schema/router and static/workstream
-    checks for the on-demand acquisition checkpoint. Then await exact-source
-    CI, the required full local profile, and Root technical acceptance. Keep
-    all operation holds, the 24-item roadmap, and the consumed-119 no-replay
-    boundary unchanged; do not call providers or change quota state.
+    Validate and publish one records-only closing commit, then wait for terminal-green CI on that exact commit. Root owns guarded staging integration. Keep genuine source/target/consumer acceptance and the full roadmap open; no provider/issuer/SEC request, quota action, hold change, paid/trial/native/broker/capital activation, or consumed-119 replay.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -9029,7 +9360,7 @@ progress:
     deploy, activate routing, change another worktree, or start the final
     30-day shadow run. Keep user-deferred Tradier/IBKR/Ondo and Dinari
     production disabled.
-current_gate_checkpoint: >-
+historical_current_gate_checkpoint_2026_10_16: >-
   Updated 2026-10-16 07:17Z: the exact current source is
   `3cf41abdda47c0d2d7b0bd17ca1f1fb62b6a7ffe`, containing implementation
   candidate `0111cc698ad8c03220b60725bdc2df68195d96e8` plus the published
@@ -9401,3 +9732,25 @@ current_gate_checkpoint: >-
     adoption's exact branch CI is known, the next Provider-owned roadmap action
     is to resume `AC-UNIVERSE-COMPLETE` from the adopted source; do not start
     that work in this adoption checkpoint.
+current_gate_checkpoint: >-
+  Updated 2026-10-27: the active checkpoint is
+  `provider-on-demand-acquisition-20261027`, accepted only for its six software
+  criteria on implementation source
+  `51301c915d92c8ec4f8514cb4f85ac659791c33b`. Exact implementation-source CI
+  `40540176697` is terminal green. The complete local profile qualified the
+  6,073-ID manifest with declared dispositions: 5,522 unit-like IDs were covered
+  in 221 bounded partitions (5,521 passed and one declared native RC6 skip); 551
+  integration IDs were covered in six complete batches (549 passed, two
+  declared opt-in skips), for 6,070 passes and three declared native skips;
+  combined coverage was 84 percent with XML, frontend/build, 196 functional passes plus two canonical
+  live-only skips, 104 strict visuals, and unchanged probes passing. The
+  separate aggregate integration timeout and diagnostic/environment/permission
+  failures remain preserved; all 551 integration IDs were subsequently covered
+  in the complete batches. Root independently verified owned-resource cleanup
+  and exact protected baseline restoration. This records only delegated software
+  checkpoint acceptance, not full-roadmap, live-source, runtime, consumer, or
+  target acceptance. The records-only closure commit still requires its exact-head
+  terminal-green CI before Root's guarded staging integration. Preserve every
+  roadmap disposition and all operation/usage/rights holds; no provider HTTP,
+  allowance replay, quota operation, paid/trial/native/broker/capital activation,
+  self-integration, promotion, or deployment is authorized.

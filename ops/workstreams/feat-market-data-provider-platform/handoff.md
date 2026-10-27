@@ -32416,3 +32416,29 @@ collect-only run found the complete unchanged set of 6,073 tests (3,639 unit,
 1,883 Strategy Lab, 551 integration); the normalized node-ID manifest is
 preserved under the profile temp directory with SHA256
 `1e973f054693b8c94bd02fbea30e499bc2e4d74e646b920ec387f52a67880cfd`.
+
+
+## 2026-10-27: on-demand software checkpoint accepted and closed
+
+Root accepted only `provider-on-demand-acquisition-20261027` on implementation source `51301c915d92c8ec4f8514cb4f85ac659791c33b`. The delegated human authority and central acceptance are recorded without inventing a human quote in the plan. Root's acceptance receipt is `/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md`; exact implementation-source feature CI `40540176697` is terminal green. The software checkpoint is now the canonical `integration_checkpoint`, with all six `ONDEMAND-*` criteria; the accepted P2 checkpoint is preserved in `previously_accepted_provider_first_human_coverage_checkpoint`, and original P1 history remains under `previously_accepted_integration_checkpoint`. All 24 original roadmap IDs/texts, roadmap goal, remaining dispositions, and append-only journal history are preserved.
+
+### Exact local profile evidence
+
+- Source: `51301c915d92c8ec4f8514cb4f85ac659791c33b`. Complete local profile artifacts: `/tmp/provider-on-demand-full-profile-20261027-8b0ca5ed`. The frozen collection manifest has 6,073 IDs (3,639 unit, 1,883 Strategy, 551 integration), SHA256 `1e973f054693b8c94bd02fbea30e499bc2e4d74e646b920ec387f52a67880cfd`. All 221 unit-like partitions exited 0; the full ID set was covered. Shards 1–118 were preserved under the recorded exact-input impact proof; canonical shards 119–205 and 207–221 passed, and shard 206 passed 25/25 after the restricted runner's AF_UNIX `EPERM` was requalified with normal local permissions. The faulthandler SIGSEGV and the first noncanonical memory-environment attempts remain preserved; no assertion, test, coverage, or 300/900-second process limit changed.
+- All 551 integration IDs passed in six sequential bounded processes (100, 100, 100, 100, 100, 51): 549 passed and the two predeclared opt-in Nautilus RC6 cases skipped. The prior aggregate process remains recorded as failed exit `124` at its 900-second bound after 524 reports and two skips. The separately diagnosed `test_shared_provider_circuit_denial_preserves_truthful_consumer_outcome[False]` passed 1/1 in 31.36 seconds; this focused diagnostic was not substituted for the full manifest. Machine receipt: `/tmp/provider-on-demand-full-profile-20261027-8b0ca5ed/integration-batches-canonical.json`; all six logs and the original timeout log remain alongside it.
+- Combined backend coverage passed at 84% against unchanged 75% threshold; XML passed. Coverage after full partitioning is recorded in the batch receipt; XML SHA256 `b8990cdb02a7b3ce095d2aec9c9605637ac92d2ef59380dc37da747fba34561d`. Frontend: 1,439 tests, 83.12% coverage, typecheck/build passed. Browser: 196 functional passes plus two canonical live-only skips; 104/104 strict visuals passed with zero retries. The unchanged sandbox and resource probes passed at canonical runner caps.
+- Root independently verified cleanup at `/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-cleanup-root-audit-20261027.json`: protected baseline restored exactly (33 containers, 51 volumes, 11 networks, 61 images); the owned eight-container/six-volume/three-network fixture and five exact labeled images were removed. No retained service/data/ledger was changed.
+
+### Scope and next gate
+
+No provider/issuer/SEC HTTP, quota reservation/reset/spend, paid/trial/native/broker/capital activation, or consumed-119 replay occurred. The checkpoint accepts software contracts only; actual provider/source/target/consumer qualification and the complete 24-item roadmap remain open with their holds unchanged. No Alembic delta exists relative to deployed `02a7bae`. This records-only closing commit must receive terminal-green exact-head CI; Root owns staging/master integration and later runtime/source acceptance. The plan retains the literal `integration_capture: exact branch HEAD`.
+
+
+### Closure review corrections (2026-10-27 18:52Z)
+
+Root's final record review was incorporated before publication. The profile is described as qualification of the complete 6,073-ID manifest with declared dispositions, not as all IDs passing: 5,522 unit-like IDs passed; integration had 549 passes and two declared opt-in skips across all 551 IDs. The canonical checkpoint now has an explicit disposition for each of the 24 original roadmap criteria, naming checkpoint contribution or deferral, remaining work, Provider ownership, and continuation acceptance evidence. The original roadmap IDs/texts, 243 remaining-gap dispositions, P1 history, and complete accepted P2 object remain unchanged. The obsolete current-gate narrative is preserved under a historical field; the current gate now names the on-demand checkpoint, source 51301c9, its acceptance/profile evidence, and the separate exact-closing-head CI requirement.
+
+
+### Exact manifest count correction (2026-10-27 18:53Z)
+
+Root's log audit corrects the unit-like result count: the 6,073-ID manifest comprises 5,522 unit-like IDs (5,521 passed, one declared native RC6 skip) and 551 integration IDs (549 passed, two declared native RC6 skips), for 6,070 passes and three declared native skips overall. The single unit skip is `app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py::test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows`. This native capability remains disabled and unqualified. This correction supersedes the immediately preceding handoff count wording; historical journal rows are retained byte-for-byte, with the append-only correction below. No rerun or native activation occurred.
