@@ -31,6 +31,8 @@ _EXPLICIT_ETF_ACQUISITION_BINDING = ContextVar(
 
 
 def _install_explicit_etf_acquisition_binder(monkeypatch):
+    from app.services.provider_runtime import bind_explicit_etf_holdings_acquisition
+
     calls = []
 
     @contextmanager
@@ -38,7 +40,8 @@ def _install_explicit_etf_acquisition_binder(monkeypatch):
         calls.append(kwargs)
         token = _EXPLICIT_ETF_ACQUISITION_BINDING.set(kwargs)
         try:
-            yield
+            with bind_explicit_etf_holdings_acquisition(**kwargs) as scope:
+                yield scope
         finally:
             _EXPLICIT_ETF_ACQUISITION_BINDING.reset(token)
 
@@ -1145,6 +1148,9 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
         }
     ]
     assert _EXPLICIT_ETF_ACQUISITION_BINDING.get() is None
+    from app.services import provider_runtime
+
+    assert provider_runtime._EXPLICIT_ACQUISITION_CONTEXT.get() is None
     assert success_records == [(profile, acquired_snapshot)]
     assert db.flush_calls == 2
 
@@ -1359,3 +1365,6 @@ async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypat
 
     assert len(binder_calls) == 1
     assert _EXPLICIT_ETF_ACQUISITION_BINDING.get() is None
+    from app.services import provider_runtime
+
+    assert provider_runtime._EXPLICIT_ACQUISITION_CONTEXT.get() is None

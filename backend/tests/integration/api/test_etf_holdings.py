@@ -35,6 +35,8 @@ _CURRENT_ERROR_LINEAGE_FIELDS = (
 
 
 def _install_explicit_etf_acquisition_scope(monkeypatch, *, request_id, instrument_id, symbol):
+    from app.services.provider_runtime import bind_explicit_etf_holdings_acquisition
+
     @contextmanager
     def bind(**kwargs):
         assert kwargs == {
@@ -43,7 +45,8 @@ def _install_explicit_etf_acquisition_scope(monkeypatch, *, request_id, instrume
             "symbol": symbol,
             "issuer_provider_name": "vaneck",
         }
-        yield
+        with bind_explicit_etf_holdings_acquisition(**kwargs) as scope:
+            yield scope
 
     monkeypatch.setattr(
         "app.services.provider_runtime.bind_explicit_etf_holdings_acquisition",
@@ -773,8 +776,10 @@ async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
     from app.models.asset_class import AssetClass, InstrumentType
     from app.models.etf_holdings import ETFProfile
     from app.models.instrument import Instrument
+    from app.models.provider_runtime import ProviderCapability
     from app.routers.etf_holdings import acquire_holdings_profile
     from app.schemas.etf_holdings import ETFProfileAcquireRequest
+    from app.services import provider_runtime
     from app.services.etf_holdings import ingest_holdings_snapshot
     from app.services.etf_holdings_adapters import CanonicalHoldingRow
 
@@ -870,6 +875,30 @@ async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
 
         async def fake_refresh_adapter_route(session, selected_profile, **kwargs):
             assert kwargs["acquisition_request_id"] == request_id
+            scope = provider_runtime._EXPLICIT_ACQUISITION_CONTEXT.get()
+            assert scope is not None
+            assert scope.request_id == request_id
+            assert scope.instrument_id == instrument_id
+            assert scope.symbol == "OIH"
+            assert scope.provider_names == frozenset({"vaneck"})
+            assert (
+                provider_runtime._explicit_acquisition_scope_denial(
+                    capability=ProviderCapability.ETF_HOLDINGS,
+                    operation="fetch_etf_holdings_latest",
+                    instrument_id=instrument_id,
+                    provider_symbol="OIH",
+                )
+                is None
+            )
+            assert (
+                provider_runtime._explicit_acquisition_scope_denial(
+                    capability=ProviderCapability.ETF_HOLDINGS,
+                    operation="fetch_etf_holdings_latest",
+                    instrument_id=instrument_id,
+                    provider_symbol="SPY",
+                )
+                == "explicit_acquisition_scope_mismatch"
+            )
             # This observer must acquire a different live connection while
             # the request session is still open and performing acquisition.
             assert session.in_transaction()
@@ -944,6 +973,7 @@ async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
         assert payload["snapshot"]["source_provider"] == "vaneck"
         assert payload["snapshot"]["source_identifier"] == "oil-services-etf-oih"
         assert payload["snapshot"]["known_at"].startswith(observed_at.date().isoformat())
+        assert provider_runtime._EXPLICIT_ACQUISITION_CONTEXT.get() is None
         assert payload["snapshot"]["holdings"][0]["reported_symbol"] == "SLB"
         assert (
             payload["snapshot"]["extra_data"]["legal_metadata"]["application_request_id"]

@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_merge_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_parent_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
+latest_staging_merge_sha: 6bff091d7d43de0731284dfabcafa09514d226a6
+latest_staging_parent_sha: f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -219,7 +219,7 @@ previously_accepted_riw_closure_summary: >-
   retained-target correction/reparse and API/UI acceptance. Continue AC1-AC14
   and the post-integration observation; no full-feature completion is claimed.
   integration_capture: exact branch HEAD.
-human_closure_authorization: >-
+previously_accepted_erf_human_closure_authorization: >-
   The existing human-delegated checkpoint authority is recorded in
   /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md.
   Root accepted ERF1-ERF3 for source integration at exact closing tip
@@ -229,7 +229,7 @@ human_closure_authorization: >-
   is separately verified green by canonical staging CI40270957631. Publication
   to the feature branch remains held pending Root's independent master-green
   release; this records no deployment or target acceptance.
-closure_summary: >-
+previously_accepted_erf_closure_summary: >-
   Root accepted the retained-IWM reparse response and same-date ordering source
   checkpoint ERF1-ERF3 at validated implementation
   d34e53545e07a1052d489e8601f91505d70484d9. The complete local audit remains
@@ -267,6 +267,25 @@ human_goal_budget_authorization: none
 previous_branch: feat/etf-holdings-constituents
 previous_tip: a8d618995fbd928c66117271bb7ac9152a935ab5
 roadmap_goal: &etf_full_roadmap_goal "Make ETF constituent availability truthful, cost-governed, resilient, and observable per symbol; integrate ETF holdings with the shared provider platform after it reaches staging; remediate the full fallback inventory in relevance order; and deliver tested monitoring and user-visible degradation behavior without silently treating SEC, stale, partial, or unverified data as current support."
+on_demand_consumer_goal: &etf_on_demand_consumer_goal >-
+  Qualify the explicit selected-fund ETF issuer acquisition consumer against the
+  accepted shared Provider runtime, proving exact task-local scope, fail-closed
+  holds, committed first-use profile visibility, and truthful dated snapshot
+  serialization under the complete source-matched software profile, while
+  preserving every AC1-AC14 roadmap obligation and all live-source/account holds.
+on_demand_consumer_criteria: &etf_on_demand_consumer_criteria
+  - id: ODC1
+    text: The exact synchronized-green Provider staging source 6bff091d7d43de0731284dfabcafa09514d226a6 is adopted conflict-free in the owned branch, with all pre-adoption ETF preparation preserved in ancestry and no sibling import.
+  - id: ODC2
+    text: Explicit refresh=true issuer acquisition enters the actual Provider bind_explicit_etf_holdings_acquisition helper with the exact request ID, committed canonical instrument, symbol, and trusted issuer; mismatch, absent scope, global routing stop, free-only restrictions, holds, quotas, and unready admission remain fail-closed. Cache-only, bootstrap, schedules, SEC fallback, and constituent fanout do not acquire under this scope.
+  - id: ODC3
+    text: The separate initial VanEck qualification consumer is compatible with the actual Provider bind_vaneck_initial_etf_qualification contract and preserves its exact job/profile/instrument/symbol/account/review-revision/expiry, one-shot, disabled/not_run and failure semantics; no manual positive marker, source HTTP, or native qualification is claimed.
+  - id: ODC4
+    text: Independent fresh PostgreSQL sessions prove an uncommitted profile is invisible, the explicitly committed curated profile is visible on a distinct active connection before acquisition, and the endpoint returns and persists dated holdings with correct profile, rows, provenance, composition date and known_at through the real Provider issuer binder.
+  - id: ODC5
+    text: The exact implementation source passes the complete required local backend coverage, frontend/build/lint, full-stack/browser/visual profile, cleanup and exact-source branch CI with assertions, references, masks, tolerances, limits and zero-retry policies unchanged and provider/issuer egress disabled.
+  - id: ODC6
+    text: One coherent closure records the tested implementation SHA separately from the records-only closing HEAD, exact source and closing-tip CI, contracts/defaults/migration impact, fixture ownership and cleanup, Root review status, and all remaining roadmap/target/source work; integration_capture remains exact branch HEAD and Root retains integration, promotion and deployment ownership.
 previously_accepted_erf_goal: >-
   Repair the retained-IWM append-only reparse HTTP response so a fresh async
   request session serializes the complete eagerly loaded snapshot, and make
@@ -276,6 +295,19 @@ previously_accepted_erf_goal: >-
   API/UI acceptance; no provider request, target retry, quota replay, deployment,
   or full-roadmap completion is claimed.
 goal: *etf_full_roadmap_goal
+human_closure_authorization: >-
+  The human's standing delegated four-feature development/reconciliation and
+  checkpoint-acceptance authority remains the basis for Root's decisions. The
+  planning direction at
+  /home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-checkpoint-planning-direction-20261027.md
+  authorizes the bounded ODC1-ODC6 plan only; it does not accept this checkpoint
+  before its required source-matched gates and Root review.
+closure_summary: >-
+  The overall ETF AC1-AC14 roadmap remains in progress. The current
+  etf-on-demand-consumer-20261027 checkpoint is in progress with ODC1-ODC2
+  recorded complete and ODC3-ODC6 pending. No source, native/account, target,
+  deployment, or full-roadmap completion is claimed. integration_capture:
+  exact branch HEAD.
 active_changeset:
   name: explicit selected-fund ETF issuer acquisition
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -291,11 +323,15 @@ active_changeset:
     A missing ETFProfile is created only for an explicit refresh and curated
     issuer route; the new profile is linked to the already loaded instrument.
     Cache-only is read-only. All attempted issuer work still goes through the
-    existing ETF shared Provider bridge. Provider's request-only/manual scope
-    remains unreleased, source-rights and application/native quota facts are
-    unresolved, and no real source/Provider request or quota reservation ran.
-    No source checkpoint acceptance, branch CI, full backend or full app gate
-    is claimed.
+    existing ETF shared Provider bridge. Its normal issuer binder and separate
+    initial VanEck qualification binder are now present from exact green staging
+    6bff. The 82 focused stack-free ETF/Provider tests pass. Consumer tests
+    delegate to the actual normal issuer binder and inspect exact task-local
+    scope/reset; the earlier isolated PostgreSQL pass used a mock binder and
+    remains preparation evidence only. Source-rights and account/native quota
+    facts are unresolved, with no real source request or quota reservation.
+    The complete source-matched backend/browser profile and exact branch CI
+    remain pending.
   request_response_contract:
     route: POST /api/v1/etf-holdings/{symbol}/acquire
     request: ETFProfileAcquireRequest
@@ -307,11 +343,11 @@ active_changeset:
     snapshot_holding_field: holdings
     consumer_contract: /home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json
   current_validation:
-    focused_unit: 31 passed in 4.50s; UV offline; test_etf_holdings_bootstrap.py
+    focused_unit: 82 passed in 7.86s; UV offline; ETF bootstrap, ETF qualification, and Provider explicit-acquisition modules
     focused_api_attempt_1: preserved red; both tests asserted snapshot.rows instead of the existing snapshot.holdings field
     focused_api_attempt_2: 2 passed in 19.14s against one fresh Testcontainers PostgreSQL/Redis session; no Provider/issuer HTTP
     cleanup_receipt: /tmp/etf-acquire-api-20261027/attempt-2/cleanup-receipt.json
-    full_gates: pending; no source acceptance claimed
+    full_gates: pending; the earlier fresh-PostgreSQL pass used a mock binder and does not qualify the adopted Provider contract
   source_scope:
     - backend/app/routers/etf_holdings.py
     - backend/app/schemas/etf_holdings.py
@@ -321,7 +357,18 @@ active_changeset:
     - backend/tests/integration/api/test_etf_holdings.py
     - backend/tests/unit/services/test_etf_holdings_bootstrap.py
   owned_records: [ops/workstreams/feat-etf-holdings-constituents/plan.yaml, ops/workstreams/feat-etf-holdings-constituents/handoff.md, ops/workstreams/feat-etf-holdings-constituents/session.json, ops/workstreams/feat-etf-holdings-constituents/validation.jsonl, ops/workstreams/feat-etf-holdings-constituents/branch-tests.json]
-  source_acceptance: pending_exact_source_full_local_and_hosted_gates
+  source_acceptance: pending_exact_source_complete_backend_full_stack_browser_and_hosted_gates
+provider_green_staging_adoption:
+  source_sha: 6bff091d7d43de0731284dfabcafa09514d226a6
+  producer_sha: f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3
+  canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261027T205031Z-6bff091d7d43.json
+  receipt_sha256: 4f39d57eb0b8da68f1c388a7ffcc2d2e0ebb1b92b4b2ec67660ae8fef7be9294
+  exact_ci: 40570735471
+  owner_merge_commit: f959ed3963da4e3f7d161c940e68c345763be009
+  merge_parents: [fe08b99e8f387cafd8b8a7dd2f378fb1008bd49b, 6bff091d7d43de0731284dfabcafa09514d226a6]
+  merge_result: conflict_free; only the released exact staging SHA was merged; no sibling import
+  complete_local_profile: pending_on_this_source
+  source_acceptance: not_claimed
 on_demand_market_acquisition_implementation:
   id: etf-on-demand-market-acquisition-implementation-20261027
   source_baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -1548,7 +1595,7 @@ branch_tests:
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_bootstrap.py -q --no-cov -p no:cacheprovider"
   - "uv run --project backend pytest backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_response_eager_loads_snapshot_rows_after_commit backend/tests/integration/api/test_etf_holdings.py::test_selected_fund_acquire_handler_serializes_with_real_async_session -q --no-cov -p no:cacheprovider"
   - "uv run --project backend pytest backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py -q --no-cov -p no:cacheprovider"
-integration_checkpoint:
+previously_accepted_erf_integration_checkpoint:
   id: etf-retained-iwm-reparse-response-order-1
   planning_authorization: >-
     Root assigned this narrow continuation after the actual retained-IWM target
@@ -1623,7 +1670,63 @@ integration_checkpoint:
   live_and_deployment_boundary: >-
     No provider/SEC request, target mutation, route enablement, deployment, quota
     replay, or native/current acceptance is claimed or authorized in this closure.
-branch_tests_reason: "Automatically executed branch tests include the two focused retained-IWM integration regressions, deterministic/no-network backend and frontend contracts, static analysis, and durable workstream validation. The live-provider module is invoked explicitly with RUN_LIVE_ETF_HOLDINGS_TESTS=0 so its nine offline registry/route contracts run while its network-bearing probes remain skipped. External issuer probes remain available only through the explicit deferred opt-in below."
+integration_checkpoint:
+  id: etf-on-demand-consumer-20261027
+  goal: *etf_on_demand_consumer_goal
+  planning_authorization: >-
+    Root authorized this bounded source-readiness checkpoint under the standing
+    human-authorized on-demand acquisition goal. Planning direction:
+    /home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-checkpoint-planning-direction-20261027.md.
+    It does not authorize native/source requests, quota use, target mutation,
+    policy activation, or completion of the full roadmap.
+  status: in_progress
+  implementation_baseline: f959ed3963da4e3f7d161c940e68c345763be009
+  source_implementation_sha: pending_complete_local_profile
+  closing_source_sha: pending_records_only_closure_and_exact_tip_ci
+  owners:
+    ETF: selected-fund caller, ETF route semantics, owned tests and records
+    Provider: shared admission/binder/provisioning ownership; exact released source is imported
+    TC: client and frontend presentation ownership; no ETF styling implementation
+    Root: fixture allocation/cleanup verification, final review, acceptance, integration, promotion and deployment
+  accepted_provider_release:
+    producer_sha: f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3
+    staging_sha: 6bff091d7d43de0731284dfabcafa09514d226a6
+    canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261027T205031Z-6bff091d7d43.json
+    canonical_receipt_sha256: 4f39d57eb0b8da68f1c388a7ffcc2d2e0ebb1b92b4b2ec67660ae8fef7be9294
+    exact_ci_run: 40570735471
+    owner_merge_commit: f959ed3963da4e3f7d161c940e68c345763be009
+    preserved_pre_adoption_commit: fe08b99e8f387cafd8b8a7dd2f378fb1008bd49b
+    conflict_free: true
+    sibling_imports: none
+  progress:
+    completed: [ODC1, ODC2]
+    total: 6
+    current_phase: actual_provider_binder_consumer_tests_green_complete_local_profile_pending
+  acceptance_criteria: *etf_on_demand_consumer_criteria
+  required_contracts:
+    - Normal refresh=true uses only the committed canonical identity and trusted registered issuer name; refresh=false remains cache-only and no unrelated scheduled/bootstrap/SEC flow gains this scope.
+    - The actual Provider normal issuer helper and separate VanEck initial-qualification helper remain exact, task-local and reset on success, error and cancellation; shared admission, global stop, free-only, holds and durable quota settlement stay mandatory.
+    - The new profile is locally committed before an independent acquisition session can observe it. The new regression uses independently held PostgreSQL backend PIDs and verifies returned plus persisted date/provenance/known-at/holdings.
+    - No source/account HTTP, provider/SEC call, quota reservation, positive qualification, policy change, target mutation, or replay of the 119 consumed requests is part of this software checkpoint.
+    - Full profile resources use project etf-on-demand-consumer-20261027, remain isolated from TC's tc-on-demand-cc4b-20261027 lifecycle and the retained baseline, and never invoke global prune or cleanup outside exact owner labels.
+  required_validation:
+    - Complete source-matched backend units/integrations with combined coverage floor unchanged.
+    - Frontend unit/type/build, applicable branch-declared tests, and complete full-stack functional/browser/visual profile with one browser worker and zero retries where canonical.
+    - Exact owner-branch CI terminal green, including every required job.
+    - Exact resource cleanup and before/after preservation proof for the protected baseline and explicitly recorded TC-owned ephemeral lifecycle.
+  planned_acceptance_cases:
+    - Actual issuer binder exact request/instrument/symbol/trusted-provider binding, mismatches and context reset; actual initial-qualification binder contract and one-shot/hold behavior; cache-only and unrelated paths remain outside scope.
+    - Independent PostgreSQL request and observer sessions use distinct live backend PIDs; pending profile is not visible before commit, committed curated route is visible before source bridge entry, and returned and persisted snapshot/holdings/date/provenance/known-at match.
+    - Complete local source-matched software profile and exact branch CI pass without changing source assertions, retry, limit, or visual-oracle policy.
+    - Final records distinguish implementation source and records-only closing source, preserve all14 AC criteria and histories, and state Root acceptance/integration ownership accurately.
+  original_criterion_dispositions: *etf_riw_original_criterion_dispositions
+  full_roadmap_status: AC1-AC14 remain open beyond this bounded software checkpoint; all 15 Tier-0 and 156 Tier-1, 74 fallback identities, holds/quarantines, raw/PIT lineage, 119 spent requests and 30-day observation remain.
+  continuation_conditions:
+    - Actual OIH VanEck workbook/native account scope/rights/headroom qualification remains Root-owned and requires separate exact reviewed admission; the current source work does not claim a positive native/source result.
+    - Root retains target OIH data/API/UI acceptance, synchronized staging integration, promotion and deployment decisions.
+    - After acceptance, the broader ETF roadmap continues in this same workstream under the original authorization; no new goal, account reset or roadmap completion is inferred.
+  integration_capture: exact branch HEAD
+branch_tests_reason: "The branch-declared sequence retains the full deterministic ETF and provider contract commands, focused acquisition integration regressions, static analysis, and durable workstream validation. The live-provider module stays explicitly disabled (RUN_LIVE_ETF_HOLDINGS_TESTS=0); network-bearing issuer probes remain deferred and are not part of this software checkpoint."
 deferred_live_checks:
   - command: "RUN_LIVE_ETF_HOLDINGS_TESTS=1 uv run --project backend pytest backend/tests/live/test_etf_holdings_live_providers.py -q -rs --no-cov"
     purpose: "Explicit, manually authorized issuer-route/source validation; never part of push-triggered branch CI."
@@ -1834,21 +1937,18 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  The issuer-only OIH initial-qualification consumer is locally implemented on
-  published baseline b9939d13928749765319475d77fe754102c33e6a; its 14 focused
-  offline cases and static checks pass, but the component is not accepted.
-  Provider's exact binder/provisioning implementation is still pending green
-  staging; no sibling code is imported. The actual OIH workbook body has not
-  been received, so independent fund identity remains unknown. Only workbook
-  title/ticker identity that matches OIH can qualify; contradictory or absent
-  identity and invalid/future composition dates fail closed. No source request,
-  account provisioning, policy mutation, quota use, or positive qualification
-  occurred. New-source full gates and exact-tip CI remain pending. Massive
-  remains separately unresolved: persisted PRICE_HISTORY is enabled while
-  global routing is false, max_concurrency is null, and current quota/headroom/
-  holds/effective admission need supported read review. Preserve 15 Tier-0 and
-  156 Tier-1, 74 fallback identities, AC1-AC14, 119 spent requests,
-  holds/quarantines, raw/PIT lineage and the 30-day observation.
+  Current checkpoint etf-on-demand-consumer-20261027 is in progress. Exact
+  Provider staging 6bff091d7d43de0731284dfabcafa09514d226a6 was adopted
+  conflict-free in merge f959ed3963da4e3f7d161c940e68c345763be009. The 82
+  focused stack-free tests pass; the updated independent-PostgreSQL consumer
+  regression now delegates to the real Provider binder but still needs the
+  allocated source-matched full run. Complete backend coverage, full-stack /
+  browser profile, cleanup audit, and exact owner-tip CI remain pending. No
+  source HTTP, quota reservation, positive qualification, target mutation, or
+  policy activation occurred. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback
+  identities, AC1-AC14, 119 spent requests, holds/quarantines, raw/PIT lineage,
+  and the 30-day observation; broader source/account and target acceptance stay
+  Root-owned and separate.
 integration_capture: exact branch HEAD
 
 remaining_gaps:

@@ -1,5 +1,52 @@
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
+## Current checkpoint: etf-on-demand-consumer-20261027 — in progress
+
+Root authorized this six-criterion software checkpoint under the standing
+human-authorized on-demand acquisition goal. The accepted ERF response/order
+checkpoint and its evidence remain preserved below as historical acceptance;
+they do not close this newer consumer scope. Full AC1-AC14 stays the roadmap.
+
+## Accepted Provider staging adopted; consumer contract revalidation — 2026-10-27
+
+The released Provider source `f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3` is
+integrated in synchronized green staging `6bff091d7d43de0731284dfabcafa09514d226a6`.
+The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261027T205031Z-6bff091d7d43.json`
+(SHA256 `4f39d57eb0b8da68f1c388a7ffcc2d2e0ebb1b92b4b2ec67660ae8fef7be9294`);
+exact CI `40570735471`, including Exhaustive Integration Gate, is green. The
+ETF branch adopted only that exact staging commit in merge `f959ed3963da4e3f7d161c940e68c345763be009`,
+whose second parent is the released staging SHA. The pre-adoption ETF
+preparation was preserved in local commit `fe08b99e8f387cafd8b8a7dd2f378fb1008bd49b`.
+No sibling source was imported and no conflict occurred.
+
+The issuer-only consumer now resolves Provider's actual
+`bind_explicit_etf_holdings_acquisition(*, request_id, instrument_id, symbol,
+issuer_provider_name)` helper. Test wrappers delegate to that implementation,
+and the independent-AsyncSession regression checks the live exact request,
+instrument, `OIH`, and `vaneck` scope, matching and mismatching symbols, and
+context reset. The distinct initial-qualification path already resolves the
+separate `bind_vaneck_initial_etf_qualification` helper after its durable job,
+profile, account and review checks; the imported Provider tests exercise its
+one-shot binding and mismatch behavior. Cache-only and ordinary bootstrap tests
+continue to assert no acquisition scope or source work.
+
+The four relevant stack-free ETF/Provider modules passed `82/82` with UV offline;
+changed-file Ruff check, formatting and `git diff --check` passed. The earlier
+isolated PostgreSQL pass (`1/1`) used a mock binder and remains explicitly
+pre-adoption preparation evidence. The updated real-binder independent-PG test
+has only been collected, not re-executed after staging adoption. A complete
+source-matched backend and full-stack/browser profile plus exact owner-branch CI
+remain pending. The allocated local profile must use project
+`etf-on-demand-consumer-20261027`, preserve the documented retained baseline
+and TC-owned lifecycle, keep provider/issuer egress disabled, serially build,
+and stay within the Root-approved aggregate resource envelope. No actual source
+HTTP, quota reservation, target mutation, or route activation occurred; OIH
+workbook identity and native account limits remain unverified. All fourteen
+roadmap criteria, `15 Tier-0 and 156 Tier-1`, `74` fallback identities, the
+119-spent-request history, holds, quarantines, raw/PIT lineage and 30-day
+observation remain intact.
+
 ## Explicit Provider acquisition scope preparation — 2026-10-27
 
 On top of published source `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`, the
