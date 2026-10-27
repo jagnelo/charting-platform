@@ -11,13 +11,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.auth.dependencies import get_current_user
+from app.config import settings
 from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
+from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import EquityDetail, Instrument
-from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.instrument_identity import (
+    InstrumentIdentifierType,
+    InstrumentProviderSymbol,
+)
 from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
-from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_observation import (
     InstrumentDatasetState,
     InstrumentIdentifierSnapshot,
@@ -31,6 +37,18 @@ from app.models.watchlist import Watchlist, WatchlistItem
 from app.providers import ensure_data_source
 from app.providers.base import InstrumentProfile
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
+from app.schemas.instrument_acquisition import (
+    HistoryAcquisitionRequest,
+    HistoryAcquisitionResponse,
+    HistoryCoverageSlice,
+    InstrumentAcquireRequest,
+    InstrumentAcquireResponse,
+    InstrumentAcquisitionSourceOutcome,
+    InstrumentDiscoveryCandidate,
+    InstrumentDiscoveryRequest,
+    InstrumentDiscoveryResponse,
+    QualifiedInstrumentIdentity,
+)
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.evaluator_preflight import preflight_ohlcv
 from app.services.expression_engine import (
@@ -45,14 +63,53 @@ from app.services.instrument_mastering import (
     ingest_provider_profile,
 )
 from app.services.market_data import (
+    _coverage_calendar,
+    _default_series_bar_condition,
+    fetch_ohlcv,
     fetch_ohlcv_latest,
     get_provider_profile_async,
     search_provider_instruments_async,
+)
+from app.services.market_data_identity import choose_domain_key
+from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
+from app.services.provider_runtime import (
+    ProviderCapability,
+    ProviderNoDataError,
+    ProviderRateLimitError,
+    ProviderRequestScopeDeniedError,
+    bind_explicit_provider_acquisition,
+    list_provider_status,
 )
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/instruments", tags=["instruments"])
+
+
+def _history_application_limit_reason(
+    *,
+    timeframe: Timeframe,
+    start: datetime,
+    end: datetime,
+    cached_bars: list[OHLCVBar],
+    calendar: str | None = None,
+) -> str | None:
+    """Apply explicit-request workload bounds, separate from provider quotas."""
+
+    max_bars = max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
+    intervals = math.ceil((end - start).total_seconds() / TIMEFRAME_SECONDS[timeframe])
+    # Both boundaries are inclusive in the provider APIs, so reserve one
+    # additional bar beyond the interval count when enforcing response size.
+    if intervals + 1 > max_bars:
+        return "application_requested_range_limit_exceeded"
+    max_missing_slices = max(0, int(settings.PROVIDER_ON_DEMAND_MAX_MISSING_SLICES))
+    if (
+        len(missing_range_slices(cached_bars, timeframe, start, end, calendar=calendar))
+        > max_missing_slices
+    ):
+        return "application_missing_slice_limit_exceeded"
+    return None
+
 
 # A symbol can be hydrated by several linked workstation tools at once.  Keep
 # the one-to-one stats row creation serialized inside a worker, while the
@@ -63,6 +120,113 @@ _52W_STATS_LOCKS: dict[int, asyncio.Lock] = {}
 
 def _52w_stats_lock(instrument_id: int) -> asyncio.Lock:
     return _52W_STATS_LOCKS.setdefault(instrument_id, asyncio.Lock())
+
+
+def _instrument_has_stable_identity(instrument: Instrument) -> bool:
+    return bool(
+        instrument.identity_status == "resolved"
+        and instrument.domain_key
+        and instrument.primary_identifier_type
+        and instrument.primary_identifier_type != InstrumentIdentifierType.INTERNAL.value
+        and instrument.primary_identifier_type != InstrumentIdentifierType.CIK.value
+        and instrument.primary_identifier_value
+    )
+
+
+async def _held_provider_outcomes(
+    db: AsyncSession, capability: ProviderCapability, operation: str
+) -> list[InstrumentAcquisitionSourceOutcome]:
+    """Return safe, non-secret admission reasons for the requested capability."""
+
+    outcomes: list[InstrumentAcquisitionSourceOutcome] = []
+    for row in await list_provider_status(db):
+        if row.get("capability") != capability.value:
+            continue
+        if row.get("routing_eligible"):
+            continue
+        admission = row.get("entitlement_admission") or {}
+        reason = (
+            row.get("checkpoint_hold_reason")
+            or admission.get("reason_code")
+            or row.get("quota_state")
+            or "provider_not_routable"
+        )
+        outcomes.append(
+            InstrumentAcquisitionSourceOutcome(
+                provider=str(row.get("provider") or "unknown"),
+                capability=capability.value,
+                operation=operation,
+                status="held",
+                reason_code=str(reason),
+            )
+        )
+    return outcomes
+
+
+async def _qualified_identity(
+    db: AsyncSession,
+    instrument: Instrument,
+    provider_name: str | None = None,
+    provider_symbol: str | None = None,
+    provider_exchange_code: str | None = None,
+) -> QualifiedInstrumentIdentity | None:
+    if not _instrument_has_stable_identity(instrument):
+        return None
+    if provider_name is not None and not provider_symbol:
+        return None
+    listing_result = await db.execute(
+        select(InstrumentListing, Exchange.mic)
+        .outerjoin(Exchange, Exchange.id == InstrumentListing.exchange_id)
+        .where(
+            InstrumentListing.instrument_id == instrument.id,
+            InstrumentListing.is_active.is_(True),
+            InstrumentListing.is_primary.is_(True),
+        )
+        .order_by(InstrumentListing.id)
+    )
+    listing, mic = listing_result.first() or (None, None)
+    if listing is None or not mic:
+        return None
+    if provider_name is not None:
+        binding = await db.execute(
+            select(InstrumentProviderSymbol.id)
+            .join(DataSource, DataSource.id == InstrumentProviderSymbol.data_source_id)
+            .where(
+                InstrumentProviderSymbol.instrument_id == instrument.id,
+                InstrumentProviderSymbol.is_active.is_(True),
+                DataSource.name == provider_name,
+                *(
+                    [InstrumentProviderSymbol.provider_symbol == provider_symbol]
+                    if provider_symbol is not None
+                    else []
+                ),
+                *(
+                    [InstrumentProviderSymbol.provider_exchange_code == provider_exchange_code]
+                    if provider_exchange_code is not None
+                    else []
+                ),
+            )
+        )
+        if binding.scalar_one_or_none() is None:
+            return None
+    return QualifiedInstrumentIdentity(
+        instrument_id=instrument.id,
+        symbol=instrument.symbol,
+        identity_status=instrument.identity_status,
+        domain_key=instrument.domain_key,
+        primary_identifier_type=instrument.primary_identifier_type,
+        primary_identifier_value=instrument.primary_identifier_value,
+        primary_listing_mic=mic,
+    )
+
+
+async def _local_instrument_by_symbol(db: AsyncSession, symbol: str) -> Instrument | None:
+    result = await db.execute(
+        select(Instrument)
+        .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+        .where(Instrument.symbol == symbol.strip().upper(), Instrument.is_synthetic.is_(False))
+    )
+    return result.scalar_one_or_none()
 
 
 def _search_result_priority(
@@ -126,17 +290,448 @@ def _instrument_search_exchange(instrument: Instrument) -> str:
     return instrument.equity_detail.exchange_mic if instrument.equity_detail else ""
 
 
+@router.post("/discover", response_model=InstrumentDiscoveryResponse)
+async def discover_instruments(
+    body: InstrumentDiscoveryRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Search providers only for this explicit, authenticated request."""
+
+    del current_user
+    raw_outcomes: list[dict] = []
+    with bind_explicit_provider_acquisition(
+        request_id=body.request_id,
+        operations=frozenset({(ProviderCapability.INSTRUMENT_SEARCH, "search_instruments")}),
+        symbol=body.query,
+    ):
+        rows = await search_provider_instruments_async(db, body.query, source_outcomes=raw_outcomes)
+    allowed_types = {value.strip().upper() for value in body.types if value.strip()}
+    candidates = [
+        InstrumentDiscoveryCandidate(
+            symbol=str(row.get("symbol") or ""),
+            name=str(row.get("name") or ""),
+            exchange=str(row.get("exchange") or ""),
+            type=str(row.get("type") or ""),
+            provider=str(row.get("provider") or "unknown"),
+        )
+        for row in rows
+        if row.get("symbol")
+        and (
+            not allowed_types
+            or _matches_search_type_filter(str(row.get("type") or ""), allowed_types)
+        )
+    ][: body.limit]
+    outcomes = [InstrumentAcquisitionSourceOutcome(**item) for item in raw_outcomes]
+    if not candidates and not outcomes:
+        outcomes = await _held_provider_outcomes(
+            db, ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"
+        )
+    if candidates:
+        status = "partial" if any(item.status == "failed" for item in outcomes) else "complete"
+    elif outcomes and all(item.status == "held" for item in outcomes):
+        status = "held"
+    elif any(item.status == "no_match" for item in outcomes):
+        status = "no_match"
+    else:
+        status = "unavailable"
+    return InstrumentDiscoveryResponse(
+        request_id=body.request_id,
+        status=status,
+        candidates=candidates,
+        source_outcomes=outcomes,
+    )
+
+
+@router.post("/acquire", response_model=InstrumentAcquireResponse)
+async def acquire_instrument(
+    body: InstrumentAcquireRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Resolve one selected provider candidate; never starts legacy bulk work."""
+
+    del current_user
+    symbol = body.symbol.strip().upper()
+    existing = await _local_instrument_by_symbol(db, symbol)
+    if existing is not None and body.provider_candidate is None:
+        identity = await _qualified_identity(db, existing)
+        if identity is not None:
+            return InstrumentAcquireResponse(
+                request_id=body.request_id, status="resolved", instrument=identity
+            )
+
+    selected_provider = (
+        body.provider_candidate.provider.strip().lower()
+        if body.provider_candidate is not None
+        else None
+    )
+    raw_outcomes: list[dict] = []
+    with bind_explicit_provider_acquisition(
+        request_id=body.request_id,
+        operations=frozenset({(ProviderCapability.INSTRUMENT_SEARCH, "search_instruments")}),
+        symbol=symbol,
+        provider_names=frozenset({selected_provider}) if selected_provider else None,
+    ):
+        candidates = await search_provider_instruments_async(
+            db, symbol, source_outcomes=raw_outcomes
+        )
+    outcomes = [InstrumentAcquisitionSourceOutcome(**item) for item in raw_outcomes]
+    matched = next(
+        (
+            row
+            for row in candidates
+            if _normalized_symbol_key(row.get("symbol")) == symbol
+            and (
+                selected_provider is None
+                or str(row.get("provider") or "").strip().lower() == selected_provider
+            )
+            and (
+                body.provider_candidate is None
+                or not body.provider_candidate.exchange
+                or str(row.get("exchange") or "").strip().upper()
+                == body.provider_candidate.exchange.strip().upper()
+            )
+        ),
+        None,
+    )
+    if matched is None:
+        if not outcomes:
+            outcomes = await _held_provider_outcomes(
+                db, ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"
+            )
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status=(
+                "held"
+                if outcomes and all(item.status == "held" for item in outcomes)
+                else "no_match"
+            ),
+            reason_code="candidate_not_found_or_not_admitted",
+            source_outcomes=outcomes,
+        )
+
+    provider_name = str(matched.get("provider") or "").strip().lower()
+    provider_symbol = str(matched.get("symbol") or "").strip()
+    with bind_explicit_provider_acquisition(
+        request_id=body.request_id,
+        operations=frozenset({(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}),
+        symbol=provider_symbol,
+        provider_names=frozenset({provider_name}),
+    ):
+        profile = await get_provider_profile_async(
+            db, provider_symbol, provider_name=provider_name, persist=False
+        )
+    profile_outcome = InstrumentAcquisitionSourceOutcome(
+        provider=provider_name,
+        capability=ProviderCapability.INSTRUMENT_METADATA.value,
+        operation="get_instrument_profile",
+        status="attempted",
+    )
+    if profile is None or not _profile_exact_match(profile, symbol):
+        profile_outcome.status = "failed"
+        profile_outcome.reason_code = "provider_profile_unavailable_or_mismatched"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="failed",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    profile_domain_key = choose_domain_key(
+        {item.identifier_type: item.identifier_value for item in profile.identifiers}
+    )
+    if (
+        profile.provider.strip().lower() != provider_name
+        or (profile.canonical_symbol or "").strip().upper() != symbol
+        or not profile_domain_key
+        or not profile.listings
+    ):
+        profile_outcome.status = "no_match"
+        profile_outcome.reason_code = "stable_identity_or_listing_authority_missing"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    if existing is not None and existing.domain_key and existing.domain_key != profile_domain_key:
+        profile_outcome.status = "failed"
+        profile_outcome.reason_code = "existing_placeholder_identity_conflict"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    canonical = await _find_existing_instrument_for_profile(db, profile)
+    if existing is not None and canonical is not None and existing.id != canonical.id:
+        profile_outcome.status = "failed"
+        profile_outcome.reason_code = "provider_identity_maps_to_other_canonical_instrument"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    try:
+        canonical = await ingest_provider_profile(
+            db, profile, instrument=canonical or existing, allow_external_identifier=False
+        )
+        await db.commit()
+    except IntegrityError:
+        await db.rollback()
+        profile_outcome.status = "failed"
+        profile_outcome.reason_code = "canonical_identity_conflict"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    canonical = await _reload_instrument_full(canonical.id, db)
+    identity = await _qualified_identity(
+        db,
+        canonical,
+        provider_name,
+        provider_symbol,
+        str(matched.get("exchange") or "").strip() or None,
+    )
+    if identity is None or canonical.symbol.strip().upper() != symbol:
+        profile_outcome.status = "failed"
+        profile_outcome.reason_code = "canonical_identity_not_fully_qualified"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    profile_outcome.status = "returned"
+    profile_outcome.result_count = 1
+    outcomes.append(profile_outcome)
+    return InstrumentAcquireResponse(
+        request_id=body.request_id,
+        status="resolved",
+        instrument=identity,
+        source_outcomes=outcomes,
+    )
+
+
+@router.post("/{instrument_id}/history-acquisitions", response_model=HistoryAcquisitionResponse)
+async def acquire_instrument_history(
+    instrument_id: int,
+    body: HistoryAcquisitionRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Explicitly fill one selected canonical instrument/timeframe range."""
+
+    del current_user
+    instrument = (
+        await db.execute(
+            select(Instrument)
+            .options(selectinload(Instrument.listings).selectinload(InstrumentListing.exchange))
+            .where(Instrument.id == instrument_id, Instrument.is_synthetic.is_(False))
+        )
+    ).scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, detail={"code": "canonical_instrument_not_found"})
+    if await _qualified_identity(db, instrument) is None:
+        raise HTTPException(409, detail={"code": "canonical_identity_unresolved"})
+    start = body.start.astimezone(UTC)
+    end = body.end.astimezone(UTC)
+    operation = f"fetch_ohlcv:{body.timeframe.value}"
+    max_bars = max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
+    requested_intervals = math.ceil(
+        (end - start).total_seconds() / TIMEFRAME_SECONDS[body.timeframe]
+    )
+    range_limit_exceeded = requested_intervals + 1 > max_bars
+    # Inspect only the selected/default series before planning any provider
+    # work. The same series predicate drives ordinary cache reads and keeps
+    # alternate feeds from inflating coverage or hiding missing slices.
+    cached = (
+        []
+        if range_limit_exceeded
+        else list(
+            (
+                await db.execute(
+                    select(OHLCVBar)
+                    .where(
+                        OHLCVBar.instrument_id == instrument.id,
+                        OHLCVBar.timeframe == body.timeframe,
+                        OHLCVBar.is_adjusted.is_(body.adjusted),
+                        OHLCVBar.ts >= start,
+                        OHLCVBar.ts <= end,
+                        _default_series_bar_condition(instrument.id, body.timeframe, body.adjusted),
+                    )
+                    .order_by(OHLCVBar.ts)
+                    .limit(max_bars + 1)
+                )
+            )
+            .scalars()
+            .all()
+        )
+    )
+    limit_reason = (
+        "application_requested_range_limit_exceeded"
+        if range_limit_exceeded
+        else _history_application_limit_reason(
+            timeframe=body.timeframe,
+            start=start,
+            end=end,
+            cached_bars=cached,
+            calendar=_coverage_calendar(instrument),
+        )
+    )
+    if limit_reason is not None:
+        execution_status = "held"
+        reason_code = limit_reason
+    else:
+        try:
+            with bind_explicit_provider_acquisition(
+                request_id=body.request_id,
+                operations=frozenset({(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}),
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+                provider_names=(
+                    frozenset({body.source_provider}) if body.source_provider is not None else None
+                ),
+            ):
+                await fetch_ohlcv(
+                    db,
+                    instrument,
+                    body.timeframe,
+                    start,
+                    end,
+                    body.adjusted,
+                    allow_provider_fetch=True,
+                )
+            execution_status = "returned"
+            reason_code = None
+        except ProviderRequestScopeDeniedError as exc:
+            execution_status = "held"
+            reason_code = exc.reason_code
+        except ProviderRateLimitError:
+            execution_status = "held"
+            reason_code = "provider_capacity_unavailable"
+        except ProviderNoDataError:
+            execution_status = "no_data"
+            reason_code = "no_admitted_provider_data"
+        except Exception:
+            execution_status = "failed"
+            reason_code = "history_acquisition_failed"
+
+    persisted = list(
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == body.timeframe,
+                    OHLCVBar.is_adjusted.is_(body.adjusted),
+                    _default_series_bar_condition(instrument.id, body.timeframe, body.adjusted),
+                    OHLCVBar.ts >= start,
+                    OHLCVBar.ts <= end,
+                )
+                .order_by(OHLCVBar.ts)
+                .limit(max_bars + 1)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    coverage = assess_ohlcv_coverage(
+        persisted,
+        body.timeframe,
+        start,
+        end,
+        calendar=_coverage_calendar(instrument),
+    )
+    outcomes: list[InstrumentAcquisitionSourceOutcome] = []
+    source_ids = {bar.data_source_id for bar in persisted if bar.data_source_id is not None}
+    if source_ids:
+        sources = (
+            (await db.execute(select(DataSource).where(DataSource.id.in_(source_ids))))
+            .scalars()
+            .all()
+        )
+        outcomes.extend(
+            InstrumentAcquisitionSourceOutcome(
+                provider=source.name,
+                capability=ProviderCapability.PRICE_HISTORY.value,
+                operation=operation,
+                status="used",
+                result_count=sum(1 for bar in persisted if bar.data_source_id == source.id),
+            )
+            for source in sources
+        )
+    if execution_status == "held" and not outcomes and not reason_code.startswith("application_"):
+        outcomes = await _held_provider_outcomes(db, ProviderCapability.PRICE_HISTORY, operation)
+    response_limit_exceeded = len(persisted) > max_bars
+    if reason_code in {
+        "application_requested_range_limit_exceeded",
+        "application_missing_slice_limit_exceeded",
+    }:
+        response_status = "held"
+    elif response_limit_exceeded:
+        response_status = "partial"
+        reason_code = "application_response_bar_limit_exceeded"
+    elif coverage.status.value == "ready":
+        response_status = "complete"
+    elif execution_status == "held":
+        response_status = "held"
+    elif coverage.bar_count:
+        response_status = "partial"
+    elif execution_status == "failed":
+        response_status = "failed"
+    else:
+        response_status = "no_data"
+    return HistoryAcquisitionResponse(
+        request_id=body.request_id,
+        status=response_status,
+        reason_code=reason_code or coverage.explanation,
+        instrument_id=instrument.id,
+        symbol=instrument.symbol,
+        timeframe=body.timeframe,
+        adjusted=body.adjusted,
+        requested_start=start,
+        requested_end=end,
+        coverage={
+            "status": coverage.status.value,
+            "covered_start": coverage.covered_start,
+            "covered_end": coverage.covered_end,
+            "bar_count": coverage.bar_count,
+            "missing_slices": [
+                HistoryCoverageSlice(start=left, end=right)
+                for left, right in coverage.missing_slices
+            ],
+        },
+        # Return only canonical rows that survived persistence/readback; the
+        # fetch result itself is not proof that the database accepted them.
+        bars=persisted[:max_bars],
+        source_outcomes=outcomes,
+    )
+
+
 @router.get("/search", response_model=list[InstrumentSearchResult])
 async def search_instruments(
     q: str = Query(..., min_length=1),
     types: str | None = Query(None),
     canonical_only: bool = Query(
         False,
-        description="Search only the local canonical security master; do not fan out to providers.",
+        description="Search only local data; also forced when request-driven mode is enabled.",
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # In request-driven mode the legacy GET remains local-only even when older
+    # callers omit canonical_only. Outside that mode retain its prior behavior.
+    canonical_only = canonical_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
     if is_expression(q):
         return []
 
@@ -173,17 +768,17 @@ async def search_instruments(
         merged[item.symbol] = item
     if not canonical_only:
         provider_results = await search_provider_instruments_async(db, q)
-        for r in provider_results:
-            symbol = r.get("symbol", "")
+        for row in provider_results:
+            symbol = row.get("symbol", "")
             if not symbol or symbol in merged:
                 continue
-            if not _matches_search_type_filter(r.get("type", ""), allowed_types):
+            if not _matches_search_type_filter(row.get("type", ""), allowed_types):
                 continue
             merged[symbol] = InstrumentSearchResult(
                 symbol=symbol,
-                name=r.get("name", ""),
-                exchange=r.get("exchange", ""),
-                type=r.get("type", ""),
+                name=row.get("name", ""),
+                exchange=row.get("exchange", ""),
+                type=row.get("type", ""),
             )
     ranked = sorted(
         merged.values(),
@@ -472,17 +1067,17 @@ async def resolve_expression(
     body: ResolveExpressionBody,
     canonical_only: bool = Query(
         False,
-        description="Resolve only existing canonical constituents; do not discover providers.",
+        description="Resolve only local constituents; also forced in request-driven mode.",
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Create or retrieve a synthetic instrument for the given arithmetic expression
+    Create or retrieve a synthetic instrument from already-canonical local constituents
     (e.g. 'SPY/GLD', '(SPY*0.5)/QQQ').
 
     - Normalises the expression to a canonical upper-case form.
-    - Verifies every constituent ticker exists (auto-creates from the configured provider if needed).
+    - Verifies every constituent ticker already exists; missing constituents remain unavailable.
     - If a synthetic instrument with the same normalised expression already exists,
       returns the existing row.  Otherwise creates a new one.
     """
@@ -495,7 +1090,9 @@ async def resolve_expression(
     if len(tickers) < 2 and not any(c in canonical for c in ("+", "-", "*", "/")):
         raise HTTPException(400, "Input does not look like an arithmetic expression")
 
-    # Resolve / auto-create every constituent instrument
+    canonical_only = canonical_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
+    # Resolve every constituent locally first. Provider discovery remains
+    # available to legacy callers only when request-driven mode is disabled.
     constituents: dict[str, Instrument] = {}
     for ticker in tickers:
         result = await db.execute(
@@ -506,12 +1103,9 @@ async def resolve_expression(
         inst = result.scalar_one_or_none()
         if inst is None and not canonical_only:
             inst = await _create_from_provider(ticker, db)
-            if inst is None:
-                raise HTTPException(404, f"Constituent instrument '{ticker}' not found")
-        elif inst is None:
-            raise HTTPException(
-                404, f"Constituent instrument '{ticker}' is not in the canonical security master"
-            )
+        if inst is None:
+            message = f"Constituent instrument '{ticker}' is not in the canonical security master"
+            raise HTTPException(404, message)
         constituents[ticker] = inst
 
     # Return existing synthetic if already stored
@@ -1238,11 +1832,12 @@ async def get_instrument(
     background_tasks: BackgroundTasks,
     canonical_only: bool = Query(
         False,
-        description="Resolve only an existing local canonical instrument; do not discover via providers.",
+        description="Resolve locally; provider discovery is disabled in request-driven mode.",
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    canonical_only = canonical_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
     result = await db.execute(
         select(Instrument)
         .options(

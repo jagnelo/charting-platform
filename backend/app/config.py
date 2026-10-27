@@ -4,7 +4,7 @@ from copy import deepcopy
 from datetime import UTC, datetime
 from typing import cast
 
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_core import PydanticUseDefault
 from pydantic_settings import (
     BaseSettings,
@@ -287,6 +287,17 @@ class Settings(BaseSettings):
     # Deployment-wide emergency switch. Provider descriptors and usage remain
     # visible when off, but no provider adapter may be selected for a call.
     PROVIDER_ROUTING_ENABLED: bool = True
+    # When enabled, provider transport is possible only inside a server-owned
+    # explicit acquisition context. This is independent from the global
+    # emergency routing switch and never bypasses per-capability admission.
+    PROVIDER_REQUEST_DRIVEN_ONLY: bool = False
+    # Application workload ceilings for one explicit history request. The
+    # response cap matches the existing bounded 2,000-row API pattern; limiting
+    # repair work to eight missing slices prevents one click from fanning into
+    # an unbounded request loop. These are not provider quota/entitlement claims;
+    # native admission remains authoritative for every physical operation.
+    PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS: int = Field(default=2000, ge=1, le=2000)
+    PROVIDER_ON_DEMAND_MAX_MISSING_SLICES: int = Field(default=8, ge=0, le=8)
     IDENTIFIER_PROVIDER_PRIORITY: list[str] = ["openfigi"]
     OPTION_QUOTE_HISTORY_PROVIDER_PRIORITY: list[str] = []
     TOKENIZED_PROVIDER_PRIORITY: list[str] = [
