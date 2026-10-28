@@ -146,7 +146,7 @@ describe('ChartView radar handoff', () => {
   })
 
   it('refreshes newly acquired history from local storage without clearing cached bars', async () => {
-    const { chartStore, globalLoad, releasePresets, wrapper } = mountDeferredPresetsChart()
+    const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart()
     await flushPromises()
     releasePresets()
     await flushPromises()
@@ -154,14 +154,14 @@ describe('ChartView radar handoff', () => {
       ts: '2026-05-05T14:30:00Z', open: 100, high: 105, low: 99, close: 103, is_adjusted: true,
     }]
     chartStore.bars = cachedBars as typeof chartStore.bars
-    globalLoad.mockClear()
+    const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockResolvedValue()
     const control = wrapper.findComponent(HistoryAcquisitionControl)
 
     expect(control.exists()).toBe(true)
     control.vm.$emit('loaded', { status: 'complete' })
     await flushPromises()
 
-    expect(globalLoad).toHaveBeenCalledWith('SPY', 'D1', chartStore.barType, true)
+    expect(refreshLocalBars).toHaveBeenCalledOnce()
     expect(chartStore.bars).toEqual(cachedBars)
     wrapper.unmount()
   })

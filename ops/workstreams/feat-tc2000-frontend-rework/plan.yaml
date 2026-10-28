@@ -57,8 +57,8 @@ human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reope
 human_closure_authorization: "No acceptance or closure is claimed for tc-on-demand-workstation-consumer-20261027. The prior accepted tc2000-workstation-integration-1 authorization and receipt are preserved verbatim under historical_checkpoint_archive. This current six-criterion checkpoint remains in progress pending exact green ETF staging adoption and full combined qualification."
 closure_summary: |
   integration_capture: exact branch HEAD
-  Current implementation source: 74b854d93a2e6853e2c59db1ea29293504b65071. The current checkpoint tc-on-demand-workstation-consumer-20261027 is in progress with acceptance pending.
-  Preparation evidence is limited to four controlled-response browser flows and 85 focused unit tests on this current source candidate; these are not genuine Provider/ETF source proof, exact-source branch CI, or the full combined functional/strict-visual profile.
+  The current checkpoint tc-on-demand-workstation-consumer-20261027 remains in progress with acceptance pending. The local repair is based on source 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 and changes only the mounted ChartView test seam (diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737).
+  On that repaired tree, frontend coverage passed 150 files/1471 tests with 83.2% statements, 73.8% branches, 70.7% functions and 83.2% lines; uPlot contract and visual-policy guards passed; vue-tsc/Vite build passed. The earlier unchanged-source failure is preserved in /tmp/tc-on-demand-full-frontend-20261028/coverage.log and the correction/run evidence in that directory. These stack-free results are not genuine Provider/ETF source proof or the full combined functional/strict-visual profile.
   Next gate: await Root release of exact synchronized-green ETF staging, adopt only through the supported workflow, then complete the required source-matched combined profile and exact-source CI.
   No producer source adoption, full checkpoint acceptance, target/deployment acceptance, or full roadmap/V25 completion is claimed. AC1-AC9 and all operational/data/provider holds remain open and unchanged.
 validation_tier: full_integration
@@ -198,8 +198,8 @@ on_demand_consumer_implementation: |-
   producer staging, runtime/full browser qualification and exact candidate CI
   remain pending. Current consumer tests/build do not imply source, deployment
   or roadmap acceptance.
-current_blocker: "The current on-demand consumer checkpoint remains in progress. The source candidate has four controlled-response browser-flow passes and 85 focused unit passes, but exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI are pending."
-current_checkpoint_status: "The canonical current checkpoint is tc-on-demand-workstation-consumer-20261027 with six criteria in progress and acceptance pending. Current implementation source is 74b854d93a2e6853e2c59db1ea29293504b65071. Four controlled-response browser flows and 85 focused units are preparation evidence only; no producer staging has been adopted, no exact-source CI or full combined profile has passed, and no current checkpoint acceptance is claimed. All nine original AC criteria and the full official V25 roadmap remain open."
+current_blocker: "The current on-demand consumer checkpoint remains in progress. Stack-free frontend unit coverage, uPlot/visual-policy guards and vue-tsc/Vite build pass on source 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 plus the test-only mounted refresh seam correction (diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737). Exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI for the repair remain pending."
+current_checkpoint_status: "The canonical current checkpoint is tc-on-demand-workstation-consumer-20261027 with six criteria in progress and acceptance pending. The mounted ChartView regression now asserts the refreshLocalBars boundary; the store-level acquired-history hydration race independently verifies a fresh local request and bars readback. On the repaired tree all 150 frontend test files/1471 tests pass with unchanged coverage thresholds; uPlot and visual-policy guards and vue-tsc/Vite build pass. The original87cf coverage failure and focused reproductions are preserved. No producer staging has been adopted, no exact-source CI or full combined profile has passed, and no checkpoint acceptance is claimed. All nine original AC criteria and the full official V25 roadmap remain open."
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1611,8 +1611,9 @@ integration_checkpoint:
   status: in_progress
   acceptance: pending; no checkpoint acceptance is claimed
   planning_authorization: /home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md
-  source_capture: 'integration_capture: exact branch HEAD; implementation source 74b854d93a2e6853e2c59db1ea29293504b65071;
-    this metadata-only commit does not change implementation inputs.'
+  source_capture: 'integration_capture: exact branch HEAD; source base 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44
+    plus test-only mounted refresh seam diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737;
+    no product behavior changed.'
   criteria_ids:
   - TCO1
   - TCO2
@@ -1674,10 +1675,9 @@ current_software_checkpoint:
   roadmap_disposition: All nine original AC IDs and texts remain unchanged under roadmap_acceptance_criteria.
     No AC, TCP criterion, full V25 item, or producer/target acceptance is closed by
     this in-progress software checkpoint.
-  candidate_source: 74b854d93a2e6853e2c59db1ea29293504b65071
-  local_evidence: Four controlled-response browser flows and 85 focused units are preparation
-    evidence only. Exact green ETF staging adoption, source-matched combined functional/strict-visual
-    gates and exact-source CI remain pending.
+  candidate_source: 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44
+  candidate_source_test_diff_sha256: a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737
+  local_evidence: The previous unchanged-source coverage run failed only because a mounted ChartView test spied on public loadBars after the view had moved to the refreshLocalBars boundary. The corrected mounted test asserts that boundary and cached-bar retention; the store-level queue-fresh-local-read hydration-race test passes1/1 and verifies a second local OHLCV read returns the newly acquired bar. Full coverage passes150 files/1471 tests at83.2% statements,73.8% branches,70.7% functions,83.2% lines against unchanged configured thresholds; uPlot contract (55 source files), visual policy (26 screenshot assertions), and vue-tsc/Vite build pass. Evidence/logs are under /tmp/tc-on-demand-full-frontend-20261028. Exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI remain pending; this is not checkpoint acceptance.
 acceptance_criteria:
   - id: TCO1
     text: Adopt only Root-released synchronized green staging containing accepted Provider

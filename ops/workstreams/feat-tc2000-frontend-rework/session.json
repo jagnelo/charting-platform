@@ -40,8 +40,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Candidate implementation source 74b854d93a2e6853e2c59db1ea29293504b65071 is local. Four controlled-response browser flows and 85 focused units are preparation evidence only. No exact-source branch CI or full combined profile has passed; wait for Root exact green ETF staging before adoption and combined qualification.",
-  "current_checkpoint_status": "The canonical current checkpoint is tc-on-demand-workstation-consumer-20261027 with six criteria in progress and acceptance pending. Current implementation source is 74b854d93a2e6853e2c59db1ea29293504b65071. Four controlled-response browser flows and 85 focused units are preparation evidence only; no producer staging has been adopted, no exact-source CI or full combined profile has passed, and no current checkpoint acceptance is claimed. All nine original AC criteria and the full official V25 roadmap remain open.",
+  "current_candidate_ci_status": "Local test-only repair is based on 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 (diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737). Full frontend coverage, both existing visual guards and vue-tsc/Vite build passed; exact CI for the repair commit is pending publication. Green ETF staging adoption and full combined functional/strict-visual profile remain pending.",
+  "current_checkpoint_status": "The mounted ChartView history-loaded test now asserts the refreshLocalBars boundary and cached-bar retention. The store-level hydration-race test proves the queued fresh local read returns acquired bars. At source 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 plus test-only mounted refresh seam diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737, all frontend coverage passes 150 files/1471 tests (83.2% statements, 73.8% branches, 70.7% functions, 83.2% lines); uPlot contract and visual-policy guards pass; vue-tsc/Vite build passes. Exact previous red and repaired logs are preserved under /tmp/tc-on-demand-full-frontend-20261028. No Provider/ETF staging adoption, full combined browser profile or checkpoint acceptance is claimed. TCO1-TCO6 remain in progress; AC1-AC9 and official V25 remain open.",
   "current_software_checkpoint": {
     "id": "tc-on-demand-workstation-consumer-20261027",
     "status": "in_progress",
@@ -50,8 +50,9 @@
     "criteria_completed": [],
     "planning_direction": "/home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md",
     "source_base": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
-    "candidate_source": "74b854d93a2e6853e2c59db1ea29293504b65071",
-    "local_evidence": "Four controlled-response browser flows and 85 focused unit tests are preparation evidence only. The owned fixture has been removed. Exact green ETF staging adoption, source-matched combined functional/strict-visual profile and exact-source CI remain pending."
+    "candidate_source": "87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44",
+    "local_evidence": "At source 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 plus test-only mounted refresh seam diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737, all frontend coverage passes 150 files/1471 tests (83.2% statements, 73.8% branches, 70.7% functions, 83.2% lines); uPlot contract and visual-policy guards pass; vue-tsc/Vite build passes. Exact previous red and repaired logs are preserved under /tmp/tc-on-demand-full-frontend-20261028. No Provider/ETF staging adoption, full combined browser profile or checkpoint acceptance is claimed. The original coverage failure on unchanged source and focused reproductions are retained as prior evidence.",
+    "candidate_source_test_diff_sha256": "a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737"
   },
   "owned_runtime_cleanup": {
     "project": "tc-on-demand-cc4b-20261027",
@@ -249,7 +250,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "e6d44f7c990fcfac8cb7646ba1ab01555f5602077745a0ae77743e28b4fa209e",
+  "plan_hash": "f5a48500d1a7833f393869ec70249b6ab322f78ea20b261dfab58a5b07845bfe",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -264,20 +265,20 @@
   "progress": {
     "completed": [],
     "total": 6,
-    "current_blocker": "The current on-demand consumer checkpoint remains in progress. The source candidate has four controlled-response browser-flow passes and 85 focused unit passes, but exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI are pending.",
-    "current_phase": "On-demand workstation consumer checkpoint in progress; controlled browser and focused unit evidence remains preparation-only.",
-    "next_action": "Await Root exact green ETF staging release. Adopt only the released SHA through the supported workflow, then complete source-matched combined functional/strict-visual gates and exact-source CI. Preserve AC1-AC9, official V25 and all provider/data/target/service holds.",
-    "updated_at": "2026-10-27T22:28:35Z"
+    "current_blocker": "No stack-free validation blocker remains. Exact CI for this repair commit, exact green ETF staging adoption and the source-matched combined functional/strict-visual profile are still pending; no checkpoint acceptance is claimed.",
+    "current_phase": "Repair mounted test seam; full frontend coverage, uPlot/visual-policy guards and vue-tsc/Vite build passed on the corrected test tree.",
+    "next_action": "Commit and publish this single test-only correction with its owned evidence, inspect exact-source CI, then await Root release of exact green ETF staging and the combined-profile allocation.",
+    "updated_at": "2026-10-28T02:37:56Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk proxy git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "integration_capture: exact branch HEAD; implementation source 74b854d93a2e6853e2c59db1ea29293504b65071 plus this local records-only correction",
-    "current_pending_range": "Local-only on-demand consumer source and canonical checkpoint-metadata correction; no push or exact-source CI.",
+    "current_local_head": "source base 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 plus test-only diff a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737; coherent implementation/evidence commit pending",
+    "current_pending_range": "Single mounted test-seam correction and owned workstream evidence; no product behavior changes.",
     "failure_category": null,
     "remote": "origin",
     "remote_tracking_sha": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
-    "status": "No push performed, as directed. Origin remains at the prior cc4b882 baseline; this local metadata-only checkpoint awaits Root release and exact green ETF staging adoption before subsequent qualification."
+    "status": "Normal publication to the existing feature branch is authorized for this coherent packet; remote verification and exact-source CI are pending."
   },
   "remote": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
   "remote_sha": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
@@ -383,7 +384,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-27T22:19:23Z",
+  "updated_at": "2026-10-28T02:37:56Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

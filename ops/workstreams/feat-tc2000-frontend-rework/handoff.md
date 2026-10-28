@@ -25102,3 +25102,33 @@ cleanup occurred.
 ## Canonical on-demand checkpoint fields corrected — 2026-10-27
 
 The execution-facing top-level checkpoint is now `tc-on-demand-workstation-consumer-20261027` with TCO1–TCO6 in progress, acceptance pending, and progress at0/6. The former accepted `tc2000-workstation-integration-1` integration checkpoint, its TCP1–TCP5/TCV1 criteria, authorization, closure summary, progress and status context are preserved in `plan.yaml:historical_checkpoint_archive` and the corresponding `session.json` archive; all nine AC1–AC9 roadmap IDs/text remain unchanged. Implementation source remains74b854d93a2e6853e2c59db1ea29293504b65071. Four controlled browser flows and85 focused units remain preparation evidence only; exact green ETF staging adoption, combined profile and exact-source CI are pending. This records-field correction does not alter native goal state/accounting, product/test inputs, or publication status.
+
+## Mounted chart refresh test seam and full frontend validation — 2026-10-28
+
+At source `87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44`, full coverage first
+failed one mounted ChartView assertion: the test expected `loadBars()` to be
+called after `HistoryAcquisitionControl` emitted `loaded`. The actual view
+handler calls the chart store's `refreshLocalBars()`, which waits for matching
+initial hydration and then starts a cache-bypassing local read. The mounted test
+was spying on an obsolete public method, not exposing a product regression.
+Changed only `frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts`
+to assert the `refreshLocalBars()` event boundary and retained cached bars.
+The original failed full-suite log and focused reproduction logs remain at
+`/tmp/tc-on-demand-full-frontend-20261028/`.
+
+On the repaired tree the exact case passed1/1, its file passed11/11, and the
+store-level `queues a fresh local read after an in-flight initial load when
+history was acquired` regression passed1/1, proving the second local OHLCV
+read returns the newly acquired bar after initial indicator hydration. Full
+frontend coverage passed150 files/1471 tests: statements83.2%, branches73.8%,
+functions70.7%, lines83.2%, with unchanged thresholds. `make
+test-uplot-contract` passed (55 source files), `make test-visual-policy` passed
+(26 screenshot assertions; 0.5%/1px/Delta-E policy unchanged), and `npm run
+build` passed vue-tsc plus Vite (existing large Workstation chunk advisory).
+Exact commands, logs and SHA256s are in the private `/tmp` result record.
+
+This is stack-free frontend evidence only: no browser or service fixture ran,
+no Provider/ETF source was adopted, exact CI for the resulting commit and the
+combined functional/strict-visual profile remain pending. TCO1-TCO6 remain in
+progress with acceptance pending; AC1-AC9, V25 and all operational holds remain
+open. The existing 9-roadmap and historical checkpoint records are unchanged.
