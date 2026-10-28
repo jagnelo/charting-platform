@@ -57,6 +57,8 @@ from app.schemas.etf_holdings import (
     ETFHoldingsSnapshotOut,
     ETFHoldingsTransitionTimelineOut,
     ETFHoldingsWeightEvolutionOut,
+    ETFProfileAcquireOut,
+    ETFProfileAcquireRequest,
     ETFProfileBootstrapOut,
     ETFProfileBootstrapRequest,
     ETFProfileOut,
@@ -90,6 +92,7 @@ from app.services.etf_holdings import (
     get_holdings_transition_timeline,
     get_latest_snapshot,
     get_nearest_snapshot,
+    get_snapshot_by_id,
     get_unresolved_holdings,
     get_weight_evolution,
     holdings_capability_for_symbol,
@@ -125,6 +128,7 @@ from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
     _apply_known_route_metadata,
+    acquire_etf_holdings_profile,
     bootstrap_etf_holdings_profile,
     discover_etf_profiles_from_issuer_feed,
     discover_etf_profiles_from_sec_fund_tickers,
@@ -137,6 +141,7 @@ from app.services.etf_holdings_refresh import (
     refresh_etf_holdings_for_date,
 )
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
+from app.services.etf_holdings_vaneck_qualification import qualify_vaneck_oih_fund
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
 
@@ -529,6 +534,42 @@ async def bootstrap_holdings_profile(
         refresh_attempted=result.refresh_attempted,
         refresh_succeeded=result.refresh_succeeded,
         capability=profile.holdings_capability,
+        message=result.message,
+    )
+
+
+@router.post("/{symbol}/acquire", response_model=ETFProfileAcquireOut)
+async def acquire_holdings_profile(
+    symbol: str,
+    body: ETFProfileAcquireRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await acquire_etf_holdings_profile(
+        db,
+        symbol=symbol,
+        request_id=str(body.request_id),
+        refresh=body.refresh,
+    )
+    if result is None:
+        raise HTTPException(status_code=404, detail="ETF holdings profile was not found")
+    await db.commit()
+    profile = await profile_to_out(db, result.profile)
+    snapshot = result.snapshot
+    if snapshot is None and result.snapshot_id is not None:
+        snapshot = await get_snapshot_by_id(db, result.snapshot_id, include_holdings=True)
+    return ETFProfileAcquireOut(
+        request_id=body.request_id,
+        outcome=result.outcome,
+        refresh=body.refresh,
+        refresh_attempted=result.refresh_attempted,
+        refresh_succeeded=result.refresh_succeeded,
+        profile=profile,
+        snapshot=snapshot,
+        capability=profile.holdings_capability,
+        source_provider=result.source_provider,
+        source_operation=result.source_operation,
+        provider_request_log_ids=result.provider_request_log_ids,
         message=result.message,
     )
 
@@ -1288,6 +1329,28 @@ async def qualify_initial_sec_nport_fund_for_etf(
         return await qualify_sec_nport_fund(
             db,
             profile_id=profile.id,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/vaneck-initial-qualification",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def qualify_initial_vaneck_oih_for_etf(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Run the one-use administrator-only VanEck OIH qualification."""
+
+    if symbol.strip().upper() != "OIH":
+        raise HTTPException(status_code=422, detail="VanEck initial qualification is OIH-only")
+    try:
+        return await qualify_vaneck_oih_fund(
+            db,
             requested_by_user_id=current_user.id,
         )
     except ETFHoldingsRouteHeldError as exc:

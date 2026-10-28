@@ -1,6 +1,7 @@
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, Literal
+from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, field_serializer
 
@@ -135,6 +136,30 @@ class ETFProfileBootstrapOut(BaseModel):
     capability: ETFHoldingsCapabilityOut | None = None
     refresh_attempted: bool = False
     refresh_succeeded: bool = False
+    message: str | None = None
+
+
+class ETFProfileAcquireRequest(BaseModel):
+    """Explicit selected-fund acquisition; false is cache-only."""
+
+    request_id: UUID
+    refresh: bool = False
+
+
+class ETFProfileAcquireOut(BaseModel):
+    """Selected-fund result with stored evidence kept distinct from refresh."""
+
+    request_id: UUID
+    outcome: Literal["cached", "no_data", "acquired", "held", "failed"]
+    refresh: bool
+    refresh_attempted: bool
+    refresh_succeeded: bool
+    profile: ETFProfileOut
+    snapshot: "ETFHoldingsSnapshotOut | None" = None
+    capability: ETFHoldingsCapabilityOut | None = None
+    source_provider: str | None = None
+    source_operation: str | None = None
+    provider_request_log_ids: list[int] = Field(default_factory=list)
     message: str | None = None
 
 

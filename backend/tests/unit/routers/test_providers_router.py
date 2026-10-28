@@ -198,6 +198,9 @@ class TestProvidersRouter:
                         "unit": "requests",
                         "scope": "test-account",
                         "source": "synthetic-unit-test-only",
+                        "baseline_mode": "local_zero",
+                        "safety_reset": "rolling",
+                        "application_usage_only": True,
                     }
                 ],
             },
@@ -285,12 +288,17 @@ class TestProvidersRouter:
         assert response.json()["routable"] is False
         assert response.json()["policy_enabled"] is False
         assert response.json()["live_probe_status"] == "not_run"
+        assert response.json()["quota_review_basis"] == "application_budget_only"
 
         source = db.scalar(select(DataSource).where(DataSource.name == "spdr"))
         assert source is not None
         assert source.is_active is True
         assert source.supported_capabilities == [ProviderCapability.ETF_HOLDINGS.value]
         assert source.config["etf_holdings_review"]["https_hosts"] == ["www.ssga.com"]
+        quota_review = source.config["etf_holdings_review"]["quota_review"]
+        assert quota_review["review_basis"] == "application_budget_only"
+        assert "reviewed_at" in quota_review
+        assert "verified_at" not in quota_review
         assert (
             source.config["etf_holdings_review"]["entitlement_review"]["evidence_source"]
             == "synthetic-unit-test-only"

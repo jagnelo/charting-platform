@@ -325,6 +325,20 @@
           <span v-else-if="customDateSortSelecting" role="status" aria-live="polite">Drag from one loaded bar to another.</span>
           <span v-else-if="customDateSortMessage" role="status" aria-live="polite">{{ customDateSortMessage }}</span>
         </div>
+        <section
+          v-if="isActiveToolWindow && chartStore.symbol && chartStore.bars.length === 0 && !chartStore.isLoading && !chartStore.error"
+          class="chart-tool__history-acquisition"
+          data-testid="workstation-history-acquisition"
+          role="region"
+          :aria-label="`Local chart history for ${chartStore.symbol}`"
+        >
+          <p>No local chart bars are available for {{ chartStore.symbol }}.</p>
+          <HistoryAcquisitionControl
+            :symbol="chartStore.symbol"
+            :timeframe="chartStore.timeframe"
+            @loaded="refreshWorkstationChartHistory"
+          />
+        </section>
         <UPlotChart
           v-if="chartStore.symbol && !chartStore.error"
           :chart-type="chartBarType"
@@ -980,6 +994,7 @@ import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDate
 import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
 import UPlotChart from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
+import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
 import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { usePanelStore } from '@/stores/chart'
@@ -1144,6 +1159,9 @@ function handleLinkGroupChange(group: LinkGroup) {
 }
 provide('panelId', chartPanelId)
 const chartStore = usePanelStore(chartPanelId)
+function refreshWorkstationChartHistory() {
+  void chartStore.refreshLocalBars()
+}
 const drawingsStore = useDrawingsStore()
 const alertsStore = useAlertsStore()
 const workspaceStore = useWorkspaceStore()
@@ -4227,6 +4245,8 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
+.chart-tool__history-acquisition { position: absolute; z-index: 11; top: 50%; left: 50%; display: grid; justify-items: center; gap: 8px; width: max-content; max-width: calc(100% - 24px); box-sizing: border-box; transform: translate(-50%, -50%); padding: 10px 12px; color: var(--tc-text, #d5dde4); background: var(--tc-surface, #20282e); border: 1px solid var(--tc-border, #38444c); border-radius: 6px; box-shadow: 0 6px 18px #0008; text-align: center; }
+.chart-tool__history-acquisition > p { margin: 0; font: 12px/1.35 var(--tc-font-ui, "Segoe UI", Arial, sans-serif); }
 .chart-tool__templates { position: absolute; top: 3px; right: 4px; z-index: 12; }
 .chart-tool__plots { position: absolute; top: 3px; left: 150px; z-index: 13; }
 .chart-tool__custom-date-sort { position: absolute; top: 27px; left: 4px; z-index: 14; display: flex; align-items: center; gap: 6px; max-width: calc(100% - 8px); color: #dce9f2; font: 10px "Segoe UI", Arial, sans-serif; }

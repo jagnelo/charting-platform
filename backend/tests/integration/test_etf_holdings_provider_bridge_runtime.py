@@ -13,10 +13,13 @@ import hashlib
 import json
 import threading
 import time
+import zipfile
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
+from io import BytesIO
 from types import SimpleNamespace
 from uuid import uuid4
+from xml.sax.saxutils import escape
 
 import httpx
 import pytest
@@ -54,7 +57,11 @@ from app.models.user import User
 from app.services import etf_holdings_provider_bridge as bridge
 from app.services import etf_holdings_refresh as refresh
 from app.services import provider_quota_coordinator as quota_coordinator
-from app.services.etf_holdings import _hash_payload, holdings_capability_for_symbol
+from app.services.etf_holdings import (
+    ETF_HOLDINGS_INTERNAL_PROVIDER,
+    _hash_payload,
+    holdings_capability_for_symbol,
+)
 from app.services.etf_holdings_adapters import (
     CanonicalHoldingRow,
     CiFinancialHoldingsAdapter,
@@ -603,6 +610,55 @@ def _use_mocktransport(monkeypatch, runner: _TransportRunner):
         return original_factory(**kwargs, transport_factory=runner.factory)
 
     monkeypatch.setattr(bridge, "_make_loop_local_httpx_attempt", factory)
+
+
+def _vaneck_initial_qualification_workbook(
+    *, fund_title: str = "VanEck Oil Services ETF (OIH)"
+) -> bytes:
+    rows = [
+        [f"As of {date.today():%m/%d/%Y}"],
+        [fund_title],
+        [
+            "Number",
+            "Ticker",
+            "Holding Name",
+            "Identifier (FIGI)",
+            "Shares",
+            "Asset Class",
+            "Market Value (US$)",
+            "% of Net Assets",
+        ],
+        ["1", "XOM", "Exxon Mobil Corporation", "BBG0000000001", "10", "Equity", "1000", "1.0%"],
+    ]
+
+    def cell_ref(column_index: int, row_index: int) -> str:
+        column = ""
+        value = column_index + 1
+        while value:
+            value, remainder = divmod(value - 1, 26)
+            column = chr(ord("A") + remainder) + column
+        return f"{column}{row_index}"
+
+    sheet_rows = []
+    for row_index, row in enumerate(rows, start=1):
+        cells = []
+        for column_index, value in enumerate(row):
+            cells.append(
+                f'<c r="{cell_ref(column_index, row_index)}" t="inlineStr">'
+                f"<is><t>{escape(value)}</t></is></c>"
+            )
+        cell_xml = "".join(cells)
+        sheet_rows.append(f'<row r="{row_index}">{cell_xml}</row>')
+    worksheet = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+        f"<sheetData>{''.join(sheet_rows)}</sheetData>"
+        "</worksheet>"
+    )
+    output = BytesIO()
+    with zipfile.ZipFile(output, mode="w") as workbook:
+        workbook.writestr("xl/worksheets/sheet1.xml", worksheet)
+    return output.getvalue()
 
 
 def _assert_second_bucket_contract(windows, *, consumed_units: int, reserved_units: int):
@@ -2437,6 +2493,239 @@ async def _attempt_counts(session: AsyncSession, case) -> tuple[int, int, int]:
         ).scalar_one()
     )
     return int(request_logs or 0), int(quota_windows or 0), int(reservation_count or 0)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("fund_title", "expected_status"),
+    (
+        ("VanEck Oil Services ETF (OIH)", "completed"),
+        ("VanEck Semiconductor ETF (SMH)", "failed"),
+    ),
+)
+async def test_vaneck_initial_qualification_uses_disabled_policy_and_durably_links_real_runtime_log(
+    provider_db, monkeypatch, fund_title, expected_status
+):
+    """The real OIH qualifier crosses bridge pre-review and Provider using independent sessions."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob
+    from app.services import provider_runtime
+    from app.services.etf_holdings_vaneck_qualification import (
+        VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE,
+        VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+        VANECK_OIH_INITIAL_URL,
+        VANECK_OIH_PRODUCT_SLUG,
+        qualify_vaneck_oih_fund,
+    )
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    workbook = _vaneck_initial_qualification_workbook(fund_title=fund_title)
+
+    class WorkbookTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            return httpx.Response(
+                200,
+                content=workbook,
+                headers={
+                    "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                },
+                request=request,
+            )
+
+    runner = WorkbookTransport()
+    _use_mocktransport(monkeypatch, runner)
+    suffix = uuid4().hex[:10]
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=3,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["www.vaneck.com"],
+                operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                provider_name_override="vaneck",
+                instrument_symbol_override="OIH",
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            instrument.identity_status = "resolved"
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                issuer="VanEck",
+                adapter_key="vaneck",
+                adapter_status="ready",
+                provider_aliases={
+                    "product_slug": VANECK_OIH_PRODUCT_SLUG,
+                    "holdings_adapter": "vaneck",
+                    "holdings_source_provider": "vaneck",
+                    "expected_fund_symbol": "OIH",
+                },
+            )
+            setup.add(profile)
+            case.policy.is_enabled = False
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert entitlement is not None
+            entitlement.live_probe_status = "not_run"
+            entitlement.revision = 7
+            admin = User(
+                username=f"vaneck-fqc-{suffix}",
+                email=f"vaneck-fqc-{suffix}@example.test",
+                hashed_password="synthetic-test-only",
+                is_active=True,
+                is_admin=True,
+            )
+            setup.add(admin)
+            await setup.flush()
+            profile_id = profile.id
+            admin_id = admin.id
+
+    # An ordinary disabled-policy route remains denied before any transport.
+    async with provider_db() as ordinary:
+        ordinary_profile = await _load_profile(ordinary, profile_id)
+        with pytest.raises(ETFHoldingsRouteHeldError, match="not explicitly enabled"):
+            await refresh._refresh_adapter_route(ordinary, ordinary_profile)
+    assert runner.calls == []
+
+    async with provider_db() as request_session:
+        completed = await qualify_vaneck_oih_fund(
+            request_session,
+            requested_by_user_id=admin_id,
+        )
+    assert completed.status == expected_status
+    assert completed.job_type == VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE
+    assert runner.calls == [("GET", VANECK_OIH_INITIAL_URL)]
+    assert bridge._REQUEST_BINDING.get() is None
+    assert provider_runtime._VANECK_INITIAL_QUALIFICATION_CONTEXT.get() is None
+    assert provider_runtime._EXPLICIT_ACQUISITION_CONTEXT.get() is None
+
+    async with provider_db() as reopened:
+        job = await reopened.get(ETFHoldingsBackfillJob, completed.id)
+        assert job is not None and job.status == expected_status
+        assert job.etf_profile_id == profile_id and job.source_provider == "vaneck"
+        logs = list(
+            (
+                await reopened.scalars(
+                    select(ProviderRequestLog)
+                    .where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                    )
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert len(logs) == 1
+        log = logs[0]
+        assert log.success is True and log.http_requests == 1
+        assert log.completed_at is not None and log.settled_usage_units is not None
+        assert job.extra_data["provider_request_log_ids"] == [log.id]
+        policy = await reopened.get(ProviderPolicy, case.policy.id)
+        entitlement = await reopened.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == case.source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        if expected_status == "completed":
+            assert job.extra_data["qualification_outcome"]["request_log_ids"] == [log.id]
+            snapshot_id = job.extra_data["qualification_outcome"]["snapshot_id"]
+            snapshot = await reopened.scalar(
+                select(ETFHoldingsSnapshot)
+                .options(selectinload(ETFHoldingsSnapshot.rows))
+                .where(ETFHoldingsSnapshot.id == snapshot_id)
+            )
+            assert snapshot is not None
+            assert snapshot.etf_profile_id == profile_id
+            assert snapshot.source_provider == "vaneck"
+            assert snapshot.source_url == VANECK_OIH_INITIAL_URL
+            assert snapshot.composition_date == date.today()
+            assert snapshot.row_count == 1 and len(snapshot.rows) == 1
+            assert snapshot.source_artifact_id is not None
+            artifact = await reopened.get(ETFHoldingsRawArtifact, snapshot.source_artifact_id)
+            assert artifact is not None
+            assert artifact.etf_profile_id == profile_id
+            assert artifact.data_source_id == snapshot.data_source_id
+            assert artifact.data_source_id == await reopened.scalar(
+                select(DataSource.id).where(DataSource.name == ETF_HOLDINGS_INTERNAL_PROVIDER)
+            )
+            assert artifact.legal_metadata["source_provider"] == "vaneck"
+            assert artifact.legal_metadata["provider_request_log_ids"] == [log.id]
+            assert (
+                artifact.payload_json["raw_workbook_sha256"] == hashlib.sha256(workbook).hexdigest()
+            )
+        else:
+            assert job.extra_data["qualification_outcome"]["status"] == "not_qualified"
+            assert job.failure_reason is not None
+            assert "ETF identity validation" in job.failure_reason
+            assert entitlement is not None and entitlement.live_probe_status == "not_run"
+            assert (
+                await reopened.scalar(
+                    select(func.count(ETFHoldingsSnapshot.id)).where(
+                        ETFHoldingsSnapshot.etf_profile_id == profile_id
+                    )
+                )
+                == 0
+            )
+            rejected_artifacts = list(
+                (
+                    await reopened.scalars(
+                        select(ETFHoldingsRawArtifact).where(
+                            ETFHoldingsRawArtifact.etf_profile_id == profile_id
+                        )
+                    )
+                ).all()
+            )
+            rejected_artifact = next(
+                (
+                    artifact
+                    for artifact in rejected_artifacts
+                    if isinstance(artifact.payload_json, dict)
+                    and artifact.payload_json.get("raw_workbook_sha256")
+                    == hashlib.sha256(workbook).hexdigest()
+                ),
+                None,
+            )
+            assert rejected_artifact is not None
+            assert rejected_artifact.legal_metadata["failure_type"] == "ValueError"
+            assert "ETF identity validation" in rejected_artifact.legal_metadata["failure_message"]
+            assert rejected_artifact.legal_metadata["provider_request_log_ids"] == [log.id]
+            assert (
+                rejected_artifact.payload_json["raw_workbook_sha256"]
+                == hashlib.sha256(workbook).hexdigest()
+            )
+        if expected_status == "completed":
+            # The fixture records positive probe evidence but leaves the ordinary policy disabled.
+            assert entitlement is not None and entitlement.live_probe_status == "passed"
+
+    # The completed one-shot job cannot be replayed and cannot issue a second request.
+    async with provider_db() as replay_session:
+        replay_reason = (
+            "unprobed entitlement" if expected_status == "completed" else "already latched"
+        )
+        with pytest.raises(ETFHoldingsRouteHeldError, match=replay_reason):
+            await qualify_vaneck_oih_fund(replay_session, requested_by_user_id=admin_id)
+    assert runner.calls == [("GET", VANECK_OIH_INITIAL_URL)]
 
 
 @pytest.mark.integration

@@ -1917,6 +1917,7 @@ async def list_sec_nport_backfill_jobs(
                             "sec_nport_recent",
                             "sec_legacy_recent",
                             SEC_INITIAL_QUALIFICATION_JOB_TYPE,
+                            "vaneck_oih_initial_qualification",
                         ]
                     ),
                 )

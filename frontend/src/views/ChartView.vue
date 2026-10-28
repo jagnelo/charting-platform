@@ -3,7 +3,7 @@
     <!-- Top bar -->
     <header class="chart-header">
       <div class="header-left">
-        <SearchBar @select="onSymbolSelect" />
+        <SearchBar :allow-source-discovery="true" @select="onSymbolSelect" />
         <!-- Single panel: ticker + price -->
         <template v-if="layoutStore.layout === '1'">
           <div class="symbol-info" v-if="chartStore.symbol">
@@ -86,6 +86,12 @@
         <TimeframeSelector v-model="currentTf" />
       </div>
       <div class="header-right">
+        <HistoryAcquisitionControl
+          v-if="activeSymbol"
+          :symbol="activeSymbol"
+          :timeframe="activeTimeframe"
+          @loaded="refreshActiveChartLocally"
+        />
         <LayoutPicker />
         <div v-if="layoutStore.layout === '1' && chartStore.instrument && alertsStore.activeCountForInstrument(chartStore.instrument.id)" class="alert-badge">
           {{ alertsStore.activeCountForInstrument(chartStore.instrument.id) }}
@@ -93,6 +99,13 @@
         <div class="ws-dot" :class="{ connected: alertsStore.wsConnected }" title="WebSocket status" />
       </div>
     </header>
+
+    <div v-if="historicalHoldingContext" class="historical-holding-context" role="status" aria-live="polite">
+      Historical holding reference · {{ historicalHoldingContext.symbol }} (canonical instrument {{ historicalHoldingContext.instrumentId }}) from composition {{ historicalHoldingContext.compositionDate }}
+      <span v-if="historicalHoldingContext.knownAt">· known at {{ historicalHoldingContext.knownAt }}</span>
+      <span v-if="historicalHoldingContext.provenance">· {{ historicalHoldingContext.provenance }}</span>
+      · This view does not establish current ETF analysis eligibility.
+    </div>
 
     <TextPromptModal
       v-model="showCreateWatchlistModal"
@@ -223,6 +236,7 @@ import { api } from '@/lib/api'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
+import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
 import TimeframeSelector    from '@/components/chart/TimeframeSelector.vue'
 import UPlotChart           from '@/components/chart/UPlotChart.vue'
 import DrawingToolbar       from '@/components/chart/DrawingToolbar.vue'
@@ -283,6 +297,24 @@ const activePanelStore = computed(() =>
 const activeSymbol = computed(() =>
   layoutStore.layout === '1' ? chartStore.symbol : activePanelStore.value.symbol
 )
+const activeTimeframe = computed(() =>
+  layoutStore.layout === '1' ? chartStore.timeframe : activePanelStore.value.timeframe
+)
+const historicalHoldingContext = computed(() => {
+  const value = (key: string) => typeof route.query[key] === 'string' ? String(route.query[key]) : ''
+  const snapshotId = value('holding_snapshot_id')
+  const instrumentId = Number(value('holding_instrument_id'))
+  if (!Number.isSafeInteger(Number(snapshotId)) || Number(snapshotId) <= 0
+    || !Number.isSafeInteger(instrumentId) || instrumentId <= 0) return null
+  return {
+    snapshotId: Number(snapshotId),
+    instrumentId,
+    symbol: typeof route.params.symbol === 'string' ? route.params.symbol : '',
+    compositionDate: value('holding_composition_date') || 'date unknown',
+    knownAt: value('holding_known_at'),
+    provenance: value('holding_provenance'),
+  }
+})
 
 function isBasketSymbol(symbol: string | null | undefined) {
   return Boolean(symbol?.trim().match(/^BASKET:\d+$/i))
@@ -441,7 +473,7 @@ async function loadComparisonBars() {
   const loaded = await Promise.all(targets.map(async target => {
     try {
       const limit = Math.max(chartStore.bars.length, 500)
-      const raw = await dedupeOhlcvRequest(`raw:${target.symbol.toUpperCase()}:${tf}:adjusted:${limit}`, () => api.get<any[]>(`/ohlcv/${encodeURIComponent(target.symbol)}/${tf}`, { limit, adjusted: true }))
+      const raw = await dedupeOhlcvRequest(`raw:${target.symbol.toUpperCase()}:${tf}:adjusted:${limit}:local`, () => api.get<any[]>(`/ohlcv/local/${encodeURIComponent(target.symbol)}/${tf}`, { limit, adjusted: true }))
       return {
         symbol: target.symbol,
         bars: raw.map(bar => ({
@@ -477,11 +509,11 @@ async function onSymbolSelect(symbol: string) {
     recentStore.add(symbol)
   }
   if (route.params.symbol !== symbol) {
-    router.replace(`/chart/${encodeURIComponent(symbol)}`)
+    router.replace(`/legacy/chart/${encodeURIComponent(symbol)}`)
   }
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store
-    await chartStore.loadBars(symbol, currentTf.value)
+    await chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
     if (!isCurrentSelection()) return
     const inst = chartStore.instrument
     if (inst) {
@@ -506,7 +538,7 @@ async function onSymbolSelect(symbol: string) {
       if (!p) continue
       const pStore = usePanelStore(p.id)
       layoutStore.updatePanel(p.id, { symbol })
-      await pStore.loadBars(symbol, p.timeframe)
+      await pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
       if (!isCurrentSelection()) return
     }
     const activeStore = usePanelStore(layoutStore.activePanelId)
@@ -519,6 +551,11 @@ async function onSymbolSelect(symbol: string) {
     }
     await syncRadarOverlays()
   }
+}
+
+function refreshActiveChartLocally() {
+  if (!activeSymbol.value) return
+  void activePanelStore.value.refreshLocalBars()
 }
 
 async function syncRadarOverlays() {
@@ -547,7 +584,7 @@ watch(currentTf, async (tf) => {
   const generation = lifecycleGeneration
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
-  await chartStore.loadBars(chartStore.symbol, tf)
+  await chartStore.loadBars(chartStore.symbol, tf, chartStore.barType, true)
   if (!isCurrentLifecycle(generation)) return
   const inst = chartStore.instrument
   if (inst) {
@@ -572,7 +609,7 @@ watch(() => layoutStore.layout, async (newLayout, oldLayout) => {
       if (!p.linkedToGlobal) continue
       layoutStore.updatePanel(p.id, { symbol: chartStore.symbol })
       const pStore = usePanelStore(p.id)
-      await pStore.loadBars(chartStore.symbol, p.timeframe)
+      await pStore.loadBars(chartStore.symbol, p.timeframe, pStore.barType, true)
       if (!isCurrentLifecycle(generation)) return
     }
   }
@@ -706,6 +743,16 @@ onUnmounted(() => {
   gap: 12px;
   flex-shrink: 0;
   flex-wrap: wrap;
+}
+
+.historical-holding-context {
+  flex: 0 0 auto;
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--tc-border);
+  background: var(--tc-panel-bg);
+  color: var(--tc-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 .header-left, .header-right { display: flex; align-items: center; gap: 12px; }

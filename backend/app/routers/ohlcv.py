@@ -249,7 +249,7 @@ async def get_ohlcv_transformed(
     view: OhlcvView = Query("canonical"),
     local_only: bool = Query(
         False,
-        description="Read only the canonical local cache; never hydrate from providers.",
+        description="Read only cached bars; also forced when request-driven mode is enabled.",
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
@@ -259,6 +259,10 @@ async def get_ohlcv_transformed(
     Fetches the raw bars first (up to PAGE_SIZE * 3 to give transforms enough
     source material), then applies the transform.
     """
+    # Legacy callers may still send local_only=false. In request-driven mode
+    # ordinary chart reads are forced to the local cache; acquisition remains
+    # available only through the explicit POST action.
+    local_only = local_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
     if bar_type not in TRANSFORM_REGISTRY:
         raise HTTPException(
             400, f"Unknown bar_type '{bar_type}'. Valid: {list(TRANSFORM_REGISTRY)}"
@@ -368,11 +372,12 @@ async def get_ohlcv(
     view: OhlcvView = Query("canonical"),
     local_only: bool = Query(
         False,
-        description="Read only the canonical local cache; never hydrate from providers.",
+        description="Read only cached bars; also forced when request-driven mode is enabled.",
     ),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    local_only = local_only or settings.PROVIDER_REQUEST_DRIVEN_ONLY
     result = await db.execute(select(Instrument).where(Instrument.symbol == symbol.upper()))
     instrument = result.scalar_one_or_none()
     if instrument is None:
