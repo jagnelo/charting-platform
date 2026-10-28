@@ -1,6 +1,6 @@
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
-## Current checkpoint: etf-on-demand-consumer-20261027 — in progress
+## Current checkpoint: etf-on-demand-consumer-20261027 — accepted; closing CI pending
 
 Root authorized this six-criterion software checkpoint under the standing
 human-authorized on-demand acquisition goal. The accepted ERF response/order
@@ -17455,3 +17455,48 @@ The ETF owner now continues the already allocated complete source-matched profil
 The exact implementation and current record checkpoint are being published so exact-tip hosted CI runs concurrently with local qualification. No full gate has passed yet. Preserve all red attempts; stop on a real assertion/timeout without retrying unchanged. No source credentials, provider/issuer/SEC HTTP, quota reservation, target mutation, native activation or policy change is part of this software profile. Root owns final acceptance, later target/source qualification, integration and deployment. ODC1–ODC3 focused components are recorded; ODC4–ODC6 remain open until the complete criteria are evidenced. Keep AC1–AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage and the 30-day observation intact.
 
 Provider's independent review of exact implementation `7157269abced8fc975f9dffd9441b81c11ebed08` found no concrete blocker; see `/home/m920q/charting-platform/.ai/staging-attempts/provider-etf-7157269-repair-review-20261027.md`. This is a bounded code review, not checkpoint acceptance or full-profile evidence. The two focused PostgreSQL cases prove the controlled matched-OIH path and contradictory-fund denial; cancellation/concurrency scenarios remain qualified only by the eventual complete suite and are not individually established by those two cases.
+
+## ODC1–ODC5 source-matched profile — Root accepted — 2026-10-28
+
+The tested branch source is `e589cda929b06c0af889344342c4ee73256bae7f`;
+the focused ODC implementation commit remains `7157269abced8fc975f9dffd9441b81c11ebed08`.
+Root's full backend audit is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-e589-full-backend-root-audit-20261028.json`
+(SHA256 `69ff1a6fd578c2805f76b33f0331c0b2f134b1f48cc8b23b0c0a1afaff91d7c8`).
+It records all 6,124 unique backend IDs: 5,568 unit passes and one declared
+skip; 551 integration passes and four skips; and 84.4% combined coverage. The
+two PostgreSQL-only migration cases that correctly skipped under the assigned
+shared-DSN full profile passed separately, 2/2 with zero skips, in a fresh
+Testcontainers PostgreSQL run with `TEST_DATABASE_URL` unset and no coverage
+output. The resulting qualified integration total is 553 passes and the two
+remaining existing held skips; the main 84.4% coverage artifact is unchanged.
+The exact commands, isolated fixture IDs, and logs are in
+`/tmp/etf-on-demand-consumer-20261027/migration-supplement/`.
+
+The source-matched browser profile passed 196 functional tests with two
+existing skips and all 104 strict visual tests. Exact branch CI
+`40591323573` passed on `e589cda929b06c0af889344342c4ee73256bae7f`. The full
+browser result remains distinct from the backend audit and the DDL supplement;
+no prior failed or incomplete attempt was relabeled or reused as a pass.
+
+Cleanup chronology is recorded explicitly. Root's audit
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-e589-final-cleanup-root-audit-20261028.json`
+(SHA256 `ff6d24c28e9675b961be56dfd6d539161595e14b897b6a6346fca2c200fa9ed5`)
+reports the ETF project empty, protected resources preserved, and the Comet
+identity exception checked. The owner cleanup receipt is
+`/tmp/etf-on-demand-consumer-20261027/migration-supplement/cleanup-result.json`.
+After Root instructed the owner to stop cleanup mutations, the owner ran the
+already prepared exact-project finalizer, which removed the residual labeled
+network and three project-only unreferenced images; no further cleanup was
+performed. Root's later audit reports the final protected baseline restored.
+
+Root accepted the bounded software checkpoint under the standing delegation;
+see `/home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-software-checkpoint-acceptance-20261028.md`.
+ODC1–ODC5 are complete. ODC6's records-only closing commit is pending Root's
+review of this proposal, and exact closing-tip CI must pass after publication.
+There was no live OIH source or SEC request, quota reservation, target mutation,
+policy activation, or native qualification. Preserve all 14 roadmap criteria,
+`15 Tier-0 and 156 Tier-1`,
+`74 fallback identities`, the 119 spent-request history, holds, quarantines,
+raw/PIT lineage, and the 30-day observation. Root retains actual source/account
+qualification, target acceptance, integration, promotion, and deployment.
