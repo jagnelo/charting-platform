@@ -1,5 +1,90 @@
 # feat/market-data-provider-platform
 
+## 2026-10-25 — accepted staging consumption and SEC first-qualification review
+
+- Preflight identified the assigned implementation worktree and existing
+  claim `f093caba-0194-4527-b22b-0bfa26344c34`; no new claim or goal was
+  created. Provider source `2178808746b3d850f33a76a064ab170f04989b91` was
+  clean and synchronized with its feature remote. Verified the canonical
+  accepted staging receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261025T055427Z-5b29620741fd.json`:
+  staging `5b29620741fd82d27db45987afb927bf91396712`, Actions `40161945123`,
+  terminal green. The source was an ancestor of that exact commit; this
+  worktree fast-forwarded only to `5b29620741fd82d27db45987afb927bf91396712`.
+  No staging, master, sibling, target, or deployment ref was changed.
+- Read-only first-qualification review of the accepted candidate found a
+  two-gate cycle. `provision_edgar_etf_holdings` in
+  `backend/app/routers/providers.py` creates the ETF entitlement with
+  `live_probe_status="not_run"` and the policy disabled. The candidate selector
+  in `backend/app/services/provider_runtime.py` admits only
+  `passed`, `not_required`, or `credentialed_live_verified`; the dedicated
+  bridge in `backend/app/services/etf_holdings_provider_bridge.py` also refuses
+  a disabled `ETF_HOLDINGS` policy. Therefore policy enablement alone cannot
+  admit the first bounded operation.
+- No existing legitimate qualification updater resolves this. The normal
+  availability route records availability observations, not entitlement probe
+  status; its ETF representative operation is the generic
+  `fetch_etf_holdings_latest`, and `default_probe` has no ETF method mapping.
+  Candidate live-test/receipt validation records test evidence, not a database
+  entitlement status. The admin entitlement PATCH accepts a caller-supplied
+  `live_probe_status` and records an `api_patch` revision, but does not verify
+  a probe; it must not be used to pre-mark this operation. `not_required` is
+  unsupported for this new capability: the accepted provider docs require
+  passed or genuinely not-required evidence, and no SEC ETF exemption is
+  documented. Generic `configured_plan`/`is_free` labels are not proof of
+  operation-specific entitlement or exact invocation.
+- Producer contract review: an ETF-owned, admin-only, one-fund qualification
+  context is the right boundary if it is task-local/unforgeable and bound to
+  the exact `edgar` DataSource, `ETF_HOLDINGS` capability, SEC operation set,
+  committed IWM profile/instrument/CIK/series/class identity, resolved shared
+  account-scope digest, and one durable invocation/job latch. It must be created
+  only after the ordinary reviewed source, operation-cost, entitlement,
+  account, quota, budget/commitment, and free-only checks pass. It may bypass
+  only the missing prior live-probe marker; every other runtime hold, operation
+  cost, per-physical-attempt reservation/settlement, native-unknown treatment,
+  and the 9-attempt/one-archive/two-redirect/1-second/20-second/210-second/
+  2/2/16/20-MiB/one-snapshot limits remain in force. No normal user or generic
+  routing path receives the context; concurrent or repeated qualification is
+  serialized and latched, with no automatic replay.
+- Necessary policy-gate correction: because the bridge also requires the
+  policy to be enabled, the design must specify a tightly serialized temporary
+  enable for the dedicated qualification only. With entitlement still
+  `not_run`, ordinary candidate selection must continue to reject all normal
+  ETF_HOLDINGS traffic. On a complete, identity-matched accepted snapshot,
+  persist the actual `passed` evidence and disable the policy atomically before
+  releasing the invocation latch; Root’s review of the retained sample is
+  separate, and the policy stays disabled until Root separately accepts and
+  authorizes ongoing use. On mismatch, empty/incomplete result, failure, or
+  cancellation, retain audit/reservation evidence, leave status non-positive,
+  and restore the policy disabled. Do not pre-set status or convert a failed
+  result to success.
+- The route must keep all SEC bounds unchanged. `max_filings` counts candidate
+  filing records, not archive pages: `1` can inspect one body and stop
+  incomplete on identity mismatch; proposed `3` can inspect up to three bodies
+  to find the matching series/class, but the loop accepts at most one snapshot
+  and the global nine-physical-attempt cap can stop earlier. The one-page cap is
+  separate. `max_filings=3` remains unexecuted and unapproved; a future exact
+  request must state the reviewed date window and explicit value rather than
+  inheriting the route default of 20. IWM identity remains a candidate, not a
+  verified filing.
+- Remaining operator/source facts are unchanged: the target is still old
+  `a6b9`. Root's read-only target check records no ETF-specific policy or
+  operation review, no aggregate cost budget or EDGAR commitment, no configured
+  User-Agent or explicit `edgar:ip` mapping, all generic EDGAR routes disabled,
+  four total request logs and zero EDGAR requests. Root also reports that the
+  intended User-Agent exists in protected operator configuration; its value was
+  not inspected, printed, or sent here, and the target runtime binding still
+  needs coordinator-managed verification after release. The explicit mapping
+  must resolve to the existing `edgar:shared-ip`; actual shared egress, current
+  budget/commitment, reviewed operation/terms evidence, and current durable
+  admission must be verified by Root. No native remaining/reset counter is
+  claimed. Original 119-request authorization remains consumed. No
+  provider/issuer/SEC HTTP, quota reservation/spend/reset, DB access/write,
+  source implementation, target mutation, or sibling/staging change occurred.
+- Next action: Root accepts or revises this interface; ETF owns the single
+  implementation and will request exact-code peer review. Provider retains the
+  full roadmap and does not duplicate the repair.
+
 ## 2026-10-24 05:09Z — P2 Research default-series consumer repair (focused only)
 
 - On released Provider base `5b02caf509107856195ef8cfb2374e2ab6120612`,
@@ -31629,3 +31714,731 @@ state was changed; no tests or network calls were made.
   capture remains `integration_capture: exact branch HEAD` to avoid a
   self-referential hash. No source, helper, tests, staging, sibling or runtime
   state was changed for this closure.
+
+## 2026-10-25 synchronized staging adoption: 3ff96af
+
+- Adopted only the released synchronized-green staging SHA
+  `3ff96af855a49d42b1dee10cecb43bc6690f4502` from the clean Provider branch
+  boundary `9cffc71d628dced0d72b5951fe9b3d9401221d67`. The canonical staging
+  receipt is `/home/m920q/charting-platform/.ai/staging-attempts/20261025T161013Z-3ff96af855a4.json`
+  (`state: green`); exact Actions run `40202604218` passed the required hosted
+  jobs including Exhaustive Integration Gate. The staging commit is a merge
+  with parents `5b29620741fd82d27db45987afb927bf91396712` and ETF source
+  `abdca6e6ec2b383f678995029149bbb748596af4`. The local adoption merge uses
+  Provider boundary `9cffc71d628dced0d72b5951fe9b3d9401221d67` as its first
+  parent; the merge base was `5b29620741fd82d27db45987afb927bf91396712`.
+- This is the ordinary accepted-green-staging backmerge in the existing
+  Provider branch, not a frozen-upstream import. The Provider plan contains no
+  approved frozen-upstream-import manifest for this operation. The merge adds
+  only ETF FQ1-FQ8 source/tests and the ETF-owned workstream records; Provider
+  records were excluded from the incoming record delta and retained locally.
+  Provider validation history remains append-only. The full Provider roadmap
+  and prior checkpoint history remain intact.
+- Stack-free checks passed before local merge publication: `make agent-context`
+  confirmed the assigned branch/worktree; the current Provider workstream claim
+  remained active; `git diff --cached --check` passed; and
+  `scripts/validate-workstream.py ops/workstreams` validated 46 records. Plan
+  YAML and session JSON parsed. No product tests or runtime gates were rerun.
+- The ETF source checkpoint is adopted, not a claim of actual SEC acquisition,
+  target acceptance, or full-roadmap completion. Root retains actual one-fund
+  SEC qualification and target acceptance. All provider/issuer/SEC holds, the
+  consumed 119-request no-replay boundary, datasets, and retained services are
+  unchanged. No provider HTTP, reservation, quota action, fixture, service
+  cleanup, sibling/staging/master write, or deployment occurred.
+- Local merge publication is intentionally not pushed while Root's independent
+  master CI `40210522503` is running. The next Provider-owned roadmap action,
+  after Root releases publication, is `AC-UNIVERSE-COMPLETE` and remaining
+  roadmap work; keep full roadmap status open and preserve all holds.
+
+## 2026-10-26 synchronized staging adoption: 15b5c22
+
+- Adopted only synchronized-green staging
+  `15b5c22f0e689c973ee82d152d4bbad6125bf993` into the existing Provider branch.
+  Canonical receipt:
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261025T235546Z-15b5c22f0e68.json`
+  (`state: green`); exact Actions `40241357259` passed required hosted jobs,
+  including Exhaustive Integration Gate. A live `git ls-remote` confirmed
+  `origin/staging` and `origin/master` at 15b5 and the Provider feature remote
+  at `ccd6b97a7220f6c86ed6bb3ef3e019777bda0047`. The staging merge has parents
+  `3ff96af855a49d42b1dee10cecb43bc6690f4502` and ETF source
+  `c1d5f160be0c681c99fb4204c327ed7e18174b36`; Provider pre-merge HEAD was
+  `ccd6b97a7220f6c86ed6bb3ef3e019777bda0047`, with merge base 3ff.
+- The exact 3ff-to-15b delta contains six ETF source/test paths and four
+  ETF-owned workstream records only. It contains no TC product paths and no
+  Provider workstream paths. This is ordinary accepted staging adoption; the
+  Provider workstream has no frozen-upstream-import manifest for this delta.
+  No unreleased TC frontend/tag/date-sort/favorites work was adopted or
+  modified, and this receipt does not qualify that TC work as released.
+- The accepted ETF delta is the retained-IWM correction: SEC ownership
+  percentage points, equity/right classification, and offline append-only
+  administrator reparse behavior. Root reports the genuine bounded SEC
+  acquisition occurred once; it was not replayed. Actual target correction and
+  UI acceptance remain Root-owned and pending. No actual target acceptance or
+  full Provider roadmap completion is claimed.
+- Provider records preserve the original checkpoint and all 24 roadmap
+  criteria. All provider/issuer/SEC holds, datasets, quotas, and consumed 119
+  requests remain unchanged. Validation history is append-only. No provider
+  request, reservation, quota action, target mutation, service/fixture action,
+  sibling/staging/master write, or deployment occurred.
+- The local Provider adoption merge is recorded in the accompanying
+  validation entry. Push remains held pending Root's independent master CI and
+  publication release; do not self-integrate or promote. After Root releases
+  publication, the next Provider-owned roadmap action remains
+  `AC-UNIVERSE-COMPLETE`, with all remaining criteria open.
+
+## 2026-10-26 synchronized staging adoption: 6d0a85d
+
+- Verified Root's owner-adoption authority
+  `/home/m920q/charting-platform/.ai/staging-attempts/6d0a85da-green-staging-owner-adoption-authority-20261026.json`
+  (SHA-256 `1ed26d6157877387c1b127109ae11ff839ae64ea8734a2bbe52d51b30c5056c2`)
+  and its canonical receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261026T061035Z-6d0a85da34ba.json`
+  (SHA-256 `5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b`).
+  Both identify exact staging `6d0a85da34ba276bca69c82a932a0602e783d7a1` as
+  green. GitHub Actions run `40270957631` was independently read as completed
+  with success on that exact SHA; Backend, Frontend, E2E, and Exhaustive
+  Integration Gate succeeded, while Branch-declared was skipped by policy.
+  Live refs before local merge were staging/master `6d0a85d` and Provider
+  origin `8f17fe77025d770b7b4b974702ccecd06697af93`.
+- Adopted the exact staging merge whose parents are prior release
+  `15b5c22f0e689c973ee82d152d4bbad6125bf993` and ETF source
+  `cc4358d6d373439a86173289801921d929931df9`; merge base is `15b5c22`. Its
+  delta from 15b5 is limited to ETF reparse serialization/order source changes,
+  their tests, and ETF-owned workstream records. It contains no Provider source
+  or record paths and no TC frontend/tag/date-sort/favorites paths. Provider
+  consumer/runtime blobs were verified unchanged. This is ordinary
+  synchronized-green staging adoption; no Provider frozen-upstream-import
+  manifest applies or was created.
+- The adopted ETF change is fresh-AsyncSession eager-reparse response
+  serialization plus deterministic same-date knowledge-time/id ordering. The
+  accepted four-feature release does not establish the actual private-target
+  update/offline IWM reparse or API/UI acceptance; Root owns those and they
+  remain pending. Root reports the genuine SEC acquisition occurred once;
+  never replay it. Prior accepted checkpoints and the full 24-item Provider
+  roadmap remain intact.
+- All provider/issuer/SEC holds, quota history, datasets, and the consumed 119
+  requests are unchanged. Validation journal prior bytes remain preserved and
+  the new adoption evidence is appended. No product tests, heavy fixtures,
+  browser matrix, provider/native operation, service cleanup, target mutation,
+  sibling/staging/master write, or deployment occurred. Push remains held
+  until Root releases it after independent master green. Next Provider-owned
+  action remains `AC-UNIVERSE-COMPLETE`; do not implement it in this adoption
+  context.
+
+## 2026-10-26 — Provider domain review for whole-frontend TC2000 reconciliation
+
+Binding authority: human instruction
+`/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`
+and Root dispatch
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-whole-frontend-tc2000-reconciliation-20261026-dispatch.json`.
+The human requires one consistent TC2000-style experience across the whole
+frontend. TC is the sole presentation writer for the shell, router, theme, and
+all reachable screens. This is a review-only Provider handoff; Provider's
+backend/domain ownership, all roadmaps, holds, and accepted checkpoint remain
+unchanged. The deployed `6d0` source is a functional baseline, not final UI
+acceptance.
+
+### Provider surface inventory and preserved contracts
+
+- **Shared shell and route leak:** `frontend/src/App.vue:3-44,68-70` chooses
+  the old narrow icon sidebar whenever `route.path.startsWith('/legacy/')` and
+  places `StatusBar` only in that shell. The sidebar links directly to legacy
+  dashboard/chart/alerts/radar/Strategy/ETF/baskets/watchlist/screener/settings
+  routes. `frontend/src/router/index.ts:23-55` retains both workstation routes
+  and legacy routes; `/settings` redirects to `/legacy/settings`, which mounts
+  `SettingsView`. This is a concrete old-shell navigation leak. TC should
+  reconcile the shared shell for both route families and direct legacy URLs,
+  preserving URLs, authentication guard, view behavior, and back/forward/deep
+  links; do not hide a legacy screen or create redirect loops.
+- **Provider policies, usage, availability and errors:** the Provider section
+  is embedded in `frontend/src/views/SettingsView.vue:41-60,92-143,170-203,
+  206-264`; its current reads are `/providers/policies`, `/providers/usage`,
+  `/providers/availability`, and `/providers/availability/runs?limit=8`
+  (`:574-595`). Admin policy writes are capability-specific
+  `/providers/policies/{provider}/{capability}` patches (`:599-609`); retain
+  the admin-only boundary and distinct enabled, pinned/fallback, auto-weight,
+  priority, rate/burst, and freshness controls. A policy being enabled is not
+  proof of entitlement, quota admission, availability, or current data. Keep
+  operation holds and disabled/unavailable states explicit; do not add a
+  refresh/bootstrap/live-provider action to the visual surface.
+- **Quota and credential safety:** `frontend/src/types/index.ts:1090-1195`
+  exposes policy, health, usage-window, unit, operation, capability and error
+  summaries, but no provider credential fields. Backend runtime bounds/redacts
+  provider error messages before the settings response
+  (`backend/app/services/provider_runtime.py:2908,2932-2934,3588`;
+  `backend/app/routers/providers.py:1092`). Preserve that boundary: show only
+  safe error class/message, never raw credentials, headers, response bodies or
+  secret-bearing URLs. Keep calls distinct from provider units and preserve
+  `quota` versus `estimated` versus `unknown`; null/unreported values must not
+  be styled or reformatted as an asserted zero. The current settings helpers
+  render null units/percentages as zero (`SettingsView.vue:415-426`), so add a
+  null-versus-zero presentation check when TC adapts this surface.
+- **Canonical series, adjustment and local coverage:** `frontend/src/stores/chart.ts:171-213`
+  defaults chart reads to `adjusted: true`; normal data uses `/ohlcv/{symbol}/{tf}`
+  (or `/transformed`), while explicit local-only reads use `/ohlcv/local/...`
+  or `local_only=true`. The browser does not choose a `series_id`; preserve the
+  server's selected/default-series result and never merge alternate-series bars
+  client-side. `CoverageSummaryTool.vue:1-61,187-217,243-270` reads
+  `/coverage/instruments/{symbol}` and the bounded `/ohlcv` coverage endpoint,
+  preserving adjusted, timeframe, historical/latest, UTC range, missing-slice,
+  error and cached query behavior. Keep it explicitly local/canonical coverage;
+  do not turn a coverage check into data acquisition.
+- **Freshness, lineage, unknowns and accessibility:**
+  `frontend/src/lib/workstation/freshness.ts:43-67` distinguishes current by
+  canonical policy, delayed, stale, partial, coverage-limited, fetching and
+  unavailable; “current” is not a real-time quote. The chart shell renders this
+  state in `WorkstationView.vue:134-139,229-234,761-771`. Preserve
+  provider-observed, derived and unknown lineage plus raw/adjusted/unspecified/
+  mixed adjustment from `ohlcvProvenance.ts:3-48` and chart ARIA summaries in
+  `UPlotChart.vue:1-15,554-558`. Coverage accessibility also reports factor,
+  storage and cadence evidence without claiming that factors recalculated
+  prices (`ohlcvCoverageAccessibility.ts:15-22`,
+  `CoverageSummaryTool.vue:138-174`). Retain keyboard, screen-reader, mobile,
+  loading/error/empty and stale-cache behavior while changing presentation.
+- **Status surfaces:** legacy `StatusBar.vue:1-63` polls `/health` on its own
+  30-second interval. The workstation has separate freshness/error status and
+  periodic market-analysis refresh ownership in `WorkstationView.vue:780-815`.
+  Preserve their distinct meanings and avoid duplicate polling or implying a
+  health response is provider availability.
+
+### Review acceptance checks for TC
+
+1. Inventory every current router entry and alias from `router/index.ts`, and
+   demonstrate that direct legacy paths, aliases, workstation, popout, login,
+   and Settings all receive the consistent shell without losing route/auth
+   behavior.
+2. Exercise Provider Settings for admin and ordinary users: only admins see
+   policy controls; capability-level holds/disabled states remain explicit;
+   usage calls/units and quota/estimated/unknown remain distinct; null is
+   visibly different from numeric zero; error output is redacted.
+3. Exercise a selected-series chart and Coverage Summary for adjusted and raw,
+   local-only and normal chart modes, range/missing/stale/partial/unavailable
+   states, and provider/derived/unknown lineage. Confirm no alternate-series
+   client merge and no appearance control initiates provider acquisition.
+4. Verify consistent visual language across these Provider surfaces and all
+   other reachable screens while retaining keyboard/screen-reader behavior,
+   mobile layouts, saved settings, chart navigation and existing workflows.
+
+At review time, exact adoption CI `40287850396` on `a1698ec2f8ef27e3e29aac89e8673964327e31fc`
+was still `in_progress`: Backend, Frontend Unit, and Branch-declared passed;
+Playwright was running; Exhaustive was skipped by branch policy. No failure
+was reported at that observation. This review ran no tests and made no
+frontend, backend, provider, quota, service, sibling, staging, master or
+deployment change. TC may consume this inventory; Root owns final qualification
+and integration.
+
+## 2026-10-26 synchronized-green whole-frontend staging adoption: 02a7bae
+
+- Resumed the existing Provider claim and worktree at pre-adoption source
+  `57b4b1d7ea502726dec8da9ce29c38d15edc97c3`; `make agent-session-status`
+  confirmed the same claim, clean remote parity before adoption, `full_integration`
+  tier, `full_stack_browser` profile, and active existing goal. The status helper
+  refreshed the owned session record from the current plan; its plan hash is
+  updated with this adoption record.
+- Verified canonical receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json`
+  (SHA-256 `fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde`),
+  state `green`, exact staging SHA
+  `02a7bae34c2aed145b9e46137ef3b8f041de4d92`, Actions run `40351346928`.
+  A separate read-only `git ls-remote origin refs/heads/staging` confirmed the
+  live remote ref is the same exact SHA. The earlier interrupted-watch receipt
+  is preserved as historical evidence; the canonical reconciled receipt is
+  the green evidence used for this adoption.
+- The exact incoming source's merge base with this branch was
+  `6d0a85da34ba276bca69c82a932a0602e783d7a1`. The incoming delta changed 71
+  paths; every resulting worktree blob for those paths matched the exact
+  `origin/staging` blob. The delta includes TC2000's accepted whole-frontend
+  presentation, route, settings, chart/workstation and regression-test changes,
+  plus its approved frozen-import/release receipts and TC workstream records.
+  Relative to the merge base, staging changed no Provider-owned workstream
+  path, so the Provider plan, handoff, session and validation history from this
+  branch were retained. This staging adoption does not create a Provider
+  frozen-upstream-import manifest; the accepted staging receipt and exact blob
+  comparison are the source boundary. No unreleased sibling source was merged.
+- The accepted P2 Provider checkpoint remains `ready_for_integration`; its
+  closure and exact validated `b68ac81d` implementation are preserved as
+  history. The full 24-item Provider roadmap remains open. The accepted
+  whole-frontend release is now in this branch, but this adoption does not
+  claim a fresh local browser profile or exact-source branch CI; those results
+  are recorded only when actually available. TC remains the presentation
+  owner. Next Provider-owned roadmap action after the adoption CI is known:
+  resume `AC-UNIVERSE-COMPLETE` from this source. Root retains private-target,
+  deployment and remaining integration/acceptance ownership.
+- No product code was edited during reconciliation; no tests, fixtures,
+  provider/issuer/SEC requests, quota or hold changes, service cleanup, or
+  sibling/staging/master writes occurred. The 119-request validation history
+  remains consumed and is not replayable. Exact branch CI is pending after
+  publication; do not infer it from the staging run.
+
+### Follow-up: exact CI and current release action
+
+Actions `40287850396` is now terminal green on exact product source
+`a1698ec2f8ef27e3e29aac89e8673964327e31fc`: Backend, Frontend Unit,
+Playwright, and Branch-declared passed; Exhaustive was skipped under branch
+policy. Root reports the `6d0` master release is canonical green and the
+private target update, correction, and API/UI baseline checks passed. The
+whole-frontend TC2000 consistency requirement remains the human acceptance
+gate. TC received this Provider contract review and remains the sole
+presentation writer. Root owns final integration/deployment decisions; the
+Provider full roadmap and all operation holds remain open.
+
+## 2026-10-27 — human-authorized on-demand acquisition contract proposal
+
+- Human direction: “Ok, so proceed then” for explicit free-source ticker
+  discovery → selected ticker missing-candle history → ETF holdings with dated
+  provenance → resolved constituent chart. This turn is coordinator contract
+  preparation only; no Provider implementation or provider request occurred.
+- Proposal: `ops/workstreams/feat-market-data-provider-platform/on-demand-market-acquisition-proposal-20261027.md`.
+  It preserves all 24 roadmap criteria and previous checkpoint/history. It
+  reuses instrument search, canonical-only resolution, local coverage,
+  `fetch_ohlcv`, `execute_provider_call`, and existing coalescing/admission.
+  It identifies implicit fan-out in missing-instrument GET and provider-capable
+  OHLCV GET paths, plus the global routing switch, without recommending a
+  bypass. Broad scheduler flags may remain off for direct explicit user
+  acquisition; `PROVIDER_ROUTING_ENABLED=false` still blocks all provider
+  selection and must not be bypassed or toggled around a request.
+- OIH instrument 43 is the coordinator-reported industry-proxy scaffold with
+  no candles/holdings. Static curated VanEck identity context does not prove
+  canonical security identity/listing authority. Before history routing,
+  inspect resolved identity, stable external identifier, active primary
+  listing/MIC, provider-symbol binding, and provenance; reconcile through
+  existing profile/mastering safeguards or quarantine conflicts. No target DB
+  read was made, so the row's current identity fields remain unverified.
+- Current seeded candidates do not equal current admission: the price-history
+  chain is Alpaca then Alpha Vantage; Alpha Vantage has a wildcard checkpoint
+  hold, previously exposed Alpaca credentials remain excluded, and no current
+  history provider is claimed admitted. Search candidates are EDGAR, Massive,
+  and Alpha Vantage, each subject to exact-operation review, holds, health,
+  quota, source-matching live evidence, and durable admission. Paid/trial/
+  native/broker/capital routes and the consumed 119-request validation
+  allowance remain closed.
+- The 2026-10-27 coordinator release notice reports whole-frontend deployment
+  and authenticated product checks complete; those facts supersede the older
+  handoff's pending-UI wording without rewriting its historical entry. The
+  full Provider roadmap remains open. Next: obtain coordinator and cross-owner
+  review of this proposal, then scope implementation narrowly in Provider
+  backend paths. TC owns all UI; ETF owns holdings adapters. No source code,
+  tests, HTTP, quota, runtime, sibling, staging, or deployment change occurred
+  in this proposal turn.
+
+
+## 2026-10-27 — on-demand acquisition review corrections and local-read preservation
+
+- Active checkpoint: `provider-on-demand-acquisition-20261027` remains `in_progress`; its acceptance and closure are pending. The accepted P2 checkpoint and all 24 full-roadmap criteria remain historical/current requirements respectively. Exact-source CI and the required full local profile have not run for this implementation.
+- ETF issuer-only integration signature is now `bind_explicit_etf_holdings_acquisition(request_id, instrument_id, symbol, issuer_provider_name)`. The caller must supply the exact provider resolved from the committed ETF profile/issuer adapter (VanEck for the reviewed OIH path); the helper binds only `ETF_HOLDINGS/fetch_etf_holdings_latest`, rejects `sec`/`edgar`, and cannot fall back to SEC. This is a concrete signature for ETF consumer coordination, not a transport authorization.
+- Explicit history uses `_default_series_bar_condition(instrument.id, timeframe, adjusted)` for both pre-fetch cache planning and persisted readback. The SQL regression seeds a selected default D1 series plus three overlapping alternate-series bars; only the selected row is returned and coverage remains partial. Provider response bars are returned only after database readback, not from an unpersisted fetch result.
+- The request path uses the configurable application ceiling `PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS=2000` (inclusive timeframe bar count; aligned with the existing 2,000-row API bound) and `PROVIDER_ON_DEMAND_MAX_MISSING_SLICES=8` (bounds missing-slice fanout per click). Oversized ranges and excessive missing-slice plans fail closed before `fetch_ohlcv`; response rows are capped. These are application workload limits only: provider-native limits, durable reservations, and settlements still apply independently to every transport.
+- When `PROVIDER_REQUEST_DRIVEN_ONLY=true`, ordinary search, instrument detail, expression resolution, and OHLCV GETs continue reading cached/local canonical data with omitted or legacy flags. OHLCV GET forces `allow_provider_fetch=false`; unknown instruments remain unavailable and do not create or query providers. Only explicit POST actions enter the acquisition scope.
+- Focused no-network evidence: 25 tests passed across `test_provider_explicit_acquisition.py`, `test_instruments_router.py`, and `test_ohlcv_router.py`; Ruff formatting/check passed. A preceding `backend/tests/unit/services/test_provider_runtime.py` run passed 94 tests. The active implementation has made no provider/issuer/SEC calls, quota reservations/spend/reset, hold change, or service/data mutation.
+- Next: finish scoped implementation checks and current-source static/workstream validation; then await exact-source CI, the required full local profile, and Root technical acceptance. No provider acquisition or quota operation is authorized by this record.
+
+
+## 2026-10-27 13:23Z — preserve ordinary reads in request-driven mode
+
+- Coordinator review identified that early 409 guards would reject cached requests from callers omitting legacy `canonical_only`/`local_only` flags. Removed those guards from ordinary instrument search/detail/expression handlers; those handlers now remain local-only, and missing canonical instruments keep their existing not-found behavior without provider queries. In both OHLCV GET handlers, `PROVIDER_REQUEST_DRIVEN_ONLY=true` forces `local_only=true` even if a caller sends the older `local_only=false` flag. The explicit POST acquisition routes are still the only routes that mint provider scopes.
+- Added regressions using the omitted-flag GETs with request-driven mode enabled: canonical local search/detail stay readable, unknown detail/search/expression does not query provider helpers, and OHLCV sends `allow_provider_fetch=false` for omitted and legacy-false flags. The series-aware history regression and range/slice ceilings remain included. Final focused result is 25/25 no-network tests, plus Ruff format/check; no provider or issuer transport/reservation occurred.
+- The prior same-turn validation entry is preserved as an interim record; the following append-only validation entry supersedes its inaccurate claim that local GET compatibility had already been exercised.
+- Current workstream records reflect the active on-demand checkpoint as `in_progress`/closure pending and preserve the accepted P2 history, all 24 roadmap criteria, all holds, and the consumed-119 no-replay boundary. Exact-source CI, required full local profile, and Root technical acceptance remain pending.
+
+
+## 2026-10-27 13:26Z — final bounded on-demand regression result
+
+- The final focused no-network set passed 26/26 across the explicit acquisition, instrument router, and OHLCV router modules. Ruff formatting/check and `git diff --check` passed. The validation receipt binds the dirty source/test manifest SHA256 and names base commit `19c3bfbcbdc1e0b5b726e877cb8ac86b86c1178a`; it is not exact-commit CI evidence.
+- Application caps are enforced by validated settings: maximum 2,000 inclusive timeframe bars per request and maximum 8 missing repair slices (configurable downward only). Oversized work returns a held reason before provider fetch; provider-native quota/reservation/settlement remains separate. Ordinary GETs preserve cached behavior in request-driven mode, and OHLCV reads force cache-only even with legacy false flags.
+- The ETF helper signature for the issuer-only route is now explicit and exact: `bind_explicit_etf_holdings_acquisition(request_id=..., instrument_id=..., symbol=..., issuer_provider_name=...)`; caller resolves publisher from the committed profile/bridge. It binds only `ETF_HOLDINGS/fetch_etf_holdings_latest`; VanEck is the expected OIH issuer provider, and SEC/EDGAR names are rejected. ETF should consume this signature; no SEC fallback or HTTP occurred.
+- The default-series history regression uses actual SQLAlchemy series/default/bar rows; alternate-series overlap cannot inflate persisted coverage. Failed/partial readback returns only persisted selected-series rows.
+- Active checkpoint remains `in_progress`, acceptance/closure pending, merge unauthorized. Exact-source CI, full local profile, Root technical acceptance, and any live admission remain pending/held.
+
+## 2026-10-27 — source-specific Massive / OIH VanEck readiness plan
+
+Coordinator read-only target receipt
+`.ai/staging-attempts/on-demand-target-source-readiness-20261027.json`
+supersedes older source-default assumptions. It records Massive
+`PRICE_HISTORY` already enabled in persisted target policy at priority 80,
+along with search/metadata policies; configured plan `free-stocks-basic`,
+free flag, and probe status are present. Global routing is off, free-only is
+on, paid routing is off. This is not a current-admission or headroom result.
+Do not disable/re-enable Massive or derive target state from the source chain.
+VanEck `DataSource` is absent, not merely disabled.
+
+### Massive OIH D1 candidate
+
+1. After exact-source release, recheck the target's non-secret global routing,
+   free-only/paid flags and `MASSIVE_API_KEY` presence by name/boolean only.
+   Do not expose a value. The already-recorded Massive plan/probe/policy is
+   retained; do not rewrite it from defaults. Confirm OIH is a resolved
+   canonical instrument with stable external identity, active primary listing
+   and exact Massive provider-symbol binding. The existing OIH scaffold row
+   alone is not that proof.
+2. Inspect the complete resolved `PRICE_HISTORY` policy set and same-host
+   quota-ledger identity before any source action. `PROVIDER_CHAIN_SEEDS` is
+   ordering, not an allowlist: `seed_provider_runtime` appends supported
+   providers. This branch's history acquisition scope binds capability,
+   operation, instrument and symbol but does not currently bind provider name.
+   Therefore a Massive-specific action is not isolated merely by the preferred
+   chain or priority 80. Require an exact reviewed Massive-only eligible set
+   (others held/disabled) or a separately reviewed provider-name binding before
+   transport. Never toggle the global routing switch around an action; it
+   blocks all providers, and a temporary change would need an independently
+   reviewed narrow window with other routes/schedulers held.
+3. Read the shared coordinator's current rows through
+   `GET /api/v1/market-data-admin/quota-coordinator?provider=massive` and
+   `GET /api/v1/market-data-admin/quota-coordinator/baselines?provider=massive&capability=price_history`.
+   `GET /api/v1/providers/usage/account?provider=massive` is a stored-observation
+   read, not a live native usage refresh; it cannot establish present vendor
+   remaining quota.
+   Reconcile same-account reservations/settlements and active rolling-window
+   use across all managed processes. The target receipt leaves current
+   headroom/holds unresolved. Code documents 5 Stocks requests per minute in
+   the shared Stocks account bucket, no vendor current-use endpoint or reset
+   boundary; its rolling 60-second and `local_zero` settings are application
+   safety accounting for platform-observed use, not proof the vendor account
+   used zero. `max_concurrency=null` is serialized locally with semaphore 1;
+   it is not a vendor concurrency entitlement. History operation cost is the
+   existing range-derived `estimate_massive_ohlcv_request_count`, reserved by
+   the runtime before every physical call. No cost/headroom is guessed here.
+   For `quota_scope:"account"`, `account_scope_for_provider` resolves the
+   operator `PROVIDER_QUOTA_ACCOUNT_SCOPES["massive:account"]`, then
+   `["massive"]`, then the provider-name fallback; confirm the deployed shared
+   ledger and effective mapping are the same across every process. Do not
+   print scope/credential values. Generic GET `/api/v1/providers/policies` and
+   `/api/v1/providers/entitlements` call `seed_provider_runtime` (the former
+   through `list_provider_status`); they are not side-effect-free inspection
+   commands when a row is missing. Use existing read-only target evidence and
+   do not invoke a seed-capable GET during this no-mutation preparation.
+4. Only after Root reviews that fresh exact scope/admission may one authenticated
+   `POST /api/v1/instruments/{instrument_id}/history-acquisitions` request be
+   considered, with the selected OIH id, `timeframe:"D1"`, `adjusted:true`,
+   bounded UTC `start`/`end`, and unique `request_id`. The 2,000 inclusive-bar
+   and 8-missing-slice caps are application workload ceilings, not Massive
+   terms. Runtime free-only, health, entitlement, operation holds, current
+   durable quota, reserve/settle and persisted selected-series readback remain
+   mandatory. Denial, unknown state, identity mismatch or settlement anomaly
+   stops without retry.
+
+### VanEck OIH holdings candidate
+
+1. First verify the retained OIH profile's committed issuer and exact VanEck
+   product slug against the existing curated route metadata. `vaneck` is a
+   registered holdings adapter and the issuer route is fund-scoped; the
+   candidate alias alone does not prove a usable current profile. The public
+   documentation review in
+   `.ai/staging-attempts/on-demand-free-source-document-review-20261027.md`
+   supports the disclosed personal electronic-copy term but does not establish
+   automated quota, redirect/host/byte bounds, entitlement or third-party
+   identifier rights. Do not infer a consent deficiency or any vendor limit.
+2. The existing normal admin path is `POST /api/v1/providers/etf-publishers`
+   with `provider_name:"vaneck"`, `apply:false` for review, then `apply:true`
+   only after Root's exact source/account review. Required fields include exact
+   HTTPS hosts and `fetch_etf_holdings_latest` operation evidence; publisher
+   evidence/version/time; explicit configured account-scope identity; complete
+   quota contract/source/verification time; max-concurrency, minute/burst and
+   freshness controls; `usage_tracking` operation cost; and the complete
+   entitlement evidence (plan/free/auth/terms/redistribution/quota/history/
+   venue/freshness/environment/effective/review dates). These values must come
+   from actual adapter and reviewed source/account evidence; none is fabricated
+   by this note. `apply:true` creates only disabled ETF rows. It does not enable
+   routing or prove a sample.
+   The endpoint requires a configured `vaneck:ip` (or `vaneck`) mapping, and
+   `account_scope_for_provider("vaneck", "ip")` resolves that value. Name it
+   as a shared-host IP bucket only if local VanEck traffic actually shares the
+   same physical egress and durable ledger; an opaque scope proves neither
+   native limit nor reset.
+3. Current code creates the new publisher entitlement as `not_run`. Its
+   `/api/v1/etf-holdings/OIH/probe-adapter` checks local adapter/profile route
+   readiness, not a provider-runtime positive live-probe marker. Runtime
+   admission rejects `not_run`; generic entitlement PATCH can write the field
+   but is not proof. No documented VanEck first-qualification path was found.
+   Do not set `passed` or `not_required` to escape this cycle. Before a first
+   workbook request, Root/ETF must provide an approved genuine first-sample
+   qualification path with the same exact fund/provider/account scope,
+   operation cost and transport/response bounds. EDGAR/SEC remains a separate
+   held source and is not a fallback.
+
+Read-only current source facts: Root's target receipt says no VanEck
+`DataSource`; no source-specific target mutation or request was made. The
+Massive free EOD offer (up to two years and 5/minute) is a public plan statement,
+not account-wide current use or admission. The target's current quota/headroom,
+actual secret presence, full eligible-provider set, shared-ledger cross-process
+identity, exact OIH authoritative identity/binding and VanEck bounded first
+qualification remain unresolved. No policy/entitlement/credential/ledger/hold
+change, provider request or old-119 replay occurred. The on-demand checkpoint
+remains `in_progress`; exact-source CI, full local profile and technical
+acceptance are pending.
+
+## 2026-10-27 13:42Z — local GET compatibility and readiness-plan validation
+
+- Refined ordinary GET behavior so request-driven-only mode forces local reads,
+  while legacy provider fallback remains intact when that mode is disabled.
+  Cached instrument search/detail, expression resolution, and raw/transformed
+  OHLCV GETs no longer require old callers to add flags; unknowns remain local
+  misses without provider calls in request-driven mode.
+- The raw OHLCV route regression seeds selected and alternate D1 series with
+  overlapping instrument data and calls the ordinary no-flag endpoint; only
+  the mapped selected row is returned. Coverage-router, instruments, OHLCV,
+  and explicit-acquisition tests pass 36/36 with no-network mocks/data. Ruff
+  format/check passed. This is focused dirty-working-tree evidence, not
+  exact-source CI or the required full local profile.
+- The source-specific Massive/OIH VanEck sequence above preserves Massive's
+  actual enabled target policy and requires fresh complete-provider-set,
+  shared-account/ledger, quota/headroom, free-only, identity and source-binding
+  checks. It does not assume a preference chain isolates Massive. VanEck's
+  publisher provisioner creates a disabled `not_run` entitlement; its adapter
+  route probe does not establish the positive runtime probe. No valid
+  first-sample qualification path was found, so VanEck remains held pending an
+  owner-reviewed path.
+- No provider/issuer/SEC HTTP, reservation/spend/reset, target policy or
+  entitlement change, credential read, service/data change, or old-119 replay
+  occurred. Plan hash and active checkpoint state are unchanged; closure,
+  exact-source CI, full local profile, and Root technical acceptance remain
+  pending.
+
+## 2026-10-27 — source-scoped app-only admission and issuer first-sample seam
+
+Read-only review of
+`.ai/staging-attempts/on-demand-source-admission-review-direction-20261027.md`
+and the current Provider runtime/config confirms an existing honest pattern for
+sources without a native usage/reset endpoint:
+
+- `backend/app/config.py` Massive `requests_per_minute` Stocks dimension is
+  explicitly `baseline_mode: local_zero`, `application_usage_only: true`, and
+  `safety_reset: rolling`; the outer contract still records
+  `unknown_dimensions: [requests_per_minute_reset_boundary]` and
+  `reset: provider_defined`. `provider_quota_coordinator._baseline_for_reservation`
+  creates a durable `local_policy` baseline only for such an exact reviewed
+  dimension, and `reserve_provider_quota_async` shares its reservations and
+  settlements. This means platform-observed use can be accounted without
+  claiming native total use is zero. Massive has no supported
+  `fetch_account_usage` bootstrap in its adapter/contract; do not invent or
+  call one. Its known Stocks Basic ceiling remains five requests per rolling
+  60-second application envelope, not a current vendor remaining counter.
+- The smallest source-scoped admission proposal is to preserve that existing
+  provider-wide Stocks dimension and add a separately named application-only
+  history dimension to the Massive `PRICE_HISTORY` policy, e.g. a Root-reviewed
+  cap of one estimated physical request per rolling 60 seconds for
+  `fetch_ohlcv`. Give it the same exact Massive account scope and durable
+  coordinator/ledger, `local_zero` plus `application_usage_only`, and an
+  application-policy source label. This additional cap is not a Massive quota
+  claim and must not clear the native reset/total unknowns. Keep operation cost
+  equal to the existing range-derived Massive estimator passed by
+  `market_data.fetch_ohlcv`; do not substitute the one-unit default.
+- The explicit history scope currently binds capability/operation/instrument/
+  symbol but not provider. Add an additive exact source selector for this
+  source-scoped action (or an equivalent server-side reviewed allowlist), then
+  pass `provider_names={"massive"}` to
+  `bind_explicit_provider_acquisition`. A missing/unsupported selector must
+  not fall through to another provider. For the proposed one-request budget,
+  preflight the selected OIH request as one D1 missing slice and within the
+  2,000-bar application range; deny fragmented or larger plans before the
+  first transport. Continue enforcing the existing provider two-year history
+  bound and reserve/settle every estimated page. The current target receipt
+  says Massive is persisted enabled/free-stocks-basic/probe-passed and supports
+  ETF instruments, but global routing is off and fresh durable headroom, active
+  holds, exact provider-symbol binding, shared-ledger identity and account
+  scope still need Root's read-only admission review. No source is presently
+  proven routable from those facts.
+- No additional native-usage probe is needed for Massive. If a future selected
+  source declares a real `fetch_account_usage` operation, use only its exact
+  reviewed bootstrap mapping, zero-cost evidence, serialized reservation and
+  native reconciliation; do not generalize that exception to sources with no
+  such endpoint. Maintain global routing/emergency stop, forced free-only and
+  paid=false inside explicit scopes, all capability/operation holds, plan,
+  review, health, credential-presence, identity, budget, durable reservation,
+  settlement, and 401/403/429 fail-fast denials. Unknown/insufficient ledger
+  admission stops before transport.
+- Massive is the strongest existing OIH history candidate; VanEck is an ETF
+  holdings source, not a history provider. The target receipt shows no VanEck
+  DataSource/policy. Its reviewed 25-second robots crawl delay is an
+  application pacing constraint, not a native account quota. For a later
+  VanEck first sample, retain the normal issuer-only
+  `bind_explicit_etf_holdings_acquisition(..., issuer_provider_name="vaneck")`
+  scope and add a separate sealed, one-shot ETF initial-qualification authority
+  matching exact provider `vaneck`, `ETF_HOLDINGS/fetch_etf_holdings_latest`,
+  committed fund/profile/instrument/provider symbol, account scope, durable
+  attempt id/lock, and expiry. It may authorize only the initial `not_run`
+  probe case; it must not fabricate `passed` or use `not_required`. Existing
+  positive statuses and all other runtime admission checks stay unchanged.
+  Because `resolve_provider_chain` selects enabled policies, the exact policy
+  must be temporarily enabled while entitlement remains `not_run` (which still
+  rejects ordinary calls), then actual matched-snapshot success must atomically
+  set the positive probe and return the policy to disabled before commit. Every
+  redirect/physical attempt needs the shared durable source budget and 25-second
+  pacing; failure/cancel/expiry stays nonpositive and nonreplayable. ETF/Root
+  must review concrete request/response limits and the adapter's actual
+  per-hop accounting before any sample.
+
+Proposed source touch points only (not an implementation authorization):
+`backend/app/schemas/instrument_acquisition.py`,
+`backend/app/routers/instruments.py`, `backend/app/config.py`, and, only if
+required to bind the exact application dimension, `backend/app/services/provider_runtime.py`.
+Regression coverage belongs in
+`backend/tests/unit/routers/test_instruments_router.py`,
+`backend/tests/unit/services/test_provider_explicit_acquisition.py`,
+`backend/tests/unit/services/test_provider_runtime.py`, and
+`backend/tests/unit/services/test_provider_quota_coordinator.py`. Negative
+cases must include absent/unreviewed source selector (no chain fallback),
+paid or unknown plan even with global paid-routing true, global routing off,
+held/expired/nonpositive probe, missing operation cost or application-only
+baseline marker, exhausted/unknown durable budget, account-scope mismatch,
+provider-symbol mismatch, and 429/circuit denial with no retry. For VanEck,
+also prove wrong-fund/empty/partial/cancelled/redirect-budget exhaustion never
+records positive qualification or enables ordinary routing.
+
+This was a source/evidence review only. It does not amend the active checkpoint,
+target policy, quota ledger, provider holds, ETF source, or source acceptance;
+no tests or external requests were run in this review. Existing on-demand
+focused tests remain the prior dirty-source evidence; exact-source CI/full
+profile and Root decision remain pending.
+
+## 2026-10-27 — implementation direction correction and current source work
+
+The later coordinator release supersedes the earlier 1/minute Massive proposal
+above: no additional Massive dimension or generic global 1/min cap is being
+added. Keep its existing five-per-rolling-60-seconds `local_zero` /
+`application_usage_only` durable contract. The host SQLite ledger receipts
+showed 1,214 settled requests and no current-window/pending/uncertain entries
+at the recorded observation; they do not establish current headroom, vendor
+remaining use, reset time, native concurrency, or native burst. Re-read the
+same shared ledger and current admission facts at any later authorized call;
+never initialize/replace it from PostgreSQL.
+
+Current Provider changes add an exact optional history `source_provider` wire
+field and bind it to a singleton provider scope, allowing a selected Massive
+request without fallback while preserving existing callers that omit the
+field. Application bar-range/missing-slice bounds are workload limits, not
+provider quotas. The VanEck first-sample runtime helper is
+`bind_vaneck_initial_etf_qualification(job_id, fund_profile_id, instrument_id,
+provider_symbol, account_scope, review_revision, expires_at)`. It binds only
+`vaneck` / `ETF_HOLDINGS/fetch_etf_holdings_latest`, exact committed fund and
+account identity, current `not_run` revision, and one task-local attempt. The
+permit is consumed before the first await, cannot authorize SEC or fallback,
+does not persistently enable the policy, and leaves every normal free-only,
+hold, cost, health, quota, and emergency global-routing check in force. ETF
+must claim/commit its own durable job and only record a positive result after a
+genuine matched snapshot and audit. Its separately approved request cap,
+pacing, timeout, body, and redirect controls remain application bounds, not
+native facts.
+
+The publisher provisioner's legacy `quota_verified_at` input is documented as
+a quota-contract review timestamp. When every submitted dimension is marked
+`application_usage_only`, persisted and returned review metadata now says
+`application_budget_only` with `reviewed_at`; it does not claim native usage,
+remaining quota, or reset verification. The persisted publisher policy remains
+disabled and its entitlement starts `not_run`. No runtime/config/ledger/target
+state, provider/issuer/SEC traffic, or spent-119 history was changed. Focused
+no-network tests and static checks are in progress; exact-source CI and the
+allocated full integration/browser profile remain pending.
+
+## 2026-10-27 — implementation and focused validation update
+
+The on-demand implementation now publishes typed discovery/acquisition schemas
+in `backend/app/schemas/instrument_acquisition.py`, authenticated actions in
+`backend/app/routers/instruments.py`, request-driven local-read settings and
+application request bounds in `backend/app/config.py`, and the existing runtime
+scope enforcement in `backend/app/services/provider_runtime.py` and
+`backend/app/services/market_data.py`. Omitted legacy GET flags still read
+local data; explicit selected-history reads apply the chosen default-series
+predicate for both preflight and persisted readback. `source_provider` remains
+optional for compatibility and, when supplied, binds the call to a singleton
+provider with no fallback.
+
+`bind_vaneck_initial_etf_qualification(job_id, fund_profile_id, instrument_id,
+provider_symbol, account_scope, review_revision, expires_at)` is the
+ETF-owned first-sample interface. It binds only VanEck's
+`ETF_HOLDINGS/fetch_etf_holdings_latest`, exact committed fund/account
+identity, current `not_run` revision, and one task-local permit consumed before
+the first await. It does not persistently enable policy, set probe success,
+clear holds, bypass free-only or other normal admission, disable the emergency
+global-routing switch, or allow SEC fallback. ETF must claim its durable job
+and record a positive result only after genuine matched-snapshot and audit
+evidence.
+
+The earlier proposal for an additional 1/minute Massive cap is withdrawn. Its
+existing five-per-rolling-60-second `local_zero` /
+`application_usage_only` application ledger contract remains unchanged.
+Root's 1,214-settlement ledger observation is historical; current window,
+holds, headroom, and vendor remaining/reset/concurrency/burst are still unknown
+and require fresh ordinary admission. No ledger initialization/replacement is
+allowed. Publisher `quota_verified_at` is documented as a contract-review
+timestamp; all-application-only dimensions are persisted/returned as
+`application_budget_only` with `reviewed_at`, never native verification.
+
+Focused results on dirty implementation parent
+`19c3bfbcbdc1e0b5b726e877cb8ac86b86c1178a`:
+
+- Four changed unit/API groups passed **50 tests**. The command was `UV_CACHE_DIR=/tmp/provider-ondemand-uv-cache UV_OFFLINE=1 UV_NO_SYNC=1 ENV_FILE=/dev/null uv run --offline pytest -q tests/unit/services/test_provider_explicit_acquisition.py tests/unit/routers/test_providers_router.py tests/unit/routers/test_instruments_router.py tests/unit/routers/test_ohlcv_router.py`.
+- The first bounded `test_provider_runtime.py` + `test_market_data.py` run returned **118 passed, 2 failed** because two existing test doubles omitted the real `Instrument.symbol` field now passed into the scope. After adding that field to the two test fixtures, the same command returned **120 passed**. No provider requests occurred.
+- Locked Ruff check and format check passed. A real PostgreSQL `AsyncSession` integration case at `backend/tests/integration/api/test_on_demand_history_postgres.py` checks selected/default versus overlapping alternate bars, persisted readback, and exact Massive request scope with the fetch mocked. It remains unexecuted and is part of the allocated full profile.
+
+No provider/issuer/SEC HTTP, quota reservation/spend/reset, target or ledger
+mutation, paid/trial/native/broker/capital activation, or consumed-119 replay
+occurred. The on-demand checkpoint remains `in_progress`, closure `pending`,
+and all 24 roadmap criteria remain open. Exact-source CI and the required
+`full_integration/full_stack_browser` profile remain pending; the allocated
+isolated profile must include and pass the PostgreSQL integration case before
+that gate can be reported complete.
+
+### 2026-10-27 PostgreSQL regression and backend-profile follow-up
+
+Root's red exact CI `40526578581` identified that the PostgreSQL regression
+wrapped both setup and the endpoint call in `async_sessionmaker.begin()`. The
+test now commits synthetic setup first, calls the endpoint with a fresh plain
+request-style `AsyncSession` (matching `get_db`), and retains a separate
+verification session. Its mocked successful fetch commits persisted rows as
+the real `fetch_ohlcv` path does. Selected and alternate bars use distinct
+series scope keys so same-time rows satisfy the actual uniqueness contract.
+Focused PostgreSQL result: `1 passed` on the owned, labeled Postgres
+testcontainer; the endpoint returned only the two selected-default bars, and
+the independent session verified all four rows remained stored (two selected,
+two alternate) with exact Massive scope. No provider transport occurred.
+The test-only correction is commit `bd52fb43a7334171b305a181933bf9425dea4aa6`;
+the file's SHA256 is recorded in validation.jsonl. Ruff and format checks pass.
+
+Preserved backend collector logs under `/tmp/provider-on-demand-full-profile-20261027-8b0ca5ed/`
+are diagnostic, not green full-suite evidence. The original collection failure
+was the Compose projection exporting an empty JSON setting for
+`PROVIDER_ACCOUNT_USAGE_REFRESH_PROVIDERS`; the separate host-test projection
+now supplies valid `[]`, a synthetic non-secret Nasdaq User-Agent, no
+Compose-only seed/request-driven/routing overrides, explicit live-probe-off
+and empty credentials, and a private quota-ledger path. The failed collector
+attempts are retained with their hashes. The last 50-test-shard run passed 56
+shards but hit the unchanged 300-second limit in shard 57 during instrumented
+provider-runtime seeding; the exact test independently passes with the
+collector's coverage flags. Per Root direction, rerun the complete unchanged
+collected test set using supported `--shard-size 25`, preserving the 300-second
+per-shard and 900-second integration limits. This smaller partition does not
+change tests, coverage threshold, or skip policy. Full backend coverage and all
+remaining full-profile stages, exact-source CI, technical acceptance, and
+checkpoint closure remain pending. All 24 roadmap criteria and every hold
+remain unchanged; no provider/issuer/SEC HTTP, quota operation, retained data
+change, service cleanup, or consumed-119 replay occurred. A corrected
+collect-only run found the complete unchanged set of 6,073 tests (3,639 unit,
+1,883 Strategy Lab, 551 integration); the normalized node-ID manifest is
+preserved under the profile temp directory with SHA256
+`1e973f054693b8c94bd02fbea30e499bc2e4d74e646b920ec387f52a67880cfd`.
+
+
+## 2026-10-27: on-demand software checkpoint accepted and closed
+
+Root accepted only `provider-on-demand-acquisition-20261027` on implementation source `51301c915d92c8ec4f8514cb4f85ac659791c33b`. The delegated human authority and central acceptance are recorded without inventing a human quote in the plan. Root's acceptance receipt is `/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md`; exact implementation-source feature CI `40540176697` is terminal green. The software checkpoint is now the canonical `integration_checkpoint`, with all six `ONDEMAND-*` criteria; the accepted P2 checkpoint is preserved in `previously_accepted_provider_first_human_coverage_checkpoint`, and original P1 history remains under `previously_accepted_integration_checkpoint`. All 24 original roadmap IDs/texts, roadmap goal, remaining dispositions, and append-only journal history are preserved.
+
+### Exact local profile evidence
+
+- Source: `51301c915d92c8ec4f8514cb4f85ac659791c33b`. Complete local profile artifacts: `/tmp/provider-on-demand-full-profile-20261027-8b0ca5ed`. The frozen collection manifest has 6,073 IDs (3,639 unit, 1,883 Strategy, 551 integration), SHA256 `1e973f054693b8c94bd02fbea30e499bc2e4d74e646b920ec387f52a67880cfd`. All 221 unit-like partitions exited 0; the full ID set was covered. Shards 1–118 were preserved under the recorded exact-input impact proof; canonical shards 119–205 and 207–221 passed, and shard 206 passed 25/25 after the restricted runner's AF_UNIX `EPERM` was requalified with normal local permissions. The faulthandler SIGSEGV and the first noncanonical memory-environment attempts remain preserved; no assertion, test, coverage, or 300/900-second process limit changed.
+- All 551 integration IDs passed in six sequential bounded processes (100, 100, 100, 100, 100, 51): 549 passed and the two predeclared opt-in Nautilus RC6 cases skipped. The prior aggregate process remains recorded as failed exit `124` at its 900-second bound after 524 reports and two skips. The separately diagnosed `test_shared_provider_circuit_denial_preserves_truthful_consumer_outcome[False]` passed 1/1 in 31.36 seconds; this focused diagnostic was not substituted for the full manifest. Machine receipt: `/tmp/provider-on-demand-full-profile-20261027-8b0ca5ed/integration-batches-canonical.json`; all six logs and the original timeout log remain alongside it.
+- Combined backend coverage passed at 84% against unchanged 75% threshold; XML passed. Coverage after full partitioning is recorded in the batch receipt; XML SHA256 `b8990cdb02a7b3ce095d2aec9c9605637ac92d2ef59380dc37da747fba34561d`. Frontend: 1,439 tests, 83.12% coverage, typecheck/build passed. Browser: 196 functional passes plus two canonical live-only skips; 104/104 strict visuals passed with zero retries. The unchanged sandbox and resource probes passed at canonical runner caps.
+- Root independently verified cleanup at `/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-cleanup-root-audit-20261027.json`: protected baseline restored exactly (33 containers, 51 volumes, 11 networks, 61 images); the owned eight-container/six-volume/three-network fixture and five exact labeled images were removed. No retained service/data/ledger was changed.
+
+### Scope and next gate
+
+No provider/issuer/SEC HTTP, quota reservation/reset/spend, paid/trial/native/broker/capital activation, or consumed-119 replay occurred. The checkpoint accepts software contracts only; actual provider/source/target/consumer qualification and the complete 24-item roadmap remain open with their holds unchanged. No Alembic delta exists relative to deployed `02a7bae`. This records-only closing commit must receive terminal-green exact-head CI; Root owns staging/master integration and later runtime/source acceptance. The plan retains the literal `integration_capture: exact branch HEAD`.
+
+
+### Closure review corrections (2026-10-27 18:52Z)
+
+Root's final record review was incorporated before publication. The profile is described as qualification of the complete 6,073-ID manifest with declared dispositions, not as all IDs passing: 5,522 unit-like IDs passed; integration had 549 passes and two declared opt-in skips across all 551 IDs. The canonical checkpoint now has an explicit disposition for each of the 24 original roadmap criteria, naming checkpoint contribution or deferral, remaining work, Provider ownership, and continuation acceptance evidence. The original roadmap IDs/texts, 243 remaining-gap dispositions, P1 history, and complete accepted P2 object remain unchanged. The obsolete current-gate narrative is preserved under a historical field; the current gate now names the on-demand checkpoint, source 51301c9, its acceptance/profile evidence, and the separate exact-closing-head CI requirement.
+
+
+### Exact manifest count correction (2026-10-27 18:53Z)
+
+Root's log audit corrects the unit-like result count: the 6,073-ID manifest comprises 5,522 unit-like IDs (5,521 passed, one declared native RC6 skip) and 551 integration IDs (549 passed, two declared native RC6 skips), for 6,070 passes and three declared native skips overall. The single unit skip is `app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py::test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows`. This native capability remains disabled and unqualified. This correction supersedes the immediately preceding handoff count wording; historical journal rows are retained byte-for-byte, with the append-only correction below. No rerun or native activation occurred.

@@ -25132,3 +25132,39 @@ no Provider/ETF source was adopted, exact CI for the resulting commit and the
 combined functional/strict-visual profile remain pending. TCO1-TCO6 remain in
 progress with acceptance pending; AC1-AC9, V25 and all operational holds remain
 open. The existing 9-roadmap and historical checkpoint records are unchanged.
+
+## 2026-10-28 — Exact green Provider/ETF staging adopted for TCO
+
+Root released only synchronized-green staging
+`173745205692acd3fca650eeeafcd6de38f29fed`. Its canonical receipt is
+`released-staging-receipts/173745205692acd3fca650eeeafcd6de38f29fed.json`
+(SHA256 `987a3ec04e6a66bc0ff0bd538fea4febb08614063550e35248ed9e03b0cd48ad`),
+staging CI `40624295433`, state `green`; authenticated `git ls-remote` returned
+the same SHA for `origin/staging`. The prior TC branch source was
+`b6c5cd0faa380b2db0dfd58c11f40d05b819521c`. The exact staging merge is
+conflict-free and preserves the TC-owned frontend and its on-demand controls;
+no sibling source worktree was imported and no provider, issuer, SEC or target
+request was made.
+
+The refreshed complete frozen-import manifest pins `878` imported paths to the
+accepted staging blobs, while retaining the `29` exact Provider adaptations
+and `112` authorized presentation adaptations. The scope self-test and full
+guard passed; the guard reports `1072` changed paths since the fixed
+`2b92c642237ce2abde40a84ee98383d4ee4285d1` baseline. The complete frontend
+tree is unchanged from b6c5, so its existing `150` files / `1471` tests,
+coverage thresholds, uPlot/visual-policy checks, `vue-tsc`/Vite build, four
+controlled-response consumer cases, and exact CI `40622425921` remain reusable
+only for those identical frontend inputs. The staged backend tree is exactly
+`5c2d9d270bea046a7af58c26d25d287d03174ad7`, matching the Root-reviewed
+immutable image artifact's source tree; the new isolated fixture must still
+verify the actual image ID/tag before binding it. Backend/worker reuse does not
+replace the current combined-source CI or runtime profile.
+
+The adopted checkpoint remains `tc-on-demand-workstation-consumer-20261027`,
+TCO1–TCO6 in progress, acceptance pending. Next: verify current resources and
+the reviewed backend image binding, prepare one source-pinned isolated
+full-stack fixture, then run the unchanged full functional and strict-visual
+matrices serially with one worker and zero retries. Preserve all cached/source
+holds, references, masks, tolerances, F8y timeout and the complete AC1–AC9/V25
+roadmap. No full profile or exact post-adoption TC branch CI result is claimed
+in this adoption record.

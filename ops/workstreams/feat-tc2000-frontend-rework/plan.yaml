@@ -3,10 +3,11 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_merge_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
+latest_staging_parent_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+latest_staging_merge_sha: 173745205692acd3fca650eeeafcd6de38f29fed
 dependency_authorization: >-
-  Current accepted source adoption 2026-10-26: synchronized-green staging
+  Current accepted source adoption 2026-10-28: Root released synchronized-green staging 173745205692acd3fca650eeeafcd6de38f29fed, canonical receipt ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/173745205692acd3fca650eeeafcd6de38f29fed.json (SHA256 987a3ec04e6a66bc0ff0bd538fea4febb08614063550e35248ed9e03b0cd48ad), exact staging CI40624295433 terminal success including required Exhaustive and strict visual jobs. The release carries accepted Provider/ETF producer source95a93f0b932f58018d4f0d40f17f8fdb9eecdb20. The TC-owned branch adopts only this released source; no producer code is duplicated and no genuine source request or target action is performed. The 878-path immutable import manifest and 29 existing exact Provider adaptations are updated against this snapshot. The b6c5 frontend source remains unchanged and its previous frontend evidence is reusable only for byte-identical frontend inputs. The full combined local functional/strict-visual profile and exact post-adoption branch CI remain required.
+  Prior accepted source adoption 2026-10-26: synchronized-green staging
   02a7bae34c2aed145b9e46137ef3b8f041de4d92, canonical receipt
   ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json
   (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde),
@@ -194,12 +195,15 @@ on_demand_consumer_implementation: |-
   `instruments.py` and `ohlcv.py` (source hashes7cb5c61f/cee00e29); the
   inclusive max request budget is2000 and the timeframe map is mirrored in
   focused tests. These are application-side bounds, not assertions about any
-  source's availability or entitlement. Provider/ETF source was not imported or run; exact green
-  producer staging, runtime/full browser qualification and exact candidate CI
-  remain pending. Current consumer tests/build do not imply source, deployment
-  or roadmap acceptance.
-current_blocker: "The current on-demand consumer checkpoint remains in progress. Stack-free frontend unit coverage, uPlot/visual-policy guards and vue-tsc/Vite build pass on source 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 plus the test-only mounted refresh seam correction (diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737). Exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI for the repair remain pending."
-current_checkpoint_status: "The canonical current checkpoint is tc-on-demand-workstation-consumer-20261027 with six criteria in progress and acceptance pending. The mounted ChartView regression now asserts the refreshLocalBars boundary; the store-level acquired-history hydration race independently verifies a fresh local request and bars readback. On the repaired tree all 150 frontend test files/1471 tests pass with unchanged coverage thresholds; uPlot and visual-policy guards and vue-tsc/Vite build pass. The original87cf coverage failure and focused reproductions are preserved. No producer staging has been adopted, no exact-source CI or full combined profile has passed, and no checkpoint acceptance is claimed. All nine original AC criteria and the full official V25 roadmap remain open."
+  source's availability or entitlement. The accepted Provider/ETF producer
+  source is now imported only through exact synchronized-green staging
+  173745205692acd3fca650eeeafcd6de38f29fed (staging CI40624295433); no sibling
+  worktree source was imported or run and no genuine source call was made.
+  Combined runtime/full browser qualification and exact post-adoption branch CI
+  remain pending. Consumer tests/build do not imply target, deployment or
+  roadmap acceptance.
+current_blocker: "No source or focused-validation blocker is known. Exact released staging 173745205692acd3fca650eeeafcd6de38f29fed has been merged without conflicts and the import/scope records are being validated. The fresh combined-source full functional and strict-visual profile plus exact post-adoption branch CI remain pending; no on-demand checkpoint acceptance, genuine source proof, target/deployment acceptance or full roadmap completion is claimed."
+current_checkpoint_status: "TCO1 adopts exact released staging 173745205692acd3fca650eeeafcd6de38f29fed with no merge conflicts; 878 foreign paths are immutable-blob pinned, 29 existing Provider adaptations are rebound to exact accepted blobs, and the 112-path human presentation handoff remains intact. The TC frontend tree/tests/package inputs remain byte-identical to b6c5cd0faa380b2db0dfd58c11f40d05b819521c; its 1471-test coverage, guards/build, four controlled consumer cases and exact CI40622425921 are reusable only for those unchanged frontend inputs. The adopted backend tree is 5c2d9d270bea046a7af58c26d25d287d03174ad7, equal to the Root-reviewed immutable backend image source; runtime binding and full combined functional/strict-visual profiles are still required. The adopted source requires its own exact branch CI. TCO2-TCO6 remain open; AC1-AC9 and official V25 remain open; no genuine Provider/issuer proof, target/deployment acceptance or full-roadmap completion is claimed."
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1611,9 +1615,8 @@ integration_checkpoint:
   status: in_progress
   acceptance: pending; no checkpoint acceptance is claimed
   planning_authorization: /home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md
-  source_capture: 'integration_capture: exact branch HEAD; source base 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44
-    plus test-only mounted refresh seam diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737;
-    no product behavior changed.'
+  source_capture: >-
+    integration_capture: exact branch HEAD; this adoption merge has exact released staging second parent 173745205692acd3fca650eeeafcd6de38f29fed and preserves TC frontend implementation/input source b6c5cd0faa380b2db0dfd58c11f40d05b819521c. The adoption commit SHA is the enclosing branch HEAD and is recorded by Git, not self-referenced here.
   criteria_ids:
   - TCO1
   - TCO2
@@ -1622,10 +1625,8 @@ integration_checkpoint:
   - TCO5
   - TCO6
   criteria_total: 6
-  criteria_completed: []
-  required_next_gate: Await Root release of exact synchronized-green ETF staging; adopt
-    only that source through the supported workflow, then run the source-matched combined
-    gates and exact-source CI.
+  criteria_completed: [TCO1]
+  required_next_gate: The adopted branch requires its own exact-source CI and a fresh isolated full functional plus strict-visual profile. Reuse prior b6c5 frontend coverage only with exact frontend/test/config byte equality; bind backend/worker image reuse only after verifying the exact backend tree and image receipt. No provider/issuer source traffic.
   full_roadmap: AC1-AC9, official REF-HELP-V25 parity, and all broader native/live/target
     criteria remain open.
 current_software_checkpoint:
@@ -1637,13 +1638,13 @@ current_software_checkpoint:
   planning_authorization: .ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md;
     this defines planning scope only and is not acceptance.
   acceptance: pending; no checkpoint acceptance is claimed
-  source_capture: 'integration_capture: exact branch HEAD; implementation source 74b854d93a2e6853e2c59db1ea29293504b65071;
-    this metadata-only commit does not change implementation inputs.'
+  source_capture: >-
+    integration_capture: exact branch HEAD; TC on-demand implementation inputs remain b6c5cd0faa380b2db0dfd58c11f40d05b819521c and accepted producer source is second parent 173745205692acd3fca650eeeafcd6de38f29fed. The closing merge SHA is recorded as the enclosing exact branch HEAD.
   prior_checkpoint_history: The previously accepted whole-frontend checkpoint and TCP1-TCP5/TCV1
     records are preserved verbatim in historical_checkpoint_archive; this current checkpoint
     is separate and unaccepted.
   progress:
-    completed: []
+    completed: [TCO1]
     total: 6
   acceptance_criteria:
   - id: TCO1
@@ -1675,9 +1676,9 @@ current_software_checkpoint:
   roadmap_disposition: All nine original AC IDs and texts remain unchanged under roadmap_acceptance_criteria.
     No AC, TCP criterion, full V25 item, or producer/target acceptance is closed by
     this in-progress software checkpoint.
-  candidate_source: 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44
+  candidate_source: "integration_capture: exact branch HEAD after adoption of 173745205692acd3fca650eeeafcd6de38f29fed"
   candidate_source_test_diff_sha256: a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737
-  local_evidence: The previous unchanged-source coverage run failed only because a mounted ChartView test spied on public loadBars after the view had moved to the refreshLocalBars boundary. The corrected mounted test asserts that boundary and cached-bar retention; the store-level queue-fresh-local-read hydration-race test passes1/1 and verifies a second local OHLCV read returns the newly acquired bar. Full coverage passes150 files/1471 tests at83.2% statements,73.8% branches,70.7% functions,83.2% lines against unchanged configured thresholds; uPlot contract (55 source files), visual policy (26 screenshot assertions), and vue-tsc/Vite build pass. Evidence/logs are under /tmp/tc-on-demand-full-frontend-20261028. Exact green ETF staging adoption, source-matched combined functional/strict-visual gates and exact-source CI remain pending; this is not checkpoint acceptance.
+  local_evidence: Exact prior source b6c5 has full frontend coverage150 files/1471 tests with unchanged thresholds, both visual/uPlot guards, vue-tsc/Vite build, four controlled API-response consumer cases, and exact CI40622425921 green. The reconciled frontend/test/package/config tree is byte-identical to b6c5, so that frontend evidence is reused only for unchanged frontend inputs. Accepted staging 173745205692acd3fca650eeeafcd6de38f29fed is green on CI40624295433 and contributes producer-owned backend/ETF implementation and tests; this is not genuine Provider/issuer traffic. The adopted backend tree matches the reviewed immutable artifact tree5c2d9d270bea046a7af58c26d25d287d03174ad7; its image binding still must be verified in the isolated runtime. The combined source still requires its own fresh isolated functional/strict-visual run and exact branch CI.
 acceptance_criteria:
   - id: TCO1
     text: Adopt only Root-released synchronized green staging containing accepted Provider
@@ -1983,13 +1984,14 @@ shared_path_exceptions:
   - path: tests/workflow/test_staging_workflow.py
     reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test infrastructure.
 dependencies:
+  - "Current accepted green staging 173745205692acd3fca650eeeafcd6de38f29fed imports the accepted Provider/ETF on-demand contracts from producer source95a93f0b932f58018d4f0d40f17f8fdb9eecdb20. Provider owns candidate discovery, canonical identity, bounded history admission, selected/default-series persistence and request outcomes; ETF owns explicit refresh/cache outcomes and dated snapshot/capability semantics. TC consumes these contracts through the existing UI, preserves the four controlled cases, and performs no genuine source calls."
   - "feat/market-data-provider-platform: accepted Provider P2 source 2178808746b3d850f33a76a064ab170f04989b91 is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve provider-owned identity, governance, selected-default coverage, and Research behavior; do not duplicate producer filtering or infer selected-series identity in the client."
   - "feat/strategy-lab-v2: accepted Strategy SLICP is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve its inspector and Research-results navigation alongside TC-owned Python/DSL/Study/Strategy behavior and immutable Study/CodeVersion identity."
   - "feat/etf-holdings-constituents: accepted ETF FQ1-F8 checkpoint source abdca6e6ec2b383f678995029149bbb748596af4 was adopted from green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502; the accepted retained-IWM correction was adopted from 15b5c22f0e689c973ee82d152d4bbad6125bf993; fresh-AsyncSession eager reparse response serialization and deterministic same-date knowledge-time/id ordering were adopted from exact green staging 6d0a85da34ba276bca69c82a932a0602e783d7a1. Preserve ETF acquisition/admission, historical/PIT/current-unavailable distinctions, lineage, freshness, and unknown-state checks; no acquisition is replayed. Root-owned target correction and UI acceptance remain pending."
-  - "Adoption of 6d0 does not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
+  - "The prior 6d0 adoption did not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/6d0a85da34ba276bca69c82a932a0602e783d7a1.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/173745205692acd3fca650eeeafcd6de38f29fed.yaml
 frontend_presentation_handoff:
   human_authorization: The goal was for, on merge/reconciliation between the all the ongoing features,
     the tc2000 one (the main, visual makeover feature) would take over, look & feel wise, and ensure the
@@ -2814,36 +2816,36 @@ approved_presentation_adaptations:
   delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
 approved_provider_contract_adaptations:
   - path: backend/app/models/ohlcv.py
-    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    accepted_blob: d4d4cd177cf4160092b0c0d4c65e8b2eff7b06c1
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: b1d66b8486f6a0bd6757aff1e16c79b80f933d08
     delta: Restore TC derived-lineage ORM projection over existing columns from ff0a1b2c3d4e.
     rationale: >-
       Provider provenance JSON has no equivalent typed cutoff/materializer contract. Preserve
       existing populated lineage and null unknowns without adding duplicate schema columns.
   - path: backend/app/models/instrument_event.py
-    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    accepted_blob: 3caadf63beff2e786cf9f63af40da6d7c359008b
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 42dfea448845153067e7cc61bfa46d606f532e69
     delta: Restore nullable typed adjustment_factor ORM field from existing ff2a3b4c5d6e column.
     rationale: >-
       TC adjustment-factor observations consume only validated explicit factor evidence; retain
       nullable unknowns and do not derive this field from split ratios, dividends or raw payloads.
   - path: backend/app/providers/base.py
-    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    accepted_blob: 353335ec9dd2514e66d9c22e813123a35f60e9d8
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 8d7cd346a907ebfc922483c03e90e5c4b72ed549
     delta: Add an optional finite-positive Decimal adjustment_factor to InstrumentEventRecord.
     rationale: >-
       The TC typed event consumer needs explicit normalized factor evidence; validation rejects
       non-finite/non-positive values and no generic raw-payload inference is introduced.
   - path: backend/app/services/instrument_events.py
-    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    accepted_blob: 4ad0abeb919e374d44bf2f98bf8b3d191a40a4cf
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: b06efe25fafc78f08f780ed4afa45266f008c37b
     delta: Persist the typed adjustment_factor on normalized event insert and conflict update.
     rationale: >-
       The existing TC observation/version materializer already consumes InstrumentEvent.factor;
       this reconnects typed evidence to it without altering Provider identity or governance.
   - path: backend/app/providers/alpaca.py
-    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    accepted_blob: a7a2e4fa9430c0030e479ca6fe8078a47d18cdfb
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 3b6e759dffcd91e26f342197e40064030694480a
     delta: >-
       Restore parsing of only the two explicit Alpaca cash-dividend factor keys already recognized
       by the pre-merge TC adapter, validating supplied values as finite and positive.
@@ -2855,8 +2857,8 @@ approved_provider_contract_adaptations:
       Missing factors remain unknown, and dividend amounts or split rates are never used to infer
       a factor. This path is specifically Alpaca compatibility and does not imply Massive support.
   - path: backend/tests/unit/providers/test_new_providers.py
-    source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-    accepted_blob: af1df01fa33293005e22d973749b1eb691198857
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: ad2fa24c1e019d0561a35b26920abfc50d98eb37
     delta: Add explicit Alpaca factor parser, absent-factor, and invalid-factor contract coverage.
     rationale: >-
       Keep regression tests adjacent to the accepted current Alpaca paginated parser and prove
@@ -2865,18 +2867,18 @@ approved_provider_contract_adaptations:
       but that accepted adapter does not normalize it; that distinct source contract is outside
       this approved Alpaca compatibility change.
   - path: backend/app/config.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 3d73c7ea60b28e8bfa9cadaacb0cbc1aa5b5bade
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 5d22049b11176e5701e0170d8478931099c6f53c
     delta: Restore only the two default-off TC large-universe fixture settings.
     rationale: Keep health/seed test mode explicit without enabling provider routing, refresh, or live work.
   - path: backend/app/routers/calendar.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 0f2d9aa38538168c96ca343dcc6bed5bd5e2459c
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: b4af083d7681da76d405eea8c8f9358e70952710
     delta: Restore canonical UTC-Z timestamp serializers for existing calendar responses.
     rationale: Preserve TC wire-format contract using the shared serializer; no calendar acquisition changes.
   - path: backend/app/routers/market_groups.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 6319f5e2dfa43adf1dde30bf724cca9988416cd1
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: fc2058d18556a2d2b0bf8e6329b374ffa1dd74ee
     delta: >-
       Restore TC historical profile eligibility by requiring observed_at and fetched_at at or before
       the UTC-normalized cutoff.
@@ -2884,8 +2886,8 @@ approved_provider_contract_adaptations:
       Historical classification must use profile evidence both observed and fetched by the cutoff;
       this is read-only and does not fetch or alter upstream profiles.
   - path: backend/app/routers/ohlcv.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: e5db3ee5933707be2dc491be21e93adaf364a1db
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: c846e74d34f2af9a7b429ac9133a598dde8d607a
     delta: >-
       Restore TC database-only local adjustment/materialization routes, canonical/provider/derived views,
       and local W1/MN materialization while retaining all released Provider fetch/admission guards.
@@ -2893,32 +2895,32 @@ approved_provider_contract_adaptations:
       This is a TC consumer view over persisted canonical evidence; it adds no provider transport,
       fallback, quota path, or interactive acquisition.
   - path: backend/app/schemas/etf_holdings.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 2cfffada11487169e40f8591402534e4fd398c22
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 9ee6136d82524af8d175b4fc4c7ee90e47e9beb8
     delta: >-
       Additively restore published_at, cadence, parser_version, timing_provenance and source_identifier
       metadata to TC-facing ETF response schemas and canonical UTC serialization.
     rationale: Keep the released ETF capability, availability, identity and source lineage authoritative.
   - path: backend/app/schemas/instrument.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: be9c342f96c85bdd7f8768e3705a5cf309ddffbd
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: c2cdc22bad16f0495660ca2d00ba1b0eb696b59d
     delta: Restore canonical UTC-Z serializers on TC instrument/profile subresponses.
     rationale: Preserve every released Provider identity/listing field and serialize existing timestamps only.
   - path: backend/app/schemas/radar.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 9f86a0da5f6aae3c183ecda8474150474ccbbb15
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 267292196d33d68437c5b490f2a1c2e46dc63fdd
     delta: Restore canonical UTC-Z serializers on existing Radar response timestamps.
     rationale: Keep Provider coverage fields intact; no Radar provider or data behavior changes.
   - path: backend/app/services/alert_engine.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 29bba6cd17c7f2b77d4359748f9d99ebd90031a8
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 8f18941e72374fc00ea7a19dcbc3667e2b0d801e
     delta: >-
       Restore strict optional named-output selectors for indicator alerts and canonical UTC-Z event
       timestamps, rejecting absent/ambiguous multi-output selection.
     rationale: Preserve TC alert output identity without selecting a guessed indicator series or changing data routes.
   - path: backend/app/services/etf_holdings_refresh.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 0d1cf03bef8f513e41513d34c182bb3756fa3864
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: b5dbd3581322d6d09e1236d13a44bec99d7e4e3a
     delta: >-
       Restore row-level canonical-equity snapshot readiness with metadata-only fallback only when row detail
       is absent; apply the same predicate at the two SEC-bootstrap checks and preserve explicit provider
@@ -2927,20 +2929,20 @@ approved_provider_contract_adaptations:
       Cash/non-equity/placeholder-only detail must not suppress fallback. Retain Provider admission,
       refresh, settlement, request holds, transport, identity validation and request evidence unchanged.
   - path: backend/app/services/indicators.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 09b47bfa97e62e609d17098eaa5a7273886adaf6
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 19ea611dbf19fdf61b58d160cee72a93f9a072be
     delta: Restore resolve_indicator_output with explicit valid selection for multi-output definitions.
     rationale: Preserve single-output compatibility while refusing unknown, invalid and ambiguous outputs.
   - path: backend/app/services/screener_engine.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: ff9e39027421e2ad3c0c245030f7a01d97ccaa2a
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 6a740528b959cdf12c59574156e0c9ac9ae3158a
     delta: >-
       Restore strict output-name selection for TC screener predicates, resolved output-name/adapter/series-target
       metadata in the immutable runner job, and canonical UTC-Z alert-event time.
     rationale: Preserve the released provider preflight and source guards; ambiguous/invalid outputs remain rejected.
   - path: backend/app/services/watchlist_sources.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 39941d2dd0f23e103e4ffa50585be6f703fcbb2b
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 382a6f0dc600e4990a8e10f2bfbb52583f337cd4
     delta: >-
       Restore UTC-normalized PIT comparisons/digests, combo-definition cutoffs, canonical ETF-member
       eligibility/counts, controlled-fixture exclusion before ranked selection and resolver reads,
@@ -2955,38 +2957,38 @@ approved_provider_contract_adaptations:
       missing optional legacy metadata is not fabricated. The accepted baseline remains G blob
       39941d2dd0f23e103e4ffa50585be6f703fcbb2b; the staged index must equal the worktree.
   - path: backend/app/services/etf_holdings.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 9d213d067d61b26937b0783eb673b749d03558fe
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 04a1fb73f223e429eeaeb974499ed38c729273bd
     delta: Normalize holding-classification case and separators only for the existing equity-kind comparison.
     rationale: >-
       Accept legacy Security/Common Stock spellings before the unchanged narrow equity allowlist.
       Preserve raw input labels, row hashes, audit payloads and the exact allowlist; do not restore
       broad REIT matching or claim Massive factor/classification support.
   - path: backend/app/services/options_exposure.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: ff577df9d914df517d1c1a795df798d4e0acbc98
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 410ee89b08c233ed83b6a5255742a2d919744b90
     delta: Use the shared UTC wire serializer for computed_at in both existing exposure response branches.
     rationale: Keep canonical UTC-Z response formatting without adding ETF-domain coupling or changing options calculations.
   - path: backend/tests/integration/api/test_etf_holdings.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: b6695b3af0a86bb590f14f105e29ed09efea4e34
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 7338e3f752e41a4e441cf3eca719df1ed506040c
     delta: Preserve the historical plan's aware as_of value for the fake planner, keep the task argument +00:00, and independently assert the exact canonical history job key.
     rationale: Exercise the five-argument historical queue payload and verify enum-ordered D1,W1,MN identity with UTC-Z job bounds without deriving the expected key from production code or changing the queued task payload.
   - path: backend/tests/integration/api/test_workspaces.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: f2fe5f58fad7e7d09daef68940970bb1d970f9a4
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: fcf830b36c5c0008c1076550cc5c38c46038c86c
     delta: >-
       Preserve canonical UTC-Z assertions and the point-in-time derived equal-weight history length,
       explicitly excluding the Jan 1 bar not yet known at the Jan 2 membership cutoff.
     rationale: Retain known_at and eligibility semantics; the 149-point result is not a blanket count waiver.
   - path: backend/tests/unit/services/test_etf_holdings_resolution.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 248e5c3492305cd3d471f2f76bd429da29f14a6c
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: d56f7012cb609fc6fc1518803761111b274ac657
     delta: Add parser-to-persistence coverage for legacy Common Stock/Security labels and unsupported kinds.
     rationale: Assert raw labels and hashes survive both successful resolution and conservative non-equity rejection.
   - path: backend/tests/unit/test_provider_live_usage.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 6cb1c0cea5d04f94ecf6f7c6b0b34dcf2767176b
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 30fdf2c5f80a0b2c68332a29e11dca3d3d8614bc
     delta: >-
       Make the MarketData App current-snapshot overcount test use a fixed aware instant away
       from the daily reset boundary, and add an immediately-preceding-window rejection test.
@@ -2996,18 +2998,18 @@ approved_provider_contract_adaptations:
       Compare read-only baseline status before/after rejection to prove no ledger usage changed.
       Do not relax reset-window validation or invoke a live provider.
   - path: backend/app/tasks/alert_tasks.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 7c54220a48f4959f67e2ed4424b22a693ad36132
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 4d6ff93e3a592412d1470f7f780f7560933bf8ce
     delta: Restore canonical UTC-Z serialization for existing websocket alert timestamps.
     rationale: Wire-format preservation only; alert-task scheduling and execution remain unchanged.
   - path: backend/app/tasks/data_tasks.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 854485aa9b7381584649673d22417ad4bc8fb1bf
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 1bf6b0f12e335dcbb6fbb71920854dbdd7a005fd
     delta: Materialize eligible W1/MN views locally after the existing D1 refresh path.
     rationale: Reuse persisted D1 bars only; no new provider calls, schedules, quota use, or acquisition path.
   - path: backend/research_runner/runner.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: e4e1b10dd3b559cf33c726b7e4a3758a172e8114
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 88768a772676f28105bfdd4f82f84de74841406a
     delta: >-
       Restore minimal TC Study/range/event adapters and explicit output dispatch: run
       study_series_to_series once over the full prepared universe before generic per-member batch;
@@ -3018,13 +3020,13 @@ approved_provider_contract_adaptations:
       ambiguous-output rejection, released sandbox/memory/process caps, terminal controls, preflight
       and lineage. No acquisition or native-execution claim is added.
   - path: backend/tests/unit/routers/test_coverage_router.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 7f406af5bd2778f9cbfeb5b3fc9da7de6b99c8df
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 7dd02d0d445a78448b65ac5da038b29aa354c3fb
     delta: Extend existing exact coverage-response fixtures with the released lineage/evidence envelope.
     rationale: Preserve all status/range/provider-neutral assertions and positively verify additive fields.
   - path: backend/tests/unit/routers/test_ohlcv_router.py
-    source_sha: 628c1634f4894403339687586adee74d45637d51
-    accepted_blob: 78a5df108a784dbdd76a6b5e87ecb174a3a3fe65
+    source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    accepted_blob: 43a54455835ddb60ecc0116649df7172e2a43965
     delta: Extend the retained-bar response expectation with released derived-lineage fields.
     rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
 approved_frozen_upstream_snapshots:
@@ -3067,6 +3069,9 @@ approved_frozen_upstream_snapshots:
   - source_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
     receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json
     receipt_sha256: fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde
+  - source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
+    receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/173745205692acd3fca650eeeafcd6de38f29fed.json
+    receipt_sha256: 987a3ec04e6a66bc0ff0bd538fea4febb08614063550e35248ed9e03b0cd48ad
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -3164,16 +3169,11 @@ migration_impact: "No generic provider or ETF schema/migration work is owned her
 deployment_impact: "No deployment or environment promotion is authorized in this feature session; record deployment impact only as a final review handoff."
 status: in_progress
 progress:
-  completed: []
+  completed: [TCO1]
   total: 6
-  current_phase: On-demand workstation consumer implementation is prepared locally;
-    the four controlled-response flows and 85 focused unit tests are preparation evidence
-    only.
-  next_action: Await Root exact green ETF staging release. Adopt only the released SHA
-    through the supported workflow, then complete source-matched combined functional/strict-visual
-    gates and exact-source CI. Preserve AC1-AC9, official V25 and all provider/data/target/service
-    holds.
-  updated_at: '2026-10-27T22:28:35Z'
+  current_phase: Exact released staging 173745205692acd3fca650eeeafcd6de38f29fed is adopted into the TC branch with the four controlled consumer flows and unchanged frontend qualification preserved; the merged source now awaits its own full isolated functional/strict-visual profile and exact CI.
+  next_action: Verify backend/worker image equivalence against the reviewed artifact, perform a fresh ownership/capacity audit, then run the isolated full functional and strict visual profiles serially at one worker and zero retries; preserve all existing references, skips, F8y timeout and held source operations.
+  updated_at: '2026-10-28T05:00:00Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in

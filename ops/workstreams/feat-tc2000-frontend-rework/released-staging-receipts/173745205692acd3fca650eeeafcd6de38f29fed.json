@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-28T04:44:48.295767+00:00",
+  "starting_staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6",
+  "staging_sha": "173745205692acd3fca650eeeafcd6de38f29fed",
+  "sources": [
+    {
+      "branch": "feat/etf-holdings-constituents",
+      "sha": "95a93f0b932f58018d4f0d40f17f8fdb9eecdb20"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/40624295433",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit 173745205692acd3fca650eeeafcd6de38f29fed: https://github.com/jagnelo/charting-platform/actions/runs/40624295433 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/40624295433', 'status': 'in_progress', 'conclusion': None}]"
+}
