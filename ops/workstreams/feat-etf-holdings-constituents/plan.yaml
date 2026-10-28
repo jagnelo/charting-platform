@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_merge_sha: 6bff091d7d43de0731284dfabcafa09514d226a6
-latest_staging_parent_sha: f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3
+latest_staging_merge_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
+latest_staging_parent_sha: addd41731b2be9b740b3c4bab624118ba2371029
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: >-
   Continue the existing ETF holdings provider coverage goal from current green
@@ -499,7 +499,7 @@ on_demand_market_acquisition_proposal:
     /home/m920q/charting-platform/.ai/staging-attempts/on-demand-market-acquisition-contract-20261027.md.
     This proposal is coordinator-only and awaits contract review; it authorizes
     no provider/issuer/SEC request, quota use, source code, or runtime change.
-  disposition: proposal_prepared_pending_coordinator_contract_review
+  disposition: accepted_ODC_scope_supersedes_this_preserved_proposal_record
   scope: >-
     One explicitly selected ETF holdings acquisition (OIH is the candidate in
     the coordinator contract) and identity-safe navigation from a resolved
@@ -1719,11 +1719,11 @@ integration_checkpoint:
     /home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-checkpoint-planning-direction-20261027.md.
     It does not authorize native/source requests, quota use, target mutation,
     policy activation, or completion of the full roadmap.
-  status: ready_for_integration
+  status: accepted_and_integrated_in_green_staging
   implementation_baseline: f959ed3963da4e3f7d161c940e68c345763be009
   source_implementation_sha: 7157269abced8fc975f9dffd9441b81c11ebed08
   tested_source_sha: e589cda929b06c0af889344342c4ee73256bae7f
-  closing_source_sha: pending_records_only_closure_and_exact_tip_ci
+  closing_source_sha: 95a93f0b932f58018d4f0d40f17f8fdb9eecdb20
   owners:
     ETF: selected-fund caller, ETF route semantics, owned tests and records
     Provider: shared admission/binder/provisioning ownership; exact released source is imported
@@ -1740,9 +1740,9 @@ integration_checkpoint:
     conflict_free: true
     sibling_imports: none
   progress:
-    completed: [ODC1, ODC2, ODC3, ODC4, ODC5]
+    completed: [ODC1, ODC2, ODC3, ODC4, ODC5, ODC6]
     total: 6
-    current_phase: Root_accepted_software_checkpoint_ready_for_integration_closing_tip_CI_pending
+    current_phase: accepted_exact_closing_tip_CI_and_integrated_in_green_staging_e3e87183
   current_profile_evidence:
     backend_root_audit: /home/m920q/charting-platform/.ai/staging-attempts/etf-e589-full-backend-root-audit-20261028.json
     backend_root_audit_sha256: 69ff1a6fd578c2805f76b33f0331c0b2f134b1f48cc8b23b0c0a1afaff91d7c8
@@ -1756,6 +1756,8 @@ integration_checkpoint:
     strict_visual: 104_pass
     exact_branch_ci: 40591323573
     exact_branch_ci_sha: e589cda929b06c0af889344342c4ee73256bae7f
+    closing_tip_ci_run: 40619527618
+    closing_tip_ci_sha: 95a93f0b932f58018d4f0d40f17f8fdb9eecdb20
     root_acceptance: /home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-software-checkpoint-acceptance-20261028.md
     root_acceptance_sha256: e061ab9e20353430d84912fcb2c7cdae481bdc9479e03975c4153740545710e1
     fixture_cleanup_root_audit: /home/m920q/charting-platform/.ai/staging-attempts/etf-e589-final-cleanup-root-audit-20261028.json
@@ -1788,8 +1790,8 @@ integration_checkpoint:
   full_roadmap_status: AC1-AC14 remain open beyond this bounded software checkpoint; all 15 Tier-0 and 156 Tier-1, 74 fallback identities, holds/quarantines, raw/PIT lineage, 119 spent requests and 30-day observation remain.
   continuation_conditions:
     - Actual OIH VanEck workbook/native account scope/rights/headroom qualification remains Root-owned and requires separate exact reviewed admission; the current source work does not claim a positive native/source result.
-    - Root retains target OIH data/API/UI acceptance, synchronized staging integration, promotion and deployment decisions.
-    - After acceptance, the broader ETF roadmap continues in this same workstream under the original authorization; no new goal, account reset or roadmap completion is inferred.
+    - Root owns the first usable on-demand deployment, actual OIH source/account qualification, and target/API/UI acceptance; these remain separate from software acceptance and are pending.
+    - After Root releases further implementation following the first usable on-demand deployment, continue AC1-AC14 in this same workstream; no new goal, account reset or roadmap completion is inferred.
   integration_capture: exact branch HEAD
 branch_tests_reason: "The branch-declared sequence retains the full deterministic ETF and provider contract commands, focused acquisition integration regressions, static analysis, and durable workstream validation. The live-provider module stays explicitly disabled (RUN_LIVE_ETF_HOLDINGS_TESTS=0); network-bearing issuer probes remain deferred and are not part of this software checkpoint."
 deferred_live_checks:
@@ -1799,7 +1801,7 @@ deferred_live_checks:
 live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDINGS_TESTS=1; the ordinary branch test explicitly sets it to 0 and retains nine no-network registry/route contracts. The network-enabled command remains under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "The ODC delta adds no Alembic migration paths relative to accepted Provider staging 6bff091d; no database migration was applied to a retained target. The two PostgreSQL-only DDL migration tests skipped by the assigned shared-DSN profile passed in a separate disposable Testcontainers PostgreSQL supplement with TEST_DATABASE_URL unset and no-cov. Earlier ETF schema/migration history is preserved."
 deployment_impact: "The ODC source delta adds no Alembic migration paths relative to accepted Provider staging 6bff091d; no target mutation or deployment occurred. Root owns any later OIH source/target qualification and acceptance."
-status: ready_for_integration
+status: in_progress
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
   total: 3
@@ -1807,7 +1809,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: ODC1_ODC5_accepted_ready_for_integration_ODC6_exact_closing_CI_pending_full_AC1_AC14_roadmap_open
+  current_phase: ODC_checkpoint_accepted_and_adopted_in_green_staging_full_AC1_AC14_roadmap_open_Root_first_on_demand_deployment_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -3056,7 +3058,7 @@ previous_green_staging_adoption_2026_10_25_3ff:
   product_source_edits_in_this_context: none
   publish_state: held_until_Root_releases_after_independent_master_CI40210522503
 
-latest_green_staging_adoption:
+previous_green_staging_adoption_2026_10_25_15b5:
   recorded_at: "2026-10-25T23:55:46Z"
   released_staging_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
   exact_ci_run: 40241357259
@@ -3072,6 +3074,30 @@ latest_green_staging_adoption:
   imported_workstream_records: unchanged_from_released_tree; reconciled below for this owned adoption
   product_source_edits_in_this_context: none
   publish_state: held_until_Root_release_after_independent_master_CI_for_15b5
+
+latest_green_staging_adoption:
+  recorded_at: "2026-10-28T10:24:03Z"
+  released_staging_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
+  exact_ci_run: 40656688915
+  canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json
+  canonical_receipt_sha256: ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da
+  release_state: canonical_green_coordinator_receipt
+  previous_etf_sha: 95a93f0b932f58018d4f0d40f17f8fdb9eecdb20
+  adopted_etf_baseline_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
+  adoption_method: exact_released_staging_fast_forward_in_assigned_etf_worktree
+  direct_remote_lookup: verified_origin_staging_and_master_equal_e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2_at_adoption; master_CI_40670024330_still_running
+  merge_base: 95a93f0b932f58018d4f0d40f17f8fdb9eecdb20
+  source_tree: 424122f716d92389d6ffccddfb913977124b19b3
+  source_tree_matches_released_staging: true
+  source_tree_delta_from_pre_adoption_feature_tip: 17 accepted TC frontend paths and 7 TC-owned workstream/receipt paths; no backend/config/scripts changes
+  upstream_import_manifest: not_applicable_exact_green_staging_fast_forward_no_unlisted_blobs
+  imported_workstream_records: TC records preserved exactly as released; ETF-owned records reconciled separately in this adoption
+  conflicts: none
+  local_validation: no tests/builds rerun; unchanged imported behavior relies on exact staging CI 40656688915
+  exact_staging_qualification: 1471 frontend tests; 553 integration tests; 199 functional cases; 104 strict visual cases; zero retries; all required jobs green
+  independent_master_CI: 40670024330_running_not_yet_green
+  production_deployment: not_performed; Root owns deployment and first usable OIH qualification/API/UI acceptance
+  full_roadmap: AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage and 30-day observation
 
 latest_sec_first_use_candidate:
   recorded_at: "2026-10-23T17:20:09Z"
@@ -3132,15 +3158,11 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Root accepted the ODC software checkpoint and reviewed the closure proposal.
-  Published closing-tip CI 40617812776 failed the unchanged narrative test
-  because the current session blocker omitted the audited tier-count invariant.
-  Publish this records-only correction once; Root then watches the new exact-tip
-  CI and integrates only after all required jobs are green. Tested source remains
-  e589cda929b06c0af889344342c4ee73256bae7f. Actual OIH workbook/native account
-  qualification, any live source operation, target acceptance, and
-  integration/deployment remain Root-owned. Continue the separate Massive OIH
-  PRICE_HISTORY readiness and remaining AC1-AC14 roadmap work afterward.
-  Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, `74 fallback identities`,
-  holds, quarantines, raw/PIT history, 119 spent requests, and the 30-day
-  observation.
+  Root owns the first usable on-demand deployment, actual OIH source/account
+  qualification, and target/API/UI acceptance; no provider or issuer request,
+  quota use, target mutation, policy activation, or deployment was performed in
+  this adoption. After Root completes that priority and releases further ETF
+  implementation, resume AC2 retained issuer evidence using reviewed retained
+  evidence, then continue the remaining AC1-AC14 roadmap. Preserve all 15
+  Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds,
+  quarantines, raw/PIT lineage, and the 30-day observation.

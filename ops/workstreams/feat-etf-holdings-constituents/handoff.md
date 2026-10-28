@@ -1,11 +1,43 @@
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
-## Current checkpoint: etf-on-demand-consumer-20261027 — accepted; closing CI pending
+## Current checkpoint: ODC software accepted and adopted in green staging; full roadmap open
 
 Root authorized this six-criterion software checkpoint under the standing
 human-authorized on-demand acquisition goal. The accepted ERF response/order
 checkpoint and its evidence remain preserved below as historical acceptance;
 they do not close this newer consumer scope. Full AC1-AC14 stays the roadmap.
+
+## Latest synchronized staging baseline adopted — e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (2026-10-28)
+
+The clean ETF tip `95a93f0b932f58018d4f0d40f17f8fdb9eecdb20` was an ancestor of canonical synchronized-green
+staging `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2` and was fast-forwarded to that exact commit without
+conflicts. The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json` (SHA256 `ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da`); exact staging CI
+[run 40656688915](https://github.com/jagnelo/charting-platform/actions/runs/40656688915)
+passed Backend, Frontend, E2E, and Exhaustive Integration Gate. The exhaustive
+coverage includes 1,471 frontend tests, 553 integration tests, 199 functional
+cases, and 104 strict visual cases at zero retries. No local tests or builds
+were rerun in this adoption.
+
+The adopted tree `424122f716d92389d6ffccddfb913977124b19b3` adds 17 accepted TC frontend paths and 7 TC-owned
+workstream/receipt paths relative to the ETF tip, with no backend, config, or
+scripts changes. Staging's parents are `173745205692acd3fca650eeeafcd6de38f29fed` and TC source
+`addd41731b2be9b740b3c4bab624118ba2371029`. TC remains the presentation implementation owner; ETF retains
+its consumer/domain ownership and does not duplicate TC styling or components.
+No ETF workstream file changed in the staging merge; this handoff and the other
+ETF-owned records reconcile the adoption. An ETF frozen-import manifest is not
+applicable because this is an exact fast-forward of the complete released
+staging tree, with no off-staging path import.
+
+Independent master CI [run 40670024330](https://github.com/jagnelo/charting-platform/actions/runs/40670024330)
+was still running at adoption; no master-green or deployment claim is made.
+Root owns the first usable on-demand deployment, actual OIH source/account
+qualification, and target/API/UI acceptance. No source HTTP, quota use, target
+mutation, or deployment occurred here. The accepted ODC software checkpoint
+and its implementation/test receipts remain distinct from target acceptance;
+all AC1-AC14 remain open. After Root completes the deployment priority and
+releases further ETF implementation, the next branch-owned step is AC2: resume
+the retained issuer-evidence audit from reviewed existing evidence.
 
 ## Accepted Provider staging adopted; consumer contract revalidation — 2026-10-27
 
