@@ -829,9 +829,41 @@ previously_accepted_provider_on_demand_integration_checkpoint_authorization: "Hu
 integration_checkpoint_authorization: >-
   Root direct implementation activation on 2026-10-28 authorizes only the cached provider-search outcome repair under the existing human-authorized on-demand acquisition goal. The prior accepted checkpoint authorization remains archived. Root owns exact-source integration and deployment.
 human_closure_authorization: >-
-  No new checkpoint acceptance or closure has been claimed. Root directly activated this narrow repair under the existing human-authorized on-demand acquisition goal; the prior accepted checkpoint closure authorization remains archived unchanged.
+  Root's acceptance receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`
+  records: accepted narrowly scoped checkpoint; authorize final records-only closure. This is
+  Root's delegated technical acceptance under the existing standing human authority, not a claim
+  of a new direct human quote or inspection. It authorizes closure and ready-for-integration
+  status for this named checkpoint only; Root retains protected staging integration, promotion,
+  deployment, and live/source/target acceptance.
 closure_summary: >-
-  Pending. The cached-search outcome repair has not yet been implemented, validated, source-CI-qualified, or accepted. The previously accepted software checkpoint remains separately archived; all 24 original roadmap criteria and operational holds remain open.
+  Root accepts only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
+  source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority;
+  acceptance receipt:
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
+  This is delegated Root technical acceptance and records-only closure, not a fabricated direct
+  human quote, full Provider roadmap completion, deployment acceptance, or live-source success.
+  Exact implementation-source CI 40686521938 is green for 8b67; this final records-only commit
+  still requires its own terminal-green exact-tip CI before Root performs supported staging
+  integration. The exact local 6,125-node manifest (SHA-256
+  0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit IDs
+  (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
+  declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage
+  is 84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are
+  preserved. Frontend unit tests passed 1,471; functional browser run passed 199 with three
+  declared skips, and the separately executed dense-watchlist case passed 1/1; all 104 strict
+  visuals passed across four projects with zero retries and 0.005 tolerance. No
+  provider/issuer/SEC HTTP or quota operation occurred. The source-labeled backend artifact
+  remains available for Root. Preserve the original one-process integration timeout, the
+  first-batch guard stop after a transient Testcontainers count of one, the prior noncanonical
+  host-environment attempt, and the post-test receipt-assembly NameError; none is relabeled as a
+  test assertion failure or erased. The transient Testcontainers count later reached zero without
+  manual removal; the owned Compose project was then cleaned by exact scope, and Root
+  independently verified protected inventories and the reserved image. All 24 roadmap items, the
+  accepted prior checkpoints, provider/source/target qualification,
+  live/native/paid/trial/broker/capital holds, and the consumed-119 no-replay boundary remain
+  open/unchanged. After exact closing-tip CI, Root owns integration; the next Provider roadmap
+  item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD
 planning_state: ready
 previously_accepted_provider_on_demand_human_closure_authorization: >-
   Under the human's standing four-feature integration authority and explicit 2026-10-27 direction to implement on-demand acquisition, checkpoint acceptance was delegated to the central coordinator. Root's decision in /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only provider-on-demand-acquisition-20261027 for software checkpoint closure. This records delegated human authority plus Root technical acceptance; it does not claim personal human inspection, full Provider roadmap completion, live/source/target acceptance, provider activation, or feature-owner authority to integrate, promote, or deploy.
@@ -1348,10 +1380,37 @@ previously_accepted_provider_on_demand_checkpoint:
   operational_trial_authorized: false
 integration_checkpoint:
   id: provider-on-demand-cached-search-outcome-reuse-20261028
-  status: in_progress
-  acceptance_state: pending
-  closure_summary: null
-  merge_authorized: false
+  status: ready_for_integration
+  acceptance_state: accepted_by_coordinator_for_ready_for_integration
+  closure_summary: >-
+    Root accepts only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
+    source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority;
+    acceptance receipt:
+    `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
+    This is delegated Root technical acceptance and records-only closure, not a fabricated direct
+    human quote, full Provider roadmap completion, deployment acceptance, or live-source success.
+    Exact implementation-source CI 40686521938 is green for 8b67; this final records-only commit
+    still requires its own terminal-green exact-tip CI before Root performs supported staging
+    integration. The exact local 6,125-node manifest (SHA-256
+    0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit IDs
+    (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
+    declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage
+    is 84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are
+    preserved. Frontend unit tests passed 1,471; functional browser run passed 199 with three
+    declared skips, and the separately executed dense-watchlist case passed 1/1; all 104 strict
+    visuals passed across four projects with zero retries and 0.005 tolerance. No
+    provider/issuer/SEC HTTP or quota operation occurred. The source-labeled backend artifact
+    remains available for Root. Preserve the original one-process integration timeout, the
+    first-batch guard stop after a transient Testcontainers count of one, the prior noncanonical
+    host-environment attempt, and the post-test receipt-assembly NameError; none is relabeled as a
+    test assertion failure or erased. The transient Testcontainers count later reached zero without
+    manual removal; the owned Compose project was then cleaned by exact scope, and Root
+    independently verified protected inventories and the reserved image. All 24 roadmap items, the
+    accepted prior checkpoints, provider/source/target qualification,
+    live/native/paid/trial/broker/capital holds, and the consumed-119 no-replay boundary remain
+    open/unchanged. After exact closing-tip CI, Root owns integration; the next Provider roadmap
+    item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD
+  merge_authorized: true
   planning_authorization: Root direct implementation activation on 2026-10-28 under
     the existing human-authorized on-demand acquisition goal; this is a narrow cached-search
     outcome repair. No new provider request or live qualification is authorized by
@@ -1373,12 +1432,12 @@ integration_checkpoint:
   - A fresh search snapshot is reused without execute_provider_call or another provider
     transport; persisted discovery data and provider request history are unchanged.
   required_gates_remaining:
-  - Publish the coherent source and owned-record repair, then obtain terminal-green
-    exact-source branch CI. The focused cache-hit tests and static checks pass; the
-    required full local profile and Root technical review remain pending.
+  - "Obtain terminal-green exact-source CI for the final records-only branch HEAD; no result from implementation source 8b67 or predecessor commits qualifies this closing tip."
+  - "Root performs supported staging integration after exact closing-tip CI. No deployment, provider/issuer/SEC transport, quota change, or operational trial is authorized by this closure."
+  - "All 24 broader roadmap criteria retain their existing accepted-progress/remaining-work dispositions; next Provider-owned roadmap action after Root releases the integrated source is AC-UNIVERSE-COMPLETE."
   prior_checkpoint: provider-on-demand-acquisition-20261027
   deployed_baseline_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
-  frozen_source_sha: 539e7c44b03befe76d758c62d56e225d4b305d84
+  frozen_source_sha: 8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9
   source_test_map:
   - backend/app/services/market_data.py::search_provider_instruments_async cached
     source_outcomes path
@@ -1658,22 +1717,30 @@ integration_checkpoint:
       its separate scope and pass the original 30-day evidence and final human closure
       requirements.
   acceptance_evidence:
-  - 'Root private incident log: /home/m920q/charting-platform/.ai/deploy/first-human/on-demand-e3e871-upgrade-20261028/oih-resolution-500-backend.private.log;
-    Root reports fresh OIH discovery succeeded and the subsequent cached resolve raised
-    before another source call.'
+  - "Root private incident log: /home/m920q/charting-platform/.ai/deploy/first-human/on-demand-e3e871-upgrade-20261028/oih-resolution-500-backend.private.log; Root reports fresh OIH discovery succeeded and the subsequent cached resolve raised before another source call."
+  - "Root delegated acceptance receipt: /home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json (decision accepts only provider-on-demand-cached-search-outcome-reuse-20261028 and authorizes this final records-only closure)."
+  - "Exact implementation source: 8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9; source tree 4af88ba03817c2e355db86cd26996f8cfa861d7a; backend tree 3448ffb5ee585fc7a738080169b629dcc9f60047; exact implementation CI 40686521938 terminal green. The records-only closing tip still requires its own exact CI."
+  - "Full local profile receipt: /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/provider-on-demand-full-profile-recovered-review.json (SHA-256 6bb3b16c3f22f9aea0d622cf8d4de316eece68ed21d85c130043c4c443ca46b8); canonical 6,125-ID manifest SHA-256 0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41; 5,569 unit pass/1 declared native skip; 553 integration pass/2 declared native skips; combined 84.41% against 75%, XML generated."
+  - "Owned cleanup receipt: /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/owned-project-cleanup-receipt.json (SHA-256 9bbf117087220d592f5efd718c8eddd5506cbcfc3f2dff900a7232d8d6df10ec); Root independently verified baseline inventory preserved, owned fixture absent, and reserved backend image sha256:836d67f97490088b3676fd00ed3f56dac291b77b1f5cea5dfdef4651ddfc5330 retained."
+  - "Receipt-only failure preserved: /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/integration-continuation-02-receipt-assembly-failure.json (SHA-256 f109f1fe0cfcde5bde2695e825f7239ca07b0031ace1b6339adcdecc48d49a3c); after all tests and coverage/XML completed, the continuation harness exited 1 at JSON assembly with NameError COMBINED_COVERAGE. No tests were rerun and coverage was independently audited."
+  - "Browser receipts remain distinct: functional 199 passed/3 declared skips; separate dense-watchlist 1 passed; strict visual 104 passed/4 projects/0 retries/0.005 tolerance. No retries, provider HTTP, quota operation, or consumed-119 replay."
   validation_tier: full_integration
   local_validation_profile: full_stack_browser
-  exact_source_ci:
-    implementation_source_sha: 539e7c44b03befe76d758c62d56e225d4b305d84
-    run_id: null
-    result: pending
-    jobs: not run for this follow-up source
-    qualification: No result is inherited from the previously accepted checkpoint
-      or e3 staging.
-  current_source_local_evidence: []
-  next_action: Implement the cached row iteration correction and targeted persisted-snapshot
-    regression; run focused no-network tests/static checks, publish coherently, and
-    follow exact-source CI. No source HTTP or replay.
+  exact_source_ci: {"closing_commit_ci": {"owner": "Root observes after push", "result": "pending", "run_id": null, "source_sha": "exact branch HEAD"}, "implementation_source_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9", "jobs": "Root acceptance receipt verifies exact implementation-source CI green; this is not the closing-record commit CI.", "qualification": "Exact only for implementation source 8b67. Final records-only closure tip requires separate terminal-green exact-head CI before Root integration.", "result": "success", "run_id": 40686521938}
+  current_source_local_evidence:
+  - "Root delegated acceptance receipt: /home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json (decision accepts only provider-on-demand-cached-search-outcome-reuse-20261028 and authorizes this final records-only closure)."
+  - "Exact implementation source: 8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9; source tree 4af88ba03817c2e355db86cd26996f8cfa861d7a; backend tree 3448ffb5ee585fc7a738080169b629dcc9f60047; exact implementation CI 40686521938 terminal green. The records-only closing tip still requires its own exact CI."
+  - "Full local profile receipt: /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/provider-on-demand-full-profile-recovered-review.json (SHA-256 6bb3b16c3f22f9aea0d622cf8d4de316eece68ed21d85c130043c4c443ca46b8); canonical 6,125-ID manifest SHA-256 0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41; 5,569 unit pass/1 declared native skip; 553 integration pass/2 declared native skips; combined 84.41% against 75%, XML generated."
+  - "Owned cleanup receipt: /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/owned-project-cleanup-receipt.json (SHA-256 9bbf117087220d592f5efd718c8eddd5506cbcfc3f2dff900a7232d8d6df10ec); Root independently verified baseline inventory preserved, owned fixture absent, and reserved backend image sha256:836d67f97490088b3676fd00ed3f56dac291b77b1f5cea5dfdef4651ddfc5330 retained."
+  - "Receipt-only failure preserved: /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/integration-continuation-02-receipt-assembly-failure.json (SHA-256 f109f1fe0cfcde5bde2695e825f7239ca07b0031ace1b6339adcdecc48d49a3c); after all tests and coverage/XML completed, the continuation harness exited 1 at JSON assembly with NameError COMBINED_COVERAGE. No tests were rerun and coverage was independently audited."
+  - "Browser receipts remain distinct: functional 199 passed/3 declared skips; separate dense-watchlist 1 passed; strict visual 104 passed/4 projects/0 retries/0.005 tolerance. No retries, provider HTTP, quota operation, or consumed-119 replay."
+  - "Original one-process integration timeout 124 is preserved at /tmp/provider-on-demand-cache-repair-20261028-8b67a05e/backend-coverage-canonical.timeout124.preserved.log; it is not represented as a test assertion failure."
+  - "The successful first 100-node partition was not replayed. Its one-shot guard stopped before batch 2 on a post-batch Testcontainers count of one; a later bounded check found zero, no test process, and no pytest descendant. Docker retained no matching historical event, so no container/session/creation identity is asserted."
+  next_action: >-
+    Root observes terminal-green exact CI for the final records-only branch HEAD and performs
+    supported staging integration. After Root releases the integrated source, continue the preserved
+    full Provider roadmap at AC-UNIVERSE-COMPLETE. Do not issue provider/issuer/SEC requests, replay
+    consumed allowances, or change any hold.
   deployment_authorized: false
   provider_activation_authorized: false
   operational_trial_authorized: false
@@ -2648,7 +2715,7 @@ branch_tests_reason: Application models, migrations, providers, workers, Redis q
 live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
 migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
 deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
-status: in_progress
+status: ready_for_integration
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
@@ -7919,12 +7986,22 @@ progress:
       integration_capture: exact branch HEAD'
     - >-
       2026-10-28 Root activated a narrow repair after deployed ordinary OIH discovery succeeded but the follow-up cached resolve returned 500 before a second source call. The suspected defect is cached source_outcomes iteration over dictionary keys rather than cached provider rows. No source change, replay, provider HTTP, quota action, or runtime mutation has occurred. The prior accepted on-demand software checkpoint is archived unchanged; this follow-up and all 24 roadmap criteria remain in progress/open.
-  completed: []
+    - >-
+      2026-10-28: Root accepted the bounded cached-search outcome repair under the standing delegated authority.
+      Source 8b67 implementation CI 40686521938 is green; the complete local 6,125-ID profile,
+      84.41% coverage/XML, separate frontend/browser receipts, cleanup, and retained failures are
+      recorded in the checkpoint acceptance/evidence fields. This closes only the named checkpoint;
+      all 24 roadmap criteria, prior checkpoint history, operational holds, and no-replay boundary remain.
+  completed:
+  - ONDEMAND-CACHED-OUTCOMES
   total: 1
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
-  current_phase: cached_search_outcome_repair_in_progress
+  current_phase: cached_search_outcome_checkpoint_accepted_pending_final_tip_ci
   current_blocker: >-
-    Focused source tests and static checks pass. Publication and exact-source branch CI, the required full local profile, and Root technical review remain pending; no source transport is authorized.
+    Only the exact-source CI for this final records-only closure commit remains before Root's
+    supported staging integration. The accepted checkpoint does not complete the 24-item Provider
+    roadmap or clear any live/source/target, native, paid, trial, broker, capital, quota, or
+    consumed-119 hold.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -8209,7 +8286,8 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Publish the cached source-outcome row-iteration repair with its persisted single/multi-provider, resolver-filtering, count, and no-refetch regressions; obtain terminal-green exact-source CI and the required full local profile for this exact source before Root review. Preserve the accepted prior checkpoint and all 24 roadmap criteria.
+    Root observes the final closure-tip CI and performs supported staging integration. After that
+    release, resume AC-UNIVERSE-COMPLETE under the preserved full roadmap and existing holds.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -10051,4 +10129,30 @@ historical_current_gate_checkpoint_2026_10_16: >-
     is to resume `AC-UNIVERSE-COMPLETE` from the adopted source; do not start
     that work in this adoption checkpoint.
 current_gate_checkpoint: >-
-  2026-10-28: Root reports the fresh ordinary OIH discovery succeeded with one Massive physical request (request log 7); the subsequent cached resolve failed before another source call. The exact private traceback is retained at /home/m920q/charting-platform/.ai/deploy/first-human/on-demand-e3e871-upgrade-20261028/oih-resolution-500-backend.private.log. The row-iteration repair and persisted single/multiple-provider cache-hit regressions now pass focused no-network validation and static checks on the working tree based on 539e7c44. Exact-source branch CI, the required full local profile, and Root technical review remain pending. The prior provider-on-demand-acquisition-20261027 software checkpoint remains accepted only in its archived object; all 24 roadmap criteria, live/source/target qualification, provider holds, and consumed-119 no-replay boundary remain unchanged.
+  Root accepts only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
+  source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority;
+  acceptance receipt:
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
+  This is delegated Root technical acceptance and records-only closure, not a fabricated direct
+  human quote, full Provider roadmap completion, deployment acceptance, or live-source success.
+  Exact implementation-source CI 40686521938 is green for 8b67; this final records-only commit
+  still requires its own terminal-green exact-tip CI before Root performs supported staging
+  integration. The exact local 6,125-node manifest (SHA-256
+  0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit IDs
+  (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
+  declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage
+  is 84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are
+  preserved. Frontend unit tests passed 1,471; functional browser run passed 199 with three
+  declared skips, and the separately executed dense-watchlist case passed 1/1; all 104 strict
+  visuals passed across four projects with zero retries and 0.005 tolerance. No
+  provider/issuer/SEC HTTP or quota operation occurred. The source-labeled backend artifact
+  remains available for Root. Preserve the original one-process integration timeout, the
+  first-batch guard stop after a transient Testcontainers count of one, the prior noncanonical
+  host-environment attempt, and the post-test receipt-assembly NameError; none is relabeled as a
+  test assertion failure or erased. The transient Testcontainers count later reached zero without
+  manual removal; the owned Compose project was then cleaned by exact scope, and Root
+  independently verified protected inventories and the reserved image. All 24 roadmap items, the
+  accepted prior checkpoints, provider/source/target qualification,
+  live/native/paid/trial/broker/capital holds, and the consumed-119 no-replay boundary remain
+  open/unchanged. After exact closing-tip CI, Root owns integration; the next Provider roadmap
+  item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD
