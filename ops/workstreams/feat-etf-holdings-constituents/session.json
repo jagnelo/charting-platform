@@ -1263,7 +1263,7 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "No source blocker: Root owns the first usable on-demand deployment and actual OIH source/account/API/UI acceptance before releasing additional ETF implementation.",
+    "current_blocker": "No source blocker: Root owns the first usable on-demand deployment and actual OIH source/account/API/UI acceptance before releasing additional ETF implementation. The roadmap still accounts for 15 Tier-0 and 156 Tier-1.",
     "current_phase": "accepted ODC checkpoint adopted from synchronized green staging; full AC1-AC14 roadmap open; Root first deployment priority pending",
     "next_action": "Root owns the first usable on-demand deployment, actual OIH source/account qualification, and target/API/UI acceptance. After Root completes that priority and releases further ETF implementation, resume AC2 retained issuer evidence from reviewed existing evidence, then continue the remaining AC1-AC14 roadmap; preserve all holds and the 30-day observation.",
     "total": 14,
