@@ -25475,3 +25475,41 @@ existing session claim/native goal state/budget, all nine AC1-AC9 IDs/texts,
 and official REF-HELP-V25 remain unchanged. The accepted green4bc50 adoption is
 the source baseline only. Root retains checkpoint acceptance and forward
 integration/promotion.
+
+## 2026-10-28 20:10 UTC — Root accepted bounded F8Y checkpoint
+
+This entry supersedes the preceding F8Y status statements; those earlier
+statements and their evidence remain historical and unchanged. Root accepted
+`tc-f8y-tag-columns-repair-20261028` under the existing human standing
+delegation recorded in
+`/home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md`.
+The recorded human direction includes: “I, the human in charge, explicitly
+authorize any and all actions the AI agent(s) may request in order to progress
+development, reconciliation and promotion of the four feature branches into
+staging and production so the product may be deployed and tested in full, by
+the human.” This is not a new F8Y-specific human reply. Root's acceptance
+receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json`
+(SHA256 `9d181c30c7bc78137cfc6baea2a5ea1d6988ebb080956ef1d973e549c62cbb4a`).
+
+Accepted implementation source is
+`9473062c7aeab1c9f21d2564c1041bbda0a78dc6`. Exact source CI `40752914676`
+is terminal green: E2E 196 passed/110 configured skips, with the required
+Backend, Frontend Unit, Branch-declared and E2E jobs successful (Exhaustive is
+skipped under feature-branch policy). Root separately reviewed local functional
+199 passed/107 configured skips/0 failed and strict visual 104/104 across four
+projects; both matrices used zero retries. The focused parent-host case passed
+1/1 and relevant component tests passed 119/119. Runtime, local profile, exact
+CI and cleanup evidence are bound by the Root acceptance receipt. The owned
+fixture was removed after terminal evidence; the structured protected-resource
+comparison passed. The F8Y source change is test-only, with no application,
+backend, migration, data or deployment change. Original master-red, first-
+attempt and setup-failure evidence remains preserved.
+
+F8Y1-F8Y4 are accepted for this bounded checkpoint only. This records-only
+closing commit uses `integration_capture: exact branch HEAD`; its own exact
+branch CI remains required before Root-supported integration. The accepted
+TCO1-TCO6 checkpoint archives, all nine original AC1-AC9 criteria, official
+REF-HELP-V25, and the broader feature roadmap remain preserved and open.
+Genuine Provider/issuer evidence, target acceptance and deployment remain
+Root-owned; this checkpoint is not full feature completion.

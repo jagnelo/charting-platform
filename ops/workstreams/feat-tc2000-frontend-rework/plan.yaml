@@ -61,8 +61,40 @@ human_intent_authorization: >-
   Keep branch history; reconcile file and semantic overlaps after upstream work
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
-human_closure_authorization: null
-closure_summary: null
+human_closure_authorization: >-
+  Existing standing human authority is recorded in
+  /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md:
+  the human directed, “I, the human in charge, explicitly authorize any and all
+  actions the AI agent(s) may request in order to progress development,
+  reconciliation and promotion of the four feature branches into staging and
+  production so the product may be deployed and tested in full, by the human.”
+  No new F8Y-specific human reply is claimed. Under that standing delegation,
+  Root accepted only checkpoint tc-f8y-tag-columns-repair-20261028 on 2026-10-28;
+  receipt .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json
+  (SHA256 9d181c30c7bc78137cfc6baea2a5ea1d6988ebb080956ef1d973e549c62cbb4a).
+closure_summary: >-
+  integration_capture: exact branch HEAD. Root accepted this bounded F8Y
+  Tag Column persistence/readiness checkpoint under the existing standing
+  delegation; validated implementation source is
+  9473062c7aeab1c9f21d2564c1041bbda0a78dc6, with exact source CI40752914676
+  terminal success. The test-only implementation preserves the exact successful
+  parent WatchList snapshot acknowledgement/restored Tag header and the ordinary
+  locked-target Remove-visible/disabled/no-DELETE contract. Root independently
+  reviewed the local functional profile (199 passed, 107 configured skips, 0
+  failures) and strict visual profile (104/104 across four projects), both at
+  zero retries; focused parent-host test passed 1/1 and relevant component tests
+  119/119. Evidence and source binding are in
+  .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json and
+  .ai/runtime/tc-f8y-tag-ef787d-20261028/artifacts/f8y-final-local-profile.json.
+  All original first-attempt, master-red, EACCES and failed-setup records remain
+  preserved. The checkpoint changes only frontend tests; no application,
+  backend, migration, runtime, data, or deployment change is included. The owned
+  validation fixture was removed after terminal evidence and the structured
+  protected-resource comparison passed. The new closing records tip still
+  requires its own exact branch CI before Root-supported integration. AC1-AC9,
+  official REF-HELP-V25, broader product work, genuine Provider/issuer proof,
+  target acceptance, and deployment remain open or Root-owned; this is not full
+  feature-roadmap completion.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -1657,40 +1689,40 @@ integration_checkpoint:
   objective: Repair F8y Tag Column persistence readiness in the real Workstation parent host while preserving
     locked-target disabled Remove and zero-DELETE behavior, with the normal source-matched local profile
     and exact-source CI.
-  status: in_progress
-  acceptance: pending; no Root acceptance or closure is recorded until all required local and exact-source
-    CI gates complete and Root reviews the receipts.
+  status: ready_for_integration
+  acceptance: Root accepted this bounded checkpoint under the existing standing human delegation on 2026-10-28; receipt .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json. This does not accept the full roadmap or replace exact closing-tip CI.
   planning_authorization: Root direct activation in the original TC conversation on 2026-10-28 under the
-    human's standing first-human deployment authority; planning authority only, not new human checkpoint
-    acceptance.
-  source_capture: Candidate is based on published feature source ef787d0966228e127d7da73cc9c5745013b98125
-    plus the current test-only diff; no final candidate SHA exists before the coherent commit.
+    human's standing first-human deployment authority; the separate Root acceptance is recorded above.
+  source_capture: Validated implementation source is 9473062c7aeab1c9f21d2564c1041bbda0a78dc6. The records-only closing commit captures its final source SHA as exact branch HEAD; that closing tip requires exact CI before integration.
   criteria_ids:
   - F8Y1
   - F8Y2
   - F8Y3
   - F8Y4
   criteria_total: 4
-  criteria_completed: []
-  required_next_gate: Publish the coherent test/owned-record candidate so exact branch CI starts, then
-    finish the full local functional and strict-visual profile serially at zero retries; Root reviews
-    exact receipts and retains checkpoint acceptance authority.
-  full_roadmap: The nine original AC1-AC9 criteria and official REF-HELP-V25 remain unchanged and open.
+  criteria_completed:
+  - F8Y1
+  - F8Y2
+  - F8Y3
+  - F8Y4
+  required_next_gate: Root observes terminal success for the exact records-only closing-tip branch CI, then performs supported integration. Do not rerun the accepted local profile for this records-only close.
+  full_roadmap: The nine original AC1-AC9 criteria and official REF-HELP-V25 remain unchanged and open; this checkpoint does not complete the feature roadmap.
     The accepted TCO1-TCO6 checkpoint and its authorization, closure summary, evidence and CI are archived
     at ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-20261027.json;
     this F8Y repair is a separate in-progress bounded scope.
 current_software_checkpoint:
   id: tc-f8y-tag-columns-repair-20261028
-  acceptance: pending Root review after required exact-source gates; no acceptance is claimed
-  candidate_source_base: ef787d0966228e127d7da73cc9c5745013b98125
+  acceptance: Root accepted this bounded checkpoint on 2026-10-28 under standing delegated human authority; exact closing-tip branch CI remains required before integration.
+  candidate_source_base: 9473062c7aeab1c9f21d2564c1041bbda0a78dc6
   candidate_test_diff_sha256: d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5
-  criteria_completed: []
+  criteria_completed:
+  - F8Y1
+  - F8Y2
+  - F8Y3
+  - F8Y4
   criteria_total: 4
-  local_evidence: Focused component tests119/119, Vue type-check, scope guard/self-test and one-test collection
-    passed. The isolated F8Y parent-host case passed1/1 in21.6s at zero retries on pinned Playwright1.62.1
-    Noble. Exact full functional and strict-visual matrices and repair-source CI remain pending. The original
-    master red and EACCES setup attempt are preserved.
-  status: in_progress
+  local_evidence: Root independently reviewed the focused parent-host case (1/1, zero retries), relevant component tests (119/119), full functional profile (199 passed,107 configured skips,0 failed), strict visuals (104/104 across four projects), and exact source CI40752914676 terminal success. The accepted runtime/profile and source receipts are bound in .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json. Original master-red, first-attempt and setup failures remain preserved. The records-only closing tip still needs exact branch CI; no new heavy profile is required for this records-only closure.
+  status: ready_for_integration
   archive_of_prior_accepted_tco_checkpoint: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-20261027.json
 acceptance_criteria:
 - id: F8Y1
@@ -3179,22 +3211,18 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   correction or closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and private-target/deployment
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: in_progress
+status: ready_for_integration
 progress:
-  completed: []
+  completed:
+  - F8Y1
+  - F8Y2
+  - F8Y3
+  - F8Y4
   total: 4
-  current_phase: F8Y checkpoint is current and in progress. The selected Tag Column successful snapshot
-    acknowledgement and restored-header proof plus locked disabled Remove/no-DELETE behavior passed the
-    focused parent-host test at zero retries. App runtime inputs and reused image IDs are proven unchanged;
-    the bounded owned fixture is healthy and the protected objects match. Full functional, strict visual
-    and exact candidate CI are pending.
-  current_blocker: Required full functional/strict-visual profile and exact repair-source branch CI have
-    not yet passed. The published4bc master failure remains a preserved historical red, not an accepted
-    result.
-  next_action: Publish this coherent source and owned-record checkpoint once scope/workstream checks pass
-    so exact CI can overlap; then run full functional and strict visual serially at zero retries and preserve
-    terminal/protected inventory evidence.
-  updated_at: '2026-10-28T19:15:43Z'
+  current_phase: Root accepted the bounded F8Y Tag Column checkpoint at implementation source9473062c7aeab1c9f21d2564c1041bbda0a78dc6 after reviewing its exact CI, full local functional/strict-visual results and protected-resource cleanup. This records-only closing commit preserves that acceptance and the full roadmap.
+  current_blocker: Exact branch CI for this records-only closing tip must reach terminal success before Root-supported integration. The original master red and all setup/first-attempt failures remain historical evidence.
+  next_action: Publish this one coherent records-only close, verify clean origin synchronization, and give Root the exact closing-tip SHA; Root owns its exact CI and supported integration.
+  updated_at: '2026-10-28T20:10:00Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
