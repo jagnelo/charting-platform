@@ -40,8 +40,8 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The local exact-source adoption merge is 7eef21b0e334f6935d0f86bfbc1d7d507ec62c51. Its normal feature-branch push and exact-source CI are pending; full combined functional/strict-visual profile is pending. Do not reuse staging CI as TC branch acceptance.",
-  "current_checkpoint_status": "TCO1 adopts only exact accepted staging 173745205692acd3fca650eeeafcd6de38f29fed. The source merge is conflict-free and the full frozen-import/scope checks pass. The complete TC frontend remains byte-identical to qualified b6c5, and the adopted backend tree matches the reviewed source tree5c2d9d270bea046a7af58c26d25d287d03174ad7. The combined full isolated profile and exact TC branch CI remain pending; TCO2-TCO6, AC1-AC9 and official V25 remain open. No genuine Provider/issuer traffic or target/deployment acceptance is claimed.",
+  "current_candidate_ci_status": "Exact CI40635739214 for de67a7804495dc357cef3c114cfe9b08a9f7e927 is preserved terminal RED only for the Workstation TCNEW calendar GET fixture omission; backend/frontend jobs were green. The narrow TCNEW-only empty-list fixture and decoded symbol/method/request assertions pass the affected Workstation case 1/1 from fresh snapshot SHA256 5941f13991ee5decd27d6c2764b5e0f0be1ed346d71d67eb31a3c2790158e523 against unchanged app images. Full functional 200+2 declared live-data skips and strict visual 104/104 were run on the pre-correction test file and apply to unchanged app/profile inputs only. New exact-source branch CI is pending publication; no acceptance is claimed.",
+  "current_checkpoint_status": "TCO1 remains complete for adoption of accepted staging 173745205692acd3fca650eeeafcd6de38f29fed; TCO2-TCO6 and checkpoint acceptance remain open. Source-de67 full local functional passed 200 with the unchanged declared F8e.live-membership and F8e.live-sector-drilldown skips (canonical market data disabled), and strict visual passed 104/104 across four projects, zero retries/no OOM. Exact CI40635739214 remains red for the missing synthetic TCNEW calendar fixture. The corrected exact-route test fixture returns the backend-declared empty list only for TCNEW, asserts GET/decoded symbol/observed request, and retains BrowserDiagnostics and acquisition assertions. Its affected case passed 1/1 on a fresh immutable test snapshot differing only at the E2E file; product/app images and backend/frontend/Research/Compose inputs are unchanged. Exact CI for the published correction and Root review remain pending. No genuine source/issuer proof, target/deployment acceptance, AC1-AC9/V25 completion, or checkpoint acceptance is claimed.",
   "current_exact_ci": {
     "attempt": 1,
     "conclusion": "success",
@@ -61,12 +61,12 @@
   },
   "current_software_checkpoint": {
     "acceptance": "pending; no checkpoint acceptance is claimed",
-    "candidate_source": "7eef21b0e334f6935d0f86bfbc1d7d507ec62c51",
-    "candidate_source_test_diff_sha256": "a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737",
+    "candidate_source": "de67a7804495dc357cef3c114cfe9b08a9f7e927",
+    "candidate_source_test_diff_sha256": "a0f11b93214dbf98f1474632d98e4e3b1c72388842815282cb383f71da539243",
     "criteria_completed": [],
     "criteria_total": 6,
     "id": "tc-on-demand-workstation-consumer-20261027",
-    "local_evidence": "Frontend inputs are byte-identical to b6c5; its 150-file/1471-test coverage, uPlot/visual-policy guards, vue-tsc/Vite build, four controlled-response consumer cases and CI40622425921 remain qualified only to those unchanged frontend inputs. Accepted staging173745205692acd3fca650eeeafcd6de38f29fed is green on CI40624295433. The adopted backend tree matches the Root-reviewed immutable backend artifact source tree5c2d9d270bea046a7af58c26d25d287d03174ad7. No live Provider/issuer request occurred. This TC merge still requires fresh isolated functional/strict-visual qualification and exact-source branch CI.",
+    "local_evidence": "Accepted staging173745205692acd3fca650eeeafcd6de38f29fed remains the TCO1 baseline (staging CI40624295433); producer ownership and backend tree remain as recorded. Source-de67 full local functional passed 200+2 declared live-data skips and strict visual passed 104/104 across four projects, zero retries/no OOM. Exact hosted CI40635739214 is red for the omitted synthetic TCNEW calendar fixture. The corrected test supplies the valid empty list on the exact TCNEW calendar path, asserts scoped GET identity and request observation, and retains BrowserDiagnostics and acquisition assertions. Fresh browser source snapshot SHA256 5941f13991ee5decd27d6c2764b5e0f0be1ed346d71d67eb31a3c2790158e523 differs from the frozen archive only at frontend/tests/e2e/on_demand_acquisition.spec.ts (updated file SHA256 9f854491cbae0daea52c2a49070eea94b77fb655e6285c9363735acfdde7d78f); affected Workstation case passes 1/1 against unchanged app images. Existing full-profile evidence applies to unchanged app/build inputs, not the modified E2E fixture. New exact-source CI and Root review are pending; no genuine source/issuer evidence or checkpoint acceptance is claimed.",
     "planning_direction": "/home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md",
     "source_base": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
     "status": "in_progress"
@@ -161,7 +161,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7eef21b0e334f6935d0f86bfbc1d7d507ec62c51",
+  "head": "de67a7804495dc357cef3c114cfe9b08a9f7e927",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -310,7 +310,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "0d73a0deec30fc60c4f395cdf002b25619a30348ee9d703e5fb57205116dbaa2",
+  "plan_hash": "f0f336617ef98dbca1727de5e29d6c4675dd635fcbc9d6f8d1fdd8ac268923a9",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

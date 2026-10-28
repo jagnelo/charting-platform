@@ -309,6 +309,21 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
   const canonicalSearchRequests: string[] = []
   const canonicalInstrumentLookups: Array<{ symbol: string; canonicalOnly: string | null }> = []
   const localBarReadbacks: Array<{ symbol: string; timeframe: string; rows: OHLCVBar[]; afterAcquisition: boolean }> = []
+  const calendarRequests: string[] = []
+
+  // UPlotChart reads the instrument calendar when local bars become available.
+  // TCNEW exists only in this page's controlled fixture, so return the API's
+  // real empty-list response instead of allowing the backend to bootstrap it.
+  await page.route(url => new URL(url).pathname === '/api/v1/calendar/instruments/TCNEW/calendar', async route => {
+    const request = route.request()
+    expect(request.method()).toBe('GET')
+    const url = new URL(request.url())
+    const match = url.pathname.match(/^\/api\/v1\/calendar\/instruments\/([^/]+)\/calendar$/)
+    const symbol = decodeURIComponent(match?.[1] ?? '')
+    expect(symbol, 'the synthetic identity must scope calendar reads to TCNEW').toBe('TCNEW')
+    calendarRequests.push(symbol)
+    await route.fulfill({ status: 200, json: [] })
+  })
 
   await page.route('**/api/v1/instruments/search**', async route => {
     const url = new URL(route.request().url())
@@ -510,6 +525,8 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
   expect(localBarReadbacks.some(readback => readback.afterAcquisition && readback.rows[0]?.ts === acquiredBar?.ts)).toBe(true)
   await expect(page.getByTestId('workstation-history-acquisition')).toHaveCount(0)
   await expect(page.locator('.tool-window--active .chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+  await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
+  expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
   expect(historyRequests).toHaveLength(1)
   await browserDiagnostics.expectNoCriticalIssues()
 })

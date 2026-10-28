@@ -55,13 +55,11 @@ human_intent_authorization: >-
   Keep branch history; reconcile file and semantic overlaps after upstream work
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
-human_closure_authorization: "No acceptance or closure is claimed for tc-on-demand-workstation-consumer-20261027. The prior accepted tc2000-workstation-integration-1 authorization and receipt are preserved verbatim under historical_checkpoint_archive. This current six-criterion checkpoint remains in progress pending exact green ETF staging adoption and full combined qualification."
+human_closure_authorization: "No acceptance or closure is claimed for tc-on-demand-workstation-consumer-20261027. The prior accepted tc2000-workstation-integration-1 authorization and receipt are preserved verbatim under historical_checkpoint_archive. Exact green ETF staging173745205692acd3fca650eeeafcd6de38f29fed is adopted; the current six-criterion checkpoint remains in progress pending current exact-source CI, full combined qualification and Root review."
 closure_summary: |
   integration_capture: exact branch HEAD
-  The current checkpoint tc-on-demand-workstation-consumer-20261027 remains in progress with acceptance pending. The local repair is based on source 87cfb4c504184cdb4787ba8cd8b2d1f44f51fe44 and changes only the mounted ChartView test seam (diff SHA256 a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737).
-  On that repaired tree, frontend coverage passed 150 files/1471 tests with 83.2% statements, 73.8% branches, 70.7% functions and 83.2% lines; uPlot contract and visual-policy guards passed; vue-tsc/Vite build passed. The earlier unchanged-source failure is preserved in /tmp/tc-on-demand-full-frontend-20261028/coverage.log and the correction/run evidence in that directory. These stack-free results are not genuine Provider/ETF source proof or the full combined functional/strict-visual profile.
-  Next gate: await Root release of exact synchronized-green ETF staging, adopt only through the supported workflow, then complete the required source-matched combined profile and exact-source CI.
-  No producer source adoption, full checkpoint acceptance, target/deployment acceptance, or full roadmap/V25 completion is claimed. AC1-AC9 and all operational/data/provider holds remain open and unchanged.
+  The current checkpoint tc-on-demand-workstation-consumer-20261027 remains in progress with acceptance pending. Exact accepted staging173745205692acd3fca650eeeafcd6de38f29fed is adopted. Full local functional passed200 with the two unchanged declared live-data skips and strict visual passed104/104 across four projects on frozen source de67, zero retries and no OOM. Those matrices used the prior browser spec. The exact hosted CI40635739214 remains red for the synthetic TCNEW test's missing companion calendar fixture. Backend calendar.py declares a list[CalendarEvent] response, and resolving the DB-absent synthetic symbol can fall through to source-backed identity creation; the test now returns an empty list only for the exact TCNEW path and asserts that scoped GET. The fresh immutable test snapshot changes only frontend/tests/e2e/on_demand_acquisition.spec.ts; its affected Workstation case passed1/1 against the existing unchanged app images with BrowserDiagnostics intact. Functional/visual and targeted-case receipts are under .ai/runtime/tc-on-demand-de67-20261028/. The exact updated branch CI remains pending.
+  The browser fixture correction is not genuine Provider/issuer proof. No application/backend/Research/Compose image inputs changed, no source HTTP or target operation occurred, and no checkpoint acceptance, target/deployment acceptance, or full roadmap/V25 completion is claimed. AC1-AC9 and all operational/data/provider holds remain open and unchanged.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -202,8 +200,31 @@ on_demand_consumer_implementation: |-
   Combined runtime/full browser qualification and exact post-adoption branch CI
   remain pending. Consumer tests/build do not imply target, deployment or
   roadmap acceptance.
-current_blocker: "No source or focused-validation blocker is known. Exact released staging 173745205692acd3fca650eeeafcd6de38f29fed has been merged without conflicts and the import/scope records are being validated. The fresh combined-source full functional and strict-visual profile plus exact post-adoption branch CI remain pending; no on-demand checkpoint acceptance, genuine source proof, target/deployment acceptance or full roadmap completion is claimed."
-current_checkpoint_status: "TCO1 adopts exact released staging 173745205692acd3fca650eeeafcd6de38f29fed with no merge conflicts; 878 foreign paths are immutable-blob pinned, 29 existing Provider adaptations are rebound to exact accepted blobs, and the 112-path human presentation handoff remains intact. The TC frontend tree/tests/package inputs remain byte-identical to b6c5cd0faa380b2db0dfd58c11f40d05b819521c; its 1471-test coverage, guards/build, four controlled consumer cases and exact CI40622425921 are reusable only for those unchanged frontend inputs. The adopted backend tree is 5c2d9d270bea046a7af58c26d25d287d03174ad7, equal to the Root-reviewed immutable backend image source; runtime binding and full combined functional/strict-visual profiles are still required. The adopted source requires its own exact branch CI. TCO2-TCO6 remain open; AC1-AC9 and official V25 remain open; no genuine Provider/issuer proof, target/deployment acceptance or full-roadmap completion is claimed."
+current_blocker: >-
+  Exact branch CI40635739214 is red on E2E because the synthetic TCNEW browser
+  identity lacked the companion calendar GET fixture; backend/frontend jobs
+  were green. The real endpoint contract and controlled fixture cause are
+  confirmed, and the exact Workstation case passes with the narrow fixture on
+  the existing source-equivalent app. The corrected source still needs its own
+  exact CI. No checkpoint acceptance, genuine source proof, target/deployment
+  acceptance or full-roadmap completion is claimed.
+current_checkpoint_status: >-
+  TCO1 adopts exact released staging 173745205692acd3fca650eeeafcd6de38f29fed
+  with no merge conflicts; 878 foreign paths are immutable-blob pinned, 29
+  existing Provider adaptations are rebound to accepted blobs, and the 112-path
+  human presentation handoff remains intact. The TC frontend inputs remain
+  byte-identical to qualified b6c5 except the current one-file E2E fixture
+  correction. On frozen de67 product inputs, the isolated functional matrix
+  passed 200 with the same two declared live-data skips and strict visual passed
+  104/104 across four projects, both at zero retries. Exact CI40635739214 remains
+  a preserved red because its Workstation test omitted the synthetic TCNEW
+  calendar response. The real list[CalendarEvent] contract supports an empty
+  JSON list; the test now mocks only TCNEW, asserts decoded symbol/method and an
+  observed request, and the corrected affected case passes 1/1 on the same
+  immutable app image. App product, backend and Research inputs are unchanged;
+  new exact-source branch CI is pending. TCO2-TCO6 remain open; AC1-AC9 and
+  official V25 remain open; no genuine Provider/issuer proof, target/deployment
+  acceptance or full-roadmap completion is claimed.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -1676,9 +1697,25 @@ current_software_checkpoint:
   roadmap_disposition: All nine original AC IDs and texts remain unchanged under roadmap_acceptance_criteria.
     No AC, TCP criterion, full V25 item, or producer/target acceptance is closed by
     this in-progress software checkpoint.
-  candidate_source: "integration_capture: exact branch HEAD after adoption of 173745205692acd3fca650eeeafcd6de38f29fed"
-  candidate_source_test_diff_sha256: a3249ddf5d5c1e0b003c7aad1a268b9c4ec72e24d4922193e52f9682433e6737
-  local_evidence: Exact prior source b6c5 has full frontend coverage150 files/1471 tests with unchanged thresholds, both visual/uPlot guards, vue-tsc/Vite build, four controlled API-response consumer cases, and exact CI40622425921 green. The reconciled frontend/test/package/config tree is byte-identical to b6c5, so that frontend evidence is reused only for unchanged frontend inputs. Accepted staging 173745205692acd3fca650eeeafcd6de38f29fed is green on CI40624295433 and contributes producer-owned backend/ETF implementation and tests; this is not genuine Provider/issuer traffic. The adopted backend tree matches the reviewed immutable artifact tree5c2d9d270bea046a7af58c26d25d287d03174ad7; its image binding still must be verified in the isolated runtime. The combined source still requires its own fresh isolated functional/strict-visual run and exact branch CI.
+  candidate_source: "integration_capture: exact branch HEAD after adoption of 173745205692acd3fca650eeeafcd6de38f29fed; current fixture-only delta is the one-file diff from de67a7804495dc357cef3c114cfe9b08a9f7e927"
+  candidate_source_test_diff_sha256: a0f11b93214dbf98f1474632d98e4e3b1c72388842815282cb383f71da539243
+  local_evidence: >-
+    Prior b6c5 frontend coverage (150 files/1471 tests), guards/build, four
+    controlled consumer cases and CI40622425921 remain qualified only to their
+    byte-identical inputs. Accepted staging 173745205692acd3fca650eeeafcd6de38f29fed
+    is green on CI40624295433 and contributes producer-owned implementation;
+    this is not genuine Provider/issuer traffic. The adopted backend tree is
+    5c2d9d270bea046a7af58c26d25d287d03174ad7. On de67 product inputs, full local
+    functional passed 200 with two unchanged declared live-data skips; strict
+    visual passed 104/104 across four projects, zero retries and no OOM. Exact
+    CI40635739214 remains red for the missing synthetic TCNEW calendar fixture.
+    Backend, frontend product, Research and Compose inputs are unchanged by the
+    current E2E-only correction. A fresh immutable browser test snapshot changes
+    only frontend/tests/e2e/on_demand_acquisition.spec.ts; its Workstation case
+    passed 1/1 against the existing app image with a TCNEW-scoped empty calendar
+    response and BrowserDiagnostics intact. New exact-source branch CI remains
+    pending; controlled fixture evidence does not imply genuine Provider/issuer
+    evidence or checkpoint acceptance.
 acceptance_criteria:
   - id: TCO1
     text: Adopt only Root-released synchronized green staging containing accepted Provider
@@ -3171,9 +3208,14 @@ status: in_progress
 progress:
   completed: [TCO1]
   total: 6
-  current_phase: Exact released staging 173745205692acd3fca650eeeafcd6de38f29fed is adopted into the TC branch with the four controlled consumer flows and unchanged frontend qualification preserved; the merged source now awaits its own full isolated functional/strict-visual profile and exact CI.
-  next_action: Verify backend/worker image equivalence against the reviewed artifact, perform a fresh ownership/capacity audit, then run the isolated full functional and strict visual profiles serially at one worker and zero retries; preserve all existing references, skips, F8y timeout and held source operations.
-  updated_at: '2026-10-28T05:00:00Z'
+  current_phase: Full frozen de67 functional200+2declared-skips and strictvisual104/104 passed. ExactCI40635739214 is preserved red for the synthetic TCNEW calendar fixture; the corrected TCNEW-scoped fixture passes its affected Workstation case1/1 against the same app images.
+  next_action: >-
+    Append the exact fixture-only correction receipt, validate scope/workstream/
+    record integrity, publish once to the owned feature branch and follow its
+    exact-source CI. Keep full-profile applicability explicit: product images
+    and other app inputs are unchanged, while only the E2E fixture differs; no
+    checkpoint acceptance until current required gates and Root review pass.
+  updated_at: '2026-10-28T06:23:38Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in

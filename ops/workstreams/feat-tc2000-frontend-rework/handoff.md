@@ -1,5 +1,40 @@
 # feat/tc2000-frontend-rework
 
+## Current continuation — synthetic TCNEW calendar fixture — 2026-10-28
+
+Root's exact CI `40635739214` is preserved red: its Workstation on-demand case
+reported a 404 for `/api/v1/calendar/instruments/TCNEW/calendar`. The test
+creates TCNEW only through browser routes, not in the database. The backend
+calendar route returns `list[CalendarEvent]`, resolves the instrument first,
+and may bootstrap a missing instrument from its configured source; a 404 in
+this controlled case therefore does not establish a production acquisition
+failure. The valid empty-calendar response is JSON `[]`.
+
+The E2E fixture now intercepts only the exact TCNEW calendar pathname, checks
+GET and decoded symbol, returns the valid empty list, records the request, and
+asserts the scoped read occurred. Other symbol calendar requests are not
+intercepted. All acquisition, identity, range, local-readback and
+BrowserDiagnostics assertions remain intact. No product source changed.
+
+Frozen source `de67a7804495dc357cef3c114cfe9b08a9f7e927` completed the full
+local functional matrix at 200 passed / 2 declared live-data skips and strict
+visual at 104/104 across four projects, zero retries, no OOM. The skips remain
+the existing F8e live-membership and live-sector-drilldown checks, which
+require explicitly authorized canonical market data. Those matrices used the
+pre-correction E2E file. A fresh immutable browser test snapshot changed only
+`frontend/tests/e2e/on_demand_acquisition.spec.ts` and the affected Workstation
+case passed 1/1 against the same healthy application image, with diagnostics
+enabled. Frontend/backend/Research/Compose build inputs and image IDs remain
+unchanged. This targeted controlled-fixture pass is not genuine source proof
+or a new full-profile run.
+
+The dedicated fixture browser exited 0 without OOM and was removed after its
+terminal receipt; the protected-resource guard passed afterward. The previous
+full-profile browser exits and the hosted 404 receipt remain preserved. The
+one-file correction is pending coherent publication and its own exact-source
+CI; TCO1-TCO6 acceptance, genuine Provider/issuer evidence, target acceptance,
+AC1-AC9 and official V25 remain open.
+
 ## Current continuation — narrow mobile chart and ETF layout — 2026-10-26
 
 The current source is a focused correction on published `47de8ca6838be35f6d184c30b6235730aca10c0b`. Root's rendered-route review measured the legacy chart route at390px with its fixed 300px watchlist and open indicator rail consuming the chart row; the shell clipped the remaining chart and header content. ETF review measured `holdings-main` at366px with `scrollWidth=569`, caused by min-content metadata/toolbar layouts.
