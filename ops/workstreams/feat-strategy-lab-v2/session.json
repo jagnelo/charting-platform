@@ -36,25 +36,8 @@
   },
   "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 0,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-strategy-lab-v2-7794d9e5",
-      "charting-stack-feat-strategy-lab-v2-7794d9e5"
-    ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 0,
-    "volume_count": 0,
-    "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -84,14 +67,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "b2fd76cf8aa32a01eae74385112f28d68ed6895c",
-  "implementation_sha": "b2fd76cf8aa32a01eae74385112f28d68ed6895c",
-  "last_checkpoint": "2026-10-26T17:42:44Z",
+  "head": "e5793c38f85f756aa12dac4e4b12ca5e1f8b00c1",
+  "implementation_sha": "e5793c38f85f756aa12dac4e4b12ca5e1f8b00c1",
+  "last_checkpoint": "2026-10-28T10:26:30Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Deliver the Strategy/Study presentation and immutable-lineage contract inventory to the TC2000 single writer for whole-frontend reconciliation; Strategy must not edit presentation paths or create a parallel theme. After TC's presentation pass and Root's release of the source boundary, resume the original AC-UPSTREAM combined-consumer roadmap with accepted Provider/ETF/TC contracts. Do not repeat SEC acquisition or spend provider quota. Root owns full local/CI/staging/master gates, deployment and target acceptance. Keep the full 18-criterion roadmap and all native/RC6, forward, broker, capital, provider/quota, paid/trial, unknown and unsafe scopes open or held.",
+  "next_action": "Publish this one coherent e3 adoption context to the existing Strategy feature branch and let Root observe exact-source CI; do not claim a branch result before it is verified. Do not rerun the local full profile for this unchanged adoption. After branch qualification and Root releases further implementation, continue AC-UPSTREAM: reconcile the Strategy Research consumer against accepted Provider selected/default-series and on-demand history contracts while preserving ETF point-in-time membership and TC immutable CodeVersion/Study lineage. Do not initiate provider/issuer/SEC HTTP, replay the 119-request allowance history, or change quota/data holds. Root owns genuine OIH/provider/issuer proof, protected integration, deployment and target acceptance. Keep all 18 roadmap criteria and native/RC6, forward, broker, capital, paid/trial, unknown and unsafe scopes open or held.",
   "parent_branch": "staging",
-  "plan_hash": "f9ae494d306ae518d3ae7b02113f6e747fa5c76fd7232aee9b47bfaf52bcde18",
+  "plan_hash": "385b25c7986b51a9d1032e484b65f76e27613228ab495ce81a96073cf4542469",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -121,14 +104,14 @@
       "FH4",
       "FH5"
     ],
-    "current_blocker": "Exact accepted TC2000 whole-frontend staging 02a7bae34c2aed145b9e46137ef3b8f041de4d92 is adopted as local merge b2fd76cf8aa32a01eae74385112f28d68ed6895c, preserving Strategy's published review and append-only evidence. Canonical receipt /home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json (SHA256 fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde) and exact staging CI 40351346928 are green; Branch-declared Tests was skipped by feature policy. Live origin/staging matched 02a7bae. All imported tracked bytes match staging except the four inventoried Strategy- owned workstream records. The Strategy exact-source CI after this adoption remains pending publication; no local full profile/browser matrix was run. Whole-frontend implementation is in accepted staging, but final target/deployment acceptance remains Root-owned. Preserve the original FH1-FH5 checkpoint history, full 18-criterion roadmap, 119-request history, datasets, quotas/provider holds and disabled paid/trial/native/forward/broker/capital scopes. The original native worker goal remains historically blocked; this adoption did not resume or re-account it.",
+    "current_blocker": "Exact combined staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 was merged as e5793c38f85f756aa12dac4e4b12ca5e1f8b00c1 from the clean published Strategy source cfcf760d5b76945a13ea72c484fe434607a9139e. Canonical green receipt /home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json (SHA256 ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da) and exact staging CI 40656688915 passed Backend, Frontend, E2E, and Exhaustive; Branch-declared Tests was skipped by feature policy. Origin staging and master matched e3 at adoption; independent master CI 40670024330 was running, and production was not upgraded. The merge was conflict-free. The merged tracked tree differs from e3 only in these four Strategy-owned records, and Strategy consumer source paths did not change. This branch still needs exact-source CI after publication; no local profile was rerun. Keep the accepted FH1-FH5 checkpoint and the full 18-criterion roadmap distinct; the roadmap remains open. Provider on-demand software acceptance is not live provider/issuer/SEC acquisition or deployment proof. Preserve all holds, datasets, quota history, and disabled paid/trial/native/forward/broker/capital scopes. The original native goal and accounting were not reset.",
     "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
-    "next_action": "Publish this exact adoption to the existing Strategy origin and inspect the resulting branch CI; do not claim it green before its terminal result is verified. Reuse 02a staging evidence only for imported byte-identical behavior and do not rerun the local full profile/browser matrix. After exact branch qualification and Root's release of this adoption checkpoint, resume the original AC-UPSTREAM combined-consumer roadmap across Provider canonical series/coverage/admission, ETF PIT identity and TC immutable CodeVersion/Study outputs. Root owns protected staging/master, deployment and target acceptance. Do not repeat SEC/IWM acquisition or spend provider quota. Keep all 18 criteria and native/RC6, forward, broker, capital, paid/trial, provider/quota, unknown and unsafe scopes open or held.",
+    "next_action": "Publish this one coherent e3 adoption context to the existing Strategy feature branch and let Root observe exact-source CI; do not claim a branch result before it is verified. Do not rerun the local full profile for this unchanged adoption. After branch qualification and Root releases further implementation, continue AC-UPSTREAM: reconcile the Strategy Research consumer against accepted Provider selected/default-series and on-demand history contracts while preserving ETF point-in-time membership and TC immutable CodeVersion/Study lineage. Do not initiate provider/issuer/SEC HTTP, replay the 119-request allowance history, or change quota/data holds. Root owns genuine OIH/provider/issuer proof, protected integration, deployment and target acceptance. Keep all 18 roadmap criteria and native/RC6, forward, broker, capital, paid/trial, unknown and unsafe scopes open or held.",
     "total": 5,
-    "updated_at": "2026-10-26T17:42:44Z"
+    "updated_at": "2026-10-28T10:26:30Z"
   },
-  "remote": "e50198fa055cc3a980a491dcd572f6581b8baf13",
-  "remote_sha": "e50198fa055cc3a980a491dcd572f6581b8baf13",
+  "remote": "cfcf760d5b76945a13ea72c484fe434607a9139e",
+  "remote_sha": "cfcf760d5b76945a13ea72c484fe434607a9139e",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
