@@ -1,28 +1,20 @@
 {
   "acceptance_criteria": [
     {
-      "id": "TCO1",
-      "text": "Adopt only Root-released synchronized green staging containing accepted Provider and repaired ETF checkpoints; preserve owned preparation/history, classify shared paths, upstream ownership and immutable Study outputs."
+      "id": "F8Y1",
+      "text": "On the real Workstation parent host, wait for the successful workspace snapshot PUT whose exact WatchList instance_key contains the selected target watchlist id and tag-watchlist column key; after reload and target selection verify the Tag header is restored before the locked-row interaction."
     },
     {
-      "id": "TCO2",
-      "text": "Main Workstation and chart UI support explicit unknown-symbol source discovery and verified identity selection; cryptographic request IDs work on actual private HTTP origins; mount, typing and hydration remain local-only."
+      "id": "F8Y2",
+      "text": "The ordinary parent-host XLE context menu for a locked Tag Column target keeps the Remove menuitem visible and disabled; no DELETE request or membership mutation occurs. Preserve ordinary clicks, existing readiness checks and the 60-second test timeout."
     },
     {
-      "id": "TCO3",
-      "text": "Explicit bounded selected-chart history requests use verified identity/timeframe/range/adjustment/source, preserve explicit adjusted=false, prevent fanout/stale-scope updates, and render local readback; held/error retains cache and TC does not implement provider routing/ingestion."
+      "id": "F8Y3",
+      "text": "The unchanged focused/component checks, full canonical functional suite and all 104 strict visual cases across existing projects pass at zero retries, with exact repair-source branch CI green; preserve every assertion, visual reference, mask and tolerance."
     },
     {
-      "id": "TCO4",
-      "text": "Explicit first-use ETF issuer acquisition and resolved holding-chart handoff preserve composition date, known-at, provenance and snapshot identity; historical/stale data remains display-only and never silently becomes current analytic input."
-    },
-    {
-      "id": "TCO5",
-      "text": "Source-matched required local unit/build/lint, functional and strict visual profile and exact branch CI pass without changing ordinary-click, keyboard/mobile, TC appearance, references, masks, tolerances or zero retries; controlled cases are preparation, not full combined or genuine source proof."
-    },
-    {
-      "id": "TCO6",
-      "text": "Durable handoff records exact implementation/closing source and image inputs, tested contracts/defaults/migration impact, limitations and all nine roadmap dispositions; only owned cleanup is proved while persistent and sibling resources remain preserved; Root acceptance stays pending until gates/review pass."
+      "id": "F8Y4",
+      "text": "Retain the exact original first-attempt failure/trace and all setup receipts; qualify the exact source and reused component images, run only the uniquely owned bounded fixture, preserve the protected resource baseline and remove only owned validation resources after terminal evidence."
     }
   ],
   "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
@@ -40,60 +32,70 @@
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact synchronized-green staging 4bc50a9de9eb2453c75eda047d01466309a3a3da (CI40721314996) is adopted in the local feature branch. The staged Provider cache fix and its regression are source-qualified by that full green staging run; TC frontend/on-demand inputs are unchanged. The resulting owned-record tip has not yet been pushed or run in exact feature CI. Independent master CI40735299702 is still in progress; production remains at e3.",
-  "current_checkpoint_status": "Accepted bounded TCO1-TCO6 checkpoint remains intact at implementation ff564860e5b0918e269a862962cd63ba470e2153. Exact released staging 4bc50a9de9eb2453c75eda047d01466309a3a3da was merged without conflicts. Backend tree3448ffb5ee585fc7a738080169b629dcc9f60047 and frontend tree6f6e64e1d303e81c467983eb118a5459c3152075 match staging exactly. Only the accepted Provider market_data.py cache correction, its persistence test, and four Provider-owned records differ from e3; no new TC product/test code or runtime validation was added. The current immutable import manifest pins878 paths to 4bc. The exact adoption feature tip CI remains pending; master CI40735299702 is running and production remains at e3. Genuine source/target proof, AC1-AC9, official V25 and operational holds remain open.",
+  "current_candidate_ci_status": "F8Y repair candidate is based on published source ef787d0966228e127d7da73cc9c5745013b98125 plus test-only changes. The focused parent-host case passed1/1 at zero retries; focused component tests119/119, Vue type-check, TC scope guard/self-test and collection passed. Full functional/strict-visual profile remains pending. Exact branch CI has not yet started and will be triggered by the coherent publication. Original master red, first-attempt artifacts and setup evidence remain preserved.",
+  "current_checkpoint_status": "Current checkpoint is tc-f8y-tag-columns-repair-20261028 (F8Y1-F8Y4, in progress). Focused snapshot-ack/restored-header and locked disabled Remove/no-DELETE proof passed; full local matrices and exact CI pending. Prior accepted TCO1-TCO6 and its Root acceptance, CI/local evidence and closure remain archived at ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json. The original human standing authority, nine-roadmap criteria and holds are unchanged; no full-roadmap completion is claimed.",
   "current_exact_ci": {
-    "attempt": 1,
-    "conclusion": "success",
-    "head_sha": "ff564860e5b0918e269a862962cd63ba470e2153",
-    "jobs": {
-      "backend": "success",
-      "branch_declared": "success",
-      "e2e": "success",
-      "exhaustive_integration_gate": "skipped_by_feature_policy",
-      "frontend_unit": "success"
-    },
-    "receipt": ".ai/staging-attempts/tc-ff564-exact-ci-root-receipt-20261028.json",
-    "run_id": 40644260199,
-    "scope": "Exact TC implementation source only; closing records tip CI remains required and Root-owned.",
-    "status": "completed"
+    "status": "pending",
+    "scope": "Exact F8Y repair source; exact run is expected after coherent candidate publication.",
+    "head_sha": null,
+    "run_id": null,
+    "conclusion": null
   },
   "current_software_checkpoint": {
-    "acceptance": "Accepted by Root for bounded TCO1-TCO6 under standing human delegation; review: .ai/staging-attempts/tc-on-demand-checkpoint-review-20261028.md. Closing-tip exact CI remains required for integration.",
-    "candidate_source": "ff564860e5b0918e269a862962cd63ba470e2153",
-    "candidate_source_test_diff_sha256": "0fa00c890855cab9d07dd2710b3e9166bcec46da8e4011bd948ac429a8320e33",
-    "criteria_completed": [
-      "TCO1",
-      "TCO2",
-      "TCO3",
-      "TCO4",
-      "TCO5",
-      "TCO6"
+    "id": "tc-f8y-tag-columns-repair-20261028",
+    "status": "in_progress",
+    "acceptance": "pending Root review after all required local and exact-source CI gates",
+    "criteria_ids": [
+      "F8Y1",
+      "F8Y2",
+      "F8Y3",
+      "F8Y4"
     ],
-    "criteria_total": 6,
-    "id": "tc-on-demand-workstation-consumer-20261027",
-    "local_evidence": "Exact implementation source ff564860e5b0918e269a862962cd63ba470e2153 passed hosted CI run 40644260199 attempt 1: Backend, Frontend Unit, Branch-declared and E2E succeeded; E2E reported 196 passed and 110 configured skips, all four on-demand cases were present, and there were no retry markers. Exhaustive is correctly skipped by feature-branch policy. This does not establish genuine Provider/issuer source acquisition or deployment acceptance. Root independently accepted full local evidence on frozen de67 product inputs: functional200 passed, two unchanged declared live-data skips, zero retries, exit0/no OOM; strict visual104/104 across four projects, zero retries, exit0/no OOM. Logs: .ai/runtime/tc-on-demand-de67-20261028/artifacts/functional.log SHA256 730f2c81dca63f0270a702aa25a26aec053c0b286315c5c4dc1b0b869e4acc2a; visual.log SHA256 dd72ef8a148192055290e657870c87f7b4c3e7d279e7f1c129f22e78d5d18740. Full matrices used the pre-correction browser spec. The corrected TCNEW Workstation case separately passed1/1 zero retries against unchanged app images on immutable snapshot .ai/runtime/tc-on-demand-de67-20261028/calendar-test/source-snapshot.json SHA256 5941f13991ee5decd27d6c2764b5e0f0be1ed346d71d67eb31a3c2790158e523; affected-e2e.log SHA256 8798238d748a63ef6e182636a960d3d7bd99c49b34e3897edf06d3a95d967239. Exact CI then ran all four corrected cases on committed source. Full frontend validation on byte-identical b6c5 implementation inputs passed coverage150 files/1471 tests with thresholds unchanged, uPlot and visual-policy guards, Vue typecheck and Vite build; logs/qualifications are in /tmp/tc-on-demand-full-frontend-20261028 and prior validation journal. Backend tree5c2d9d270bea046a7af58c26d25d287d03174ad7 was reused from immutable image sha256:d914d8c8cdd4eb2635b939a3049fc5e5ac908a377044090997d82bb6f5bca9dc; local frontend image sha256:bbca9674eda69bd0d52d5811abb8ff33058c070648768ca08ef330b5094136d0 and Research image sha256:c299c74686f8b30b196cf984c2d8467c950d8e46c1b6624d1eeac59622bf15a9 were used for de67. These are component/input-specific qualifications, not a claim all local gates used the same overall source SHA. Exact staging adoption e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 is green on CI40656688915; tree 424122f716d92389d6ffccddfb913977124b19b3 equals ff564/addd tree, with no product source changes. Independent master CI40670024330 was running; production remained unchanged at adoption. Subsequent exact green staging 4bc50a9de9eb2453c75eda047d01466309a3a3da (CI40721314996) was adopted ancestry-first. It adds the Provider cached-search correction and regression; backend/frontend runtime trees now equal the accepted staging trees. No duplicate local validation ran, and the TC frontend/on-demand test input remains unchanged. The new owned-record branch tip awaits its own exact CI. Independent master CI40735299702 is still running; production remains at e3.",
-    "planning_direction": ".ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md",
-    "progress": {
-      "completed": [
-        "TCO1",
-        "TCO2",
-        "TCO3",
-        "TCO4",
-        "TCO5",
-        "TCO6"
-      ],
-      "total": 6
-    },
-    "roadmap_disposition": "The bounded on-demand consumer software checkpoint is accepted. All nine original AC1-AC9 IDs/text and broader roadmap remain unchanged and open; official REF-HELP-V25, genuine Provider/issuer qualification, target/deployment acceptance and held operations are not closed.",
-    "source_base": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
-    "source_capture": "integration_capture: exact branch HEAD; validated implementation ff564860e5b0918e269a862962cd63ba470e2153; records-only closure SHA is captured by Git and intentionally not self-referenced.",
-    "status": "ready_for_integration"
+    "criteria_completed": [],
+    "criteria_total": 4,
+    "source_base": "ef787d0966228e127d7da73cc9c5745013b98125",
+    "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5",
+    "planning_authority": "Root direct activation under existing human first-human deployment authority; no new human acceptance is claimed.",
+    "archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
+    "local_evidence": "Focused F8Y parent-host test passed1/1 at zero retries; relevant component tests119/119 plus type-check/scope/self-test/collection passed. Full functional/strict visual and exact repair-source CI pending."
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "frontend/tests/e2e/flows.spec.ts",
+    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
+    "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-20261027.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+  ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
+    ],
+    "known_bytes": 1289346962,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 1286279058,
+    "volume_count": 12,
+    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -191,7 +193,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "98ad55a2061a9ae2e3d6630edc431aca177a712e",
+  "head": "ef787d0966228e127d7da73cc9c5745013b98125",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -258,42 +260,31 @@
     },
     "recorded_at": "2026-10-27T22:28:35Z"
   },
-  "implementation_sha": "ff564860e5b0918e269a862962cd63ba470e2153",
+  "implementation_sha": "ef787d0966228e127d7da73cc9c5745013b98125",
   "integration_checkpoint": {
-    "acceptance": "Accepted by Root for bounded TCO1-TCO6 under the recorded human standing delegation; see .ai/staging-attempts/tc-on-demand-checkpoint-review-20261028.md. Exact closing-tip branch CI is still required before supported integration.",
-    "criteria_completed": [
-      "TCO1",
-      "TCO2",
-      "TCO3",
-      "TCO4",
-      "TCO5",
-      "TCO6"
-    ],
+    "id": "tc-f8y-tag-columns-repair-20261028",
+    "status": "in_progress",
+    "acceptance": "pending Root review after required local and exact-source CI gates",
     "criteria_ids": [
-      "TCO1",
-      "TCO2",
-      "TCO3",
-      "TCO4",
-      "TCO5",
-      "TCO6"
+      "F8Y1",
+      "F8Y2",
+      "F8Y3",
+      "F8Y4"
     ],
-    "criteria_total": 6,
-    "full_roadmap": "All nine original AC1-AC9 criteria, official REF-HELP-V25 parity and broader native/live/target criteria remain open. This acceptance is only the bounded TCO1-TCO6 software checkpoint.",
-    "id": "tc-on-demand-workstation-consumer-20261027",
-    "objective": "Implement and qualify explicit, bounded on-demand instrument discovery, selected-chart history and ETF issuer/holding-history consumer flows while preserving cached rendering, identity, lineage and current-analysis safeguards.",
-    "planning_authorization": "/home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md",
-    "required_next_gate": "Root observes exact CI for the single records-only closure tip, then performs supported integration. Genuine Provider/issuer qualification, target acceptance and deployment remain coordinator-owned.",
-    "source_capture": "integration_capture: exact branch HEAD; validated implementation ff564860e5b0918e269a862962cd63ba470e2153; the closure commit is records-only and its exact SHA is recorded by Git, not self-referenced.",
-    "status": "ready_for_integration"
+    "criteria_total": 4,
+    "criteria_completed": [],
+    "source_base": "ef787d0966228e127d7da73cc9c5745013b98125",
+    "planning_authority": "Root direct activation under existing human first-human deployment authority; no new human acceptance is claimed.",
+    "archive_of_prior_checkpoint": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json"
   },
   "interrupted": false,
   "last_checkpoint": "2026-10-28T17:39:31Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
-    "head_sha": "ff564860e5b0918e269a862962cd63ba470e2153",
-    "receipt": ".ai/staging-attempts/tc-ff564-exact-ci-root-receipt-20261028.json",
-    "result": "exact implementation source green; final records-only closure tip CI remains pending",
-    "run_id": 40644260199
+    "head_sha": null,
+    "run_id": null,
+    "result": "No exact F8Y repair-source CI has run yet; it will start after candidate publication.",
+    "receipt": null
   },
   "latest_staging_adoption": {
     "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4bc50a9de9eb2453c75eda047d01466309a3a3da.json",
@@ -314,7 +305,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Root observes exact CI for the adoption records tip; after Root releases further TC work, resume the next original AC4 persisted-evidence breadth/ratio/history slice. Preserve all Provider, issuer, target and operational holds.",
+  "next_action": "Publish the coherent candidate so exact branch CI can overlap, then run full functional and strict visual serially at zero retries and preserve exact source/resource receipts.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -345,7 +336,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "5a454479f00dafb941bb98cd286c8aff9606785119a6588289b2beae58e3b96f",
+  "plan_hash": "eef12cb39c83e419be872eae18d3ce702f36c807c87d560dea5f2a7f1e63d279",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -358,34 +349,27 @@
     "9dffc01c-3c8b-4580-9e17-84148e8878e7"
   ],
   "progress": {
-    "completed": [
-      "TCO1",
-      "TCO2",
-      "TCO3",
-      "TCO4",
-      "TCO5",
-      "TCO6"
-    ],
-    "current_blocker": "The exact 4bc staging adoption is complete locally; exact branch CI for the resulting owned-record tip is pending Root observation. Master CI40735299702 is still running; no deployment claim. Broader AC1-AC9, official V25, genuine source, target and operational work remain open.",
-    "current_phase": "Adopted exact synchronized-green staging 4bc50a9de9eb2453c75eda047d01466309a3a3da; verified backend/frontend trees equal staging and only owned records differ. The full green staging receipt is reused without duplicate local tests or runtime. The final records tip awaits exact branch CI.",
-    "next_action": "Root observes exact CI for the adoption records tip; after Root releases further TC work, resume the next original AC4 persisted-evidence breadth/ratio/history slice. Preserve all Provider, issuer, target and operational holds.",
-    "total": 6,
-    "updated_at": "2026-10-28T17:39:31Z"
+    "completed": [],
+    "total": 4,
+    "current_phase": "F8Y checkpoint in progress after focused proof; full functional, strict visual, exact CI and Root acceptance pending.",
+    "current_blocker": "Full source-matched functional/strict-visual matrices and exact repair-source branch CI remain pending; preserve the original master red and all first-attempt evidence.",
+    "next_action": "Publish the coherent candidate so exact branch CI can overlap, then run full functional and strict visual serially at zero retries and preserve exact source/resource receipts.",
+    "updated_at": "2026-10-28T19:16:14Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "command": "rtk proxy git push origin HEAD:refs/heads/feat/tc2000-frontend-rework",
-    "current_local_head": "98ad55a2061a9ae2e3d6630edc431aca177a712e",
-    "current_pending_range": "Exact green 4bc50 staging merge plus owned frozen-import receipt/manifest and TC plan/session/handoff/validation reconciliation.",
+    "current_local_head": "ef787d0966228e127d7da73cc9c5745013b98125",
+    "current_pending_range": "F8Y test-only repair plus owned checkpoint/evidence records; focused proof passed, full profile and exact CI pending.",
     "failure_category": null,
     "remote": "origin",
-    "remote_tracking_sha": "2c25ada328ebec6ca462cd720ec3fbc881854440",
-    "status": "Ready for one coherent own-branch publication after scope/workstream/hash/history checks; do not create a post-push metadata refresh commit."
+    "remote_tracking_sha": "ef787d0966228e127d7da73cc9c5745013b98125",
+    "status": "Publish once after full scope/workstream checks; exact branch CI then overlaps remaining local matrices."
   },
-  "remote": "2c25ada328ebec6ca462cd720ec3fbc881854440",
-  "remote_sha": "2c25ada328ebec6ca462cd720ec3fbc881854440",
-  "remote_synchronized": false,
-  "remote_tracking_sha": "2c25ada328ebec6ca462cd720ec3fbc881854440",
+  "remote": "ef787d0966228e127d7da73cc9c5745013b98125",
+  "remote_sha": "ef787d0966228e127d7da73cc9c5745013b98125",
+  "remote_synchronized": true,
+  "remote_tracking_sha": "ef787d0966228e127d7da73cc9c5745013b98125",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -469,33 +453,33 @@
     },
     {
       "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2.json",
-      "receipt_sha256": "ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da",
-      "staging_sha": "e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2",
-      "staging_ci_run": 40656688915,
-      "independent_master_ci_run": 40670024330,
-      "premerge_head": "addd41731b2be9b740b3c4bab624118ba2371029",
-      "merge_base": "addd41731b2be9b740b3c4bab624118ba2371029",
-      "tree_sha": "424122f716d92389d6ffccddfb913977124b19b3",
-      "tree_identical_to_feature_source": true,
-      "merge_result": "Fast-forward ancestry-only; no conflicts or product blob delta.",
       "import_manifest": "Retained existing 173745 manifest; pinned imported blobs match e3 tree; no duplicate manifest.",
+      "independent_master_ci_run": 40670024330,
       "local_consumer_tests": "Not rerun because tree is identical; exact e3 staging gates and already-accepted ff564 local/CI evidence retain their exact scopes.",
-      "publication": "One owned-record adoption commit/push; exact feature CI pending Root observation."
+      "merge_base": "addd41731b2be9b740b3c4bab624118ba2371029",
+      "merge_result": "Fast-forward ancestry-only; no conflicts or product blob delta.",
+      "premerge_head": "addd41731b2be9b740b3c4bab624118ba2371029",
+      "publication": "One owned-record adoption commit/push; exact feature CI pending Root observation.",
+      "receipt_sha256": "ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da",
+      "staging_ci_run": 40656688915,
+      "staging_sha": "e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2",
+      "tree_identical_to_feature_source": true,
+      "tree_sha": "424122f716d92389d6ffccddfb913977124b19b3"
     },
     {
       "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4bc50a9de9eb2453c75eda047d01466309a3a3da.json",
-      "receipt_sha256": "0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d",
-      "staging_sha": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
-      "staging_ci_run": 40721314996,
-      "independent_master_ci_run": 40735299702,
-      "premerge_head": "2c25ada328ebec6ca462cd720ec3fbc881854440",
-      "merge_base": "e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2",
-      "tree_sha": "ee51d4e02f1659030d11507696b24055adec8303",
-      "tree_identical_to_staging": true,
-      "merge_result": "Merged exact released 4bc50 with no conflicts; merge commit 98ad55a2061a9ae2e3d6630edc431aca177a712e.",
       "import_manifest": "Superseding complete 4bc manifest pins878 immutable paths; prior manifests remain as history.",
+      "independent_master_ci_run": 40735299702,
       "local_validation": "No tests/builds/fixtures/services/source requests; exact green staging gates reused. Backend/frontend trees equal accepted 4bc source.",
-      "publication": "One coherent owned-record adoption commit/push; exact feature CI remains pending until publication."
+      "merge_base": "e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2",
+      "merge_result": "Merged exact released 4bc50 with no conflicts; merge commit 98ad55a2061a9ae2e3d6630edc431aca177a712e.",
+      "premerge_head": "2c25ada328ebec6ca462cd720ec3fbc881854440",
+      "publication": "One coherent owned-record adoption commit/push; exact feature CI remains pending until publication.",
+      "receipt_sha256": "0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d",
+      "staging_ci_run": 40721314996,
+      "staging_sha": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
+      "tree_identical_to_staging": true,
+      "tree_sha": "ee51d4e02f1659030d11507696b24055adec8303"
     }
   ],
   "state": "in_progress",
@@ -537,7 +521,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-28T17:39:31Z",
+  "updated_at": "2026-10-28T19:16:14Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
@@ -579,5 +563,6 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
+  "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json"
 }
