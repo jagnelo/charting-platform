@@ -3075,7 +3075,7 @@ previous_green_staging_adoption_2026_10_25_15b5:
   product_source_edits_in_this_context: none
   publish_state: held_until_Root_release_after_independent_master_CI_for_15b5
 
-latest_green_staging_adoption:
+previous_green_staging_adoption_e3:
   recorded_at: "2026-10-28T10:24:03Z"
   released_staging_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
   exact_ci_run: 40656688915
@@ -3097,6 +3097,35 @@ latest_green_staging_adoption:
   exact_staging_qualification: 1471 frontend tests; 553 integration tests; 199 functional cases; 104 strict visual cases; zero retries; all required jobs green
   independent_master_CI: 40670024330_running_not_yet_green
   production_deployment: not_performed; Root owns deployment and first usable OIH qualification/API/UI acceptance
+  full_roadmap: AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage and 30-day observation
+
+latest_green_staging_adoption:
+  recorded_at: "2026-10-28T17:38:43Z"
+  released_staging_sha: 4bc50a9de9eb2453c75eda047d01466309a3a3da
+  exact_ci_run: 40721314996
+  canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json
+  canonical_receipt_sha256: 0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d
+  root_release_review: /home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json
+  root_release_review_sha256: ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a
+  release_state: exact_synchronized_staging_CI_terminal_green_including_exhaustive_gate
+  previous_etf_sha: 61f121af513d5db4511751ab962a34d1afde6f75
+  adopted_etf_baseline_sha: 4bc50a9de9eb2453c75eda047d01466309a3a3da
+  owner_merge_commit: 93a897fabf343fdf896e283b485791466002b60d
+  adoption_method: exact_released_origin_staging_merged_into_existing_owned_branch_without_conflicts
+  direct_remote_lookup: fetched_and_verified_origin_staging_exact_4bc50a9de9eb2453c75eda047d01466309a3a3da; master_CI_40735299702_running_not_green
+  merge_base: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
+  backend_tree: 3448ffb5ee585fc7a738080169b629dcc9f60047
+  frontend_tree: 6f6e64e1d303e81c467983eb118a5459c3152075
+  backend_frontend_equal_released_staging: true
+  remaining_tree_delta_from_released_staging: only_the_four_ETF_owned_workstream_records
+  imported_source_delta: backend/app/services/market_data.py and backend/tests/unit/services/test_provider_persistence.py from exact green staging; no frontend, config, or migration-path changes
+  upstream_import_manifest: not_applicable_exact_green_staging_merge_no_off_staging_imports
+  imported_workstream_records: Provider-owned records preserved exactly from released staging; ETF-owned records reconciled separately
+  conflicts: none
+  local_validation: no product tests or builds rerun; imported source relies on exact staging CI 40721314996; required owned workstream checks run for this records-only reconciliation
+  exact_staging_qualification: backend unit 5569 passed/1 existing skip; backend integration 553 passed/2 existing skips; frontend 1471 passed; E2E 196 passed/110 configured skips with all 4 required on-demand cases executed; exhaustive gate green with 112 unit shards, 553 DB cases, 199 functional cases and 104 strict visuals, zero retries
+  independent_master_CI: 40735299702_running_not_yet_green
+  production_deployment: not_performed; production remains e3; Root owns deployment and genuine OIH qualification/API/UI acceptance
   full_roadmap: AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage and 30-day observation
 
 latest_sec_first_use_candidate:

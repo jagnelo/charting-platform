@@ -7,7 +7,50 @@ human-authorized on-demand acquisition goal. The accepted ERF response/order
 checkpoint and its evidence remain preserved below as historical acceptance;
 they do not close this newer consumer scope. Full AC1-AC14 stays the roadmap.
 
-## Latest synchronized staging baseline adopted — e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (2026-10-28)
+## Latest synchronized staging baseline adopted — 4bc50a9de9eb2453c75eda047d01466309a3a3da (2026-10-28)
+
+The existing ETF branch tip `61f121af513d5db4511751ab962a34d1afde6f75`
+merged only the exact released `origin/staging` commit
+`4bc50a9de9eb2453c75eda047d01466309a3a3da` in owner merge
+`93a897fabf343fdf896e283b485791466002b60d`. The merge base is the prior
+adopted staging baseline `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`; the
+merge had no conflicts. Canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json`
+(SHA256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`)
+and Root's release review
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json`
+(SHA256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`)
+confirm exact staging CI `40721314996` terminal green, including the exhaustive
+gate. The release exercised 5,569 backend unit passes/1 existing skip, 553
+integration passes/2 existing skips, 1,471 frontend passes, 196 E2E passes/110
+configured skips with all four required on-demand cases executed, and the
+exhaustive gate's 199 functional and 104 strict visual passes at zero retries.
+
+The imported source delta is Provider's cache reuse change in
+`backend/app/services/market_data.py` and its persistence regression. After the
+merge, backend tree `3448ffb5ee585fc7a738080169b629dcc9f60047` and frontend
+tree `6f6e64e1d303e81c467983eb118a5459c3152075` exactly match staging. No
+frontend, configuration, or migration-path changes were imported. The full
+merged tree differs from staging only in these four ETF-owned records; the
+Provider records were preserved from staging. This was an exact staging merge,
+not an off-staging cherry-pick, so no frozen-upstream-import manifest applies.
+No local tests/builds were rerun; the imported source relies on the exact green
+staging qualification. The owned branch CI will run on the records publication.
+
+Master CI `40735299702` is still running, not green. Production remains at
+`e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`; this adoption is not deployment or
+source/account acceptance. Root retains master/promotion/deployment and genuine
+OIH qualification/API/UI acceptance. No provider/issuer/SEC request, quota
+reservation, target mutation, policy change, or operational trial occurred.
+The ODC software checkpoint remains accepted, while all AC1-AC14 remain open;
+preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests,
+all holds/quarantines, raw/PIT lineage, and the 30-day observation. No new
+roadmap implementation was started. After Root completes deployment/source
+priorities and releases more ETF implementation, the next ETF-owned step remains
+AC2: continue the retained issuer-evidence audit from reviewed existing
+evidence.
+
+## Previously adopted synchronized staging baseline — e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (2026-10-28)
 
 The clean ETF tip `95a93f0b932f58018d4f0d40f17f8fdb9eecdb20` was an ancestor of canonical synchronized-green
 staging `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2` and was fast-forwarded to that exact commit without
