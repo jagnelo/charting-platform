@@ -489,7 +489,7 @@ on_demand_market_acquisition_implementation:
       project cleanup and protected-resource checks passed. The owner finalizer
       receipt and its chronology note are recorded in the current checkpoint.
   roadmap: AC1-AC14_remain_open; preserve_15_Tier0_156_Tier1_74_fallback_119_spent_requests_quarantines_raw_PIT_holds_and_30_day_observation
-  next_action: Root reviews this final four-record closure proposal; after that review, publish one records-only closing commit and verify its exact-tip CI. Actual OIH source/account qualification remains Root-owned.
+  next_action: Root accepted the ODC software checkpoint and reviewed the four-record closure. The published closing-tip CI 40617812776 failed the unchanged narrative test because the current session blocker omitted the audited tier-count invariant. Publish this records-only correction once; Root then watches the new exact-tip CI and integrates only after all required jobs are green. Actual OIH source/account qualification remains Root-owned.
 on_demand_market_acquisition_proposal:
   id: etf-on-demand-market-acquisition-1
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -3132,14 +3132,15 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Root reviews this final four-record closure proposal. After that review,
-  publish one coherent records-only closing commit; verify its exact-tip CI
-  before the supported integration workflow. The tested source remains
-  e589cda929b06c0af889344342c4ee73256bae7f and closing-tip CI is pending.
-  Actual OIH workbook/native account qualification, any live source operation,
-  target acceptance, and integration/deployment remain Root-owned. Continue the
-  separate Massive OIH PRICE_HISTORY readiness and remaining AC1-AC14 roadmap
-  work afterward.
+  Root accepted the ODC software checkpoint and reviewed the closure proposal.
+  Published closing-tip CI 40617812776 failed the unchanged narrative test
+  because the current session blocker omitted the audited tier-count invariant.
+  Publish this records-only correction once; Root then watches the new exact-tip
+  CI and integrates only after all required jobs are green. Tested source remains
+  e589cda929b06c0af889344342c4ee73256bae7f. Actual OIH workbook/native account
+  qualification, any live source operation, target acceptance, and
+  integration/deployment remain Root-owned. Continue the separate Massive OIH
+  PRICE_HISTORY readiness and remaining AC1-AC14 roadmap work afterward.
   Preserve AC1-AC14, `15 Tier-0 and 156 Tier-1`, `74 fallback identities`,
   holds, quarantines, raw/PIT history, 119 spent requests, and the 30-day
   observation.

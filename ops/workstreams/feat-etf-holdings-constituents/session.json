@@ -106,7 +106,7 @@
     "exact_staging_ci": 40570735471,
     "fixture_project": "etf-on-demand-consumer-20261027",
     "id": "etf-on-demand-consumer-20261027",
-    "next_action": "Root reviews the final four-record closure proposal. After that review, publish one coherent records-only closing commit and verify its exact-tip CI before the supported integration workflow. Tested source remains e589cda929b06c0af889344342c4ee73256bae7f; closing-tip CI is pending. Root owns integration, promotion, deployment, actual OIH qualification, and target acceptance; continue the remaining AC1-AC14 roadmap afterward.",
+    "next_action": "Root accepted the ODC software checkpoint and reviewed the closure proposal. Published closing-tip CI 40617812776 failed the unchanged narrative test because the current session blocker omitted the audited tier-count invariant. Publish this records-only correction once; Root then watches the new exact-tip CI and integrates only after all required jobs are green. Tested source remains e589cda929b06c0af889344342c4ee73256bae7f; Root owns actual OIH qualification, integration, promotion, deployment, and target acceptance; continue AC1-AC14 afterward.",
     "pending_acceptance": [
       "ODC6_exact_closing_tip_CI"
     ],
@@ -610,8 +610,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root reviews the final four-record closure proposal. After that review, publish one coherent records-only closing commit and verify its exact-tip CI before the supported integration workflow. Tested source remains e589cda929b06c0af889344342c4ee73256bae7f; closing-tip CI is pending. Root owns integration, promotion, deployment, actual OIH qualification, and target acceptance; continue the remaining AC1-AC14 roadmap afterward.",
-  "plan_hash": "ef4c05515e7ab2726cc04b63a4af44982033a7695fc65489a4bde3b577ba9a17",
+  "next_action": "Root accepted the ODC software checkpoint and reviewed the closure proposal. Published closing-tip CI 40617812776 failed the unchanged narrative test because the current session blocker omitted the audited tier-count invariant. Publish this records-only correction once; Root then watches the new exact-tip CI and integrates only after all required jobs are green. Tested source remains e589cda929b06c0af889344342c4ee73256bae7f; Root owns actual OIH qualification, integration, promotion, deployment, and target acceptance; continue AC1-AC14 afterward.",
+  "plan_hash": "f58f72b72f6a826b27f518207489909536e447c936cc28abcfbff94e8ee36563",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -1248,9 +1248,9 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root accepted the bounded ODC software checkpoint at tested source e589cda929b06c0af889344342c4ee73256bae7f. This records proposal is ready_for_integration; exact closing-tip CI is pending after publication. The full AC1-AC14 roadmap remains open.",
+    "current_blocker": "Root accepted the bounded ODC software checkpoint at tested source e589cda929b06c0af889344342c4ee73256bae7f. This records proposal is ready_for_integration; exact closing-tip CI is pending after publication. The full AC1-AC14 roadmap remains open; preserve the audited invariant 15 Tier-0 and 156 Tier-1, 74 fallback identities, the 119 spent-request history, holds/quarantines, raw/PIT lineage, and the 30-day observation.",
     "current_phase": "ODC_software_checkpoint_accepted_ready_for_integration_closing_tip_CI_pending_full_roadmap_open",
-    "next_action": "Root reviews the final four-record closure proposal. After that review, publish one coherent records-only closing commit and verify its exact-tip CI before the supported integration workflow. Tested source remains e589cda929b06c0af889344342c4ee73256bae7f; closing-tip CI is pending. Root owns integration, promotion, deployment, actual OIH qualification, and target acceptance; continue the remaining AC1-AC14 roadmap afterward.",
+    "next_action": "Root accepted the ODC software checkpoint and reviewed the closure proposal. Published closing-tip CI 40617812776 failed the unchanged narrative test because the current session blocker omitted the audited tier-count invariant. Publish this records-only correction once; Root then watches the new exact-tip CI and integrates only after all required jobs are green. Tested source remains e589cda929b06c0af889344342c4ee73256bae7f; Root owns actual OIH qualification, integration, promotion, deployment, and target acceptance; continue AC1-AC14 afterward.",
     "total": 14,
     "updated_at": "2026-10-28T01:47:15Z"
   },

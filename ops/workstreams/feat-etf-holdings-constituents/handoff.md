@@ -17500,3 +17500,5 @@ policy activation, or native qualification. Preserve all 14 roadmap criteria,
 `74 fallback identities`, the 119 spent-request history, holds, quarantines,
 raw/PIT lineage, and the 30-day observation. Root retains actual source/account
 qualification, target acceptance, integration, promotion, and deployment.
+
+The current plan and session blocker summaries retain the audited narrative invariant: Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The 74 fallback identities remain part of the preserved full roadmap.
