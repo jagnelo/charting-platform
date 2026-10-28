@@ -1,3 +1,17 @@
+# Bounded on-demand consumer checkpoint accepted — 2026-10-28T07:25:47Z
+
+Root accepts tc-on-demand-workstation-consumer-20261027 (TCO1-TCO6) under the recorded human standing delegation, including “Yes—approve that initial scope and handle checkpoint acceptance.” Review: .ai/staging-attempts/tc-on-demand-checkpoint-review-20261028.md. This is accepted software scope, not full AC1-AC9/V25 completion or target/deployment acceptance.
+
+- Validated implementation: ff564860e5b0918e269a862962cd63ba470e2153; exact CI 40644260199 terminal green, all required feature jobs successful. E2E:196 passed/110 configured skips; all four on-demand cases ran, no retry markers. Receipt: .ai/staging-attempts/tc-ff564-exact-ci-root-receipt-20261028.json.
+- Root accepted local functional200+2 unchanged declared skips and strict visual104/104 across four projects, zero retries/no OOM. Full matrices ran on de67 before the final TCNEW fixture-only edit; corrected case passed1/1 on an immutable test snapshot against unchanged app images; committed spec passed in exact CI. See .ai/staging-attempts/tc-de67-local-functional-root-receipt-20261028.json and .ai/staging-attempts/tc-de67-local-visual-root-receipt-20261028.json; exact log hashes and applicability are in plan closure summary.
+- Backend tree/image: 5c2d9d270bea046a7af58c26d25d287d03174ad7 / sha256:d914d8c8cdd4eb2635b939a3049fc5e5ac908a377044090997d82bb6f5bca9dc. Local frontend/Research image and frontend unit/build evidence remain source-qualified as recorded. No TC-owned migration/schema/default runtime change.
+- Only the owned TC fixture/builder/browser resources were cleaned; protected33/51/11/62 baseline preserved. Receipt: .ai/staging-attempts/tc-de67-profile-cleanup-root-review-20261028.json. Controlled OIH/AMD/TCNEW responses are software fixtures, not genuine source evidence.
+- Exact closing-tip CI and supported integration are Root-owned. Real Provider/issuer qualification, private target/deployment, AC1-AC9, REF-HELP-V25 and operational holds remain open. No source HTTP, quota/SEC replay, target change or deployment occurred.
+
+Next: Root observes exact closing-tip CI and performs supported integration. Closure summary includes the required integration_capture: exact branch HEAD; the final records commit is not self-referenced. Native goal remains active and unchanged.
+
+---
+
 # feat/tc2000-frontend-rework
 
 ## Current continuation — synthetic TCNEW calendar fixture — 2026-10-28
