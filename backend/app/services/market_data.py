@@ -1786,7 +1786,9 @@ async def search_provider_instruments_async(
                         if candidate.get("provider") == item.get("provider")
                     ),
                 }
-                for item in {row.get("provider"): row for row in cached if row.get("provider")}
+                for item in {
+                    row.get("provider"): row for row in cached if row.get("provider")
+                }.values()
             )
         return sorted(cached, key=lambda item: _search_priority(query, item))[:10]
 
