@@ -1,36 +1,18 @@
 {
   "acceptance_criteria": [
     {
-      "id": "ONDEMAND-SCOPE",
-      "text": "Explicit provider transport is possible only inside authenticated server-minted scopes when request-driven-only is enabled; each scope binds exact capability/operation and any target identity/provider, resets on all exit paths, and never bypasses global routing, free-plan, holds, health, budget, quota, entitlement, or native-unknown admission. Every active scope forces free-only admission and operation holds regardless of global flags."
-    },
-    {
-      "id": "ONDEMAND-DISCOVERY",
-      "text": "Authenticated explicit discovery returns typed candidates and per-source returned/held/unavailable/failure outcomes without persisting candidates; ordinary search/typeahead remains local-only and cannot opt into provider fanout."
-    },
-    {
-      "id": "ONDEMAND-IDENTITY",
-      "text": "Explicit selected-candidate acquisition reconciles through canonical mastering, requires stable external identity, active primary listing authority, and exact provider-symbol binding, preserves/quarantines existing scaffold conflicts, and never starts legacy bulk/event fanout."
-    },
-    {
-      "id": "ONDEMAND-HISTORY",
-      "text": "One-symbol/one-timeframe history acquisition uses existing selected-series cache, missing-slice repair, process/distributed coalescing, durable admission/settlement, persistence, and coverage; it returns truthful complete/partial/held/no_data/failed results while preserving prior local data."
-    },
-    {
-      "id": "ONDEMAND-ETF-CONSUMER",
-      "text": "A public Provider scope helper binds ETF_HOLDINGS/fetch_etf_holdings_latest to the exact trusted issuer provider resolved from the committed ETF profile/adapter (for example VanEck for OIH), with no SEC/EDGAR or generic-provider fallback; a separate sealed one-shot first-probe context accepts only the exact committed job/fund/instrument/provider-symbol/account/review revision while its entitlement is not_run, never persistently enables policy or writes success, and preserves every normal admission guard. Reviewed wire schemas, setting, and truthful application-budget review metadata are published for ETF/TC consumers."
-    },
-    {
-      "id": "ONDEMAND-VALIDATION",
-      "text": "Focused no-network tests cover denied ordinary calls, concurrent scope isolation/reset, absent/mismatched provider_symbol, free-only admission under PROVIDER_FREE_ONLY_CHECKPOINT=false and ALLOW_PAID_PROVIDER_ROUTING=true, exact issuer binding, first-probe exact-scope/revision/not_run/one-shot/global-stop behavior, selected-default-series history readback through a real AsyncSession/PostgreSQL test, request-range/response and missing-slice ceilings, identity failures and schema limits. Exact-source CI, required full local profile, Root technical acceptance, and exact closing-head CI are required gates before integration; all 24 original roadmap criteria and the consumed 119-request no-replay boundary remain unchanged."
+      "id": "ONDEMAND-CACHED-OUTCOMES",
+      "text": "After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the providers selected by the normal resolver; they make no repeated provider call and do not crash while constructing those outcomes."
     }
   ],
-  "active_checkpoint_id": "provider-on-demand-acquisition-20261027",
+  "active_checkpoint_id": "provider-on-demand-cached-search-outcome-reuse-20261028",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
-  "checkpoint_authorization_state": "coordinator_accepted_under_delegated_human_authority",
-  "checkpoint_status": "ready_for_integration",
+  "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
+  "previous_accepted_checkpoint_id": "provider-on-demand-acquisition-20261027",
+  "checkpoint_acceptance_receipt": null,
+  "checkpoint_authorization_state": "root_implementation_activated_acceptance_pending",
+  "checkpoint_status": "in_progress",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -76,7 +58,14 @@
     "scope_note": "Exact implementation-source CI only; closing records-only commit requires a separate exact-head CI result.",
     "status": "terminal_success"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/services/market_data.py",
+    "backend/tests/unit/services/test_provider_persistence.py",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -93,7 +82,7 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/market-data-provider-platform: Close only the human-authorized provider-on-demand-acquisition-20261027 software checkpoint: explicit authenticated discovery, canonical selected identity, bounded selected-history acquisition, safe server-minted issuer/provider scopes, and truthful no-network validation. Preserve the accepted prior checkpoints and all 24 original Provider roadmap criteria; actual live/source/target/consumer qualification and full-roadmap completion remain open.. Acceptance criteria: ONDEMAND-SCOPE: Explicit provider transport is possible only inside authenticated server-minted scopes when request-driven-only is enabled; each scope binds exact capability/operation and any target identity/provider, resets on all exit paths, and never bypasses global routing, free-plan, holds, health, budget, quota, entitlement, or native-unknown admission. Every active scope forces free-only admission and operation holds regardless of global flags.; ONDEMAND-DISCOVERY: Authenticated explicit discovery returns typed candidates and per-source returned/held/unavailable/failure outcomes without persisting candidates; ordinary search/typeahead remains local-only and cannot opt into provider fanout.; ONDEMAND-IDENTITY: Explicit selected-candidate acquisition reconciles through canonical mastering, requires stable external identity, active primary listing authority, and exact provider-symbol binding, preserves/quarantines existing scaffold conflicts, and never starts legacy bulk/event fanout.; ONDEMAND-HISTORY: One-symbol/one-timeframe history acquisition uses existing selected-series cache, missing-slice repair, process/distributed coalescing, durable admission/settlement, persistence, and coverage; it returns truthful complete/partial/held/no_data/failed results while preserving prior local data.; ONDEMAND-ETF-CONSUMER: A public Provider scope helper binds ETF_HOLDINGS/fetch_etf_holdings_latest to the exact trusted issuer provider resolved from the committed ETF profile/adapter (for example VanEck for OIH), with no SEC/EDGAR or generic-provider fallback; a separate sealed one-shot first-probe context accepts only the exact committed job/fund/instrument/provider-symbol/account/review revision while its entitlement is not_run, never persistently enables policy or writes success, and preserves every normal admission guard. Reviewed wire schemas, setting, and truthful application-budget review metadata are published for ETF/TC consumers.; ONDEMAND-VALIDATION: Focused no-network tests cover denied ordinary calls, concurrent scope isolation/reset, absent/mismatched provider_symbol, free-only admission under PROVIDER_FREE_ONLY_CHECKPOINT=false and ALLOW_PAID_PROVIDER_ROUTING=true, exact issuer binding, first-probe exact-scope/revision/not_run/one-shot/global-stop behavior, selected-default-series history readback through a real AsyncSession/PostgreSQL test, request-range/response and missing-slice ceilings, identity failures and schema limits. Exact-source CI, required full local profile, Root technical acceptance, and exact closing-head CI are required gates before integration; all 24 original roadmap criteria and the consumed 119-request no-replay boundary remain unchanged.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance feat/market-data-provider-platform: Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching. Preserve the accepted prior on-demand checkpoint and all 24 Provider roadmap criteria; genuine live/source/target qualification and the full roadmap remain open.. Acceptance criteria: ONDEMAND-CACHED-OUTCOMES: After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the providers selected by the normal resolver; they make no repeated provider call and do not crash while constructing those outcomes.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
   "goal_request": {
     "objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
@@ -101,16 +90,16 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3",
+  "head": "539e7c44b03befe76d758c62d56e225d4b305d84",
   "implementation_sha": "51301c915d92c8ec4f8514cb4f85ac659791c33b",
   "interrupted": false,
   "last_checkpoint": "2026-10-27T18:52:15Z",
-  "last_human_progress_update": "2026-10-25T06:12:37.150207+00:00",
+  "last_human_progress_update": "2026-10-28T12:15:21.408448+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Publish this exact green-staging adoption to the existing Provider branch and inspect its exact-source CI. Preserve the accepted on-demand software checkpoint and all 24 original roadmap criteria. Root owns first usable on-demand deployment and actual OIH/provider/issuer/source/target/consumer qualification; after Root releases additional Provider implementation, resume AC-UNIVERSE-COMPLETE. No provider/issuer/SEC request, quota action, hold change, paid/trial/native/broker/capital activation, or consumed-119 replay.",
   "parent_branch": "staging",
-  "plan_hash": "2f0123085afa61c517484c759b8ef46218fce3145ef1800ef6700e0219f22d88",
+  "plan_hash": "64265ca4bb8404db48c6cb76f2a48a3dc5dd64088ac0e26d397918f1b13cf903",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -156,22 +145,15 @@
     "status": "completed: success"
   },
   "progress": {
-    "completed": [
-      "ONDEMAND-SCOPE",
-      "ONDEMAND-DISCOVERY",
-      "ONDEMAND-IDENTITY",
-      "ONDEMAND-HISTORY",
-      "ONDEMAND-ETF-CONSUMER",
-      "ONDEMAND-VALIDATION"
-    ],
-    "current_blocker": "No adoption conflict remains. The exact synchronized green staging release e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 is adopted locally; this owned adoption commit and its exact-source branch CI are the remaining publication gates. Root owns first usable on-demand deployment and actual OIH/source/target/consumer qualification. Additional Provider implementation remains deferred until Root releases it; the complete 24-item roadmap remains open.",
-    "current_phase": "e3_green_staging_adopted_provider_branch_publication_pending",
-    "next_action": "Publish this exact green-staging adoption to the existing Provider branch and inspect its exact-source CI. Preserve the accepted on-demand software checkpoint and all 24 original roadmap criteria. Root owns first usable on-demand deployment and actual OIH/provider/issuer/source/target/consumer qualification; after Root releases additional Provider implementation, resume AC-UNIVERSE-COMPLETE. No provider/issuer/SEC request, quota action, hold change, paid/trial/native/broker/capital activation, or consumed-119 replay.",
-    "total": 6,
-    "updated_at": "2026-10-28T10:19:02.718812Z"
+    "completed": [],
+    "current_blocker": "Exact-source CI, required full local profile, and Root review remain pending",
+    "current_phase": "cached_search_outcome_repair_validation",
+    "next_action": "Commit and push the focused cached-outcome repair, then run exact branch CI and complete the required full local profile without provider HTTP.",
+    "total": 1,
+    "updated_at": "2026-10-28T12:15:21.408428+00:00"
   },
-  "remote": "f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3",
-  "remote_sha": "f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3",
+  "remote": "539e7c44b03befe76d758c62d56e225d4b305d84",
+  "remote_sha": "539e7c44b03befe76d758c62d56e225d4b305d84",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
