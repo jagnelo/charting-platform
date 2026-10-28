@@ -7992,16 +7992,23 @@ progress:
       84.41% coverage/XML, separate frontend/browser receipts, cleanup, and retained failures are
       recorded in the checkpoint acceptance/evidence fields. This closes only the named checkpoint;
       all 24 roadmap criteria, prior checkpoint history, operational holds, and no-replay boundary remain.
+    - >-
+      2026-10-28: adopted exact synchronized-green staging `4bc50a9de9eb2453c75eda047d01466309a3a3da`
+      (CI 40721314996, Exhaustive passed) by fast-forward from Provider source `4c8950b61f863eb317fcf5369930721d2cef76de`.
+      The complete tree is unchanged (`ee51d4e02f1659030d11507696b24055adec8303`), including identical backend and
+      frontend trees; no Provider import manifest or fresh local test receipt applies. The one records-only adoption
+      publication requires exact-tip branch CI. Preserve all 24 roadmap criteria, accepted checkpoints, historical
+      failures, holds, and the consumed-119 no-replay boundary. Root owns master CI, deployment, and operational proof.
   completed:
   - ONDEMAND-CACHED-OUTCOMES
   total: 1
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
-  current_phase: cached_search_outcome_checkpoint_accepted_pending_final_tip_ci
+  current_phase: green_staging_4bc50_adopted_pending_adoption_tip_ci
   current_blocker: >-
-    Only the exact-source CI for this final records-only closure commit remains before Root's
-    supported staging integration. The accepted checkpoint does not complete the 24-item Provider
-    roadmap or clear any live/source/target, native, paid, trial, broker, capital, quota, or
-    consumed-119 hold.
+    The exact green staging source is adopted locally; the single owned-record adoption commit
+    and its exact branch CI remain pending. Root owns master CI, deployment, and all source/target
+    qualification. The accepted checkpoint does not complete the 24-item Provider roadmap or
+    clear any live/source/target, native, paid, trial, broker, capital, quota, or consumed-119 hold.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -10129,7 +10136,7 @@ historical_current_gate_checkpoint_2026_10_16: >-
     is to resume `AC-UNIVERSE-COMPLETE` from the adopted source; do not start
     that work in this adoption checkpoint.
 current_gate_checkpoint: >-
-  Root accepts only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
+  Historical 8b67 closure: Root accepted only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
   source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority;
   acceptance receipt:
   `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
@@ -10156,3 +10163,23 @@ current_gate_checkpoint: >-
   live/native/paid/trial/broker/capital holds, and the consumed-119 no-replay boundary remain
   open/unchanged. After exact closing-tip CI, Root owns integration; the next Provider roadmap
   item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD
+  Current adoption (2026-10-28): canonical green staging receipt
+  `/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json`
+  (SHA-256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`)
+  and Root review
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json`
+  (SHA-256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`)
+  confirm staging `4bc50a9de9eb2453c75eda047d01466309a3a3da` and CI
+  `40721314996` terminal success, including Exhaustive. It directly descends from
+  Provider HEAD `4c8950b61f863eb317fcf5369930721d2cef76de` and was adopted by
+  fast-forward without conflicts. The complete tree at both SHAs is
+  `ee51d4e02f1659030d11507696b24055adec8303`; backend and frontend content are
+  unchanged. No tests were rerun and no fresh test receipt is claimed. The
+  single records-only adoption publication has its own exact-tip branch CI
+  pending. Root reports independent master CI `40735299702` running and
+  production still on `e3e87183`; Root retains master CI, deployment, and all
+  source/target operations. All 24 Provider roadmap criteria and dispositions,
+  prior accepted checkpoints, historical failures, native/live/paid/trial/
+  broker/capital/quota holds, and consumed-119 no-replay boundary remain
+  intact. After Root releases the branch for further work, the next Provider
+  roadmap item remains `AC-UNIVERSE-COMPLETE`.
