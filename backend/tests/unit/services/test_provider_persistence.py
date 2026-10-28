@@ -240,8 +240,10 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     )
     execute_calls: list[str] = []
 
+    selected_chain = [yfinance, coingecko]
+
     async def _fake_resolve(*args, **kwargs):
-        return [yfinance, coingecko]
+        return selected_chain
 
     async def _fake_execute(*args, provider_name=None, **kwargs):
         execute_calls.append(provider_name)
@@ -283,7 +285,10 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     monkeypatch.setattr(market_data, "execute_provider_call", _fake_execute)
 
     first = await market_data.search_provider_instruments_async(async_db, "nvda")
-    second = await market_data.search_provider_instruments_async(async_db, "nvda")
+    cached_outcomes: list[dict] = []
+    second = await market_data.search_provider_instruments_async(
+        async_db, "nvda", source_outcomes=cached_outcomes
+    )
 
     snapshots = db.execute(select(InstrumentSearchSnapshot)).scalars().all()
     assert execute_calls == ["yfinance", "coingecko"]
@@ -309,12 +314,94 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
     )
     assert len(snapshots) == 2
     assert {snapshot.query for snapshot in snapshots} == {"nvda"}
+    assert cached_outcomes == [
+        {
+            "provider": "yfinance",
+            "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+            "operation": "search_instruments",
+            "status": "cache_hit",
+            "reason_code": "fresh_search_snapshot",
+            "result_count": 1,
+        },
+        {
+            "provider": "coingecko",
+            "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+            "operation": "search_instruments",
+            "status": "cache_hit",
+            "reason_code": "fresh_search_snapshot",
+            "result_count": 1,
+        },
+    ]
+
+    selected_chain[:] = [coingecko]
+    selected_outcomes: list[dict] = []
+    selected = await market_data.search_provider_instruments_async(
+        async_db, "nvda", source_outcomes=selected_outcomes
+    )
+    assert selected == [second[1]]
+    assert selected_outcomes == [cached_outcomes[1]]
+    assert execute_calls == ["yfinance", "coingecko"]
     assert snapshots[0].payload["results"][0]["raw_payload"]
     assert {
         snapshot.payload["results"][0]["raw_payload"].get("assetId")
         or snapshot.payload["results"][0]["raw_payload"].get("id")
         for snapshot in snapshots
     } == {"y-1", "nvidia-token"}
+
+
+@pytest.mark.asyncio
+async def test_single_provider_cached_search_outcome_counts_persisted_candidates(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    massive = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    await provider_observations.store_search_snapshot(
+        async_db,
+        data_source_id=massive.data_source.id,
+        query="oih",
+        results=[
+            ProviderSearchResult(
+                symbol="OIH",
+                name="VanEck Oil Services ETF",
+                exchange="ARCX",
+                instrument_type="ETF",
+                raw_payload={"ticker": "OIH"},
+            ),
+            ProviderSearchResult(
+                symbol="OIH-W",
+                name="VanEck Oil Services ETF Warrant",
+                exchange="ARCX",
+                instrument_type="WARRANT",
+                raw_payload={"ticker": "OIH-W"},
+            ),
+        ],
+    )
+
+    async def _one_provider(*args, **kwargs):
+        return [massive]
+
+    async def _unexpected_fetch(*args, **kwargs):
+        pytest.fail("a fresh persisted search snapshot must not trigger another provider call")
+
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _one_provider)
+    monkeypatch.setattr(market_data, "execute_provider_call", _unexpected_fetch)
+
+    source_outcomes: list[dict] = []
+    candidates = await market_data.search_provider_instruments_async(
+        async_db, "oih", source_outcomes=source_outcomes
+    )
+
+    assert [candidate["symbol"] for candidate in candidates] == ["OIH", "OIH-W"]
+    assert source_outcomes == [
+        {
+            "provider": "massive",
+            "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+            "operation": "search_instruments",
+            "status": "cache_hit",
+            "reason_code": "fresh_search_snapshot",
+            "result_count": 2,
+        }
+    ]
 
 
 @pytest.mark.asyncio
