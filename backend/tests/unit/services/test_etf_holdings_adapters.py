@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import json
 import zipfile
-from datetime import date
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from io import BytesIO
 from pathlib import Path
@@ -174,10 +174,11 @@ class FakeResponse:
         content_type: str = "text/csv",
         status_code: int = 200,
         url: str = "https://issuer.example/holdings.csv",
+        headers: dict[str, str] | None = None,
     ):
         self.text = text
         self.content = content if content is not None else text.encode()
-        self.headers = {"content-type": content_type}
+        self.headers = {"content-type": content_type, **(headers or {})}
         self.status_code = status_code
         self.url = url
 
@@ -193,10 +194,12 @@ class FakeResponse:
 class FakeAsyncClient:
     queue: list[FakeResponse | BaseException] = []
     requested: list[tuple[str, dict]] = []
+    constructed: list[dict] = []
 
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
+        type(self).constructed.append(dict(kwargs))
 
     async def __aenter__(self):
         return self
@@ -310,6 +313,8 @@ async def test_sofi_fetch_preserves_periodic_archive_provenance(monkeypatch):
         staticmethod(lambda raw_pdf: ([row], date(2025, 11, 30), "parsed")),
     )
     FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.constructed = []
     FakeAsyncClient.queue = [
         FakeResponse(
             text="<html>DXJ product page</html>",
@@ -4710,6 +4715,222 @@ async def test_vaneck_adapter_retries_transient_workbook_timeout(monkeypatch):
 
     assert result.rows[0].symbol == "NVDA"
     assert len(FakeAsyncClient.requested) == 2
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains_raw_bytes(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    FakeAsyncClient.constructed = []
+    workbook = _xlsx_workbook(
+        [
+            [f"OIH | Daily Holdings (%)  {datetime.now(UTC):%m/%d/%Y}"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=(
+                "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/"
+                "downloads/holdings/?cken=true"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_initial_qualification(
+        symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+    )
+
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0].startswith(
+        "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/"
+    )
+    assert FakeAsyncClient.requested[0][1]["follow_redirects"] is False
+    assert FakeAsyncClient.constructed[0]["follow_redirects"] is False
+    assert result.source_identifier == "oil-services-etf-oih"
+    assert result.legal_metadata["initial_qualification"] is True
+    assert base64.b64decode(result.raw_json["raw_workbook_base64"]) == workbook
+    assert result.raw_json["raw_workbook_bytes"] == len(workbook)
+    assert result.rows[0].symbol == "SLB"
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_oih_qualification_records_redirect_without_following(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            status_code=302,
+            headers={"location": "https://files.vaneck.com/oih.xlsx"},
+            url=(
+                "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/"
+                "downloads/holdings/?cken=true"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(adapter.InitialQualificationRedirect) as raised:
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    assert raised.value.location == "https://files.vaneck.com/oih.xlsx"
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][1]["follow_redirects"] is False
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_qualification_does_not_retry_timeout(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [httpx.ReadTimeout("mock timeout")]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(httpx.ReadTimeout):
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    assert len(FakeAsyncClient.requested) == 1
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("title", "identity_row", "expected_status"),
+    [
+        ("SMH Semiconductor ETF holdings", None, "mismatch"),
+        ("", ["Fund Ticker", "SMH"], "mismatch"),
+        ("Fund Ticker: OIH", None, "matched"),
+        ("Daily Holdings", None, "unverified"),
+        ("VanEck Oil Services ETF (OIH)", None, "matched"),
+    ],
+)
+async def test_vaneck_initial_workbook_identity_comes_from_body_not_requested_slug(
+    monkeypatch, title, identity_row, expected_status
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    title_with_date = f"{title} {datetime.now(UTC):%m/%d/%Y}"
+    workbook = _xlsx_workbook(
+        [
+            [title_with_date],
+            identity_row or [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            url=(
+                "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/"
+                "downloads/holdings/?cken=true"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_initial_qualification(
+        symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+    )
+
+    assert result.legal_metadata["body_identity_status"] == expected_status
+    evidence = result.legal_metadata["body_identity_evidence"]
+    assert evidence
+    if identity_row:
+        assert "SMH" in evidence
+    else:
+        assert title_with_date in evidence
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("date_text", "error_text"),
+    [
+        ("13/41/2026", "no valid composition date"),
+        (
+            "{future}",
+            "composition date is in the future",
+        ),
+    ],
+)
+async def test_vaneck_initial_oih_rejects_invalid_or_future_workbook_date(
+    monkeypatch, date_text, error_text
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    today = datetime.now(UTC).date()
+    tomorrow = today + timedelta(days=1)
+    date_text = date_text.format(future=tomorrow.strftime("%m/%d/%Y"))
+    workbook = _xlsx_workbook(
+        [
+            [f"OIH | Daily Holdings (%) {date_text}"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            url=(
+                "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/"
+                "downloads/holdings/?cken=true"
+            ),
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match=error_text):
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
@@ -24495,6 +24716,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         assert metadata["issuer"] == "VanEck"
         assert metadata["provider_aliases"] == {
             "holdings_adapter": "vaneck",
+            "holdings_source_provider": "vaneck",
             "product_slug": product_slug,
         }
 

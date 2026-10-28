@@ -320,6 +320,48 @@ describe('useChartStore', () => {
     expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/instrument-indicators/42')).toHaveLength(2)
   })
 
+  it('queues a fresh local read after an in-flight initial load when history was acquired', async () => {
+    let localBarsRequests = 0
+    let indicatorRequests = 0
+    let finishInitialIndicators!: (value: { indicators: any[] }) => void
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/ACQUIRED-RACE') {
+        return Promise.resolve({ id: 42, symbol: 'ACQUIRED-RACE', stats: { week52_high: 1 } }) as any
+      }
+      if (path === '/ohlcv/local/ACQUIRED-RACE/M1') {
+        localBarsRequests += 1
+        return Promise.resolve(localBarsRequests === 1 ? [] : [
+          { ts: '2026-10-27T12:34:00Z', open: 2, high: 3, low: 1, close: 2.5, volume: 10 },
+        ]) as any
+      }
+      if (path === '/instrument-indicators/42') {
+        indicatorRequests += 1
+        if (indicatorRequests === 1) {
+          return new Promise(resolve => { finishInitialIndicators = resolve }) as any
+        }
+        return Promise.resolve({ indicators: [] }) as any
+      }
+      return Promise.resolve([]) as any
+    })
+
+    const store = useChartStore()
+    const initialHydration = store.loadBars('ACQUIRED-RACE', 'M1', 'candles', true)
+    await vi.waitFor(() => expect(store.loading).toBe(false))
+    expect(localBarsRequests).toBe(1)
+
+    const refreshed = store.refreshLocalBars()
+    await Promise.resolve()
+    expect(localBarsRequests).toBe(1)
+
+    finishInitialIndicators({ indicators: [] })
+    await Promise.all([initialHydration, refreshed])
+
+    expect(localBarsRequests).toBe(2)
+    expect(store.bars).toMatchObject([{ ts: '2026-10-27T12:34:00Z', close: 2.5 }])
+    expect(store.loading).toBe(false)
+    expect((api.get as ReturnType<typeof vi.fn>).mock.calls.filter(call => call[0] === '/ohlcv/local/ACQUIRED-RACE/M1')).toHaveLength(2)
+  })
+
   it('refreshes a settled identical selection without replacing its rendered state', async () => {
     let barsRequest = 0
     let indicatorRequest = 0

@@ -7604,9 +7604,9 @@ progress:
     - ONDEMAND-VALIDATION
   total: 6
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
-  current_phase: provider_on_demand_acquisition_software_checkpoint_accepted_waiting_for_exact_closure_ci
+  current_phase: e3_green_staging_adopted_provider_branch_publication_pending
   current_blocker: >-
-    Root accepted only the six on-demand software criteria on source 51301c9. The complete local profile and implementation-source CI are green; the records-only closure head still requires its own exact terminal-green CI before Root's guarded staging integration. Actual provider/source/target/consumer qualification and the complete 24-item roadmap remain open.
+    No adoption conflict remains. The exact synchronized green staging release e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 is adopted locally; this owned adoption commit and its exact-source branch CI are the remaining publication gates. Root owns first usable on-demand deployment and actual OIH/source/target/consumer qualification. Additional Provider implementation remains deferred until Root releases it; the complete 24-item roadmap remains open.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -7891,7 +7891,7 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Validate and publish one records-only closing commit, then wait for terminal-green CI on that exact commit. Root owns guarded staging integration. Keep genuine source/target/consumer acceptance and the full roadmap open; no provider/issuer/SEC request, quota action, hold change, paid/trial/native/broker/capital activation, or consumed-119 replay.
+    Publish this exact green-staging adoption to the existing Provider branch and inspect its exact-source CI. Preserve the accepted on-demand software checkpoint and all 24 original roadmap criteria. Root owns first usable on-demand deployment and actual OIH/source/target/consumer qualification; after Root releases additional Provider implementation, resume AC-UNIVERSE-COMPLETE. No provider/issuer/SEC request, quota action, hold change, paid/trial/native/broker/capital activation, or consumed-119 replay.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -9733,24 +9733,21 @@ historical_current_gate_checkpoint_2026_10_16: >-
     is to resume `AC-UNIVERSE-COMPLETE` from the adopted source; do not start
     that work in this adoption checkpoint.
 current_gate_checkpoint: >-
-  Updated 2026-10-27: the active checkpoint is
-  `provider-on-demand-acquisition-20261027`, accepted only for its six software
-  criteria on implementation source
-  `51301c915d92c8ec4f8514cb4f85ac659791c33b`. Exact implementation-source CI
-  `40540176697` is terminal green. The complete local profile qualified the
-  6,073-ID manifest with declared dispositions: 5,522 unit-like IDs were covered
-  in 221 bounded partitions (5,521 passed and one declared native RC6 skip); 551
-  integration IDs were covered in six complete batches (549 passed, two
-  declared opt-in skips), for 6,070 passes and three declared native skips;
-  combined coverage was 84 percent with XML, frontend/build, 196 functional passes plus two canonical
-  live-only skips, 104 strict visuals, and unchanged probes passing. The
-  separate aggregate integration timeout and diagnostic/environment/permission
-  failures remain preserved; all 551 integration IDs were subsequently covered
-  in the complete batches. Root independently verified owned-resource cleanup
-  and exact protected baseline restoration. This records only delegated software
-  checkpoint acceptance, not full-roadmap, live-source, runtime, consumer, or
-  target acceptance. The records-only closure commit still requires its exact-head
-  terminal-green CI before Root's guarded staging integration. Preserve every
-  roadmap disposition and all operation/usage/rights holds; no provider HTTP,
-  allowance replay, quota operation, paid/trial/native/broker/capital activation,
-  self-integration, promotion, or deployment is authorized.
+  Updated 2026-10-28: the delegated software checkpoint
+  `provider-on-demand-acquisition-20261027` remains accepted only for its six
+  software criteria on Provider source `51301c915d92c8ec4f8514cb4f85ac659791c33b`
+  and exact CI `40540176697`; its complete local profile and cleanup evidence
+  remain recorded above. Provider's accepted source `f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3`
+  is now included in synchronized green staging `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`.
+  Canonical receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json`
+  has SHA-256 `ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da`;
+  exact Actions run `40656688915` completed successfully on e3e8718: Backend,
+  Frontend, E2E, and Exhaustive Integration Gate passed; Branch-declared skipped
+  by policy. The adoption imports accepted ETF and TC source/tests and their
+  owned records unchanged; no Provider product path changed relative to f019.
+  The Provider branch adoption publication and its exact-source branch CI remain
+  pending. Root owns first usable on-demand deployment and genuine OIH/provider/
+  issuer/source/target/consumer qualification. All 24 original roadmap criteria,
+  operation/usage/rights holds, unknown native quotas, and the consumed 119-request
+  no-replay boundary remain open and unchanged. No provider HTTP, quota action,
+  paid/trial/native/broker/capital activation, promotion, or deployment is claimed.

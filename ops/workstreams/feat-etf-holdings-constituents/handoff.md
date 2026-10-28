@@ -1,3 +1,635 @@
+# Current implementation — explicit selected ETF acquisition — 2026-10-27
+
+## Current checkpoint: etf-on-demand-consumer-20261027 — accepted; closing CI pending
+
+Root authorized this six-criterion software checkpoint under the standing
+human-authorized on-demand acquisition goal. The accepted ERF response/order
+checkpoint and its evidence remain preserved below as historical acceptance;
+they do not close this newer consumer scope. Full AC1-AC14 stays the roadmap.
+
+## Accepted Provider staging adopted; consumer contract revalidation — 2026-10-27
+
+The released Provider source `f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3` is
+integrated in synchronized green staging `6bff091d7d43de0731284dfabcafa09514d226a6`.
+The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261027T205031Z-6bff091d7d43.json`
+(SHA256 `4f39d57eb0b8da68f1c388a7ffcc2d2e0ebb1b92b4b2ec67660ae8fef7be9294`);
+exact CI `40570735471`, including Exhaustive Integration Gate, is green. The
+ETF branch adopted only that exact staging commit in merge `f959ed3963da4e3f7d161c940e68c345763be009`,
+whose second parent is the released staging SHA. The pre-adoption ETF
+preparation was preserved in local commit `fe08b99e8f387cafd8b8a7dd2f378fb1008bd49b`.
+No sibling source was imported and no conflict occurred.
+
+The issuer-only consumer now resolves Provider's actual
+`bind_explicit_etf_holdings_acquisition(*, request_id, instrument_id, symbol,
+issuer_provider_name)` helper. Test wrappers delegate to that implementation,
+and the independent-AsyncSession regression checks the live exact request,
+instrument, `OIH`, and `vaneck` scope, matching and mismatching symbols, and
+context reset. The distinct initial-qualification path already resolves the
+separate `bind_vaneck_initial_etf_qualification` helper after its durable job,
+profile, account and review checks; the imported Provider tests exercise its
+one-shot binding and mismatch behavior. Cache-only and ordinary bootstrap tests
+continue to assert no acquisition scope or source work.
+
+The four relevant stack-free ETF/Provider modules passed `82/82` with UV offline;
+changed-file Ruff check, formatting and `git diff --check` passed. The earlier
+isolated PostgreSQL pass (`1/1`) used a mock binder and remains explicitly
+pre-adoption preparation evidence. The updated real-binder independent-PG test
+has only been collected, not re-executed after staging adoption. A complete
+source-matched backend and full-stack/browser profile plus exact owner-branch CI
+remain pending. The allocated local profile must use project
+`etf-on-demand-consumer-20261027`, preserve the documented retained baseline
+and TC-owned lifecycle, keep provider/issuer egress disabled, serially build,
+and stay within the Root-approved aggregate resource envelope. No actual source
+HTTP, quota reservation, target mutation, or route activation occurred; OIH
+workbook identity and native account limits remain unverified. All fourteen
+roadmap criteria, `15 Tier-0 and 156 Tier-1`, `74` fallback identities, the
+119-spent-request history, holds, quarantines, raw/PIT lineage and 30-day
+observation remain intact.
+
+## Explicit Provider acquisition scope preparation — 2026-10-27
+
+On top of published source `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`, the
+local consumer now resolves the Provider-owned
+`bind_explicit_etf_holdings_acquisition(*, request_id, instrument_id, symbol,
+issuer_provider_name)` helper dynamically and enters it only around the
+`refresh=true` selected-fund issuer call. The inputs come from the request
+correlation ID, already-resolved canonical instrument, and registered adapter
+`source_provider`; no request-supplied provider name is accepted. The normal
+operation remains `fetch_etf_holdings_latest` through the existing shared ETF
+bridge. If the staged Provider helper is absent, the response is typed `held`
+with no transport. Cache-only `refresh=false`, bootstrap, scheduled refresh and
+SEC fallback do not enter this context.
+
+Explicit refresh now commits the already-canonical fund's local profile and
+curated route before the bridge, then reloads it with its instrument. Curated
+VanEck route metadata includes the trusted `holdings_source_provider=vaneck`
+field required by the shared bridge. Cache-only remains read-only. Offline
+coverage verifies exact binding, scope restoration on success/failure/cancel,
+no-scope cache/bootstrap compatibility, and missing-helper hold. The focused
+bootstrap module passed `33/33`; the VanEck route-metadata assertion passed
+`1/1`. The real-AsyncSession regression is prepared and collects, and asserts
+an independent fresh session can see the committed profile before its mocked
+refresh path; it was not executed because no DB slot is allocated here.
+
+These are local consumer-preparation changes on a dirty worktree, not a
+published or accepted source. Provider's exact implementation still requires
+accepted green staging before the helper can exist in production. No external
+issuer/Provider/SEC request, quota use, target mutation, policy activation,
+fixture, or full profile was run. OIH workbook body identity remains unknown;
+all existing fail-closed identity checks and the full AC1–AC14 roadmap remain.
+
+## Exact-CI test-isolation correction — 2026-10-27
+
+Root's exact CI run `40525662170` / backend job `122264414829` exposed a
+test-isolation defect: an earlier adapter test left entries in the fake HTTP
+client's class-level `constructed` list, so the OIH no-follow test indexed a
+constructor call without `follow_redirects`. The OIH test now resets that
+list before setup and retains its strict `follow_redirects is False`, exactly
+one-request, and raw-byte-retention assertions. The complete adapter module
+passed `642/642` offline in `20.87s`; the original CI failure remains recorded
+as red. Root confirms base `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9` CI
+`40529140936` backend/frontend/branch-declared green; browser job
+`122291732853` was still running at that observation. No production code or runtime
+behavior changed in that test-only correction. Provider's green staged binder/provisioning dependency,
+actual OIH workbook identity qualification, full-source gates, and the full
+AC1–AC14 roadmap remain open.
+
+The current consumer-seam changes have not been published and have no exact-tip
+CI result yet; no Provider/issuer/SEC request, target mutation, quota use, or
+policy activation occurred.
+
+Status: implementation is local and unaccepted. Baseline published source is
+`cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`; the Provider-context/profile-commit
+consumer preparation and current owned records are local and unpublished. The human-authorized on-demand
+acquisition topic is now under the reviewed coordinator contract. The earlier
+proposal below is retained as history. No real source request, Provider quota
+reservation, SEC request, target mutation, or route/policy enablement occurred.
+
+## ETF API contract published for TC
+
+- Authenticated route: `POST /api/v1/etf-holdings/{symbol}/acquire`.
+- Request `ETFProfileAcquireRequest`: required UUID `request_id`, boolean
+  `refresh`. `refresh=false` is cache-only and does not create a missing
+  profile. The explicit action must send `refresh=true` to attempt the selected
+  issuer route. A request ID is a correlation key; it does not promise request
+  deduplication.
+- Response `ETFProfileAcquireOut`: `request_id`, `outcome` (`cached`,
+  `no_data`, `acquired`, `held`, `failed`), `refresh`, `refresh_attempted`,
+  `refresh_succeeded`, `profile`, nullable `snapshot` and `capability`,
+  nullable `source_provider`/`source_operation`, `provider_request_log_ids`,
+  and nullable `message`. `ETFHoldingsSnapshotOut` exposes its row list as
+  `snapshot.holdings` (not `snapshot.rows`). Provider status envelopes remain
+  separate from this ETF outcome enum. This matches the TC mocked v1 consumer
+  contract in `/home/m920q/charting-platform/.ai/staging-attempts/on-demand-wire-design-review-20261027.json`.
+- Unknown, ambiguous, inactive, synthetic, provisional, or non-fund identities
+  are denied before profile creation/source work. An existing active, resolved
+  canonical ETF/fund may receive only a local `ETFProfile` plus curated issuer
+  metadata when the user explicitly requests refresh. Cache-only remains
+  read-only. Existing bootstrap behavior is unchanged.
+- The selected action does not perform SEC ticker enrichment/fallback,
+  constituent Provider enrichment, or constituent-history fanout. A selected
+  adapter must carry an issuer-only opt-in marker and curated route identity;
+  it still goes through the existing ETF shared Provider bridge. Until the
+  manual request-only Provider context is in exact green staging, the current
+  shared bridge may hold the request. No sibling source is imported.
+- Successful test ingestion returns the exact stored snapshot by ID after
+  commit, eagerly loading the profile/instrument and complete holdings graph.
+  Failure keeps the prior snapshot inspectable and does not claim a fresh
+  result. Composition/as-of/known-at/publication fields retain their existing
+  meanings; no snapshot is made current merely because it was retrieved.
+
+## Current bounded evidence and remaining gate
+
+- Stack-free unit module `tests/unit/services/test_etf_holdings_bootstrap.py`:
+  `31 passed in 4.50s` under the isolated offline UV environment. This includes
+  canonical identity restrictions, cache-only/no-profile behavior, missing
+  profile creation with relationship attachment, unreviewed route denial, and
+  failure preservation. Ruff passed on the seven changed Python files.
+- The branch-owned command map now includes that unit module and both focused
+  selected-fund API regressions; `scripts/run-branch-tests.py ... --list`
+  confirms the declared commands without executing them.
+- The first focused database attempt is preserved red at
+  `/tmp/etf-acquire-api-20261027/attempt-1/`. Both endpoint tests reached a
+  successful response; their assertion incorrectly looked for `snapshot.rows`
+  instead of the reviewed `snapshot.holdings` field. The test-only assertion was
+  corrected without adding a response alias or dropping row/content checks.
+- One corrected-source Testcontainers PostgreSQL/Redis attempt passed both
+  focused API cases in 19.14s. It covered a newly canonical OIH with no profile
+  through authenticated HTTP and complete holdings output, plus a separate
+  fresh `AsyncSession` that began with no profile/identity-map objects and
+  serialized the committed profile/snapshot/holdings graph. Both source refresh
+  seams were replaced by deterministic database-only test ingestion; external
+  HTTP was blocked and no Provider/issuer request or request log was produced.
+  Result: `/tmp/etf-acquire-api-20261027/attempt-2/result.json`; cleanup and
+  protected inventory receipt:
+  `/tmp/etf-acquire-api-20261027/attempt-2/cleanup-receipt.json`.
+  PostgreSQL, Redis, and Ryuk IDs/session labels are captured there. Testcontainers
+  removed its resources; final inventories exactly matched the 33-container,
+  51-volume, 11-network, and 56-image baseline. No manual cleanup was run.
+- These focused cases and unit tests are component evidence only. Full backend,
+  branch CI, the staged Provider manual-scope integration, and the TC full
+  consumer qualification remain open. No checkpoint is accepted and the full
+  AC1–AC14 roadmap remains active.
+
+## VanEck/OIH initial issuer-qualification component — 2026-10-27
+
+This is a bounded local source candidate on published baseline
+`b9939d13928749765319475d77fe754102c33e6a`. It adds one administrator-only,
+one-shot OIH qualification operation and an issuer-specific adapter method.
+The current ETF consumer requires the Provider-owned context manager with this
+exact reviewed interface:
+
+`bind_vaneck_initial_etf_qualification(*, job_id: int, fund_profile_id: int, instrument_id: int, provider_symbol: str, account_scope: str, review_revision: int, expires_at: aware_datetime)`.
+
+It resolves that binder dynamically and fails closed before creating a job if
+the helper is absent. No Provider sibling code is copied or imported. Until the
+helper is present in exact green Provider staging and adopted through Root's
+release, this component cannot make an admitted request. The separate job is
+restricted to canonical OIH, its curated `oil-services-etf-oih` slug, the
+`ETF_HOLDINGS` capability and `fetch_etf_holdings_latest` operation. It keeps
+the ordinary policy disabled and entitlement `not_run` on every nonpositive
+result. It uses the current reviewed application limits: concurrency 1, at
+least 30 seconds between physical requests, burst 1, at most 3 physical
+requests, 120 seconds total, 5 MiB cumulative body, and zero retries. Redirects
+are not followed; the Location is retained for review. The shared Provider
+transport/admission and settlement path is still mandatory.
+
+Before positive finalization, the service locks and refreshes the persisted job,
+active DataSource, disabled policy and entitlement with `FOR UPDATE` plus
+`populate_existing`. It compares the persisted job scope, entitlement revision
+and `not_run` state, source review fingerprint and current account binding to
+the committed scope. A mid-fetch review change rejects qualification instead
+of overwriting its revision. Mocked tests cover this concurrency boundary.
+
+Qualification also requires body-level OIH identity and a valid composition
+date no later than the current UTC date. The adapter checks workbook core title
+metadata, title cells preceding the holdings header, and explicit fund ticker
+fields. A known contradictory fund identity is rejected; absent/ambiguous
+identity remains `unverified` and cannot set a positive marker. No actual OIH
+workbook body has been received in this work, so whether the real workbook
+contains an independent identity field remains unknown. The fund-specific URL
+and request slug alone are not body identity; Root technical review is needed
+before any live qualification decision.
+
+When a returned workbook body is rejected for identity, the existing rejected-
+fetch path retains the complete adapter payload, including base64 original
+workbook bytes, raw SHA-256 and byte length, under the existing
+`issuer_adapter_rejected_fetch` content-addressed artifact. Its metadata links
+the Provider request-log IDs and attempt evidence. The artifact's
+`content_hash` is the existing canonical JSON payload hash, distinct from the
+raw workbook-byte SHA. The one-shot job latch denies automatic re-fetch. A
+redirect response has no workbook body to retain; its Location and Provider
+response audit are retained instead.
+
+Focused offline run: 14 passed, 678 deselected. Exact selected cases were:
+
+- `tests/unit/services/test_etf_holdings_vaneck_qualification.py::test_review_revision_changed_during_fetch_denies_positive_finalization`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains_raw_bytes`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_oih_qualification_records_redirect_without_following`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_qualification_does_not_retry_timeout`
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_workbook_identity_comes_from_body_not_requested_slug` (5 parameter cases: contradictory title, contradictory structured ticker, matching structured ticker, unverified title, matching OIH title)
+- `tests/unit/services/test_etf_holdings_adapters.py::test_vaneck_initial_oih_rejects_invalid_or_future_workbook_date` (invalid and future date cases)
+- `tests/unit/services/test_etf_holdings_provider_bridge.py::test_vaneck_initial_transport_streams_and_stops_at_cumulative_body_cap`
+- `tests/unit/services/test_etf_holdings_provider_bridge.py::test_vaneck_initial_transport_refuses_send_after_slow_setup_crosses_deadline`
+- `tests/unit/services/test_etf_holdings_provider_bridge.py::test_vaneck_initial_transport_cancels_in_flight_send_at_deadline`
+
+Ruff, format check, Python compilation and `git diff --check` passed on the
+changed source/tests. The earlier local focused run that exposed a missing UTC
+import and a malformed test date/header was corrected before the final 14-case
+green run. No issuer/Provider/SEC HTTP, target provisioning or policy change,
+quota reservation, live qualification, database fixture, full backend/browser
+profile or runtime acceptance was performed. New exact-source CI starts on the
+publication commit and remains pending until observed. All AC1–AC14, 15 Tier-0,
+156 Tier-1, 74 fallback identities, the 119 spent-request history, and all
+holds/quarantines remain intact.
+
+## OIH source and shared-admission boundary
+
+The current target facts are in Root's read-only receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/on-demand-target-source-readiness-20261027.json`.
+Massive is present and active. Persisted target policies enable instrument
+search and metadata at priority 20 and `PRICE_HISTORY` at priority 80, each
+with 5 tokens/minute. The target source-setting seed chain omits Massive for
+price history, but that is not the persisted target policy; do not overwrite
+the target from source defaults. The receipt records global routing false,
+free-only true, paid false, `free-stocks-basic`, `is_free=true`, a passed probe,
+quota verification date 2026-10-23, and `max_concurrency=null`. These facts do
+not establish current remaining native quota/headroom, active reservations or
+holds, exact OIH operation/cost, or effective admission while global routing
+is off. No target policy change or request is authorized by this read-only
+receipt.
+
+The linked public primary review
+`/home/m920q/charting-platform/.ai/staging-attempts/on-demand-free-source-document-review-20261027.md`
+records Massive's public Stocks Basic offer as free EOD data, two years of
+history, and five API calls/minute. This is public plan documentation, not proof
+of this account's current entitlement, native quota remaining/reset, operation
+cost, or request admission. After focused source gates, use supported Provider
+read controls to re-check the persisted Massive account, exact `PRICE_HISTORY`
+operation/cost, policy, current quota, reservations, holds, and effective
+global-routing behavior. Resolve OIH to one canonical active instrument, then
+obtain a narrowly reviewed request-only context for exactly Massive plus
+`PRICE_HISTORY`, the supported history operation, that instrument, and one
+user-selected interval/task. Preserve normal identity, entitlement, health,
+budget, shared-ledger reservation/settlement, and replay guards. Do not change
+the target's existing policy or global switch in this branch. If any current
+account/operation/hold fact is absent or the context is not exact-green staging,
+keep the request held. Root may separately authorize one bounded Provider
+history request after those checks; this is not an issuer-holdings refresh or
+constituent fanout.
+
+For issuer holdings, the target receipt says VanEck `DataSource` is absent and
+no VanEck policy rows exist. It must not be described as merely disabled. The
+official OIH product page advertises a workbook, but this review did not fetch
+it or establish a current artifact, complete rows, or response semantics. The
+implemented adapter identity is `vaneck`, capability `ETF_HOLDINGS`, operation
+`fetch_etf_holdings_latest`, for the selected OIH issuer route; these code
+identifiers do not establish target registration or admission. The
+official US legal page permits personal electronic copies while reserving
+commercial use and third-party identifier rights; it does not prove the app's
+commercial-use or identifier rights. VanEck `robots.txt` records a 25-second
+crawl delay. The current adapter uses `www.vaneck.com`, follows redirects, and
+retries timeout failures up to three calls with 0.25/0.50-second waits.
+Producer/Root must resolve exact workbook hosts/redirects, permitted app use,
+identifier rights, operation/cost, and the retry/crawl-delay conflict against
+the no-replay contract before any request. No workbook was fetched.
+
+Concrete readiness steps are distinct by source:
+
+1. **Massive/OIH history:** use supported Provider controls to verify the
+   current account, exact `PRICE_HISTORY` operation/cost, persisted policy,
+   quota/headroom, reservations, holds, and effective routing. Massive is
+   already present with target policy enabled, but global routing is off and
+   `max_concurrency` is null; do not infer admission or rewrite policy from the
+   seed chain. After exact-green Provider manual-scope release and fresh
+   admission review, the candidate is one explicit OIH history request for a
+   user-selected interval through Provider's history action. No constituent
+   fanout or global routing change is in scope.
+2. **VanEck/OIH holdings:** after Producer/Root resolve usage and identifier
+   rights, actual workbook host/redirects, response contract, retry/crawl-delay
+   behavior, operation/cost, and truthful account scope, use supported Provider
+   admin publisher-management to register the missing VanEck `DataSource` and
+   create only a disabled policy. Do not write target rows directly or enable
+   the route. Native quota/billing remain unknown unless evidence establishes
+   them. If a separately reviewed app-only budget is used, bind it through the
+   shared ledger with `application_usage_only=true` and a finite reviewed cap;
+   this does not establish native quota or justify `is_free=true`.
+
+For either source, admission must preserve exact account/instrument/capability/
+operation/task scope and the shared identity, entitlement, health, cost,
+reservation, settlement, durable request log, and replay protections. Unknown
+rights, costs, account scope, current quota/headroom, or holds mean deny/hold.
+No limit, host, redirect, quota, or target state is invented here. The
+request-only Provider context is not exact-green staging; the ETF adapter
+continues using the existing bridge and must remain held until the approved
+context is synchronized.
+
+The repository's supported management surface is under `/api/v1/providers`:
+read-only `GET /`, `/policies`, `/entitlements`, `/usage/account`, `/health`,
+and `/availability` are available for the current record; the market-data
+governance router exposes `GET /api/v1/market-data/quota` and
+`/quota-coordinator` for durable quota/reservation evidence. Do not call
+`POST /api/v1/providers/usage/account/refresh` as part of read-only preparation;
+it polls a provider account. For VanEck registration, the existing admin-only
+`POST /api/v1/providers/etf-publishers` requires a registered native ETF adapter,
+configured provider/account-scope mapping, exact hostnames, reviewed operation
+costs, complete quota-contract dimensions, publisher and entitlement review,
+and positive explicit capacity values. It creates a disabled policy, not a
+request. With VanEck's quota/rights/cost still unknown, no truthful payload is
+ready; do not fill those required values from assumptions. Read the resulting
+provider/policy/entitlement/quota records back through supported controls after
+Root/Provider authorizes provisioning.
+
+Official sources retained for the source-specific plan: [Massive Stocks plan](https://massive.com/stocks),
+[Massive pricing](https://massive.com/pricing?product=stocks),
+[Massive history window](https://massive.com/knowledge-base/article/how-much-historical-stock-data-does-massive-have),
+[VanEck OIH product page](https://www.vaneck.com/us/en/investments/oil-services-etf-oih/),
+[VanEck US legal page](https://www.vaneck.com/us/en/legal/), and
+[VanEck robots.txt](https://www.vaneck.com/robots.txt). Public documentation
+does not replace current account/quota/hold checks or a reviewed source request.
+
+The old planning note is preserved below. Keep all AC1–AC14, `15 Tier-0 and
+156 Tier-1`, `74 fallback identities`, prior FHSC/FQ/RIW acceptances and red
+history, raw/PIT lineage, holds/quarantines, 119 spent requests, and the 30-day
+observation. No external acquisition or acceptance claim is made.
+
+---
+
+# Historical proposal — on-demand ETF acquisition — 2026-10-27
+
+Status: proposal for Root/Provider contract review only. The exact owner source
+is `498dd546383bc79f9ac6114ea5ab8f08f86e9585`; the recorded exact branch CI is
+green. The human's 2026-10-27 “Ok, so proceed then” authorizes coordinator
+orchestration of the described acquisition workflow, not a source request,
+quota use, IWM reparse, code change, or activation in this proposal turn. The
+complete AC1–AC14 roadmap and prior FHSC/FQ/RIW histories remain open/preserved.
+
+## Minimal ETF-side contract proposal
+
+- Candidate OIH is an explicit single-fund holdings request. The coordinator
+  records OIH identity 43 with no holdings or candles in the deployed baseline.
+  Source code maps OIH to VanEck's `vaneck` adapter and
+  `oil-services-etf-oih` workbook slug (`backend/app/services/etf_holdings_adapters.py`);
+  deterministic adapter tests exist, but they do not prove current reachability,
+  issuer terms, complete live rows, or admission.
+- Reuse the authenticated `POST /api/v1/etf-holdings/{symbol}/bootstrap`
+  surface only if Root/Provider approve a minimal explicit issuer-only mode.
+  Current `bootstrap_etf_holdings_profile` opportunistically looks up SEC
+  fund-ticker identifiers when `sec_cik` is absent, and tries SEC N-PORT/legacy
+  fallback when issuer probing/fetch fails. It reuses a bootstrap-ready snapshot
+  without an explicit age check. Until those side effects and the definition of
+  stale-cache reuse are resolved, this endpoint is not a guaranteed VanEck-only
+  action. No call is proposed now. Keep default bootstrap semantics unchanged
+  unless separately reviewed.
+- A selected issuer request must bind the committed OIH instrument/profile and
+  curated VanEck slug, then make one bounded adapter invocation through
+  `_refresh_adapter_route` and the existing shared Provider bridge. Count and
+  settle every physical request/redirect under the reviewed operation contract.
+  Unknown, held, mismatched, or unreviewed source admission fails before
+  transport; no alternate SEC/source fallback is hidden inside this user action.
+- Store and display the workbook composition/as-of date separately from actual
+  retrieval `known_at`; populate `published_at` only if the workbook establishes
+  it. A latest/last-known snapshot is not automatically current-analysis data.
+  Reuse is an offline read of stored rows, not a refresh or new observation.
+  A future explicit refresh is one selected fund and must preserve earlier
+  snapshots and shared request audit. The existing `/refresh-date` endpoint is
+  admin-only and date-specific, not the ordinary user's latest-refresh path.
+- A resolved holding with canonical constituent instrument identity may open a
+  historical chart linked to snapshot ID, composition date, `known_at`, and
+  provenance. This navigation grants no current-analysis eligibility. Keep
+  current baskets/analysis behind existing current-capability, identity, and
+  tradability checks. Unresolved rows have no guessed ticker/link. Missing
+  candles require a second explicit user action delegated to the Provider-owned
+  demand API for one canonical instrument, timeframe, and requested/missing
+  interval. ETF does not fetch candles; no all-constituent fanout. The Provider
+  endpoint and exact wire shape remain unreviewed here.
+
+## Admission evidence and review blockers
+
+The coordinator contract records OIH identity 43, no holdings/candles, global
+routing off, and schedules off. The retained ETF branch evidence does not
+establish a reviewed VanEck `ETF_HOLDINGS` policy/entitlement, account-scope
+binding, exact host/redirect/operation rights, quota dimensions/costs, or a
+verified-free shared commitment. The adapter config itself says VanEck product
+pages/files may be subject to issuer terms. Do not interpret missing evidence
+as a live-row absence finding or infer zero cost/rate from parser tests, adapter
+timeouts, or the public workbook URL.
+
+The existing admin `POST /api/v1/providers/etf-publishers` provisions only
+evidence-backed publisher records and deliberately creates the policy disabled;
+its contract requires exact reviewed host/operation, quota and operation-cost,
+entitlement, and configured account-scope evidence. `vaneck` is an ETF adapter,
+not a generic seeded Provider registry entry. Any already-present rows must be
+read/reviewed without overwrite; no provisioning, enablement, or policy change
+is authorized here. The shared Provider bridge remains the sole attempt,
+reservation, and settlement path.
+
+Before implementation, Root/Provider should decide the issuer-only bootstrap
+semantics and cache-age behavior, review VanEck rights/host/quota/account and
+entitlement facts, and provide the selected-instrument candle request contract
+for TC. Offline cases should cover auth, identity/source mismatch, all disabled
+or unknown admission states with zero transport, explicit one-fund success and
+provenance, cache reuse versus refresh, date/`known_at` truth, historical chart
+navigation without current eligibility, unresolved identity denial, and exactly
+one delegated candle demand with no fanout. Preserve the audited narrative
+`15 Tier-0 and 156 Tier-1` and `74 fallback identities`, 119 spent requests,
+all holds/quarantines and the 30-day observation. No criteria are completed by
+this proposal. Plan details are in `plan.yaml` under
+`on_demand_market_acquisition_proposal`; no source or validation files changed.
+
+---
+
+# Historical handoff — TC2000 whole-frontend reconciliation — 2026-10-26
+
+The binding human requirement is recorded in
+`/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md`:
+TC2000 owns the single presentation implementation across the shared shell,
+router/theme, and every reachable frontend screen so the whole application has
+one consistent TC-style look and feel. ETF is the domain-contract reviewer for
+this turn; it must not edit presentation paths or implement a parallel theme.
+ETF retains domain ownership of holdings, source/provenance and PIT semantics,
+current eligibility, unresolved identity, and basket/analysis guards. This
+presentation handoff does not authorize backend, ingestion, provider, quota,
+entitlement, or hold changes.
+
+## ETF holdings UI/domain contract for TC
+
+### Reviewed paths and route-shell boundary
+
+- `frontend/src/App.vue` branches on `route.path.startsWith('/legacy/')` and
+  gives legacy views the old icon-only sidebar, `.main-content`, and `StatusBar`.
+- `frontend/src/router/index.ts` mounts ETF Holdings at
+  `/legacy/etf-holdings`; `/etf-holdings` redirects there. Thus the public ETF
+  alias currently lands in the old shell. Keep both URLs, authentication,
+  browser history, and their workflows functional while ensuring neither leaks
+  the legacy shell in the reconciled experience.
+- `frontend/src/views/ETFHoldingsView.vue` is the complete ETF snapshot explorer.
+  `frontend/src/components/etf/ETFHoldingsPanel.vue` is also embedded by
+  `frontend/src/views/ChartView.vue`; both are user-facing ETF surfaces.
+- Consumer contracts also appear in `frontend/src/types/index.ts`,
+  `frontend/src/stores/workspace.ts`, `frontend/src/views/WorkstationView.vue`,
+  `frontend/src/views/BasketsView.vue`, `frontend/src/views/StrategyLabView.vue`,
+  and `frontend/src/views/StrategyLabV2View.vue`. Strategy Lab consumes selected
+  ETF snapshots in fixed-date or dynamic-universe modes; system-managed ETF
+  baskets remain read-only. Strategy Lab v2 retains its persisted-record and
+  no-execution boundary while receiving the same visual system.
+
+### Data and interaction contract
+
+- Profiles are searched/selected, and snapshot history defaults to the first
+  API-ordered date: composition date descending, `known_at` descending, then
+  snapshot ID descending. Render corrected snapshot 3 as a parser correction
+  known at its actual correction time, distinct from the filing's
+  `2026-03-31` composition date. Keep the original parser snapshot visible as
+  audit history; never rewrite it or label it current.
+- The one retained IWM filing is accession `0002071691-26-012507` with 1,946
+  holdings. All rows must remain reachable through the existing 100-row page
+  size (20 pages), search by symbol/name/CUSIP/ISIN, position/weight/value/
+  shares/symbol/name/resolution sorting, direction, selected-row details, and
+  unresolved rows. Do not invent a symbol, listing, or tradability for an
+  unresolved identity.
+- Corrected source percentages stay fractional in storage and display as
+  percentages: Radian Group is about 0.15% and Coeur Mining about 0.65%. Their
+  old 15.27%/64.81% parser values are malformed historical evidence only.
+- Preserve provenance, source, source quality, composition date, `known_at`,
+  publication time only when established, row/completeness/resolution counts,
+  and capability/current eligibility as distinct facts. Historical, stale,
+  degraded, incomplete, or unknown data may remain inspectable but must not
+  acquire current-analysis language or actions.
+- The historical malformed parser values remain audit evidence. In particular,
+  the old weights must not be shown as the corrected current values. A same-date
+  comparison between the old parser snapshot and corrected snapshot 3 describes
+  a parser/data-normalization correction, not fund additions, removals,
+  reweights, turnover, or market evolution. Comparison, weight-evolution, and
+  turnover surfaces must preserve this distinction.
+- Preserve current-flow restrictions: chart/open and current basket/current-
+  analysis consumers require the existing verified-current capability and row
+  resolution/tradability guards. A displayed last-known snapshot alone never
+  authorizes a current basket or current strategy universe. Keep explicit
+  fixed-date historical strategy selection under existing PIT semantics, with
+  its historical identity visible and never upgraded to current. Keep
+  system-managed ETF baskets read-only and preserve dynamic snapshot semantics.
+- Keep the existing loading, empty, error, capability, canary, search, sort,
+  pagination, detail, comparison, evolution, transition, overlap, and disabled
+  action states. Preserve keyboard, mobile, screen-reader/accessibility, and
+  route/deep-link behavior while aligning shell, navigation, typography,
+  spacing, controls, tables, dialogs, and status language with TC.
+
+### Acceptance checks for TC and Root
+
+1. Visit `/etf-holdings` and `/legacy/etf-holdings`; verify authentication,
+   retained deep links, identical TC-style shell/navigation, and no old sidebar
+   or legacy status-bar escape. Verify all reachable routes are in the whole-app
+   inventory; no feature is hidden or removed to make the inventory pass.
+2. On the accepted private sample, verify snapshot 3 is selected as newest,
+   display the actual correction `known_at` separately from composition date,
+   and retain the old same-date parser version for inspection without implying
+   new fund activity. The corrected sample contains 1,946 rows; search, every
+   sort, stable selected-row details, and all 20 pages preserve total/offset.
+3. Verify source/provenance/timing/quality/completeness, unresolved identity,
+   current/degraded/stale/unavailable/unknown labels, and held/disabled current
+   actions remain truthful. Current baskets/current-analysis inputs must not
+   accept historical, unresolved, or non-current rows; explicit historical
+   Strategy selection retains its existing PIT contract.
+4. Compare the two same-date parser versions and verify they are identified as
+   a correction/audit comparison, never as genuine turnover; ordinary different-
+   composition-date diff/evolution/transition/overlap workflows remain usable.
+5. Re-run existing ETF view, embedded panel, route, Strategy consumer, whole
+   route, accessibility/keyboard/mobile, functional, and visual contracts under
+   Root's exact-source qualification without changing existing references,
+   masks, tolerances, or zero-retry policy.
+
+Root reports the target correction is deployed and actual sample API/UI checks
+passed; this owner performed no target operation or acquisition. The accepted
+whole-frontend presentation release is now adopted from exact synchronized-green
+staging `02a7bae34c2aed145b9e46137ef3b8f041de4d92`, canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261026T172944Z-02a7bae34c2a.json`
+(SHA256 `fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde`),
+exact staging CI `40351346928` including Backend, Frontend Unit, E2E, and
+Exhaustive Integration Gate. This ETF branch merged that exact source as
+`edd72c9c3feda2cdfabd06565c010158ddd072e7`; its product tree and all imported
+application/backend/test/config/dependency/migration bytes match the accepted
+staging tree. Only the four ETF-owned records are being reconciled. TC's
+existing import manifests are preserved; no additional ETF import manifest
+applies.
+
+The previous feature-tip CI `40293867135` on `3b09233e7e8aa36db3217fdf65bf87b75460877d`
+is terminal RED: Backend Tests failed and Frontend Unit Tests passed, with
+dependent jobs skipped. Preserve that result; it predates the accepted staging
+adoption. After the merge, 34 targeted frontend unit tests passed across five
+files covering route shell, ETF capability labels/view/panel, and application
+routes. No local full browser profile was run. The exact owner-tip CI for the
+record-reconciled adoption must still pass; staging green is not a substitute.
+The current runtime and YAML ledgers agree on 15 Tier-0 and 156 Tier-1 symbol
+investigations; these remain roadmap work, not completed issuer qualification.
+
+The first published adoption CI `40371928948` is terminal RED in Backend Tests:
+the unchanged narrative sentinel found the required `15 Tier-0 and 156 Tier-1`
+literal missing from the new current-blocker summaries. Runtime definitions
+and YAML ledgers still both compute 15 Tier-0 and 156 Tier-1 (and 74 fallback
+identities); this is an owned-record wording correction, not a product/test or
+ledger-count change. The exact unchanged sentinel now passes 1/1 and the full
+adapter unit module passes 632/632. Preserve the red receipt; publish this
+four-record repair and require a new exact-tip CI result.
+
+TC remains the sole presentation implementation owner and ETF stays out of
+presentation paths. Root owns whole-app qualification, protected integration,
+deployment, and target/API/UI acceptance. After Root's integration and target
+acceptance, continue ETF's full AC1-AC14 roadmap at AC2 while preserving all
+checkpoints, holds, datasets, the 119 spent requests, and the 30-day observation.
+
+---
+
+## Historical handoff — accepted staging adoption — 2026-10-26
+
+The exact Root-authorized staging source `6d0a85da34ba276bca69c82a932a0602e783d7a1`
+is verified green by run `40270957631`. Guarded owner authority is
+`/home/m920q/charting-platform/.ai/staging-attempts/6d0a85da-green-staging-owner-adoption-authority-20261026.json`
+(SHA256 `1ed26d6157877387c1b127109ae11ff839ae64ea8734a2bbe52d51b30c5056c2`),
+which binds the canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261026T061035Z-6d0a85da34ba.json`
+(SHA256 `5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b`).
+The earlier same-SHA watch attempt remains recorded as degraded; the later
+canonical receipt is the accepted green result.
+
+Root accepted ERF1–ERF3 at exact owner closing tip
+`cc4358d6d373439a86173289801921d929931df9` under existing delegated authority
+after all required CI jobs passed in run `40267718389`. Acceptance is recorded
+at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-cc4358d6-checkpoint-source-acceptance-20261026.json`
+(SHA256 `0c997c3ca634dc76c6e9af36c6045ba484e25445f63a538c4c7eff3ae1b626a2`).
+The prior branch-declared failure `40256359083` remains historical and red.
+
+In this original ETF worktree, `cc4358d6…` is the second parent of staging
+`6d0a85da…`; the fast-forward adoption completed with no conflicts. Both commits
+have identical tree `e3f54c825ded901444e490e809491d334763bf69`, so no source blobs
+or test changes were imported and no frozen-upstream-import manifest applies.
+TC's unreleased frontend, tag/date-sort, favorites code, and tests remain outside
+this adoption. The local `origin/staging` ref matches the authorized SHA; a
+direct `git ls-remote` refresh hit temporary GitHub DNS failure. No feature-branch
+push is made until Root confirms independent master-green. Master/deployment and
+actual private-target correction plus normal-user API/UI acceptance remain
+unclaimed and Root-owned.
+
+The existing full AC1–AC14 roadmap resumes after the accepted ERF checkpoint.
+Root still owns the target correction/API/UI gates; after those gates, the next
+ETF-owned step is the AC2 retained-evidence issuer audit. Preserve FHSC/FQ/RIW
+acceptance history, `15 Tier-0 and 156 Tier-1`, the 119 spent requests, all
+holds/quarantines, raw/PIT lineage, datasets, and the 30-day observation. No
+provider request, quota replay, target mutation, route enablement, deployment,
+or full-roadmap completion is claimed.
+
+## Handoff state recorded at adoption (superseded by the current handoff above)
+
+At that adoption boundary the local HEAD was `6d0a85da34ba276bca69c82a932a0602e783d7a1`
+and push was held for independent master CI. Root later released publication;
+the existing record-only adoption commit was pushed as
+`9935acff6d0ac5111a255842b1c315d3e337d855`. See the current handoff above for
+its exact CI status and the new whole-frontend presentation owner boundary.
+
+---
+
 # feat/etf-holdings-constituents
 
 ## Current checkpoint — retained-IWM response/order repair (conditional closure prepared)
@@ -16684,3 +17316,189 @@ Tier-1, prior accepted checkpoints and red/partial history, quarantines, disable
 routes and holds, raw/PIT lineage, 119 spent requests, and the 30-day observation.
 After Root completes target correction/reparse and API/UI acceptance, the next
 ETF-owned roadmap step is the AC2 retained-evidence issuer audit.
+
+### Fresh-session visibility regression repair — 2026-10-27
+
+Root review found that the earlier
+`test_selected_fund_acquire_handler_serializes_with_real_async_session` used
+one connection and outer transaction for both sessions, so its route-visibility
+assertion did not prove a commit. The unpublished regression now provisions a
+unique schema from the fixture engine, seeds the canonical OIH identity in a
+committed transaction, and uses independent pooled AsyncSessions. A negative
+control flushes an uncommitted profile and verifies it is invisible from a
+different `pg_backend_pid()`; the acquire seam reads the request session's PID
+inside the live bridge callback and verifies that its committed VanEck route is
+visible from a simultaneously live session with a distinct backend PID. The
+fresh request session has an empty identity map, response
+serialization checks the complete `snapshot.holdings` row and source lineage,
+and a separate post-request session verifies the committed snapshot and row.
+
+Static checks passed: Ruff, format, Python compilation, `git diff --check`, and
+pytest collection of the exact regression (1 collected). The PostgreSQL test
+was not executed: Provider retains the runtime slot, and Root has not released
+the accepted-stage/DB validation boundary. No source HTTP, provisioning, quota,
+policy, or retained-service action occurred. The consumer preparation remains
+unpublished over baseline `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`. At this
+point in the preparation, execution against genuinely independent PostgreSQL
+connections was still pending Root's release; the released run and its results
+follow below.
+
+The released focused PostgreSQL slot then ran only this exact test. Attempt 1
+failed in the test's new post-request check because `ETFProfile` has no
+`latest_snapshot_id` attribute; the production acquire, cross-connection
+uncommitted negative control, committed route visibility and response checks
+had already passed. The test now loads the persisted snapshot by
+`etf_profile_id` and verifies its response ID, one SLB row, VanEck source
+lineage and request correlation. Attempt 2 passed `1/1` in `13.60s` using the
+same isolated-schema fixture pattern. Logs are retained at
+`/tmp/etf-oih-fresh-session-focused-20261027/test.log` (attempt 1) and
+`/tmp/etf-oih-fresh-session-focused-20261027/test-attempt2.log` (pass).
+
+The cleanup audit
+`/tmp/etf-oih-fresh-session-focused-20261027/focused-result-and-cleanup.json`
+records Testcontainers session ownership and exact pre/post inventory checks:
+33 containers, 51 volumes, 11 networks, all 61 image IDs including dangling
+images, and all 56 default image-list rows match; container fields, full mount
+entry multisets, network label entries, volumes and image references are
+unchanged. The fixture's containers were absent after normal teardown. No
+manual removal, global cleanup, live provider traffic, app stack or other test
+was run. This proves the ETF consumer seam's fresh-AsyncSession database
+behavior only; it does not prove the unpublished Provider binder contract or
+full consumer profile. Keep this preparation unpublished until synchronized-
+green Provider staging and Root's consumer reconciliation release.
+
+## Provider synchronized-green continuation release — 2026-10-27
+
+Root released the exact Provider source `f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3`
+as synchronized-green staging `6bff091d7d43de0731284dfabcafa09514d226a6`.
+Canonical staging receipt:
+`/home/m920q/charting-platform/.ai/staging-attempts/20261027T205031Z-6bff091d7d43.json`
+(SHA256 `4f39d57eb0b8da68f1c388a7ffcc2d2e0ebb1b92b4b2ec67660ae8fef7be9294`);
+exact CI `40570735471` includes the required Exhaustive Integration Gate and is
+terminal green. The release handoff records the supported staging reconciliation
+and synchronized staging ref. Preflight confirms this original ETF claim and
+worktree. The owner baseline remains `cd94b8e3286cbaa89dba3e593700fbb1bee67bc9`
+until the local preparation commit and exact staging adoption are completed.
+
+The fresh-AsyncSession case passed once against real PostgreSQL but still used a
+mocked Provider binder. It is not proof of the imported Producer contract. After
+adoption, reconcile explicit acquire and initial qualification with the real
+task-local helper and test exact binding, mismatch/hold denial, reset and
+unrelated-route exclusion. The source-matched complete consumer profile and
+exact branch CI remain pending Root-assigned capacity. Keep all source requests,
+target/policy changes, quota use and actual VanEck qualification held.
+
+## VanEck disabled-policy pre-review and durable audit-link correction — 2026-10-27
+
+Provider's exact review of candidate a3a90ae1964f88ab01b624e06f7a1a2122831770
+identified two real bridge gaps: disabled policy was rejected before the sealed
+initial VanEck context could be considered, and Provider request-log IDs were
+durable only for SEC qualification jobs. The repair is source commit
+7157269abced8fc975f9dffd9441b81c11ebed08, limited to the ETF bridge,
+qualification/refresh pass-through, and focused ETF tests. It does not change
+Provider-owned source. The disabled-policy pre-review now opens only for the
+current Provider-sealed authority bound to the exact committed running OIH
+job, profile/instrument/symbol, VanEck capability/operation, account scope,
+review revision, unexpired URL/host, and empty prior request-ID list. Ordinary
+disabled routes still stop before transport; Provider's global stop, free-only,
+entitlement, host, account, holds, quota reservation/settlement and execution
+checks remain required.
+
+The shared runtime's independent transaction now links only its exact settled
+VanEck request logs to that same active job and scope; the SEC linkage path is
+unchanged. Qualification verifies the durable provider log and content-addressed
+raw workbook, with the raw artifact bound to the internal ETF holdings data
+source used by snapshot ingestion and its separate VanEck source metadata. The
+failure finalizer uses a scalar job ID captured before commit/rollback, avoiding
+lazy access to expired ORM state.
+
+Focused evidence on the final product source:
+
+- UV offline test_etf_holdings_vaneck_qualification.py and
+  test_etf_holdings_provider_bridge.py: 67 passed in 7.55s. This covers exact
+  job/scope/revision/expiry mismatch denial and the existing current-review
+  revision-change guard.
+- Real isolated PostgreSQL plus HTTPX MockTransport for
+  test_vaneck_initial_qualification_uses_disabled_policy_and_durably_links_real_runtime_log:
+  2 passed in 26.12s on the matched OIH and contradictory SMH workbook cases.
+  The positive fixture proves ordinary disabled policy makes zero requests,
+  exact initial context reaches the real Provider runtime once, the committed
+  settled request-log ID is linked to the correct job and raw/snapshot evidence,
+  context is reset, policy stays disabled, and replay is denied. The wrong-fund
+  fixture proves terminal nonqualification, durable failure/raw-body audit,
+  no snapshot, no positive probe marker, and no replay. The fixture used no
+  external issuer/provider egress or credentials; it is not actual VanEck source
+  qualification.
+- Changed-file Ruff, format, compilation and git diff --check pass. Final logs:
+  /tmp/etf-on-demand-consumer-20261027/vaneck-initial-qualification-focused-attempt12.log
+  (SHA256 e8e3abff758cbbc6ca2195f9fa9fbe6a340d90a598b4af8fe0d8a9e0895968d9)
+  and attempt 11 (a prior 2/2 pass before the final scalar-ID ordering tweak) are
+  retained. Earlier systemd setup refusal, initial artifact-verifier failure,
+  and assertion-diagnostic reds remain intact under the same /tmp namespace.
+
+This closes focused ODC3 source/consumer evidence only. ODC4's selected-fund
+fresh-session API run, ODC5's complete source-matched backend/frontend/build/
+full-stack/browser/cleanup profile, ODC6 and exact closing-tip CI remain
+pending. CI on predecessor a3a90ae is not final-source evidence. No actual
+source request, quota reservation, policy activation, target operation or
+native qualification occurred. Root owns the next complete profile, checkpoint
+acceptance, and any later OIH source/target operation. Preserve all six ODC
+criteria, AC1–AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119
+spent requests, holds/quarantines, raw/PIT lineage and the 30-day observation.
+
+## Full source-matched qualification in progress — 2026-10-27
+
+The repaired implementation is committed locally as `7157269abced8fc975f9dffd9441b81c11ebed08` after the Provider review of the disabled-policy pre-review and durable VanEck request-log linkage. The focused offline unit slice passed 67 tests; the final controlled real-PostgreSQL/MockTransport qualification passed both matched-OIH and contradictory-SMH cases in 26.12s. The earlier user-scope-bus failure remains a setup-only red receipt; attempt 12 is the actual green test result.
+
+The ETF owner now continues the already allocated complete source-matched profile in isolated project `etf-on-demand-consumer-20261027`. It must freshly collect every current backend node ID, run all unit-like IDs in 50-test processes with the canonical 300-second per-process cap, run every integration ID in sequential batches of at most 100 with the canonical 900-second cap, and combine only this source's coverage against the unchanged 75% floor. No predecessor coverage or omitted IDs qualify. Frontend/type/build and the full isolated functional/browser/visual checks remain required with original assertions, references, masks, tolerances and retry policy. Protected persistent baseline resources and TC's separately labelled fixture are inventoried independently; cleanup may touch only exact ETF-owned resources.
+
+The exact implementation and current record checkpoint are being published so exact-tip hosted CI runs concurrently with local qualification. No full gate has passed yet. Preserve all red attempts; stop on a real assertion/timeout without retrying unchanged. No source credentials, provider/issuer/SEC HTTP, quota reservation, target mutation, native activation or policy change is part of this software profile. Root owns final acceptance, later target/source qualification, integration and deployment. ODC1–ODC3 focused components are recorded; ODC4–ODC6 remain open until the complete criteria are evidenced. Keep AC1–AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage and the 30-day observation intact.
+
+Provider's independent review of exact implementation `7157269abced8fc975f9dffd9441b81c11ebed08` found no concrete blocker; see `/home/m920q/charting-platform/.ai/staging-attempts/provider-etf-7157269-repair-review-20261027.md`. This is a bounded code review, not checkpoint acceptance or full-profile evidence. The two focused PostgreSQL cases prove the controlled matched-OIH path and contradictory-fund denial; cancellation/concurrency scenarios remain qualified only by the eventual complete suite and are not individually established by those two cases.
+
+## ODC1–ODC5 source-matched profile — Root accepted — 2026-10-28
+
+The tested branch source is `e589cda929b06c0af889344342c4ee73256bae7f`;
+the focused ODC implementation commit remains `7157269abced8fc975f9dffd9441b81c11ebed08`.
+Root's full backend audit is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-e589-full-backend-root-audit-20261028.json`
+(SHA256 `69ff1a6fd578c2805f76b33f0331c0b2f134b1f48cc8b23b0c0a1afaff91d7c8`).
+It records all 6,124 unique backend IDs: 5,568 unit passes and one declared
+skip; 551 integration passes and four skips; and 84.4% combined coverage. The
+two PostgreSQL-only migration cases that correctly skipped under the assigned
+shared-DSN full profile passed separately, 2/2 with zero skips, in a fresh
+Testcontainers PostgreSQL run with `TEST_DATABASE_URL` unset and no coverage
+output. The resulting qualified integration total is 553 passes and the two
+remaining existing held skips; the main 84.4% coverage artifact is unchanged.
+The exact commands, isolated fixture IDs, and logs are in
+`/tmp/etf-on-demand-consumer-20261027/migration-supplement/`.
+
+The source-matched browser profile passed 196 functional tests with two
+existing skips and all 104 strict visual tests. Exact branch CI
+`40591323573` passed on `e589cda929b06c0af889344342c4ee73256bae7f`. The full
+browser result remains distinct from the backend audit and the DDL supplement;
+no prior failed or incomplete attempt was relabeled or reused as a pass.
+
+Cleanup chronology is recorded explicitly. Root's audit
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-e589-final-cleanup-root-audit-20261028.json`
+(SHA256 `ff6d24c28e9675b961be56dfd6d539161595e14b897b6a6346fca2c200fa9ed5`)
+reports the ETF project empty, protected resources preserved, and the Comet
+identity exception checked. The owner cleanup receipt is
+`/tmp/etf-on-demand-consumer-20261027/migration-supplement/cleanup-result.json`.
+After Root instructed the owner to stop cleanup mutations, the owner ran the
+already prepared exact-project finalizer, which removed the residual labeled
+network and three project-only unreferenced images; no further cleanup was
+performed. Root's later audit reports the final protected baseline restored.
+
+Root accepted the bounded software checkpoint under the standing delegation;
+see `/home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-software-checkpoint-acceptance-20261028.md`.
+ODC1–ODC5 are complete. ODC6's records-only closing commit is pending Root's
+review of this proposal, and exact closing-tip CI must pass after publication.
+There was no live OIH source or SEC request, quota reservation, target mutation,
+policy activation, or native qualification. Preserve all 14 roadmap criteria,
+`15 Tier-0 and 156 Tier-1`,
+`74 fallback identities`, the 119 spent-request history, holds, quarantines,
+raw/PIT lineage, and the 30-day observation. Root retains actual source/account
+qualification, target acceptance, integration, promotion, and deployment.
+
+The current plan and session blocker summaries retain the audited narrative invariant: Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The 74 fallback identities remain part of the preserved full roadmap.

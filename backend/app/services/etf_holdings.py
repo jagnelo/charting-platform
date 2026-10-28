@@ -1888,6 +1888,39 @@ async def get_latest_snapshot(
     return snapshot_to_out(snapshot, instrument=instrument, include_holdings=include_holdings)
 
 
+async def get_snapshot_by_id(
+    db: AsyncSession,
+    snapshot_id: int,
+    *,
+    include_holdings: bool = True,
+    include_controlled_fixture: bool = False,
+) -> ETFHoldingsSnapshotOut | None:
+    """Load one exact stored snapshot without changing its chronology/order."""
+
+    options = [selectinload(ETFHoldingsSnapshot.etf_profile).selectinload(ETFProfile.instrument)]
+    if include_holdings:
+        options.append(
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+        )
+    statement = (
+        _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
+        .options(*options)
+        .where(ETFHoldingsSnapshot.id == snapshot_id)
+    )
+    snapshot = (await db.execute(statement)).scalar_one_or_none()
+    if snapshot is None or snapshot.etf_profile.instrument is None:
+        return None
+    if not include_controlled_fixture and (
+        snapshot.provenance == "controlled_fixture" and snapshot.source_provider == "e2e_reference"
+    ):
+        return None
+    return snapshot_to_out(
+        snapshot,
+        instrument=snapshot.etf_profile.instrument,
+        include_holdings=include_holdings,
+    )
+
+
 def snapshot_to_out(
     snapshot: ETFHoldingsSnapshot,
     *,

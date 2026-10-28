@@ -111,7 +111,7 @@
         </div>
         <button v-if="workspaceStore.workspace?.is_default" type="button" title="Reset factory workspace" @click="resetFactoryWorkspace">Reset</button>
       </nav>
-      <div class="workstation__search" @pointerdown.stop>
+      <div class="workstation__search" @pointerdown.stop @focusout="handleSymbolSearchFocusout" @keydown.esc.capture.prevent="closeSymbolSearch">
         <input
           ref="symbolInput"
           v-model="symbolDraft"
@@ -126,7 +126,6 @@
           :aria-busy="searchLoading ? 'true' : 'false'"
           :aria-describedby="symbolSearchStateId"
           @input="handleSymbolInput"
-          @blur="closeSymbolSearch"
           @keydown.stop="handleSymbolInputKeydown"
         />
         <button type="button" @click="recentSymbolsOpen = false; closeSymbolSearch(); selectSymbol(symbolDraft)">Go</button>
@@ -148,19 +147,37 @@
             <strong>{{ item.symbol }}</strong><span>{{ item.name || 'Viewed instrument' }}</span>
           </button>
         </div>
-        <div v-if="searchPanelVisible" :id="symbolResultsId" class="workstation__symbol-results" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
-          <button
-            v-for="(result, index) in searchResults"
-            :key="`${result.symbol}:${result.exchange}`"
-            :id="symbolOptionId(index)"
-            type="button"
-            role="option"
-            :aria-selected="index === searchIndex"
-            @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id)"
-          ><strong>{{ result.symbol }}</strong><span>{{ result.name }}</span><small>{{ result.exchange || result.type }}</small></button>
-          <div v-if="searchLoading" class="workstation__symbol-search-message" role="status">Searching canonical instruments…</div>
-          <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
-          <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
+        <div v-if="searchPanelVisible" class="workstation__symbol-results">
+          <div :id="symbolResultsId" class="workstation__canonical-symbol-options" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
+            <div v-if="searchLoading" class="workstation__symbol-search-message" role="status">Searching canonical instruments…</div>
+            <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
+            <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
+            <button
+              v-for="(result, index) in searchResults"
+              :key="`${result.symbol}:${result.exchange}`"
+              :id="symbolOptionId(index)"
+              type="button"
+              role="option"
+              :aria-selected="index === searchIndex"
+              @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id)"
+            ><strong>{{ result.symbol }}</strong><span>{{ result.name }}</span><small>{{ result.exchange || result.type }}</small></button>
+          </div>
+          <div v-if="sourceDiscoveryMessage" class="workstation__symbol-search-message" role="status" aria-live="polite">{{ sourceDiscoveryMessage }}</div>
+          <div v-if="sourceDiscoveryError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ sourceDiscoveryError }}</div>
+          <div class="workstation__source-actions" role="group" aria-label="Explicit free source actions">
+            <button class="workstation__source-option" type="button" :disabled="sourceDiscoveryLoading || sourceResolving" @mousedown.prevent @click="discoverSymbolDraft">
+              {{ sourceDiscoveryLoading ? 'Searching free sources…' : `Search free sources for ${symbolDraft.trim().toUpperCase()}` }}
+            </button>
+            <button
+              v-for="candidate in sourceCandidates"
+              :key="`${candidate.provider}:${candidate.symbol}:${candidate.exchange}`"
+              class="workstation__source-option"
+              type="button"
+              :disabled="sourceResolving"
+              @mousedown.prevent
+              @click="resolveSourceCandidate(candidate)"
+            >Resolve {{ candidate.symbol }} · {{ candidate.exchange || candidate.provider }} <span>{{ candidate.name }}</span></button>
+          </div>
         </div>
         <span :id="symbolSearchStateId" class="workstation__symbol-search-state" role="status" aria-live="polite" aria-atomic="true">{{ searchStateText }}</span>
       </div>
@@ -287,6 +304,7 @@ import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
+import { discoverInstruments, resolveDiscoveredInstrument, type InstrumentDiscoveryCandidate } from '@/lib/onDemandAcquisition'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
@@ -391,6 +409,11 @@ const searchIndex = ref(-1)
 const searchLoading = ref(false)
 const searchSettled = ref(false)
 const searchError = ref('')
+const sourceCandidates = ref<InstrumentDiscoveryCandidate[]>([])
+const sourceDiscoveryLoading = ref(false)
+const sourceResolving = ref(false)
+const sourceDiscoveryMessage = ref('')
+const sourceDiscoveryError = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
 const symbolSearchEnabled = ref(false)
@@ -443,6 +466,13 @@ function closeSymbolSearch() {
   searchLoading.value = false
   searchSettled.value = false
   searchError.value = ''
+}
+
+function handleSymbolSearchFocusout(event: FocusEvent) {
+  const root = event.currentTarget
+  const next = event.relatedTarget
+  if (root instanceof HTMLElement && next instanceof Node && root.contains(next)) return
+  closeSymbolSearch()
 }
 
 function handleSymbolInput() {
@@ -1171,6 +1201,9 @@ function scheduleSymbolSearch(value: string) {
   searchLoading.value = true
   searchSettled.value = false
   searchError.value = ''
+  sourceCandidates.value = []
+  sourceDiscoveryMessage.value = ''
+  sourceDiscoveryError.value = ''
   const requestId = ++searchRequest
   searchTimer = setTimeout(async () => {
     try {
@@ -1194,6 +1227,69 @@ function scheduleSymbolSearch(value: string) {
       }
     }
   }, 120)
+}
+
+async function discoverSymbolDraft() {
+  const query = symbolDraft.value.trim()
+  if (!query || sourceDiscoveryLoading.value || sourceResolving.value) return
+  const queryKey = query.toUpperCase()
+  const requestGeneration = searchRequest
+  sourceDiscoveryLoading.value = true
+  sourceDiscoveryError.value = ''
+  sourceDiscoveryMessage.value = ''
+  sourceCandidates.value = []
+  try {
+    const result = await discoverInstruments(query, [], 10)
+    if (requestGeneration !== searchRequest || symbolDraft.value.trim().toUpperCase() !== queryKey) return
+    sourceCandidates.value = result.candidates
+    sourceDiscoveryMessage.value = result.candidates.length
+      ? 'Choose a source candidate and explicitly resolve its canonical identity before opening a chart.'
+      : result.status === 'held'
+        ? 'Free source discovery is held.'
+        : result.status === 'unavailable'
+          ? 'Free source discovery is unavailable.'
+          : result.status === 'no_match'
+            ? 'No source candidates matched.'
+            : 'No candidates were returned.'
+  } catch {
+    if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
+      sourceDiscoveryError.value = 'Free source discovery failed. Local search and cached charts remain available.'
+    }
+  } finally {
+    sourceDiscoveryLoading.value = false
+  }
+}
+
+async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
+  if (sourceResolving.value) return
+  const queryKey = symbolDraft.value.trim().toUpperCase()
+  const requestGeneration = searchRequest
+  sourceResolving.value = true
+  sourceDiscoveryError.value = ''
+  try {
+    const result = await resolveDiscoveredInstrument(candidate)
+    if (requestGeneration !== searchRequest || symbolDraft.value.trim().toUpperCase() !== queryKey) return
+    if (result.status !== 'resolved' || !result.instrument
+      || !Number.isSafeInteger(result.instrument.instrument_id) || result.instrument.instrument_id <= 0) {
+      sourceDiscoveryMessage.value = result.status === 'identity_conflict'
+        ? 'Identity conflict: no chart was opened.'
+        : result.status === 'held'
+          ? 'Identity resolution is held.'
+          : result.status === 'no_match'
+            ? 'No canonical identity matched this candidate.'
+            : result.status === 'failed'
+              ? 'Identity resolution failed.'
+              : 'Candidate identity is not resolved.'
+      return
+    }
+    selectSearchResult(result.instrument.symbol, result.instrument.instrument_id)
+  } catch {
+    if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
+      sourceDiscoveryError.value = 'Identity resolution failed. No chart was opened.'
+    }
+  } finally {
+    sourceResolving.value = false
+  }
 }
 
 function selectSearchResult(symbol: string, instrumentId?: number | null) {
@@ -2535,9 +2631,14 @@ onBeforeUnmount(() => {
 .workstation__recent-symbols > button:hover, .workstation__recent-symbols > button:focus-visible { background: #2c4554; color: #fff; outline: none; }
 .workstation__recent-symbols > button strong { color: #e4f1f7; }.workstation__recent-symbols > button span { overflow: hidden; color: #8799a5; text-overflow: ellipsis; white-space: nowrap; }
 .workstation__symbol-results { position: absolute; z-index: 130; top: 23px; left: 0; display: grid; min-width: 270px; max-height: 250px; overflow: auto; border: 1px solid #4d5a63; background: #151d23; box-shadow: 0 6px 16px #000b; }
+.workstation__canonical-symbol-options { display: grid; }
 .workstation__symbol-results button { display: grid; grid-template-columns: 55px minmax(0, 1fr) 48px; gap: 6px; align-items: center; min-height: 25px; padding: 3px 6px; border: 0; border-bottom: 1px solid #29343b; background: transparent; color: #bfcbd3; font: 10px "Segoe UI", Arial, sans-serif; text-align: left; }
-.workstation__symbol-results button:hover, .workstation__symbol-results button[aria-selected="true"] { background: #2c4554; color: #fff; }
+.workstation__symbol-results button:hover, .workstation__symbol-results button:focus-visible, .workstation__symbol-results button[aria-selected="true"] { background: #2c4554; color: #fff; outline-color: #80bce8; }
 .workstation__symbol-results strong { color: #e4f1f7; }.workstation__symbol-results span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }.workstation__symbol-results small { color: #8799a5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.workstation__source-actions { display: grid; gap: 2px; padding: 4px; border-top: 1px solid #29343b; }
+.workstation__source-actions .workstation__source-option { display: block; min-height: 28px; padding: 5px 6px; border: 1px solid #42505a; background: #202b32; color: #dce9f2; font: 10px "Segoe UI", Arial, sans-serif; text-align: left; white-space: normal; cursor: pointer; }
+.workstation__source-actions .workstation__source-option:hover:not(:disabled), .workstation__source-actions .workstation__source-option:focus-visible { background: #31424d; color: #fff; outline: 2px solid #80bce8; outline-offset: -2px; }
+.workstation__source-actions .workstation__source-option:disabled { color: #87939a; background: #1b2329; cursor: wait; }
 .workstation__symbol-search-message { min-width: 270px; padding: 7px 8px; border-top: 1px solid #29343b; color: #93a5af; font: 10px "Segoe UI", Arial, sans-serif; }
 .workstation__symbol-search-message--error { color: #e4a0a0; }
 .workstation__symbol-search-state { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); clip-path: inset(50%); white-space: nowrap; }
