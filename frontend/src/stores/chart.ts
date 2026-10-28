@@ -213,7 +213,7 @@ function createChartStore(storeId: string) {
       })
     }
 
-    async function performLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams) {
+    async function performLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false) {
       if (!sym || !tf) return
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
@@ -224,7 +224,7 @@ function createChartStore(storeId: string) {
       // UI refs can move ahead of loadBars (for example setBarType), so only a
       // previously successful request with the complete route/transform scope
       // may keep the currently rendered chart alive during a settled refresh.
-      const refreshesRenderedSelection = renderedLoadScopeKey === requestScopeKey && bars.value.length > 0
+      const refreshesRenderedSelection = forceFresh || (renderedLoadScopeKey === requestScopeKey && bars.value.length > 0)
       if (!sameSelection) {
         indicatorsDirty = false
         if (pendingIndicatorSaveSymbol !== sym) {
@@ -370,6 +370,17 @@ function createChartStore(storeId: string) {
       if (isCurrent() && !loadedInstrument.is_synthetic) _pollCoverage(sym, generation)
     }
 
+    function startLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false): Promise<void> {
+      const requestKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
+      let promise: Promise<void>
+      promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams, forceFresh)
+        .finally(() => {
+          if (inFlightLoad?.promise === promise) inFlightLoad = null
+        })
+      inFlightLoad = { key: requestKey, promise }
+      return promise
+    }
+
     function loadBars(sym = symbol.value, tf: Timeframe = timeframe.value, nextBarType: ChartBarType = barType.value, localOnly = false, nextTransformParams: ChartTransformParams = transformParams.value): Promise<void> {
       if (!sym || !tf) return Promise.resolve()
       const normalizedTransformParams = Object.fromEntries(Object.entries(nextTransformParams).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
@@ -381,12 +392,31 @@ function createChartStore(storeId: string) {
       // timeframes, transforms and local/provider modes retain their distinct
       // keys, while a later call after settlement remains a genuine refresh.
       if (inFlightLoad?.key === requestKey) return inFlightLoad.promise
-      const promise = performLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams)
-        .finally(() => {
-          if (inFlightLoad?.promise === promise) inFlightLoad = null
-        })
-      inFlightLoad = { key: requestKey, promise }
-      return promise
+      return startLoadBars(sym, tf, nextBarType, localOnly, normalizedTransformParams)
+    }
+
+    async function refreshLocalBars(): Promise<void> {
+      const sym = symbol.value
+      const tf = timeframe.value
+      const nextBarType = barType.value
+      const normalizedTransformParams = Object.fromEntries(Object.entries(transformParams.value).filter(([, value]) => typeof value === 'number' && Number.isFinite(value))) as ChartTransformParams
+      if (!sym || !tf) return
+      const requestKey = chartLoadScopeKey(sym, tf, nextBarType, true, normalizedTransformParams)
+
+      // A successful history action can finish while the initial chart load is
+      // still awaiting instrument indicators. Coalescing the refresh into that
+      // pending load would leave its earlier, empty local response on screen.
+      // Wait for that exact selection to settle, then bypass the short-lived
+      // OHLCV response cache for a fresh local read.
+      while (inFlightLoad?.key === requestKey) {
+        const pending = inFlightLoad.promise
+        await pending.catch(() => undefined)
+        if (symbol.value !== sym || timeframe.value !== tf || barType.value !== nextBarType
+          || JSON.stringify(transformParams.value) !== JSON.stringify(normalizedTransformParams)) return
+      }
+      if (symbol.value !== sym || timeframe.value !== tf || barType.value !== nextBarType
+        || JSON.stringify(transformParams.value) !== JSON.stringify(normalizedTransformParams)) return
+      await startLoadBars(sym, tf, nextBarType, true, normalizedTransformParams, true)
     }
 
     async function loadMoreBars() {
@@ -501,7 +531,7 @@ function createChartStore(storeId: string) {
       isLoading, loading: isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
       selectedIndicatorIndex, editRequestIndicatorIndex,
       indicatorEditGeneration,
-      loadBars, loadMoreBars, loadInstrument,
+      loadBars, refreshLocalBars, loadMoreBars, loadInstrument,
       setBarType, fetchLatestBars,
       setIndicators, addIndicator, removeIndicator, updateIndicator, reorderIndicators,
       selectIndicator, requestEditIndicator,

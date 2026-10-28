@@ -91,6 +91,7 @@ const harness = vi.hoisted(() => {
 })
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
+const apiPost = vi.hoisted(() => vi.fn())
 const openableTools = vi.hoisted(() => [
   { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
   { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
@@ -111,7 +112,7 @@ vi.mock('@/lib/instruments', () => ({
   ensureKnownInstrumentSymbol: vi.fn((symbol: string) => Promise.resolve(symbol)),
   resolveKnownInstrument: vi.fn((symbol: string) => Promise.resolve({ symbol, id: 77 })),
 }))
-vi.mock('@/lib/api', () => ({ api: { get: apiGet } }))
+vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
 vi.mock('@/components/workstation/WorkspaceLayoutHost.vue', () => ({ default: defineComponent({ template: '<div />' }) }))
 vi.mock('golden-layout', () => ({}))
 vi.mock('vue-router', async (importOriginal) => {
@@ -951,8 +952,10 @@ describe('WorkstationView pop-out bindings', () => {
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('zz')
     await vi.waitFor(() => expect(wrapper.find('[role="listbox"]').exists()).toBe(true))
-    expect(wrapper.get('[role="listbox"]').attributes('aria-busy')).toBe('true')
-    expect(wrapper.get('[role="status"]').text()).toContain('Searching canonical instruments')
+    const listbox = wrapper.get('[role="listbox"]')
+    expect(listbox.attributes('aria-busy')).toBe('true')
+    expect(listbox.get('[role="status"]').text()).toContain('Searching canonical instruments')
+    expect(listbox.element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
     expect(input.attributes('aria-busy')).toBe('true')
     wrapper.unmount()
   })
@@ -966,9 +969,79 @@ describe('WorkstationView pop-out bindings', () => {
     })
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('zzzz')
-    await vi.waitFor(() => expect(wrapper.get('[role="listbox"] .workstation__symbol-search-message').text()).toContain('No canonical instruments found'))
+    await vi.waitFor(() => expect(wrapper.get('.workstation__symbol-results .workstation__symbol-search-message').text()).toContain('No canonical instruments found'))
+    const listbox = wrapper.get('[role="listbox"]')
+    expect(listbox.text()).toContain('No canonical instruments found for “ZZZZ”')
     expect(wrapper.findAll('[role="option"]')).toHaveLength(0)
+    expect(listbox.element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
     expect(input.attributes('aria-expanded')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('keeps source discovery explicit and resolves the selected candidate before workstation selection', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([])
+    apiPost
+      .mockResolvedValueOnce({
+        request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d', status: 'complete',
+        candidates: [{ symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF', provider: 'free-source', instrument_id: null, identity_status: 'provider_candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d', status: 'resolved',
+        instrument: { instrument_id: 43, symbol: 'OIH', identity_status: 'verified' }, source_outcomes: [],
+      })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('OIH')
+    await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
+    expect(wrapper.get('[role="listbox"]').element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
+    expect(apiPost).not.toHaveBeenCalled()
+
+    await wrapper.find('.workstation__source-actions button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.find('.workstation__source-option').text()).toContain('Search free sources'))
+    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', {
+      query: 'OIH', types: [], limit: 10, request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    })
+    const candidate = wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Resolve OIH'))
+    expect(candidate).toBeTruthy()
+    await candidate!.trigger('click')
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'OIH', instrumentId: 43 })))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
+    expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
+      symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
+      request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+    })
+    expect(apiPost.mock.calls[1][1].request_id).not.toBe(apiPost.mock.calls[0][1].request_id)
+    await flushPromises()
+    await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
+    wrapper.unmount()
+  })
+
+  it('keeps keyboard-focusable source actions open and lets Escape dismiss them', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([])
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('OIH')
+    await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
+    const action = wrapper.find('.workstation__source-actions button')
+    expect((action.element as HTMLButtonElement).tabIndex).toBe(0)
+    await input.trigger('focusout', { relatedTarget: action.element })
+    expect(input.attributes('aria-expanded')).toBe('true')
+    await action.trigger('keydown', { key: 'Escape' })
+    expect(input.attributes('aria-expanded')).toBe('false')
+    await flushPromises()
+    await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
     wrapper.unmount()
   })
 
@@ -982,7 +1055,8 @@ describe('WorkstationView pop-out bindings', () => {
     })
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('bad')
-    await vi.waitFor(() => expect(wrapper.get('[role="alert"]').text()).toContain('Unable to search canonical instruments'))
+    await vi.waitFor(() => expect(wrapper.get('[role="listbox"] [role="alert"]').text()).toContain('Unable to search canonical instruments'))
+    expect(wrapper.findAll('[role="listbox"] [role="option"]')).toHaveLength(0)
     await input.setValue('xlk')
     await vi.waitFor(() => expect(wrapper.find('[role="option"]').text()).toContain('XLK'))
     expect(wrapper.find('[role="alert"]').exists()).toBe(false)
