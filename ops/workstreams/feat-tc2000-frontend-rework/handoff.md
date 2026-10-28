@@ -25229,3 +25229,52 @@ matrices serially with one worker and zero retries. Preserve all cached/source
 holds, references, masks, tolerances, F8y timeout and the complete AC1–AC9/V25
 roadmap. No full profile or exact post-adoption TC branch CI result is claimed
 in this adoption record.
+
+## 2026-10-28 — Adopt accepted green staging 4bc50
+
+Root released exact synchronized-green staging
+`4bc50a9de9eb2453c75eda047d01466309a3a3da` for this TC branch. The canonical
+receipt is `released-staging-receipts/4bc50a9de9eb2453c75eda047d01466309a3a3da.json`
+(SHA256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`),
+staging CI `40721314996` terminal success including the exhaustive gate. Fetch
+returned this exact staging SHA. A separate `ls-remote` check briefly failed
+with a DNS resolution error; the successful fetch and Root's exact green review
+bind the adopted source. The local `origin/staging` ref was also at 4bc50.
+
+The clean pre-adoption TC head was `2c25ada328ebec6ca462cd720ec3fbc881854440`.
+Merge commit `98ad55a2061a9ae2e3d6630edc431aca177a712e` adopted the released
+source without conflicts. Relative to e3, the only product/test paths changed
+by this release are `backend/app/services/market_data.py` and
+`backend/tests/unit/services/test_provider_persistence.py`; Provider-owned
+handoff, plan, session and validation records are imported from staging without
+editing the sibling workstream. The service correction returns cached search
+results from the selected provider map's values, and the accepted regression
+checks cache-hit outcomes and provider selection. The branch backend tree
+`3448ffb5ee585fc7a738080169b629dcc9f60047` and frontend tree
+`6f6e64e1d303e81c467983eb118a5459c3152075` exactly match 4bc50. TC frontend,
+on-demand tests, dependencies, migrations and runtime configuration are
+unchanged from the already qualified TC source.
+
+The superseding full frozen-import manifest
+`frozen-upstream-imports/4bc50a9de9eb2453c75eda047d01466309a3a3da.yaml`
+pins all `878` imported paths to exact accepted release bytes; prior manifests
+remain in history and are no longer the active full-set manifest. Scope
+self-test passed, full scope guard passed for `1075` paths (`878` exact imports,
+`29` Provider adaptations, `112` presentation adaptations), workstream
+validation passed, unique-key YAML checks passed, and the original nine
+roadmap criteria plus accepted checkpoint archives compare unchanged. No local
+tests, builds, fixtures, source requests or runtime operations were run; the
+full green staging CI is reused as exact released evidence. The records-only
+adoption tip's feature CI is pending. Independent master CI `40735299702` is
+still running; production remains on e3. The accepted TCO1–TCO6 checkpoint and
+all its prior evidence remain intact, while AC1–AC9, official REF-HELP-V25,
+genuine source/target proof and all operational holds remain open.
+
+`make agent-context` emitted warnings that the private quota-ledger directory
+could not be prepared and optional `sed` inputs were empty; it still identified
+the correct implementation worktree. `make agent-session-status` confirmed
+the existing session/claim and pre-adoption clean remote state; no new session,
+goal or claim was started. Immediate next: publish this coherent owned-record
+adoption once, then let Root observe the exact branch CI. After Root releases
+roadmap work, resume the original AC4 persisted-evidence breadth/ratio/history
+slice; do not replay Provider/issuer/SEC requests.
