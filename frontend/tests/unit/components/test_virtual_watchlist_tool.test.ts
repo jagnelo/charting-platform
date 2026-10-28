@@ -970,6 +970,24 @@ describe('VirtualWatchlistTool', () => {
     expect(wrapper.emitted('row-action')).toBeUndefined()
   })
 
+  it('keeps the locked Tag Column remove action visible and disabled in the row menu', async () => {
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'Current list',
+        rows: [rows[1]],
+        columns: [{ key: 'symbol', label: 'Symbol' }],
+        visibleColumnKeys: ['symbol', 'tag-watchlist:7'],
+        tagColumns: [{ id: 7, name: 'Locked', locked: true, instrumentIds: [rows[1].instrumentId] }],
+      },
+    })
+
+    await wrapper.find('.watchlist__row').trigger('contextmenu', { clientX: 20, clientY: 24 })
+    const removeAction = wrapper.findAll('button[role="menuitem"]').find(button => button.text() === 'Remove XLE from Tag · Locked')
+    expect(removeAction?.exists()).toBe(true)
+    expect(removeAction?.attributes('disabled')).toBeDefined()
+    expect(wrapper.emitted('row-action')).toBeUndefined()
+  })
+
   it('uses Ctrl+M to open explicit list membership for the active selection without mutating it', async () => {
     const selectedRows = rows.map((row, index) => ({ ...row, itemId: index + 10, sourceWatchlistId: 3 }))
     const wrapper = mount(VirtualWatchlistTool, {
