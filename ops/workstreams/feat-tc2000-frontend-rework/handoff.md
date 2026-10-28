@@ -1,3 +1,15 @@
+# Adopted synchronized-green staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 — 2026-10-28T10:17:43Z
+
+Fast-forwarded only Root-released staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (canonical receipt ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2.json, SHA256 ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da; staging CI40656688915). Pre-adoption feature source was addd41731b2be9b740b3c4bab624118ba2371029; both commits have tree 424122f716d92389d6ffccddfb913977124b19b3, and e3's second parent is the feature source. This was ancestry-only: no conflicts and no application/product/test/config byte changes. The existing frozen-upstream import manifest for 173745205692acd3fca650eeeafcd6de38f29fed remains valid because its pinned imported blobs are unchanged; no duplicate manifest or producer code was added.
+
+Staging CI passed Backend, Frontend, E2E and Exhaustive:1471 frontend tests,553 integration tests,199 functional and104 strict visual, zero retries. Reuse is limited to unchanged inputs and the exact receipt. The prior Root-accepted on-demand checkpoint remains bounded software acceptance at implementation ff564; TCO1-TCO6 and its acceptance archive stay intact. The adopted branch's exact CI is pending Root observation. Master CI40670024330 was running at adoption; master-green and production-upgrade claims are not made.
+
+No local tests/builds/fixtures, provider/issuer/account HTTP, credentials, target/service/database operations, or cleanup occurred. Real OIH/provider/issuer qualification and first usable on-demand deployment remain Root-owned; operational holds remain unchanged. AC1-AC9 and official REF-HELP-V25 remain open.
+
+Next: Root observes exact feature CI and owns first usable on-demand deployment. After Root releases TC development, resume original AC4 persisted-evidence breadth/ratio/history work.
+
+---
+
 # Bounded on-demand consumer checkpoint accepted — 2026-10-28T07:25:47Z
 
 Root accepts tc-on-demand-workstation-consumer-20261027 (TCO1-TCO6) under the recorded human standing delegation, including “Yes—approve that initial scope and handle checkpoint acceptance.” Review: .ai/staging-attempts/tc-on-demand-checkpoint-review-20261028.md. This is accepted software scope, not full AC1-AC9/V25 completion or target/deployment acceptance.
