@@ -7,14 +7,19 @@ import hashlib
 import json
 import time
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
+from urllib.parse import quote
 
-from sqlalchemy import select, text
+from sqlalchemy import create_engine, func, inspect, select, text
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.etf_holdings import (
+    ETFHoldingsBackfillFiling,
     ETFHoldingsBackfillJob,
     ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
@@ -40,7 +45,10 @@ from app.services.etf_holdings_refresh import (
     _resolve_canonical_fund_instrument,
 )
 from app.services.provider_quota_coordinator import account_scope_for_provider
-from app.services.provider_runtime import record_entitlement_revision
+from app.services.provider_runtime import (
+    provider_entitlement_admission,
+    record_entitlement_revision,
+)
 
 VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE = "vaneck_oih_initial_qualification"
 VANECK_OIH_INITIAL_QUALIFICATION_OPERATION = "fetch_etf_holdings_latest"
@@ -52,6 +60,29 @@ VANECK_OIH_INITIAL_DEADLINE_SECONDS = 120
 VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS = 3
 VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS = 30
 VANECK_OIH_INITIAL_MAX_BODY_BYTES = 5 * 1024 * 1024
+VANECK_PRETRANSPORT_FAILURE_REASON = (
+    "No currently-supported providers available for " "etf_holdings/fetch_etf_holdings_latest"
+)
+
+
+async def _load_attempt_for_response(
+    db: AsyncSession, attempt_id: int
+) -> ETFHoldingsBackfillJob | None:
+    """Reload the durable attempt with every response relationship loaded.
+
+    The qualification runs in its own session so its job/log settlement can
+    survive request rollback.  The route serializes the returned job only
+    after this service closes that session; load ``filings`` here so response
+    validation never tries lazy IO on a detached ORM instance.
+    """
+
+    result = await db.execute(
+        select(ETFHoldingsBackfillJob)
+        .options(selectinload(ETFHoldingsBackfillJob.filings))
+        .where(ETFHoldingsBackfillJob.id == attempt_id)
+        .execution_options(populate_existing=True)
+    )
+    return result.scalar_one_or_none()
 
 
 def _qualification_lock_key(account_scope: str) -> int:
@@ -202,10 +233,348 @@ def _provider_qualification_binder():
     return binder
 
 
-async def qualify_vaneck_oih_fund(
+def _quota_activity_exists_since_attempt(
+    *, account_scope: str, started_at: datetime, completed_at: datetime
+) -> bool:
+    """Read an existing quota ledger without creating or upgrading its schema."""
+
+    from app.services import provider_quota_coordinator as quota  # noqa: PLC0415
+
+    configured = make_url(quota._engine_url())
+    engine = None
+    try:
+        if configured.get_backend_name() == "sqlite":
+            database = configured.database or ""
+            if (
+                not database
+                or database == ":memory:"
+                or database.startswith("file:")
+                or bool(configured.query)
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "The shared quota ledger URI is unsupported for read-only recovery."
+                )
+            database_path = Path(database).expanduser().resolve()
+            if not database_path.is_file():
+                raise ETFHoldingsRouteHeldError(
+                    "The existing persistent shared quota ledger is unavailable; recovery is denied."
+                )
+            readonly_url = URL.create(
+                "sqlite+pysqlite",
+                database=f"file:{quote(str(database_path), safe='/')}?mode=ro",
+                query={"uri": "true"},
+            )
+            engine = create_engine(readonly_url, connect_args={"timeout": 5}, poolclass=NullPool)
+            sqlite = True
+        elif configured.get_backend_name() == "postgresql":
+            engine = create_engine(configured, poolclass=NullPool, hide_parameters=True)
+            sqlite = False
+        else:
+            raise ETFHoldingsRouteHeldError(
+                "The shared quota ledger backend cannot be verified read-only."
+            )
+        with engine.connect() as connection:
+            if sqlite:
+                connection.exec_driver_sql("PRAGMA query_only = ON")
+                if connection.exec_driver_sql("PRAGMA query_only").scalar_one() != 1:
+                    raise ETFHoldingsRouteHeldError(
+                        "The shared quota ledger did not enter read-only mode."
+                    )
+            else:
+                connection.exec_driver_sql("SET TRANSACTION READ ONLY")
+                if connection.exec_driver_sql("SHOW transaction_read_only").scalar_one() != "on":
+                    raise ETFHoldingsRouteHeldError(
+                        "The shared quota ledger did not enter read-only mode."
+                    )
+            tables = set(inspect(connection).get_table_names())
+            required_tables = {
+                quota._reservations.name,
+                quota._live_receipts.name,
+            }
+            if not required_tables.issubset(tables):
+                raise ETFHoldingsRouteHeldError(
+                    "The shared quota ledger schema is incomplete; recovery is denied."
+                )
+            # A path that exists but contains a newly initialized empty schema
+            # is not the persistent usage history that governed the failed
+            # attempt. Require existing reservation history before interpreting
+            # the absence of matching attempt rows as evidence.
+            ledger_history = connection.execute(
+                select(func.count()).select_from(quota._reservations)
+            ).scalar_one()
+            if int(ledger_history or 0) == 0:
+                raise ETFHoldingsRouteHeldError(
+                    "The shared quota ledger has no prior history to verify recovery."
+                )
+            reservation = connection.execute(
+                select(quota._reservations.c.id)
+                .where(
+                    quota._reservations.c.provider_name == "vaneck",
+                    quota._reservations.c.account_scope == account_scope,
+                    quota._reservations.c.operation == VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                    quota._reservations.c.created_at >= started_at,
+                    quota._reservations.c.created_at <= completed_at,
+                )
+                .limit(1)
+            ).first()
+            receipts = connection.execute(
+                select(
+                    quota._live_receipts.c.reservation_id,
+                    quota._live_receipts.c.provider_name,
+                    quota._live_receipts.c.operation,
+                    quota._live_receipts.c.created_at,
+                ).where(
+                    quota._live_receipts.c.created_at >= started_at,
+                    quota._live_receipts.c.created_at <= completed_at,
+                )
+            ).all()
+            if reservation is not None:
+                return True
+            for receipt in receipts:
+                receipt_reservations = connection.execute(
+                    select(
+                        quota._reservations.c.provider_name,
+                        quota._reservations.c.account_scope,
+                        quota._reservations.c.operation,
+                        quota._reservations.c.created_at,
+                    ).where(quota._reservations.c.reservation_id == receipt.reservation_id)
+                ).all()
+                if not receipt_reservations:
+                    return True
+                providers = {row.provider_name for row in receipt_reservations}
+                operations = {row.operation for row in receipt_reservations}
+                scopes = {row.account_scope for row in receipt_reservations}
+                if (
+                    providers != {receipt.provider_name}
+                    or operations != {receipt.operation}
+                    or len(scopes) != 1
+                    or any(row.created_at > receipt.created_at for row in receipt_reservations)
+                ):
+                    # Orphaned, cross-operation, cross-provider, or future-dated
+                    # reservation linkage is ambiguous evidence.
+                    return True
+                if account_scope in scopes:
+                    return True
+                # Ignore a receipt only when its complete reservation lineage
+                # proves that it belongs to another account scope. usage_scope
+                # is a separate receipt field and is not an account identifier.
+            return False
+    except ETFHoldingsRouteHeldError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - ledger read failures fail closed.
+        raise ETFHoldingsRouteHeldError(
+            "The existing shared quota ledger could not be verified read-only; recovery is denied."
+        ) from exc
+    finally:
+        if engine is not None:
+            engine.dispose()
+
+
+async def _validate_pretransport_predecessor(
+    db: AsyncSession,
+    *,
+    predecessor_job_id: int,
+    profile: ETFProfile,
+    source: DataSource,
+    entitlement: ProviderEntitlement,
+    account_scope: str,
+    current_fingerprint: str,
+) -> tuple[ETFHoldingsBackfillJob, list[dict[str, object]]]:
+    predecessor = await db.scalar(
+        select(ETFHoldingsBackfillJob)
+        .where(ETFHoldingsBackfillJob.id == predecessor_job_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if (
+        predecessor is None
+        or predecessor.etf_profile_id != profile.id
+        or predecessor.source_provider != "vaneck"
+        or predecessor.job_type != VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE
+        or predecessor.status != "failed"
+        or predecessor.completed_at is None
+        or predecessor.failure_reason != VANECK_PRETRANSPORT_FAILURE_REASON
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Only the exact failed pretransport OIH qualification can be recovered."
+        )
+
+    extra = predecessor.extra_data if isinstance(predecessor.extra_data, dict) else {}
+    scope = extra.get("qualification_scope")
+    outcome = extra.get("qualification_outcome")
+    if (
+        not isinstance(scope, dict)
+        or scope.get("provider") != "vaneck"
+        or scope.get("capability") != ProviderCapability.ETF_HOLDINGS.value
+        or scope.get("operation") != VANECK_OIH_INITIAL_QUALIFICATION_OPERATION
+        or scope.get("profile_id") != profile.id
+        or scope.get("instrument_id") != profile.instrument_id
+        or scope.get("provider_symbol") != "OIH"
+        or scope.get("product_slug") != VANECK_OIH_PRODUCT_SLUG
+        or scope.get("request_url") != VANECK_OIH_INITIAL_URL
+        or scope.get("account_scope") != account_scope
+        or scope.get("concurrency") != 1
+        or scope.get("minimum_physical_interval_seconds") != VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS
+        or scope.get("burst_capacity") != 1
+        or scope.get("max_physical_requests") != VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS
+        or scope.get("deadline_seconds") != VANECK_OIH_INITIAL_DEADLINE_SECONDS
+        or scope.get("max_response_bytes") != VANECK_OIH_INITIAL_MAX_BODY_BYTES
+        or scope.get("automatic_retries") != 0
+        or scope.get("follow_redirects") is not False
+        or isinstance(scope.get("review_revision"), bool)
+        or not isinstance(scope.get("review_revision"), int)
+        or scope["review_revision"] >= int(entitlement.revision or 1)
+        or not isinstance(scope.get("provider_review_fingerprint"), str)
+        or scope["provider_review_fingerprint"] == current_fingerprint
+        or not isinstance(outcome, dict)
+        or outcome.get("status") != "not_qualified"
+        or outcome.get("reason") != VANECK_PRETRANSPORT_FAILURE_REASON
+        or extra.get("provider_request_log_ids") != []
+        or "pretransport_recovery" in extra
+        or set(extra)
+        != {
+            "qualification_scope",
+            "qualification_outcome",
+            "provider_request_log_ids",
+        }
+        or set(outcome) != {"status", "reason"}
+        or set(scope)
+        != {
+            "provider",
+            "capability",
+            "operation",
+            "profile_id",
+            "instrument_id",
+            "provider_symbol",
+            "product_slug",
+            "request_url",
+            "allowed_initial_host",
+            "account_scope",
+            "review_revision",
+            "expires_at",
+            "concurrency",
+            "minimum_physical_interval_seconds",
+            "burst_capacity",
+            "max_physical_requests",
+            "deadline_seconds",
+            "max_response_bytes",
+            "automatic_retries",
+            "follow_redirects",
+            "provider_review_fingerprint",
+        }
+        or any(
+            key in outcome and outcome.get(key) is not None
+            for key in ("request_log_ids", "snapshot_id", "raw_artifact_id")
+        )
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The prior qualification lacks exact changed-review pretransport evidence."
+        )
+
+    end = predecessor.completed_at
+    if predecessor.started_at is None or end < predecessor.started_at or end > datetime.now(UTC):
+        raise ETFHoldingsRouteHeldError("The predecessor attempt timing is invalid.")
+    if await db.scalar(
+        select(func.count(ETFHoldingsBackfillFiling.id)).where(
+            ETFHoldingsBackfillFiling.last_job_id == predecessor.id
+        )
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The prior qualification has filing evidence and cannot be recovered."
+        )
+    if await db.scalar(
+        select(func.count(ProviderRequestLog.id)).where(
+            ProviderRequestLog.data_source_id == source.id,
+            ProviderRequestLog.capability == ProviderCapability.ETF_HOLDINGS,
+            ProviderRequestLog.operation == VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+            ProviderRequestLog.instrument_id == profile.instrument_id,
+            ProviderRequestLog.requested_at >= predecessor.started_at,
+            ProviderRequestLog.requested_at <= end,
+        )
+    ):
+        raise ETFHoldingsRouteHeldError("Provider request evidence makes recovery ambiguous.")
+    raw_artifacts = list(
+        (
+            await db.scalars(
+                select(ETFHoldingsRawArtifact)
+                .where(
+                    ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+                    ETFHoldingsRawArtifact.fetched_at >= predecessor.started_at,
+                    ETFHoldingsRawArtifact.fetched_at <= end,
+                )
+                .order_by(ETFHoldingsRawArtifact.id)
+            )
+        ).all()
+    )
+    diagnostic_artifacts: list[dict[str, object]] = []
+    if raw_artifacts:
+        if len(raw_artifacts) != 1:
+            raise ETFHoldingsRouteHeldError("Raw body evidence makes recovery ambiguous.")
+        artifact = raw_artifacts[0]
+        no_body_payload = {
+            "failure_type": "ProviderNoDataError",
+            "failure_message": VANECK_PRETRANSPORT_FAILURE_REASON,
+            "validation": None,
+        }
+        no_body_metadata = {
+            "provider_request_log_ids": [],
+            "request_urls": [],
+            "request_attempts": [],
+            "failure_type": "ProviderNoDataError",
+            "failure_message": VANECK_PRETRANSPORT_FAILURE_REASON,
+            "validation": None,
+            "evidence_source": "shared_provider_request_log_and_refresh_rejection",
+        }
+        if (
+            artifact.data_source_id != source.id
+            or artifact.source_kind != "issuer_adapter_rejected_fetch"
+            or artifact.source_url != ""
+            or artifact.source_identifier is not None
+            or artifact.content_type != "application/json"
+            or artifact.content_hash != _hash_payload(no_body_payload)
+            or artifact.composition_date is not None
+            or artifact.as_of_date is not None
+            or artifact.published_at is not None
+            or artifact.parser_version != "vaneck"
+            or artifact.payload_text is not None
+            or artifact.payload_json != no_body_payload
+            or artifact.legal_metadata != no_body_metadata
+            or artifact.fetched_at < predecessor.started_at
+            or artifact.fetched_at > end
+        ):
+            raise ETFHoldingsRouteHeldError("Raw body evidence makes recovery ambiguous.")
+        diagnostic_artifacts.append(
+            {"artifact_id": artifact.id, "content_hash": artifact.content_hash}
+        )
+    if await db.scalar(
+        select(func.count(ETFHoldingsSnapshot.id)).where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            ETFHoldingsSnapshot.created_at >= predecessor.started_at,
+            ETFHoldingsSnapshot.created_at <= end,
+        )
+    ):
+        raise ETFHoldingsRouteHeldError("Snapshot evidence makes recovery ambiguous.")
+    try:
+        quota_activity = await asyncio.to_thread(
+            _quota_activity_exists_since_attempt,
+            account_scope=account_scope,
+            started_at=predecessor.started_at,
+            completed_at=end,
+        )
+    except Exception as exc:  # noqa: BLE001 - unverified ledger cannot authorize recovery.
+        raise ETFHoldingsRouteHeldError(
+            "The existing shared quota ledger could not be verified read-only; recovery is denied."
+        ) from exc
+    if quota_activity:
+        raise ETFHoldingsRouteHeldError("Shared quota evidence makes recovery ambiguous.")
+    return predecessor, diagnostic_artifacts
+
+
+async def _qualify_vaneck_oih_fund(
     db: AsyncSession,
     *,
     requested_by_user_id: int,
+    recovery_attestation: dict[str, object] | None = None,
 ) -> ETFHoldingsBackfillJob:
     """Latch and execute one exact OIH sample through Provider shared admission."""
 
@@ -297,6 +666,55 @@ async def qualify_vaneck_oih_fund(
             text("SELECT pg_advisory_xact_lock(:lock_key)"),
             {"lock_key": _qualification_lock_key(account_scope)},
         )
+        if recovery_attestation is not None:
+            # Refresh the committed review after serialization; the earlier
+            # request-session identity map is not evidence of current review.
+            source = await operation_db.scalar(
+                select(DataSource)
+                .where(DataSource.id == source.id, DataSource.name == "vaneck")
+                .execution_options(populate_existing=True)
+            )
+            if source is None or not source.is_active:
+                raise ETFHoldingsRouteHeldError("The reviewed VanEck source is no longer active.")
+            policy = await operation_db.scalar(
+                select(ProviderPolicy)
+                .where(
+                    ProviderPolicy.data_source_id == source.id,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+                .execution_options(populate_existing=True)
+            )
+            entitlement = await operation_db.scalar(
+                select(ProviderEntitlement)
+                .where(
+                    ProviderEntitlement.data_source_id == source.id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+                .execution_options(populate_existing=True)
+            )
+            if (
+                policy is None
+                or entitlement is None
+                or policy.is_enabled
+                or str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run"
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "Current disabled/not_run VanEck review is required for recovery."
+                )
+            admission = provider_entitlement_admission(
+                entitlement,
+                provider_name="vaneck",
+                capability=ProviderCapability.ETF_HOLDINGS,
+            )
+            if not admission.get("allowed"):
+                raise ETFHoldingsRouteHeldError(
+                    "The current VanEck entitlement does not pass shared free-plan admission."
+                )
+            fresh_scope = account_scope_for_provider("vaneck", str(policy.quota_scope or ""))
+            if fresh_scope != account_scope:
+                raise ETFHoldingsRouteHeldError(
+                    "VanEck account binding changed while recovery was being serialized."
+                )
         existing_jobs = list(
             (
                 await operation_db.scalars(
@@ -308,7 +726,26 @@ async def qualify_vaneck_oih_fund(
                 )
             ).all()
         )
-        if existing_jobs:
+        recovery_predecessor = None
+        if recovery_attestation is not None:
+            if len(existing_jobs) != 1 or existing_jobs[0].id != recovery_attestation.get(
+                "predecessor_job_id"
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "Recovery requires the sole original OIH attempt and permits one successor."
+                )
+            fingerprint = _provider_review_fingerprint(source, policy, entitlement)
+            recovery_predecessor, diagnostic_artifacts = await _validate_pretransport_predecessor(
+                operation_db,
+                predecessor_job_id=int(recovery_attestation["predecessor_job_id"]),
+                profile=profile,
+                source=source,
+                entitlement=entitlement,
+                account_scope=account_scope,
+                current_fingerprint=fingerprint,
+            )
+            recovery_attestation["predecessor_diagnostic_artifacts"] = diagnostic_artifacts
+        elif existing_jobs:
             for existing_job in existing_jobs:
                 if existing_job.status == "running":
                     existing_job.status = "interrupted"
@@ -371,6 +808,19 @@ async def qualify_vaneck_oih_fund(
                 "qualification_scope": scope,
                 "qualification_outcome": {"status": "in_progress"},
                 "provider_request_log_ids": [],
+                **(
+                    {
+                        "pretransport_recovery": {
+                            **recovery_attestation,
+                            "predecessor_job_id": recovery_predecessor.id,
+                            "created_at": now.isoformat(),
+                            "review_revision": int(entitlement.revision or 1),
+                            "provider_review_fingerprint": scope["provider_review_fingerprint"],
+                        }
+                    }
+                    if recovery_attestation is not None and recovery_predecessor is not None
+                    else {}
+                ),
             },
         )
         operation_db.add(attempt)
@@ -474,7 +924,12 @@ async def qualify_vaneck_oih_fund(
             change_reason=f"vaneck_oih_initial_qualification:{attempt.id}",
         )
         await operation_db.commit()
-        return attempt
+        response_attempt = await _load_attempt_for_response(operation_db, attempt_id)
+        if response_attempt is None:
+            raise ETFHoldingsRouteHeldError(
+                "VanEck qualification completed but its response record could not be reloaded."
+            )
+        return response_attempt
     except asyncio.CancelledError:
         if attempt is not None and attempt_id is not None:
             await operation_db.rollback()
@@ -501,7 +956,7 @@ async def qualify_vaneck_oih_fund(
                     redirect_location=location,
                 )
             )
-            result = await operation_db.get(ETFHoldingsBackfillJob, attempt_id)
+            result = await _load_attempt_for_response(operation_db, attempt_id)
             if result is not None:
                 return result
         if isinstance(exc, Exception):
@@ -510,6 +965,42 @@ async def qualify_vaneck_oih_fund(
     finally:
         await lock_db.close()
         await operation_db.close()
+
+
+async def qualify_vaneck_oih_fund(
+    db: AsyncSession,
+    *,
+    requested_by_user_id: int,
+) -> ETFHoldingsBackfillJob:
+    """Run the original one-shot administrator-only qualification."""
+
+    return await _qualify_vaneck_oih_fund(
+        db,
+        requested_by_user_id=requested_by_user_id,
+    )
+
+
+async def recover_vaneck_oih_fund(
+    db: AsyncSession,
+    *,
+    requested_by_user_id: int,
+    predecessor_job_id: int,
+    review_evidence_reference: str,
+    review_evidence_sha256: str,
+    operator_reason: str,
+) -> ETFHoldingsBackfillJob:
+    """Create the sole audited successor to an exact failed pretransport attempt."""
+
+    return await _qualify_vaneck_oih_fund(
+        db,
+        requested_by_user_id=requested_by_user_id,
+        recovery_attestation={
+            "predecessor_job_id": predecessor_job_id,
+            "review_evidence_reference": review_evidence_reference,
+            "review_evidence_sha256": review_evidence_sha256.lower(),
+            "operator_reason": operator_reason,
+        },
+    )
 
 
 async def _verify_success_evidence(

@@ -1,11 +1,86 @@
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
-## Current checkpoint: etf-on-demand-consumer-20261027 — accepted; closing CI pending
+## Current checkpoint: ODC software accepted and adopted in green staging; full roadmap open
 
 Root authorized this six-criterion software checkpoint under the standing
 human-authorized on-demand acquisition goal. The accepted ERF response/order
 checkpoint and its evidence remain preserved below as historical acceptance;
 they do not close this newer consumer scope. Full AC1-AC14 stays the roadmap.
+
+## Latest synchronized staging baseline adopted — 4bc50a9de9eb2453c75eda047d01466309a3a3da (2026-10-28)
+
+The existing ETF branch tip `61f121af513d5db4511751ab962a34d1afde6f75`
+merged only the exact released `origin/staging` commit
+`4bc50a9de9eb2453c75eda047d01466309a3a3da` in owner merge
+`93a897fabf343fdf896e283b485791466002b60d`. The merge base is the prior
+adopted staging baseline `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`; the
+merge had no conflicts. Canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json`
+(SHA256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`)
+and Root's release review
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json`
+(SHA256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`)
+confirm exact staging CI `40721314996` terminal green, including the exhaustive
+gate. The release exercised 5,569 backend unit passes/1 existing skip, 553
+integration passes/2 existing skips, 1,471 frontend passes, 196 E2E passes/110
+configured skips with all four required on-demand cases executed, and the
+exhaustive gate's 199 functional and 104 strict visual passes at zero retries.
+
+The imported source delta is Provider's cache reuse change in
+`backend/app/services/market_data.py` and its persistence regression. After the
+merge, backend tree `3448ffb5ee585fc7a738080169b629dcc9f60047` and frontend
+tree `6f6e64e1d303e81c467983eb118a5459c3152075` exactly match staging. No
+frontend, configuration, or migration-path changes were imported. The full
+merged tree differs from staging only in these four ETF-owned records; the
+Provider records were preserved from staging. This was an exact staging merge,
+not an off-staging cherry-pick, so no frozen-upstream-import manifest applies.
+No local tests/builds were rerun; the imported source relies on the exact green
+staging qualification. The owned branch CI will run on the records publication.
+
+Master CI `40735299702` is still running, not green. Production remains at
+`e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`; this adoption is not deployment or
+source/account acceptance. Root retains master/promotion/deployment and genuine
+OIH qualification/API/UI acceptance. No provider/issuer/SEC request, quota
+reservation, target mutation, policy change, or operational trial occurred.
+The ODC software checkpoint remains accepted, while all AC1-AC14 remain open;
+preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests,
+all holds/quarantines, raw/PIT lineage, and the 30-day observation. No new
+roadmap implementation was started. After Root completes deployment/source
+priorities and releases more ETF implementation, the next ETF-owned step remains
+AC2: continue the retained issuer-evidence audit from reviewed existing
+evidence.
+
+## Previously adopted synchronized staging baseline — e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (2026-10-28)
+
+The clean ETF tip `95a93f0b932f58018d4f0d40f17f8fdb9eecdb20` was an ancestor of canonical synchronized-green
+staging `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2` and was fast-forwarded to that exact commit without
+conflicts. The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json` (SHA256 `ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da`); exact staging CI
+[run 40656688915](https://github.com/jagnelo/charting-platform/actions/runs/40656688915)
+passed Backend, Frontend, E2E, and Exhaustive Integration Gate. The exhaustive
+coverage includes 1,471 frontend tests, 553 integration tests, 199 functional
+cases, and 104 strict visual cases at zero retries. No local tests or builds
+were rerun in this adoption.
+
+The adopted tree `424122f716d92389d6ffccddfb913977124b19b3` adds 17 accepted TC frontend paths and 7 TC-owned
+workstream/receipt paths relative to the ETF tip, with no backend, config, or
+scripts changes. Staging's parents are `173745205692acd3fca650eeeafcd6de38f29fed` and TC source
+`addd41731b2be9b740b3c4bab624118ba2371029`. TC remains the presentation implementation owner; ETF retains
+its consumer/domain ownership and does not duplicate TC styling or components.
+No ETF workstream file changed in the staging merge; this handoff and the other
+ETF-owned records reconcile the adoption. An ETF frozen-import manifest is not
+applicable because this is an exact fast-forward of the complete released
+staging tree, with no off-staging path import.
+
+Independent master CI [run 40670024330](https://github.com/jagnelo/charting-platform/actions/runs/40670024330)
+was still running at adoption; no master-green or deployment claim is made.
+Root owns the first usable on-demand deployment, actual OIH source/account
+qualification, and target/API/UI acceptance. No source HTTP, quota use, target
+mutation, or deployment occurred here. The accepted ODC software checkpoint
+and its implementation/test receipts remain distinct from target acceptance;
+all AC1-AC14 remain open. After Root completes the deployment priority and
+releases further ETF implementation, the next branch-owned step is AC2: resume
+the retained issuer-evidence audit from reviewed existing evidence.
 
 ## Accepted Provider staging adopted; consumer contract revalidation — 2026-10-27
 
@@ -17502,3 +17577,150 @@ raw/PIT lineage, and the 30-day observation. Root retains actual source/account
 qualification, target acceptance, integration, promotion, and deployment.
 
 The current plan and session blocker summaries retain the audited narrative invariant: Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The 74 fallback identities remain part of the preserved full roadmap.
+
+## VanEck pretransport recovery and closed-session response repair — focused green
+
+Root released this bounded same-branch follow-up after the single deployed OIH
+administrator qualification created failed job 2 before transport and then
+returned HTTP 500 while serializing detached `filings`. Root confirmed zero
+issuer/provider HTTP, zero Provider request logs and zero quota activity. The
+local no-body rejection diagnostic remains preserved; its exact permitted
+recovery disposition is reviewed at
+[/home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json).
+Root separately reviewed the recovery contract at
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json).
+The entitlement's reviewed-free label was corrected by Root to revision 2;
+policy remains disabled/not_run, and job 2/latch is unchanged. No recovery or
+real issuer operation has been attempted by this owner.
+
+The current owned source change is limited to the fresh-session eager response
+reload, an admin-only explicit recovery endpoint/request schema, the exact
+pretransport predecessor validation and its offline/engine-backed tests. The
+only tolerated predecessor raw row is one exact hash-verified locally generated
+no-body `ProviderNoDataError` JSON diagnostic with no content bytes, URL,
+identifier, validation facts, request IDs, URLs or attempts. The successor
+records that artifact's ID and hash. Any changed payload/hash, other metadata,
+extra artifact, body, request log, quota activity, snapshot or filing denies;
+the original failed job and raw record are never rewritten.
+
+Quota history checking now reads an existing ledger without creating or
+upgrading it. Plain SQLite path ledgers use a file URI in `mode=ro` plus
+`query_only`; SQLite URI/query forms fail closed. PostgreSQL uses a read-only
+transaction. Missing, in-memory, unreadable, incomplete or empty-history
+ledgers deny. Live receipts are traced through `reservation_id`; `usage_scope`
+is not account scope. Only consistent linked reservation rows can establish a
+different account; orphaned and mismatched provider/operation linkage denies.
+The account advisory lock, fresh review fingerprint/revision, shared Provider
+admission, cost/quota/health holds, zero-dollar/free-only requirements,
+disabled policy, no replay, and the fixed physical/time/body/redirect/retry
+limits remain in force.
+
+Focused evidence is source-local and does not accept the checkpoint:
+
+- Offline qualification-ledger unit module: 34 passed in 2.57s; exact output
+  [/tmp/etf-vaneck-recovery-focused-20261029/unit-final.log](/tmp/etf-vaneck-recovery-focused-20261029/unit-final.log)
+  and JUnit
+  [/tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml](/tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml).
+- Root-reviewed real PostgreSQL/MockTransport slice: 12 passed, 44 deselected,
+  zero skips in 117.33s. It includes the real qualification-to-Provider chain,
+  failed and successful nonempty response serialization after the operation
+  session closes, one concurrent recovery successor, immutable failed
+  predecessor, exact diagnostic acceptance and seven ambiguous-evidence
+  denials. No external transport was used. Root's receipt is
+  [/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json);
+  raw log and JUnit are under
+  [/tmp/etf-vaneck-recovery-focused-20261029/attempt3](/tmp/etf-vaneck-recovery-focused-20261029/attempt3).
+- Ruff check/format, Python compilation and `git diff --check` passed. The
+  final tracked source file SHA256 values are recorded in the adjacent plan and
+  validation record. The PG attempt's service file differs from the final file
+  only by a subsequent SQLite guard broadening from `mode`/`uri` keys to any
+  query option; that local branch is covered by the final 34-test unit run.
+- Attempt 1 remains a setup-only red: 12 setup errors occurred before tests
+  because its pytest basetemp parent was absent. Attempt 2 remains 11 passed
+  and one test-helper `UnboundLocalError`; neither is relabeled as a product
+  failure or pass. Their JUnit/logs and the setup receipt remain under
+  `/tmp/etf-vaneck-recovery-focused-20261029`.
+
+The follow-up is not accepted and has no complete-profile or exact-tip CI
+evidence yet. The next source publication captures the candidate by exact
+branch HEAD rather than embedding a self-referential SHA. Root's full local
+slot is reserved but has not been launched. Proposed profile for Root review:
+use a new private project named from the published candidate SHA, a protected
+`git archive` and candidate-bound backend image labels; freshly collect and
+run every current unit/integration ID once with the canonical 300s/900s
+process caps and fresh combined coverage at the existing 75% floor. Run the
+two canonical PostgreSQL-only DDL tests separately if the shared-DSN suite
+skips them. Then run the unchanged complete frontend/API/worker/restart,
+functional and strict visual profile: one browser worker, zero retries, exact
+original masks/references and 0.005 tolerance. Keep application DB and Redis
+namespaces distinct from backend tests, deny provider/issuer egress, keep live
+flags and credentials off, and use a private fixture ledger. Reuse frontend or
+Research images only after exact candidate input and provenance equivalence is
+reviewed. Root should recheck capacity before build; use one owned serial
+builder at 3 GiB, no extra swap, 2 CPUs, 128 PIDs, and keep added profile
+resources within the 8 GiB envelope. Use the already reviewed 1-CPU/512-MiB/
+64-PID worker profile and its unchanged restart bounds. Capture and preserve the
+complete live container/image/volume/network identity sets immediately before
+launch, without excluding preexisting resources based on TC/worktree labels.
+Compare canonical mount objects and label key/value maps before and after.
+Any external-owner lifecycle change requires contemporaneous Root evidence for
+the exact IDs; do not apply a blanket exemption. Remove only exact ETF-owned
+resources after terminal completion. Export the exact qualified candidate image
+archive and digest/provenance receipt before cleanup; retain the approved image
+and rollback artifact with owner, reason, next use and review condition. No
+fixture/build has started; Root must release the phases after reviewing this
+candidate-bound proposal.
+
+The accepted ODC software checkpoint, all AC1–AC14 text and dispositions,
+15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, disabled
+routes, holds/quarantines, retained raw/PIT lineage and 30-day observation
+remain unchanged. Root owns any later real recovery, source/account evidence,
+target/API/UI acceptance, integration and deployment.
+
+## 2026-10-29 follow-up record check
+
+The unchanged narrative invariant regression
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+passed 1/1 in 2.98s after the current session blocker restored the required
+`15 Tier-0 and 156 Tier-1` phrase; `make branch-validate` passed with 46
+records. A final offline invocation of the 34-case qualification unit module
+plus this exact narrative node passed all 35 tests in 3.93s. Root's independent
+Provider review found no blocking findings on the fixed recovery snapshot
+(`d1ffe6b1...544a7`), documented at
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json).
+This is review closure only. The focused source candidate remains unaccepted
+until its exact branch CI and full source-matched profile pass.
+
+
+## 2026-10-29 — accepted VanEck bounded checkpoint
+
+Root accepted `etf-vaneck-pretransport-recovery-and-response-serialization-20261029`
+under the existing delegated authority at tested implementation
+`7f30a8c330ffbb1e34c22f2f485aafec9fac0f23`. The acceptance decision is
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-7f30-checkpoint-acceptance-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-7f30-checkpoint-acceptance-root-review-20261029.json);
+Root's source-bound runtime review is
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-915350-runtime-qualified-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-915350-runtime-qualified-root-review-20261029.json).
+
+The accepted evidence is 6151 backend passes, 5 configured skips and 84.4%
+coverage; the separate canonical PostgreSQL DDL tests passed 2/2; all 11 app
+phases passed; functional checks passed 200 with 2 configured canonical-live
+skips, including all four on-demand UI cases; strict visuals passed 104/104.
+Retries were zero, owned cleanup was empty, and protected inventories matched.
+Exact implementation CI `40899171592` is green. The original raw DDL
+runner false-negative remains preserved; Root resolved the temporary
+Ryuk-sidecar timing independently and accepted the test result without rerun.
+
+This closes only the bounded software checkpoint. The failed deployed OIH job
+2 and its no-body diagnostic remain preserved; no real source HTTP, quota
+reservation, policy activation, target mutation, genuine VanEck qualification,
+or deployment is claimed. Root owns those target/source steps and integration.
+The records-closing-tip CI is pending after this publication; do not embed its
+own commit SHA. `integration_capture: exact branch HEAD`. AC1-AC14 remain
+open, including 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent
+requests, all holds/quarantines, raw/PIT lineage, and the 30-day observation.
+Root watches exact closing-tip CI; after Root releases further ETF work, the
+next branch-owned roadmap action is AC2 retained issuer evidence.
+
+## Closing-summary guard correction — 2026-10-29
+
+Root's staging preflight found that `closure_summary` must contain the exact literal `integration_capture: exact branch HEAD`; the prior wording used “is” and failed before any merge. This records-only correction updates the current closure summary and handoff marker, refreshes the session plan hash, and appends this validation entry. The existing guard, 46-record workstream validator, and exact narrative regression passed. Product and qualified runtime inputs are unchanged; the successor exact-tip CI remains Root-owned and pending verification.
