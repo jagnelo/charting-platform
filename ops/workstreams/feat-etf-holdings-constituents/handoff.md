@@ -17690,3 +17690,33 @@ Provider review found no blocking findings on the fixed recovery snapshot
 [/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json).
 This is review closure only. The focused source candidate remains unaccepted
 until its exact branch CI and full source-matched profile pass.
+
+
+## 2026-10-29 — accepted VanEck bounded checkpoint
+
+Root accepted `etf-vaneck-pretransport-recovery-and-response-serialization-20261029`
+under the existing delegated authority at tested implementation
+`7f30a8c330ffbb1e34c22f2f485aafec9fac0f23`. The acceptance decision is
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-7f30-checkpoint-acceptance-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-7f30-checkpoint-acceptance-root-review-20261029.json);
+Root's source-bound runtime review is
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-915350-runtime-qualified-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-915350-runtime-qualified-root-review-20261029.json).
+
+The accepted evidence is 6151 backend passes, 5 configured skips and 84.4%
+coverage; the separate canonical PostgreSQL DDL tests passed 2/2; all 11 app
+phases passed; functional checks passed 200 with 2 configured canonical-live
+skips, including all four on-demand UI cases; strict visuals passed 104/104.
+Retries were zero, owned cleanup was empty, and protected inventories matched.
+Exact implementation CI `40899171592` is green. The original raw DDL
+runner false-negative remains preserved; Root resolved the temporary
+Ryuk-sidecar timing independently and accepted the test result without rerun.
+
+This closes only the bounded software checkpoint. The failed deployed OIH job
+2 and its no-body diagnostic remain preserved; no real source HTTP, quota
+reservation, policy activation, target mutation, genuine VanEck qualification,
+or deployment is claimed. Root owns those target/source steps and integration.
+The records-closing-tip CI is pending after this publication; do not embed its
+own commit SHA. `integration_capture` is `exact branch HEAD`. AC1-AC14 remain
+open, including 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent
+requests, all holds/quarantines, raw/PIT lineage, and the 30-day observation.
+Root watches exact closing-tip CI; after Root releases further ETF work, the
+next branch-owned roadmap action is AC2 retained issuer evidence.
