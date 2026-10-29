@@ -17715,8 +17715,12 @@ This closes only the bounded software checkpoint. The failed deployed OIH job
 reservation, policy activation, target mutation, genuine VanEck qualification,
 or deployment is claimed. Root owns those target/source steps and integration.
 The records-closing-tip CI is pending after this publication; do not embed its
-own commit SHA. `integration_capture` is `exact branch HEAD`. AC1-AC14 remain
+own commit SHA. `integration_capture: exact branch HEAD`. AC1-AC14 remain
 open, including 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent
 requests, all holds/quarantines, raw/PIT lineage, and the 30-day observation.
 Root watches exact closing-tip CI; after Root releases further ETF work, the
 next branch-owned roadmap action is AC2 retained issuer evidence.
+
+## Closing-summary guard correction — 2026-10-29
+
+Root's staging preflight found that `closure_summary` must contain the exact literal `integration_capture: exact branch HEAD`; the prior wording used “is” and failed before any merge. This records-only correction updates the current closure summary and handoff marker, refreshes the session plan hash, and appends this validation entry. The existing guard, 46-record workstream validator, and exact narrative regression passed. Product and qualified runtime inputs are unchanged; the successor exact-tip CI remains Root-owned and pending verification.

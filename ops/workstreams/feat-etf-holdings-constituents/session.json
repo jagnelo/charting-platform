@@ -586,7 +586,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Root watches the exact closing-tip CI triggered by this records-only publication and integrates only after all required jobs are green. Root owns actual OIH source/account qualification, the preserved failed job-2 recovery decision, target/API/UI acceptance and deployment. After Root releases further work, continue AC2 retained issuer evidence and the remaining AC1-AC14 roadmap.",
-  "plan_hash": "d67f32c5cbaedefb59c1f8f00e3b035c87a07c071889dc42f77ea1896706c53c",
+  "plan_hash": "9f3b57223c90e433a9d2654f91ef2baecb47cf0c13cef7b9822a0c0e47316e32",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {

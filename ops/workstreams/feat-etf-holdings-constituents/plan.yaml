@@ -325,7 +325,7 @@ closure_summary: >-
   rerunning them. Full evidence and review receipts are linked in the current
   VanEck follow-up below. This bounded closure is ready_for_integration; exact
   closing-tip CI is pending publication and external verification. Do not
-  self-reference the closing commit; integration_capture is exact branch HEAD.
+  self-reference the closing commit; integration_capture: exact branch HEAD.
   This is software qualification only: it does not establish genuine
   VanEck/OIH holdings qualification, policy activation, target deployment, or
   completion of AC1-AC14. Root owns integration and actual source/account/
