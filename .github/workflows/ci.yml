@@ -179,9 +179,20 @@ jobs:
       - name: Install Playwright browsers
         run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npx playwright install --with-deps chromium'
 
+      - name: Build stack images
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci build
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key-not-used-in-production' }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chartingdb
+          CORS_ORIGINS: '["http://localhost"]'
+          E2E_SEED_INSTRUMENTS: "true"
+          E2E_SEED_MARKET_DATA: "true"
+
       - name: Start stack
         # Vars are provided inline — no .env file needed
-        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci up -d --wait
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci up -d --wait --no-build
         timeout-minutes: 5
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key-not-used-in-production' }}

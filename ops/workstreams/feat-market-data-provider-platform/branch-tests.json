@@ -2,32 +2,33 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling",
-    "backend migration compatibility and PostgreSQL/Redis integration tests",
-    "worker scheduling, quota reservation, request coalescing, deferred-run retry, and provider health tests",
-    "backend API contract tests for canonical IDs, compatibility symbol aliases, coverage, provider admin, sessions, quarantine, and shadow reports",
-    "opt-in live provider probes plus full backend integration validation when credentials and infrastructure are available"
+    "backend/tests/unit/routers/test_instruments_router.py::TestExplicitAcquireCanonicalIdentity",
+    "backend/tests/unit/services/test_provider_persistence.py",
+    "backend/tests/integration/api/test_on_demand_history_postgres.py",
+    "the complete backend unit/integration coverage profile required by exact changed paths"
   ],
   "commands": [
     {
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
-      "covers": [1, 2, 3, 4, 5]
+      "covers": [
+        1,
+        2,
+        3,
+        4
+      ]
     },
     {
       "id": "migration-compatibility",
       "command": "INTEGRATION_BASE_SHA=origin/master make test-migration-compatibility",
-      "covers": [2]
+      "covers": [
+        4
+      ],
+      "scope_note": "Supplemental compatibility validation for the complete backend profile; this checkpoint adds no migration."
     }
   ],
   "ci_covered_commands": {
     "full-backend-suite": "Backend Tests"
   },
-  "external_gates": [
-    {
-      "id": "current-source-provider-live-matrix",
-      "covers": [5],
-      "reason": "Required current-source exhaustive provider live validation is separate from untrusted feature-branch CI because it uses shared credentialed accounts. Run the explicit candidate gate only after provider-specific quota, usage-baseline, rights, and operation preflight admits each request. A CI skip or preflight-only result is not live evidence."
-    }
-  ]
+  "external_gates": []
 }

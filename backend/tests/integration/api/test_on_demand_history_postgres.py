@@ -18,16 +18,31 @@ from app.database import Base
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
-from app.models.instrument import Instrument
+from app.models.instrument import EquityDetail, Instrument, OptionDetail
+from app.models.instrument_identity import (
+    InstrumentIdentifier,
+    InstrumentIdentifierType,
+    InstrumentProviderSymbol,
+)
+from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import (
     AdjustmentBasis,
+    ExchangeSessionRule,
+    InstrumentIdentityQuarantine,
+    InstrumentIdentityQuarantineObservation,
     MarketSeries,
     MarketSeriesDefault,
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.synthetic_constituent import SyntheticConstituent
 from app.routers import instruments as instruments_router
-from app.schemas.instrument_acquisition import HistoryAcquisitionRequest
+from app.schemas.instrument_acquisition import (
+    HistoryAcquisitionRequest,
+    InstrumentAcquireRequest,
+    ProviderCandidateBinding,
+)
 from app.services import provider_runtime
 
 _TABLES = (
@@ -40,6 +55,16 @@ _TABLES = (
     MarketSeries.__table__,
     MarketSeriesDefault.__table__,
     OHLCVBar.__table__,
+    ExchangeSessionRule.__table__,
+    InstrumentIdentifier.__table__,
+    InstrumentProviderSymbol.__table__,
+    InstrumentProfileSnapshot.__table__,
+    InstrumentIdentityQuarantine.__table__,
+    InstrumentIdentityQuarantineObservation.__table__,
+    InstrumentStats.__table__,
+    EquityDetail.__table__,
+    OptionDetail.__table__,
+    SyntheticConstituent.__table__,
 )
 
 
@@ -297,3 +322,171 @@ async def test_explicit_history_reads_and_returns_only_persisted_default_series(
         assert len(persisted) == 4
         assert sum(1 for bar in persisted if bar.market_series_id == 1) == 2
         assert sum(1 for bar in persisted if bar.market_series_id == 2) == 2
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_explicit_acquire_commits_authoritative_identity_for_provisional_oih_scaffold(
+    on_demand_history_database, monkeypatch
+):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+    from app.models.instrument_identity import (
+        InstrumentIdentifier,
+        InstrumentProviderSymbol,
+    )
+    from app.models.listing import InstrumentListing
+    from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
+    from app.routers import instruments as instruments_router
+    from app.services import instrument_mastering
+
+    session_factory = on_demand_history_database
+    async with session_factory.begin() as setup_db:
+        setup_db.add_all(
+            [
+                AssetClass(id=1, name="Equity", description="fixture"),
+                InstrumentType(id=1, asset_class_id=1, name="ETF", description="fixture"),
+                Exchange(id=1, mic="ARCX", name="NYSE Arca", country_code="US"),
+                DataSource(
+                    id=1,
+                    name="massive",
+                    is_active=True,
+                    config={},
+                    supported_capabilities=["instrument_metadata", "instrument_search"],
+                ),
+            ]
+        )
+        await setup_db.flush()
+        scaffold = Instrument(
+            id=1,
+            instrument_type_id=1,
+            symbol="OIH",
+            name="OIH industry proxy ETF",
+            currency="USD",
+            identity_status="provisional",
+            primary_identifier_type="composite_figi",
+            primary_identifier_value="BBG000D02J82",
+            is_active=True,
+            is_synthetic=False,
+        )
+        setup_db.add(scaffold)
+        await setup_db.flush()
+        setup_db.add_all(
+            [
+                InstrumentListing(
+                    instrument_id=scaffold.id,
+                    exchange_id=1,
+                    ticker="OIH",
+                    currency="USD",
+                    is_primary=True,
+                    is_active=True,
+                    source="massive",
+                ),
+                InstrumentIdentifier(
+                    instrument_id=scaffold.id,
+                    data_source_id=1,
+                    identifier_type=InstrumentIdentifierType.COMPOSITE_FIGI,
+                    identifier_value="BBG000D02J82",
+                    is_primary=True,
+                    is_active=True,
+                ),
+                InstrumentProviderSymbol(
+                    instrument_id=scaffold.id,
+                    data_source_id=1,
+                    provider_symbol="OIH",
+                    provider_exchange_code="ARCX",
+                    provider_instrument_type="ETF",
+                    is_primary=True,
+                    is_active=True,
+                ),
+            ]
+        )
+
+    async def _search(*_args, **_kwargs):
+        return [
+            {
+                "symbol": "OIH",
+                "name": "VanEck Oil Services ETF",
+                "exchange": "ARCX",
+                "type": "ETF",
+                "provider": "massive",
+            }
+        ]
+
+    async def _profile(*_args, provider_name=None, **_kwargs):
+        assert provider_name == "massive"
+        return InstrumentProfile(
+            provider="massive",
+            symbol="OIH",
+            canonical_symbol="OIH",
+            name="VanEck Oil Services ETF",
+            currency="USD",
+            quote_type="ETF",
+            exchange="ARCX",
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="composite_figi",
+                    identifier_value="BBG000D02J82",
+                    is_primary=True,
+                )
+            ],
+            listings=[
+                ListingRecord(
+                    provider_symbol="OIH",
+                    exchange_code="ARCX",
+                    currency="USD",
+                    provider_instrument_type="ETF",
+                    is_primary=True,
+                )
+            ],
+        )
+
+    async def _forbid_optional_identifier_lookup(*_args, **_kwargs):
+        raise AssertionError("explicit acquisition must not use external identifier fallback")
+
+    async def _no_provider_chain(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(instruments_router, "search_provider_instruments_async", _search)
+    monkeypatch.setattr(instruments_router, "get_provider_profile_async", _profile)
+    monkeypatch.setattr(
+        instrument_mastering, "ensure_external_identifier", _forbid_optional_identifier_lookup
+    )
+    monkeypatch.setattr(instrument_mastering, "resolve_provider_chain", _no_provider_chain)
+
+    async with session_factory() as request_db:
+        response = await instruments_router.acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol="OIH",
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol="OIH", exchange="ARCX"
+                ),
+                request_id="integration-oih-authoritative-profile",
+            ),
+            request_db,
+            current_user=None,
+        )
+
+    assert response.status == "resolved"
+    assert response.instrument is not None
+    assert response.instrument.instrument_id == 1
+    assert response.instrument.identity_status == "resolved"
+    assert response.instrument.domain_key == "composite-figi:BBG000D02J82"
+    async with session_factory() as verify_db:
+        persisted = await verify_db.get(Instrument, 1)
+        assert persisted is not None
+        assert persisted.identity_status == "resolved"
+        assert persisted.domain_key == "composite-figi:BBG000D02J82"
+        assert persisted.primary_identifier_type == "composite_figi"
+        assert persisted.primary_identifier_value == "BBG000D02J82"
+        identifier = (
+            await verify_db.execute(
+                select(InstrumentIdentifier).where(
+                    InstrumentIdentifier.instrument_id == persisted.id,
+                    InstrumentIdentifier.identifier_type == InstrumentIdentifierType.COMPOSITE_FIGI,
+                    InstrumentIdentifier.identifier_value == "BBG000D02J82",
+                    InstrumentIdentifier.is_active.is_(True),
+                )
+            )
+        ).scalar_one()
+        assert identifier.is_primary is True

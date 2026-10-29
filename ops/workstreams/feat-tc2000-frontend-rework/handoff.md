@@ -1,3 +1,15 @@
+# Adopted synchronized-green staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 — 2026-10-28T10:17:43Z
+
+Fast-forwarded only Root-released staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (canonical receipt ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2.json, SHA256 ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da; staging CI40656688915). Pre-adoption feature source was addd41731b2be9b740b3c4bab624118ba2371029; both commits have tree 424122f716d92389d6ffccddfb913977124b19b3, and e3's second parent is the feature source. This was ancestry-only: no conflicts and no application/product/test/config byte changes. The existing frozen-upstream import manifest for 173745205692acd3fca650eeeafcd6de38f29fed remains valid because its pinned imported blobs are unchanged; no duplicate manifest or producer code was added.
+
+Staging CI passed Backend, Frontend, E2E and Exhaustive:1471 frontend tests,553 integration tests,199 functional and104 strict visual, zero retries. Reuse is limited to unchanged inputs and the exact receipt. The prior Root-accepted on-demand checkpoint remains bounded software acceptance at implementation ff564; TCO1-TCO6 and its acceptance archive stay intact. The adopted branch's exact CI is pending Root observation. Master CI40670024330 was running at adoption; master-green and production-upgrade claims are not made.
+
+No local tests/builds/fixtures, provider/issuer/account HTTP, credentials, target/service/database operations, or cleanup occurred. Real OIH/provider/issuer qualification and first usable on-demand deployment remain Root-owned; operational holds remain unchanged. AC1-AC9 and official REF-HELP-V25 remain open.
+
+Next: Root observes exact feature CI and owns first usable on-demand deployment. After Root releases TC development, resume original AC4 persisted-evidence breadth/ratio/history work.
+
+---
+
 # Bounded on-demand consumer checkpoint accepted — 2026-10-28T07:25:47Z
 
 Root accepts tc-on-demand-workstation-consumer-20261027 (TCO1-TCO6) under the recorded human standing delegation, including “Yes—approve that initial scope and handle checkpoint acceptance.” Review: .ai/staging-attempts/tc-on-demand-checkpoint-review-20261028.md. This is accepted software scope, not full AC1-AC9/V25 completion or target/deployment acceptance.
@@ -25217,3 +25229,287 @@ matrices serially with one worker and zero retries. Preserve all cached/source
 holds, references, masks, tolerances, F8y timeout and the complete AC1–AC9/V25
 roadmap. No full profile or exact post-adoption TC branch CI result is claimed
 in this adoption record.
+
+## 2026-10-28 — Adopt accepted green staging 4bc50
+
+Root released exact synchronized-green staging
+`4bc50a9de9eb2453c75eda047d01466309a3a3da` for this TC branch. The canonical
+receipt is `released-staging-receipts/4bc50a9de9eb2453c75eda047d01466309a3a3da.json`
+(SHA256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`),
+staging CI `40721314996` terminal success including the exhaustive gate. Fetch
+returned this exact staging SHA. A separate `ls-remote` check briefly failed
+with a DNS resolution error; the successful fetch and Root's exact green review
+bind the adopted source. The local `origin/staging` ref was also at 4bc50.
+
+The clean pre-adoption TC head was `2c25ada328ebec6ca462cd720ec3fbc881854440`.
+Merge commit `98ad55a2061a9ae2e3d6630edc431aca177a712e` adopted the released
+source without conflicts. Relative to e3, the only product/test paths changed
+by this release are `backend/app/services/market_data.py` and
+`backend/tests/unit/services/test_provider_persistence.py`; Provider-owned
+handoff, plan, session and validation records are imported from staging without
+editing the sibling workstream. The service correction returns cached search
+results from the selected provider map's values, and the accepted regression
+checks cache-hit outcomes and provider selection. The branch backend tree
+`3448ffb5ee585fc7a738080169b629dcc9f60047` and frontend tree
+`6f6e64e1d303e81c467983eb118a5459c3152075` exactly match 4bc50. TC frontend,
+on-demand tests, dependencies, migrations and runtime configuration are
+unchanged from the already qualified TC source.
+
+The superseding full frozen-import manifest
+`frozen-upstream-imports/4bc50a9de9eb2453c75eda047d01466309a3a3da.yaml`
+pins all `878` imported paths to exact accepted release bytes; prior manifests
+remain in history and are no longer the active full-set manifest. Scope
+self-test passed, full scope guard passed for `1075` paths (`878` exact imports,
+`29` Provider adaptations, `112` presentation adaptations), workstream
+validation passed, unique-key YAML checks passed, and the original nine
+roadmap criteria plus accepted checkpoint archives compare unchanged. No local
+tests, builds, fixtures, source requests or runtime operations were run; the
+full green staging CI is reused as exact released evidence. The records-only
+adoption tip's feature CI is pending. Independent master CI `40735299702` is
+still running; production remains on e3. The accepted TCO1–TCO6 checkpoint and
+all its prior evidence remain intact, while AC1–AC9, official REF-HELP-V25,
+genuine source/target proof and all operational holds remain open.
+
+`make agent-context` emitted warnings that the private quota-ledger directory
+could not be prepared and optional `sed` inputs were empty; it still identified
+the correct implementation worktree. `make agent-session-status` confirmed
+the existing session/claim and pre-adoption clean remote state; no new session,
+goal or claim was started. Immediate next: publish this coherent owned-record
+adoption once, then let Root observe the exact branch CI. After Root releases
+roadmap work, resume the original AC4 persisted-evidence breadth/ratio/history
+slice; do not replay Provider/issuer/SEC requests.
+
+## 2026-10-28 — F8y locked Tag Column repair and isolated profile allocation
+
+Root activated this narrow repair after master F8y failure on released
+`4bc50a9de9eb2453c75eda047d01466309a3a3da`, CI `40735299702`, exhaustive job
+`122995845350`. Preserve first-attempt artifact `12841942512` (ZIP SHA256
+`444185cfe394592a672545fdb23f78c3ae30f9d0dc3dedfeebb29849a2c4c4f4`) and
+selected trace, screenshot and context under
+`/home/m920q/charting-platform/.ai/staging-attempts/master-f8y-tag-repair-20261028/`.
+The selected first-attempt trace SHA256 is
+`12a2b60c25ea6d5104f8f7e7481e31fcc757cc8d15d5667e425276394506332b`, failure
+PNG SHA256 is
+`2edba63978a0fe94172c2cf0a43bb601077af7cbe26b315d8e68328baa55a1dc`, and
+context SHA256 is
+`b710d053d83f2da52df93b5ab12902437793d71176f0f806146b1d60e63b1cd5`.
+The failure was `198 passed / 1 failed / 107 configured skips`; strict visual
+did not run. The screenshot shows the row menu open, target locked, and no Tag
+header after reload. Component logic renders configured actions and disables
+Remove for locked targets; it does not establish that the action should be
+enabled.
+
+Trace/source diagnosis: the test added a Tag column and proceeded through
+membership, lock and reload without waiting for its persisted workspace
+snapshot. The Add Tag Column click at monotonic `902021.142ms` and reload at
+`902404.677ms` are only `383.535ms` apart; `workspaceStore.scheduleSnapshot()`
+uses a trailing `350ms` debounce. Captured workspace PUT payloads contain no
+`tag_watchlist_ids` or `tag-watchlist:<id>` key, consistent with the absent
+post-reload header. This supports a test-readiness race around the debounced
+save, not a demonstrated locked-membership defect. The F8y spec now waits for
+the successful snapshot PUT whose exact WatchList `instance_key` contains the
+target id and tag key, then verifies the Tag header after reload. A mounted
+regression asserts locked XLE Remove remains present, disabled, and emits no
+row action. Ordinary clicks, parent-host coverage, disabled and zero-DELETE
+assertions, 60-second timeout, zero retries, and BrowserDiagnostics remain.
+No product source or visual oracle changed.
+
+Focused candidate checks: the two relevant Vitest files passed `119/119` with
+one fork; Vue type-check, TC2000 scope guard, and F8y test collection passed.
+The focused browser proof and full profile remain pending; this is not repair
+acceptance.
+
+Before any runtime resource creation, use the following exact owned profile:
+project/worktree label `tc-f8y-tag-ef787d-20261028`; Compose services and
+generated containers `tc-f8y-tag-ef787d-20261028-{backend,frontend,
+host-port-relay,postgres,provider-egress-deny,redis,research-runner,worker}-1`;
+volumes `tc-f8y-tag-ef787d-20261028_{postgres_data,redis_data,research_jobs,
+research_results,strategy_lab_artifacts,strategy_lab_v2_preparation_socket}`;
+networks `tc-f8y-tag-ef787d-20261028_{charting,host-access,
+strategy_lab_v2_internal}`. No builder or image build is needed because changes
+are test-only. Reuse backend/worker image
+`sha256:836d67f97490088b3676fd00ed3f56dac291b77b1f5cea5dfdef4651ddfc5330`
+only with verified backend tree `3448ffb5ee585fc7a738080169b629dcc9f60047`,
+equal to image source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` and accepted 4bc50;
+retain this protected image. Reuse frontend image
+`sha256:bbca9674eda69bd0d52d5811abb8ff33058c070648768ca08ef330b5094136d0`
+only because prior profile source `de67a7804495dc357cef3c114cfe9b08a9f7e927`
+has identical runtime frontend inputs to 4bc50; its only frontend delta is a
+test file. Reuse Research image
+`sha256:bf78988e9708cffdd760203fbecf381ccd46ad5f2efc0d9b85185d64fc5234a0`
+with unchanged Research Dockerfile/source inputs from accepted 4bc50. Reuse
+Postgres `sha256:721873c34ceb9f8d8fc265984940dc982404c105f19ad51be9fdc5970a6080ea`,
+Redis `sha256:858f009f9709ce576febc734aa78b8f6d624b82571f9ddb6bda4377c833b3499`,
+Python relay/deny `sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1`,
+and cached Playwright 1.62.1 Noble
+`sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`.
+No existing image or builder will be removed.
+
+Use loopback ports 29419 (backend relay) and 29420 (frontend relay); 29418 is
+reserved/checked for the Postgres setting but the E2E overlay publishes no DB
+port. All were available; production `31181` is already in use and untouched;
+`15190` is untouched. Initial host sample: 23,350MiB total, 16,934MiB
+available, 39GB free disk, six CPUs. Reuse the previously qualified full-app
+caps: backend 1024MiB/1CPU/128 PIDs; worker 512MiB/.25CPU/128; frontend
+128MiB/.25CPU/128; Postgres 384MiB/1CPU/128; Redis 128MiB/.25CPU/64; Research
+768MiB/1CPU/128; egress-deny 96MiB/.1CPU/64; relay 96MiB/.1CPU/64. App memory
+cap is 3136MiB and CPU quota 3.95 cores. Each serial browser is
+1536MiB/2CPU/256 PIDs, one Playwright worker, zero retries, with the established
+3072MiB memory+swap limit; peak RAM cap is 4672MiB and aggregate CPU quota
+5.95 cores on this six-CPU host. Require at least 4GiB available host RAM before
+startup and between phases. No build overlaps a test.
+
+Only the owned fixture sets `E2E_SEED_MARKET_DATA=true` (and instrument seed
+true), with fresh disposable project DB/Redis volumes, a private empty quota
+ledger and empty FINRA state under its ignored runtime directory. Provider
+routing, provider refresh/job flags, paid/live/trial/native/broker/capital are
+off; provider/issuer credentials are blank. Backend/worker remain on the E2E
+internal charting network behind the deny proxy. Execute source/image and
+protected-inventory checks, Compose config checks, one focused F8y run, full
+functional, then strict visual serially. Preserve all assertions, timeout,
+references, masks, tolerances and canonical trace policy. No Docker object was
+created at the time of this plan. Read-only precreation inventory is now at
+`.ai/runtime/tc-f8y-tag-ef787d-20261028/artifacts/protected-before.json`
+(file SHA256
+`b140c2db846e8b82edcf17f2c2abb290abd70046b79c30f26c12c64345c2bfd2`); its canonical
+protected-set SHA256 is
+`b702bfbd8d93c662f76c621d43d4edd96f570cccf821d3659ecbb853a379b568`. It
+contains `34` containers (`29` running, including five pre-existing exited
+historical containers), `51` volumes, `11` networks, and `66` unique image IDs.
+The five exited records, all live objects, and all images remain protected.
+The proposed Compose project was absent; ports `29418`–`29420` were free at
+preflight (only `29419` and `29420` will be published by the relay). The host
+had `17,657,151,488` bytes available and `41,794,514,944` bytes free on `/` at
+the inventory capture. No project, container, volume, network, builder, or
+image was created or changed for this plan or inventory capture.
+
+## 2026-10-28 19:08 UTC — F8y focused profile receipt
+
+The private Compose rendering passed for exactly eight services, the pinned
+image IDs, port bindings, provider/paid flags, private quota and FINRA mounts,
+internal application network, Research `network_mode: none`, and configured
+memory/CPU/PID limits. Fresh prelaunch inventory remained byte-for-byte equal
+to the precreation protected object set: 34 containers, 51 volumes, 11
+networks, 66 images; protected-set SHA256
+`b702bfbd8d93c662f76c621d43d4edd96f570cccf821d3659ecbb853a379b568`. Host
+availability at prelaunch was `17,615,069,184` bytes; at app startup audit it
+was `16,885,264,384` bytes. Project
+`tc-f8y-tag-ef787d-20261028` started only its eight owned containers, six
+project volumes and three project networks, using no new image IDs. All
+configured healthchecks were healthy; worker and Research, which define no
+healthcheck, remained running. Actual memory/CPU/PID caps were inspected and
+matched the plan. The exact active inventory is
+`.ai/runtime/tc-f8y-tag-ef787d-20261028/artifacts/active-inventory.json`.
+
+Runtime image reuse proof: current backend subtree is exactly
+`3448ffb5ee585fc7a738080169b629dcc9f60047`, matching both accepted 4bc50 and
+the honest backend-image source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9`;
+the protected backend/worker image is
+`sha256:836d67f97490088b3676fd00ed3f56dac291b77b1f5cea5dfdef4651ddfc5330`.
+The current frontend runtime inputs match the prior qualified image source
+`de67a7804495dc357cef3c114cfe9b08a9f7e927`; the only committed frontend-path
+delta since that source is `frontend/tests/e2e/on_demand_acquisition.spec.ts`,
+and this candidate changes only test files. The protected frontend image is
+`sha256:bbca9674eda69bd0d52d5811abb8ff33058c070648768ca08ef330b5094136d0`.
+Research source inputs are unchanged and use protected image
+`sha256:bf78988e9708cffdd760203fbecf381ccd46ad5f2efc0d9b85185d64fc5234a0`.
+No application source, backend, Research, dependency, Compose or image build
+input changed; no rebuild or builder was needed.
+
+The first browser container `a488048708fb2be2f0544770e45bff248bb1436beaa63876535dfb73fc756d99`
+exited 1 before test discovery because existing ignored Playwright output
+folders were root-owned and unwritable by the standard host UID; no test ran.
+Its log and terminal/removal records are preserved under
+`.ai/runtime/tc-f8y-tag-ef787d-20261028/artifacts/f8y-focused/`. The existing
+folders were copied for preservation. The corrected runner binds only the
+standard Playwright result/report paths to fresh owned private artifact
+directories, retaining the canonical reporter and browser command. Exact F8y
+test `flows.spec.ts:7553` then passed `1/1` in `21.6s`, zero retries, with the
+pinned Playwright 1.62.1 Noble image
+`sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e`.
+Browser container
+`5e03292aafd0b81cf7953a27ad00d2fb1c4a0d4ccfc1d547a1adb6e5413fdb29` exited
+0, OOM false, and was removed only after terminal and log evidence was saved;
+receipt and artifacts are under
+`.ai/runtime/tc-f8y-tag-ef787d-20261028/artifacts/f8y-focused-02/` (log SHA256
+`fbf3888714cbe0f0ac9a07710a69d1c629d1371464be8fe3bb552fb90f24e6ab`). Source
+test diff SHA256 is
+`d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5`; frozen
+test-file hashes are in `artifacts/source-frozen.json`.
+
+This is focused F8y evidence only. Full functional, strict-visual, and exact
+repair-source branch CI remain pending; the original master red and all prior
+failure evidence remain preserved. The test-only candidate and owned records
+will be published coherently before those remaining gates so exact branch CI
+can run in parallel. All original roadmap criteria, provider/issuer/SEC and
+target holds, references, masks, tolerances, ordinary interactions, disabled
+locked Remove expectation, zero-DELETE assertion, 60-second timeout and
+zero-retry policy remain unchanged.
+
+## 2026-10-28 19:08 UTC — current F8Y repair checkpoint
+
+Root review directed that the already accepted TCO1-TCO6 checkpoint remain
+historical and not supply completion markers for this separate F8Y repair.
+The exact previous plan/session acceptance criteria, integration checkpoint,
+Root acceptance, closure summary, full evidence, current accepted CI and
+completed TCO markers are archived in
+`checkpoint-archives/tc-on-demand-workstation-consumer-20261027.json` and
+`checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json`.
+Those archive values were copied from the pre-reframe plan/session on published
+base `ef787d0966228e127d7da73cc9c5745013b98125`; the prior checkpoint remains
+accepted history, not F8Y acceptance. The exact old plan/session digests are
+recorded in the archive metadata.
+
+Current plan checkpoint is `tc-f8y-tag-columns-repair-20261028`, in progress
+with four explicit criteria: F8Y1 waits for the exact successful workspace
+snapshot containing the chosen parent WatchList's Tag Column config and checks
+the restored header; F8Y2 preserves the ordinary locked-row Remove menuitem as
+visible and disabled with no DELETE; F8Y3 requires unchanged focused checks,
+full functional and all104 strict-visual cases plus exact repair-tip CI at zero
+retries; F8Y4 preserves the first failure and receipts, uses the exact owned
+bounded fixture with protected resources unchanged, and removes only owned
+resources after terminal evidence. All four current criteria are incomplete.
+`human_closure_authorization` and `closure_summary` are empty for this repair;
+no new human acceptance is claimed. The standing human deployment authority,
+existing session claim/native goal state/budget, all nine AC1-AC9 IDs/texts,
+and official REF-HELP-V25 remain unchanged. The accepted green4bc50 adoption is
+the source baseline only. Root retains checkpoint acceptance and forward
+integration/promotion.
+
+## 2026-10-28 20:10 UTC — Root accepted bounded F8Y checkpoint
+
+This entry supersedes the preceding F8Y status statements; those earlier
+statements and their evidence remain historical and unchanged. Root accepted
+`tc-f8y-tag-columns-repair-20261028` under the existing human standing
+delegation recorded in
+`/home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md`.
+The recorded human direction includes: “I, the human in charge, explicitly
+authorize any and all actions the AI agent(s) may request in order to progress
+development, reconciliation and promotion of the four feature branches into
+staging and production so the product may be deployed and tested in full, by
+the human.” This is not a new F8Y-specific human reply. Root's acceptance
+receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json`
+(SHA256 `9d181c30c7bc78137cfc6baea2a5ea1d6988ebb080956ef1d973e549c62cbb4a`).
+
+Accepted implementation source is
+`9473062c7aeab1c9f21d2564c1041bbda0a78dc6`. Exact source CI `40752914676`
+is terminal green: E2E 196 passed/110 configured skips, with the required
+Backend, Frontend Unit, Branch-declared and E2E jobs successful (Exhaustive is
+skipped under feature-branch policy). Root separately reviewed local functional
+199 passed/107 configured skips/0 failed and strict visual 104/104 across four
+projects; both matrices used zero retries. The focused parent-host case passed
+1/1 and relevant component tests passed 119/119. Runtime, local profile, exact
+CI and cleanup evidence are bound by the Root acceptance receipt. The owned
+fixture was removed after terminal evidence; the structured protected-resource
+comparison passed. The F8Y source change is test-only, with no application,
+backend, migration, data or deployment change. Original master-red, first-
+attempt and setup-failure evidence remains preserved.
+
+F8Y1-F8Y4 are accepted for this bounded checkpoint only. This records-only
+closing commit uses `integration_capture: exact branch HEAD`; its own exact
+branch CI remains required before Root-supported integration. The accepted
+TCO1-TCO6 checkpoint archives, all nine original AC1-AC9 criteria, official
+REF-HELP-V25, and the broader feature roadmap remain preserved and open.
+Genuine Provider/issuer evidence, target acceptance and deployment remain
+Root-owned; this checkpoint is not full feature completion.
