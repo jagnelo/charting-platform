@@ -826,44 +826,32 @@ parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
 previously_accepted_provider_on_demand_integration_checkpoint_authorization: "Human direction on 2026-10-27 authorized implementation of provider-on-demand-acquisition-20261027 under the standing four-feature authority. The central staging coordinator's acceptance at /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only its six software-contract criteria after the recorded exact-source CI and full local profile. Root alone owns protected staging integration and all later master/deployment gates."
-integration_checkpoint_authorization: >-
-  Root direct implementation activation on 2026-10-28 authorizes only the cached provider-search outcome repair under the existing human-authorized on-demand acquisition goal. The prior accepted checkpoint authorization remains archived. Root owns exact-source integration and deployment.
+integration_checkpoint_authorization: The coordinator's direct 2026-10-29 instruction activates only provider-on-demand
+  OIH canonical qualification under the existing human-authorized goal. This is implementation authority,
+  not checkpoint acceptance. Root retains acceptance, staging integration, and release.
 human_closure_authorization: >-
-  Root's acceptance receipt
-  `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`
-  records: accepted narrowly scoped checkpoint; authorize final records-only closure. This is
-  Root's delegated technical acceptance under the existing standing human authority, not a claim
-  of a new direct human quote or inspection. It authorizes closure and ready-for-integration
-  status for this named checkpoint only; Root retains protected staging integration, promotion,
-  deployment, and live/source/target acceptance.
+  Under the standing human four-feature authority and the coordinator's explicit on-demand acquisition direction,
+  delegated technical checkpoint acceptance is recorded by Root in
+  /home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md.
+  This is not a fabricated direct human quote or personal-human-inspection claim. Acceptance covers only the bounded
+  OIH canonical-qualification repair at e6e7c5511153c6b49b138bac38ed08ae56532408; Root owns protected staging/master
+  integration and deployment.
 closure_summary: >-
-  Root accepts only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
-  source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority;
-  acceptance receipt:
-  `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
-  This is delegated Root technical acceptance and records-only closure, not a fabricated direct
-  human quote, full Provider roadmap completion, deployment acceptance, or live-source success.
-  Exact implementation-source CI 40686521938 is green for 8b67; this final records-only commit
-  still requires its own terminal-green exact-tip CI before Root performs supported staging
-  integration. The exact local 6,125-node manifest (SHA-256
-  0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit IDs
-  (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
-  declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage
-  is 84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are
-  preserved. Frontend unit tests passed 1,471; functional browser run passed 199 with three
-  declared skips, and the separately executed dense-watchlist case passed 1/1; all 104 strict
-  visuals passed across four projects with zero retries and 0.005 tolerance. No
-  provider/issuer/SEC HTTP or quota operation occurred. The source-labeled backend artifact
-  remains available for Root. Preserve the original one-process integration timeout, the
-  first-batch guard stop after a transient Testcontainers count of one, the prior noncanonical
-  host-environment attempt, and the post-test receipt-assembly NameError; none is relabeled as a
-  test assertion failure or erased. The transient Testcontainers count later reached zero without
-  manual removal; the owned Compose project was then cleaned by exact scope, and Root
-  independently verified protected inventories and the reserved image. All 24 roadmap items, the
-  accepted prior checkpoints, provider/source/target qualification,
-  live/native/paid/trial/broker/capital holds, and the consumed-119 no-replay boundary remain
-  open/unchanged. After exact closing-tip CI, Root owns integration; the next Provider roadmap
-  item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD
+  Accepted only provider-oih-canonical-qualification-repair-20261029 at validated source
+  e6e7c5511153c6b49b138bac38ed08ae56532408. All six bounded criteria are accepted: apply only the exact validated
+  profile's stable identity to new/provisional instruments; preserve conflict quarantine and owned keys; keep optional
+  external lookup disabled; prove committed identity in an independent PostgreSQL session; complete the required
+  source-bound profile and exact-source CI; and build explicitly before unchanged bounded E2E stack startup. The full
+  local backend qualified 6,128 passes and three existing skips at 84 percent; exact CI 40801008605 is green on e6e7.
+  Frontend unit coverage, functional profile (199/3 first receipt plus a separate dense 1/1 case; Root's normalized
+  disposition is 200/2), strict visual assertions (104 browser passes, zero browser exit, with wrapper exit 2 separately
+  preserved), the accepted 1-CPU opt-in worker requalification, and exact-owned cleanup are recorded in the Root and
+  owner receipts. The worker's temporary limit changed only from 0.5 to 1 CPU; memory512MiB/PIDs64 and all assertions
+  and deadlines were retained. No migration, default-routing change, provider HTTP, quota operation, paid/trial/native/
+  broker/capital activation, or consumed-119 request replay occurred. All 24 broader roadmap criteria and their prior
+  dispositions remain open/preserved. Root will inspect exact closing-tip CI before supported staging integration.
+  Deployment, genuine source acceptance, target/UI acceptance, and the full Provider roadmap are not claimed.
+  integration_capture: exact branch HEAD
 planning_state: ready
 previously_accepted_provider_on_demand_human_closure_authorization: >-
   Under the human's standing four-feature integration authority and explicit 2026-10-27 direction to implement on-demand acquisition, checkpoint acceptance was delegated to the central coordinator. Root's decision in /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only provider-on-demand-acquisition-20261027 for software checkpoint closure. This records delegated human authority plus Root technical acceptance; it does not claim personal human inspection, full Provider roadmap completion, live/source/target acceptance, provider activation, or feature-owner authority to integrate, promote, or deploy.
@@ -886,51 +874,38 @@ previous_checkpoint_closure_summary: >-
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
-local_validation_reason: backend application, database migrations, provider adapters, Redis-backed runtime controls, worker scheduling, and Compose secret boundaries require the complete stack gate even though no frontend product files are in scope.
+local_validation_reason: The checkpoint includes the exact-source stack image-build/start workflow as well
+  as persisted identity behavior. Qualify the complete backend unit/PostgreSQL profile and existing isolated
+  full-stack browser profile with egress denied, zero retries, and unchanged functional/visual assertions.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
 previously_accepted_provider_on_demand_closure_summary: >-
   Accepted only the six software-contract criteria for provider-on-demand-acquisition-20261027 on implementation 51301c915d92c8ec4f8514cb4f85ac659791c33b. The central coordinator accepted this scope under the human standing four-feature authority and explicit 2026-10-27 on-demand implementation direction; this is delegated technical acceptance, not a claim of personal human inspection. The authenticated discovery, canonical identity, bounded selected-history, exact server-minted scope, free-only/hold-preserving admission, issuer-specific ETF helper, and no-network validation contracts were accepted. Exact feature CI 40540176697 is terminal green on source 51301c9. The complete 6,073-ID manifest was qualified with its declared dispositions: 5,522 unit-like IDs were covered in 221 bounded partitions (5,521 passed and one declared native RC6 skip: `app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py::test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows`); all 551 integration IDs were covered in six sequential batches (549 passed and two declared opt-in skips). Total: 6,070 passed and three declared native skips. Combined coverage was 84 percent against the unchanged 75 percent threshold and XML passed. Frontend coverage/build, 196 functional tests with two canonical live-only skips, all 104 strict visuals, and the unchanged sandbox/resource probes passed. The separate single-process integration timeout exit 124 and earlier diagnostic/environment/permission failures remain preserved as failures; the complete unchanged integration manifest subsequently passed in the authorized batches. Exact current-source cleanup restored the protected 33-container, 51-volume, 11-network, 61-image baseline. No provider/issuer/SEC HTTP, quota reservation/reset/spend, paid/trial/native/broker/capital activation, or replay of the consumed 119-request allowance occurred. No Alembic delta exists relative to deployed 02a7bae. Genuine source qualification, runtime/target acceptance, consumer integration, and the full 24-criterion roadmap remain open and Root-owned where specified. Preserve all operation holds and unknown/unverified dispositions. integration_capture: exact branch HEAD
-goal: >-
-  Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching. Preserve the accepted prior on-demand checkpoint and all 24 Provider roadmap criteria; genuine live/source/target qualification and the full roadmap remain open.
+goal: Complete only the bounded provider-on-demand OIH canonical-qualification repair. Preserve all 24
+  Provider roadmap criteria and accepted checkpoint history; source/target qualification, deployment,
+  and the wider roadmap remain open.
 scope:
-  - Correct cached source_outcomes generation when search_provider_instruments_async reuses fresh persisted provider-search snapshots.
-  - Preserve normal resolver/provider selection and report one cache_hit outcome with the exact cached result_count per selected provider.
-  - Reuse the snapshot without another provider invocation; keep live acquisition, quota, deployment, and all unrelated checkpoint behavior unchanged.
+- Diagnose the deployed OIH identity_conflict from retained records only; do not replay the completed
+  Massive discovery or issue provider, issuer, or SEC requests.
+- Apply stable identity only from the exact selected-provider profile after existing exact-symbol, provider,
+  stable-identifier, and listing-authority checks pass.
+- Keep allow_external_identifier=False and preserve identifier-owner collision quarantine, existing domain-key
+  mismatch rejection, listing requirements, and all other fail-closed behavior.
+- Prove new-instrument and existing-provisional paths, missing-authority rejection, identity collision
+  quarantine, and independent PostgreSQL persistence; retain all 24 original roadmap criteria and prior
+  accepted checkpoint evidence.
+- Preserve exact-source CI executability by explicitly building the same service images before the bounded
+  stack-start step and using --no-build there, without changing timeouts or test settings. Correct
+  the stale timeout-validator declaration count from five to the six already present on frozen fca662,
+  retaining all specific timeout checks and adding order/command checks for the build/start sequence.
 owned_paths:
-  - Makefile
-  - .env.example
-  - README.md
-  - .github/workflows/provider-live.yml
-  - .github/workflows/ci.yml
-  - AGENTS.md
-  - backend/app/models/
-  - backend/app/providers/
-  - backend/app/services/
-  - backend/app/routers/
-  - backend/app/schemas/
-  - backend/app/tasks/
-  - backend/app/workers/
-  - backend/alembic/
-  - backend/tests/
-  - deploy/rpi/compose.yml
-  - docker-compose.yml
-  - docs/architecture.md
-  - docs/agent-orchestration.md
-  - docs/data-providers.md
-  - docs/deployment.md
-  - docs/development.md
-  - docs/provider-live-validation.md
-  - docs/project-todos.md
-  - ops/workstreams/feat-market-data-provider-platform/
-  - scripts/run-live-provider-probes.py
-  - scripts/merge-provider-live-usage.py
-  - scripts/validate-workstream.py
-  - scripts/agent-session.py
-  - tests/workflow/test_agent_session.py
-  - scripts/run-branch-tests.py
-  - scripts/worktree-runtime.py
+- backend/app/routers/instruments.py
+- backend/tests/unit/routers/test_instruments_router.py
+- backend/tests/integration/api/test_on_demand_history_postgres.py
+- .github/workflows/ci.yml
+- scripts/validate-ci-timeouts.py
+- ops/workstreams/feat-market-data-provider-platform/
 dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
@@ -986,8 +961,29 @@ roadmap_acceptance_criteria:
   - id: AC-SHADOW-FINAL-PHASE
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 acceptance_criteria:
-  - id: ONDEMAND-CACHED-OUTCOMES
-    text: After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the providers selected by the normal resolver; they make no repeated provider call and do not crash while constructing those outcomes.
+- id: OIH-VALIDATED-PROFILE-IDENTITY
+  text: After the explicitly selected provider candidate and exact profile pass symbol, stable external
+    identifier, and listing-authority checks, apply that profile's identity to both a new instrument and
+    an existing provisional OIH scaffold; retain the existing stable domain-key and primary-listing requirements.
+- id: OIH-CONFLICT-QUARANTINE
+  text: 'Preserve early conflict checks and existing domain-key ownership rules: mismatched or missing
+    provider identity/listing authority never promotes a record, and a stable key owned by another instrument
+    remains quarantined without reassignment.'
+- id: OIH-NO-OPTIONAL-FALLBACK
+  text: Keep optional external-identifier lookup disabled in the explicit acquisition path; resolve only
+    from the already validated exact provider profile and do not add provider calls, retries, or fallback
+    sources.
+- id: OIH-COMMITTED-READBACK
+  text: A PostgreSQL regression commits the resolved domain key, primary identifier, listing, and provider
+    binding in the normal request session and verifies those exact rows from an independent session.
+- id: OIH-REQUIRED-QUALIFICATION
+  text: Complete the bounded repair's required local validation profile, exact-source branch CI, and workstream
+    checks before stopping ready_for_human_review; preserve all prior checkpoints and all 24 broader roadmap
+    criteria as open or previously accepted.
+- id: OIH-CI-STACK-START
+  text: The exact-source E2E workflow explicitly builds the existing Compose project before the bounded
+    Start stack step, then uses --no-build with --wait; the validator's stale expected count is corrected
+    to the six baseline declarations and still enforces every existing timeout and exhaustive command.
 previously_accepted_provider_on_demand_checkpoint:
   id: provider-on-demand-acquisition-20261027
   status: ready_for_integration
@@ -1378,7 +1374,7 @@ previously_accepted_provider_on_demand_checkpoint:
   deployment_authorized: false
   provider_activation_authorized: false
   operational_trial_authorized: false
-integration_checkpoint:
+previously_accepted_provider_on_demand_cached_search_checkpoint:
   id: provider-on-demand-cached-search-outcome-reuse-20261028
   status: ready_for_integration
   acceptance_state: accepted_by_coordinator_for_ready_for_integration
@@ -2706,15 +2702,480 @@ previously_accepted_integration_checkpoint:
       owner: "feature owner plus deployment operator after integration"
       continuation_acceptance_test: "A separately authorized full 30-day run satisfies AC-SHADOW; no trial begins as part of checkpoint preparation or acceptance."
 branch_tests:
-  - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments, options, and anomaly handling
+- backend/tests/unit/routers/test_instruments_router.py::TestExplicitAcquireCanonicalIdentity
+- backend/tests/unit/services/test_provider_persistence.py
+- backend/tests/integration/api/test_on_demand_history_postgres.py
+- the complete backend unit/integration coverage profile required by exact changed paths
+branch_tests_reason: The change updates persisted canonical identity behavior and repairs the exact-source
+  stack image-build/start workflow. The required local profile is full_stack_browser in addition to complete
+  backend unit/integration coverage; exact-source branch CI remains required.
+live_test_impact: none; provider search/profile are mocked in tests and the retained one-time OIH discovery
+  is not replayed
+migration_impact: none; existing identity/listing/identifier/quarantine schema is reused
+deployment_impact: backend route behavior only; no target writes, provider activation, or deployment in
+  this checkpoint
+active_checkpoint_id: provider-oih-canonical-qualification-repair-20261029
+previously_accepted_provider_cached_search_context:
+  goal: 'Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached
+    fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching.
+    Preserve the accepted prior on-demand checkpoint and all 24 Provider roadmap criteria; genuine live/source/target
+    qualification and the full roadmap remain open.'
+  scope:
+  - Correct cached source_outcomes generation when search_provider_instruments_async reuses fresh persisted
+    provider-search snapshots.
+  - Preserve normal resolver/provider selection and report one cache_hit outcome with the exact cached
+    result_count per selected provider.
+  - Reuse the snapshot without another provider invocation; keep live acquisition, quota, deployment,
+    and all unrelated checkpoint behavior unchanged.
+  acceptance_criteria:
+  - id: ONDEMAND-CACHED-OUTCOMES
+    text: After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests
+      return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the
+      providers selected by the normal resolver; they make no repeated provider call and do not crash
+      while constructing those outcomes.
+  status: ready_for_integration
+  progress:
+    completed:
+    - ONDEMAND-CACHED-OUTCOMES
+    total: 1
+  closure_summary: 'Root accepts only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
+    source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority; acceptance
+    receipt: `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
+    This is delegated Root technical acceptance and records-only closure, not a fabricated direct human
+    quote, full Provider roadmap completion, deployment acceptance, or live-source success. Exact implementation-source
+    CI 40686521938 is green for 8b67; this final records-only commit still requires its own terminal-green
+    exact-tip CI before Root performs supported staging integration. The exact local 6,125-node manifest
+    (SHA-256 0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit
+    IDs (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
+    declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage is
+    84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are preserved.
+    Frontend unit tests passed 1,471; functional browser run passed 199 with three declared skips, and
+    the separately executed dense-watchlist case passed 1/1; all 104 strict visuals passed across four
+    projects with zero retries and 0.005 tolerance. No provider/issuer/SEC HTTP or quota operation occurred.
+    The source-labeled backend artifact remains available for Root. Preserve the original one-process
+    integration timeout, the first-batch guard stop after a transient Testcontainers count of one, the
+    prior noncanonical host-environment attempt, and the post-test receipt-assembly NameError; none is
+    relabeled as a test assertion failure or erased. The transient Testcontainers count later reached
+    zero without manual removal; the owned Compose project was then cleaned by exact scope, and Root independently
+    verified protected inventories and the reserved image. All 24 roadmap items, the accepted prior checkpoints,
+    provider/source/target qualification, live/native/paid/trial/broker/capital holds, and the consumed-119
+    no-replay boundary remain open/unchanged. After exact closing-tip CI, Root owns integration; the next
+    Provider roadmap item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD'
+  human_closure_authorization: 'Root''s acceptance receipt `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`
+    records: accepted narrowly scoped checkpoint; authorize final records-only closure. This is Root''s
+    delegated technical acceptance under the existing standing human authority, not a claim of a new direct
+    human quote or inspection. It authorizes closure and ready-for-integration status for this named checkpoint
+    only; Root retains protected staging integration, promotion, deployment, and live/source/target acceptance.'
+  integration_checkpoint_authorization: Root direct implementation activation on 2026-10-28 authorizes
+    only the cached provider-search outcome repair under the existing human-authorized on-demand acquisition
+    goal. The prior accepted checkpoint authorization remains archived. Root owns exact-source integration
+    and deployment.
+  current_gate_checkpoint: 'Historical 8b67 closure: Root accepted only `provider-on-demand-cached-search-outcome-reuse-20261028`
+    on implementation source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human
+    authority; acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
+    This is delegated Root technical acceptance and records-only closure, not a fabricated direct human
+    quote, full Provider roadmap completion, deployment acceptance, or live-source success. Exact implementation-source
+    CI 40686521938 is green for 8b67; this final records-only commit still requires its own terminal-green
+    exact-tip CI before Root performs supported staging integration. The exact local 6,125-node manifest
+    (SHA-256 0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit
+    IDs (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
+    declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage is
+    84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are preserved.
+    Frontend unit tests passed 1,471; functional browser run passed 199 with three declared skips, and
+    the separately executed dense-watchlist case passed 1/1; all 104 strict visuals passed across four
+    projects with zero retries and 0.005 tolerance. No provider/issuer/SEC HTTP or quota operation occurred.
+    The source-labeled backend artifact remains available for Root. Preserve the original one-process
+    integration timeout, the first-batch guard stop after a transient Testcontainers count of one, the
+    prior noncanonical host-environment attempt, and the post-test receipt-assembly NameError; none is
+    relabeled as a test assertion failure or erased. The transient Testcontainers count later reached
+    zero without manual removal; the owned Compose project was then cleaned by exact scope, and Root independently
+    verified protected inventories and the reserved image. All 24 roadmap items, the accepted prior checkpoints,
+    provider/source/target qualification, live/native/paid/trial/broker/capital holds, and the consumed-119
+    no-replay boundary remain open/unchanged. After exact closing-tip CI, Root owns integration; the next
+    Provider roadmap item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD Current
+    adoption (2026-10-28): canonical green staging receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json`
+    (SHA-256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`) and Root review `/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json`
+    (SHA-256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`) confirm staging `4bc50a9de9eb2453c75eda047d01466309a3a3da`
+    and CI `40721314996` terminal success, including Exhaustive. It directly descends from Provider HEAD
+    `4c8950b61f863eb317fcf5369930721d2cef76de` and was adopted by fast-forward without conflicts. The
+    complete tree at both SHAs is `ee51d4e02f1659030d11507696b24055adec8303`; backend and frontend content
+    are unchanged. No tests were rerun and no fresh test receipt is claimed. The single records-only adoption
+    publication has its own exact-tip branch CI pending. Root reports independent master CI `40735299702`
+    running and production still on `e3e87183`; Root retains master CI, deployment, and all source/target
+    operations. All 24 Provider roadmap criteria and dispositions, prior accepted checkpoints, historical
+    failures, native/live/paid/trial/ broker/capital/quota holds, and consumed-119 no-replay boundary
+    remain intact. After Root releases the branch for further work, the next Provider roadmap item remains
+    `AC-UNIVERSE-COMPLETE`.'
+  local_validation_profile: full_stack_browser
+  local_validation_reason: backend application, database migrations, provider adapters, Redis-backed runtime
+    controls, worker scheduling, and Compose secret boundaries require the complete stack gate even though
+    no frontend product files are in scope.
+  branch_tests:
+  - backend unit and provider fixture suites for identity, routing, calendars, coverage, events, adjustments,
+    options, and anomaly handling
   - backend migration compatibility and PostgreSQL/Redis integration tests
-  - worker scheduling, quota reservation, request coalescing, deferred-run retry, and provider health tests
-  - backend API contract tests for canonical IDs, compatibility symbol aliases, coverage, provider admin, sessions, quarantine, and shadow reports
-  - opt-in live provider probes plus full backend integration validation when credentials and infrastructure are available
-branch_tests_reason: Application models, migrations, providers, workers, Redis quota controls, and backend APIs are all changed; full backend integration is required. Frontend/browser validation is out of scope by explicit authorization.
-live_test_impact: opt-in provider probes and a separately approved post-deployment 30-day disabled shadow run; no deployment or activation is authorized in this implementation session
-migration_impact: multiple additive/transformational PostgreSQL migrations for issuers, domain identities, series scope, sessions, facts/events/short interest, provider runtime budgets, and shadow telemetry; old symbol/OHLCV rows require deterministic compatibility backfill
-deployment_impact: new backend/worker configuration, optional provider credentials, QuantLib dependency, Redis-backed quota state, scheduled shadow-report jobs, and feature flags; deployment remains a separate human-authorized master workflow
+  - worker scheduling, quota reservation, request coalescing, deferred-run retry, and provider health
+    tests
+  - backend API contract tests for canonical IDs, compatibility symbol aliases, coverage, provider admin,
+    sessions, quarantine, and shadow reports
+  - opt-in live provider probes plus full backend integration validation when credentials and infrastructure
+    are available
+  branch_tests_reason: Application models, migrations, providers, workers, Redis quota controls, and backend
+    APIs are all changed; full backend integration is required. Frontend/browser validation is out of
+    scope by explicit authorization.
+integration_checkpoint:
+  id: provider-oih-canonical-qualification-repair-20261029
+  status: ready_for_integration
+  acceptance_state: accepted_by_coordinator_for_ready_for_integration
+  planning_authorization: The coordinator's 2026-10-29 direct implementation instruction activates this
+    bounded OIH canonical-qualification repair under the existing human-authorized on-demand acquisition
+    goal and standing four-feature authority. No direct human quote or new provider-request allowance
+    is inferred. Root retains acceptance, staging integration, and release.
+  scope:
+  - Diagnose the deployed OIH identity_conflict from retained records only; do not replay the completed
+    Massive discovery or issue provider, issuer, or SEC requests.
+  - Apply stable identity only from the exact selected-provider profile after existing exact-symbol, provider,
+    stable-identifier, and listing-authority checks pass.
+  - Keep allow_external_identifier=False and preserve identifier-owner collision quarantine, existing
+    domain-key mismatch rejection, listing requirements, and all other fail-closed behavior.
+  - Prove new-instrument and existing-provisional paths, missing-authority rejection, identity collision
+    quarantine, and independent PostgreSQL persistence; retain all 24 original roadmap criteria and prior
+    accepted checkpoint evidence.
+  - Repair the exact-source E2E workflow stack-start timeout by building the existing Compose project
+    explicitly before startup and using --no-build for the existing wait-for-health step; preserve all
+    timeout and test settings. Correct only the validator's stale declaration count after verifying the
+    frozen baseline also had six timeout declarations.
+  downstream_consumers:
+  - Existing ordinary instrument resolution and the authenticated on-demand selected-symbol history flow.
+  - The deployed first-human OIH chart flow; the retained first discovery request is evidence only and
+    is not replayed.
+  required_contracts:
+  - Only the exact selected provider profile validated by the existing resolver may supply identity identifiers;
+    no identifier or MIC is synthesized.
+  - Apply the profile's explicit stable identifiers with the existing apply_domain_identity owner lookup
+    after ingest_provider_profile(..., allow_external_identifier=False).
+  - Preserve existing key-owner conflict quarantine, profile/listing mismatch rejection, existing placeholder
+    domain-key mismatch rejection, and requirement for a primary active canonical listing plus exact provider-symbol
+    binding.
+  - The explicit path must not invoke ensure_external_identifier or any other optional external lookup;
+    provider operations remain the already reviewed search/profile operations only.
+  - Keep persisted identity, listing, identifier, profile-snapshot, and provider-binding history; no production
+    data is patched by this repair.
+  - The E2E workflow builds the existing Compose images in an explicit step before the existing stack-start
+    step, then starts with --no-build and the same --wait behavior; all existing timeout values and test
+    settings remain unchanged. The existing validator checks all six unchanged declarations, the five-minute
+    stack-health bound, the exhaustive command, and build/start ordering.
+  acceptance_criteria:
+  - id: OIH-VALIDATED-PROFILE-IDENTITY
+    text: After the explicitly selected provider candidate and exact profile pass symbol, stable external
+      identifier, and listing-authority checks, apply that profile's identity to both a new instrument
+      and an existing provisional OIH scaffold; retain the existing stable domain-key and primary-listing
+      requirements.
+  - id: OIH-CONFLICT-QUARANTINE
+    text: 'Preserve early conflict checks and existing domain-key ownership rules: mismatched or missing
+      provider identity/listing authority never promotes a record, and a stable key owned by another instrument
+      remains quarantined without reassignment.'
+  - id: OIH-NO-OPTIONAL-FALLBACK
+    text: Keep optional external-identifier lookup disabled in the explicit acquisition path; resolve
+      only from the already validated exact provider profile and do not add provider calls, retries, or
+      fallback sources.
+  - id: OIH-COMMITTED-READBACK
+    text: A PostgreSQL regression commits the resolved domain key, primary identifier, listing, and provider
+      binding in the normal request session and verifies those exact rows from an independent session.
+  - id: OIH-REQUIRED-QUALIFICATION
+    text: Complete the bounded repair's required local validation profile, exact-source branch CI, and
+      workstream checks before stopping ready_for_human_review; preserve all prior checkpoints and all
+      24 broader roadmap criteria as open or previously accepted.
+  - id: OIH-CI-STACK-START
+    text: The exact-source E2E workflow explicitly builds the existing Compose project before the bounded
+      Start stack step, then uses --no-build with --wait; the validator's stale expected count is corrected
+      to the six baseline declarations and still enforces every existing timeout and exhaustive command.
+  original_criterion_dispositions:
+  - id: AC-IDENTITY
+    disposition: partially_delivered
+    delivered: Added explicit selected-candidate canonical identity resolution and guarded scaffold reconciliation
+      for on-demand acquisition; prior accepted identity work remains preserved.
+    remainder: The full stable FIGI-domain identity, effective-dated listing/provider-symbol history,
+      and source-complete quarantine/reconciliation across venues remain beyond this software checkpoint.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Continue the original identity/universe work; qualify canonical identity
+      and listing authority across the complete required source set, including unresolved-candidate quarantine
+      tests and exact-source consumer evidence.
+  - id: AC-SERIES
+    disposition: partially_delivered
+    delivered: Added selected-default-series filtering and persisted readback for bounded on-demand history;
+      no migration or default-series contract was removed.
+    remainder: Full canonical series/version/provenance coverage across all providers, sessions, adjustment
+      bases, and compatibility paths remains.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Run the preserved full series/adjustment/provenance compatibility matrix
+      and exact-source PostgreSQL/full-profile validation for every accepted provider path.
+  - id: AC-CALENDAR
+    disposition: deferred
+    delivered: No calendar behavior was added or claimed; prior calendar behavior/evidence remains historical
+      and unchanged.
+    remainder: Versioned exchange sessions, time zones, holidays, early closes, overnight trade dates,
+      and user-local projections remain unqualified.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original calendar/versioning and freshness/daily-completion
+      tests against the required exchange/session cases and full integration profile.
+  - id: AC-ROUTING
+    disposition: partially_delivered
+    delivered: Added explicit server-minted request scopes that retain free-only, global-stop, hold, quota,
+      and workload admission checks.
+    remainder: Provider-wide capability/asset/venue/session/history routing, full entitlement/health/quota/cost
+      coverage, and all-worker operational observability remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original provider/capability admission matrix with exact
+      unknown/held negative cases, durable settlement/restart evidence, and required full-source profile.
+  - id: AC-RECURRING-COST
+    disposition: deferred
+    delivered: No cost ceiling or commitment semantics were changed; existing cost holds and records remain
+      intact.
+    remainder: The durable recurring-subscription ceiling, deduplication, verified price/currency/interval
+      evidence, concurrent proposal admission, and separation from paid activation remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original cost/commitment contract and concurrency tests
+      with reviewed exact provider plan evidence; keep paid routing separately held.
+  - id: AC-REFRESH
+    disposition: partially_delivered
+    delivered: Added explicit bounded selected-symbol/timeframe history acquisition using existing cache,
+      missing-slice, coalescing, and durable admission paths.
+    remainder: Whole-universe schedules, tiered polling, local rollups, deferred broad evaluation, and
+      safe automatic retry remain unqualified or held.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original scheduled-refresh, retry/defer, rollup, and missing-slice
+      integration tests without provider work inside evaluation loops; qualify only under a separately
+      reviewed scope.
+  - id: AC-DATA
+    disposition: partially_delivered
+    delivered: Added software paths for explicit selected discovery/history while preserving truthful
+      held/unavailable results; no new live provider or dataset qualification is claimed.
+    remainder: The approved provider roster and all listed data families, strict parsing/provenance, freshness,
+      rights, and live/source evidence remain incomplete.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original capability-by-data-family acceptance matrix with
+      provider-owned deterministic tests and separately authorized exact-scope live evidence; preserve
+      every held disposition.
+  - id: AC-OPTIONS
+    disposition: deferred
+    delivered: No options provider/model behavior changed in this checkpoint.
+    remainder: Current option retention, Greek model/fallback provenance, and numerical edge coverage
+      remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original options data and numerical edge-case suite with
+      model/version/input provenance in the exact-source full profile.
+  - id: AC-OPS
+    disposition: partially_delivered
+    delivered: Added authenticated on-demand discovery, identity, and selected-history API contracts with
+      stable typed outcomes.
+    remainder: The full backend-only operations and diagnostics surface for capabilities, usage/cost,
+      decisions, coverage, quarantine, queues, anomalies, and shadow remains.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original operator/diagnostic API inventory and authorization/redaction/held-state
+      tests, then qualify it in the full integration profile.
+  - id: AC-SHADOW
+    disposition: deferred
+    delivered: No routing default or shadow acceptance state was changed; schedules and unqualified operations
+      remain held.
+    remainder: The separately authorized deployed 30-day shadow and its coverage, violation, reporting,
+      and discrepancy criteria remain entirely outstanding.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Only after all prior controllable gates, obtain a separate approved
+      shadow scope and pass the original daily/final report and coverage criteria.
+  - id: AC-COMPAT
+    disposition: partially_delivered
+    delivered: Preserved ordinary cached GET behavior under request-driven-only mode and constrained explicit
+      POST acquisition to its reviewed scope.
+    remainder: All legacy aliases/yfinance compatibility semantics and broader consumer behavior remain
+      to be qualified; no default yfinance routing is introduced.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original compatibility and no-hidden-transport tests across
+      legacy consumers plus the full exact-source profile.
+  - id: AC-TEST
+    disposition: partially_delivered
+    delivered: The named software checkpoint passed its focused contracts, exact-source CI, and complete
+      local profile with declared skips and preserved failed attempts.
+    remainder: The broader criterion spans provider-specific deterministic/live evidence, migration and
+      full backend/worker/API/numerical/PIT suites and future changed-source gates; this acceptance does
+      not complete those provider-wide obligations.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Maintain the original all-provider and full-profile matrix at each relevant
+      exact source; no skipped live operation counts as proof and all final integration gates remain required.
+  - id: AC-QUOTA-SAFETY
+    disposition: partially_delivered
+    delivered: The new explicit scope preserves unknown/native dimensions and reuses existing application-only
+      budgets without fabricating native counters or generic limits.
+    remainder: All provider contracts still require exact native limits/unknown dimensions and routing
+      exclusion where the original criterion requires them.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the per-provider quota-contract and negative-admission matrix
+      with exact shared-scope/native evidence; unknowns remain NULL/held.
+  - id: AC-RATE-FAILURE
+    disposition: deferred
+    delivered: No rate-limit/reset or retry policy was changed in this checkpoint.
+    remainder: Provider-specific reset parsing, typed capacity persistence, defer behavior, and no-storm
+      recovery remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete deterministic 429/418/quota-reset and deferred-recovery tests
+      for each supported contract; verify no retry storm or unsafe fallback.
+  - id: AC-LIVE-EVIDENCE
+    disposition: deferred
+    delivered: No provider HTTP, source qualification, allowance replay, or new live evidence was performed.
+    remainder: The complete manifest-driven keyless/credentialed live matrix and each missing-credential
+      disposition remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Use only separately reviewed bounded exact-source executions; record
+      actual credential preflight failures or evidence and preserve all holds.
+  - id: AC-SECRET-DISTRIBUTION
+    disposition: deferred
+    delivered: No secret-store or credential distribution was changed; secret values remain excluded from
+      records and routine output.
+    remainder: Separation and access controls across local, staging, master, and production secret stores
+      remain unverified.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original nonsecret presence/scope audit for each environment
+      and prove credentials reach only trusted backend/worker processes.
+  - id: AC-PROVIDER-CONTRACT-AUDIT
+    disposition: deferred
+    delivered: This checkpoint adds no blanket provider contract claims; prior source-backed facts and
+      unknowns remain unchanged.
+    remainder: The exhaustive versioned plan/auth/quota/cost/pagination/bytes/history/venue/freshness/rights
+      reconciliation remains.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original capability-by-provider contract audit against
+      authoritative docs, account observations, and reviewed live headers; keep unresolved facts explicit.
+  - id: AC-DURABLE-DATA-RIGHTS
+    disposition: deferred
+    delivered: The previously accepted private-storage authority remains preserved; this checkpoint does
+      not create provider or embedded-third-party rights evidence.
+    remainder: Provider terms, account entitlements, and explicit third-party restrictions remain separate
+      provider facts requiring accurate qualification.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Continue the original source-specific rights and entitlement review
+      without re-requesting owner consent; demonstrate only permitted storage and use.
+  - id: AC-DURABLE-CROSS-SESSION-USAGE
+    disposition: partially_delivered
+    delivered: The explicit acquisition path reuses existing durable reservation/settlement and coalescing
+      primitives; no replacement ledger was added.
+    remainder: All-worker/process restart, shared-account, deployment storage, and CI interrupted-usage
+      reconciliation remain to be demonstrated across the full scope.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original multi-worker/restart/uncertain-settlement and
+      shared-ledger tests and exact deployment/CI reconciliation evidence.
+  - id: AC-UNIVERSE-COMPLETE
+    disposition: deferred
+    delivered: No universe acquisition, source replay, or lifecycle completeness was claimed or performed.
+    remainder: Official CTA/Nasdaq source completeness, FINRA preservation, and per-CIK SEC cursor/failure
+      atomicity plus multi-day lifecycle evidence remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Pass the original complete-source pagination/integrity, retained-row,
+      atomic cursor/restart/no-refetch, duplicate/ticker-change, and three-distinct-complete-day tests.
+  - id: AC-SEC-PRELISTING-POLICY
+    disposition: deferred
+    delivered: No SEC directory scan/materialization or prelisting policy was changed in this checkpoint.
+    remainder: Reviewed complete report generation, no-refetch materialization, provisional identity rules,
+      and ambiguity quarantine remain.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original staged-report/review/materialization tests using
+      retained source payloads only, with exact missing-row and ambiguous-evidence denials.
+  - id: AC-INTEGRATION-WORKFLOW
+    disposition: deferred
+    delivered: This checkpoint changes no workflow policy and does not bypass the existing exact-source
+      CI/integration gates.
+    remainder: The exhaustive workflow contract for declarations, evidence, fixtures, live scope, secrets,
+      usage impact, and deferrals remains a roadmap obligation.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Complete the original workflow validator matrix and preserve exact-source
+      green branch plus protected staging/master gates for subsequent changes.
+  - id: AC-DINARI-SANDBOX-ISOLATION
+    disposition: deferred
+    delivered: No Dinari Sandbox request or policy activation occurred; existing production holds remain.
+    remainder: The separately capped archive-only canary, noncanonical data isolation, and disabled production
+      route remain unqualified.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: Only execute after a new exact reviewed canary; prove payload retention
+      and no writes to canonical data/usage/alerts, with production still disabled.
+  - id: AC-SHADOW-FINAL-PHASE
+    disposition: deferred
+    delivered: No final shadow phase was started or authorized by this software checkpoint.
+    remainder: The original final 30-day shadow planning/authorization remains contingent on every prior
+      controllable gate.
+    owner: Provider workstream owner; Root retains protected integration, deployment, and explicitly assigned
+      target/runtime acceptance.
+    continuation_acceptance_test: After all earlier roadmap gates are accepted, obtain its separate scope
+      and pass the original 30-day evidence and final human closure requirements.
+  prior_checkpoint: provider-on-demand-cached-search-outcome-reuse-20261028
+  accepted_staging_baseline_sha: d62331114ccbe61ac757d62976aa7a3f89f56f9b
+  source_test_map:
+  - backend/app/routers/instruments.py::acquire_instrument validated-profile ingestion and identity qualification
+  - backend/tests/unit/routers/test_instruments_router.py::TestExplicitAcquireCanonicalIdentity
+  - backend/tests/integration/api/test_on_demand_history_postgres.py::test_explicit_acquire_commits_authoritative_identity_for_provisional_oih_scaffold
+  required_gates_remaining:
+  - Root must obtain and review terminal-green exact-source CI for the published records-only closing branch
+    HEAD before guarded staging integration.
+  - Root owns protected staging/master integration and their exact green gates. No deployment, live source
+    qualification, or target mutation is part of this checkpoint.
+  current_source_local_evidence:
+  - Retained OIH43 evidence showed provider-supplied composite FIGI and active ARCX/Massive binding with provisional
+    identity/domain_key null. The exact profile was validated but apply_domain_identity was skipped whenever optional
+    external lookup was disabled; offline red reproduction returned identity_conflict. The repair applies only those
+    validated profile identifiers through the existing owner/quarantine logic and retains allow_external_identifier=False.
+  - The focused unit and real PostgreSQL independent-session identity tests passed. Root's exact-source local backend
+    qualification receipt records 5,574 unit passes/1 existing native skip, 554 integration passes/2 existing native
+    skips, combined 6,128 passes/3 skips, and 84 percent coverage with XML.
+  - Exact-source CI 40801008605 attempt 1 is terminal success on e6e7c5511153c6b49b138bac38ed08ae56532408; the feature
+    branch exhaustive skip is normal policy. Frontend Unit passed 1,471. The first local functional receipt remains
+    199 passed/3 configured skips with retries zero; the dense-watchlist case passed separately 1/1 and Root records the
+    normalized result as 200 passed/2 unchanged canonical live-only skips.
+  - Strict visual browser result is 104 passed across four projects in 14.3 minutes, retries zero, unchanged references,
+    masks, assertions, and 0.005 tolerance. Its browser container exited 0/OOM false; the shell wrapper subsequently
+    exited 2 after printing the pass summary while its script file was edited. Both outcomes are separately preserved;
+    this is not represented as a wrapper exit-zero result or visual assertion failure.
+  - The initial worker restart and half-core requalification failures remain archived. After Root reviewed cgroup
+    throttling, one fresh requalification passed with only the opt-in worker at 1 CPU, 512 MiB, and 64 PIDs; all
+    WorkerEntrypointConfig, independent PostgreSQL, Redis stream/group, outbox, liveness, restart, and stop predicates
+    passed under unchanged 15-second per-command and 30-second outer readiness limits.
+  - Exact assigned-project cleanup exited zero. Global container/volume/network diffs are empty; the 62-image inventory
+    is byte-identical before/after cleanup, and the exact tested backend image sha256:59c21550410ddb6a81833922455612f76256919133d3cd51a6e76ace4f2486b3 remains cached.
+  - Root's delegated technical acceptance is recorded at /home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md.
+    No migration/default activation, provider HTTP, quota operation, production mutation, or consumed-119 request replay occurred.
+    All 24 broader roadmap criteria and historical failures/dispositions remain preserved and open.
+  exact_source_ci:
+    implementation_source_sha: e6e7c5511153c6b49b138bac38ed08ae56532408
+    result: success
+    run_id: 40801008605
+    qualification: Exact current implementation source; attempt 1. Root's canonical review confirms all required branch jobs succeeded. The exhaustive feature-branch skip is policy, not an exhaustive-gate pass.
+  validation_tier: full_integration
+  local_validation_profile: full_stack_browser
+  deployment_authorized: false
+  provider_activation_authorized: false
+  operational_trial_authorized: false
+  merge_authorized: true
+  next_action: Root inspects the records-only closing tip and its exact-source CI; if green, Root performs the supported protected staging integration. The next Provider-owned roadmap item remains AC-UNIVERSE-COMPLETE after Root releases the branch.
 status: ready_for_integration
 approved_execution_decisions:
   provider_use:
@@ -7999,16 +8460,31 @@ progress:
       frontend trees; no Provider import manifest or fresh local test receipt applies. The one records-only adoption
       publication requires exact-tip branch CI. Preserve all 24 roadmap criteria, accepted checkpoints, historical
       failures, holds, and the consumed-119 no-replay boundary. Root owns master CI, deployment, and operational proof.
+    - >-
+      2026-10-29 OIH canonical-qualification repair activated under the existing
+      on-demand goal. Exact green staging d623311 was adopted into this branch.
+      Retained OIH records proved a provisional scaffold with a provider-supplied
+      composite FIGI and ARCX/Massive binding; explicit profile ingestion skipped
+      apply_domain_identity because optional external identifier lookup was disabled.
+      Narrow repair now applies the validated profile identifiers through the
+      existing collision/quarantine helper. No provider/issuer/SEC HTTP or target
+      mutation occurred; full local profile and exact-source CI remain pending.
   completed:
-  - ONDEMAND-CACHED-OUTCOMES
-  total: 1
+    - OIH-VALIDATED-PROFILE-IDENTITY
+    - OIH-CONFLICT-QUARANTINE
+    - OIH-NO-OPTIONAL-FALLBACK
+    - OIH-COMMITTED-READBACK
+    - OIH-REQUIRED-QUALIFICATION
+    - OIH-CI-STACK-START
+  total: 6
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
-  current_phase: green_staging_4bc50_adopted_pending_adoption_tip_ci
+  historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
+  current_phase: provider_oih_canonical_qualification_repair_accepted_pending_closing_tip_ci
   current_blocker: >-
-    The exact green staging source is adopted locally; the single owned-record adoption commit
-    and its exact branch CI remain pending. Root owns master CI, deployment, and all source/target
-    qualification. The accepted checkpoint does not complete the 24-item Provider roadmap or
-    clear any live/source/target, native, paid, trial, broker, capital, quota, or consumed-119 hold.
+    Root accepted the bounded OIH canonical-qualification checkpoint and the implementation source e6e7 is exact-CI green.
+    The records-only closing commit and its exact-head CI must be published and reviewed before Root's protected staging
+    integration. All 24 Provider roadmap criteria remain open/preserved; no live-source, quota, paid/trial/native/broker/
+    capital, deployment, or consumed-119 hold is changed.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -10135,51 +10611,17 @@ historical_current_gate_checkpoint_2026_10_16: >-
     adoption's exact branch CI is known, the next Provider-owned roadmap action
     is to resume `AC-UNIVERSE-COMPLETE` from the adopted source; do not start
     that work in this adoption checkpoint.
+historical_current_gate_checkpoint_2026_10_29_preclosure: >-
+  OIH canonical-qualification repair was in progress on top of accepted staging d623311. Retained records showed OIH43
+  with provider-supplied composite FIGI, active ARCX primary listing, and Massive OIH/ARCX binding but provisional identity
+  and null domain_key. Optional external lookup disabled apply_domain_identity, leaving the canonical qualification
+  incomplete. This pre-closure snapshot preserves the original diagnosed state and pending evidence.
 current_gate_checkpoint: >-
-  Historical 8b67 closure: Root accepted only `provider-on-demand-cached-search-outcome-reuse-20261028` on implementation
-  source `8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9` under the existing standing human authority;
-  acceptance receipt:
-  `/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json`.
-  This is delegated Root technical acceptance and records-only closure, not a fabricated direct
-  human quote, full Provider roadmap completion, deployment acceptance, or live-source success.
-  Exact implementation-source CI 40686521938 is green for 8b67; this final records-only commit
-  still requires its own terminal-green exact-tip CI before Root performs supported staging
-  integration. The exact local 6,125-node manifest (SHA-256
-  0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41) is qualified: 5,570 unit IDs
-  (5,569 passed and one declared native RC6 skip) plus all 555 integration IDs (553 passed and two
-  declared native RC6 skips), for 6,122 passes and three declared skips overall. Combined coverage
-  is 84.41% against the unchanged 75% threshold; the combined XML and per-batch receipts are
-  preserved. Frontend unit tests passed 1,471; functional browser run passed 199 with three
-  declared skips, and the separately executed dense-watchlist case passed 1/1; all 104 strict
-  visuals passed across four projects with zero retries and 0.005 tolerance. No
-  provider/issuer/SEC HTTP or quota operation occurred. The source-labeled backend artifact
-  remains available for Root. Preserve the original one-process integration timeout, the
-  first-batch guard stop after a transient Testcontainers count of one, the prior noncanonical
-  host-environment attempt, and the post-test receipt-assembly NameError; none is relabeled as a
-  test assertion failure or erased. The transient Testcontainers count later reached zero without
-  manual removal; the owned Compose project was then cleaned by exact scope, and Root
-  independently verified protected inventories and the reserved image. All 24 roadmap items, the
-  accepted prior checkpoints, provider/source/target qualification,
-  live/native/paid/trial/broker/capital holds, and the consumed-119 no-replay boundary remain
-  open/unchanged. After exact closing-tip CI, Root owns integration; the next Provider roadmap
-  item remains AC-UNIVERSE-COMPLETE. integration_capture: exact branch HEAD
-  Current adoption (2026-10-28): canonical green staging receipt
-  `/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json`
-  (SHA-256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`)
-  and Root review
-  `/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json`
-  (SHA-256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`)
-  confirm staging `4bc50a9de9eb2453c75eda047d01466309a3a3da` and CI
-  `40721314996` terminal success, including Exhaustive. It directly descends from
-  Provider HEAD `4c8950b61f863eb317fcf5369930721d2cef76de` and was adopted by
-  fast-forward without conflicts. The complete tree at both SHAs is
-  `ee51d4e02f1659030d11507696b24055adec8303`; backend and frontend content are
-  unchanged. No tests were rerun and no fresh test receipt is claimed. The
-  single records-only adoption publication has its own exact-tip branch CI
-  pending. Root reports independent master CI `40735299702` running and
-  production still on `e3e87183`; Root retains master CI, deployment, and all
-  source/target operations. All 24 Provider roadmap criteria and dispositions,
-  prior accepted checkpoints, historical failures, native/live/paid/trial/
-  broker/capital/quota holds, and consumed-119 no-replay boundary remain
-  intact. After Root releases the branch for further work, the next Provider
-  roadmap item remains `AC-UNIVERSE-COMPLETE`.
+  Root has accepted the bounded provider-oih-canonical-qualification-repair-20261029 checkpoint on implementation source
+  e6e7c5511153c6b49b138bac38ed08ae56532408. All six accepted criteria and exact implementation CI 40801008605 are recorded.
+  The full local profile, one-core worker requalification, strict visual browser result, exact-owned cleanup, and historical
+  failure dispositions are captured in the owner and Root receipts. The tested backend image
+  sha256:59c21550410ddb6a81833922455612f76256919133d3cd51a6e76ace4f2486b3 remains retained. No migration, default routing
+  or source activation occurred. This ready_for_integration closure captures the exact final branch HEAD via
+  integration_capture; Root must review exact-head CI before staging. The broader 24-item roadmap and all source/target/native/
+  paid/trial/broker/capital/quota holds and consumed-119 no-replay boundary remain unchanged.

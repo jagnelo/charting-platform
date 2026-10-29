@@ -1,17 +1,37 @@
 {
   "acceptance_criteria": [
     {
-      "id": "ONDEMAND-CACHED-OUTCOMES",
-      "text": "After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the providers selected by the normal resolver; they make no repeated provider call and do not crash while constructing those outcomes."
+      "id": "OIH-VALIDATED-PROFILE-IDENTITY",
+      "text": "Apply exact validated profile identifiers to both new and existing provisional records while retaining stable key and primary-listing requirements."
+    },
+    {
+      "id": "OIH-CONFLICT-QUARANTINE",
+      "text": "Preserve mismatched-key rejection and quarantine a profile identifier already owned by another instrument without reassignment."
+    },
+    {
+      "id": "OIH-NO-OPTIONAL-FALLBACK",
+      "text": "Keep optional external identifier lookup disabled and add no unapproved provider operations or retries."
+    },
+    {
+      "id": "OIH-COMMITTED-READBACK",
+      "text": "Prove persisted identity from an independent PostgreSQL session after the normal acquisition request commits."
+    },
+    {
+      "id": "OIH-REQUIRED-QUALIFICATION",
+      "text": "Complete the required local full_stack_browser profile, exact-source branch CI, and workstream checks before ready_for_human_review."
+    },
+    {
+      "id": "OIH-CI-STACK-START",
+      "text": "The exact-source E2E workflow explicitly builds the existing Compose project before the bounded Start stack step, then uses --no-build with --wait; the timeout-validator count is corrected to six baseline declarations and continues to enforce every existing timeout and exhaustive command."
     }
   ],
-  "active_checkpoint_id": "provider-on-demand-cached-search-outcome-reuse-20261028",
+  "active_checkpoint_id": "provider-oih-canonical-qualification-repair-20261029",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "accepted narrowly scoped checkpoint; authorize final records-only closure",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json",
-  "checkpoint_authorization_state": "root_delegated_acceptance_recorded",
-  "checkpoint_status": "ready_for_integration",
+  "checkpoint_acceptance_decision": "Root delegated technical acceptance recorded for the bounded OIH canonical-qualification checkpoint; full Provider roadmap remains open",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md",
+  "checkpoint_authorization_state": "accepted by Root under the standing human authority for this named checkpoint only; no direct human quote inferred; Root owns protected staging/master/deployment",
+  "checkpoint_status": "accepted_for_integration",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -27,49 +47,28 @@
     "head_sha": "exact branch HEAD",
     "owner": "Root",
     "run_id": null,
-    "status": "pending after push"
+    "status": "pending exact closing-tip Actions; Root observes and reviews before staging"
   },
   "current_checkpoint_local_profile": {
-    "backend_tree": "3448ffb5ee585fc7a738080169b629dcc9f60047",
-    "cleanup_receipt": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/owned-project-cleanup-receipt.json",
-    "cleanup_receipt_sha256": "9bbf117087220d592f5efd718c8eddd5506cbcfc3f2dff900a7232d8d6df10ec",
-    "combined_declared_native_skips": 3,
-    "combined_passed": 6122,
-    "coverage_percent": 84.41,
-    "coverage_threshold_percent": 75,
-    "coverage_xml_sha256": "7a17148fd529aece729a3177f52126433bbba325f43344b21368fb2192b0a066",
-    "dense_watchlist_separate_passed": 1,
-    "frontend_unit_passed": 1471,
-    "functional_declared_skips": 3,
-    "functional_passed": 199,
-    "integration_declared_native_skips": 2,
-    "integration_ids": 555,
-    "integration_passed": 553,
-    "manifest_path": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/collected-nodeids-canonical.txt",
-    "manifest_sha256": "0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41",
-    "post_test_receipt_assembly_failure": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/integration-continuation-02-receipt-assembly-failure.json",
-    "post_test_receipt_assembly_failure_sha256": "f109f1fe0cfcde5bde2695e825f7239ca07b0031ace1b6339adcdecc48d49a3c",
-    "profile_receipt": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/provider-on-demand-full-profile-recovered-review.json",
-    "profile_receipt_sha256": "6bb3b16c3f22f9aea0d622cf8d4de316eece68ed21d85c130043c4c443ca46b8",
+    "profile": "full_stack_browser",
+    "status": "qualified for bounded checkpoint under Root technical acceptance",
+    "backend": "5574 unit passed + 1 existing native skip; 554 integration passed + 2 existing native skips; 6128 passed/3 skipped, 84% combined coverage and XML; exact manifest reconciled; Root review /home/m920q/charting-platform/.ai/staging-attempts/provider-e6e7-local-backend-root-qualification-20261029.json",
+    "frontend_unit": "1471 passed in exact-source CI",
+    "functional_browser": "first raw run 199 passed/3 configured skips, retries=0; separately qualified dense-watchlist case 1/1; Root normalized disposition 200 passed/2 unchanged canonical live-only skips",
+    "strict_visual": "104/104 passed across four projects, retries=0, original references/masks/assertions and 0.005 tolerance; browser exit 0/OOM false; wrapper exit 2 after summary due helper edited during execution, preserved separately",
+    "worker_restart": "passed only with reviewed opt-in worker at 1 CPU, 512 MiB, 64 PIDs; all predicates and 15s/30s deadlines unchanged; earlier half-core failures preserved",
+    "cleanup": "exact owned project cleanup exit 0; global container/volume/network diffs empty; image inventory unchanged; tested backend image retained sha256:59c21550410ddb6a81833922455612f76256919133d3cd51a6e76ace4f2486b3",
     "provider_http_requests": 0,
     "quota_operations": 0,
-    "reserved_backend_image_id": "sha256:836d67f97490088b3676fd00ed3f56dac291b77b1f5cea5dfdef4651ddfc5330",
-    "retries": 0,
-    "source_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
-    "source_tree": "4af88ba03817c2e355db86cd26996f8cfa861d7a",
-    "strict_visual_passed": 104,
-    "strict_visual_projects": 4,
-    "unit_declared_native_skips": 1,
-    "unit_ids": 5570,
-    "unit_passed": 5569,
-    "visual_tolerance": 0.005
+    "migration": "none",
+    "default_routing_or_source_activation": "none",
+    "owner_receipt": "/tmp/provider-p2-oih-e6e7c551-20261029/artifacts/final-owner-profile-receipt.json",
+    "delegated_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md"
   },
   "current_exact_ci": {
-    "head_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
-    "result": "success",
-    "run_id": 40686521938,
-    "scope_note": "Exact implementation-source CI only. The records-only closure commit requires separate terminal-green exact-head CI.",
-    "status": "terminal_success"
+    "source_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
+    "status": "terminal success; exact implementation-source CI, attempt 1; feature-branch exhaustive gate skipped by policy",
+    "run_id": 40801008605
   },
   "dirty_paths": [
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
@@ -78,31 +77,32 @@
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "available": true,
+    "reason": "Exact owned fixture cleanup completed and independently audited; no retained service or shared resource was cleaned."
   },
   "docker_before_cleanup": {
     "available": true,
-    "reason": "Worktree-scoped cleanup after make test-backend-coverage removed no containers or images, retained no volumes, and used no host-wide prune."
+    "owned_fixture": "provider-p2-oih-e6e7c551-20261029",
+    "cleanup_result": "exact owned cleanup exited 0; protected global inventories unchanged"
   },
   "docker_ready": {
     "ready": true,
     "started_desktop": false,
     "wait_seconds": 0
   },
-  "finished": false,
-  "finished_at": null,
+  "finished": true,
+  "finished_at": "2026-10-29T04:08:47.840290+00:00",
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/market-data-provider-platform: Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching. Preserve the accepted prior on-demand checkpoint and all 24 Provider roadmap criteria; genuine live/source/target qualification and the full roadmap remain open.. Acceptance criteria: ONDEMAND-CACHED-OUTCOMES: After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the providers selected by the normal resolver; they make no repeated provider call and do not crash while constructing those outcomes.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Complete only the accepted bounded OIH canonical-qualification repair checkpoint; preserve all 24 broader Provider roadmap criteria, history, holds, and no-replay boundary.",
   "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
   "goal_request": {
     "objective": "Advance feat/market-data-provider-platform: Prepare provider-platform-integration-1: a validated backend/data foundation that downstream ETF holdings, TC2000, and Strategy Lab v2 work can consume through explicit identity, series, provider capability/entitlement/quota/health, coverage, and unavailable-operation contracts. Preserve every original market-data requirement as a roadmap item; do not claim full feature completion. Stop at ready_for_human_review; no merge, deployment, provider activation, or 30-day trial is authorized.. Acceptance criteria: ICP1: Checkpoint minimum is tested stable security, issuer, listing, and provider-symbol identity with provenance/history retention, explicit ambiguity quarantine, and legacy symbol/API compatibility; report known mapping gaps. A fresh complete NMS/OTC/SEC universe reconciliation and full venue mapping are full-roadmap work, not pre-integration ICP1 gates.; ICP2: Shared capability, entitlement, quota/usage, health, and routing contracts are usable by consumers and reject unknown or exhausted quotas, with durable cross-session and concurrent-worker accounting tested.; ICP3: Canonical market series, calendars, coverage, refresh jobs, and missing-data behavior are usable by consumers, with provenance, freshness, gaps, lease recovery, and no provider calls hidden in analytic evaluation loops tested.; ICP4: Every checkpoint-enabled provider operation has bounded exact-source live evidence; every excluded operation has explicit, tested unavailable/disabled behavior and an operation-level status. Historical receipts or quota waits do not count as current success; any failing required operation must be fixed or proposed for explicit human-approved deferral.; ICP5: Checkpoint minimum is additive migration/fresh-install and existing-database equivalence, startup/default/caller compatibility, tested local secret/config boundaries, and exact-source branch CI. GitHub, RPi, and deployment secret-store verification is required before using those targets, not before Provider integration; no deployment readiness is implied.; ICP6: Checkpoint minimum is a concrete Provider producer-contract map with tested success/unavailable behavior and a named downstream wiring/test owner for ETF holdings, TC2000, and Strategy Lab v2. Actual sibling wiring/reconciliation and consumer-specific validation occur after Provider is green in staging and remain owned by those branches; no capability is represented as available without producer evidence.; ICP7: The checkpoint is reviewable from a clean, pushed exact source with the normal validation profile and exact-source evidence, a disposition for every original criterion, and a closure summary for later human acceptance; full-roadmap completion remains open.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "goal_request_state": "ready",
-  "goal_state": "active",
+  "goal_state": "finished",
   "goal_unavailable_reason": null,
-  "head": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
-  "implementation_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
+  "head": "e6e7c5511153c6b49b138bac38ed08ae56532408",
+  "implementation_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
   "interrupted": false,
   "last_checkpoint": "2026-10-28T15:16:12Z",
   "last_human_progress_update": "2026-10-28T12:15:21.408448+00:00",
@@ -123,9 +123,9 @@
     "tree_sha": "ee51d4e02f1659030d11507696b24055adec8303"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "The exact green staging adoption is recorded; Root observes exact branch CI for this records-only publication. Root owns independent master CI, integration, deployment, and source/target qualification. After Root releases the branch for further work, resume the original 24-item Provider roadmap at AC-UNIVERSE-COMPLETE. Preserve all holds and the consumed-119 no-replay boundary.",
+  "next_action": "Root reviews terminal-green Actions for the exact published closing HEAD and performs supported staging integration; after Root releases the branch, resume the original Provider roadmap at AC-UNIVERSE-COMPLETE.",
   "parent_branch": "staging",
-  "plan_hash": "8a0a307c0ffe3bc8f43460ecc7694e1b8bc7c9b56340cc2a3e90b656fd85a459",
+  "plan_hash": "faa11dbbc1dfd78956cdde9262e1ad558d3c5bf471562aa975fae26d92238558",
   "planning_required": false,
   "planning_state": "ready",
   "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
@@ -174,15 +174,17 @@
   },
   "progress": {
     "completed": [
-      "ONDEMAND-CACHED-OUTCOMES"
+      "OIH-VALIDATED-PROFILE-IDENTITY",
+      "OIH-CONFLICT-QUARANTINE",
+      "OIH-NO-OPTIONAL-FALLBACK",
+      "OIH-COMMITTED-READBACK",
+      "OIH-REQUIRED-QUALIFICATION",
+      "OIH-CI-STACK-START"
     ],
-    "current_blocker": "Exact branch CI for the records-only 4bc50 adoption publication; Root owns master CI, integration, deployment, and operational qualification.",
-    "current_phase": "green_staging_4bc50_adopted_pending_adoption_tip_ci",
-    "next_action": "The exact green staging adoption is recorded; Root observes exact branch CI for this records-only publication. Root owns independent master CI, integration, deployment, and source/target qualification. After Root releases the branch for further work, resume the original 24-item Provider roadmap at AC-UNIVERSE-COMPLETE. Preserve all holds and the consumed-119 no-replay boundary.",
-    "total": 1
+    "total": 6
   },
-  "remote": "4c8950b61f863eb317fcf5369930721d2cef76de",
-  "remote_sha": "4c8950b61f863eb317fcf5369930721d2cef76de",
+  "remote": "e6e7c5511153c6b49b138bac38ed08ae56532408",
+  "remote_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
   "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
@@ -289,19 +291,30 @@
     "objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.. Acceptance criteria: AC-IDENTITY: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.; AC-SERIES: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.; AC-CALENDAR: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.; AC-ROUTING: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.; AC-REFRESH: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.; AC-DATA: Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance.; AC-OPTIONS: Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases.; AC-OPS: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports.; AC-SHADOW: New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence.; AC-COMPAT: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.; AC-TEST: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified.; AC-QUOTA-SAFETY: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions.; AC-RATE-FAILURE: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.; AC-LIVE-EVIDENCE: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.; AC-SECRET-DISTRIBUTION: Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes.; AC-PROVIDER-CONTRACT-AUDIT: Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated.; AC-DURABLE-CROSS-SESSION-USAGE: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.; AC-UNIVERSE-COMPLETE: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use a currently documented and authorized complete source (FINRA otcSecurityMaster only if its availability/current status and use rights are established) plus Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.; AC-SEC-PRELISTING-POLICY: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.; AC-INTEGRATION-WORKFLOW: External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy.; AC-DINARI-SANDBOX-ISOLATION: Dinari Sandbox may run as a live-environment canary only through a separate non-persisting path; sandbox payloads never enter canonical production data, usage, alert, or analytics tables, and Dinari production routing remains disabled under the approved free-only budget.; AC-SHADOW-FINAL-PHASE: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
   "root_full_profile": {
+    "source_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
+    "result": "accepted bounded OIH checkpoint; Root technical acceptance recorded",
+    "backend_passed": 6128,
+    "backend_skipped": 3,
+    "backend_coverage_percent": 84,
+    "frontend_unit_passed": 1471,
+    "functional_passed": 200,
+    "functional_skipped": 2,
+    "visual_passed": 104,
+    "visual_browser_exit": 0,
+    "visual_wrapper_exit": 2,
+    "worker_cpu_cores": 1,
+    "worker_memory_bytes": 536870912,
+    "worker_pids": 64,
     "cleanup_inventory_diffs": 0,
-    "functional_declared_skips": 2,
-    "functional_passed": 195,
-    "recovery_timer": "absent",
-    "result": "terminal success",
-    "retries": 0,
-    "run": "95357",
-    "visual_passed": 104
+    "provider_http_requests": 0,
+    "quota_operations": 0,
+    "root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md",
+    "owner_receipt": "/tmp/provider-p2-oih-e6e7c551-20261029/artifacts/final-owner-profile-receipt.json"
   },
   "run_id": 39254427018,
   "schema": 2,
   "session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "state": "checkpointed",
+  "state": "ready_for_integration",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -454,7 +467,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
+  "validated_implementation_source_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [
@@ -464,5 +477,68 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
-  "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+  "worktree_id": "feat-market-data-provider-platform-c6e40c6608",
+  "previously_accepted_cached_search_session_context": {
+    "goal_objective": "Advance feat/market-data-provider-platform: Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching. Preserve the accepted prior on-demand checkpoint and all 24 Provider roadmap criteria; genuine live/source/target qualification and the full roadmap remain open.. Acceptance criteria: ONDEMAND-CACHED-OUTCOMES: After a fresh persisted provider-search snapshot exists, subsequent cached search/resolve requests return the same cached candidates plus correct per-provider cache_hit outcomes and counts for the providers selected by the normal resolver; they make no repeated provider call and do not crash while constructing those outcomes.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+    "active_checkpoint_id": "provider-on-demand-cached-search-outcome-reuse-20261028",
+    "checkpoint_status": "ready_for_integration",
+    "checkpoint_acceptance_decision": "accepted narrowly scoped checkpoint; authorize final records-only closure",
+    "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-8b67-root-checkpoint-acceptance-20261028.json",
+    "checkpoint_authorization_state": "root_delegated_acceptance_recorded",
+    "current_checkpoint_local_profile": {
+      "backend_tree": "3448ffb5ee585fc7a738080169b629dcc9f60047",
+      "cleanup_receipt": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/owned-project-cleanup-receipt.json",
+      "cleanup_receipt_sha256": "9bbf117087220d592f5efd718c8eddd5506cbcfc3f2dff900a7232d8d6df10ec",
+      "combined_declared_native_skips": 3,
+      "combined_passed": 6122,
+      "coverage_percent": 84.41,
+      "coverage_threshold_percent": 75,
+      "coverage_xml_sha256": "7a17148fd529aece729a3177f52126433bbba325f43344b21368fb2192b0a066",
+      "dense_watchlist_separate_passed": 1,
+      "frontend_unit_passed": 1471,
+      "functional_declared_skips": 3,
+      "functional_passed": 199,
+      "integration_declared_native_skips": 2,
+      "integration_ids": 555,
+      "integration_passed": 553,
+      "manifest_path": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/collected-nodeids-canonical.txt",
+      "manifest_sha256": "0e4709df8ec3b688e7dded4cdb5b26b34b4a1a6cce744da099201df3046c7b41",
+      "post_test_receipt_assembly_failure": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/integration-continuation-02-receipt-assembly-failure.json",
+      "post_test_receipt_assembly_failure_sha256": "f109f1fe0cfcde5bde2695e825f7239ca07b0031ace1b6339adcdecc48d49a3c",
+      "profile_receipt": "/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/provider-on-demand-full-profile-recovered-review.json",
+      "profile_receipt_sha256": "6bb3b16c3f22f9aea0d622cf8d4de316eece68ed21d85c130043c4c443ca46b8",
+      "provider_http_requests": 0,
+      "quota_operations": 0,
+      "reserved_backend_image_id": "sha256:836d67f97490088b3676fd00ed3f56dac291b77b1f5cea5dfdef4651ddfc5330",
+      "retries": 0,
+      "source_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
+      "source_tree": "4af88ba03817c2e355db86cd26996f8cfa861d7a",
+      "strict_visual_passed": 104,
+      "strict_visual_projects": 4,
+      "unit_declared_native_skips": 1,
+      "unit_ids": 5570,
+      "unit_passed": 5569,
+      "visual_tolerance": 0.005
+    },
+    "current_exact_ci": {
+      "head_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
+      "result": "success",
+      "run_id": 40686521938,
+      "scope_note": "Exact implementation-source CI only. The records-only closure commit requires separate terminal-green exact-head CI.",
+      "status": "terminal_success"
+    },
+    "implementation_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
+    "validated_implementation_source_sha": "8b67a05eea82a7d0f9021f625967d2eb0f6a7bd9",
+    "next_action": "The exact green staging adoption is recorded; Root observes exact branch CI for this records-only publication. Root owns independent master CI, integration, deployment, and source/target qualification. After Root releases the branch for further work, resume the original 24-item Provider roadmap at AC-UNIVERSE-COMPLETE. Preserve all holds and the consumed-119 no-replay boundary."
+  },
+  "historical_root_full_profile_pre_oih_repair_2026_10_29": {
+    "cleanup_inventory_diffs": 0,
+    "functional_declared_skips": 2,
+    "functional_passed": 195,
+    "recovery_timer": "absent",
+    "result": "terminal success",
+    "retries": 0,
+    "run": "95357",
+    "visual_passed": 104
+  }
 }

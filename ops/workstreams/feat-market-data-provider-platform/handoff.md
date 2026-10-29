@@ -32480,3 +32480,100 @@ Owned cleanup receipt `/tmp/provider-on-demand-cache-repair-20261028-8b67a05e/ow
 - Verified canonical green receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json` (SHA-256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`) and Root review `/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json` (SHA-256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`). They bind exact staging `4bc50a9de9eb2453c75eda047d01466309a3a3da` to terminal-success CI `40721314996`, including Exhaustive Integration Gate. Fetched `origin/staging` and verified it was the direct descendant of Provider HEAD, so the supported adoption was a clean fast-forward; there were no content conflicts.
 - Pre-adoption HEAD and adopted staging have identical complete tree `ee51d4e02f1659030d11507696b24055adec8303`; backend tree is `3448ffb5ee585fc7a738080169b629dcc9f60047` and frontend tree is `6f6e64e1d303e81c467983eb118a5459c3152075` at both SHAs. The accepted import therefore changes ancestry only; no application/test bytes differ and no Provider frozen-upstream-import manifest applies. Existing qualified staging evidence is reused; no tests or profile were rerun and no new test receipt is claimed.
 - This adoption does not change the accepted `provider-on-demand-cached-search-outcome-reuse-20261028` checkpoint, the 24-item roadmap, any prior checkpoint/history or historical failures, and does not complete the broader feature. Provider/issuer/SEC traffic, quotas, holds, paid/trial/native/broker/capital operations and the consumed-119 no-replay boundary remain unchanged. Root reports master CI `40735299702` was running and production remained at `e3e87183`; Root owns those gates, integration/deployment and source-operation qualification. After this one records-only adoption publication's exact branch CI and Root release, resume the original roadmap at `AC-UNIVERSE-COMPLETE`; no roadmap implementation is part of this adoption context.
+
+## 2026-10-29 — OIH canonical-qualification repair activated
+
+- The existing Provider claim and worktree were reused. Preflight retained claim
+  `f093caba-0194-4527-b22b-0bfa26344c34`; no new goal or budget was created.
+  The branch adopted exact green staging `d62331114ccbe61ac757d62976aa7a3f89f56f9b`
+  by merge `89a0cce776f5168130c85ac0262380b2fdba2f3c` with no conflicts. The
+  canonical validation receipt is
+  `/home/m920q/charting-platform/.ai/validation/d62331114ccbe61ac757d62976aa7a3f89f56f9b.json`;
+  staging CI `40767810379` and independent master CI `40783905975` are green.
+  No product/backend content was imported from staging after the prior branch
+  checkpoint; the incoming test and TC-owned records remain unchanged.
+- Retained OIH43 records show an existing provider-sourced
+  `COMPOSITE_FIGI=BBG000D02J82`, active primary ARCX listing, and active Massive
+  OIH/ARCX binding, while `identity_status` remains provisional and
+  `domain_key` is null. The retained first Massive search request returned the
+  OIH/VanEck candidate once; no request was replayed. In `acquire_instrument`,
+  the exact provider profile passed provider/symbol, stable-identifier, and
+  listing checks, then `ingest_provider_profile(...,
+  allow_external_identifier=False)` persisted provider rows but skipped both
+  optional identifier discovery and `apply_domain_identity`. The subsequent
+  `_qualified_identity` therefore returned no result and the route reported
+  `canonical_identity_not_fully_qualified` after commit.
+- The narrow repair now applies only the already validated profile identifiers
+  through the existing `apply_domain_identity` ownership/quarantine logic,
+  preserving `allow_external_identifier=False`, exact profile/listing checks,
+  prior-key conflict rejection, and primary active listing/provider binding
+  checks. No new source operation, fallback, retry, or schema was added.
+- An offline pre-fix regression reproduced the original `identity_conflict`.
+  The final focused unit modules passed 35/35; the dedicated identity tests
+  passed 5/5, including new and retained provisional rows, conflicting domain
+  key, missing listing authority, owner-key quarantine, and a guard that
+  forbids optional external identifier lookup. The focused PostgreSQL module
+  passed 2/2 using an isolated Testcontainers schema; the OIH request committed
+  the identity and a separate session read back the FIGI domain key, primary
+  identifier, listing and provider binding. Provider calls were mocked. Ruff
+  check and format checks passed. A first PostgreSQL attempt failed in test
+  setup because the temporary schema omitted `exchange_session_rule`; the
+  fixture was corrected, and the final module run passed.
+- The current checkpoint is
+  `provider-oih-canonical-qualification-repair-20261029`, in progress with
+  acceptance pending. All 24 roadmap criterion IDs/texts, previous accepted
+  checkpoint objects, journal history, data, holds, quota state, and the
+  consumed-119 no-replay boundary remain unchanged. The complete backend local
+  profile and exact-source CI remain pending; Root owns acceptance, integration,
+  staging/master and deployment. No provider/issuer/SEC HTTP or production write
+  occurred. Next: complete the required local backend profile and publish this
+  exact implementation source for branch CI, then stop at
+  `ready_for_human_review`.
+
+## 2026-10-29 — bounded E2E stack-start recovery added
+
+- Root authorized one additional workflow-only scope within this OIH repair.
+  Exact implementation source `fca662ea310079ee5a55fb5f5af733b436a7be31`
+  CI `40796776802` passed Backend Tests, Frontend Unit, and Branch-declared;
+  its E2E job `123203459086` failed before browser tests because the existing
+  five-minute `Start stack` step timed out while Compose downloaded locked
+  backend wheels. GitHub's connected rerun returned 403 and no retry occurred.
+  The original failed attempt remains historical evidence.
+- The sole planned workflow change is to build the same Compose files/project
+  in an explicit preceding image-build step, then use `up -d --wait --no-build`
+  in `Start stack`. Existing job/step timeouts, tests, and Playwright settings
+  remain unchanged; `scripts/validate-ci-timeouts.py` is not modified.
+- The original exact-source local backend coverage process remains running as
+  exec session `62951`; its current progress receipt is
+  `/tmp/provider-oih-canonical-profile-20261029-fca662e/runner-progress.json`.
+  At this handoff update, unit shards 1–131 had passed (3,275 tests), shard 132
+  was active, and 556 integration IDs had been collected. No earlier shard is
+  restarted. Backend/test source remains frozen at `fca662`; workflow changes
+  are isolated from the collector's backend tree.
+- The OIH repair itself remains bounded: only the already validated exact
+  provider profile can establish stable identity; optional identifier lookup,
+  source fallback, additional HTTP, provider holds, quota state, production
+  data, and the consumed-119 no-replay boundary remain unchanged. Checkpoint
+  acceptance and all broader roadmap criteria remain pending/open.
+- Root independently confirmed that the unmodified timeout validator's
+  `count == 5` assertion already failed on frozen `fca662` because the workflow
+  has six declarations `[30, 15, 30, 45, 5, 180]`; the workflow patch did not
+  change them. Under the appended coordinator authorization, the validator now
+  expects the proven six-declaration baseline and also asserts explicit build
+  before start, `--no-build`, `--wait`, the five-minute stack-health bound, and
+  the existing exhaustive command. The preserved initial validator failure is
+  diagnostic evidence, not a product test failure.
+- The recovery is committed and pushed as `e6e7c5511153c6b49b138bac38ed08ae56532408`.
+  Its backend tree remains exactly `2f3234c1c29b13bbc1ac2d080e4360d562d3e1f9` and frontend tree
+  `f95b669ec22b8f609577a549a54e3e788387c414`, identical to `fca662`; the live local backend
+  collector remains the original exec session `62951`. The timeout validator now passes. The new
+  exact-source CI is pending Root's observation; no test or runtime phase was restarted.
+
+
+## 2026-10-29 — OIH canonical-qualification checkpoint accepted and closed
+
+- Root recorded delegated technical acceptance for `provider-oih-canonical-qualification-repair-20261029` in `/home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md`. This is acceptance under the standing human authority, not a fabricated direct human quote or full-roadmap completion. Validated implementation source is `e6e7c5511153c6b49b138bac38ed08ae56532408`; backend tree `2f3234c1c29b13bbc1ac2d080e4360d562d3e1f9`, frontend tree `f95b669ec22b8f609577a549a54e3e788387c414`.
+- All six checkpoint criteria are accepted: exact-profile identity for new/provisional rows; conflict quarantine and existing-key preservation; optional external identifier lookup remains off; independent-session PostgreSQL persistence; complete bounded local profile plus exact-source CI; and explicit Compose image build before unchanged bounded stack startup. Exact implementation CI `40801008605` is terminal green on e6e7 (feature-branch exhaustive skip is normal policy). Root's local backend review records 5,574 unit passes/1 existing native skip plus 554 integration passes/2 existing native skips, 6,128 passes/3 skips total, 84% coverage and XML above the unchanged 75% threshold. Frontend unit passed 1,471. Functional evidence remains raw first run 199 passed/3 configured skips and a distinct dense-watchlist case 1/1; Root's normalized disposition is 200 passed/2 unchanged canonical live-only skips.
+- Strict visual assertions passed 104/104 across four projects, retries 0, unchanged references/masks/assertions and 0.005 tolerance. Browser exit was 0/OOM false; the helper wrapper later exited 2 after the pass summary because the executing shell file was edited. Preserve both outcomes distinctly. Worker restart passed only under the reviewed opt-in 1-CPU fixture (512 MiB, 64 PIDs); prior half-core failures remain archived and no half-core guarantee is claimed. Exact-owned cleanup exited 0; global container/volume/network diffs were empty, image inventory unchanged, and tested backend image `sha256:59c21550410ddb6a81833922455612f76256919133d3cd51a6e76ace4f2486b3` is retained.
+- No migration, default-routing activation, provider/issuer/SEC HTTP, quota operation, production mutation, paid/trial/native/broker/capital activation, or consumed-119 replay occurred. All 24 broader roadmap criteria, prior accepted checkpoints, every historical failure, and held/unknown dispositions remain preserved and open.
+- The workstream is `ready_for_integration` for this checkpoint only. `integration_capture: exact branch HEAD`; Root owns exact closing-tip CI review and protected staging/master/deployment. Next Provider roadmap item after Root releases the branch remains `AC-UNIVERSE-COMPLETE`.
