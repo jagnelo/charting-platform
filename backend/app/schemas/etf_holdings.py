@@ -762,6 +762,20 @@ class ETFHoldingsSECBackfillRequest(BaseModel):
     max_filings: int = Field(default=20, ge=1, le=200)
 
 
+class ETFHoldingsVanEckQualificationRecoveryRequest(BaseModel):
+    """Audited request linked to a proven pretransport qualification failure."""
+
+    predecessor_job_id: int = Field(gt=0)
+    # A bounded audit identifier only: the server never reads a supplied path or URL.
+    review_evidence_reference: str = Field(
+        min_length=6,
+        max_length=180,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9:_.-]{5,179}$",
+    )
+    review_evidence_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    operator_reason: str = Field(min_length=20, max_length=500)
+
+
 class ETFHoldingsSECBulkBackfillRequest(BaseModel):
     symbols: list[str] = Field(default_factory=list)
     start_date: date | None = None

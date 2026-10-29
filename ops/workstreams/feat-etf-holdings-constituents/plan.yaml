@@ -379,6 +379,146 @@ active_changeset:
     - backend/tests/unit/services/test_etf_holdings_bootstrap.py
   owned_records: [ops/workstreams/feat-etf-holdings-constituents/plan.yaml, ops/workstreams/feat-etf-holdings-constituents/handoff.md, ops/workstreams/feat-etf-holdings-constituents/session.json, ops/workstreams/feat-etf-holdings-constituents/validation.jsonl, ops/workstreams/feat-etf-holdings-constituents/branch-tests.json]
   source_acceptance: Root_accepted_bounded_software_checkpoint_at_tested_e589; closing_tip_CI_pending
+current_vaneck_recovery_follow_up:
+  id: etf-vaneck-pretransport-recovery-and-response-serialization-20261029
+  status: focused_validation_and_record_invariant_green; source_checkpoint_pending; complete_profile_not_started
+  baseline_head: ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5
+  prior_accepted_checkpoint: etf-on-demand-consumer-20261027
+  authorization: >-
+    Root authorized this bounded same-branch repair under the standing on-demand
+    goal after the deployed OIH administrator qualification returned HTTP 500.
+    The recovery contract is
+    /home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json.
+    The exact no-body diagnostic exception is approved in
+    /home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json.
+  production_observation: >-
+    The single deployed OIH job 2 failed before transport because no Provider
+    adapter was admitted, then response serialization encountered detached
+    filings. Root verified zero source HTTP, zero Provider request logs, and
+    no quota activity. The retained local rejection artifact is preserved
+    unchanged. Root later corrected only the reviewed-free entitlement label
+    to revision 2; policy remains disabled/not_run and the original job/latch
+    was not reset. No target operation or replay is performed by this owner.
+  implementation_scope:
+    - Fresh-session eager loading for both failed and successful VanEck responses; nonempty filing serialization is covered.
+    - Separate admin-only recovery action creates at most one successor linked to the exact failed pretransport job; the original one-shot route and job remain unchanged.
+    - Recovery requires changed current review fingerprint/revision, exact OIH/source/scope and full Provider admission; advisory serialization lock, zero-cost/free-only gates and disabled policy remain.
+    - The only accepted raw artifact is the exact hash-verified locally generated no-body rejection JSON; successor audit links artifact IDs and hashes. Any source body, request lineage, changed metadata/hash, extra artifact, snapshot or filing denies.
+    - Quota evidence reads existing SQLite path ledgers in URI mode=ro plus query_only, or PostgreSQL in a READ ONLY transaction; SQLite URI/query forms, in-memory/missing/unreadable/incomplete/ambiguous ledgers fail closed without initialization or upgrade.
+    - Receipt account attribution follows reservation_id and consistent reservation rows. usage_scope is not account_scope; orphaned or provider/operation-mismatched linkage denies.
+  changed_source_paths:
+    - backend/app/routers/etf_holdings.py
+    - backend/app/schemas/etf_holdings.py
+    - backend/app/services/etf_holdings_vaneck_qualification.py
+    - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+    - backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py
+  source_file_sha256:
+    backend/app/routers/etf_holdings.py: 5b4e7cbccb466a27616d5baa93d833e41582c0ca13ef650fc628c4d5dcc965df
+    backend/app/schemas/etf_holdings.py: b2d6e9fe3c0125700ea734db781d2c961dd08980206fa6bed297f536169832a9
+    backend/app/services/etf_holdings_vaneck_qualification.py: b88ff46709f3319a5fcb303c03ff1c272789b931c3782a5c1b3cd9c28311adbe
+    backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py: 401fe15b292f6e5999b29c348ba33bc692f0afb84e06a8f9cb21335d569fd14c
+    backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py: a8fa5fd7aff82d69fe3303f311890726f9759c68c81ce864ca65156d3151cf4c
+  focused_evidence:
+    offline_unit: 34_passed_in_2.57s; no_cov; offline_uv
+    offline_unit_log: /tmp/etf-vaneck-recovery-focused-20261029/unit-final.log
+    offline_unit_junit: /tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml
+    current_workstream_narrative: passed_1_of_1_after_preserving_15_Tier_0_and_156_Tier_1_in_current_session_blocker
+    workstream_validator: passed_46_records
+    postgres_mocktransport: 12_passed_44_deselected_0_skips_in_117.33s; all_external_HTTP_intercepted
+    postgres_root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json
+    provider_review_closeout: >-
+      Root's independent Provider review found no blocking findings on the fixed
+      recovery source snapshot; receipt
+      /home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json.
+      This is not full-profile or checkpoint acceptance.
+    postgres_log: /tmp/etf-vaneck-recovery-focused-20261029/attempt3/pytest.log
+    postgres_junit: /tmp/etf-vaneck-recovery-focused-20261029/attempt3/junit.xml
+    static: Ruff_check_and_format_py_compile_git_diff_check_passed
+    preserved_failed_attempts: >-
+      Attempt 1 had 12 setup errors before tests because the basetemp parent was
+      absent; its JUnit and setup receipt remain under
+      /tmp/etf-vaneck-recovery-focused-20261029. Attempt 2 had 11 passes and
+      one test-helper UnboundLocalError; its log and JUnit remain intact. Neither
+      is called a product failure or qualification.
+    integration_source_hash_note: >-
+      Attempt 3 exercised the PostgreSQL recovery/serialization paths with
+      service SHA256 590ac8fae1861c07228bb6209ae1f8d2b1feda733ac9fcd5913be506dd35a648.
+      The final service hash differs only in the SQLite guard rejecting any
+      URL query option instead of only mode/uri keys; that SQLite branch is
+      covered by the current offline suite. The PostgreSQL execution path and
+      integration-test file are otherwise unchanged.
+  full_profile_proposal:
+    status: waiting_for_Root_review_and_resource_release
+    proposed_project: etf-vaneck-recovery-<exact-source-short-sha>-20261029
+    frozen_source: >-
+      Publish one clean candidate first. Build only from a protected private
+      git archive of that exact branch HEAD; seal archive/context, backend tree,
+      Dockerfile, lockfile, labels and resulting image IDs. No ignored env files,
+      secrets, credentials or untracked runtime artifacts enter the context.
+    image_recipe: >-
+      The application/worker image build context is the exact candidate's
+      backend/ tree with backend/Dockerfile, backend/uv.lock and requirements
+      inputs sealed in the archive digest. Tag the resulting image only within
+      the unique ETF project namespace and label revision, full source tree,
+      backend tree, build-context digest and full_stack_browser profile. Record
+      the immutable image ID; never relabel a predecessor image as this
+      candidate. Reuse a frontend or Research image only after exact build-input
+      and original provenance equivalence is independently checked; otherwise
+      build that component from the candidate archive. The reviewed runner's
+      Playwright image pin is
+      mcr.microsoft.com/playwright:v1.62.1-noble@sha256:dcc5531e97840b9b5e794f2814476b21571c5124a3fca2267d73041f56e7580e;
+      Root must verify availability/provenance before launch.
+    backend_profile: >-
+      Freshly collect all current unit and integration IDs from the candidate;
+      run every ID once with zero retries, 300-second unit process caps and
+      900-second integration process caps (sequential groups no larger than
+      100), fresh source-bound coverage, and the existing 75 percent floor.
+      Do not reuse e589 coverage or counts. Run the two canonical disposable-PG
+      DDL-only cases separately if the shared-DSN profile declares them skipped;
+      do not point those migrations at the app/test or retained database.
+    application_profile: >-
+      After backend qualification, use one isolated project with private
+      PostgreSQL/Redis, internal networking, no provider/issuer egress, no
+      credentials, live flags off and a private test ledger. The app DB and
+      Redis queue/result namespaces must be distinct from the backend fixture.
+      Run the full functional suite and all strict visuals at one browser worker,
+      zero retries, original references/masks and 0.005 tolerance, plus existing
+      API/worker/restart/Research sandbox checks. Reuse frontend/Research images
+      only after exact candidate input and provenance equivalence is reviewed;
+      otherwise build only the required component from the sealed candidate.
+    resource_bounds: >-
+      Fresh Root capacity and protected-inventory review first; one owned serial
+      builder at 3 GiB memory, no extra swap, 2 CPUs and 128 PIDs; keep aggregate
+      added fixture/test memory at or below 8 GiB. Use the reviewed worker profile
+      at 1 CPU, 512 MiB and 64 PIDs, including unchanged 15/30-second restart
+      checks. Snapshot the complete live container/image/volume/network identity
+      sets immediately before launch and preserve every preexisting identity,
+      regardless of worktree or TC ownership labels. Canonicalize mount objects
+      and label key/value maps for comparison. Any external-owner lifecycle
+      change requires contemporaneous Root evidence for the exact IDs; do not
+      apply a blanket exclusion. Remove only exact ETF-owned IDs after terminal
+      completion.
+    artifact_retention: >-
+      Before exact-owned fixture cleanup, export the qualified candidate image
+      archive and its digest/provenance receipt to durable private storage.
+      Preserve the exact candidate image for Root/TC reuse and retain a rollback
+      artifact; record owner, reason, next use and review condition. Never let
+      cleanup remove a retained qualified release artifact.
+    runner_reference: /tmp/provider-p2-oih-c9ac-requal-20261029/app-runner.sh
+    runner_reference_sha256: fe3388a5a838be9fea4c1bc3966bc50cc184f742c0ec1aac3b607eb8909f14b1
+    root_runtime_review: /home/m920q/charting-platform/.ai/staging-attempts/provider-c9ac-runtime-qualified-root-review-20261029.json
+    root_runtime_review_sha256: 6fe4d7ea3d1a9b906b70fcd4ac124d0a65413f8e98f8d2c1bac704efaa3b24df
+    phase_order: >-
+      Run the complete backend source gate first, then the application/browser
+      phases serially under one exact Root-released project. Do not overlap a
+      second Compose/database/browser project or run a profile against another
+      candidate. Export the qualified image archive before exact-owned cleanup.
+    not_authorized_in_this_step: >-
+      No full fixture/build has started. Root reviews the exact committed source,
+      immutable component provenance, resource plan and protected inventory
+      before releasing that profile. No real source request, account usage
+      refresh, quota reservation, target mutation, policy activation, staging,
+      promotion or deployment is claimed.
 provider_green_staging_adoption:
   source_sha: 6bff091d7d43de0731284dfabcafa09514d226a6
   producer_sha: f019ae5c2e3d23210b1c8f6c6e926d3393d6dce3
@@ -1809,7 +1949,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: ODC_checkpoint_accepted_and_adopted_in_green_staging_full_AC1_AC14_roadmap_open_Root_first_on_demand_deployment_pending
+  current_phase: ODC_checkpoint_accepted; VanEck_recovery_focused_checks_green; complete_source_profile_and_exact_tip_CI_pending
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2004,20 +2144,21 @@ historical_execution_context_fhsc1_2026_10_23: >-
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
 current_blocker: >-
-  Root accepted ODC1-ODC5 as the bounded software checkpoint on tested source
-  e589cda929b06c0af889344342c4ee73256bae7f. The complete source-matched local
-  backend profile passed 5568 unit cases with one declared skip and 551
-  integration cases with four skips; its two PostgreSQL-only migration skips
-  passed separately (2/2, no-cov), yielding 553 qualified integration passes
-  and two remaining existing held skips without changing the 84.4% main
-  coverage result. Functional 196/2 existing skips, strict visual 104/104,
-  and exact e589 CI40591323573 passed. Root's cleanup audit reports the ETF
-  project empty and protected resources preserved. ODC6 closing-tip CI remains
-  pending publication and exact-tip verification by Root. No actual OIH
-  source HTTP, quota reservation, target mutation, policy activation, or native
-  qualification occurred. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, 74
-  fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage,
-  and the 30-day observation; target/source qualification remains Root-owned.
+  The accepted ODC software checkpoint remains historical and intact: tested
+  e589 source gates passed and Root accepted it; closing records CI 40619527618
+  passed and the accepted green staging adoption is recorded separately. The
+  current VanEck follow-up is not yet a source checkpoint. Root's single
+  deployed OIH administrator attempt failed at pretransport admission and the
+  response path raised detached-session serialization; Root verified zero
+  external source HTTP, zero request logs and zero quota activity. Its exact
+  locally generated no-body diagnostic remains preserved; Root later corrected
+  the reviewed entitlement label to revision 2 while the policy stayed
+  disabled/not_run and job 2 stayed latched. The current bounded source repair
+  has 34 offline unit passes and 12 controlled PostgreSQL/MockTransport passes;
+  exact-tip CI and the complete source-matched profile have not run. Root owns
+  the eventual one-successor recovery/actual source review and all target work.
+  Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119
+  spent requests, every hold/quarantine, raw/PIT history and the 30-day gate.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3187,11 +3328,13 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Root owns the first usable on-demand deployment, actual OIH source/account
-  qualification, and target/API/UI acceptance; no provider or issuer request,
-  quota use, target mutation, policy activation, or deployment was performed in
-  this adoption. After Root completes that priority and releases further ETF
-  implementation, resume AC2 retained issuer evidence using reviewed retained
-  evidence, then continue the remaining AC1-AC14 roadmap. Preserve all 15
-  Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds,
-  quarantines, raw/PIT lineage, and the 30-day observation.
+  Complete the narrow VanEck source repair with one coherent owned source/record
+  publication and observe its exact branch CI. Send Root the exact committed
+  source/image/project/resource/protected-inventory proposal before starting
+  the full local profile; wait for Root's release, then run every required
+  source-matched gate without reuse of e589 coverage. Root separately owns the
+  actual once-only recovery, source/account review, target/API/UI acceptance,
+  integration and deployment. After that priority, resume AC2 retained issuer
+  evidence from reviewed retained evidence and continue AC1-AC14. Preserve all
+  15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds,
+  quarantines, raw/PIT lineage and the 30-day observation.

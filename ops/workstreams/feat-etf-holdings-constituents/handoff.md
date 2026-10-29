@@ -17577,3 +17577,116 @@ raw/PIT lineage, and the 30-day observation. Root retains actual source/account
 qualification, target acceptance, integration, promotion, and deployment.
 
 The current plan and session blocker summaries retain the audited narrative invariant: Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The 74 fallback identities remain part of the preserved full roadmap.
+
+## VanEck pretransport recovery and closed-session response repair — focused green
+
+Root released this bounded same-branch follow-up after the single deployed OIH
+administrator qualification created failed job 2 before transport and then
+returned HTTP 500 while serializing detached `filings`. Root confirmed zero
+issuer/provider HTTP, zero Provider request logs and zero quota activity. The
+local no-body rejection diagnostic remains preserved; its exact permitted
+recovery disposition is reviewed at
+[/home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json).
+Root separately reviewed the recovery contract at
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json).
+The entitlement's reviewed-free label was corrected by Root to revision 2;
+policy remains disabled/not_run, and job 2/latch is unchanged. No recovery or
+real issuer operation has been attempted by this owner.
+
+The current owned source change is limited to the fresh-session eager response
+reload, an admin-only explicit recovery endpoint/request schema, the exact
+pretransport predecessor validation and its offline/engine-backed tests. The
+only tolerated predecessor raw row is one exact hash-verified locally generated
+no-body `ProviderNoDataError` JSON diagnostic with no content bytes, URL,
+identifier, validation facts, request IDs, URLs or attempts. The successor
+records that artifact's ID and hash. Any changed payload/hash, other metadata,
+extra artifact, body, request log, quota activity, snapshot or filing denies;
+the original failed job and raw record are never rewritten.
+
+Quota history checking now reads an existing ledger without creating or
+upgrading it. Plain SQLite path ledgers use a file URI in `mode=ro` plus
+`query_only`; SQLite URI/query forms fail closed. PostgreSQL uses a read-only
+transaction. Missing, in-memory, unreadable, incomplete or empty-history
+ledgers deny. Live receipts are traced through `reservation_id`; `usage_scope`
+is not account scope. Only consistent linked reservation rows can establish a
+different account; orphaned and mismatched provider/operation linkage denies.
+The account advisory lock, fresh review fingerprint/revision, shared Provider
+admission, cost/quota/health holds, zero-dollar/free-only requirements,
+disabled policy, no replay, and the fixed physical/time/body/redirect/retry
+limits remain in force.
+
+Focused evidence is source-local and does not accept the checkpoint:
+
+- Offline qualification-ledger unit module: 34 passed in 2.57s; exact output
+  [/tmp/etf-vaneck-recovery-focused-20261029/unit-final.log](/tmp/etf-vaneck-recovery-focused-20261029/unit-final.log)
+  and JUnit
+  [/tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml](/tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml).
+- Root-reviewed real PostgreSQL/MockTransport slice: 12 passed, 44 deselected,
+  zero skips in 117.33s. It includes the real qualification-to-Provider chain,
+  failed and successful nonempty response serialization after the operation
+  session closes, one concurrent recovery successor, immutable failed
+  predecessor, exact diagnostic acceptance and seven ambiguous-evidence
+  denials. No external transport was used. Root's receipt is
+  [/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json);
+  raw log and JUnit are under
+  [/tmp/etf-vaneck-recovery-focused-20261029/attempt3](/tmp/etf-vaneck-recovery-focused-20261029/attempt3).
+- Ruff check/format, Python compilation and `git diff --check` passed. The
+  final tracked source file SHA256 values are recorded in the adjacent plan and
+  validation record. The PG attempt's service file differs from the final file
+  only by a subsequent SQLite guard broadening from `mode`/`uri` keys to any
+  query option; that local branch is covered by the final 34-test unit run.
+- Attempt 1 remains a setup-only red: 12 setup errors occurred before tests
+  because its pytest basetemp parent was absent. Attempt 2 remains 11 passed
+  and one test-helper `UnboundLocalError`; neither is relabeled as a product
+  failure or pass. Their JUnit/logs and the setup receipt remain under
+  `/tmp/etf-vaneck-recovery-focused-20261029`.
+
+The follow-up is not accepted and has no complete-profile or exact-tip CI
+evidence yet. The next source publication captures the candidate by exact
+branch HEAD rather than embedding a self-referential SHA. Root's full local
+slot is reserved but has not been launched. Proposed profile for Root review:
+use a new private project named from the published candidate SHA, a protected
+`git archive` and candidate-bound backend image labels; freshly collect and
+run every current unit/integration ID once with the canonical 300s/900s
+process caps and fresh combined coverage at the existing 75% floor. Run the
+two canonical PostgreSQL-only DDL tests separately if the shared-DSN suite
+skips them. Then run the unchanged complete frontend/API/worker/restart,
+functional and strict visual profile: one browser worker, zero retries, exact
+original masks/references and 0.005 tolerance. Keep application DB and Redis
+namespaces distinct from backend tests, deny provider/issuer egress, keep live
+flags and credentials off, and use a private fixture ledger. Reuse frontend or
+Research images only after exact candidate input and provenance equivalence is
+reviewed. Root should recheck capacity before build; use one owned serial
+builder at 3 GiB, no extra swap, 2 CPUs, 128 PIDs, and keep added profile
+resources within the 8 GiB envelope. Use the already reviewed 1-CPU/512-MiB/
+64-PID worker profile and its unchanged restart bounds. Capture and preserve the
+complete live container/image/volume/network identity sets immediately before
+launch, without excluding preexisting resources based on TC/worktree labels.
+Compare canonical mount objects and label key/value maps before and after.
+Any external-owner lifecycle change requires contemporaneous Root evidence for
+the exact IDs; do not apply a blanket exemption. Remove only exact ETF-owned
+resources after terminal completion. Export the exact qualified candidate image
+archive and digest/provenance receipt before cleanup; retain the approved image
+and rollback artifact with owner, reason, next use and review condition. No
+fixture/build has started; Root must release the phases after reviewing this
+candidate-bound proposal.
+
+The accepted ODC software checkpoint, all AC1–AC14 text and dispositions,
+15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, disabled
+routes, holds/quarantines, retained raw/PIT lineage and 30-day observation
+remain unchanged. Root owns any later real recovery, source/account evidence,
+target/API/UI acceptance, integration and deployment.
+
+## 2026-10-29 follow-up record check
+
+The unchanged narrative invariant regression
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+passed 1/1 in 2.98s after the current session blocker restored the required
+`15 Tier-0 and 156 Tier-1` phrase; `make branch-validate` passed with 46
+records. A final offline invocation of the 34-case qualification unit module
+plus this exact narrative node passed all 35 tests in 3.93s. Root's independent
+Provider review found no blocking findings on the fixed recovery snapshot
+(`d1ffe6b1...544a7`), documented at
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json).
+This is review closure only. The focused source candidate remains unaccepted
+until its exact branch CI and full source-matched profile pass.

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import insert
 
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderEntitlement, ProviderPolicy
 from app.services import etf_holdings_provider_bridge as bridge
+from app.services import etf_holdings_vaneck_qualification as qualification
+from app.services import provider_quota_coordinator as quota
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ETFVaneckInitialQualificationBudget,
@@ -21,11 +26,273 @@ from app.services.etf_holdings_vaneck_qualification import (
     VANECK_OIH_PRODUCT_SLUG,
     _lock_and_validate_current_provider_review,
     _provider_review_fingerprint,
+    _quota_activity_exists_since_attempt,
 )
 from app.services.provider_runtime import (
     ProviderCapability,
     bind_vaneck_initial_etf_qualification,
 )
+
+
+def _seed_quota_ledger_history(monkeypatch, path, *, matching_activity=None):
+    url = f"sqlite:///{path}"
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", url)
+    engine = quota._engine_for(url)
+    now = datetime.now(UTC)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(quota._reservations).values(
+                reservation_id="00000000-0000-4000-8000-000000000001",
+                provider_name="other-provider",
+                account_scope="other-account",
+                operation="unrelated_operation",
+                quota_group="unrelated",
+                dimension="requests",
+                unit="requests",
+                window_started_at=now - timedelta(days=2),
+                window_seconds=60,
+                reserved_units=1,
+                release_only=False,
+                lease_expires_at=None,
+                identity_digest=None,
+                state="settled",
+                created_at=now - timedelta(days=2),
+                settled_at=now - timedelta(days=2),
+            )
+        )
+        if matching_activity in {"pending", "uncertain"}:
+            connection.execute(
+                insert(quota._reservations).values(
+                    reservation_id="00000000-0000-4000-8000-000000000002",
+                    provider_name="vaneck",
+                    account_scope="reviewed-oih-account",
+                    operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                    quota_group="etf_holdings",
+                    dimension="requests",
+                    unit="requests",
+                    window_started_at=now - timedelta(minutes=1),
+                    window_seconds=60,
+                    reserved_units=1,
+                    release_only=False,
+                    lease_expires_at=None,
+                    identity_digest=None,
+                    state=matching_activity,
+                    created_at=now - timedelta(seconds=5),
+                    settled_at=None,
+                )
+            )
+        elif matching_activity in {
+            "receipt",
+            "receipt_linked_target",
+            "other_account_receipt",
+            "orphan_receipt",
+            "mismatched_receipt",
+            "mismatched_operation_receipt",
+        }:
+            receipt_reservation_id = "00000000-0000-4000-8000-000000000003"
+            if matching_activity != "orphan_receipt":
+                connection.execute(
+                    insert(quota._reservations).values(
+                        reservation_id=receipt_reservation_id,
+                        provider_name=(
+                            "other-provider"
+                            if matching_activity == "mismatched_receipt"
+                            else "vaneck"
+                        ),
+                        account_scope=(
+                            "another-account"
+                            if matching_activity == "other_account_receipt"
+                            else "reviewed-oih-account"
+                        ),
+                        operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                        quota_group="etf_holdings",
+                        dimension="requests",
+                        unit="requests",
+                        window_started_at=now - timedelta(minutes=1),
+                        window_seconds=60,
+                        reserved_units=1,
+                        release_only=False,
+                        lease_expires_at=None,
+                        identity_digest=None,
+                        state="uncertain",
+                        created_at=(
+                            now - timedelta(minutes=2)
+                            if matching_activity == "receipt_linked_target"
+                            else now - timedelta(seconds=5)
+                        ),
+                        settled_at=None,
+                    )
+                )
+            connection.execute(
+                insert(quota._live_receipts).values(
+                    reservation_id=receipt_reservation_id,
+                    provider_name="vaneck",
+                    operation=(
+                        "other_operation"
+                        if matching_activity == "mismatched_operation_receipt"
+                        else VANECK_OIH_INITIAL_QUALIFICATION_OPERATION
+                    ),
+                    run_id="synthetic-run",
+                    # Receipt usage_scope is deliberately not the ledger's
+                    # account_scope; only reservation linkage proves account.
+                    usage_scope="synthetic-provider-usage-label",
+                    receipt_status="observed",
+                    reconciliation_state="uncertain",
+                    created_at=now - timedelta(seconds=5),
+                    reconciled_at=None,
+                    error=None,
+                )
+            )
+    engine.dispose()
+    return url, now
+
+
+def test_recovery_ledger_check_does_not_create_missing_file(tmp_path, monkeypatch):
+    missing_path = tmp_path / "missing-ledger.sqlite3"
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        f"sqlite:///{missing_path}",
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="ledger is unavailable"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+
+    assert not missing_path.exists()
+
+
+@pytest.mark.parametrize("activity", ["pending", "uncertain", "receipt", "receipt_linked_target"])
+def test_recovery_ledger_check_rejects_matching_reservation_or_receipt(
+    tmp_path, monkeypatch, activity
+):
+    path = tmp_path / f"ledger-{activity}.sqlite3"
+    _, now = _seed_quota_ledger_history(monkeypatch, path, matching_activity=activity)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_ignores_receipt_only_when_linkage_proves_other_account(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "ledger-other-account-receipt.sqlite3"
+    _, now = _seed_quota_ledger_history(
+        monkeypatch, path, matching_activity="other_account_receipt"
+    )
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert not _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+@pytest.mark.parametrize(
+    "activity", ["orphan_receipt", "mismatched_receipt", "mismatched_operation_receipt"]
+)
+def test_recovery_ledger_rejects_orphan_or_mismatched_receipt_linkage(
+    tmp_path, monkeypatch, activity
+):
+    path = tmp_path / f"ledger-{activity}.sqlite3"
+    _, now = _seed_quota_ledger_history(monkeypatch, path, matching_activity=activity)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_check_allows_only_unrelated_prior_history(tmp_path, monkeypatch):
+    path = tmp_path / "ledger-history.sqlite3"
+    _, now = _seed_quota_ledger_history(monkeypatch, path)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert not _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_rejects_memory_sqlite_config(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "sqlite:///:memory:")
+    with pytest.raises(ETFHoldingsRouteHeldError, match="URI is unsupported"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+
+
+@pytest.mark.parametrize("uri_style", ["file_uri", "path_query"])
+def test_recovery_ledger_rejects_sqlite_uri_options_without_creating_file(
+    tmp_path, monkeypatch, uri_style
+):
+    uri_path = tmp_path / "uri-ledger.sqlite3"
+    ledger_url = (
+        f"sqlite:///file:{uri_path}?mode=ro&uri=true"
+        if uri_style == "file_uri"
+        else f"sqlite:///{uri_path}?immutable=1"
+    )
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", ledger_url)
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="URI is unsupported"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+    assert not uri_path.exists()
+
+
+def test_recovery_ledger_rejects_incomplete_schema_without_mutating_file(tmp_path, monkeypatch):
+    path = tmp_path / "incomplete-ledger.sqlite3"
+    with sqlite3.connect(path) as connection:
+        connection.execute("CREATE TABLE unrelated (id INTEGER PRIMARY KEY)")
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", f"sqlite:///{path}")
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="schema is incomplete"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_fails_closed_on_unreadable_existing_ledger(tmp_path, monkeypatch):
+    path = tmp_path / "ledger-connection-error.sqlite3"
+    _seed_quota_ledger_history(monkeypatch, path)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", f"sqlite:///{path}")
+
+    def fail_connection(*args, **kwargs):
+        raise PermissionError("fixture-only unreadable ledger")
+
+    monkeypatch.setattr(qualification, "create_engine", fail_connection)
+    with pytest.raises(ETFHoldingsRouteHeldError, match="could not be verified read-only"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
 
 
 @pytest.mark.asyncio
