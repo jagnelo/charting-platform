@@ -7608,8 +7608,27 @@ test.describe('Dashboard', () => {
     const editor = personal.getByRole('dialog', { name: 'Column editor', exact: true })
     const targetSelect = editor.getByRole('combobox', { name: 'Tag Column target WatchList', exact: true })
     await targetSelect.selectOption(targetId)
+    const watchlistWindowKey = await personal.evaluate(element => element.closest<HTMLElement>('[data-window-key]')?.dataset.windowKey ?? null)
+    expect(watchlistWindowKey).toBeTruthy()
+    const tagColumnSnapshotSaved = page.waitForResponse(response => {
+      if (response.request().method() !== 'PUT' || !response.url().includes('/api/v1/workspaces/') || !response.url().endsWith('/snapshot') || !response.ok()) return false
+      try {
+        const payload = response.request().postDataJSON() as {
+          tabs?: Array<{ windows?: Array<{ instance_key?: string; configuration?: Record<string, unknown> }> }>
+        }
+        const configuration = payload.tabs?.flatMap(tab => tab.windows ?? [])
+          .find(window => window.instance_key === watchlistWindowKey)?.configuration
+        const targetWatchlistIds = configuration?.tag_watchlist_ids
+        const columnKeys = configuration?.column_keys
+        return Array.isArray(targetWatchlistIds) && targetWatchlistIds.includes(Number(targetId))
+          && Array.isArray(columnKeys) && columnKeys.includes(`tag-watchlist:${targetId}`)
+      } catch {
+        return false
+      }
+    })
     await editor.getByRole('button', { name: 'Add Tag Column', exact: true }).click()
     await expect(personal.locator('.watchlist__header')).toContainText(`Tag · ${targetName}`, { timeout: 10_000 })
+    await tagColumnSnapshotSaved
     await personal.getByRole('button', { name: 'Columns', exact: true }).click()
 
     await sourceRow.click({ button: 'right' })
@@ -7648,6 +7667,7 @@ test.describe('Dashboard', () => {
     await expect(personal).toHaveAttribute('aria-busy', 'false')
     await expect(watchlistSelect.locator('option').filter({ hasText: `${targetName} · Locked` })).toHaveCount(1, { timeout: 10_000 })
     await watchlistSelect.selectOption(targetId)
+    await expect(personal.locator('.watchlist__header')).toContainText(`Tag · ${targetName}`, { timeout: 10_000 })
     const lockedSourceRow = personal.locator('.watchlist__row').filter({ hasText: 'XLE' })
     await expect(lockedSourceRow).toBeVisible({ timeout: 10_000 })
     await lockedSourceRow.click({ button: 'right' })
