@@ -51,6 +51,7 @@ from app.schemas.instrument_acquisition import (
 )
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.exchange_catalog import normalize_exchange_mic
 from app.services.expression_engine import (
     ExpressionError,
     extract_tickers,
@@ -59,6 +60,7 @@ from app.services.expression_engine import (
 )
 from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import (
+    build_profile_snapshot_payload,
     ensure_external_identifier,
     ingest_provider_profile,
 )
@@ -70,7 +72,7 @@ from app.services.market_data import (
     get_provider_profile_async,
     search_provider_instruments_async,
 )
-from app.services.market_data_identity import choose_domain_key
+from app.services.market_data_identity import apply_domain_identity, choose_domain_key
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_runtime import (
     ProviderCapability,
@@ -480,6 +482,23 @@ async def acquire_instrument(
     try:
         canonical = await ingest_provider_profile(
             db, profile, instrument=canonical or existing, allow_external_identifier=False
+        )
+        # This exact provider profile was fetched only after the selected
+        # provider/symbol matched and its stable external identifier plus
+        # listing authority were validated above.  The ingestion flag prevents
+        # fallback identifier discovery; apply only the profile's explicit
+        # identifiers here so a valid scaffold can be resolved without
+        # weakening collision quarantine or trusting inferred identifiers.
+        await apply_domain_identity(
+            db,
+            canonical,
+            identifiers={
+                item.identifier_type: item.identifier_value for item in profile.identifiers
+            },
+            provider_name=provider_name,
+            provider_symbol=provider_symbol,
+            exchange_mic=normalize_exchange_mic(profile.exchange),
+            candidate_payload=build_profile_snapshot_payload(profile),
         )
         await db.commit()
     except IntegrityError:
