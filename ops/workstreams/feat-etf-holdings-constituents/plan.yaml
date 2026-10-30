@@ -312,11 +312,9 @@ previously_accepted_erf_goal: >-
   or full-roadmap completion is claimed.
 goal: *etf_full_roadmap_goal
 human_closure_authorization: >-
-  Root accepted `etf-historical-quota-dimension-binding-repair-20261030` under the existing human-delegated authority. The acceptance receipt is `/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-checkpoint-acceptance-root-review-20261030.json` (SHA256 `a3be26a92319b0a427f0757243775c573af7989f9db8ed59687277b1d346d812`); the source-matched runtime review is `/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-runtime-qualified-root-review-20261030.json` (SHA256 `71415c456988b144462b06f0b102358044cc09954b8919b49b7699608c8b9308`). This records Root's delegated acceptance under the standing human authority; it does not invent a new human quote or accept the full ETF roadmap.
+  Root accepted `etf-master-exhaustive-integration-batching-20261030` under the existing human-delegated checkpoint authority. The acceptance receipt is `/home/m920q/charting-platform/.ai/staging-attempts/etf-d31b-runner-checkpoint-acceptance-root-review-20261030.json` (SHA256 `3fca6c9350648e96c63103c8e0c52f801d7569f057a5f293071f5baf34c99b96`). This records Root's delegated acceptance and does not invent a new human quote or accept the full ETF roadmap.
 closure_summary: >-
-  Root accepted the bounded `etf-historical-quota-dimension-binding-repair-20261030` checkpoint under the existing delegation. Tested implementation source is `596163e81066111158c2a19268f81aaf2bcec56c`; its exact-source CI run `41040527971` is terminal green. The qualified local backend profile accounted for 6,202 unique IDs: 6,197 passed, 5 expected skips, zero failures/errors, with 84.4% coverage. The separate canonical PostgreSQL DDL supplement passed 2/2 with zero skips and left the main coverage unchanged. The exact image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc` was built from this source and archived at `/home/m920q/charting-platform/.ai/deploy/first-human/on-demand-e3e871-upgrade-20261028/image-artifacts/backend-36b99ccd-etf-5961.docker.tar` (521,133,056 bytes; SHA256 `8ed9ee11a042810e4d848815577990dfff7db62a315e9dc4914996bd39567a49`). The isolated image probe verified 1,047 source files byte-for-byte, API/worker imports and published schema/route, and 39 existing cases passed once with zero skips and container exit 0; it had no network, mounts or source requests. Two preceding setup attempts ran zero test bodies. The successful run's external XML copy from stopped tmpfs failed after in-container JUnit asserted all 39 cases; stdout, exit 0 and the in-container assertion evidence are retained. Root reviewed and accepted this limitation without replay in /home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json. The two prior setup attempts ran zero test bodies. Full backend JUnit and DDL JUnit remain retained. Exact builder/cache cleanup passed per /home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json; the candidate image/archive remain retained and foreign resources, datasets and legacy volumes were preserved.
-  
-  This closes only HQD1-HQD4 and the bounded software/runtime checkpoint. The new records commit's exact-tip CI is pending after publication; no self-referential commit SHA is embedded. `integration_capture: exact branch HEAD`. No 11-phase/full-browser profile, genuine OIH holdings or constituent acquisition, source/account acceptance, policy activation, target acceptance, deployment, or full AC1-AC14 completion is claimed. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, every hold/quarantine, raw/PIT lineage, the 30-day observation, and all historical accepted checkpoints and failures. Root owns closing-tip CI verification and any later staging/master integration, source acceptance and deployment.
+  Root accepted only the bounded `etf-master-exhaustive-integration-batching-20261030` runner checkpoint under the existing delegation. Tested implementation source is `d31b84ab3514500729e3cf8b04e36a42c34e031c`. Exact push CI run `41090873497` (attempt 1) is terminal green on that SHA: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E/Playwright succeeded; the Exhaustive Integration Gate was skipped as expected for this feature-branch run. Playwright reported 196 passed, 110 configured skips and zero failures. The accepted focused runner suite passed 17/17 and the runtime/YAML narrative regression passed 1/1. The source change is limited to `scripts/backend_coverage.py` and `tests/workflow/test_backend_coverage.py`; this closing publication changes only four owned records. Backend/frontend product trees and runtime behavior are unchanged from exact green staging. The prior master run `41080375579` / job `124157576674` remains the preserved 900-second aggregate timeout (exit 124, no assertion traceback); no timeout increase or blind retry was used. The runner executes every collected integration ID once, in deterministic serial batches of 25, preserving order, duplicate rejection, one coverage erase, append for every test process, the 75-percent combined floor, unchanged 300-second collection/unit and 900-second integration limits, zero retries and fail-fast nonzero/signal/timeout handling. No product, API, schema, dependency, migration, UI, image or runtime delta is included. Root owns integration of exact staging frontier `870d37dcc2b9715402ccfefce12a61020465ab35`, staging/master exhaustive gates, later use of qualified image `36b99cc`, and the genuine OIH holdings/returned uncached constituent source/account/target journey. All original AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage, 30-day observation, and every historical archive/failure. No full-roadmap completion, live source operation, target change, integration, promotion or deployment is claimed. integration_capture: exact branch HEAD.
 active_changeset:
   name: explicit selected-fund ETF issuer acquisition
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -339,10 +337,7 @@ active_changeset:
     scope/reset; the earlier isolated PostgreSQL pass used a mock binder and
     remains preparation evidence only. Source-rights and account/native quota
     facts are unresolved, with no real source request or quota reservation.
-    The complete source-matched backend/browser profile and exact e589 branch
-    CI are green; Root accepted the bounded software checkpoint. ODC6's
-    records-only closing tip CI remains pending. No live OIH
-    source/account qualification or target action is claimed.
+    The prior ODC source/profile/branch-CI evidence remains historical and its bounded software acceptance is preserved. Later accepted checkpoints and the current runner-only closure supersede the then-pending ODC closing-tip state; the runner change adds no product/runtime delta. No live OIH source/account qualification or target action is claimed.
   request_response_contract:
     route: POST /api/v1/etf-holdings/{symbol}/acquire
     request: ETFProfileAcquireRequest
@@ -372,7 +367,7 @@ active_changeset:
     - backend/tests/unit/services/test_etf_holdings_bootstrap.py
   owned_records: [ops/workstreams/feat-etf-holdings-constituents/plan.yaml, ops/workstreams/feat-etf-holdings-constituents/handoff.md, ops/workstreams/feat-etf-holdings-constituents/session.json, ops/workstreams/feat-etf-holdings-constituents/validation.jsonl, ops/workstreams/feat-etf-holdings-constituents/branch-tests.json]
   source_acceptance: Root_accepted_bounded_software_checkpoint_at_tested_e589; closing_tip_CI_pending
-current_vaneck_recovery_follow_up:
+previously_accepted_vaneck_recovery_follow_up_2026_10_30:
   id: etf-vaneck-pretransport-recovery-and-response-serialization-20261029
   status: accepted_bounded_checkpoint_ready_for_integration; closing_tip_CI_pending
   baseline_head: ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5
@@ -2063,77 +2058,71 @@ live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDI
 migration_impact: "The ODC delta adds no Alembic migration paths relative to accepted Provider staging 6bff091d; no database migration was applied to a retained target. The two PostgreSQL-only DDL migration tests skipped by the assigned shared-DSN profile passed in a separate disposable Testcontainers PostgreSQL supplement with TEST_DATABASE_URL unset and no-cov. Earlier ETF schema/migration history is preserved."
 deployment_impact: "The ODC source delta adds no Alembic migration paths relative to accepted Provider staging 6bff091d; no target mutation or deployment occurred. Root owns any later OIH source/target qualification and acceptance."
 integration_checkpoint:
-  id: etf-historical-quota-dimension-binding-repair-20261030
-  goal: Correct the strict historical post-transport spent-reservation binding to the exact immutable VanEck OIH
-    quota group and dimension while preserving admission, lineage, chronology, settlement, no-receipt and read-only
-    protections.
-  planning_authorization: Root released this bounded repair under the existing human-authorized on-demand workflow;
-    see /home/m920q/charting-platform/.ai/staging-attempts/etf-historical-quota-dimension-mismatch-root-review-20261030.json.
-    Exact synchronized-green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 was adopted in the same branch. This
-    does not authorize live source calls or target/ledger mutations.
-  status: accepted
+  id: etf-master-exhaustive-integration-batching-20261030
+  goal: Run every collected Docker integration test ID in deterministic bounded serial batches so the
+    master exhaustive gate avoids the one-process 900-second timeout without changing assertions, IDs,
+    coverage semantics, limits, retries, or full_integration branch/staging/master gates.
+  planning_authorization: Root authorized this bounded continuation after reviewing the exact master timeout
+    evidence and released adoption of synchronized green staging 870d37dcc2b9715402ccfefce12a61020465ab35.
+    See /home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json
+    (SHA256 da4780ab9674c10b22e1533c55dd506d02f62ff030a09bfd7db91fe9cae3812d).
+  status: accepted_ready_for_integration
   acceptance_authorization: accepted_by_coordinator_under_existing_human_delegation
-  root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-5961-checkpoint-acceptance-root-review-20261030.json
-  root_acceptance_sha256: a3be26a92319b0a427f0757243775c573af7989f9db8ed59687277b1d346d812
-  runtime_qualification_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-runtime-qualified-root-review-20261030.json
-  runtime_qualification_sha256: 71415c456988b144462b06f0b102358044cc09954b8919b49b7699608c8b9308
-  image_probe_disposition_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json
-  builder_cleanup_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json
-  implementation_baseline: cb8240f69647138a9fdbdd932620e81aeb39cff0
-  pre_repair_source_sha: 206a1544234d362b39adccb24fafc37ecfad5e7f
-  tested_source_sha: 596163e81066111158c2a19268f81aaf2bcec56c
-  tested_source_exact_ci:
-    run_id: 41040527971
-    state: terminal_green
-  closing_source_sha: null
-  closing_tip_ci_run: null
-  closing_tip_ci_state: pending_after_publication_root_verification
-  integration_capture: exact branch HEAD
+  root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-d31b-runner-checkpoint-acceptance-root-review-20261030.json
+  root_acceptance_sha256: 3fca6c9350648e96c63103c8e0c52f801d7569f057a5f293071f5baf34c99b96
+  tested_implementation_sha: d31b84ab3514500729e3cf8b04e36a42c34e031c
+  tested_implementation_exact_ci:
+    run_id: 41090873497
+    attempt: 1
+    event: push
+    status: completed
+    conclusion: success
+    url: https://github.com/jagnelo/charting-platform/actions/runs/41090873497
+  parent_green_staging_sha: 870d37dcc2b9715402ccfefce12a61020465ab35
+  closing_tip_ci_state: Pending the one coherent closing-record push; Root captures/verifies the exact
+    closing-tip CI externally. No self-referential SHA or follow-up metadata commit.
   acceptance_criteria:
-  - id: HQD1
-    text: Read-only verification accepts only the retained VanEck reservation fields quota_group=oih_first_sample,
-      dimension=vaneck_oih_first_sample_requests_120s, unit=requests, while preserving exact account, operation,
-      chronology, settled-state and no-live-receipt checks.
-  - id: HQD2
-    text: Generic or mismatched quota group and/or dimension values are denied; verification does not write, initialize,
-      relabel, reset, or replay quota evidence.
-  - id: HQD3
-    text: The engine-backed continuation fixture mirrors the actual retained historical row and proves exact acceptance
-      plus wrong-group/dimension denials without weakening other guards.
-  - id: HQD4
-    text: Required source-matched full local qualification and exact owner-branch CI pass, with exact tested source,
-      evidence, and remaining roadmap recorded before Root review.
+  - id: MEB1
+    text: All collected Docker integration test IDs run once in deterministic serial batches of 25 in
+      original collection order; duplicate IDs are rejected before coverage or tests.
+  - id: MEB2
+    text: One coverage erase precedes all suites, every unit and integration process appends coverage,
+      and the unchanged combined 75-percent report/XML runs only after all batches succeed.
+  - id: MEB3
+    text: Original 300-second collection and unit limits, 900-second per-integration-process limit, zero
+      retries, fail-fast exact nonzero/signal/timeout propagation, and existing unit batching remain unchanged
+      and are covered by focused regressions.
+  - id: MEB4
+    text: The runner-only implementation and preserved four-record workstream pass focused checks and
+      exact source CI; product trees, accepted checkpoint history, and full AC1-AC14 remain unchanged.
   progress:
     completed:
-    - HQD1
-    - HQD2
-    - HQD3
-    - HQD4
-    current_phase: Root accepted all four bounded criteria; only the coherent records publication and exact closing-tip CI remain for this checkpoint. The full AC1-AC14 roadmap remains open.
+    - MEB1
+    - MEB2
+    - MEB3
+    - MEB4
     total: 4
+    current_phase: Root accepted MEB1-MEB4; Root owns subsequent integration and master gates.
   focused_validation:
-    unit_test: 'test_posttransport_spent_reservation_requires_exact_retained_oih_scope: 4 passed, including retained
-      pair and exact group/dimension mismatch denials; SQLite ledger file hash unchanged.'
-    unit_module: 'backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py: 39 passed.'
-    static: Ruff check, Ruff format --check, and compileall passed for all three changed Python files.
-    integration: Root accepted the complete source-matched 6202-ID backend profile (6197 passed, 5 expected skips, zero failures/errors, 84.4% coverage) and separate canonical PostgreSQL DDL supplement (2 passed, 0 skipped); see the exact runtime review receipt.
-    exact_source_ci: Run 41040527971 terminal green on tested source 596163e81066111158c2a19268f81aaf2bcec56c.
-    image_probe: 1047 source files verified; imports/schema/route and 39 existing cases passed once, container exit 0. Two setup attempts ran zero tests; the successful attempt's external XML copy failed after in-container JUnit assertions and was accepted by Root without replay.
-    cleanup: Exact builder/cache cleanup passed; retained image/archive preserved and foreign inventory equal.
-  required_local_profile: docker_integration
-  local_profile_rationale: >-
-    The exact source delta changes only backend/app quota-ledger verification plus its unit and PostgreSQL
-    integration tests. The repository minimum-profile classifier maps these paths to docker_integration.
-    No frontend, browser, authentication, websocket, Compose, E2E or visual paths changed, so a full_stack_browser
-    profile is not required by this delta. The normal full_integration branch/staging/master gates remain unchanged.
-  full_roadmap_status: All original AC1-AC14 criteria remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1,
-    74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT history, and the 30-day observation.
-  continuation_conditions:
-  - No provider/issuer/SEC HTTP, quota-ledger write, reservation relabel/reset/replay, policy activation, target
-    mutation, paid/trial/native/broker/capital operation, or deployment is authorized by this repair.
-  - Root owns closing-tip CI verification, subsequent staging/master integration, and any genuine source/account or target acceptance; the feature owner does not integrate or deploy.
-  - Do not claim genuine OIH source qualification or full feature-roadmap completion from offline tests or green
-    staging ancestry.
+    runner_workflow_tests: 17 passed; ordered 25/25/remainder, exact-once IDs, duplicate rejection, coverage
+      lifecycle and fail-fast nonzero/timeout/signal behavior.
+    narrative_regression: 1 passed; exact 15 Tier-0 and 156 Tier-1 wording preserved.
+    static_and_workstream: Ruff check/format, make branch-validate and git diff --check passed.
+    minimum_local_profile: unit; no Docker/browser fixture used for this runner-only delta.
+  branch_validation_tier: full_integration
+  integration_capture: exact branch HEAD
+  source_delta_paths:
+  - scripts/backend_coverage.py
+  - tests/workflow/test_backend_coverage.py
+  product_runtime_delta: none; backend/frontend application trees unchanged from exact green staging baseline.
+  migration_dependency_default_impact: none.
+  full_roadmap_status: AC1-AC14 remain open; 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent
+    requests, holds/quarantines, raw/PIT lineage and 30-day observation preserved.
+  remaining_gates:
+  - Root-owned supported integration of exact 870d remediation frontier
+  - staging exhaustive integration gate and independent master exhaustive gate
+  - Root-owned qualified 36b99 image rollout and genuine OIH holdings plus returned uncached constituent
+    journey
 status: ready_for_integration
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
@@ -2142,7 +2131,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: bounded_HQD1-HQD4_checkpoint_accepted; exact_closing_tip_CI_pending; AC1-AC14_remain_open
+  current_phase: etf-master-exhaustive-integration-batching-20261030 accepted; AC1-AC14 remain open
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2336,8 +2325,60 @@ historical_execution_context_fhsc1_2026_10_23: >-
   full local `full_stack_browser`, DB/runtime proof, applicable live evidence,
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
+backend_runner_timeout_remediation:
+  id: etf-master-exhaustive-integration-batching-20261030
+  status: accepted_ready_for_integration
+  root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-d31b-runner-checkpoint-acceptance-root-review-20261030.json
+  root_acceptance_sha256: 3fca6c9350648e96c63103c8e0c52f801d7569f057a5f293071f5baf34c99b96
+  tested_implementation_sha: d31b84ab3514500729e3cf8b04e36a42c34e031c
+  exact_push_ci_run: 41090873497_terminal_green
+  authorization: >-
+    Root released this narrow repair in
+    /home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json.
+    The exact synchronized-green staging commit 870d37dcc2b9715402ccfefce12a61020465ab35
+    was fast-forward adopted in this ETF branch before implementation. This
+    scope changes only scripts/backend_coverage.py, its focused workflow tests,
+    and these four ETF-owned workstream records.
+  master_failure: >-
+    Exact master push run 41080375579 / Exhaustive Integration Gate job
+    124157576674 passed all 113 unit shards, then ran all 595 Docker integration
+    IDs in one process and timed out at the unchanged 900-second limit after
+    84 percent and 61 additional progress dots (exit 124, no assertion
+    traceback). Preserve its complete failed log. Exact synchronized staging
+    run 41064397398 on the same source passed 593 integration cases with 2
+    expected skips in 861.25 seconds; this confirmed insufficient margin in the
+    aggregate one-process form, not a reproducible assertion failure.
+  implementation_contract:
+    integration_batch_size: 25
+    ordering: deterministic collection order, serial batches, every collected ID exactly once
+    unit_batching: preserve the existing configured unit shard size and order
+    collection_timeout_seconds: 300
+    unit_process_timeout_seconds: 300
+    integration_process_timeout_seconds: 900
+    coverage: erase once before test processes; append for every unit and integration process; report combined 75 percent floor only after all tests pass
+    retries: zero
+    failures: abort immediately and propagate nonzero, signal, or timeout status; do not report coverage success or start later batches
+    duplicate_collection_ids: reject before coverage erase or test execution
+  validation:
+    minimum_local_profile: unit
+    minimum_local_profile_basis: scripts/backend_coverage.py and tests/workflow/test_backend_coverage.py classify as unit
+    required_branch_tier: full_integration
+    remote_gates: exact source branch CI, synchronized staging CI, and master CI remain required; this local profile does not waive them
+  focused_tests: >-
+    Added runner-level mock subprocess tests for the 25/25/remainder partition,
+    ordered exactly-once IDs, one coverage erase, coverage append per test
+    process, delayed coverage report/XML, duplicate collection rejection, and
+    fail-fast nonzero, timeout and signal results. No Docker fixture is used.
+  preserved_scope: >-
+    The accepted HQD1-HQD4 checkpoint, its source/image receipts, prior runner
+    failure history, all AC1-AC14 criteria and archives, 15 Tier-0 and 156
+    Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines,
+    raw/PIT lineage and the 30-day observation remain unchanged. No provider,
+    issuer, SEC, target, quota, production, staging, sibling or deployment
+    operation is authorized by this runner-only repair.
+
 current_blocker: >-
-  Root accepted HQD1-HQD4 at tested source 596163e81066111158c2a19268f81aaf2bcec56c with exact implementation CI 41040527971 green and the source-matched docker_integration qualification. Only this records-only closing publication and its exact-tip CI remain pending. The 6202-ID backend profile had 6197 passes, 5 expected skips, no failures/errors and 84.4% coverage; canonical DDL passed 2/2; the 1047-file image probe and 39 existing cases passed once, with the reviewed external XML-copy reporting limitation retained. Preserve all historical failures and the 119 spent requests; no source/target operation or genuine OIH acceptance is claimed. Keep 15 Tier-0 and 156 Tier-1, all AC1-AC14 criteria, 74 fallback identities, holds/quarantines, raw/PIT history and the 30-day observation unchanged.
+  Root accepted the runner checkpoint and exact implementation CI41090873497 is terminal green. One coherent closing-record publication remains; Root verifies its exact push CI externally. Root owns exact 870d remediation integration, staging/master exhaustive gates, qualified-image rollout, and genuine OIH/source/constituent/target acceptance. AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT history and 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3507,7 +3548,11 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Publish this one coherent four-record closing commit and push it normally. Root verifies the exact closing-tip CI, then owns supported staging/master integration and any later source/account or deployment work. No feature-owned integration, provider/issuer HTTP, ledger/target mutation, replay, policy activation or full-roadmap completion is claimed.
+  Complete final workstream, closure, narrative and diff checks; publish the
+  single four-record closing commit and verify its exact push CI. Root owns
+  integration, staging/master gates, qualified-image rollout and genuine OIH
+  source/target acceptance. No provider/issuer HTTP, ledger/target mutation,
+  replay, policy activation, deployment or full-roadmap completion is claimed.
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress
@@ -3716,7 +3761,7 @@ historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
     any broad fixture. Keep local acceptance pending, with Root owning all full
     gates and any actual source or target operation.
   integration_capture: exact branch HEAD
-active_job3_evidence_durability_checkpoint:
+historical_accepted_job3_evidence_durability_checkpoint_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: accepted_ready_for_integration; exact_closing_tip_CI_pending
   tested_source_sha: 7449f84e35dc193708298c9ac5062322b3274d50
@@ -3727,3 +3772,121 @@ active_job3_evidence_durability_checkpoint:
   local_evidence: 21 focused passed; 6194 backend IDs/6189 passed/5 configured skips/84.4 percent; canonical DDL 2 passed/0 skipped; all 11 runtime phases passed; functional 200 passed/2 configured skips; strict visual 104 passed/0 skipped; zero retries; exact cleanup and protected inventory passed.
   next_action: Root externally verifies exact closing-tip branch CI; no further source, profile, or self-referential metadata commit is needed for this bounded checkpoint.
   full_roadmap: AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT history, and the 30-day observation.
+
+previously_accepted_hqd1_hqd4_closure_2026_10_30:
+  archive_reason: Preserve the accepted HQD1-HQD4 closure metadata before replacing current closure fields.
+  workstream_status_at_archive: in_progress
+  human_closure_authorization: Root accepted `etf-historical-quota-dimension-binding-repair-20261030`
+    under the existing human-delegated authority. The acceptance receipt is `/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-checkpoint-acceptance-root-review-20261030.json`
+    (SHA256 `a3be26a92319b0a427f0757243775c573af7989f9db8ed59687277b1d346d812`); the source-matched runtime
+    review is `/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-runtime-qualified-root-review-20261030.json`
+    (SHA256 `71415c456988b144462b06f0b102358044cc09954b8919b49b7699608c8b9308`). This records Root's delegated
+    acceptance under the standing human authority; it does not invent a new human quote or accept the
+    full ETF roadmap.
+  closure_summary: 'Root accepted the bounded `etf-historical-quota-dimension-binding-repair-20261030`
+    checkpoint under the existing delegation. Tested implementation source is `596163e81066111158c2a19268f81aaf2bcec56c`;
+    its exact-source CI run `41040527971` is terminal green. The qualified local backend profile accounted
+    for 6,202 unique IDs: 6,197 passed, 5 expected skips, zero failures/errors, with 84.4% coverage. The
+    separate canonical PostgreSQL DDL supplement passed 2/2 with zero skips and left the main coverage
+    unchanged. The exact image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc`
+    was built from this source and archived at `/home/m920q/charting-platform/.ai/deploy/first-human/on-demand-e3e871-upgrade-20261028/image-artifacts/backend-36b99ccd-etf-5961.docker.tar`
+    (521,133,056 bytes; SHA256 `8ed9ee11a042810e4d848815577990dfff7db62a315e9dc4914996bd39567a49`). The
+    isolated image probe verified 1,047 source files byte-for-byte, API/worker imports and published schema/route,
+    and 39 existing cases passed once with zero skips and container exit 0; it had no network, mounts
+    or source requests. Two preceding setup attempts ran zero test bodies. The successful run''s external
+    XML copy from stopped tmpfs failed after in-container JUnit asserted all 39 cases; stdout, exit 0
+    and the in-container assertion evidence are retained. Root reviewed and accepted this limitation without
+    replay in /home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json.
+    The two prior setup attempts ran zero test bodies. Full backend JUnit and DDL JUnit remain retained.
+    Exact builder/cache cleanup passed per /home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json;
+    the candidate image/archive remain retained and foreign resources, datasets and legacy volumes were
+    preserved.
+
+    This closes only HQD1-HQD4 and the bounded software/runtime checkpoint. The new records commit''s
+    exact-tip CI is pending after publication; no self-referential commit SHA is embedded. `integration_capture:
+    exact branch HEAD`. No 11-phase/full-browser profile, genuine OIH holdings or constituent acquisition,
+    source/account acceptance, policy activation, target acceptance, deployment, or full AC1-AC14 completion
+    is claimed. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, every hold/quarantine,
+    raw/PIT lineage, the 30-day observation, and all historical accepted checkpoints and failures. Root
+    owns closing-tip CI verification and any later staging/master integration, source acceptance and deployment.'
+  integration_checkpoint:
+    id: etf-historical-quota-dimension-binding-repair-20261030
+    goal: Correct the strict historical post-transport spent-reservation binding to the exact immutable
+      VanEck OIH quota group and dimension while preserving admission, lineage, chronology, settlement,
+      no-receipt and read-only protections.
+    planning_authorization: Root released this bounded repair under the existing human-authorized on-demand
+      workflow; see /home/m920q/charting-platform/.ai/staging-attempts/etf-historical-quota-dimension-mismatch-root-review-20261030.json.
+      Exact synchronized-green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 was adopted in the same
+      branch. This does not authorize live source calls or target/ledger mutations.
+    status: accepted
+    acceptance_authorization: accepted_by_coordinator_under_existing_human_delegation
+    root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-5961-checkpoint-acceptance-root-review-20261030.json
+    root_acceptance_sha256: a3be26a92319b0a427f0757243775c573af7989f9db8ed59687277b1d346d812
+    runtime_qualification_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-runtime-qualified-root-review-20261030.json
+    runtime_qualification_sha256: 71415c456988b144462b06f0b102358044cc09954b8919b49b7699608c8b9308
+    image_probe_disposition_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json
+    builder_cleanup_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json
+    implementation_baseline: cb8240f69647138a9fdbdd932620e81aeb39cff0
+    pre_repair_source_sha: 206a1544234d362b39adccb24fafc37ecfad5e7f
+    tested_source_sha: 596163e81066111158c2a19268f81aaf2bcec56c
+    tested_source_exact_ci:
+      run_id: 41040527971
+      state: terminal_green
+    closing_source_sha: null
+    closing_tip_ci_run: null
+    closing_tip_ci_state: pending_after_publication_root_verification
+    integration_capture: exact branch HEAD
+    acceptance_criteria:
+    - id: HQD1
+      text: Read-only verification accepts only the retained VanEck reservation fields quota_group=oih_first_sample,
+        dimension=vaneck_oih_first_sample_requests_120s, unit=requests, while preserving exact account,
+        operation, chronology, settled-state and no-live-receipt checks.
+    - id: HQD2
+      text: Generic or mismatched quota group and/or dimension values are denied; verification does not
+        write, initialize, relabel, reset, or replay quota evidence.
+    - id: HQD3
+      text: The engine-backed continuation fixture mirrors the actual retained historical row and proves
+        exact acceptance plus wrong-group/dimension denials without weakening other guards.
+    - id: HQD4
+      text: Required source-matched full local qualification and exact owner-branch CI pass, with exact
+        tested source, evidence, and remaining roadmap recorded before Root review.
+    progress:
+      completed:
+      - HQD1
+      - HQD2
+      - HQD3
+      - HQD4
+      current_phase: Root accepted all four bounded criteria; only the coherent records publication and
+        exact closing-tip CI remain for this checkpoint. The full AC1-AC14 roadmap remains open.
+      total: 4
+    focused_validation:
+      unit_test: 'test_posttransport_spent_reservation_requires_exact_retained_oih_scope: 4 passed, including
+        retained pair and exact group/dimension mismatch denials; SQLite ledger file hash unchanged.'
+      unit_module: 'backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py: 39 passed.'
+      static: Ruff check, Ruff format --check, and compileall passed for all three changed Python files.
+      integration: Root accepted the complete source-matched 6202-ID backend profile (6197 passed, 5 expected
+        skips, zero failures/errors, 84.4% coverage) and separate canonical PostgreSQL DDL supplement
+        (2 passed, 0 skipped); see the exact runtime review receipt.
+      exact_source_ci: Run 41040527971 terminal green on tested source 596163e81066111158c2a19268f81aaf2bcec56c.
+      image_probe: 1047 source files verified; imports/schema/route and 39 existing cases passed once,
+        container exit 0. Two setup attempts ran zero tests; the successful attempt's external XML copy
+        failed after in-container JUnit assertions and was accepted by Root without replay.
+      cleanup: Exact builder/cache cleanup passed; retained image/archive preserved and foreign inventory
+        equal.
+    required_local_profile: docker_integration
+    local_profile_rationale: The exact source delta changes only backend/app quota-ledger verification
+      plus its unit and PostgreSQL integration tests. The repository minimum-profile classifier maps these
+      paths to docker_integration. No frontend, browser, authentication, websocket, Compose, E2E or visual
+      paths changed, so a full_stack_browser profile is not required by this delta. The normal full_integration
+      branch/staging/master gates remain unchanged.
+    full_roadmap_status: All original AC1-AC14 criteria remain open and unchanged; preserve 15 Tier-0
+      and 156 Tier-1, 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT history,
+      and the 30-day observation.
+    continuation_conditions:
+    - No provider/issuer/SEC HTTP, quota-ledger write, reservation relabel/reset/replay, policy activation,
+      target mutation, paid/trial/native/broker/capital operation, or deployment is authorized by this
+      repair.
+    - Root owns closing-tip CI verification, subsequent staging/master integration, and any genuine source/account
+      or target acceptance; the feature owner does not integrate or deploy.
+    - Do not claim genuine OIH source qualification or full feature-roadmap completion from offline tests
+      or green staging ancestry.
