@@ -6,6 +6,7 @@
         ref="inputRef"
         v-model="query"
         type="text"
+        :readonly="readonly"
         :placeholder="placeholder"
         class="search-input"
         @input="onInput"
@@ -120,6 +121,10 @@ const props = withDefaults(defineProps<{
   resultTypes?: string[]
   allowExpressions?: boolean
   allowSourceDiscovery?: boolean
+  readonly?: boolean
+  sourceDiscoveryOnly?: boolean
+  openOnMount?: boolean
+  requiredResolvedSymbol?: string
 }>(), {
   placeholder: 'Symbol…',
   modelValue: '',
@@ -130,6 +135,10 @@ const props = withDefaults(defineProps<{
   resultTypes: () => [],
   allowExpressions: true,
   allowSourceDiscovery: false,
+  readonly: false,
+  sourceDiscoveryOnly: false,
+  openOnMount: false,
+  requiredResolvedSymbol: '',
 })
 const emit = defineEmits<{
   select: [symbol: string, result?: SearchResult]
@@ -144,7 +153,7 @@ const highlightIdx     = ref(0)
 const rootRef          = ref<HTMLDivElement | null>(null)
 const inputRef         = ref<HTMLInputElement | null>(null)
 const expressionSelected = ref(false)
-const dropdownDismissed  = ref(true)
+const dropdownDismissed  = ref(!props.openOnMount)
 const errorMessage       = ref('')
 const discoveryCandidates = ref<InstrumentDiscoveryCandidate[]>([])
 const discoveryLoading = ref(false)
@@ -191,6 +200,7 @@ async function onInput() {
   discoveryMessage.value = ''
   discoveryError.value = ''
   if (debounceTimer) clearTimeout(debounceTimer)
+  if (props.readonly || props.sourceDiscoveryOnly) { results.value = []; return }
   if (query.value.length < 1) { results.value = []; return }
   // Don't hit search API for expressions
   if (isExpression.value) { results.value = []; return }
@@ -221,9 +231,9 @@ async function discoverFreeSources() {
   try {
     const response = await discoverInstruments(requested, props.resultTypes, 10)
     if (query.value.trim().toUpperCase() !== queryKey) return
-    discoveryCandidates.value = response.candidates
-    discoveryMessage.value = response.candidates.length
-      ? `${response.candidates.length} source candidate${response.candidates.length === 1 ? '' : 's'} found. Resolve a candidate to verify its canonical identity.`
+    discoveryCandidates.value = response.candidates.filter(matchesResultTypeScope)
+    discoveryMessage.value = discoveryCandidates.value.length
+      ? `${discoveryCandidates.value.length} source candidate${discoveryCandidates.value.length === 1 ? '' : 's'} found. Resolve a candidate to verify its canonical identity.`
       : response.status === 'held'
         ? 'Free source discovery is held.'
         : response.status === 'unavailable'
@@ -243,6 +253,11 @@ async function discoverFreeSources() {
 async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
   if (resolvingCandidate.value) return
   const queryKey = query.value.trim().toUpperCase()
+  const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+  if (requiredSymbol && candidate.symbol.trim().toUpperCase() !== requiredSymbol) {
+    discoveryMessage.value = 'This candidate does not match the exact reported ticker.'
+    return
+  }
   resolvingCandidate.value = true
   discoveryError.value = ''
   try {
@@ -259,6 +274,14 @@ async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
             : response.status === 'failed'
               ? 'Identity resolution failed.'
               : 'Candidate identity is not resolved.'
+      return
+    }
+    if (requiredSymbol && response.instrument.symbol.trim().toUpperCase() !== requiredSymbol) {
+      discoveryMessage.value = 'The resolved canonical symbol does not match the exact reported ticker.'
+      return
+    }
+    if (requiredSymbol && !['resolved', 'verified'].includes(response.instrument.identity_status.trim().toLowerCase())) {
+      discoveryMessage.value = 'The provider did not verify this canonical identity. The holding was not opened.'
       return
     }
     const result: SearchResult = {
@@ -383,7 +406,10 @@ function handleClickOutside(e: MouseEvent) {
   }
 }
 
-onMounted(() => document.addEventListener('mousedown', handleClickOutside))
+onMounted(() => {
+  document.addEventListener('mousedown', handleClickOutside)
+  if (props.openOnMount) dropdownDismissed.value = false
+})
 onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
 </script>
 

@@ -296,6 +296,236 @@ test('explicit chart discovery, identity selection, and bounded missing-history 
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
+test('an unresolved ETF holding row explicitly resolves its reported equity and carries lineage into D1 history', async ({ page, loggedIn, browserDiagnostics }) => {
+  await page.goto('about:blank')
+
+  const profileId = 779001
+  const snapshotId = 779002
+  const rowId = 779003
+  const instrumentId = 779004
+  const symbol = 'UNXQ'
+  let resolved = false
+  let historyCompleted = false
+  let localReadCount = 0
+  const optionsExposureReads: string[] = []
+  const optionsExpirationReads: string[] = []
+  const discoveryRequests: DiscoveryRequest[] = []
+  const identityRequests: InstrumentRequestBody[] = []
+  const historyRequests: HistoryRequestBody[] = []
+  const localReadBars: OHLCVBar[][] = []
+  const bar: OHLCVBar = {
+    ts: '2026-10-29T00:00:00Z', open: 24, high: 26, low: 23, close: 25,
+    volume: 12000, is_adjusted: true, is_derived: false,
+  }
+  const capability = {
+    availability: 'current', source_tier: 'issuer_native', identity_verified: true,
+    usable_for_current_analysis: true, displayable_last_known: true,
+    consecutive_failures: 0, reason: 'Controlled fixture capability only.',
+  }
+  const profile: ETFProfile = {
+    id: profileId, instrument_id: 779000, symbol: 'OIH', name: 'Controlled Oil Services ETF',
+    issuer: 'test-fixture', fund_family: 'controlled browser fixture', adapter_status: 'ready',
+    latest_composition_date: '2026-10-27', latest_snapshot_id: snapshotId,
+    resolved_count: 0, unresolved_count: 1, holdings_capability: capability,
+  }
+  const holding: ETFHolding = {
+    id: rowId, snapshot_id: snapshotId, constituent_instrument_id: null,
+    constituent_symbol: null, constituent_name: null, reported_symbol: symbol,
+    reported_name: 'Uncached Example Equity', position: 1, source_row_id: 'issuer-row-779003',
+    holding_type: 'equity', row_type: 'security', is_resolved: false, weight: 0.01,
+  }
+  const snapshot: ETFHoldingsSnapshot = {
+    id: snapshotId, etf_profile_id: profileId, etf_instrument_id: 779000,
+    etf_symbol: 'OIH', etf_name: profile.name, composition_date: '2026-10-27',
+    known_at: '2026-10-28T12:00:00Z', published_at: null,
+    provenance: 'controlled_fixture', source_provider: 'test-fixture',
+    source_quality: 'fixture only', completeness_status: 'complete', row_count: 1,
+    resolved_count: 0, unresolved_count: 1, total_weight: 0.01,
+    parser_version: 'browser-fixture-v1', holdings: [holding],
+  }
+  const holdingsPage: ETFHoldingsPage = {
+    snapshot, holdings: [holding], total: 1, limit: 100, offset: 0, has_next: false,
+  }
+  const dates: ETFHoldingsDate[] = [{
+    snapshot_id: snapshotId, composition_date: snapshot.composition_date,
+    as_of_date: snapshot.as_of_date ?? null, known_at: snapshot.known_at ?? null,
+    published_at: null, cadence: 'fixture', parser_version: snapshot.parser_version,
+    provenance: snapshot.provenance, source_provider: snapshot.source_provider,
+    source_identifier: 'fixture:OIH:UNXQ', row_count: 1, resolved_count: 0,
+    unresolved_count: 1, source_quality: snapshot.source_quality,
+  }]
+
+  await page.route('**/api/v1/etf-holdings**', async route => {
+    const url = new URL(route.request().url())
+    if (url.pathname === '/api/v1/etf-holdings' && route.request().method() === 'GET') {
+      await route.fulfill({ status: 200, json: [profile] })
+    } else if (url.pathname === `/api/v1/etf-holdings/OIH/dates`) {
+      await route.fulfill({ status: 200, json: dates })
+    } else if (url.pathname === `/api/v1/etf-holdings/OIH/holdings`) {
+      await route.fulfill({ status: 200, json: holdingsPage })
+    } else if (url.pathname === `/api/v1/etf-holdings/OIH/weight-evolution`) {
+      await route.fulfill({ status: 200, json: { etf_symbol: 'OIH', etf_name: profile.name, snapshot_count: 1, series: [] } })
+    } else if (url.pathname === `/api/v1/etf-holdings/OIH/transitions`) {
+      await route.fulfill({ status: 200, json: { etf_symbol: 'OIH', etf_name: profile.name, snapshot_count: 1, transition_count: 0, transitions: [] } })
+    } else {
+      await route.continue()
+    }
+  })
+  await page.route('**/api/v1/instruments/discover**', async route => {
+    const body = route.request().postDataJSON() as DiscoveryRequest
+    discoveryRequests.push(body)
+    expect(body.query).toBe(symbol)
+    expect(body.types).toEqual(['Equity', 'Stock', 'CS'])
+    const providerCandidate = {
+      symbol, name: holding.reported_name, exchange: 'XNYS', type: 'CS',
+      provider: 'test-fixture', instrument_id: null, identity_status: 'unresolved' as const,
+    }
+    // Match the backend's raw-type substring filter so a native CS candidate
+    // is returned only when the outgoing request includes the verified code.
+    const matchingCandidates = body.types.some(type =>
+      providerCandidate.type.toUpperCase().includes(type.trim().toUpperCase()),
+    )
+    await route.fulfill({ status: 200, json: {
+      request_id: body.request_id, status: 'complete',
+      candidates: matchingCandidates ? [providerCandidate] : [],
+      source_outcomes: [fixtureOutcome],
+    } satisfies InstrumentDiscoveryResponse })
+  })
+  await page.route('**/api/v1/instruments/acquire**', async route => {
+    const body = route.request().postDataJSON() as InstrumentRequestBody
+    identityRequests.push(body)
+    if (body.provider_candidate) {
+      expect(body).toMatchObject({ symbol, provider_candidate: { provider: 'test-fixture', symbol, exchange: 'XNYS' } })
+      resolved = true
+    } else {
+      expect(resolved, 'history identity check follows explicit row candidate resolution').toBe(true)
+      expect(body.symbol).toBe(symbol)
+    }
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId) })
+  })
+  await page.route('**/api/v1/instruments/UNXQ', async route => {
+    if (!resolved) {
+      await route.fulfill({ status: 404, json: { detail: 'No pre-existing instrument in this controlled fixture.' } })
+      return
+    }
+    await route.fulfill({ status: 200, json: {
+      id: instrumentId, symbol, name: holding.reported_name, currency: 'USD',
+      is_active: true, is_synthetic: false, stats: { week52_high: 30 },
+    } })
+  })
+  await page.route('**/api/v1/instrument-indicators/779004**', route => route.fulfill({ status: 200, json: { indicators: [] } }))
+  await page.route('**/api/v1/ohlcv/local/UNXQ/D1**', async route => {
+    localReadCount += 1
+    const bars = historyCompleted ? [bar] : []
+    localReadBars.push(bars)
+    await route.fulfill({ status: 200, json: bars })
+  })
+  await page.route('**/api/v1/instruments/UNXQ/data-coverage**', route => route.fulfill({ status: 200, json: { symbol, is_fetching: false } }))
+  await page.route('**/api/v1/coverage/instruments/UNXQ/ohlcv**', async route => {
+    const url = new URL(route.request().url())
+    await route.fulfill({ status: 200, json: missingCoverage(url) })
+  })
+  await page.route('**/api/v1/instruments/UNXQ/options/exposure', async route => {
+    const url = new URL(route.request().url())
+    expect(route.request().method()).toBe('GET')
+    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure')
+    optionsExposureReads.push(url.pathname)
+    await route.fulfill({ status: 200, json: {
+      symbol, spot: null, expirations: [], active_expirations: [], computed_at: '2026-10-27T00:00:00Z',
+      ladder: [], key_levels: { call_wall: null, put_wall: null, gamma_flip: null, max_pain: null },
+      pcr_oi: null, pcr_volume: null, implied_move_pct: null, total_gex: 0, total_net_dex: 0,
+    } satisfies OptionsExposureResponse })
+  })
+  await page.route('**/api/v1/instruments/UNXQ/options/exposure/expirations', async route => {
+    const url = new URL(route.request().url())
+    expect(route.request().method()).toBe('GET')
+    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure/expirations')
+    optionsExpirationReads.push(url.pathname)
+    const noExpirations: ExpirationSummary[] = []
+    await route.fulfill({ status: 200, json: noExpirations })
+  })
+  await page.route('**/api/v1/instruments/779004/history-acquisitions**', async route => {
+    const body = route.request().postDataJSON() as HistoryRequestBody
+    historyRequests.push(body)
+    expect(body.timeframe).toBe('D1')
+    historyCompleted = true
+    const response: HistoryAcquisitionResponse = {
+      request_id: body.request_id, status: 'complete', instrument_id: instrumentId,
+      symbol, timeframe: 'D1', adjusted: body.adjusted, requested_start: body.start,
+      requested_end: body.end,
+      coverage: { status: 'partial', covered_start: bar.ts, covered_end: bar.ts, bar_count: 1, missing_slices: [] },
+      bars: [bar], source_outcomes: [fixtureOutcome],
+    }
+    await route.fulfill({ status: 200, json: response })
+  })
+  await page.route('**/api/v1/ohlcv/UNXQ/D1**', route => route.fulfill({ status: 200, json: [] }))
+  await page.route('**/api/v1/drawings**', route => route.fulfill({ status: 200, json: [] }))
+  await page.route('**/api/v1/alerts**', route => route.fulfill({ status: 200, json: [] }))
+
+  await page.goto('/etf-holdings')
+  const holdingButton = page.locator('button.holding-row').filter({ hasText: symbol })
+  await expect(holdingButton).toContainText(symbol)
+  expect(discoveryRequests).toHaveLength(0)
+  expect(identityRequests).toHaveLength(0)
+  expect(historyRequests).toHaveLength(0)
+  expect(localReadCount).toBe(0)
+
+  await holdingButton.click()
+  await page.getByRole('button', { name: `Resolve reported holding ${symbol}` }).click()
+  expect(discoveryRequests).toHaveLength(0)
+  const discoveryResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/discover'
+  })
+  await page.getByRole('button', { name: `Search free sources for ${symbol}` }).click()
+  expect((await discoveryResponseReady).status()).toBe(200)
+  expect(discoveryRequests).toHaveLength(1)
+  expect(identityRequests).toHaveLength(0)
+  await page.getByRole('button', { name: /Resolve UNXQ · XNYS/ }).click()
+  await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/)
+  expect(identityRequests).toHaveLength(1)
+  expect(historyRequests).toHaveLength(0)
+  expect(localReadCount).toBeGreaterThan(0)
+  expect(localReadBars[0]).toEqual([])
+
+  const lineageUrl = new URL(page.url())
+  expect(lineageUrl.searchParams.get('holding_snapshot_id')).toBe(String(snapshotId))
+  expect(lineageUrl.searchParams.get('holding_composition_date')).toBe(snapshot.composition_date)
+  expect(lineageUrl.searchParams.get('holding_known_at')).toBe(snapshot.known_at)
+  expect(lineageUrl.searchParams.get('holding_provenance')).toBe(snapshot.provenance)
+  expect(lineageUrl.searchParams.get('holding_source_provider')).toBe(snapshot.source_provider)
+  expect(lineageUrl.searchParams.get('holding_row_id')).toBe(String(rowId))
+  expect(lineageUrl.searchParams.get('holding_source_row_id')).toBe(holding.source_row_id)
+  expect(lineageUrl.searchParams.get('holding_reported_symbol')).toBe(symbol)
+  expect(lineageUrl.searchParams.get('holding_reported_name')).toBe(holding.reported_name)
+  await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
+  await expect(page.locator('.historical-holding-context')).toContainText('controlled_fixture')
+
+  const historyResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === `/api/v1/instruments/${instrumentId}/history-acquisitions`
+  })
+  await page.getByTestId('history-load-missing').click()
+  expect((await historyResponseReady).status()).toBe(200)
+  await expect(page.getByRole('status').filter({ hasText: 'History loaded: 1 bars are available.' })).toBeVisible()
+  expect(historyRequests).toHaveLength(1)
+  expect(historyRequests[0]?.timeframe).toBe('D1')
+  await expect.poll(() => localReadCount).toBeGreaterThan(1)
+  expect(localReadBars.at(-1)).toEqual([bar])
+
+  const readsBeforeReload = localReadCount
+  await page.reload()
+  await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/) 
+  await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
+  await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
+  expect(localReadBars.at(-1)).toEqual([bar])
+  expect(historyRequests).toHaveLength(1)
+  expect(optionsExposureReads.length).toBeGreaterThan(0)
+  expect(optionsExpirationReads.length).toBeGreaterThan(0)
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
 test('main Workstation explicitly discovers an unknown ticker and loads its missing bars into the focused chart', async ({ page, loggedIn, browserDiagnostics }) => {
   await page.goto('about:blank')
 
@@ -676,7 +906,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.holding-row').filter({ hasText: 'AMD' }).first().click()
+  await page.locator('button.holding-row').filter({ hasText: 'AMD' }).click()
   await page.getByRole('button', { name: 'View history' }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/AMD(?:\?|$)/)
   expect((await initialChartCoverageReady).status()).toBe(200)
@@ -1060,14 +1290,15 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   await expect(page.getByTestId('etf-snapshot-lineage')).toBeVisible()
   await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', fixtureSnapshot.known_at!)
   await expect(page.getByText('Current holdings are not verified.')).toBeVisible()
-  await expect(page.locator('.holding-row').filter({ hasText: 'AMD' }).first()).toBeVisible()
+  const holdingButton = page.locator('button.holding-row').filter({ hasText: 'AMD' })
+  await expect(holdingButton).toBeVisible()
 
   const initialChartCoverageReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.holding-row').filter({ hasText: 'AMD' }).first().click()
+  await holdingButton.click()
   await page.getByRole('button', { name: 'View history' }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/AMD(?:\?|$)/)
   expect((await initialChartCoverageReady).status()).toBe(200)
