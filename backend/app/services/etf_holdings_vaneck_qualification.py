@@ -5,10 +5,12 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import json
+import re
 import time
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
+from uuid import UUID
 
 from sqlalchemy import create_engine, func, inspect, select, text
 from sqlalchemy.engine import URL, make_url
@@ -63,6 +65,10 @@ VANECK_OIH_INITIAL_MAX_BODY_BYTES = 5 * 1024 * 1024
 VANECK_PRETRANSPORT_FAILURE_REASON = (
     "No currently-supported providers available for " "etf_holdings/fetch_etf_holdings_latest"
 )
+VANECK_POSTTRANSPORT_LINK_FAILURE_REASON = (
+    "VanEck qualification request logs are incomplete or outside its exact scope"
+)
+VANECK_POSTTRANSPORT_CONTINUATION_KEY = "posttransport_continuation"
 
 
 async def _load_attempt_for_response(
@@ -141,6 +147,37 @@ def _provider_review_fingerprint(
     return hashlib.sha256(encoded.encode()).hexdigest()
 
 
+def _posttransport_request_fingerprint(
+    *,
+    predecessor_job_id: int,
+    request_id: str,
+    review_evidence_reference: str,
+    review_evidence_sha256: str,
+    requested_by_user_id: int,
+) -> str:
+    material = {
+        "predecessor_job_id": predecessor_job_id,
+        "request_id": request_id,
+        "review_evidence_reference": review_evidence_reference,
+        "review_evidence_sha256": review_evidence_sha256.lower(),
+        "requested_by_user_id": requested_by_user_id,
+    }
+    encoded = json.dumps(material, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode()).hexdigest()
+
+
+def _assert_provider_review_not_expired(entitlement: ProviderEntitlement) -> None:
+    """Require the persisted operator review to remain current at each boundary."""
+
+    from app.services import provider_quota_coordinator as quota  # noqa: PLC0415
+
+    review_due_at = entitlement.review_due_at
+    if review_due_at is not None and quota._utc(review_due_at) <= quota._utc(datetime.now(UTC)):
+        raise ETFHoldingsRouteHeldError(
+            "The current VanEck review is expired; qualification is denied."
+        )
+
+
 def _assert_provider_review_unchanged(
     *,
     source: DataSource | None,
@@ -163,6 +200,7 @@ def _assert_provider_review_unchanged(
         raise ETFHoldingsRouteHeldError(
             "VanEck Provider review changed during qualification; positive evidence was not recorded."
         )
+    _assert_provider_review_not_expired(entitlement)
     try:
         actual_scope = account_scope_for_provider("vaneck", str(policy.quota_scope or ""))
     except Exception as exc:  # noqa: BLE001 - changed or missing scope fails closed.
@@ -279,6 +317,11 @@ def _quota_activity_exists_since_attempt(
                 if connection.exec_driver_sql("PRAGMA query_only").scalar_one() != 1:
                     raise ETFHoldingsRouteHeldError(
                         "The shared quota ledger did not enter read-only mode."
+                    )
+                connection.exec_driver_sql("BEGIN")
+                if not connection.connection.driver_connection.in_transaction:
+                    raise ETFHoldingsRouteHeldError(
+                        "The shared quota ledger did not start a read-only snapshot."
                     )
             else:
                 connection.exec_driver_sql("SET TRANSACTION READ ONLY")
@@ -570,11 +613,472 @@ async def _validate_pretransport_predecessor(
     return predecessor, diagnostic_artifacts
 
 
+def _verified_posttransport_spent_reservation(
+    *, account_scope: str, started_at: datetime, completed_at: datetime
+) -> dict[str, object]:
+    """Read-only proof of the single already-spent job3 quota unit."""
+
+    from app.services import provider_quota_coordinator as quota  # noqa: PLC0415
+
+    configured = make_url(quota._engine_url())
+    engine = None
+    try:
+        if configured.get_backend_name() == "sqlite":
+            database = configured.database or ""
+            if (
+                not database
+                or database == ":memory:"
+                or database.startswith("file:")
+                or bool(configured.query)
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "The persistent quota ledger cannot prove the prior OIH usage."
+                )
+            database_path = Path(database).expanduser().resolve()
+            if not database_path.is_file():
+                raise ETFHoldingsRouteHeldError(
+                    "The existing quota ledger is unavailable; continuation is denied."
+                )
+            readonly_url = URL.create(
+                "sqlite+pysqlite",
+                database=f"file:{quote(str(database_path), safe='/')}?mode=ro",
+                query={"uri": "true"},
+            )
+            engine = create_engine(readonly_url, connect_args={"timeout": 5}, poolclass=NullPool)
+            sqlite = True
+        elif configured.get_backend_name() == "postgresql":
+            engine = create_engine(configured, poolclass=NullPool, hide_parameters=True)
+            sqlite = False
+        else:
+            raise ETFHoldingsRouteHeldError(
+                "The quota ledger backend cannot prove the prior OIH usage."
+            )
+
+        with engine.connect() as connection:
+            if sqlite:
+                connection.exec_driver_sql("PRAGMA query_only = ON")
+                if connection.exec_driver_sql("PRAGMA query_only").scalar_one() != 1:
+                    raise ETFHoldingsRouteHeldError("Quota ledger read-only mode was not enforced.")
+                connection.exec_driver_sql("BEGIN")
+                if not connection.connection.driver_connection.in_transaction:
+                    raise ETFHoldingsRouteHeldError(
+                        "Quota ledger read-only snapshot was not started."
+                    )
+            else:
+                connection.exec_driver_sql("SET TRANSACTION READ ONLY")
+                if connection.exec_driver_sql("SHOW transaction_read_only").scalar_one() != "on":
+                    raise ETFHoldingsRouteHeldError("Quota ledger read-only mode was not enforced.")
+            tables = set(inspect(connection).get_table_names())
+            if not {quota._reservations.name, quota._live_receipts.name}.issubset(tables):
+                raise ETFHoldingsRouteHeldError(
+                    "The existing quota ledger schema is incomplete; continuation is denied."
+                )
+            if (
+                int(
+                    connection.execute(
+                        select(func.count()).select_from(quota._reservations)
+                    ).scalar_one()
+                    or 0
+                )
+                < 1
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "The quota ledger has no persistent history to verify prior usage."
+                )
+            rows = (
+                connection.execute(
+                    select(
+                        quota._reservations.c.reservation_id,
+                        quota._reservations.c.provider_name,
+                        quota._reservations.c.account_scope,
+                        quota._reservations.c.operation,
+                        quota._reservations.c.quota_group,
+                        quota._reservations.c.dimension,
+                        quota._reservations.c.unit,
+                        quota._reservations.c.reserved_units,
+                        quota._reservations.c.release_only,
+                        quota._reservations.c.state,
+                        quota._reservations.c.created_at,
+                        quota._reservations.c.settled_at,
+                    )
+                    .where(
+                        quota._reservations.c.provider_name == "vaneck",
+                        quota._reservations.c.operation
+                        == VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                        quota._reservations.c.created_at >= started_at,
+                        quota._reservations.c.created_at <= completed_at,
+                    )
+                    .order_by(quota._reservations.c.id)
+                )
+                .mappings()
+                .all()
+            )
+            if (
+                len(rows) != 1
+                or rows[0]["account_scope"] != account_scope
+                or rows[0]["quota_group"] != "requests"
+                or rows[0]["dimension"] != "requests"
+                or rows[0]["unit"] != "requests"
+                or int(rows[0]["reserved_units"] or 0) != 1
+                or rows[0]["release_only"] is not False
+                or rows[0]["state"] != "settled"
+                or rows[0]["settled_at"] is None
+                or quota._utc(rows[0]["settled_at"]) < quota._utc(rows[0]["created_at"])
+                or quota._utc(rows[0]["settled_at"]) > quota._utc(completed_at)
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "The exact single settled OIH usage unit cannot be verified; continuation is denied."
+                )
+            reservation_id = rows[0]["reservation_id"]
+            if connection.execute(
+                select(func.count())
+                .select_from(quota._live_receipts)
+                .where(quota._live_receipts.c.reservation_id == reservation_id)
+            ).scalar_one():
+                raise ETFHoldingsRouteHeldError(
+                    "A prior usage receipt makes the post-transport outcome ambiguous."
+                )
+            return {
+                "reservation_id": str(reservation_id),
+                "provider": rows[0]["provider_name"],
+                "account_scope": rows[0]["account_scope"],
+                "operation": rows[0]["operation"],
+                "quota_group": rows[0]["quota_group"],
+                "dimension": rows[0]["dimension"],
+                "unit": rows[0]["unit"],
+                "reserved_units": int(rows[0]["reserved_units"]),
+                "state": rows[0]["state"],
+                "created_at": quota._utc(rows[0]["created_at"]).replace(tzinfo=UTC).isoformat(),
+                "settled_at": quota._utc(rows[0]["settled_at"]).replace(tzinfo=UTC).isoformat(),
+                "live_receipt_present": False,
+            }
+    except ETFHoldingsRouteHeldError:
+        raise
+    except Exception as exc:  # noqa: BLE001 - ambiguity denies; never initialize this ledger.
+        raise ETFHoldingsRouteHeldError(
+            "The shared quota ledger could not be verified read-only; continuation is denied."
+        ) from exc
+    finally:
+        if engine is not None:
+            engine.dispose()
+
+
+async def _validate_posttransport_predecessor(
+    db: AsyncSession,
+    *,
+    predecessor_job_id: int,
+    profile: ETFProfile,
+    source: DataSource,
+    entitlement: ProviderEntitlement,
+    account_scope: str,
+    current_fingerprint: str,
+) -> tuple[ETFHoldingsBackfillJob, dict[str, object]]:
+    """Verify the immutable job2->job3 chain and its known diagnostic/evidence gap."""
+
+    predecessor = await db.scalar(
+        select(ETFHoldingsBackfillJob)
+        .where(ETFHoldingsBackfillJob.id == predecessor_job_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if (
+        predecessor is None
+        or predecessor.etf_profile_id != profile.id
+        or predecessor.source_provider != "vaneck"
+        or predecessor.job_type != VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE
+        or predecessor.status != "failed"
+        or predecessor.started_at is None
+        or predecessor.completed_at is None
+        or predecessor.completed_at < predecessor.started_at
+        or predecessor.failure_reason != VANECK_POSTTRANSPORT_LINK_FAILURE_REASON
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Only the exact failed post-transport OIH job can receive a continuation."
+        )
+    extra = predecessor.extra_data if isinstance(predecessor.extra_data, dict) else {}
+    scope = extra.get("qualification_scope")
+    outcome = extra.get("qualification_outcome")
+    prior_recovery = extra.get("pretransport_recovery")
+    if (
+        not isinstance(scope, dict)
+        or scope.get("provider") != "vaneck"
+        or scope.get("capability") != ProviderCapability.ETF_HOLDINGS.value
+        or scope.get("operation") != VANECK_OIH_INITIAL_QUALIFICATION_OPERATION
+        or scope.get("profile_id") != profile.id
+        or scope.get("instrument_id") != profile.instrument_id
+        or scope.get("provider_symbol") != "OIH"
+        or scope.get("product_slug") != VANECK_OIH_PRODUCT_SLUG
+        or scope.get("request_url") != VANECK_OIH_INITIAL_URL
+        or scope.get("account_scope") != account_scope
+        or scope.get("follow_redirects") is not False
+        or scope.get("automatic_retries") != 0
+        or not isinstance(prior_recovery, dict)
+        or isinstance(prior_recovery.get("predecessor_job_id"), bool)
+        or not isinstance(prior_recovery.get("predecessor_job_id"), int)
+        or prior_recovery["predecessor_job_id"] <= 0
+        or not isinstance(prior_recovery.get("review_evidence_reference"), str)
+        or not isinstance(prior_recovery.get("review_evidence_sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", prior_recovery["review_evidence_sha256"])
+        or not isinstance(outcome, dict)
+        or outcome.get("status") != "not_qualified"
+        or outcome.get("reason") != VANECK_POSTTRANSPORT_LINK_FAILURE_REASON
+        or set(outcome) != {"status", "reason"}
+        or extra.get("provider_request_log_ids") != []
+        or set(scope)
+        != {
+            "provider",
+            "capability",
+            "operation",
+            "profile_id",
+            "instrument_id",
+            "provider_symbol",
+            "product_slug",
+            "request_url",
+            "allowed_initial_host",
+            "account_scope",
+            "review_revision",
+            "expires_at",
+            "concurrency",
+            "minimum_physical_interval_seconds",
+            "burst_capacity",
+            "max_physical_requests",
+            "deadline_seconds",
+            "max_response_bytes",
+            "automatic_retries",
+            "follow_redirects",
+            "provider_review_fingerprint",
+        }
+        or scope.get("allowed_initial_host") != "www.vaneck.com"
+        or scope.get("concurrency") != 1
+        or scope.get("minimum_physical_interval_seconds") != VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS
+        or scope.get("burst_capacity") != 1
+        or scope.get("max_physical_requests") != VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS
+        or scope.get("deadline_seconds") != VANECK_OIH_INITIAL_DEADLINE_SECONDS
+        or scope.get("max_response_bytes") != VANECK_OIH_INITIAL_MAX_BODY_BYTES
+        or isinstance(scope.get("review_revision"), bool)
+        or not isinstance(scope.get("review_revision"), int)
+        or not isinstance(scope.get("expires_at"), str)
+        or not isinstance(scope.get("provider_review_fingerprint"), str)
+        or scope.get("review_revision") != prior_recovery.get("review_revision")
+        or scope.get("provider_review_fingerprint")
+        != prior_recovery.get("provider_review_fingerprint")
+        or prior_recovery.get("review_evidence_reference")
+        != "vaneck-oih-fresh-bounded-recovery-review-20261030.json"
+        or prior_recovery.get("review_evidence_sha256")
+        != "6d2b76ecfc4e2ea545b83c800233bfcf0338c5b1402021aba9136821a8f4e9fb"
+        or isinstance(prior_recovery.get("review_revision"), bool)
+        or not isinstance(prior_recovery.get("review_revision"), int)
+        or not isinstance(prior_recovery.get("created_at"), str)
+        or prior_recovery.get("operator_reason")
+        != (
+            "Root accepted the fully qualified private release and freshly reviewed the exact "
+            "pretransport failure, immutable diagnostic artifact, current free admission, shared "
+            "quota ledger and bounded one-successor recovery."
+        )
+        or set(extra)
+        != {
+            "qualification_scope",
+            "qualification_outcome",
+            "provider_request_log_ids",
+            "pretransport_recovery",
+        }
+        or set(prior_recovery)
+        != {
+            "predecessor_job_id",
+            "review_evidence_reference",
+            "review_evidence_sha256",
+            "operator_reason",
+            "predecessor_diagnostic_artifacts",
+            "created_at",
+            "review_revision",
+            "provider_review_fingerprint",
+        }
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The post-transport predecessor does not match the reviewed OIH failure lineage."
+        )
+    try:
+        prior_scope_expiry = datetime.fromisoformat(str(scope["expires_at"]))
+        prior_recovery_created = datetime.fromisoformat(str(prior_recovery["created_at"]))
+    except (TypeError, ValueError) as exc:
+        raise ETFHoldingsRouteHeldError(
+            "The historical OIH review timestamps are invalid."
+        ) from exc
+    if (
+        prior_scope_expiry.tzinfo is None
+        or prior_recovery_created.tzinfo is None
+        or predecessor.started_at - timedelta(seconds=1) > prior_recovery_created
+        or prior_recovery_created > predecessor.started_at
+        or prior_scope_expiry - predecessor.started_at
+        != timedelta(seconds=VANECK_OIH_INITIAL_DEADLINE_SECONDS)
+        or predecessor.completed_at > prior_scope_expiry
+        or prior_recovery.get("review_revision") != scope["review_revision"]
+        or prior_recovery.get("provider_review_fingerprint") != scope["provider_review_fingerprint"]
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The historical OIH review timing or revision is inconsistent."
+        )
+    prior_job_id = int(prior_recovery["predecessor_job_id"])
+    if prior_job_id == predecessor.id:
+        raise ETFHoldingsRouteHeldError("The OIH predecessor chain is self-referential.")
+    current_scope = str(scope.get("account_scope") or "")
+    current_policy = await db.scalar(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    )
+    if current_policy is None:
+        raise ETFHoldingsRouteHeldError("The reviewed OIH policy is missing.")
+    old_predecessor, old_artifacts = await _validate_pretransport_predecessor(
+        db,
+        predecessor_job_id=prior_job_id,
+        profile=profile,
+        source=source,
+        entitlement=entitlement,
+        account_scope=current_scope,
+        current_fingerprint=_provider_review_fingerprint(source, current_policy, entitlement),
+    )
+    if (
+        old_predecessor.id >= predecessor.id
+        or prior_recovery.get("predecessor_diagnostic_artifacts") != old_artifacts
+    ):
+        raise ETFHoldingsRouteHeldError("The original OIH pretransport lineage is inconsistent.")
+
+    diagnostic_rows = list(
+        (
+            await db.scalars(
+                select(ETFHoldingsRawArtifact)
+                .where(
+                    ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+                    ETFHoldingsRawArtifact.fetched_at >= predecessor.started_at,
+                    ETFHoldingsRawArtifact.fetched_at <= predecessor.completed_at,
+                )
+                .order_by(ETFHoldingsRawArtifact.id)
+            )
+        ).all()
+    )
+    if len(diagnostic_rows) != 1:
+        raise ETFHoldingsRouteHeldError("The post-transport raw diagnostic lineage is ambiguous.")
+    artifact = diagnostic_rows[0]
+    payload = artifact.payload_json
+    metadata = artifact.legal_metadata if isinstance(artifact.legal_metadata, dict) else {}
+    log_ids = metadata.get("provider_request_log_ids")
+    if (
+        artifact.data_source_id != source.id
+        or artifact.source_kind != "issuer_adapter_rejected_fetch"
+        or artifact.source_url != VANECK_OIH_INITIAL_URL
+        or artifact.source_identifier is not None
+        or artifact.content_type != "application/json"
+        or artifact.parser_version != "vaneck"
+        or artifact.payload_text is not None
+        or not isinstance(payload, dict)
+        or payload
+        != {
+            "failure_type": "ETFHoldingsRouteHeldError",
+            "failure_message": VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+            "validation": None,
+        }
+        or payload.get("validation") is not None
+        or artifact.content_hash != _hash_payload(payload)
+        or artifact.content_hash
+        != "25c2d92366c306c378fab29a91dd201ffc5366ef273719ad03e41182ac9675dc"
+        or artifact.composition_date is not None
+        or artifact.as_of_date is not None
+        or artifact.published_at is not None
+        or log_ids != [13]
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The retained post-transport artifact is not the exact local rejection diagnostic."
+        )
+    referenced_ids = list(log_ids)
+    expected_metadata = {
+        "provider_request_log_ids": [13],
+        "request_urls": [VANECK_OIH_INITIAL_URL],
+        "request_attempts": [],
+        "failure_type": "ETFHoldingsRouteHeldError",
+        "failure_message": VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+        "validation": None,
+        "evidence_source": "shared_provider_request_log_and_refresh_rejection",
+    }
+    if metadata != expected_metadata:
+        raise ETFHoldingsRouteHeldError(
+            "The retained post-transport diagnostic metadata is not the reviewed exact record."
+        )
+    # The deployed job3 row never durably linked id 13 at top level. Only the
+    # immutable rejected-fetch artifact retained that reference; preserve this
+    # distinction rather than reconstructing a job-level callback history.
+    if extra.get("provider_request_log_ids") != []:
+        raise ETFHoldingsRouteHeldError("The historical job-level request-log list changed.")
+    existing_logs = list(
+        (
+            await db.scalars(
+                select(ProviderRequestLog.id).where(ProviderRequestLog.id.in_(referenced_ids))
+            )
+        ).all()
+    )
+    if existing_logs:
+        raise ETFHoldingsRouteHeldError(
+            "A referenced Provider log exists; this post-transport evidence requires review."
+        )
+    matching_attempt_logs = await db.scalar(
+        select(func.count(ProviderRequestLog.id)).where(
+            ProviderRequestLog.data_source_id == source.id,
+            ProviderRequestLog.capability == ProviderCapability.ETF_HOLDINGS,
+            ProviderRequestLog.operation == VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+            ProviderRequestLog.instrument_id == profile.instrument_id,
+            ProviderRequestLog.requested_at >= predecessor.started_at,
+            ProviderRequestLog.requested_at <= predecessor.completed_at,
+        )
+    )
+    if matching_attempt_logs:
+        raise ETFHoldingsRouteHeldError(
+            "Persisted request evidence makes the prior physical outcome ambiguous."
+        )
+    if await db.scalar(
+        select(func.count(ETFHoldingsSnapshot.id)).where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            ETFHoldingsSnapshot.created_at >= predecessor.started_at,
+            ETFHoldingsSnapshot.created_at <= predecessor.completed_at,
+        )
+    ) or await db.scalar(
+        select(func.count(ETFHoldingsBackfillFiling.id)).where(
+            ETFHoldingsBackfillFiling.last_job_id == predecessor.id
+        )
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Prior OIH output exists; continuation is denied for review."
+        )
+    spent = await asyncio.to_thread(
+        _verified_posttransport_spent_reservation,
+        account_scope=account_scope,
+        started_at=predecessor.started_at,
+        completed_at=predecessor.completed_at,
+    )
+    lineage = {
+        "predecessor_job_id": predecessor.id,
+        "predecessor_job_extra_sha256": hashlib.sha256(
+            json.dumps(extra, sort_keys=True, separators=(",", ":"), default=str).encode()
+        ).hexdigest(),
+        "original_pretransport_job_id": old_predecessor.id,
+        "original_pretransport_artifacts": old_artifacts,
+        "diagnostic_artifact_id": artifact.id,
+        "diagnostic_content_hash": artifact.content_hash,
+        "missing_request_log_ids": referenced_ids,
+        "settled_prior_usage": spent,
+        "physical_outcome": "unknown_after_admission_and_settlement",
+        "historical_raw_bytes": "not_retained; diagnostic is no-body JSON, not workbook",
+        "current_provider_review_fingerprint": current_fingerprint,
+    }
+    return predecessor, lineage
+
+
 async def _qualify_vaneck_oih_fund(
     db: AsyncSession,
     *,
     requested_by_user_id: int,
     recovery_attestation: dict[str, object] | None = None,
+    continuation_attestation: dict[str, object] | None = None,
 ) -> ETFHoldingsBackfillJob:
     """Latch and execute one exact OIH sample through Provider shared admission."""
 
@@ -584,6 +1088,7 @@ async def _qualify_vaneck_oih_fund(
     lock_db = AsyncSession(bind=db.bind, expire_on_commit=False)
     attempt: ETFHoldingsBackfillJob | None = None
     attempt_id: int | None = None
+    request_log_ids: list[int] = []
     try:
         if lock_db.get_bind().dialect.name != "postgresql":
             raise ETFHoldingsRouteHeldError(
@@ -639,11 +1144,14 @@ async def _qualify_vaneck_oih_fund(
             raise ETFHoldingsRouteHeldError(
                 "Reviewed VanEck policy and entitlement rows are required."
             )
-        if policy.is_enabled:
+        if policy.is_enabled and continuation_attestation is None:
             raise ETFHoldingsRouteHeldError(
                 "Initial qualification requires the ordinary VanEck policy to remain disabled."
             )
-        if str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run":
+        if (
+            str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run"
+            and continuation_attestation is None
+        ):
             raise ETFHoldingsRouteHeldError(
                 "VanEck initial qualification is available only for an unprobed entitlement."
             )
@@ -715,6 +1223,39 @@ async def _qualify_vaneck_oih_fund(
                 raise ETFHoldingsRouteHeldError(
                     "VanEck account binding changed while recovery was being serialized."
                 )
+        elif continuation_attestation is not None:
+            source = await operation_db.scalar(
+                select(DataSource)
+                .where(DataSource.id == source.id, DataSource.name == "vaneck")
+                .execution_options(populate_existing=True)
+            )
+            policy = await operation_db.scalar(
+                select(ProviderPolicy)
+                .where(
+                    ProviderPolicy.data_source_id == source.id if source is not None else False,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+                .execution_options(populate_existing=True)
+            )
+            entitlement = await operation_db.scalar(
+                select(ProviderEntitlement)
+                .where(
+                    ProviderEntitlement.data_source_id == source.id
+                    if source is not None
+                    else False,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+                .execution_options(populate_existing=True)
+            )
+            if source is None or not source.is_active or policy is None or entitlement is None:
+                raise ETFHoldingsRouteHeldError(
+                    "Current VanEck source, policy and entitlement are required."
+                )
+            fresh_scope = account_scope_for_provider("vaneck", str(policy.quota_scope or ""))
+            if fresh_scope != account_scope:
+                raise ETFHoldingsRouteHeldError(
+                    "VanEck account binding changed while continuation was being serialized."
+                )
         existing_jobs = list(
             (
                 await operation_db.scalars(
@@ -727,7 +1268,71 @@ async def _qualify_vaneck_oih_fund(
             ).all()
         )
         recovery_predecessor = None
-        if recovery_attestation is not None:
+        continuation_predecessor = None
+        continuation_lineage = None
+        if continuation_attestation is not None:
+            fingerprint = _provider_review_fingerprint(source, policy, entitlement)
+            continuation_jobs = []
+            request_id = str(continuation_attestation["request_id"])
+            for existing_job in existing_jobs:
+                extra_data = (
+                    existing_job.extra_data if isinstance(existing_job.extra_data, dict) else {}
+                )
+                continuation = extra_data.get(VANECK_POSTTRANSPORT_CONTINUATION_KEY)
+                if isinstance(continuation, dict):
+                    if continuation.get("request_id") == request_id:
+                        if (
+                            continuation.get("request_fingerprint")
+                            != continuation_attestation["request_fingerprint"]
+                            or continuation.get("predecessor_job_id")
+                            != continuation_attestation["predecessor_job_id"]
+                        ):
+                            raise ETFHoldingsRouteHeldError(
+                                "The continuation request id was already used for different evidence."
+                            )
+                        return await _load_attempt_for_response(operation_db, existing_job.id)
+                    if (
+                        continuation.get("predecessor_job_id")
+                        == continuation_attestation["predecessor_job_id"]
+                    ):
+                        continuation_jobs.append(existing_job)
+            if continuation_jobs:
+                raise ETFHoldingsRouteHeldError(
+                    "The consumed OIH job already has its single continuation successor."
+                )
+            if (
+                policy.is_enabled
+                or str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run"
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "A new OIH continuation requires the current policy disabled and review not_run."
+                )
+            _assert_provider_review_not_expired(entitlement)
+            admission = provider_entitlement_admission(
+                entitlement,
+                provider_name="vaneck",
+                capability=ProviderCapability.ETF_HOLDINGS,
+            )
+            if not admission.get("allowed"):
+                raise ETFHoldingsRouteHeldError(
+                    "The current VanEck entitlement does not pass shared free-plan admission."
+                )
+            (
+                continuation_predecessor,
+                continuation_lineage,
+            ) = await _validate_posttransport_predecessor(
+                operation_db,
+                predecessor_job_id=int(continuation_attestation["predecessor_job_id"]),
+                profile=profile,
+                source=source,
+                entitlement=entitlement,
+                account_scope=account_scope,
+                current_fingerprint=fingerprint,
+            )
+            continuation_attestation["predecessor_lineage"] = continuation_lineage
+            continuation_attestation["review_revision"] = int(entitlement.revision or 1)
+            continuation_attestation["provider_review_fingerprint"] = fingerprint
+        elif recovery_attestation is not None:
             if len(existing_jobs) != 1 or existing_jobs[0].id != recovery_attestation.get(
                 "predecessor_job_id"
             ):
@@ -784,7 +1389,11 @@ async def _qualify_vaneck_oih_fund(
             "concurrency": 1,
             "minimum_physical_interval_seconds": VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS,
             "burst_capacity": 1,
-            "max_physical_requests": VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS,
+            "max_physical_requests": (
+                1
+                if continuation_attestation is not None
+                else VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS
+            ),
             "deadline_seconds": VANECK_OIH_INITIAL_DEADLINE_SECONDS,
             "max_response_bytes": VANECK_OIH_INITIAL_MAX_BODY_BYTES,
             "automatic_retries": 0,
@@ -821,6 +1430,25 @@ async def _qualify_vaneck_oih_fund(
                     if recovery_attestation is not None and recovery_predecessor is not None
                     else {}
                 ),
+                **(
+                    {
+                        VANECK_POSTTRANSPORT_CONTINUATION_KEY: {
+                            **continuation_attestation,
+                            "predecessor_job_id": continuation_predecessor.id,
+                            "created_at": now.isoformat(),
+                            "operator_user_id": requested_by_user_id,
+                            "review_revision": int(entitlement.revision or 1),
+                            "provider_review_fingerprint": scope["provider_review_fingerprint"],
+                            "predecessor_lineage": continuation_lineage,
+                            "status": "admitted",
+                            "physical_request_limit": 1,
+                        }
+                    }
+                    if continuation_attestation is not None
+                    and continuation_predecessor is not None
+                    and continuation_lineage is not None
+                    else {}
+                ),
             },
         )
         operation_db.add(attempt)
@@ -837,7 +1465,9 @@ async def _qualify_vaneck_oih_fund(
         budget = ETFVaneckInitialQualificationBudget(
             expected_url=VANECK_OIH_INITIAL_URL,
             deadline_monotonic=deadline_monotonic,
-            max_physical_requests=VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS,
+            max_physical_requests=1
+            if continuation_attestation is not None
+            else VANECK_OIH_INITIAL_MAX_PHYSICAL_REQUESTS,
             minimum_interval_seconds=VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS,
             max_response_bytes=VANECK_OIH_INITIAL_MAX_BODY_BYTES,
         )
@@ -852,7 +1482,6 @@ async def _qualify_vaneck_oih_fund(
             expires_at=datetime.fromisoformat(scope["expires_at"]),
         )
         with binder_context as provider_authority:
-            request_log_ids: list[int] = []
             snapshot = await _refresh_adapter_route(
                 operation_db,
                 profile,
@@ -916,6 +1545,17 @@ async def _qualify_vaneck_oih_fund(
             "raw_artifact_id": snapshot.source_artifact_id,
             "request_log_ids": request_log_ids,
         }
+        continuation = extra.get(VANECK_POSTTRANSPORT_CONTINUATION_KEY)
+        if isinstance(continuation, dict):
+            continuation = dict(continuation)
+            continuation.update(
+                {
+                    "status": "completed",
+                    "completed_at": attempt.completed_at.isoformat(),
+                    "positive_qualification": True,
+                }
+            )
+            extra[VANECK_POSTTRANSPORT_CONTINUATION_KEY] = continuation
         attempt.extra_data = extra
         await operation_db.flush()
         await record_entitlement_revision(
@@ -940,6 +1580,7 @@ async def _qualify_vaneck_oih_fund(
                     status="interrupted",
                     reason="VanEck OIH qualification was cancelled; replay denied.",
                     redirect_location=None,
+                    provider_attempt_log_ids=request_log_ids,
                 )
             )
         raise
@@ -954,6 +1595,7 @@ async def _qualify_vaneck_oih_fund(
                     status="failed",
                     reason=str(exc) or type(exc).__name__,
                     redirect_location=location,
+                    provider_attempt_log_ids=request_log_ids,
                 )
             )
             result = await _load_attempt_for_response(operation_db, attempt_id)
@@ -999,6 +1641,47 @@ async def recover_vaneck_oih_fund(
             "review_evidence_reference": review_evidence_reference,
             "review_evidence_sha256": review_evidence_sha256.lower(),
             "operator_reason": operator_reason,
+        },
+    )
+
+
+async def continue_vaneck_oih_fund(
+    db: AsyncSession,
+    *,
+    requested_by_user_id: int,
+    predecessor_job_id: int,
+    request_id: str,
+    review_evidence_reference: str,
+    review_evidence_sha256: str,
+) -> ETFHoldingsBackfillJob:
+    """Create or return the sole audited successor to a post-transport OIH job."""
+
+    try:
+        normalized_request_id = str(UUID(request_id))
+    except (TypeError, ValueError) as exc:
+        raise ETFHoldingsRouteHeldError("The continuation request id must be a UUID.") from exc
+    if request_id.lower() != normalized_request_id:
+        raise ETFHoldingsRouteHeldError("The continuation request id must be a UUID.")
+    if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9:_.-]{5,179}", review_evidence_reference):
+        raise ETFHoldingsRouteHeldError("The operator review reference is invalid.")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", review_evidence_sha256):
+        raise ETFHoldingsRouteHeldError("The operator review evidence hash is invalid.")
+    request_fingerprint = _posttransport_request_fingerprint(
+        predecessor_job_id=predecessor_job_id,
+        request_id=normalized_request_id,
+        review_evidence_reference=review_evidence_reference,
+        review_evidence_sha256=review_evidence_sha256,
+        requested_by_user_id=requested_by_user_id,
+    )
+    return await _qualify_vaneck_oih_fund(
+        db,
+        requested_by_user_id=requested_by_user_id,
+        continuation_attestation={
+            "predecessor_job_id": predecessor_job_id,
+            "request_id": normalized_request_id,
+            "review_evidence_reference": review_evidence_reference,
+            "review_evidence_sha256": review_evidence_sha256.lower(),
+            "request_fingerprint": request_fingerprint,
         },
     )
 
@@ -1102,6 +1785,7 @@ async def _finish_failed_qualification(
     status: str,
     reason: str,
     redirect_location: str | None,
+    provider_attempt_log_ids: list[int] | None = None,
 ) -> None:
     from app.providers.errors import bounded_redact_provider_message  # noqa: PLC0415
 
@@ -1113,14 +1797,51 @@ async def _finish_failed_qualification(
             job.failure_reason = bounded_redact_provider_message(reason, max_length=1000)
             job.completed_at = datetime.now(UTC)
             extra = dict(job.extra_data or {})
+            callback_ids = list(dict.fromkeys(provider_attempt_log_ids or []))
+            persisted_ids = (
+                set(
+                    (
+                        await session.scalars(
+                            select(ProviderRequestLog.id).where(
+                                ProviderRequestLog.id.in_(callback_ids)
+                            )
+                        )
+                    ).all()
+                )
+                if callback_ids
+                else set()
+            )
             extra["qualification_outcome"] = {
                 "status": "not_qualified",
                 "reason": bounded_redact_provider_message(reason, max_length=1000),
+                "provider_attempt_evidence": {
+                    "admitted_attempt_recorded": bool(callback_ids),
+                    "request_log_callback_ids": callback_ids,
+                    "persisted_request_log_ids": [
+                        request_log_id
+                        for request_log_id in callback_ids
+                        if request_log_id in persisted_ids
+                    ],
+                    "all_callback_logs_persisted": bool(callback_ids)
+                    and len(persisted_ids) == len(callback_ids),
+                    "positive_qualification_linked": False,
+                },
             }
             if redirect_location:
                 extra["unreviewed_redirect_location"] = bounded_redact_provider_message(
                     redirect_location, max_length=2000
                 )
+            continuation = extra.get(VANECK_POSTTRANSPORT_CONTINUATION_KEY)
+            if isinstance(continuation, dict):
+                continuation = dict(continuation)
+                continuation.update(
+                    {
+                        "status": status,
+                        "completed_at": job.completed_at.isoformat(),
+                        "positive_qualification": False,
+                    }
+                )
+                extra[VANECK_POSTTRANSPORT_CONTINUATION_KEY] = continuation
             job.extra_data = extra
         await session.commit()
     finally:

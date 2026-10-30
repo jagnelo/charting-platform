@@ -56,6 +56,7 @@ from app.schemas.etf_holdings import (
     ETFHoldingsShadowGateOut,
     ETFHoldingsSnapshotOut,
     ETFHoldingsTransitionTimelineOut,
+    ETFHoldingsVanEckPostTransportContinuationRequest,
     ETFHoldingsVanEckQualificationRecoveryRequest,
     ETFHoldingsWeightEvolutionOut,
     ETFProfileAcquireOut,
@@ -143,6 +144,7 @@ from app.services.etf_holdings_refresh import (
 )
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
 from app.services.etf_holdings_vaneck_qualification import (
+    continue_vaneck_oih_fund,
     qualify_vaneck_oih_fund,
     recover_vaneck_oih_fund,
 )
@@ -1383,6 +1385,33 @@ async def recover_initial_vaneck_oih_qualification(
             review_evidence_reference=body.review_evidence_reference,
             review_evidence_sha256=body.review_evidence_sha256,
             operator_reason=body.operator_reason,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/vaneck-initial-qualification/continue",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def continue_vaneck_oih_qualification_after_uncertain_attempt(
+    symbol: str,
+    body: ETFHoldingsVanEckPostTransportContinuationRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create one reviewed successor to an exact post-transport-uncertain OIH job."""
+
+    if symbol.strip().upper() != "OIH":
+        raise HTTPException(status_code=422, detail="VanEck continuation is OIH-only")
+    try:
+        return await continue_vaneck_oih_fund(
+            db,
+            requested_by_user_id=current_user.id,
+            predecessor_job_id=body.predecessor_job_id,
+            request_id=str(body.request_id),
+            review_evidence_reference=body.review_evidence_reference,
+            review_evidence_sha256=body.review_evidence_sha256,
         )
     except ETFHoldingsRouteHeldError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

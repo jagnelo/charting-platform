@@ -776,6 +776,20 @@ class ETFHoldingsVanEckQualificationRecoveryRequest(BaseModel):
     operator_reason: str = Field(min_length=20, max_length=500)
 
 
+class ETFHoldingsVanEckPostTransportContinuationRequest(BaseModel):
+    """Reviewed one-shot successor to the exact consumed post-transport OIH job."""
+
+    predecessor_job_id: int = Field(gt=0)
+    request_id: UUID
+    # These values are audit attestations only; the server never reads caller paths.
+    review_evidence_reference: str = Field(
+        min_length=6,
+        max_length=180,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9:_.-]{5,179}$",
+    )
+    review_evidence_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+
+
 class ETFHoldingsSECBulkBackfillRequest(BaseModel):
     symbols: list[str] = Field(default_factory=list)
     start_date: date | None = None

@@ -596,3 +596,16 @@ async def test_expired_vaneck_authority_cannot_open_disabled_policy_pre_review(m
                 policy=policy,
                 entitlement=entitlement,
             )
+
+
+def test_vaneck_review_expiry_guard_preserves_nullable_schedule_semantics():
+    qualification._assert_provider_review_not_expired(
+        SimpleNamespace(review_due_at=None)  # type: ignore[arg-type]
+    )
+    qualification._assert_provider_review_not_expired(
+        SimpleNamespace(review_due_at=datetime.now(UTC) + timedelta(days=1))  # type: ignore[arg-type]
+    )
+    with pytest.raises(ETFHoldingsRouteHeldError, match="review is expired"):
+        qualification._assert_provider_review_not_expired(
+            SimpleNamespace(review_due_at=datetime.now(UTC) - timedelta(seconds=1))  # type: ignore[arg-type]
+        )

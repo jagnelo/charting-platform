@@ -8,6 +8,7 @@ contacts an issuer or provider.
 from __future__ import annotations
 
 import asyncio
+import base64
 import gzip
 import hashlib
 import json
@@ -24,7 +25,7 @@ from xml.sax.saxutils import escape
 import httpx
 import pytest
 import pytest_asyncio
-from sqlalchemy import func, insert, select, text
+from sqlalchemy import event, func, insert, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import selectinload
@@ -2210,6 +2211,11 @@ async def test_dated_cancellation_retains_response_after_real_caller_rollback(
 ):
     """Cancellation in the dated route leaves raw/request lineage after rollback."""
 
+    # This compatibility regression covers the pre-request-driven dated route;
+    # explicit request-driven ETF scope remains tested separately and stays
+    # fail-closed for unsupported operations.
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
     monkeypatch.setattr(
         settings,
         "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
@@ -2730,7 +2736,18 @@ async def test_vaneck_initial_qualification_uses_disabled_policy_and_durably_lin
 
 @pytest.mark.integration
 @pytest.mark.asyncio
-@pytest.mark.parametrize("scenario", ["failed_pretransport", "successful_with_filing"])
+@pytest.mark.parametrize(
+    "scenario",
+    [
+        "failed_pretransport",
+        "successful_with_filing",
+        "settlement_link_rejected",
+        "http_error_response",
+        "transport_error_before_response",
+        "outer_request_rollback",
+        "caller_cancel_after_admission",
+    ],
+)
 async def test_vaneck_qualification_response_eagerly_serializes_after_session_close(
     provider_db, monkeypatch, scenario
 ):
@@ -2745,6 +2762,7 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
         ETFHoldingsRawArtifact,
     )
     from app.services import etf_holdings_vaneck_qualification as qualification
+    from app.services import provider_runtime
 
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
     monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
@@ -2760,19 +2778,33 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
     monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
 
     workbook = _vaneck_initial_qualification_workbook()
-    if scenario == "successful_with_filing":
+    if scenario in {
+        "successful_with_filing",
+        "settlement_link_rejected",
+        "http_error_response",
+        "outer_request_rollback",
+        "caller_cancel_after_admission",
+    }:
 
         class WorkbookRunner:
             def __init__(self):
                 self.calls = []
+                self.started = threading.Event()
+                self.release = threading.Event()
 
             def factory(self):
                 return httpx.MockTransport(self.handle)
 
             def handle(self, request):
                 self.calls.append((request.method, str(request.url)))
+                if scenario == "caller_cancel_after_admission":
+                    self.started.set()
+                    if not self.release.wait(5):
+                        raise httpx.ReadTimeout(
+                            "bounded cancellation fixture timed out", request=request
+                        )
                 return httpx.Response(
-                    200,
+                    503 if scenario == "http_error_response" else 200,
                     content=workbook,
                     headers={
                         "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -2781,9 +2813,42 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
                 )
 
         runner = WorkbookRunner()
+        if scenario == "caller_cancel_after_admission":
+
+            class AsyncWorkbookTransport(httpx.AsyncBaseTransport):
+                async def handle_async_request(self, request):
+                    runner.calls.append((request.method, str(request.url)))
+                    runner.started.set()
+                    if not await asyncio.to_thread(runner.release.wait, 5):
+                        raise httpx.ReadTimeout(
+                            "bounded asynchronous cancellation fixture timed out",
+                            request=request,
+                        )
+                    return httpx.Response(
+                        200,
+                        content=workbook,
+                        headers={
+                            "content-type": (
+                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                            )
+                        },
+                        request=request,
+                    )
+
+                async def aclose(self):
+                    return None
+
+            runner.factory = lambda: AsyncWorkbookTransport()
     else:
         runner = _TransportRunner()
+        if scenario == "transport_error_before_response":
+            runner.raise_timeout = True
     _use_mocktransport(monkeypatch, runner)
+    if scenario == "settlement_link_rejected":
+        # Force exactly one named positive-link predicate to fail after the
+        # real Provider executor has measured and completed its controlled
+        # response. The request log itself must still survive the link error.
+        monkeypatch.setattr(provider_runtime, "_settled_usage_units", lambda *_a, **_k: None)
     suffix = uuid4().hex[:10]
     async with provider_db() as setup:
         case = await _seed_reviewed_fixture(
@@ -2819,12 +2884,12 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
         )
         assert entitlement is not None
         entitlement.configured_plan = (
-            "reviewed-public-download"
-            if scenario == "successful_with_filing"
-            else "public-download-no-paid-activation"
+            "public-download-no-paid-activation"
+            if scenario == "failed_pretransport"
+            else "reviewed-public-download"
         )
         entitlement.live_probe_status = "not_run"
-        entitlement.revision = 2 if scenario == "successful_with_filing" else 1
+        entitlement.revision = 1 if scenario == "failed_pretransport" else 2
         case.policy.is_enabled = False
         admin = User(
             username=f"vaneck-http-failure-{suffix}",
@@ -2839,7 +2904,7 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
         profile_id = profile.id
         instrument_id = instrument.id
 
-    if scenario == "successful_with_filing":
+    if scenario in {"successful_with_filing", "outer_request_rollback"}:
         original_record_success = qualification._record_success
 
         async def add_fixture_related_filing(db, profile, *, snapshot):
@@ -2877,7 +2942,10 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
             )
             try:
                 yield request_db
-                await request_db.commit()
+                if scenario == "outer_request_rollback":
+                    await request_db.rollback()
+                else:
+                    await request_db.commit()
             except BaseException:
                 await request_db.rollback()
                 raise
@@ -2896,40 +2964,89 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
                 operation_backend_pids.append(int(result.scalar_one()))
             return await super().execute(statement, *args, **kwargs)
 
-    created_service_sessions = 0
+    created_service_sessions: list[str] = []
 
     def tracking_async_session(*args, **kwargs):
-        nonlocal created_service_sessions
-        created_service_sessions += 1
-        session = TrackingAsyncSession(*args, **kwargs)
-        session.sync_session.info["tracked_role"] = (
-            "qualification_operation" if created_service_sessions == 1 else "qualification_lock"
+        role = (
+            "qualification_operation"
+            if not created_service_sessions
+            else "qualification_lock"
+            if len(created_service_sessions) == 1
+            else "failed_job_finalizer"
         )
+        created_service_sessions.append(role)
+        session = TrackingAsyncSession(*args, **kwargs)
+        session.sync_session.info["tracked_role"] = role
         return session
 
     monkeypatch.setattr(qualification, "AsyncSession", tracking_async_session)
-    prior_overrides = dict(api_app.dependency_overrides)
-    api_app.dependency_overrides[get_db] = fresh_request_db
-    api_app.dependency_overrides[get_auth_session_factory] = lambda: provider_db
     token = create_access_token(admin_id)
     headers = {"Authorization": f"Bearer {token}"}
     transport = httpx.ASGITransport(app=api_app)
-    try:
-        async with httpx.AsyncClient(transport=transport, base_url="http://etf.test") as client:
-            response = await client.post(
-                "/api/v1/etf-holdings/OIH/vaneck-initial-qualification",
-                headers=headers,
-            )
-    finally:
-        api_app.dependency_overrides.clear()
-        api_app.dependency_overrides.update(prior_overrides)
+    cancelled = False
+    response = None
+    if scenario == "caller_cancel_after_admission":
+        with pytest.raises(asyncio.CancelledError):
+            async with provider_db() as caller_db:
+                async with caller_db.begin():
+                    request_sessions.append(caller_db)
+                    request_backend_pids.append(
+                        int(await caller_db.scalar(text("SELECT pg_backend_pid()")))
+                    )
+                    request_task = asyncio.create_task(
+                        qualification.qualify_vaneck_oih_fund(
+                            caller_db,
+                            requested_by_user_id=admin_id,
+                        )
+                    )
+                    try:
+                        assert await asyncio.to_thread(runner.started.wait, 10)
+                        request_task.cancel()
+                        await asyncio.sleep(0.02)
+                        assert not request_task.done()
+                        runner.release.set()
+                        await request_task
+                    finally:
+                        runner.release.set()
+                        if not request_task.done():
+                            request_task.cancel()
+                            try:
+                                await asyncio.wait_for(request_task, timeout=10)
+                            except asyncio.CancelledError:
+                                pass
+        cancelled = True
+    else:
+        prior_overrides = dict(api_app.dependency_overrides)
+        api_app.dependency_overrides[get_db] = fresh_request_db
+        api_app.dependency_overrides[get_auth_session_factory] = lambda: provider_db
+        try:
+            async with httpx.AsyncClient(transport=transport, base_url="http://etf.test") as client:
+                response = await client.post(
+                    "/api/v1/etf-holdings/OIH/vaneck-initial-qualification",
+                    headers=headers,
+                )
+        finally:
+            api_app.dependency_overrides.clear()
+            api_app.dependency_overrides.update(prior_overrides)
 
-    assert response.status_code == 200, response.text
-    body = response.json()
-    assert body["etf_profile_id"] == profile_id
-    assert body["source_provider"] == "vaneck"
-    assert body["job_type"] == "vaneck_oih_initial_qualification"
-    if scenario == "failed_pretransport":
+    if not cancelled:
+        assert response is not None and response.status_code == 200, (
+            response.text if response else None
+        )
+        body = response.json()
+        assert body["etf_profile_id"] == profile_id
+        assert body["source_provider"] == "vaneck"
+        assert body["job_type"] == "vaneck_oih_initial_qualification"
+    else:
+        body = None
+    if cancelled:
+        assert runner.calls == [
+            (
+                "GET",
+                "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+            )
+        ]
+    elif scenario == "failed_pretransport":
         assert body["status"] == "failed"
         assert body["failure_reason"] == (
             "No currently-supported providers available for "
@@ -2937,7 +3054,7 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
         )
         assert body["filings"] == []
         assert runner.calls == []
-    else:
+    elif scenario in {"successful_with_filing", "outer_request_rollback"}:
         assert body["status"] == "completed"
         assert body["failure_reason"] is None
         assert len(body["filings"]) == 1
@@ -2949,29 +3066,106 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
                 "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
             )
         ]
+    else:
+        assert body["status"] == "failed"
+        assert body["failure_reason"]
+        assert runner.calls == [
+            (
+                "GET",
+                "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+            )
+        ]
+        if scenario == "settlement_link_rejected":
+            assert "settled_usage_units_missing" in body["failure_reason"]
     assert len(request_sessions) == 1
-    assert created_service_sessions == (3 if scenario == "failed_pretransport" else 2)
+    expected_service_session_roles = ["qualification_operation", "qualification_lock"]
+    if scenario not in {"successful_with_filing", "outer_request_rollback"}:
+        expected_service_session_roles.append("failed_job_finalizer")
+    assert created_service_sessions == expected_service_session_roles
     assert len(operation_backend_pids) == 1
     assert operation_backend_pids[0] != request_backend_pids[0]
 
     async with provider_db() as readback:
-        job = await readback.get(ETFHoldingsBackfillJob, body["id"])
-        assert job is not None
-        assert job.status == ("failed" if scenario == "failed_pretransport" else "completed")
-        assert job.etf_profile_id == profile_id
-        if scenario == "failed_pretransport":
-            assert job.extra_data["provider_request_log_ids"] == []
-            assert (
-                await readback.scalar(
-                    select(func.count(ProviderRequestLog.id)).where(
-                        ProviderRequestLog.data_source_id == case.source_id,
-                        ProviderRequestLog.capability == ProviderCapability.ETF_HOLDINGS,
-                        ProviderRequestLog.operation == "fetch_etf_holdings_latest",
-                        ProviderRequestLog.instrument_id == instrument_id,
-                    )
+        job = (
+            await readback.get(ETFHoldingsBackfillJob, body["id"])
+            if body is not None
+            else await readback.scalar(
+                select(ETFHoldingsBackfillJob)
+                .where(
+                    ETFHoldingsBackfillJob.etf_profile_id == profile_id,
+                    ETFHoldingsBackfillJob.job_type == "vaneck_oih_initial_qualification",
                 )
-                == 0
+                .order_by(ETFHoldingsBackfillJob.id.desc())
             )
+        )
+        assert job is not None
+        expected_success = scenario in {"successful_with_filing", "outer_request_rollback"}
+        expected_status = (
+            "interrupted" if cancelled else "completed" if expected_success else "failed"
+        )
+        assert job.status == expected_status
+        assert job.etf_profile_id == profile_id
+        if not expected_success:
+            evidence = job.extra_data["qualification_outcome"]["provider_attempt_evidence"]
+            assert evidence["positive_qualification_linked"] is False
+            if scenario == "failed_pretransport":
+                assert job.extra_data["provider_request_log_ids"] == []
+                assert evidence["admitted_attempt_recorded"] is False
+                assert evidence["request_log_callback_ids"] == []
+                assert evidence["persisted_request_log_ids"] == []
+                assert evidence["all_callback_logs_persisted"] is False
+            else:
+                # A cancelled but fully measured attempt remains linked for
+                # audit if the Provider call completed before cancellation.
+                # Ordinary failure finalization retains those IDs in the
+                # nested attempt evidence without applying the success link.
+                expected_job_log_ids = evidence["persisted_request_log_ids"] if cancelled else []
+                assert job.extra_data["provider_request_log_ids"] == expected_job_log_ids
+                assert evidence["admitted_attempt_recorded"] is True
+                assert len(evidence["request_log_callback_ids"]) == 1
+                assert evidence["persisted_request_log_ids"] == evidence["request_log_callback_ids"]
+                assert evidence["all_callback_logs_persisted"] is True
+            log_rows = list(
+                (
+                    await readback.scalars(
+                        select(ProviderRequestLog)
+                        .where(
+                            ProviderRequestLog.data_source_id == case.source_id,
+                            ProviderRequestLog.capability == ProviderCapability.ETF_HOLDINGS,
+                            ProviderRequestLog.operation == "fetch_etf_holdings_latest",
+                            ProviderRequestLog.instrument_id == instrument_id,
+                        )
+                        .order_by(ProviderRequestLog.id)
+                    )
+                ).all()
+            )
+            if scenario == "failed_pretransport":
+                assert log_rows == []
+            else:
+                assert len(log_rows) == 1
+                log = log_rows[0]
+                assert log.id == evidence["persisted_request_log_ids"][0]
+                assert log.completed_at is not None
+                assert log.settled_usage_units is not None or scenario == "settlement_link_rejected"
+                if scenario == "settlement_link_rejected":
+                    assert log.success is True and log.http_requests == 1
+                    assert log.settled_usage_units is None
+                elif scenario == "http_error_response":
+                    assert log.success is False and log.http_requests == 1
+                    assert log.error_type is not None
+                elif scenario == "transport_error_before_response":
+                    assert log.success is False and log.http_requests == 0
+                    assert log.error_type is not None
+                elif cancelled:
+                    assert log.success is True and log.http_requests == 1
+                if scenario in {"settlement_link_rejected", "http_error_response"}:
+                    raw_response = log.response_payloads[-1]
+                    assert raw_response["kind"] == "vaneck_initial_response_body"
+                    assert raw_response["encoding"] == "base64"
+                    assert raw_response["complete"] is True
+                    assert raw_response["bytes_received"] == len(workbook)
+                    assert raw_response["sha256"] == hashlib.sha256(workbook).hexdigest()
+                    assert base64.b64decode(raw_response["body_base64"], validate=True) == workbook
             assert (
                 await readback.scalar(
                     select(func.count(ETFHoldingsSnapshot.id)).where(
@@ -2994,21 +3188,34 @@ async def test_vaneck_qualification_response_eagerly_serializes_after_session_cl
                 )
             )
             assert diagnostic is not None
-            expected_payload = {
-                "failure_type": "ProviderNoDataError",
-                "failure_message": body["failure_reason"],
-                "validation": None,
-            }
             assert diagnostic.source_kind == "issuer_adapter_rejected_fetch"
-            assert diagnostic.source_url == ""
+            assert diagnostic.source_url == (
+                ""
+                if scenario == "failed_pretransport"
+                else "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true"
+            )
             assert diagnostic.source_identifier is None
-            assert diagnostic.content_type == "application/json"
-            assert diagnostic.content_hash == _hash_payload(expected_payload)
-            assert diagnostic.payload_text is None
-            assert diagnostic.payload_json == expected_payload
-            assert diagnostic.legal_metadata["provider_request_log_ids"] == []
-            assert diagnostic.legal_metadata["request_urls"] == []
-            assert diagnostic.legal_metadata["request_attempts"] == []
+            if scenario in {"settlement_link_rejected", "http_error_response"}:
+                assert diagnostic.content_type == "application/json"
+                assert diagnostic.payload_text is None
+                assert diagnostic.payload_json == log.response_payloads[-1]
+                assert diagnostic.content_hash == _hash_payload(diagnostic.payload_json)
+            if scenario == "failed_pretransport":
+                expected_payload = {
+                    "failure_type": "ProviderNoDataError",
+                    "failure_message": body["failure_reason"],
+                    "validation": None,
+                }
+                assert diagnostic.content_type == "application/json"
+                assert diagnostic.content_hash == _hash_payload(expected_payload)
+                assert diagnostic.payload_text is None
+                assert diagnostic.payload_json == expected_payload
+            assert diagnostic.legal_metadata["provider_request_log_ids"] == (
+                [] if scenario == "failed_pretransport" else evidence["persisted_request_log_ids"]
+            )
+            assert len(diagnostic.legal_metadata["request_attempts"]) == (
+                0 if scenario == "failed_pretransport" else 1
+            )
         else:
             assert len(job.extra_data["provider_request_log_ids"]) == 1
             assert (
@@ -3409,6 +3616,904 @@ async def test_admin_vaneck_recovery_creates_one_linked_successor_and_preserves_
                 operator_reason=payload["operator_reason"],
             )
     assert len(runner.calls) == 1
+
+
+def _configure_vaneck_quota_test_ledger(provider_db, monkeypatch, *, backend, tmp_path):
+    if backend == "postgres":
+        ledger_url = provider_db.url.render_as_string(hide_password=False)
+        ledger_path = None
+    elif backend == "sqlite":
+        ledger_path = tmp_path / "provider-quota.sqlite3"
+        ledger_url = f"sqlite:///{ledger_path}"
+        ledger_engine = quota_coordinator._engine_for(ledger_url)
+        quota_coordinator.metadata.create_all(ledger_engine)
+        ledger_engine.dispose()
+    else:
+        raise AssertionError(f"unknown quota test ledger backend: {backend}")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", ledger_url)
+    return ledger_path
+
+
+async def _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypatch):
+    """Create the retained job2 -> job3 diagnostic chain without inventing wire bytes."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsRawArtifact
+    from app.services.etf_holdings_vaneck_qualification import (
+        VANECK_OIH_INITIAL_DEADLINE_SECONDS,
+        VANECK_OIH_INITIAL_MAX_BODY_BYTES,
+        VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS,
+        VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE,
+        VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+        VANECK_OIH_INITIAL_URL,
+        VANECK_OIH_PRODUCT_SLUG,
+        VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+        _provider_review_fingerprint,
+    )
+
+    (
+        case,
+        profile_id,
+        admin_id,
+        job2_id,
+        job2_extra,
+        job2_started_at,
+        job2_completed_at,
+        diagnostic3,
+    ) = await _seed_failed_vaneck_pretransport_attempt(
+        setup, monkeypatch, include_no_body_diagnostic=True
+    )
+    source = await setup.get(DataSource, case.source_id)
+    profile = await setup.get(ETFProfile, profile_id)
+    entitlement = await setup.scalar(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == case.source_id,
+            ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+        )
+    )
+    job2 = await setup.get(ETFHoldingsBackfillJob, job2_id)
+    assert (
+        source is not None and profile is not None and entitlement is not None and job2 is not None
+    )
+    current_fingerprint = _provider_review_fingerprint(source, case.policy, entitlement)
+    started_at = job2_completed_at + timedelta(seconds=3)
+    completed_at = started_at + timedelta(seconds=2)
+    request_log_id = 13
+    scope = {
+        "provider": "vaneck",
+        "capability": ProviderCapability.ETF_HOLDINGS.value,
+        "operation": VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+        "profile_id": profile_id,
+        "instrument_id": profile.instrument_id,
+        "provider_symbol": "OIH",
+        "product_slug": VANECK_OIH_PRODUCT_SLUG,
+        "request_url": VANECK_OIH_INITIAL_URL,
+        "allowed_initial_host": "www.vaneck.com",
+        "account_scope": case.account_scope,
+        "review_revision": int(entitlement.revision or 1),
+        "expires_at": (
+            started_at + timedelta(seconds=VANECK_OIH_INITIAL_DEADLINE_SECONDS)
+        ).isoformat(),
+        "concurrency": 1,
+        "minimum_physical_interval_seconds": VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS,
+        "burst_capacity": 1,
+        "max_physical_requests": 3,
+        "deadline_seconds": VANECK_OIH_INITIAL_DEADLINE_SECONDS,
+        "max_response_bytes": VANECK_OIH_INITIAL_MAX_BODY_BYTES,
+        "automatic_retries": 0,
+        "follow_redirects": False,
+        "provider_review_fingerprint": current_fingerprint,
+    }
+    job3 = ETFHoldingsBackfillJob(
+        etf_profile_id=profile_id,
+        requested_by_user_id=admin_id,
+        source_provider="vaneck",
+        job_type=VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE,
+        status="failed",
+        started_at=started_at,
+        completed_at=completed_at,
+        failure_reason=VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+        discovered_count=0,
+        ingested_count=0,
+        skipped_count=0,
+        failed_count=1,
+        extra_data={
+            "qualification_scope": scope,
+            "qualification_outcome": {
+                "status": "not_qualified",
+                "reason": VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+            },
+            "provider_request_log_ids": [],
+            "pretransport_recovery": {
+                "predecessor_job_id": job2_id,
+                "review_evidence_reference": "vaneck-oih-fresh-bounded-recovery-review-20261030.json",
+                "review_evidence_sha256": "6d2b76ecfc4e2ea545b83c800233bfcf0338c5b1402021aba9136821a8f4e9fb",
+                "operator_reason": "Root accepted the fully qualified private release and freshly reviewed the exact pretransport failure, immutable diagnostic artifact, current free admission, shared quota ledger and bounded one-successor recovery.",
+                "created_at": started_at.isoformat(),
+                "review_revision": int(entitlement.revision or 1),
+                "provider_review_fingerprint": current_fingerprint,
+                "predecessor_diagnostic_artifacts": [diagnostic3],
+            },
+        },
+    )
+    setup.add(job3)
+    await setup.flush()
+    diagnostic_payload = {
+        "failure_type": "ETFHoldingsRouteHeldError",
+        "failure_message": VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+        "validation": None,
+    }
+    assert _hash_payload(diagnostic_payload) == (
+        "25c2d92366c306c378fab29a91dd201ffc5366ef273719ad03e41182ac9675dc"
+    )
+    artifact4 = ETFHoldingsRawArtifact(
+        etf_profile_id=profile_id,
+        data_source_id=source.id,
+        source_kind="issuer_adapter_rejected_fetch",
+        source_url=VANECK_OIH_INITIAL_URL,
+        source_identifier=None,
+        content_type="application/json",
+        content_hash=_hash_payload(diagnostic_payload),
+        composition_date=None,
+        as_of_date=None,
+        published_at=None,
+        fetched_at=completed_at - timedelta(milliseconds=100),
+        parser_version="vaneck",
+        payload_text=None,
+        payload_json=diagnostic_payload,
+        legal_metadata={
+            "provider_request_log_ids": [request_log_id],
+            "request_urls": [VANECK_OIH_INITIAL_URL],
+            "request_attempts": [],
+            "failure_type": "ETFHoldingsRouteHeldError",
+            "failure_message": VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
+            "validation": None,
+            "evidence_source": "shared_provider_request_log_and_refresh_rejection",
+        },
+    )
+    setup.add(artifact4)
+    await setup.commit()
+
+    ledger_engine = quota_coordinator._engine_for(settings.PROVIDER_QUOTA_LEDGER_DATABASE_URL)
+    reservation_id = str(uuid4())
+    with ledger_engine.begin() as connection:
+        connection.execute(
+            insert(quota_coordinator._reservations).values(
+                reservation_id=reservation_id,
+                provider_name="vaneck",
+                account_scope=case.account_scope,
+                operation="fetch_etf_holdings_latest",
+                quota_group="requests",
+                dimension="requests",
+                unit="requests",
+                window_started_at=started_at - timedelta(seconds=30),
+                window_seconds=60,
+                reserved_units=1,
+                release_only=False,
+                lease_expires_at=None,
+                identity_digest=None,
+                state="settled",
+                created_at=started_at + timedelta(milliseconds=250),
+                settled_at=started_at + timedelta(milliseconds=900),
+            )
+        )
+    ledger_engine.dispose()
+    return {
+        "case": case,
+        "profile_id": profile_id,
+        "admin_id": admin_id,
+        "job2_id": job2_id,
+        "job2_extra": job2_extra,
+        "job2_started_at": job2_started_at,
+        "job2_completed_at": job2_completed_at,
+        "job3_id": job3.id,
+        "job3_completed_at": completed_at,
+        "job3_extra": job3.extra_data,
+        "artifact4_id": artifact4.id,
+        "artifact4_hash": artifact4.content_hash,
+        "missing_request_log_id": request_log_id,
+        "reservation_id": reservation_id,
+    }
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("ledger_backend", ["postgres", "sqlite"])
+@pytest.mark.asyncio
+async def test_admin_vaneck_posttransport_continuation_is_one_shot_and_idempotent(
+    provider_db, monkeypatch, tmp_path, ledger_backend
+):
+    """A reviewed successor can qualify once while preserving job2/job3 and spent use."""
+
+    from app.auth.jwt import create_access_token
+    from app.database import get_auth_session_factory, get_db
+    from app.main import app as api_app
+    from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsRawArtifact
+    from app.services import etf_holdings_vaneck_qualification as vaneck_qualification
+    from app.services.etf_holdings_vaneck_qualification import (
+        VANECK_POSTTRANSPORT_CONTINUATION_KEY,
+        _provider_review_fingerprint,
+        _validate_posttransport_predecessor,
+    )
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    sqlite_ledger_path = _configure_vaneck_quota_test_ledger(
+        provider_db, monkeypatch, backend=ledger_backend, tmp_path=tmp_path
+    )
+    sqlite_read_transaction_states = []
+    if sqlite_ledger_path is not None:
+        original_create_engine = vaneck_qualification.create_engine
+
+        def create_engine_with_read_transaction_observer(*args, **kwargs):
+            engine = original_create_engine(*args, **kwargs)
+
+            @event.listens_for(engine, "before_cursor_execute")
+            def record_sqlite_driver_transaction(
+                connection, _cursor, statement, _parameters, _context, _executemany
+            ):
+                if statement.lstrip().upper().startswith("SELECT"):
+                    sqlite_read_transaction_states.append(
+                        connection.connection.driver_connection.in_transaction
+                    )
+
+            return engine
+
+        monkeypatch.setattr(
+            vaneck_qualification, "create_engine", create_engine_with_read_transaction_observer
+        )
+    seeds = dict(settings.PROVIDER_ENTITLEMENT_SEEDS or {})
+    seeds.pop("vaneck", None)
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+    async with provider_db() as setup:
+        fixture = await _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypatch)
+        non_admin = User(
+            username=f"vaneck-reader-{uuid4().hex[:10]}",
+            email=f"vaneck-reader-{uuid4().hex[:10]}@example.test",
+            hashed_password="unused-test-password-hash",
+            is_admin=False,
+        )
+        setup.add(non_admin)
+        await setup.commit()
+        non_admin_id = non_admin.id
+        if sqlite_ledger_path is not None:
+            ledger_bytes_before_read = sqlite_ledger_path.read_bytes()
+            ledger_stat_before_read = sqlite_ledger_path.stat()
+            source = await setup.get(DataSource, fixture["case"].source_id)
+            profile = await setup.get(ETFProfile, fixture["profile_id"])
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == fixture["case"].source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert source is not None and profile is not None and entitlement is not None
+            lineage_preflight = await _validate_posttransport_predecessor(
+                setup,
+                predecessor_job_id=fixture["job3_id"],
+                profile=profile,
+                source=source,
+                entitlement=entitlement,
+                account_scope=fixture["case"].account_scope,
+                current_fingerprint=_provider_review_fingerprint(
+                    source, fixture["case"].policy, entitlement
+                ),
+            )
+            assert lineage_preflight[1]["settled_prior_usage"]["unit"] == "requests"
+            assert sqlite_read_transaction_states and all(sqlite_read_transaction_states)
+            assert sqlite_ledger_path.read_bytes() == ledger_bytes_before_read
+            ledger_stat_after_read = sqlite_ledger_path.stat()
+            assert ledger_stat_after_read.st_ino == ledger_stat_before_read.st_ino
+            assert ledger_stat_after_read.st_size == ledger_stat_before_read.st_size
+    workbook = _vaneck_initial_qualification_workbook()
+
+    class WorkbookRunner:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            return httpx.Response(
+                200,
+                content=workbook,
+                headers={
+                    "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                },
+                request=request,
+            )
+
+    runner = WorkbookRunner()
+    _use_mocktransport(monkeypatch, runner)
+    previous_overrides = dict(api_app.dependency_overrides)
+
+    async def fresh_request_db():
+        async with provider_db() as request_db:
+            try:
+                yield request_db
+                await request_db.commit()
+            except BaseException:
+                await request_db.rollback()
+                raise
+
+    api_app.dependency_overrides[get_db] = fresh_request_db
+    api_app.dependency_overrides[get_auth_session_factory] = lambda: provider_db
+    token = create_access_token(fixture["admin_id"])
+    non_admin_token = create_access_token(non_admin_id)
+    request_uuid = str(uuid4())
+    payload = {
+        "predecessor_job_id": fixture["job3_id"],
+        "request_id": request_uuid,
+        "review_evidence_reference": "root-review:job3-successor-2026-10-30",
+        "review_evidence_sha256": "c" * 64,
+    }
+    endpoint = "/api/v1/etf-holdings/OIH/vaneck-initial-qualification/continue"
+    try:
+        async with httpx.AsyncClient(
+            transport=httpx.ASGITransport(app=api_app), base_url="http://etf.test"
+        ) as client:
+            non_admin_response = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {non_admin_token}"},
+                json=payload,
+            )
+            assert non_admin_response.status_code == 403
+            assert runner.calls == []
+            responses = await asyncio.gather(
+                *(
+                    client.post(
+                        endpoint,
+                        headers={"Authorization": f"Bearer {token}"},
+                        json=payload,
+                    )
+                    for _ in range(2)
+                )
+            )
+            changed_body = {**payload, "review_evidence_sha256": "d" * 64}
+            changed = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {token}"},
+                json=changed_body,
+            )
+            second_successor = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {token}"},
+                json={**payload, "request_id": str(uuid4())},
+            )
+    finally:
+        api_app.dependency_overrides.clear()
+        api_app.dependency_overrides.update(previous_overrides)
+
+    assert [response.status_code for response in responses] == [200, 200]
+    bodies = [response.json() for response in responses]
+    assert bodies[0]["id"] == bodies[1]["id"] != fixture["job3_id"]
+    assert all(body["status"] == "completed" for body in bodies)
+    assert changed.status_code == 409
+    assert second_successor.status_code == 409
+    assert runner.calls == [
+        (
+            "GET",
+            "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+        )
+    ]
+    body = bodies[0]
+    continuation = body["extra_data"][VANECK_POSTTRANSPORT_CONTINUATION_KEY]
+    assert continuation["request_id"] == request_uuid
+    assert continuation["predecessor_job_id"] == fixture["job3_id"]
+    assert continuation["predecessor_lineage"]["physical_outcome"] == (
+        "unknown_after_admission_and_settlement"
+    )
+    assert continuation["predecessor_lineage"]["missing_request_log_ids"] == [
+        fixture["missing_request_log_id"]
+    ]
+    assert (
+        continuation["predecessor_lineage"]["settled_prior_usage"]["reservation_id"]
+        == (fixture["reservation_id"])
+    )
+    spent = continuation["predecessor_lineage"]["settled_prior_usage"]
+    assert spent["quota_group"] == spent["dimension"] == spent["unit"] == "requests"
+    assert fixture["job3_extra"]["provider_request_log_ids"] == []
+    assert fixture["job3_extra"]["qualification_outcome"] == {
+        "status": "not_qualified",
+        "reason": "VanEck qualification request logs are incomplete or outside its exact scope",
+    }
+    assert continuation["physical_request_limit"] == 1
+    assert continuation["status"] == "completed"
+    assert continuation["positive_qualification"] is True
+    assert body["extra_data"]["qualification_scope"]["max_physical_requests"] == 1
+
+    async with provider_db() as readback:
+        job2 = await readback.get(ETFHoldingsBackfillJob, fixture["job2_id"])
+        job3 = await readback.get(ETFHoldingsBackfillJob, fixture["job3_id"])
+        successor = await readback.get(ETFHoldingsBackfillJob, body["id"])
+        artifact4 = await readback.get(ETFHoldingsRawArtifact, fixture["artifact4_id"])
+        assert (
+            job2 is not None
+            and job3 is not None
+            and successor is not None
+            and artifact4 is not None
+        )
+        assert job2.status == "failed" and job2.extra_data == fixture["job2_extra"]
+        assert job3.status == "failed" and job3.extra_data == fixture["job3_extra"]
+        assert artifact4.content_hash == fixture["artifact4_hash"]
+        assert successor.status == "completed"
+        assert len(successor.extra_data["provider_request_log_ids"]) == 1
+        assert (
+            await readback.scalar(
+                select(func.count(ETFHoldingsBackfillJob.id)).where(
+                    ETFHoldingsBackfillJob.etf_profile_id == fixture["profile_id"],
+                    ETFHoldingsBackfillJob.job_type == "vaneck_oih_initial_qualification",
+                )
+            )
+            == 3
+        )
+        policy = await readback.get(ProviderPolicy, fixture["case"].policy.id)
+        entitlement = await readback.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == fixture["case"].source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "passed"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("ledger_backend", ["postgres", "sqlite"])
+@pytest.mark.parametrize(
+    ("ledger_field", "bad_value"),
+    [
+        ("quota_group", "bytes"),
+        ("dimension", "bytes"),
+        ("unit", "bytes"),
+        ("settled_at", "after_job"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_vaneck_posttransport_continuation_denies_mismatched_spent_reservation(
+    provider_db, monkeypatch, tmp_path, ledger_backend, ledger_field, bad_value
+):
+    """Only the exact settled request unit can justify this successor."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsRawArtifact
+    from app.services.etf_holdings_vaneck_qualification import continue_vaneck_oih_fund
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    sqlite_ledger_path = _configure_vaneck_quota_test_ledger(
+        provider_db, monkeypatch, backend=ledger_backend, tmp_path=tmp_path
+    )
+    seeds = dict(settings.PROVIDER_ENTITLEMENT_SEEDS or {})
+    seeds.pop("vaneck", None)
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+    async with provider_db() as setup:
+        fixture = await _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypatch)
+
+    quota_engine = quota_coordinator._engine_for(settings.PROVIDER_QUOTA_LEDGER_DATABASE_URL)
+    invalid_value = (
+        fixture["job3_completed_at"] + timedelta(seconds=1)
+        if bad_value == "after_job"
+        else bad_value
+    )
+    with quota_engine.begin() as connection:
+        connection.execute(
+            quota_coordinator._reservations.update()
+            .where(quota_coordinator._reservations.c.reservation_id == fixture["reservation_id"])
+            .values(**{ledger_field: invalid_value})
+        )
+    quota_engine.dispose()
+    sqlite_ledger_before = sqlite_ledger_path.read_bytes() if sqlite_ledger_path else None
+
+    class ForbiddenTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            raise AssertionError("invalid spent-reservation evidence must stop before transport")
+
+    transport = ForbiddenTransport()
+    _use_mocktransport(monkeypatch, transport)
+    async with provider_db() as request_db:
+        with pytest.raises(ETFHoldingsRouteHeldError, match="settled OIH usage unit"):
+            await continue_vaneck_oih_fund(
+                request_db,
+                requested_by_user_id=fixture["admin_id"],
+                predecessor_job_id=fixture["job3_id"],
+                request_id=str(uuid4()),
+                review_evidence_reference="root-review:job3-successor-2026-10-30",
+                review_evidence_sha256="c" * 64,
+            )
+    assert transport.calls == []
+    if sqlite_ledger_path is not None:
+        assert sqlite_ledger_path.read_bytes() == sqlite_ledger_before
+
+    async with provider_db() as readback:
+        assert (
+            await readback.scalar(
+                select(func.count(ETFHoldingsBackfillJob.id)).where(
+                    ETFHoldingsBackfillJob.etf_profile_id == fixture["profile_id"],
+                    ETFHoldingsBackfillJob.job_type == "vaneck_oih_initial_qualification",
+                )
+            )
+            == 2
+        )
+        job3 = await readback.get(ETFHoldingsBackfillJob, fixture["job3_id"])
+        artifact4 = await readback.get(ETFHoldingsRawArtifact, fixture["artifact4_id"])
+        assert job3 is not None and job3.extra_data == fixture["job3_extra"]
+        assert artifact4 is not None and artifact4.content_hash == fixture["artifact4_hash"]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(
+    "invalid_state", ["predecessor_scope", "expired_review", "unreviewed_plan", "enabled_policy"]
+)
+@pytest.mark.asyncio
+async def test_vaneck_posttransport_continuation_denies_stale_or_invalid_preflight(
+    provider_db, monkeypatch, tmp_path, invalid_state
+):
+    """Invalid lineage/review/admission is denied before successor admission or transport."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsRawArtifact
+    from app.services.etf_holdings_vaneck_qualification import continue_vaneck_oih_fund
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    _configure_vaneck_quota_test_ledger(
+        provider_db, monkeypatch, backend="postgres", tmp_path=tmp_path
+    )
+    seeds = dict(settings.PROVIDER_ENTITLEMENT_SEEDS or {})
+    seeds.pop("vaneck", None)
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+    async with provider_db() as setup:
+        fixture = await _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypatch)
+        job3 = await setup.get(ETFHoldingsBackfillJob, fixture["job3_id"])
+        entitlement = await setup.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == fixture["case"].source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert job3 is not None and entitlement is not None
+        if invalid_state == "predecessor_scope":
+            extra = dict(job3.extra_data)
+            scope = dict(extra["qualification_scope"])
+            scope["request_url"] = "https://unreviewed.invalid/holdings.xlsx"
+            extra["qualification_scope"] = scope
+            job3.extra_data = extra
+        elif invalid_state == "expired_review":
+            entitlement.review_due_at = datetime.now(UTC) - timedelta(seconds=1)
+        elif invalid_state == "unreviewed_plan":
+            entitlement.configured_plan = "public-download-no-paid-activation"
+        elif invalid_state == "enabled_policy":
+            fixture["case"].policy.is_enabled = True
+        await setup.commit()
+
+    class ForbiddenTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            raise AssertionError("invalid predecessor/review must deny before transport")
+
+    transport = ForbiddenTransport()
+    _use_mocktransport(monkeypatch, transport)
+    expected_rejection = "review.*expired" if invalid_state == "expired_review" else None
+    async with provider_db() as request_db:
+        with pytest.raises(ETFHoldingsRouteHeldError, match=expected_rejection):
+            await continue_vaneck_oih_fund(
+                request_db,
+                requested_by_user_id=fixture["admin_id"],
+                predecessor_job_id=fixture["job3_id"],
+                request_id=str(uuid4()),
+                review_evidence_reference="root-review:job3-successor-2026-10-30",
+                review_evidence_sha256="c" * 64,
+            )
+    assert transport.calls == []
+
+    async with provider_db() as readback:
+        jobs = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsBackfillJob).where(
+                        ETFHoldingsBackfillJob.etf_profile_id == fixture["profile_id"],
+                        ETFHoldingsBackfillJob.job_type == "vaneck_oih_initial_qualification",
+                    )
+                )
+            ).all()
+        )
+        assert {job.id for job in jobs} == {fixture["job2_id"], fixture["job3_id"]}
+        job3 = await readback.get(ETFHoldingsBackfillJob, fixture["job3_id"])
+        artifact4 = await readback.get(ETFHoldingsRawArtifact, fixture["artifact4_id"])
+        assert job3 is not None and job3.status == "failed"
+        assert artifact4 is not None and artifact4.content_hash == fixture["artifact4_hash"]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("late_denial", ["global_routing_stop", "operation_hold", "positive_cost"])
+@pytest.mark.asyncio
+async def test_vaneck_posttransport_late_admission_denial_is_durable_and_nonpositive(
+    provider_db, monkeypatch, tmp_path, late_denial
+):
+    """A shared-runtime denial after admission retains a failed successor, never a success."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsSnapshot
+    from app.services.etf_holdings_vaneck_qualification import (
+        VANECK_POSTTRANSPORT_CONTINUATION_KEY,
+        continue_vaneck_oih_fund,
+    )
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    _configure_vaneck_quota_test_ledger(
+        provider_db, monkeypatch, backend="postgres", tmp_path=tmp_path
+    )
+    seeds = dict(settings.PROVIDER_ENTITLEMENT_SEEDS or {})
+    seeds.pop("vaneck", None)
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+    async with provider_db() as setup:
+        fixture = await _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypatch)
+        if late_denial == "positive_cost":
+            commitment = await setup.scalar(
+                select(ProviderRecurringCostCommitment).where(
+                    ProviderRecurringCostCommitment.data_source_id == fixture["case"].source_id,
+                    ProviderRecurringCostCommitment.environment == settings.APP_ENV.strip().lower(),
+                )
+            )
+            assert commitment is not None
+            commitment.amount = Decimal("1.00")
+            commitment.monthly_equivalent = Decimal("1.00")
+            await setup.commit()
+
+    if late_denial == "global_routing_stop":
+        monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", False)
+    elif late_denial == "operation_hold":
+        holds = dict(settings.PROVIDER_CHECKPOINT_OPERATION_HOLDS or {})
+        holds["vaneck"] = {"fetch_etf_holdings_latest": "focused continuation hold"}
+        monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", holds)
+
+    class ForbiddenTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            raise AssertionError("held admission must stop before issuer transport")
+
+    transport = ForbiddenTransport()
+    _use_mocktransport(monkeypatch, transport)
+    async with provider_db() as request_db:
+        result = await continue_vaneck_oih_fund(
+            request_db,
+            requested_by_user_id=fixture["admin_id"],
+            predecessor_job_id=fixture["job3_id"],
+            request_id=str(uuid4()),
+            review_evidence_reference="root-review:job3-successor-2026-10-30",
+            review_evidence_sha256="c" * 64,
+        )
+    assert transport.calls == []
+    assert result.status == "failed"
+    extra = result.extra_data
+    outcome = extra["qualification_outcome"]
+    continuation = extra[VANECK_POSTTRANSPORT_CONTINUATION_KEY]
+    assert outcome["status"] == "not_qualified"
+    assert outcome["provider_attempt_evidence"]["positive_qualification_linked"] is False
+    assert continuation["status"] == "failed"
+    assert continuation["positive_qualification"] is False
+
+    async with provider_db() as readback:
+        persisted = await readback.get(ETFHoldingsBackfillJob, result.id)
+        assert persisted is not None and persisted.status == "failed"
+        assert (
+            await readback.scalar(
+                select(func.count(ETFHoldingsSnapshot.id)).where(
+                    ETFHoldingsSnapshot.etf_profile_id == fixture["profile_id"]
+                )
+            )
+            == 0
+        )
+        policy = await readback.get(ProviderPolicy, fixture["case"].policy.id)
+        entitlement = await readback.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == fixture["case"].source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "not_run"
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("scenario", ["http_error", "caller_cancel", "review_expires_during_fetch"])
+@pytest.mark.asyncio
+async def test_vaneck_posttransport_transport_error_and_cancellation_remain_audited(
+    provider_db, monkeypatch, tmp_path, scenario
+):
+    """Transport failures and caller cancellation retain logs without positive output."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsSnapshot
+    from app.services import etf_holdings_vaneck_qualification as vaneck_qualification
+    from app.services.etf_holdings_vaneck_qualification import (
+        VANECK_POSTTRANSPORT_CONTINUATION_KEY,
+        continue_vaneck_oih_fund,
+    )
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    review_clock_shift = {"value": timedelta(0)}
+    real_datetime = vaneck_qualification.datetime
+
+    class ShiftableReviewDateTime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return real_datetime.now(tz) + review_clock_shift["value"]
+
+    monkeypatch.setattr(vaneck_qualification, "datetime", ShiftableReviewDateTime)
+    _configure_vaneck_quota_test_ledger(
+        provider_db, monkeypatch, backend="postgres", tmp_path=tmp_path
+    )
+    seeds = dict(settings.PROVIDER_ENTITLEMENT_SEEDS or {})
+    seeds.pop("vaneck", None)
+    monkeypatch.setattr(settings, "PROVIDER_ENTITLEMENT_SEEDS", seeds)
+    async with provider_db() as setup:
+        fixture = await _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypatch)
+    workbook = _vaneck_initial_qualification_workbook()
+
+    class ControlledTransport(httpx.AsyncBaseTransport):
+        def __init__(self):
+            self.calls = []
+            self.started = threading.Event()
+            self.release = threading.Event()
+
+        async def handle_async_request(self, request):
+            self.calls.append((request.method, str(request.url)))
+            self.started.set()
+            if scenario == "caller_cancel":
+                if not await asyncio.to_thread(self.release.wait, 5):
+                    raise httpx.ReadTimeout("cancellation fixture timed out", request=request)
+                return httpx.Response(
+                    200,
+                    content=workbook,
+                    headers={
+                        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    },
+                    request=request,
+                )
+            if scenario == "review_expires_during_fetch":
+                review_clock_shift["value"] = timedelta(days=2)
+                return httpx.Response(
+                    200,
+                    content=workbook,
+                    headers={
+                        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                    },
+                    request=request,
+                )
+            return httpx.Response(503, content=b"controlled publisher failure", request=request)
+
+        async def aclose(self):
+            return None
+
+    controlled = ControlledTransport()
+    _use_mocktransport(monkeypatch, SimpleNamespace(factory=lambda: controlled))
+    kwargs = {
+        "requested_by_user_id": fixture["admin_id"],
+        "predecessor_job_id": fixture["job3_id"],
+        "request_id": str(uuid4()),
+        "review_evidence_reference": "root-review:job3-successor-2026-10-30",
+        "review_evidence_sha256": "c" * 64,
+    }
+    if scenario == "caller_cancel":
+        async with provider_db() as caller_db:
+            with pytest.raises(asyncio.CancelledError):
+                async with caller_db.begin():
+                    request_task = asyncio.create_task(
+                        continue_vaneck_oih_fund(caller_db, **kwargs)
+                    )
+                    try:
+                        assert await asyncio.to_thread(controlled.started.wait, 10)
+                        request_task.cancel()
+                        await asyncio.sleep(0.02)
+                        assert not request_task.done()
+                        controlled.release.set()
+                        await request_task
+                    finally:
+                        controlled.release.set()
+                        if not request_task.done():
+                            request_task.cancel()
+                            try:
+                                await asyncio.wait_for(request_task, timeout=10)
+                            except asyncio.CancelledError:
+                                pass
+        expected_status = "interrupted"
+    else:
+        async with provider_db() as request_db:
+            result = await continue_vaneck_oih_fund(request_db, **kwargs)
+        assert result.status == "failed"
+        expected_status = "failed"
+    assert controlled.calls == [
+        (
+            "GET",
+            "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+        )
+    ]
+
+    async with provider_db() as readback:
+        successor = await readback.scalar(
+            select(ETFHoldingsBackfillJob).where(
+                ETFHoldingsBackfillJob.etf_profile_id == fixture["profile_id"],
+                ETFHoldingsBackfillJob.id != fixture["job2_id"],
+                ETFHoldingsBackfillJob.id != fixture["job3_id"],
+            )
+        )
+        assert successor is not None and successor.status == expected_status
+        outcome = successor.extra_data["qualification_outcome"]
+        continuation = successor.extra_data[VANECK_POSTTRANSPORT_CONTINUATION_KEY]
+        assert outcome["status"] == "not_qualified"
+        assert outcome["provider_attempt_evidence"]["positive_qualification_linked"] is False
+        assert continuation["status"] == expected_status
+        assert continuation["positive_qualification"] is False
+        evidence = outcome["provider_attempt_evidence"]
+        callback_ids = evidence["request_log_callback_ids"]
+        persisted_ids = evidence["persisted_request_log_ids"]
+        assert evidence["all_callback_logs_persisted"] is True
+        assert len(callback_ids) == len(persisted_ids) == 1
+        assert callback_ids == persisted_ids
+        job_scope_ids = successor.extra_data["provider_request_log_ids"]
+        if scenario == "http_error":
+            # A failed physical attempt is durable evidence, not a positively
+            # scope-linked qualification request.
+            assert job_scope_ids == []
+        else:
+            assert job_scope_ids == callback_ids
+        log = await readback.get(ProviderRequestLog, persisted_ids[0])
+        assert log is not None and log.completed_at is not None
+        assert log.http_requests == 1
+        assert log.success is (scenario != "http_error")
+        if scenario == "http_error":
+            assert log.error_type is not None
+            assert any(
+                "controlled publisher failure" in str(item) for item in log.response_payloads
+            )
+        assert (
+            await readback.scalar(
+                select(func.count(ETFHoldingsSnapshot.id)).where(
+                    ETFHoldingsSnapshot.etf_profile_id == fixture["profile_id"]
+                )
+            )
+            == 0
+        )
+        job3 = await readback.get(ETFHoldingsBackfillJob, fixture["job3_id"])
+        assert job3 is not None and job3.extra_data == fixture["job3_extra"]
+        policy = await readback.get(ProviderPolicy, fixture["case"].policy.id)
+        entitlement = await readback.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == fixture["case"].source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "not_run"
 
 
 @pytest.mark.integration
@@ -4211,6 +5316,10 @@ async def test_initial_sec_qualification_is_one_shot_and_leaves_policy_disabled(
     from app.models.etf_holdings import ETFHoldingsBackfillFiling, ETFHoldingsBackfillJob
     from app.services import etf_holdings_edgar as edgar
 
+    # The SEC qualification compatibility matrix predates the issuer-only
+    # request-driven scope and has its own sealed SEC authority. Keep that
+    # source path on its canonical legacy setting in this fixture.
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
     monkeypatch.setattr(
         settings,

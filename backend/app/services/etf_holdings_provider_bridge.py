@@ -40,7 +40,7 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.providers.telemetry import observe_response
+from app.providers.telemetry import observe_binary_response_payload, observe_response
 from app.services.provider_quota_coordinator import account_scope_for_provider
 from app.services.provider_recurring_costs import provider_recurring_cost_status
 from app.services.provider_runtime import (
@@ -95,6 +95,58 @@ def _has_explicit_account_scope_mapping(
 
 class ETFHoldingsRouteHeldError(PermissionError):
     """The publisher route is unknown or lacks reviewed admission evidence."""
+
+
+def _vaneck_qualification_log_link_failure_codes(
+    *,
+    source: DataSource | None,
+    logs: list[ProviderRequestLog],
+    attempt_log_ids: list[int],
+    operation: str,
+    instrument_id: int,
+    provider_symbol: str,
+) -> tuple[str, ...]:
+    """Name failed success-link predicates without exposing row contents."""
+
+    failures: list[str] = []
+    if source is None:
+        failures.append("source_missing")
+    if len(logs) != len(attempt_log_ids):
+        failures.append("log_count_mismatch")
+    if len(set(attempt_log_ids)) != len(attempt_log_ids):
+        failures.append("duplicate_attempt_log_ids")
+    if {row.id for row in logs} != set(attempt_log_ids):
+        failures.append("log_id_set_mismatch")
+    expected_source_id = source.id if source is not None else None
+    expected_symbol = provider_symbol.strip().upper()
+    for row in logs:
+        if row.data_source_id != expected_source_id:
+            failures.append("data_source_mismatch")
+        if row.capability != ProviderCapability.ETF_HOLDINGS:
+            failures.append("capability_mismatch")
+        if row.operation != operation:
+            failures.append("operation_mismatch")
+        if row.instrument_id != instrument_id:
+            failures.append("instrument_mismatch")
+        if (row.provider_symbol or "").strip().upper() != expected_symbol:
+            failures.append("provider_symbol_mismatch")
+        if row.http_requests != 1:
+            failures.append("http_request_count_not_one")
+        if row.completed_at is None:
+            failures.append("completed_at_missing")
+        if row.settled_usage_units is None:
+            failures.append("settled_usage_units_missing")
+    return tuple(dict.fromkeys(failures))
+
+
+def _is_vaneck_initial_qualification_binding(binding: Any | None) -> bool:
+    """Limit failure-link behavior to the sealed VanEck-only context."""
+
+    return bool(
+        binding is not None
+        and binding.vaneck_initial_qualification_job_id is not None
+        and binding.initial_qualification_authority is None
+    )
 
 
 @dataclass(frozen=True)
@@ -1440,26 +1492,18 @@ async def execute_etf_holdings_request_attempt(
                 )
             ).all()
         )
-        if (
-            source is None
-            or len(logs) != len(attempt_log_ids)
-            or len(set(attempt_log_ids)) != len(attempt_log_ids)
-            or {row.id for row in logs} != set(attempt_log_ids)
-            or any(
-                row.data_source_id != source.id
-                or row.capability != ProviderCapability.ETF_HOLDINGS
-                or row.operation != binding.operation
-                or row.instrument_id != binding.instrument_id
-                or (row.provider_symbol or "").strip().upper()
-                != binding.provider_symbol.strip().upper()
-                or row.http_requests != 1
-                or row.completed_at is None
-                or row.settled_usage_units is None
-                for row in logs
-            )
-        ):
+        failure_codes = _vaneck_qualification_log_link_failure_codes(
+            source=source,
+            logs=logs,
+            attempt_log_ids=attempt_log_ids,
+            operation=binding.operation,
+            instrument_id=binding.instrument_id,
+            provider_symbol=binding.provider_symbol,
+        )
+        if failure_codes:
             raise ETFHoldingsRouteHeldError(
-                "VanEck qualification request logs are incomplete or outside its exact scope"
+                "VanEck qualification request logs are incomplete or outside its exact scope "
+                f"(failed checks: {', '.join(failure_codes)})"
             )
         extra_data["provider_request_log_ids"] = list(attempt_log_ids)
         job.extra_data = extra_data
@@ -1544,16 +1588,26 @@ async def execute_etf_holdings_request_attempt(
                 with _bind_etf_initial_qualification_authority(authority):
                     result = await execute_shared_call()
             await retain_qualification_log_ids(runtime_db)
-        except BaseException:
+        except BaseException as attempt_error:
             if attempt_log_ids:
                 try:
-                    await retain_qualification_log_ids(runtime_db)
-                    await runtime_db.commit()
-                except BaseException:
-                    # Preserve the original provider/transport exception. If
-                    # the audit link itself cannot be committed, leave the
-                    # qualification latch unresolved and fail closed.
+                    if _is_vaneck_initial_qualification_binding(binding):
+                        # VanEck's strict link is positive evidence only. Once
+                        # its predicates reject a row, do not repeat that same
+                        # link in the exception path; commit the measured
+                        # attempt so the failed-job finalizer can retain it as
+                        # explicitly nonpositive evidence.
+                        await runtime_db.commit()
+                    else:
+                        # Preserve the prior SEC and ordinary-request
+                        # exception behavior: their existing audit linker is
+                        # still attempted before the runtime transaction is
+                        # committed.
+                        await retain_qualification_log_ids(runtime_db)
+                        await runtime_db.commit()
+                except BaseException as persistence_error:
                     await runtime_db.rollback()
+                    raise attempt_error from persistence_error
             else:
                 await runtime_db.rollback()
             raise
@@ -1589,6 +1643,71 @@ async def execute_etf_holdings_request_attempt(
         raise
 
 
+def _observe_httpx_attempt_response(
+    response: httpx.Response,
+    *,
+    preserve_binary_payload: bool,
+    max_response_bytes: int | None,
+) -> None:
+    """Retain exact bytes for bounded VanEck binary responses.
+
+    Generic telemetry intentionally keeps its established JSON/text behavior.
+    The one bounded VanEck qualification may return an XLS/XLSX archive; its
+    decoded ``response.text`` is not a lossless raw artifact when bytes contain
+    NULs or invalid UTF-8. Keep those wire bytes in the existing binary
+    telemetry envelope instead.
+    """
+
+    if not preserve_binary_payload:
+        observe_response(response)
+        return
+
+    try:
+        body = bytes(response.content or b"")
+    except httpx.ResponseNotRead:
+        observe_response(response)
+        return
+    if not body:
+        observe_response(response)
+        return
+
+    content_type = str(response.headers.get("content-type", "")).strip().lower()
+    binary_content_type = any(
+        marker in content_type
+        for marker in (
+            "spreadsheetml",
+            "application/vnd.ms-excel",
+            "application/zip",
+            "application/octet-stream",
+            "application/pdf",
+        )
+    )
+    binary_signature = body.startswith((b"PK\x03\x04", b"\xd0\xcf\x11\xe0", b"%PDF-"))
+    has_nul = b"\x00" in body
+    try:
+        body.decode("utf-8", errors="strict")
+        valid_utf8 = True
+    except UnicodeDecodeError:
+        valid_utf8 = False
+    is_binary = binary_content_type or binary_signature or has_nul or not valid_utf8
+    if not is_binary:
+        observe_response(response)
+        return
+    if max_response_bytes is not None and len(body) > max_response_bytes:
+        # The bounded transport should have rejected this before returning.
+        # Fail closed rather than persisting an over-limit response as evidence.
+        raise ETFHoldingsRouteHeldError(
+            "VanEck response exceeded its reviewed binary-evidence byte limit."
+        )
+
+    observe_response(response, capture_response_payload=False)
+    observe_binary_response_payload(
+        "vaneck_initial_response_body",
+        body,
+        complete=True,
+    )
+
+
 def _sync_provider_invoke(
     single_attempt: Callable[[], Any] | LoopLocalHTTPXAttempt,
 ) -> Callable[[Any, str | None], Any]:
@@ -1599,7 +1718,11 @@ def _sync_provider_invoke(
 
             async def run_httpx_attempt() -> Any:
                 response = await single_attempt.execute()
-                observe_response(response)
+                _observe_httpx_attempt_response(
+                    response,
+                    preserve_binary_payload=single_attempt.max_response_bytes is not None,
+                    max_response_bytes=single_attempt.max_response_bytes,
+                )
                 if response.status_code >= 400:
                     response.raise_for_status()
                 response_limit_error = response.extensions.get(_ETF_SEC_RESPONSE_LIMIT_MARKER)
