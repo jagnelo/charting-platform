@@ -12,6 +12,7 @@ import { useLayoutStore } from '@/stores/layout'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { usePresetsStore } from '@/stores/presets'
 import { useRadarStore } from '@/stores/radar'
+import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 
 const route = {
   params: { symbol: '' },
@@ -163,6 +164,39 @@ describe('ChartView radar handoff', () => {
 
     expect(refreshLocalBars).toHaveBeenCalledOnce()
     expect(chartStore.bars).toEqual(cachedBars)
+    wrapper.unmount()
+  })
+
+  it('routes an explicitly resolved holding with its exact dated snapshot and reported-row evidence', async () => {
+    const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart()
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+    const context: ETFHoldingDrilldownContext = {
+      instrumentId: 8802,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 8801,
+      compositionDate: '2026-10-27',
+      knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'fixture-only',
+      holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    }
+    const vm = wrapper.vm as unknown as {
+      onHoldingDrilldown: (symbol: string, evidence: ETFHoldingDrilldownContext) => Promise<void>
+    }
+    await vm.onHoldingDrilldown('UNXQ', context)
+    await flushPromises()
+
+    expect(replace).toHaveBeenCalledWith({
+      path: '/legacy/chart/UNXQ',
+      query: holdingDrilldownRouteQuery(context),
+    })
+    expect(chartStore.loadBars).toHaveBeenCalledWith('UNXQ', expect.any(String), 'candles', true)
     wrapper.unmount()
   })
 

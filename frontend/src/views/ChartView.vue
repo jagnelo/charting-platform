@@ -101,9 +101,16 @@
     </header>
 
     <div v-if="historicalHoldingContext" class="historical-holding-context" role="status" aria-live="polite">
-      Historical holding reference · {{ historicalHoldingContext.symbol }} (canonical instrument {{ historicalHoldingContext.instrumentId }}) from composition {{ historicalHoldingContext.compositionDate }}
+      Historical holding reference ·
+      <template v-if="historicalHoldingContext.reportedSymbol">
+        {{ historicalHoldingContext.reportedSymbol }}<span v-if="historicalHoldingContext.reportedName"> · {{ historicalHoldingContext.reportedName }}</span>
+        →
+      </template>
+      {{ historicalHoldingContext.symbol }} (canonical instrument {{ historicalHoldingContext.instrumentId }}) from composition {{ historicalHoldingContext.compositionDate }}
       <span v-if="historicalHoldingContext.knownAt">· known at {{ historicalHoldingContext.knownAt }}</span>
       <span v-if="historicalHoldingContext.provenance">· {{ historicalHoldingContext.provenance }}</span>
+      <span v-if="historicalHoldingContext.sourceProvider">· {{ historicalHoldingContext.sourceProvider }}</span>
+      <span v-if="historicalHoldingContext.holdingRowId">· holding row {{ historicalHoldingContext.holdingRowId }}</span>
       · This view does not establish current ETF analysis eligibility.
     </div>
 
@@ -198,6 +205,7 @@
           v-if="chartStore.symbol && !isBasketSymbol(chartStore.symbol) && chartStore.instrument && !chartStore.instrument.is_synthetic"
           :symbol="chartStore.symbol"
           @open-symbol="onSymbolSelect"
+          @open-holding="onHoldingDrilldown"
         />
       </div>
       <div v-else class="chart-workspace">
@@ -247,6 +255,7 @@ import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import ETFHoldingsPanel     from '@/components/etf/ETFHoldingsPanel.vue'
+import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
 import { buildRadarDrawingOverlays, buildRadarIndicatorOverlays, mergeChartDrawingsWithRadar } from '@/lib/radar/visuals'
 import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
@@ -313,6 +322,10 @@ const historicalHoldingContext = computed(() => {
     compositionDate: value('holding_composition_date') || 'date unknown',
     knownAt: value('holding_known_at'),
     provenance: value('holding_provenance'),
+    sourceProvider: value('holding_source_provider'),
+    reportedSymbol: value('holding_reported_symbol'),
+    reportedName: value('holding_reported_name'),
+    holdingRowId: value('holding_row_id'),
   }
 })
 
@@ -498,6 +511,16 @@ async function loadComparisonBars() {
 }
 
 async function onSymbolSelect(symbol: string) {
+  return selectChartSymbol(symbol)
+}
+
+async function onHoldingDrilldown(symbol: string, context: ETFHoldingDrilldownContext) {
+  if (symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
+  return selectChartSymbol(symbol, context)
+}
+
+async function selectChartSymbol(symbol: string, holdingContext?: ETFHoldingDrilldownContext) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   const selectionIndicatorEdit = chartStore.indicatorEditGeneration
@@ -508,8 +531,13 @@ async function onSymbolSelect(symbol: string) {
   if (!isBasketSymbol(symbol)) {
     recentStore.add(symbol)
   }
-  if (route.params.symbol !== symbol) {
-    router.replace(`/legacy/chart/${encodeURIComponent(symbol)}`)
+  if (holdingContext) currentTf.value = 'D1'
+  const path = `/legacy/chart/${encodeURIComponent(symbol)}`
+  const hasHoldingQuery = Object.keys(route.query).some(key => key.startsWith('holding_'))
+  if (holdingContext) {
+    router.replace({ path, query: holdingDrilldownRouteQuery(holdingContext) })
+  } else if (route.params.symbol !== symbol || hasHoldingQuery) {
+    router.replace(path)
   }
   if (layoutStore.layout === '1') {
     // Single panel: load into the global chart store

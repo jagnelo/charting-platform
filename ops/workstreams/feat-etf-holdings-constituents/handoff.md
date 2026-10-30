@@ -1,3 +1,27 @@
+# Current implementation — unresolved holding drilldown (2026-10-30)
+
+## Active scope
+
+Root released this feedback correction in `/home/m920q/charting-platform/.ai/staging-attempts/etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json` (SHA256 `3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443`). Work starts from immutable accepted source `c91d556f89318509e96a0292453a22d6d7d96365` in the existing claimed branch/worktree. The accepted MEB checkpoint is archived in plan/session records; its closure and exact CI remain valid only for its own bytes. Current scope is in progress and has no new acceptance.
+
+The user path must begin on one eligible unresolved real-security row: explicitly discover the exact `reported_symbol`, explicitly choose and resolve a provider candidate, preserve snapshot/date/known_at/provenance and reported-row evidence into the chart route, then separately click the existing missing-history control for D1 and reload persisted bars. The row remains unresolved in its snapshot. Resolved-row navigation remains as before. Cash/reference/synthetic/missing ticker/current-capability and held/conflict/no-match/error states remain unavailable; no discovery on render, per-holding fanout, implicit history request, provider/issuer HTTP by this worker, or target mutation.
+
+## Preflight and state
+
+Current narrative check repair: the durable blocker summaries now retain the exact ledger-derived count `15 Tier-0 and 156 Tier-1`; implementation and focused checks are complete, while the isolated full profile and exact-source CI remain pending. The earlier failing narrative regression is preserved in validation history; no assertion or roadmap criterion changed.
+
+Supported existing-owner UV status preflight verified claim `f206bbc5-abbf-473a-a44f-fb5706c81282`, branch `feat/etf-holdings-constituents`, worktree ID `feat-etf-holdings-constituents-fdc36fa27a`, and local/origin HEAD `c91d556f89318509e96a0292453a22d6d7d96365`. Default sandbox denied Docker status; the authorized narrow read-only escalation succeeded. It reported Docker available, zero owned containers, two retained volumes (~464 MB), no cleanup/build/runtime action. The newly created session-local implementation goal is unbudgeted; previous completed goal/accounting archives were not reset or replaced.
+
+Staging candidate `b1b06fd8344549484e26ce3bf960befc832531ef` run `41108906686` is still in progress and is not this source's validation. Do not alter/cancel it or merge it unless Root later publishes canonical green. Product changes require their own exact-source CI and local profile. The minimum local profile for this frontend/UI handoff is `full_stack_browser`; remote tier remains `full_integration`.
+
+## Acceptance and next action
+
+UHD1-UHD4 implementation and focused checks are complete in the working candidate. The changed-slice frontend tests passed 63/63; the full frontend suite passed 1,493/1,493 across 151 files; `vue-tsc` and the production build passed. The E2E file lists five cases, including the controlled row-originated unresolved-symbol journey. The uPlot contract, 26-assertion visual policy and Compose contracts passed. `make test-fe` itself exited 2 after Vitest because its later UV helper hit the shared read-only UV cache; the isolated helper checks passed and the setup failure is retained.
+
+The reused backend component is explicitly source-bound: current `HEAD:backend` is tree `85154a468a08550596c41ceec27dbda673f0deb8`, the same tree label on Root-qualified image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc`. The existing accepted 5961 sharded backend evidence covers that exact tree (6,202 IDs: 6,197 passed, 5 expected skips, zero failures/errors, 84.4% coverage; canonical PostgreSQL DDL 2/2). It is reused component evidence, not a new frontend/runtime result.
+
+Next, freeze and publish the coherent candidate before the expensive runtime profile. Then build only the changed frontend image, use the immutable qualified backend and the Research image only after exact source-input equivalence, and run the owned isolated functional and strict visual profile with backend egress denied, no provider credentials or shared quota ledger, one browser worker, zero retries and unchanged screenshot oracles. Record the actual service/image/cgroup IDs and clean only this exact project, proving protected inventory equality. Run/verify exact-source branch CI. Root owns canonical staging adoption, actual VanEck continuation, genuine holdings/uncached-stock target proof, integration and deployment. All original AC1-AC14, accepted checkpoint archives, quota/production holds, raw/PIT lineage, retained datasets and 30-day observation remain open/preserved.
+
 ## Current bounded checkpoint - historical VanEck quota-dimension repair (2026-10-30)
 
 Root released this repair under the existing human-authorized on-demand workflow after verifying immutable settled reservation 41361. Exact synchronized-green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 was adopted by fast-forward from 206a1544234d362b39adccb24fafc37ecfad5e7f; canonical receipt [20261030T094848Z-cb8240f69647.json](/home/m920q/charting-platform/.ai/staging-attempts/20261030T094848Z-cb8240f69647.json) SHA256 6fe63d74d984040b43ccd2527d7dbce8911bb1393abcbb180f705e02cf9fd4b5, exact staging CI 41020845787. No tree delta or sibling source import occurred in adoption.

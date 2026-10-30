@@ -2,11 +2,13 @@ import { mount } from '@vue/test-utils'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ETFHoldingsPanel from '@/components/etf/ETFHoldingsPanel.vue'
+import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
 import { api } from '@/lib/api'
 
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
+    post: vi.fn(),
   },
 }))
 
@@ -112,6 +114,58 @@ describe('ETFHoldingsPanel', () => {
   expect(wrapper.find('.open-holding-button').attributes('disabled')).toBeDefined()
   expect(wrapper.emitted('availability')?.at(-1)).toEqual([true])
 })
+
+  it('offers the selected unresolved reported security as an explicit row-originated action', async () => {
+    const unresolved = {
+      id: 3,
+      snapshot_id: 1,
+      constituent_instrument_id: null,
+      constituent_symbol: null,
+      reported_symbol: 'UNXQ',
+      reported_name: 'Uncached Example Equity',
+      position: 3,
+      weight: '0.01',
+      holding_type: 'equity',
+      row_type: 'security',
+      is_resolved: false,
+    }
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ ...snapshot, row_count: 3, unresolved_count: 2, holdings: [...snapshot.holdings, unresolved] })
+      .mockResolvedValueOnce({
+        availability: 'current',
+        source_tier: 'issuer_native',
+        usable_for_current_analysis: true,
+        displayable_last_known: true,
+        consecutive_failures: 0,
+        reason: 'Current-analysis fixture capability.',
+      })
+    const wrapper = mount(ETFHoldingsPanel, { props: { symbol: 'SPY' } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('UNXQ'))
+    const row = wrapper.findAll('.holdings-row').find(item => item.text().includes('UNXQ'))
+    expect(row).toBeDefined()
+    await row!.trigger('click')
+    expect(wrapper.text()).toContain('Resolve reported holding UNXQ')
+    expect(api.post).not.toHaveBeenCalled()
+    expect(unresolved.is_resolved).toBe(false)
+    expect(unresolved.constituent_instrument_id).toBeNull()
+    const action = wrapper.findComponent(ETFHoldingResolutionAction)
+    action.vm.$emit('resolved', 'UNXQ', {
+      instrumentId: 987654,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 1,
+      compositionDate: '2026-05-31',
+      knownAt: '2026-06-01T04:00:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'issuer-test',
+      holdingRowId: 3,
+      sourceRowId: '',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    })
+    expect(wrapper.emitted('openHolding')?.[0]?.[0]).toBe('UNXQ')
+    expect(wrapper.emitted('openHolding')?.[0]?.[1]).toMatchObject({ instrumentId: 987654, snapshotId: 1 })
+  })
 
   it('stays hidden when holdings are unavailable', async () => {
     vi.mocked(api.get).mockRejectedValue(new Error('404'))

@@ -249,6 +249,13 @@
               <button type="button" :disabled="!canViewHoldingHistory(selectedHolding)" @click="openHoldingHistory(selectedHolding)">
                 View history
               </button>
+              <ETFHoldingResolutionAction
+                v-if="page"
+                :holding="selectedHolding"
+                :snapshot="page.snapshot"
+                :available="currentHoldingsAvailable"
+                @resolved="openResolvedHolding"
+              />
             </div>
             <dl>
               <div>
@@ -695,6 +702,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
+import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
 import { api } from '@/lib/api'
 import { acquireETFHoldings, resolveExistingInstrument, type ETFProfileAcquireResponse } from '@/lib/onDemandAcquisition'
 import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
@@ -715,6 +723,7 @@ import type {
   ETFHoldingsCapability,
   ETFProfile,
 } from '@/types'
+import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 
 interface ETFSearchResult {
   symbol: string
@@ -764,6 +773,11 @@ const loadingOverlap = ref(false)
 const loadError = ref('')
 
 const selectedCapability = computed(() => selectedProfile.value?.holdings_capability ?? null)
+const currentHoldingsAvailable = computed(() =>
+  selectedCapability.value?.usable_for_current_analysis === true
+  && selectedCapability.value.availability === 'current'
+  && page.value?.snapshot.id === selectedProfile.value?.latest_snapshot_id
+)
 const selectedSnapshotKind = computed(() => {
   const snapshot = page.value?.snapshot
   const latestSnapshotId = selectedProfile.value?.latest_snapshot_id
@@ -1424,6 +1438,16 @@ function openHoldingHistory(row: ETFHolding) {
       holding_provenance: page.value.snapshot.provenance,
       holding_instrument_id: String(row.constituent_instrument_id),
     },
+  })
+}
+
+function openResolvedHolding(symbol: string, context: ETFHoldingDrilldownContext) {
+  if (!page.value || !currentHoldingsAvailable.value) return
+  if (symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
+  void router.push({
+    path: `/legacy/chart/${encodeURIComponent(symbol)}`,
+    query: holdingDrilldownRouteQuery(context),
   })
 }
 

@@ -193,6 +193,14 @@
             </div>
           </div>
 
+          <ETFHoldingResolutionAction
+            v-if="snapshot"
+            :holding="selectedHolding"
+            :snapshot="snapshot"
+            :available="currentAnalysisAvailable"
+            @resolved="openResolvedHolding"
+          />
+
           <dl class="identifier-list">
             <div>
               <dt>CUSIP</dt>
@@ -225,12 +233,15 @@
 import { computed, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
+import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
+import type { ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import type { ETFHolding, ETFHoldingsCapability, ETFHoldingsSnapshot } from '@/types'
 
 const props = defineProps<{ symbol: string | null }>()
 const emit = defineEmits<{
   availability: [available: boolean]
   openSymbol: [symbol: string]
+  openHolding: [symbol: string, context: ETFHoldingDrilldownContext]
 }>()
 
 const snapshot = ref<ETFHoldingsSnapshot | null>(null)
@@ -242,6 +253,9 @@ const selectedHoldingId = ref<number | null>(null)
 let loadSeq = 0
 
 const visible = computed(() => !!snapshot.value || !!capability.value)
+const currentAnalysisAvailable = computed(() =>
+  capability.value?.usable_for_current_analysis === true && capability.value.availability === 'current'
+)
 const capabilityLabel = (value: ETFHoldingsCapability) =>
   String(value.availability || 'unknown').replace(/_/g, ' ')
 const capabilityClass = (value: ETFHoldingsCapability) => `capability--${value.availability || 'unknown'}`
@@ -405,6 +419,13 @@ function formatDateTime(value?: string | null) {
 function openHolding(row: ETFHolding) {
   const target = openableSymbol(row)
   if (target) emit('openSymbol', target)
+}
+
+function openResolvedHolding(symbol: string, context: ETFHoldingDrilldownContext) {
+  if (!currentAnalysisAvailable.value
+    || symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
+  emit('openHolding', symbol, context)
 }
 
 function selectHolding(row: ETFHolding) {
