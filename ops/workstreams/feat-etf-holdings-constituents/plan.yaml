@@ -2134,7 +2134,7 @@ integration_checkpoint:
   - Root owns closing-tip CI verification, subsequent staging/master integration, and any genuine source/account or target acceptance; the feature owner does not integrate or deploy.
   - Do not claim genuine OIH source qualification or full feature-roadmap completion from offline tests or green
     staging ancestry.
-status: ready_for_integration
+status: in_progress
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
   total: 3
@@ -2142,7 +2142,7 @@ previously_accepted_erf_progress:
 progress:
   completed: []
   total: 14
-  current_phase: bounded_HQD1-HQD4_checkpoint_accepted; exact_closing_tip_CI_pending; AC1-AC14_remain_open
+  current_phase: master_exhaustive_runner_timeout_remediation_in_progress; HQD1-HQD4_accepted_archive_preserved; AC1-AC14_remain_open
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2336,8 +2336,67 @@ historical_execution_context_fhsc1_2026_10_23: >-
   full local `full_stack_browser`, DB/runtime proof, applicable live evidence,
   Root review and all AC1-AC14 roadmap work remain open. Preserve 15 Tier-0 and
   156 Tier-1, quarantines, disabled routes, retained data and the 30-day gate.
+backend_runner_timeout_remediation:
+  id: etf-master-exhaustive-integration-batching-20261030
+  status: in_progress
+  authorization: >-
+    Root released this narrow repair in
+    /home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json.
+    The exact synchronized-green staging commit 870d37dcc2b9715402ccfefce12a61020465ab35
+    was fast-forward adopted in this ETF branch before implementation. This
+    scope changes only scripts/backend_coverage.py, its focused workflow tests,
+    and these four ETF-owned workstream records.
+  master_failure: >-
+    Exact master push run 41080375579 / Exhaustive Integration Gate job
+    124157576674 passed all 113 unit shards, then ran all 595 Docker integration
+    IDs in one process and timed out at the unchanged 900-second limit after
+    84 percent and 61 additional progress dots (exit 124, no assertion
+    traceback). Preserve its complete failed log. Exact synchronized staging
+    run 41064397398 on the same source passed 593 integration cases with 2
+    expected skips in 861.25 seconds; this confirmed insufficient margin in the
+    aggregate one-process form, not a reproducible assertion failure.
+  implementation_contract:
+    integration_batch_size: 25
+    ordering: deterministic collection order, serial batches, every collected ID exactly once
+    unit_batching: preserve the existing configured unit shard size and order
+    collection_timeout_seconds: 300
+    unit_process_timeout_seconds: 300
+    integration_process_timeout_seconds: 900
+    coverage: erase once before test processes; append for every unit and integration process; report combined 75 percent floor only after all tests pass
+    retries: zero
+    failures: abort immediately and propagate nonzero, signal, or timeout status; do not report coverage success or start later batches
+    duplicate_collection_ids: reject before coverage erase or test execution
+  validation:
+    minimum_local_profile: unit
+    minimum_local_profile_basis: scripts/backend_coverage.py and tests/workflow/test_backend_coverage.py classify as unit
+    required_branch_tier: full_integration
+    remote_gates: exact source branch CI, synchronized staging CI, and master CI remain required; this local profile does not waive them
+  focused_tests: >-
+    Added runner-level mock subprocess tests for the 25/25/remainder partition,
+    ordered exactly-once IDs, one coverage erase, coverage append per test
+    process, delayed coverage report/XML, duplicate collection rejection, and
+    fail-fast nonzero, timeout and signal results. No Docker fixture is used.
+  preserved_scope: >-
+    The accepted HQD1-HQD4 checkpoint, its source/image receipts, prior runner
+    failure history, all AC1-AC14 criteria and archives, 15 Tier-0 and 156
+    Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines,
+    raw/PIT lineage and the 30-day observation remain unchanged. No provider,
+    issuer, SEC, target, quota, production, staging, sibling or deployment
+    operation is authorized by this runner-only repair.
+
 current_blocker: >-
-  Root accepted HQD1-HQD4 at tested source 596163e81066111158c2a19268f81aaf2bcec56c with exact implementation CI 41040527971 green and the source-matched docker_integration qualification. Only this records-only closing publication and its exact-tip CI remain pending. The 6202-ID backend profile had 6197 passes, 5 expected skips, no failures/errors and 84.4% coverage; canonical DDL passed 2/2; the 1047-file image probe and 39 existing cases passed once, with the reviewed external XML-copy reporting limitation retained. Preserve all historical failures and the 119 spent requests; no source/target operation or genuine OIH acceptance is claimed. Keep 15 Tier-0 and 156 Tier-1, all AC1-AC14 criteria, 74 fallback identities, holds/quarantines, raw/PIT history and the 30-day observation unchanged.
+  The current master exhaustive-gate blocker is the one-process integration
+  timeout in run 41080375579 / job 124157576674, not an identified assertion
+  defect. Root authorized deterministic 25-ID serial batches for every
+  collected integration ID, with the existing 900-second per-process ceiling,
+  coverage semantics, zero retries and full_integration remote gates preserved.
+  Exact green staging 870d37dcc2b9715402ccfefce12a61020465ab35 is adopted. The
+  focused runner/workflow tests pass 17/17. Exact-source branch CI remains to
+  run after one coherent source-and-record publication; no Docker or browser
+  fixture is required by the minimum local profile. Keep the accepted HQD
+  checkpoint and full AC1-AC14 roadmap open/preserved, including 15 Tier-0 and
+  156 Tier-1, 74 fallback identities, 119 spent requests, all holds and
+  quarantines, raw/PIT history and the 30-day observation.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3507,7 +3566,11 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Publish this one coherent four-record closing commit and push it normally. Root verifies the exact closing-tip CI, then owns supported staging/master integration and any later source/account or deployment work. No feature-owned integration, provider/issuer HTTP, ledger/target mutation, replay, policy activation or full-roadmap completion is claimed.
+  Finish focused runner/workflow validation and workstream checks, then publish
+  one coherent implementation-and-records commit so exact branch CI runs on
+  the repaired runner. Root reviews the exact source CI and owns any staging or
+  master integration. No provider/issuer HTTP, ledger/target mutation, replay,
+  policy activation, deployment or full-roadmap completion is claimed.
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress

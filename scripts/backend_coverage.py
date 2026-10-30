@@ -24,6 +24,7 @@ TEST_ROOTS = (*UNIT_TEST_ROOTS, "tests/integration")
 # pytest can emit a failure summary.  Smaller shards preserve the same complete
 # test set while making each process independently bounded and diagnosable.
 DEFAULT_UNIT_SHARD_SIZE = 50
+DEFAULT_INTEGRATION_BATCH_SIZE = 25
 COLLECTION_TIMEOUT_SECONDS = 300
 UNIT_SHARD_TIMEOUT_SECONDS = 300
 INTEGRATION_TIMEOUT_SECONDS = 900
@@ -33,6 +34,18 @@ def partition(items: Sequence[str], size: int) -> list[list[str]]:
     if size < 1:
         raise ValueError("shard size must be positive")
     return [list(items[start : start + size]) for start in range(0, len(items), size)]
+
+
+def _has_duplicate_nodeids(suites: dict[str, list[str]]) -> bool:
+    nodeids = [nodeid for root in TEST_ROOTS for nodeid in suites[root]]
+    return len(nodeids) != len(set(nodeids))
+
+
+def _shell_status(returncode: int) -> int:
+    """Represent signal exits using the conventional shell status."""
+    if returncode < 0:
+        return min(255, 128 + -returncode)
+    return returncode
 
 
 def combined_unit_nodeids(suites: dict[str, list[str]]) -> list[str]:
@@ -70,7 +83,12 @@ def run(
     except subprocess.TimeoutExpired:
         print(f"test process exceeded its {timeout}s wall-time limit", file=sys.stderr)
         return 124
-    return completed.returncode
+    if completed.returncode < 0:
+        print(
+            f"test process terminated by signal {-completed.returncode}",
+            file=sys.stderr,
+        )
+    return _shell_status(completed.returncode)
 
 
 def pytest_args(nodeids: Sequence[str]) -> list[str]:
@@ -105,9 +123,6 @@ def _run_pytest(
         timeout=timeout,
     )
     if status:
-        if status < 0:
-            print(f"✗ {label} terminated by signal {-status}", flush=True)
-            return min(255, 128 + -status)
         print(f"✗ {label} exited with status {status}", flush=True)
         return status
     print(f"✓ {label} passed", flush=True)
@@ -162,7 +177,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     if collect.returncode:
         sys.stderr.write(collect.stdout)
         sys.stderr.write(collect.stderr)
-        return collect.returncode
+        if collect.returncode < 0:
+            print(
+                f"backend test collection terminated by signal {-collect.returncode}",
+                file=sys.stderr,
+                flush=True,
+            )
+        return _shell_status(collect.returncode)
 
     suites = parse_collected_nodeids(collect.stdout)
     missing = [root for root, nodeids in suites.items() if not nodeids]
@@ -171,6 +192,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"collection did not return test IDs for: {', '.join(missing)}",
             file=sys.stderr,
         )
+        return 2
+    if _has_duplicate_nodeids(suites):
+        print("collection returned duplicate test IDs", file=sys.stderr)
         return 2
     print(
         "Collected "
@@ -193,14 +217,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         if status:
             return status
 
-    status = _run_pytest(
-        suites["tests/integration"],
-        label="Docker integration suite",
-        env=env,
-        timeout=INTEGRATION_TIMEOUT_SECONDS,
+    integration_batches = partition(
+        suites["tests/integration"], DEFAULT_INTEGRATION_BATCH_SIZE
     )
-    if status:
-        return status
+    for index, nodeids in enumerate(integration_batches, start=1):
+        status = _run_pytest(
+            nodeids,
+            label=f"Docker integration batch {index}/{len(integration_batches)}",
+            env=env,
+            timeout=INTEGRATION_TIMEOUT_SECONDS,
+        )
+        if status:
+            return status
 
     for command in (
         [sys.executable, "-m", "coverage", "report", "--fail-under=75"],

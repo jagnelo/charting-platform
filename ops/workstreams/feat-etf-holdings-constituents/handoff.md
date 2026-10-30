@@ -17802,3 +17802,47 @@ Root accepted `etf-historical-quota-dimension-binding-repair-20261030` under the
 Tested implementation source: `596163e81066111158c2a19268f81aaf2bcec56c`; exact implementation CI `41040527971` is terminal green. Root accepted all 6202 backend IDs (6197 pass, 5 expected skips, 0 failures/errors; 84.4% coverage) and the separate canonical PostgreSQL DDL supplement (2 pass, 0 skip). The exact candidate image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc` is retained with archive SHA256 `8ed9ee11a042810e4d848815577990dfff7db62a315e9dc4914996bd39567a49` (521,133,056 bytes). The isolated image probe verified 1047 source files, API/worker imports and schema/route, and 39 existing cases passed once with zero skips and container exit 0. Two prior setup attempts ran zero test bodies. The successful probe's external XML copy from stopped tmpfs failed after in-container JUnit had asserted all 39 cases; stdout, exit 0 and in-container JUnit assertion evidence remain retained. Root reviewed and accepted this reporting limitation without replay in [/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json). The two prior setup attempts ran zero test bodies. Full backend and DDL JUnit remain retained. Exact builder/cache cleanup passed per [/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json); the candidate artifact remains retained and foreign inventory, data and legacy volumes were preserved.
 
 This closes only HQD1-HQD4 and the bounded software/runtime checkpoint. It does not establish an 11-phase/full-browser profile, genuine OIH holdings or constituent acquisition, source/account acceptance, policy activation, target acceptance, deployment, or completion of AC1-AC14. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, every hold/quarantine, raw/PIT lineage, the 30-day observation, prior accepted checkpoint archives and all historical failures. Root owns exact closing-tip CI verification and any later staging/master integration, source acceptance and deployment. The closing record does not contain its own commit SHA; `integration_capture: exact branch HEAD`.
+
+## Master exhaustive runner timeout remediation — 2026-10-30
+
+Root released the narrow runner correction in
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json)
+(SHA256 `da4780ab9674c10b22e1533c55dd506d02f62ff030a09bfd7db91fe9cae3812d`).
+The owner branch fast-forward adopted exact synchronized-green staging
+`870d37dcc2b9715402ccfefce12a61020465ab35` from clean published tip
+`a45d1e2e8312819c640693ad340d1fc4e917debb`, with no conflicts; this merge
+preceded implementation. The exact failed master CI log remains preserved at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-exhaustive-failed-job-124157576674-20261030.private.log`
+(SHA256 `dd9e92a19d3dfedd33b5f046682829032fab7dcb8fe1e416f6f40253d0f7d398`).
+It records 113/113 passing unit shards followed by one 595-ID integration
+process that timed out at 900 seconds (exit 124) after 84 percent and 61 more
+dots, without an assertion traceback. The same-source staging run
+`41064397398` passed 593 integrations with 2 expected skips in 861.25 seconds.
+The failure is an aggregate process-boundary issue; no timeout increase or
+failed-CI replay is authorized.
+
+The runner now partitions the full collected integration list, in original
+order, into serial batches of 25 with an unchanged 900-second limit per
+process. Existing unit partitioning and 300-second collection/unit limits
+remain. It rejects duplicate collected IDs before coverage erase, erases
+coverage once, appends every unit and integration process, and runs the
+combined 75-percent report/XML only after all batches succeed. Nonzero exits,
+signals, and timeouts stop the sequence; later batches and success reporting do
+not run. Focused subprocess-mocked runner tests passed 17/17: exact
+25/25/remainder coverage, exactly-once ordered IDs, coverage lifecycle,
+duplicate rejection, nonzero/timeout/signal aborts. No Docker or browser fixture
+was created or used. The existing ETF runtime/YAML ledger-count narrative
+regression passed 1/1 after the record update. The canonical minimum local
+profile for the changed paths is `unit`; the workstream/branch tier remains
+`full_integration`, and exact
+branch, staging, and master gates are unchanged.
+
+The implementation and this active repair are not yet accepted. This single
+source-and-record publication will trigger exact owner-branch CI; Root reviews
+that result and retains all staging/master integration and deployment
+ownership. The previously accepted HQD1-HQD4 checkpoint and its receipts,
+failures and source/image qualification remain preserved. The full AC1-AC14
+roadmap remains open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback
+identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the
+30-day observation. No provider/issuer/SEC request, target or quota mutation,
+deployment, or full-roadmap completion is claimed.
