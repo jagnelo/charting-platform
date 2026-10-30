@@ -59,7 +59,7 @@ describe('ETFHoldingResolutionAction', () => {
       .mockResolvedValueOnce({
         request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
         status: 'complete',
-        candidates: [{ symbol: 'UNXQ', name: 'Unlisted Example Corp', exchange: 'XNYS', type: 'Equity', provider: 'free-source', instrument_id: null, identity_status: 'unresolved' }],
+        candidates: [{ symbol: 'UNXQ', name: 'Unlisted Example Corp', exchange: 'XNYS', type: 'CS', provider: 'free-source', instrument_id: null, identity_status: 'unresolved' }],
         source_outcomes: [],
       })
       .mockResolvedValueOnce({
@@ -84,7 +84,7 @@ describe('ETFHoldingResolutionAction', () => {
 
     await wrapper.get('button').trigger('click')
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
-      query: 'UNXQ', types: ['Equity', 'Stock'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+      query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
     })
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     await wrapper.get('.search-source-candidate').trigger('click')
@@ -143,6 +143,24 @@ describe('ETFHoldingResolutionAction', () => {
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     await wrapper.get('.search-source-candidate').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Identity conflict'))
+    expect(wrapper.emitted('resolved')).toBeUndefined()
+  })
+
+  it('filters a non-equity provider candidate before the user can resolve it', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({
+      status: 'complete',
+      candidates: [{ symbol: 'UNXQ', name: 'Unlisted Example Corp', exchange: 'XNYS', type: 'ETF', provider: 'free-source', instrument_id: null, identity_status: 'unresolved' }],
+      source_outcomes: [],
+    })
+    const wrapper = mount(ETFHoldingResolutionAction, {
+      props: { holding, snapshot, available: true },
+      global: { stubs: { RouterLink: true } },
+    })
+
+    await wrapper.get('button').trigger('click')
+    await wrapper.get('button').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No candidates were returned'))
+    expect(wrapper.find('.search-source-candidate').exists()).toBe(false)
     expect(wrapper.emitted('resolved')).toBeUndefined()
   })
 

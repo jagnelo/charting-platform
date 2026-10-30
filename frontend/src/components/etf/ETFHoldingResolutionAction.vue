@@ -13,7 +13,7 @@
         :show-recent="false"
         :show-screener-link="false"
         :allow-expressions="false"
-        :result-types="['Equity', 'Stock']"
+        :result-types="['Equity', 'Stock', 'CS']"
         :allow-source-discovery="true"
         source-discovery-only
         readonly

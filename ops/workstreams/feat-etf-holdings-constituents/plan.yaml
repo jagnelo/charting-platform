@@ -2146,6 +2146,17 @@ integration_checkpoint:
   planning_authorization: >-
     Root released this feedback correction in /home/m920q/charting-platform/.ai/staging-attempts/etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json
     (SHA256 3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443). Continue the same owned ETF branch from immutable c91d556f89318509e96a0292453a22d6d7d96365. Do not change the in-progress b1b06fd8344549484e26ce3bf960befc832531ef staging run; adopt it only after Root publishes canonical green.
+  latest_required_correction:
+    root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-drilldown-Massive-CS-real-contract-correction-20261030-root-review.json
+    source_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json
+    scope: >-
+      Include Massive's verified native common-stock code CS in the explicit
+      discovery type filter and candidate scope. Preserve raw candidate type
+      and all non-equity/current-capability guards. Preserve valid holding
+      lineage during same-symbol URL hydration/reload while deliberate symbol
+      navigation clears stale lineage. Target the actual holding data button
+      in browser assertions and seed the 10000-row universe only in the private
+      backend/browser E2E fixture.
   status: in_progress
   acceptance_authorization: pending
   source_baseline: c91d556f89318509e96a0292453a22d6d7d96365
@@ -2153,19 +2164,48 @@ integration_checkpoint:
   progress:
     completed: []
     total: 4
-    current_phase: shared handoff implemented and focused checks passed; freeze candidate then complete the exact-source browser profile
-    current_blocker: The new source has not yet been published; the current-source full_stack_browser profile and exact-source branch CI remain pending, with no product acceptance claimed.
+    current_phase: CS type-scope and holding-lineage hydration corrections implemented; focused and frontend checks passed; publish before current-source profile
+    current_blocker: The 43e predecessor browser run is red and preserved. Corrected-source full_stack_browser, strict visual, exact-source CI, and Root review remain pending.
   required_contracts:
   - Only an explicit action on one selected eligible unresolved security may start source discovery; no discovery on render, no per-holding fanout, and no implicit history request.
   - Resolve using the exact reported symbol as query evidence and an explicitly selected provider candidate; preserve all unresolved/reference/synthetic/current-capability guards and do not synthesize or guess canonical identity.
   - Carry source snapshot ID/date/known_at/provenance, source provider and reported row evidence with the resolved canonical ID into ChartView. The handoff does not mark the original holding row resolved or rewrite persisted snapshot data.
   - After chart open, require a separate explicit missing-history click; verify D1 coverage and canonical identity before the existing history-acquisition POST, then reload bars from local storage.
+  - Request Massive's native CS type explicitly and prove the controlled discovery fixture applies the backend raw-type substring filter before returning the CS candidate; preserve ETF/cash/synthetic exclusions.
+  - Preserve valid dated holding evidence during initial ChartView URL hydration and reload; an explicit symbol selection still removes stale holding query parameters.
+  - Seed the 10000-row performance universe in both backend and browser contexts of the private E2E fixture; production seeding remains unchanged.
   source_and_api_scope: frontend ETF list/panel, shared SearchBar/discovery control, chart/workstation handoff, focused unit/E2E tests and four owned workstream records only. No backend/provider/ledger/policy/config/dependency/runtime/production changes are authorized by this checkpoint.
   validation:
-    focused: 63 changed-slice frontend unit tests passed across five files; the E2E spec lists five cases, including the row-originated unknown-symbol flow, explicit canonical selection, explicit D1 acquisition, provenance continuity and persisted chart reload.
-    full_frontend_unit: 1493 tests passed across 151 files; vue-tsc type-check and the production frontend build passed. uPlot, visual-acceptance-policy and Compose contracts passed with the isolated offline UV environment. The enclosing make test-fe target exited 2 only after Vitest completed, because its subsequent UV helper tried to read the shared read-only cache; that setup receipt is retained.
+    focused: >-
+      The CS/route-hydration correction slice passed 28/28 Vitest tests across
+      the holding-action and ChartView modules. The full frontend Vitest run
+      exited 0 after correction; vue-tsc type-check and production build passed.
+      uPlot numerical contract (55 sources), visual-acceptance policy (26
+      assertions), and Compose contracts passed. The 43e browser attempt below
+      is predecessor evidence, not qualification of this corrected source.
+    predecessor_43e_functional:
+      source: 43e501b3c39d3ec2f320295bc56810daa393e566
+      result: 197 passed, 4 failed, 2 skipped, exit 1; strict visuals not run
+      log: /tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional.log
+      log_sha256: 8fc3f1f3ba892517b8ee5b98340de79189943ff16114f6722b3683b8b9d5542c
+      root_failure_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json
+      disposition: >-
+        Preserve this failed predecessor; failures show the broad header/data
+        locator, same-symbol hydration stripping valid holding lineage, and
+        the missing 10000-row private E2E seed. Root separately found the
+        Equity/Stock filter excluded Massive's native CS response.
+    full_frontend_unit: >-
+      Full frontend Vitest exited 0 on the corrected working tree; vue-tsc
+      type-check and production build passed. The enclosing make test-fe target
+      and new-source functional/strict-visual profile remain pending.
     backend_component_reuse: Current backend tree 85154a468a08550596c41ceec27dbda673f0deb8 exactly matches the Root-qualified 36b99 image and the accepted 5961 full backend run. That run accounted for 6202 IDs (6197 passed, 5 expected skips, zero failures/errors, 84.4% coverage) and canonical DDL 2/2; these are reused unchanged-component evidence, not new UI-profile results.
-    local_profile: full_stack_browser remains required for this Vue/chart/API handoff. Use the exact frozen frontend source, bounded owned runtime, full functional browser suite, and explicit strict visual matrix with one worker, zero retries and unchanged references/tolerances.
+    local_profile: >-
+      full_stack_browser remains required for the corrected source. Freeze and
+      publish it first, build and retain a new frontend image bound to that
+      exact tree, and run full functional plus strict visual matrices with one
+      worker, zero retries and unchanged references/tolerances. Enable
+      E2E_SEED_LARGE_UNIVERSE=true and E2E_SEED_LARGE_UNIVERSE_COUNT=10000 on
+      the private backend and browser only.
     remote_profile: Unchanged full_integration branch tier and exact-source CI; no weakening, no retries and no skipped assertions.
   branch_validation_tier: full_integration
   local_validation_profile: full_stack_browser
@@ -2437,7 +2477,7 @@ backend_runner_timeout_remediation:
     operation is authorized by this runner-only repair.
 
 current_blocker: >-
-  Implementation and focused validation are complete; the isolated full_stack_browser profile and exact-source branch CI remain pending. The current workstream retains 15 Tier-0 and 156 Tier-1 investigations; AC1-AC14 and all genuine source, account, target, integration and deployment gates remain open.
+  The 43e browser predecessor is red and preserved (197 passed, 4 failed, 2 skipped). The corrected candidate addresses the row locator, same-symbol holding-lineage hydration, and private 10000-row E2E fixture seed, and adds Massive native CS discovery handling. A fresh corrected-source full_stack_browser profile, exact-source CI, and Root review remain pending. Preserve 15 Tier-0 and 156 Tier-1 investigations; AC1-AC14 and all genuine source, account, target, integration and deployment gates remain open.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3607,11 +3647,15 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete final workstream, closure, narrative and diff checks; publish the
-  single four-record closing commit and verify its exact push CI. Root owns
-  integration, staging/master gates, qualified-image rollout and genuine OIH
-  source/target acceptance. No provider/issuer HTTP, ledger/target mutation,
-  replay, policy activation, deployment or full-roadmap completion is claimed.
+  Finish the four-record source-correction update and publish the coherent
+  frontend candidate after workstream validation. Build and retain the exact
+  corrected frontend image, use a fresh owned isolated profile with the
+  10000-row fixture seed enabled only for tests, run functional and strict
+  visual phases with zero retries and unchanged oracles, then verify exact
+  source CI. Root owns integration, staging/master, qualified-image rollout,
+  and genuine OIH/source/target acceptance. No provider/issuer HTTP,
+  ledger/target mutation, replay, policy activation, deployment or full-roadmap
+  completion is claimed.
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress

@@ -373,9 +373,19 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     const body = route.request().postDataJSON() as DiscoveryRequest
     discoveryRequests.push(body)
     expect(body.query).toBe(symbol)
+    expect(body.types).toEqual(['Equity', 'Stock', 'CS'])
+    const providerCandidate = {
+      symbol, name: holding.reported_name, exchange: 'XNYS', type: 'CS',
+      provider: 'test-fixture', instrument_id: null, identity_status: 'unresolved' as const,
+    }
+    // Match the backend's raw-type substring filter so a native CS candidate
+    // is returned only when the outgoing request includes the verified code.
+    const matchingCandidates = body.types.some(type =>
+      providerCandidate.type.toUpperCase().includes(type.trim().toUpperCase()),
+    )
     await route.fulfill({ status: 200, json: {
       request_id: body.request_id, status: 'complete',
-      candidates: [{ symbol, name: holding.reported_name, exchange: 'XNYS', type: 'Equity', provider: 'test-fixture', instrument_id: null, identity_status: 'unresolved' }],
+      candidates: matchingCandidates ? [providerCandidate] : [],
       source_outcomes: [fixtureOutcome],
     } satisfies InstrumentDiscoveryResponse })
   })
@@ -432,13 +442,14 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await page.route('**/api/v1/alerts**', route => route.fulfill({ status: 200, json: [] }))
 
   await page.goto('/etf-holdings')
-  await expect(page.locator('.holding-row')).toContainText(symbol)
+  const holdingButton = page.locator('button.holding-row').filter({ hasText: symbol })
+  await expect(holdingButton).toContainText(symbol)
   expect(discoveryRequests).toHaveLength(0)
   expect(identityRequests).toHaveLength(0)
   expect(historyRequests).toHaveLength(0)
   expect(localReadCount).toBe(0)
 
-  await page.locator('.holding-row').filter({ hasText: symbol }).click()
+  await holdingButton.click()
   await page.getByRole('button', { name: `Resolve reported holding ${symbol}` }).click()
   expect(discoveryRequests).toHaveLength(0)
   const discoveryResponseReady = page.waitForResponse(response => {
@@ -872,7 +883,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.holding-row').filter({ hasText: 'AMD' }).first().click()
+  await page.locator('button.holding-row').filter({ hasText: 'AMD' }).click()
   await page.getByRole('button', { name: 'View history' }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/AMD(?:\?|$)/)
   expect((await initialChartCoverageReady).status()).toBe(200)
@@ -1256,14 +1267,15 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   await expect(page.getByTestId('etf-snapshot-lineage')).toBeVisible()
   await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', fixtureSnapshot.known_at!)
   await expect(page.getByText('Current holdings are not verified.')).toBeVisible()
-  await expect(page.locator('.holding-row').filter({ hasText: 'AMD' }).first()).toBeVisible()
+  const holdingButton = page.locator('button.holding-row').filter({ hasText: 'AMD' })
+  await expect(holdingButton).toBeVisible()
 
   const initialChartCoverageReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
-  await page.locator('.holding-row').filter({ hasText: 'AMD' }).first().click()
+  await holdingButton.click()
   await page.getByRole('button', { name: 'View history' }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/AMD(?:\?|$)/)
   expect((await initialChartCoverageReady).status()).toBe(200)

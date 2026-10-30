@@ -520,7 +520,11 @@ async function onHoldingDrilldown(symbol: string, context: ETFHoldingDrilldownCo
   return selectChartSymbol(symbol, context)
 }
 
-async function selectChartSymbol(symbol: string, holdingContext?: ETFHoldingDrilldownContext) {
+async function selectChartSymbol(
+  symbol: string,
+  holdingContext?: ETFHoldingDrilldownContext,
+  preserveHydratedHoldingContext = false,
+) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   const selectionIndicatorEdit = chartStore.indicatorEditGeneration
@@ -536,7 +540,7 @@ async function selectChartSymbol(symbol: string, holdingContext?: ETFHoldingDril
   const hasHoldingQuery = Object.keys(route.query).some(key => key.startsWith('holding_'))
   if (holdingContext) {
     router.replace({ path, query: holdingDrilldownRouteQuery(holdingContext) })
-  } else if (route.params.symbol !== symbol || hasHoldingQuery) {
+  } else if (route.params.symbol !== symbol || (hasHoldingQuery && !preserveHydratedHoldingContext)) {
     router.replace(path)
   }
   if (layoutStore.layout === '1') {
@@ -717,7 +721,14 @@ onMounted(async () => {
     // switch from one chart to a multi-panel layout while presets are still
     // loading; starting the symbol now lets the existing 1→multi watcher carry
     // it into every linked panel instead of leaving the original panel blank.
-    const symbolSelection = onSymbolSelect(sym)
+    // URL hydration reloads the chart for the current route symbol. Preserve
+    // valid holding lineage in that URL; deliberate symbol selection still
+    // uses onSymbolSelect and clears stale holding context.
+    const preserveHydratedHoldingContext = Boolean(
+      historicalHoldingContext.value
+      && historicalHoldingContext.value.symbol.toUpperCase() === sym.toUpperCase(),
+    )
+    const symbolSelection = selectChartSymbol(sym, undefined, preserveHydratedHoldingContext)
     const bootstrapSelection = selectionGeneration
     const bootstrapIndicatorEdit = chartStore.indicatorEditGeneration
     await Promise.all([presetsLoad, symbolSelection])

@@ -200,9 +200,9 @@
     "objective": "Publish the Root-accepted bounded ETF master-exhaustive integration batching checkpoint as one coherent four-record closing commit, preserve the full AC1-AC14 roadmap and prior accepted HQD history, then verify exact closing-tip push CI and hand off to Root. Do not integrate, promote, deploy, or claim the wider ETF objective complete.",
     "accounting_note": "New unbudgeted closing-publication goal in the same original thread; preceding runner-repair goal complete with accounting preserved, earlier HQD goal history unchanged."
   },
-  "current_blocker_latest": "The row-originated discovery/resolution and explicit D1 handoff are implemented; 63 focused and 1,493 full frontend unit tests pass, and type/build/contracts pass. The current-source isolated full_stack_browser profile and exact-source branch CI remain pending. Staging b1b is still in progress and is not adopted.",
+  "current_blocker_latest": "Corrected-source unit, type, build and contract checks pass. The 43e predecessor functional profile is preserved red (197 passed, 4 failed, 2 skipped); its locator, same-symbol hydration, and missing private 10000-row seed findings are addressed, and Massive native CS is now included in discovery. A fresh corrected-source isolated functional/strict-visual profile and exact-source branch CI remain pending; do not treat b1b staging/master work as this candidate's qualification.",
   "current_checkpoint_objective": "Implement the Root-released unresolved ETF holding drilldown in feat/etf-holdings-constituents: let a user discover and explicitly resolve the exact reported ticker from its holding row, preserve snapshot provenance, then explicitly acquire missing D1 history and reload the chart. Preserve all prior accepted checkpoints and the full AC1-AC14 roadmap; complete focused tests, the required full_stack_browser profile, exact-source CI, and hand off at ready_for_human_review. No provider requests, production operations, or integration/deployment.",
-  "current_local_delta": "Uncommitted UI candidate on c91d baseline: shared explicit free-source discovery/canonical resolution handoff in ETFHoldingsView and dashboard ETFHoldingsPanel, exact source-snapshot/row lineage to ChartView, and explicit D1 history plus reload. Focused frontend tests 63/63; full frontend suite 1,493/1,493 across151 files; type-check/build/uPlot/visual-policy/Compose contracts pass. The exact backend tree remains 85154a and reuses Root-accepted 36b99/5961 evidence; no new UI runtime profile has run yet.",
+  "current_local_delta": "Corrected uncommitted ETF UI candidate atop 43e: the row-originated shared discovery request includes Massive's verified native CS code; ChartView preserves valid holding lineage on same-symbol URL hydration/reload while deliberate selection clears stale lineage; browser locators target the actual holding button. A fresh private app fixture must seed the 10000-row universe in both backend and browser contexts. Focused CS/hydration tests passed 28/28; full frontend Vitest, type-check, build, uPlot, visual-policy and Compose checks passed. The 43e functional predecessor remains red and preserved. Backend tree is unchanged and retains its independently qualified reuse evidence; no corrected-source runtime profile has run yet.",
   "dirty_paths": [
     "frontend/src/components/common/SearchBar.vue",
     "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
@@ -539,8 +539,8 @@
     "progress": {
       "completed": [],
       "total": 4,
-      "current_phase": "focused implementation checks passed; source publication and current-source full_stack_browser qualification pending",
-      "current_blocker": "Implementation and focused validation are complete; the isolated browser profile and exact-source branch CI remain required. Preserve 15 Tier-0 and 156 Tier-1 and the open AC1-AC14 roadmap."
+      "current_phase": "Massive native-CS and same-symbol holding-lineage corrections implemented; focused/full frontend checks passed; publish corrected candidate before its fresh profile",
+      "current_blocker": "Preserve the 43e functional predecessor (197 passed, 4 failed, 2 skipped). Its locator, URL-hydration and absent private 10000-row seed issues are corrected, with a regression that applies the backend raw-type filter to a native CS candidate. Corrected-source functional/strict visual profile and exact-source branch CI remain pending. Keep 15 Tier-0, 156 Tier-1 and AC1-AC14 open."
     },
     "branch_validation_tier": "full_integration",
     "local_validation_profile": "full_stack_browser",
@@ -553,10 +553,10 @@
       "Root may adopt b1b only after canonical green; Root owns genuine OIH/returned-uncached-constituent evidence, integration and deployment."
     ],
     "validation": {
-      "focused": "63 changed-slice frontend unit tests passed across five files. The new E2E file lists five tests; the controlled row-originated discovery, explicit resolution, D1 request, lineage and reload flow is included.",
-      "full_frontend_unit": "1493 passed across151 files. Vue type-check and production build passed. uPlot numerical contract (55 source files), visual-acceptance policy (26 screenshot assertions, unchanged thresholds), and Compose contract checks passed with isolated offline UV. The enclosing make test-fe target exited2 after Vitest solely because its post-test helper attempted the shared read-only UV cache; the isolated helper checks passed and the setup issue is retained.",
+      "focused": "The CS/route-hydration correction slice passed 28/28 Vitest tests across the holding-action and ChartView modules. The E2E regression returns a native CS row only when the request contains CS, and targets the actual holding data button.",
+      "full_frontend_unit": "Full frontend Vitest exited 0 on the corrected working tree; Vue type-check and production build passed. uPlot numerical contract (55 source files), visual-acceptance policy (26 screenshot assertions, unchanged thresholds), and Compose contract checks passed. No corrected-source browser runtime result is claimed.",
       "backend_component_reuse": "Current HEAD:backend tree 85154a468a08550596c41ceec27dbda673f0deb8 exactly matches Root-qualified 36b99 image sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc and the accepted 5961 full backend run (6202 IDs; 6197 passed,5 expected skips,0 failures/errors,84.4% coverage; canonical DDL 2 passed). Reused unchanged-backend evidence only.",
-      "full_stack_browser": "Pending. Current candidate must be frozen before frontend image build/runtime; functional and strict visual matrices remain to run.",
+      "full_stack_browser": "Pending. Freeze/publish this corrected source, build and retain its exact frontend artifact, configure the private backend and browser with E2E_SEED_LARGE_UNIVERSE=true and E2E_SEED_LARGE_UNIVERSE_COUNT=10000, verify the browse total is at least 10000, then run the full functional and strict visual matrices with one worker, zero retries and unchanged oracles.",
       "exact_source_ci": "Pending candidate publication."
     }
   },
@@ -660,8 +660,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent frozen implementation candidate after workstream validation, then build only the changed frontend image and run the owned isolated full_stack_browser functional and strict visual phases. Preserve the exact backend/Research component-equivalence evidence, zero retries, egress denial and protected inventory; run exact-source branch CI and stop at ready_for_human_review.",
-  "plan_hash": "da0aa8dca6c3e61da1f950ebc8e7c8242dae253afe6841d6ad5c228235fe1073",
+  "next_action": "Complete the four-record correction evidence and branch/workstream validation, then publish one coherent candidate. Build and retain a frontend image bound to its exact source/context; run one fresh isolated functional and strict-visual profile with the backend and browser 10000-row fixture seed, verify the real fixture count before browser tests, keep zero retries/unchanged oracles and egress denial, and verify exact-source CI. Root owns later integration and genuine source/deployment evidence.",
+  "plan_hash": "14aec47824fddbd224436a8d2abe34aaed5bbcba6cf2e16dd64d1276f264c0d5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -1501,7 +1501,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-30T20:08:12Z",
+  "updated_at": "2026-10-30T21:01:31Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",

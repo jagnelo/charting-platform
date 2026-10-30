@@ -17880,3 +17880,47 @@ The source change is limited to `scripts/backend_coverage.py` and `tests/workflo
 The prior master exhaustive timeout remains preserved as historical evidence; it was not blindly retried or addressed by raising the timeout. HQD1-HQD4 closure metadata is archived in the plan and session before replacement. All original AC1-AC14 remain open, as do genuine OIH holdings, returned uncached constituent acquisition, source/account, target and deployment acceptance. Preserve 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the 30-day observation. Root owns exact 870d remediation integration, staging/master exhaustive gates, qualified 36b99 rollout and the genuine source/target journey.
 
 This is a Root-accepted bounded checkpoint, not full feature completion. The single closing commit does not self-reference its own SHA: `integration_capture: exact branch HEAD`. Root captures its exact closing-tip CI externally; no post-publication metadata commit is planned.
+
+## Massive CS and holding-lineage correction — 2026-10-30
+
+Root's review of source `43e501b3c39d3ec2f320295bc56810daa393e566` found that
+the unresolved-holding action requested only `Equity`/`Stock`, while Massive
+preserves a common-stock row's native type as `CS` and the backend applies a
+raw substring type filter before returning discovery candidates. The corrected
+request includes the verified `CS` code; the shared candidate scope accepts
+that raw type while retaining the non-equity guards. The controlled browser
+fixture now applies the same raw substring filter before returning a `CS`
+candidate, and the unit test exercises native `CS` plus an `ETF` negative.
+
+The preserved 43e functional attempt is terminal red: 197 passed, 4 failed,
+2 skipped, exit 1; strict visuals were not started. Its exact log is
+`/tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional.log`
+(SHA256 `8fc3f1f3ba892517b8ee5b98340de79189943ff16114f6722b3683b8b9d5542c`)
+and Root's disposition is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json`.
+The failures were: a broad `.holding-row` locator matched the table header and
+data button; two same-symbol ChartView hydration paths stripped valid holding
+lineage; and the 10000-row browser performance case lacked its private backend
+fixture seed. The correction targets actual `button.holding-row` elements,
+preserves valid lineage only during same-symbol initial URL hydration while
+deliberate symbol navigation clears it, and enables the existing large-universe
+seed only in the new private test backend/browser configuration. The 43e image
+and archive remain retained as predecessor evidence, not as the corrected
+frontend artifact.
+
+After that attempt reached its terminal result, only the exact owned browser
+container, Compose project, project volumes and detached empty project network
+were removed. Protected container/image/volume/network identity sets match the
+pre-profile snapshot, with the single owned 43e frontend image intentionally
+retained and its archive preserved. The post-cleanup snapshot is
+`/tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional-after-cleanup.json`
+(SHA256 `93b164e640219a4df74151f60c0cf5d6e53da825116cd472fbcab9d5ea791a20`).
+
+The focused CS/hydration unit slice passed 28/28. The full frontend Vitest run,
+Vue type-check and production build passed on the corrected working tree; the
+uPlot, visual-acceptance-policy and Compose contract checks passed as well.
+Current-source browser functional and strict-visual qualification, exact-source
+branch CI and Root review remain pending. No provider/source/issuer request,
+quota/ledger/target mutation, policy activation, production action, or
+staging/master write occurred. Preserve all prior accepted archives, the full
+AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 counts, holds and historical failures.

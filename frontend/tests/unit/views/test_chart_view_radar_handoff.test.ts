@@ -200,6 +200,27 @@ describe('ChartView radar handoff', () => {
     wrapper.unmount()
   })
 
+  it('preserves valid holding lineage on initial chart hydration but clears it on deliberate symbol selection', async () => {
+    route.query = {
+      holding_snapshot_id: '8801',
+      holding_instrument_id: '8802',
+      holding_composition_date: '2026-10-27',
+      holding_known_at: '2026-10-28T12:00:00Z',
+      holding_provenance: 'issuer_current_holdings',
+    }
+    const { wrapper, releasePresets } = mountDeferredPresetsChart()
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+
+    expect(replace).not.toHaveBeenCalled()
+    const vm = wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }
+    await vm.onSymbolSelect('SPY')
+    await flushPromises()
+    expect(replace).toHaveBeenCalledWith('/legacy/chart/SPY')
+    wrapper.unmount()
+  })
+
   it('keeps the indicator rail geometry across a keyed active-panel switch while the new panel is loading', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
