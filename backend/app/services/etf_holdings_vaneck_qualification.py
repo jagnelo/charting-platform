@@ -54,6 +54,11 @@ from app.services.provider_runtime import (
 
 VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE = "vaneck_oih_initial_qualification"
 VANECK_OIH_INITIAL_QUALIFICATION_OPERATION = "fetch_etf_holdings_latest"
+# These are the exact persisted group/dimension names in the reviewed OIH
+# first-sample scope and retained settled reservation. They are deliberately
+# not inferred from the unit or accepted through a generic fallback.
+VANECK_OIH_INITIAL_QUOTA_GROUP = "oih_first_sample"
+VANECK_OIH_INITIAL_QUOTA_DIMENSION = "vaneck_oih_first_sample_requests_120s"
 VANECK_OIH_PRODUCT_SLUG = "oil-services-etf-oih"
 VANECK_OIH_INITIAL_URL = (
     "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/" "downloads/holdings/?cken=true"
@@ -716,8 +721,8 @@ def _verified_posttransport_spent_reservation(
             if (
                 len(rows) != 1
                 or rows[0]["account_scope"] != account_scope
-                or rows[0]["quota_group"] != "requests"
-                or rows[0]["dimension"] != "requests"
+                or rows[0]["quota_group"] != VANECK_OIH_INITIAL_QUOTA_GROUP
+                or rows[0]["dimension"] != VANECK_OIH_INITIAL_QUOTA_DIMENSION
                 or rows[0]["unit"] != "requests"
                 or int(rows[0]["reserved_units"] or 0) != 1
                 or rows[0]["release_only"] is not False

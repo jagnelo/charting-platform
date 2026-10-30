@@ -22,11 +22,14 @@ from app.services.etf_holdings_provider_bridge import (
 from app.services.etf_holdings_vaneck_qualification import (
     VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE,
     VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+    VANECK_OIH_INITIAL_QUOTA_DIMENSION,
+    VANECK_OIH_INITIAL_QUOTA_GROUP,
     VANECK_OIH_INITIAL_URL,
     VANECK_OIH_PRODUCT_SLUG,
     _lock_and_validate_current_provider_review,
     _provider_review_fingerprint,
     _quota_activity_exists_since_attempt,
+    _verified_posttransport_spent_reservation,
 )
 from app.services.provider_runtime import (
     ProviderCapability,
@@ -163,6 +166,77 @@ def test_recovery_ledger_check_does_not_create_missing_file(tmp_path, monkeypatc
         )
 
     assert not missing_path.exists()
+
+
+@pytest.mark.parametrize(
+    ("quota_group", "dimension", "accepted"),
+    [
+        ("oih_first_sample", "vaneck_oih_first_sample_requests_120s", True),
+        ("requests", "vaneck_oih_first_sample_requests_120s", False),
+        ("oih_first_sample", "requests", False),
+        ("requests", "requests", False),
+    ],
+)
+def test_posttransport_spent_reservation_requires_exact_retained_oih_scope(
+    tmp_path, monkeypatch, quota_group, dimension, accepted
+):
+    """Only the actual historical VanEck group/dimension pair proves spent use."""
+    path = tmp_path / "posttransport-spent-oih.sqlite3"
+    url = f"sqlite:///{path}"
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", url)
+    engine = quota._engine_for(url)
+    quota.metadata.create_all(engine)
+    created_at = datetime(2026, 10, 30, 0, 38, 48, 483760, tzinfo=UTC)
+    settled_at = datetime(2026, 10, 30, 0, 38, 48, 836210, tzinfo=UTC)
+    started_at = created_at - timedelta(seconds=8)
+    completed_at = settled_at + timedelta(seconds=1)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(quota._reservations).values(
+                id=41361,
+                reservation_id="78b87a43-d20e-4155-9faa-923be65b4653",
+                provider_name="vaneck",
+                account_scope="reviewed-oih-account",
+                operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                quota_group=quota_group,
+                dimension=dimension,
+                unit="requests",
+                window_started_at=started_at,
+                window_seconds=120,
+                reserved_units=1,
+                release_only=False,
+                lease_expires_at=None,
+                identity_digest=None,
+                state="settled",
+                created_at=created_at,
+                settled_at=settled_at,
+            )
+        )
+    engine.dispose()
+    ledger_before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    if accepted:
+        proof = _verified_posttransport_spent_reservation(
+            account_scope="reviewed-oih-account",
+            started_at=started_at,
+            completed_at=completed_at,
+        )
+        assert proof["reservation_id"] == "78b87a43-d20e-4155-9faa-923be65b4653"
+        assert proof["quota_group"] == VANECK_OIH_INITIAL_QUOTA_GROUP
+        assert proof["dimension"] == VANECK_OIH_INITIAL_QUOTA_DIMENSION
+        assert proof["unit"] == "requests"
+        assert proof["reserved_units"] == 1
+        assert proof["state"] == "settled"
+        assert proof["live_receipt_present"] is False
+    else:
+        with pytest.raises(ETFHoldingsRouteHeldError, match="settled OIH usage unit"):
+            _verified_posttransport_spent_reservation(
+                account_scope="reviewed-oih-account",
+                started_at=started_at,
+                completed_at=completed_at,
+            )
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == ledger_before
 
 
 @pytest.mark.parametrize("activity", ["pending", "uncertain", "receipt", "receipt_linked_target"])

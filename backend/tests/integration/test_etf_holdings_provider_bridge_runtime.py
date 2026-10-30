@@ -3644,6 +3644,8 @@ async def _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypa
         VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS,
         VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE,
         VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+        VANECK_OIH_INITIAL_QUOTA_DIMENSION,
+        VANECK_OIH_INITIAL_QUOTA_GROUP,
         VANECK_OIH_INITIAL_URL,
         VANECK_OIH_PRODUCT_SLUG,
         VANECK_POSTTRANSPORT_LINK_FAILURE_REASON,
@@ -3782,8 +3784,8 @@ async def _seed_failed_vaneck_posttransport_attempt(provider_db, setup, monkeypa
                 provider_name="vaneck",
                 account_scope=case.account_scope,
                 operation="fetch_etf_holdings_latest",
-                quota_group="requests",
-                dimension="requests",
+                quota_group=VANECK_OIH_INITIAL_QUOTA_GROUP,
+                dimension=VANECK_OIH_INITIAL_QUOTA_DIMENSION,
                 unit="requests",
                 window_started_at=started_at - timedelta(seconds=30),
                 window_seconds=60,
@@ -4013,7 +4015,9 @@ async def test_admin_vaneck_posttransport_continuation_is_one_shot_and_idempoten
         == (fixture["reservation_id"])
     )
     spent = continuation["predecessor_lineage"]["settled_prior_usage"]
-    assert spent["quota_group"] == spent["dimension"] == spent["unit"] == "requests"
+    assert spent["quota_group"] == "oih_first_sample"
+    assert spent["dimension"] == "vaneck_oih_first_sample_requests_120s"
+    assert spent["unit"] == "requests"
     assert fixture["job3_extra"]["provider_request_log_ids"] == []
     assert fixture["job3_extra"]["qualification_outcome"] == {
         "status": "not_qualified",
@@ -4065,6 +4069,10 @@ async def test_admin_vaneck_posttransport_continuation_is_one_shot_and_idempoten
 @pytest.mark.parametrize(
     ("ledger_field", "bad_value"),
     [
+        # The old verifier accepted these generic values. They are not the
+        # immutable first-sample quota scope and must remain a denial.
+        ("quota_group", "requests"),
+        ("dimension", "requests"),
         ("quota_group", "bytes"),
         ("dimension", "bytes"),
         ("unit", "bytes"),
