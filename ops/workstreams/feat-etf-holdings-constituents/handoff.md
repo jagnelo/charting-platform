@@ -17846,3 +17846,13 @@ roadmap remains open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback
 identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the
 30-day observation. No provider/issuer/SEC request, target or quota mutation,
 deployment, or full-roadmap completion is claimed.
+
+## Accepted bounded checkpoint — master exhaustive integration batching (2026-10-30)
+
+Root accepted `etf-master-exhaustive-integration-batching-20261030` under the existing delegated checkpoint authority. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-d31b-runner-checkpoint-acceptance-root-review-20261030.json` (SHA256 `3fca6c9350648e96c63103c8e0c52f801d7569f057a5f293071f5baf34c99b96`). Tested implementation is `d31b84ab3514500729e3cf8b04e36a42c34e031c`; exact push CI [41090873497](https://github.com/jagnelo/charting-platform/actions/runs/41090873497) is terminal green on that SHA. Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive was skipped as expected. Playwright reported 196 passed, 110 configured skips, 0 failures.
+
+The source change is limited to `scripts/backend_coverage.py` and `tests/workflow/test_backend_coverage.py`. Integration IDs execute once in deterministic serial batches of 25, preserving order, duplicate rejection, one coverage erase, append for every test process, the 75% combined floor, original 300-second collection/unit and 900-second integration limits, zero retries, and fail-fast nonzero/signal/timeout handling. Focused runner tests passed 17/17; the narrative regression passed 1/1 and preserves the required 15 Tier-0 and 156 Tier-1 counts. This closure changes only these four workstream records; there is no backend/frontend product or runtime delta.
+
+The prior master exhaustive timeout remains preserved as historical evidence; it was not blindly retried or addressed by raising the timeout. HQD1-HQD4 closure metadata is archived in the plan and session before replacement. All original AC1-AC14 remain open, as do genuine OIH holdings, returned uncached constituent acquisition, source/account, target and deployment acceptance. Preserve 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the 30-day observation. Root owns exact 870d remediation integration, staging/master exhaustive gates, qualified 36b99 rollout and the genuine source/target journey.
+
+This is a Root-accepted bounded checkpoint, not full feature completion. The single closing commit does not self-reference its own SHA: `integration_capture: exact branch HEAD`. Root captures its exact closing-tip CI externally; no post-publication metadata commit is planned.
