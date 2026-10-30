@@ -307,6 +307,8 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let resolved = false
   let historyCompleted = false
   let localReadCount = 0
+  const optionsExposureReads: string[] = []
+  const optionsExpirationReads: string[] = []
   const discoveryRequests: DiscoveryRequest[] = []
   const identityRequests: InstrumentRequestBody[] = []
   const historyRequests: HistoryRequestBody[] = []
@@ -423,6 +425,25 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     const url = new URL(route.request().url())
     await route.fulfill({ status: 200, json: missingCoverage(url) })
   })
+  await page.route('**/api/v1/instruments/UNXQ/options/exposure', async route => {
+    const url = new URL(route.request().url())
+    expect(route.request().method()).toBe('GET')
+    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure')
+    optionsExposureReads.push(url.pathname)
+    await route.fulfill({ status: 200, json: {
+      symbol, spot: null, expirations: [], active_expirations: [], computed_at: '2026-10-27T00:00:00Z',
+      ladder: [], key_levels: { call_wall: null, put_wall: null, gamma_flip: null, max_pain: null },
+      pcr_oi: null, pcr_volume: null, implied_move_pct: null, total_gex: 0, total_net_dex: 0,
+    } satisfies OptionsExposureResponse })
+  })
+  await page.route('**/api/v1/instruments/UNXQ/options/exposure/expirations', async route => {
+    const url = new URL(route.request().url())
+    expect(route.request().method()).toBe('GET')
+    expect(url.pathname).toBe('/api/v1/instruments/UNXQ/options/exposure/expirations')
+    optionsExpirationReads.push(url.pathname)
+    const noExpirations: ExpirationSummary[] = []
+    await route.fulfill({ status: 200, json: noExpirations })
+  })
   await page.route('**/api/v1/instruments/779004/history-acquisitions**', async route => {
     const body = route.request().postDataJSON() as HistoryRequestBody
     historyRequests.push(body)
@@ -500,7 +521,9 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
   expect(localReadBars.at(-1)).toEqual([bar])
   expect(historyRequests).toHaveLength(1)
-  expect(browserDiagnostics.errors).toEqual([])
+  expect(optionsExposureReads.length).toBeGreaterThan(0)
+  expect(optionsExpirationReads.length).toBeGreaterThan(0)
+  await browserDiagnostics.expectNoCriticalIssues()
 })
 
 test('main Workstation explicitly discovers an unknown ticker and loads its missing bars into the focused chart', async ({ page, loggedIn, browserDiagnostics }) => {

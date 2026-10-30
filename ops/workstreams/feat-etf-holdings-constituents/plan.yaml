@@ -2157,6 +2157,15 @@ integration_checkpoint:
       navigation clears stale lineage. Target the actual holding data button
       in browser assertions and seed the 10000-row universe only in the private
       backend/browser E2E fixture.
+  latest_test_diagnostics_correction:
+    root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json
+    scope: >-
+      Preserve the shared BrowserDiagnostics contract by calling
+      expectNoCriticalIssues(); provide explicit typed empty responses for the
+      controlled UNXQ options exposure and expiration reads used by ChartView.
+      Do not add a nonexistent diagnostics property, suppress 404s globally, or
+      weaken the row-originated CS resolution, history, lineage, reload, or
+      browser diagnostics assertions.
   status: in_progress
   acceptance_authorization: pending
   source_baseline: c91d556f89318509e96a0292453a22d6d7d96365
@@ -2164,8 +2173,16 @@ integration_checkpoint:
   progress:
     completed: []
     total: 4
-    current_phase: CS type-scope and holding-lineage hydration corrections implemented; focused and frontend checks passed; publish before current-source profile
-    current_blocker: The 43e predecessor browser run is red and preserved. Corrected-source full_stack_browser, strict visual, exact-source CI, and Root review remain pending.
+    current_phase: The d014 functional attempt is preserved red; the final diagnostics assertion and missing controlled options fixtures are corrected in the pending source candidate.
+    current_blocker: >-
+      Preserve d014 functional attempt001: 200 passed, 1 failed, 2 skipped,
+      exit1; its only failure was the nonexistent browserDiagnostics.errors
+      property after the row-originated CS resolution/history/lineage/reload
+      checks completed. Root reviewed the generic console 404 evidence and
+      identified the two missing UNXQ options fixtures. The exact failing test
+      now uses expectNoCriticalIssues() and explicitly serves those reads; a
+      corrected-source browser profile and exact-source CI are still pending.
+      Keep 15 Tier-0 and 156 Tier-1 and AC1-AC14 open.
   required_contracts:
   - Only an explicit action on one selected eligible unresolved security may start source discovery; no discovery on render, no per-holding fanout, and no implicit history request.
   - Resolve using the exact reported symbol as query evidence and an explicitly selected provider candidate; preserve all unresolved/reference/synthetic/current-capability guards and do not synthesize or guess canonical identity.
@@ -2194,26 +2211,69 @@ integration_checkpoint:
         locator, same-symbol hydration stripping valid holding lineage, and
         the missing 10000-row private E2E seed. Root separately found the
         Equity/Stock filter excluded Massive's native CS response.
+    predecessor_d014_functional:
+      source: d014a6e7e8959b077146fc5eeddaf80f3861e7fd
+      result: 200 passed, 1 failed, 2 skipped, exit 1; strict visuals not started
+      log: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log
+      log_sha256: c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631
+      phase_log: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/phase-driver-functional.log
+      phase_log_sha256: 5fafd98a61c3fde0da86f5bb90b2b7005d484b07c2aa6cdce74aa05b3ce66647
+      root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json
+      root_review_sha256: d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d
+      error_context: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional-results/on_demand_acquisition-an-u-09f20-ies-lineage-into-D1-history-chromium/error-context.md
+      error_context_sha256: a816724c7378bab331128dc6fa2242e41dfdc47a57c3d21283d20962de9cf52f
+      disposition: >-
+        The new test completed all discovery, explicit CS candidate resolution,
+        D1 history, provenance, reload and persisted-bar assertions, then failed
+        because BrowserDiagnostics has no errors property. The attached
+        browser-critical-issues report records 404 console errors. Root review
+        traced the missing controlled responses to ChartView's exact UNXQ
+        options exposure and expiration endpoints; the test correction serves
+        typed empty/unavailable fixture data and calls the existing shared
+        expectNoCriticalIssues() contract. The saved local diagnostics include
+        generic console text, not full response paths; the corrected test now
+        asserts both exact endpoint reads and will expose any remaining
+        unexpected API 404 path. No product defect or browser pass is inferred.
+    corrected_current_profile_baseline:
+      root_release_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json
+      root_release_receipt_sha256: 72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa
+      protected_snapshot: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json
+      protected_snapshot_sha256: d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d
+      resource_counts: 29 containers, 31 images, 51 volumes, 10 networks
+      replacement_backend: 660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419
+      replacement_worker: ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520
+      disposition: >-
+        Captured after Root's backend-only production release window; exact new
+        backend and worker IDs are protected as foreign resources.
     full_frontend_unit: >-
       Full frontend Vitest exited 0 on the corrected working tree; vue-tsc
       type-check and production build passed. The enclosing make test-fe target
-      and new-source functional/strict-visual profile remain pending.
+      and new-source functional/strict-visual profile remain pending. After the
+      d014 browser failure, the corrected E2E file passed Playwright test
+      discovery (five cases listed) and the frontend source type-check; its
+      browser execution remains pending the Root-coordinated fresh baseline.
     backend_component_reuse: Current backend tree 85154a468a08550596c41ceec27dbda673f0deb8 exactly matches the Root-qualified 36b99 image and the accepted 5961 full backend run. That run accounted for 6202 IDs (6197 passed, 5 expected skips, zero failures/errors, 84.4% coverage) and canonical DDL 2/2; these are reused unchanged-component evidence, not new UI-profile results.
     local_profile: >-
-      full_stack_browser remains required for the corrected source. Freeze and
-      publish it first, build and retain a new frontend image bound to that
-      exact tree, and run full functional plus strict visual matrices with one
-      worker, zero retries and unchanged references/tolerances. Enable
-      E2E_SEED_LARGE_UNIVERSE=true and E2E_SEED_LARGE_UNIVERSE_COUNT=10000 on
-      the private backend and browser only.
+      full_stack_browser remains required for the corrected source. The d014
+      profile failed in functional and strict visuals were not started; exact
+      owned cleanup passed and the protected inventory comparison was equal.
+      Root's production release-window completion receipt and fresh protected
+      inventory are recorded above. Preserve the immutable 57d image/archive;
+      reuse is limited to Root-confirmed
+      production build-input equivalence because this correction changes only
+      the non-bundled E2E fixture/assertion. Run the corrected functional and
+      strict visual matrices with one worker, zero retries and unchanged
+      references/tolerances. Enable E2E_SEED_LARGE_UNIVERSE=true and
+      E2E_SEED_LARGE_UNIVERSE_COUNT=10000 on the private backend and browser
+      only.
     remote_profile: Unchanged full_integration branch tier and exact-source CI; no weakening, no retries and no skipped assertions.
   branch_validation_tier: full_integration
   local_validation_profile: full_stack_browser
   integration_capture: exact branch HEAD
   full_roadmap_status: AC1-AC14 remain open and unchanged; retain 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, every hold/quarantine, raw/PIT lineage, legacy retained datasets and the 30-day observation.
   remaining_gates:
-  - freeze and publish the coherent implementation candidate, then verify its exact-source branch CI
-  - current-source full_stack_browser runtime, functional and strict visual profile with exact-owned cleanup and protected inventory equality
+  - publish the corrected test/source-record candidate and verify its exact-source branch CI
+  - after Root confirms production build-input equivalence, run the corrected current-source full_stack_browser functional and strict visual profile using the immutable image, then prove exact-owned cleanup and protected inventory equality
   - Root adoption of b1b only after its canonical green release; no non-green staging merge
   - Root-owned actual VanEck continuation, genuine OIH holdings and returned-uncached-constituent evidence, target/API acceptance and deployment
   closure_pending: true
@@ -2477,7 +2537,7 @@ backend_runner_timeout_remediation:
     operation is authorized by this runner-only repair.
 
 current_blocker: >-
-  The 43e browser predecessor is red and preserved (197 passed, 4 failed, 2 skipped). The corrected candidate addresses the row locator, same-symbol holding-lineage hydration, and private 10000-row E2E fixture seed, and adds Massive native CS discovery handling. A fresh corrected-source full_stack_browser profile, exact-source CI, and Root review remain pending. Preserve 15 Tier-0 and 156 Tier-1 investigations; AC1-AC14 and all genuine source, account, target, integration and deployment gates remain open.
+  The d014 functional predecessor is red and preserved (200 passed, 1 failed, 2 skipped); its only test failure was the final call to a nonexistent browserDiagnostics.errors property after the CS resolution/history/lineage/reload behavior passed. The attached report also records console 404s; the controlled UNXQ options exposure/expiration paths are now explicitly fixture-backed and checked with the shared expectNoCriticalIssues() API. Corrected-source current profile and exact-source CI remain pending. Wait for Root's release-window-complete receipt before taking any fresh protected inventory or starting another Docker/browser profile. Preserve 15 Tier-0 and 156 Tier-1; AC1-AC14 and all genuine source, account, target, integration and deployment gates remain open.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3647,15 +3707,17 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Finish the four-record source-correction update and publish the coherent
-  frontend candidate after workstream validation. Build and retain the exact
-  corrected frontend image, use a fresh owned isolated profile with the
-  10000-row fixture seed enabled only for tests, run functional and strict
-  visual phases with zero retries and unchanged oracles, then verify exact
-  source CI. Root owns integration, staging/master, qualified-image rollout,
-  and genuine OIH/source/target acceptance. No provider/issuer HTTP,
-  ledger/target mutation, replay, policy activation, deployment or full-roadmap
-  completion is claimed.
+  Finish the four-record correction update, validate and publish the
+  corrected-source candidate, then verify its exact-source CI. Preserve the
+  existing 57d image/archive; Root must confirm production build-input
+  equivalence before its reuse in the current-source test profile. Wait for
+  Root's release-window-complete receipt before any fresh protected inventory
+  or Docker/browser setup. Then run corrected full functional and strict visual
+  phases with the private 10000-row seed, zero retries and unchanged oracles,
+  and prove exact-owned cleanup. Root owns integration, staging/master,
+  qualified-image rollout, and genuine OIH/source/target acceptance. No
+  provider/issuer HTTP, ledger/target mutation, replay, policy activation,
+  deployment or full-roadmap completion is claimed.
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress

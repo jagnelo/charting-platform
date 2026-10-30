@@ -17924,3 +17924,46 @@ branch CI and Root review remain pending. No provider/source/issuer request,
 quota/ledger/target mutation, policy activation, production action, or
 staging/master write occurred. Preserve all prior accepted archives, the full
 AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 counts, holds and historical failures.
+
+## d014 browser diagnostics fixture correction — 2026-10-30
+
+The d014 functional profile is preserved as a failed predecessor: 200 passed,
+1 failed, 2 skipped, exit 1. Its sole failure was the final assertion in the
+new unresolved-holding journey, which read the nonexistent
+`browserDiagnostics.errors` property after the explicit Massive `CS` discovery,
+canonical resolution, D1 acquisition, lineage and reload assertions completed.
+The browser-critical attachment also records 404 console responses. Preserve
+the full log at `/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log`
+(SHA256 `c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631`)
+and Root's review at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json`
+(SHA256 `d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d`).
+
+The corrected E2E fixture now uses the supported
+`browserDiagnostics.expectNoCriticalIssues()` assertion and explicitly serves
+typed empty option-exposure and expiration responses for
+`/api/v1/instruments/UNXQ/options/exposure` and
+`/api/v1/instruments/UNXQ/options/exposure/expirations`. It asserts both exact
+reads occurred, so any remaining unexpected API 404 will be reported by the
+shared diagnostics contract. This is a test-fixture correction; no global
+diagnostics policy, product behavior, assertion, retry, or visual tolerance was
+changed. Playwright test discovery listed all five on-demand tests and Vue type
+checking passed. Browser execution of the corrected case and strict visuals
+remain pending.
+
+Exact owned-project cleanup completed with exit 0. The global cleanup
+comparison is `/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/global-inventory-cleanup-comparison.json`
+(SHA256 `9ef2803d952b7720b8f863d173e53dc45dd5cbfff11c5990669f0585efa4c3d3`)
+and reported equality. Root completed the separate production backend-only
+release window; receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json`
+(SHA256 `72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa`)
+records the new backend `660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419`
+and worker `ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520`
+IDs. The fresh post-release protected snapshot is
+`/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json`
+(SHA256 `d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d`):
+29 containers, 31 images, 51 volumes and 10 networks. Preserve the immutable
+frontend image/archive; runtime reuse remains conditional on Root confirming
+production build-input equivalence for this test-only delta. Exact-source CI
+and a complete corrected-source profile remain required. All source, quota,
+provider, target, deployment and full AC1-AC14 roadmap holds remain in force.
