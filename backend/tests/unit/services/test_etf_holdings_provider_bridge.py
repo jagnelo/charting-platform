@@ -1,4 +1,6 @@
 import asyncio
+import base64
+import hashlib
 import threading
 import time
 from datetime import UTC, datetime, timedelta
@@ -53,6 +55,206 @@ def test_edgar_ip_scope_requires_namespaced_shared_account_mapping():
     assert not bridge._has_explicit_account_scope_mapping(
         "edgar", "ip", {"edgar": "incorrect-provider-level-alias"}
     )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    (
+        ("data_source_id", 8, "data_source_mismatch"),
+        ("capability", "price_history", "capability_mismatch"),
+        ("operation", "other_operation", "operation_mismatch"),
+        ("instrument_id", 99, "instrument_mismatch"),
+        ("provider_symbol", "SMH", "provider_symbol_mismatch"),
+        ("http_requests", 0, "http_request_count_not_one"),
+        ("completed_at", None, "completed_at_missing"),
+        ("settled_usage_units", None, "settled_usage_units_missing"),
+    ),
+)
+def test_vaneck_qualification_log_link_names_each_rejected_evidence_predicate(
+    field, value, expected
+):
+    from app.models.provider_runtime import ProviderCapability
+
+    source = SimpleNamespace(id=7)
+    log = SimpleNamespace(
+        id=13,
+        data_source_id=7,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        operation="fetch_etf_holdings_latest",
+        instrument_id=43,
+        provider_symbol="OIH",
+        http_requests=1,
+        completed_at=datetime.now(UTC),
+        settled_usage_units=1,
+    )
+    setattr(log, field, value)
+
+    failures = bridge._vaneck_qualification_log_link_failure_codes(
+        source=source,
+        logs=[log],
+        attempt_log_ids=[13],
+        operation="fetch_etf_holdings_latest",
+        instrument_id=43,
+        provider_symbol="OIH",
+    )
+
+    assert failures == (expected,)
+
+
+def test_vaneck_qualification_log_link_names_missing_duplicate_and_unexpected_ids():
+    from app.models.provider_runtime import ProviderCapability
+
+    source = SimpleNamespace(id=7)
+    log = SimpleNamespace(
+        id=14,
+        data_source_id=7,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        operation="fetch_etf_holdings_latest",
+        instrument_id=43,
+        provider_symbol="OIH",
+        http_requests=1,
+        completed_at=datetime.now(UTC),
+        settled_usage_units=1,
+    )
+
+    assert bridge._vaneck_qualification_log_link_failure_codes(
+        source=source,
+        logs=[log],
+        attempt_log_ids=[13],
+        operation="fetch_etf_holdings_latest",
+        instrument_id=43,
+        provider_symbol="OIH",
+    ) == ("log_id_set_mismatch",)
+    assert bridge._vaneck_qualification_log_link_failure_codes(
+        source=source,
+        logs=[log],
+        attempt_log_ids=[14, 14],
+        operation="fetch_etf_holdings_latest",
+        instrument_id=43,
+        provider_symbol="OIH",
+    ) == ("log_count_mismatch", "duplicate_attempt_log_ids")
+    assert bridge._vaneck_qualification_log_link_failure_codes(
+        source=None,
+        logs=[],
+        attempt_log_ids=[13],
+        operation="fetch_etf_holdings_latest",
+        instrument_id=43,
+        provider_symbol="OIH",
+    ) == ("source_missing", "log_count_mismatch", "log_id_set_mismatch")
+
+
+def test_only_vaneck_initial_binding_uses_nonpositive_failure_retention_path():
+    vaneck = SimpleNamespace(
+        vaneck_initial_qualification_job_id=3,
+        initial_qualification_authority=None,
+    )
+    sec = SimpleNamespace(
+        vaneck_initial_qualification_job_id=None,
+        initial_qualification_authority=object(),
+    )
+    ordinary = SimpleNamespace(
+        vaneck_initial_qualification_job_id=None,
+        initial_qualification_authority=None,
+    )
+
+    assert bridge._is_vaneck_initial_qualification_binding(vaneck)
+    assert not bridge._is_vaneck_initial_qualification_binding(sec)
+    assert not bridge._is_vaneck_initial_qualification_binding(ordinary)
+    assert not bridge._is_vaneck_initial_qualification_binding(None)
+
+
+def test_vaneck_binary_response_telemetry_preserves_exact_bytes_and_text_json_behavior():
+    from app.providers.telemetry import activate, deactivate
+
+    wire_bytes = b"PK\x03\x04\x00\xff\xc0\xaf\xfeoriginal-xlsx-bytes"
+    binary_response = httpx.Response(
+        200,
+        content=wire_bytes,
+        headers={
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        request=httpx.Request("GET", "https://www.vaneck.com/holdings.xlsx"),
+    )
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        bridge._observe_httpx_attempt_response(
+            binary_response,
+            preserve_binary_payload=True,
+            max_response_bytes=5 * 1024 * 1024,
+        )
+    finally:
+        deactivate(token)
+
+    assert measurement.http_requests == 1
+    assert measurement.response_bytes == len(wire_bytes)
+    assert len(measurement.response_payloads) == 1
+    evidence = measurement.response_payloads[0]
+    assert evidence["kind"] == "vaneck_initial_response_body"
+    assert evidence["encoding"] == "base64"
+    assert evidence["complete"] is True
+    assert evidence["bytes_received"] == len(wire_bytes)
+    assert evidence["sha256"] == hashlib.sha256(wire_bytes).hexdigest()
+    assert base64.b64decode(evidence["body_base64"], validate=True) == wire_bytes
+
+    for response, expected in (
+        (
+            httpx.Response(
+                200,
+                json={"status": "ok"},
+                request=httpx.Request("GET", "https://www.vaneck.com/status"),
+            ),
+            {"status": "ok"},
+        ),
+        (
+            httpx.Response(
+                200,
+                text="ordinary text response",
+                headers={"content-type": "text/plain"},
+                request=httpx.Request("GET", "https://www.vaneck.com/status.txt"),
+            ),
+            "ordinary text response",
+        ),
+    ):
+        measurement, token = activate(capture_response_payloads=True)
+        try:
+            bridge._observe_httpx_attempt_response(
+                response,
+                preserve_binary_payload=True,
+                max_response_bytes=5 * 1024 * 1024,
+            )
+        finally:
+            deactivate(token)
+        assert measurement.response_payloads == [expected]
+
+
+@pytest.mark.asyncio
+async def test_request_driven_etf_call_rejects_missing_scope_before_resolver_or_transport(
+    monkeypatch,
+):
+    from app.config import settings
+    from app.models.provider_runtime import ProviderCapability
+    from app.services import provider_runtime
+    from app.services.provider_runtime import ProviderRequestScopeDeniedError
+
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(
+        provider_runtime,
+        "resolve_provider_chain",
+        lambda *_args, **_kwargs: pytest.fail("unscoped ETF requests must stop before resolution"),
+    )
+
+    with pytest.raises(ProviderRequestScopeDeniedError, match="explicit_acquisition_required"):
+        await provider_runtime.execute_provider_call(
+            None,
+            ProviderCapability.ETF_HOLDINGS,
+            "fetch_etf_holdings_latest",
+            instrument_id=43,
+            provider_symbol="OIH",
+            profile_id=43,
+            provider_name="vaneck",
+            etf_holdings_adapters={"vaneck": SimpleNamespace(source_provider="vaneck")},
+            invoke=lambda *_args: pytest.fail("unscoped ETF requests must not transport"),
+        )
 
 
 @pytest.mark.asyncio
