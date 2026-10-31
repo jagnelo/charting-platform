@@ -21,7 +21,7 @@
     "authorization": "/home/m920q/charting-platform/.ai/staging-attempts/provider-a655-master-calendar-fixture-failure-owner-release-20261031.json",
     "baseline": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
     "name": "exact UNXQ calendar side-read E2E fixture",
-    "scope": "test fixture plus four owned workstream records only; no product runtime, backend/provider, production, target or ledger operation",
+    "scope": "Exact fictional UNXQ calendar E2E fixture and Root-authorized adjacent deterministic WorkspaceLayoutHost unit-test clock correction, plus four owned records; no product runtime/backend/provider/production/target/ledger change.",
     "source_file_sha256": {
       "frontend/tests/e2e/on_demand_acquisition.spec.ts": "39dfb8ffdb45115aa7f3b7b5b16d524892b18b53174e79f5988d30acbf57a2b2",
       "frontend/tests/unit/components/test_workspace_layout_host.test.ts": "931bb61b528e0abab2a12fb2b4a06dfa7d5eda59b6779ffc8c00e320f569455d"
@@ -30,7 +30,7 @@
       "frontend/tests/e2e/on_demand_acquisition.spec.ts",
       "frontend/tests/unit/components/test_workspace_layout_host.test.ts"
     ],
-    "state": "Both bounded test corrections implemented; focused layout file 13/13 and corrected full frontend Vitest 1495/1495 pass; type-check and E2E discovery pass. Prior 1494/1 result preserved; full browser profile and exact CI pending."
+    "state": "Implementation source 802ef5b1e6a4246cc27f29da90950984878df947 is published; focused checks, full_stack_browser and exact implementation CI are green. Root checkpoint acceptance remains pending."
   },
   "active_follow_up": {
     "baseline_head": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
@@ -39,18 +39,20 @@
       "Exact green staging a655 adopted by fast-forward before this implementation",
       "Added exact fictional UNXQ calendar GET fixture with typed empty CalendarEvent[] response, bounded-date assertions and after-history/reload observations; Vue type-check and Playwright discovery passed.",
       "Scoped WorkspaceLayoutHost fake-timer/RAF test correction passed its 13-case file; component source and all assertions remain unchanged.",
-      "The corrected full frontend Vitest suite passed 1495/1495 tests across 151 files; the initial 1494/1 failure remains preserved in validation history."
+      "The corrected full frontend Vitest suite passed 1495/1495 tests across 151 files; the initial 1494/1 failure remains preserved in validation history.",
+      "Source-matched full_stack_browser passed: 201 functional passed, 2 configured skips; 104 strict visual passed across four projects, zero retries.",
+      "Exact-owned cleanup exited 0 with protected inventory equality: 29 containers, 32 images, 10 networks, 51 volumes.",
+      "Exact implementation CI41186532340 is terminal green; required jobs succeeded and exhaustive was skipped as configured."
     ],
     "id": "etf-unresolved-calendar-side-read-fixture-20261031",
     "pending": [
-      "Publish the coherent frontend-test/four-record candidate, then run the owner-isolated current-source full_stack_browser functional and strict visual profile with zero retries and exact owned cleanup/protected inventory equality.",
-      "Run exact owner-branch full_integration CI and resolve any genuine in-scope gate failure without weakening assertions.",
-      "Root checkpoint review; later integration, promotion and deployment remain Root-owned."
+      "Root review and acceptance of the bounded UCF1-UCF4 checkpoint.",
+      "Root-owned integration, promotion/deployment and genuine OIH source/account/returned-uncached-constituent proof; full AC1-AC14 remains open."
     ],
     "prior_checkpoint_archive": "previously_accepted_unresolved_holding_drilldown_checkpoint_2026_10_30",
     "staging_ci_run_id": 41171928099,
     "staging_ci_state": "terminal_green_attempt_1",
-    "status": "implementation_in_progress; current profile and exact branch CI pending; unrelated Vitest failure retained for disposition.",
+    "status": "ready_for_human_review; profile and exact implementation CI green; Root acceptance pending",
     "trigger": "Master run41179345123/job124478798349 returned404 for the exact UNXQ calendar side-read and strict BrowserDiagnostics failed; red result retained.",
     "validation_tier": "full_integration"
   },
@@ -103,17 +105,10 @@
     "objective": "Publish the Root-accepted bounded ETF master-exhaustive integration batching checkpoint as one coherent four-record closing commit, preserve the full AC1-AC14 roadmap and prior accepted HQD history, then verify exact closing-tip push CI and hand off to Root. Do not integrate, promote, deploy, or claim the wider ETF objective complete.",
     "accounting_note": "New unbudgeted closing-publication goal in the same original thread; preceding runner-repair goal complete with accounting preserved, earlier HQD goal history unchanged."
   },
-  "current_blocker_latest": "The preserved master replay run41179345123/job124478798349 failed at the uncontrolled UNXQ calendar GET; the exact typed fixture is now in the candidate. Root-authorized adjacent timer test correction passed its focused 13 tests; the corrected full frontend suite passed 1495/1495 across 151 files. Earlier 1494/1 Vitest evidence remains preserved. The current-source browser profile and exact branch CI remain pending.",
-  "current_checkpoint_objective": "Complete UCF1-UCF4 for the exact UNXQ calendar side-read fixture, with strict diagnostics and no backend/runtime change; then run the authorized current-source full_stack_browser profile and exact branch CI. Preserve the accepted UHD checkpoint and full AC1-AC14 roadmap.",
-  "current_local_delta": "Current frontend test-only delta covers the exact fictional UNXQ calendar fixture and one adjacent deterministic WorkspaceLayoutHost clock test. No product runtime/backend/provider behavior changes. The E2E fixture matches only UNXQ calendar GET and observes bounded dates after D1 history/reload; BrowserDiagnostics remains strict. The timer correction drains bounded startup RAF callbacks and retains active-getter/no-private-field/unchanged-count/no-click assertions. Focused layout file passed 13/13; corrected full Vitest passed 1495/1495 (151 files); type-check and Playwright discovery passed. The initial full run 1494/1 remains preserved. Backend tree 1926d47bec96874d1afbea1338c6fcc004ec6560 matches retained qualified input; frontend production build inputs are unchanged from D014 image source, with only nonbundled E2E/unit test files differing. Full browser profile and exact-source CI pending.",
-  "dirty_paths": [
-    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+  "current_checkpoint_objective": "UCF1-UCF4 are implemented and verified for the exact fictional UNXQ calendar side-read fixture. Focused checks, full source-matched full_stack_browser and exact implementation CI are green; preserve strict diagnostics, accepted UHD history and AC1-AC14. Ready for Root review; acceptance/integration remain pending.",
+  "current_local_delta": "Exact UNXQ calendar GET fixture plus scoped deterministic WorkspaceLayoutHost clock-test correction; no product runtime/backend/provider change. Focused layout 13/13, full Vitest 1495/1495, type-check and E2E discovery passed. Current source 802ef5 full profile passed 201 functional/2 configured skips and 104 strict visual, zero retries; cleanup equality and exact implementation CI41186532340 green. Initial full Vitest1494/1 and all setup/refusal evidence remain preserved.",
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -156,7 +151,7 @@
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
   },
   "goal_request_state": "active",
-  "goal_state": "active",
+  "goal_state": "ready_for_human_review",
   "goal_unavailable_reason": null,
   "head": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
   "historical_integration_checkpoint_erf_2026_10_26": {
@@ -403,7 +398,7 @@
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
-  "implementation_sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
+  "implementation_sha": "802ef5b1e6a4246cc27f29da90950984878df947",
   "integration_capture": "exact branch HEAD",
   "integration_checkpoint": {
     "acceptance_authorization": "pending_root_review",
@@ -427,17 +422,23 @@
     ],
     "branch_validation_tier": "full_integration",
     "closure_pending": true,
-    "full_roadmap_status": "AC1-AC14 remain open and unchanged; all prior accepted checkpoint archives and historical failures are preserved.",
+    "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted archives and historical failures.",
     "goal": "Fix the bounded unresolved-holding browser fixture for the exact fictional UNXQ calendar side-read. Serve only GET /api/v1/calendar/instruments/UNXQ/calendar with the typed calendar-event list, assert the bounded query and reload observation, and preserve all BrowserDiagnostics, identity/history/lineage assertions and the full AC1-AC14 roadmap.",
     "id": "etf-unresolved-calendar-side-read-fixture-20261031",
     "integration_capture": "exact branch HEAD",
     "local_validation_profile": "full_stack_browser",
     "planning_authorization": "/home/m920q/charting-platform/.ai/staging-attempts/provider-a655-master-calendar-fixture-failure-owner-release-20261031.json",
     "progress": {
-      "completed": [],
-      "current_blocker": "The exact typed UNXQ calendar fixture and deterministic adjacent clock test are implemented. The earlier master replay 404 and first Vitest 1494/1 red are preserved; focused layout unit passed 13/13 and the corrected full frontend suite passed 1495/1495. The full current-source browser profile and exact branch CI remain pending. Preserve 15 Tier-0 and 156 Tier-1; AC1-AC14 remain open.",
-      "current_phase": "Implementation and focused frontend checks passed; source-matched browser profile and exact branch CI pending",
-      "total": 4
+      "completed": [
+        "UCF1",
+        "UCF2",
+        "UCF3",
+        "UCF4"
+      ],
+      "total": 4,
+      "current_phase": "UCF1-UCF4 validated; ready_for_human_review with Root acceptance pending",
+      "current_blocker": "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+      "next_action": "Hand off the frozen UCF1-UCF4 checkpoint for Root review/acceptance; do not integrate, deploy or claim genuine source acquisition."
     },
     "source_baseline": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
     "source_scope": [
@@ -448,12 +449,16 @@
       "ops/workstreams/feat-etf-holdings-constituents/session.json",
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
-    "status": "implementation_in_progress",
+    "status": "ready_for_human_review",
     "validation": {
-      "exact_source_ci": "pending",
-      "focused_e2e": "Focused WorkspaceLayoutHost unit file passed 13/13; corrected full frontend Vitest passed 1495/1495 across 151 files; Vue type-check and Playwright discovery passed, with all 5 acquisition cases listed. No E2E body has run; full_stack_browser is pending. The first Vitest 1494/1 failure is preserved.",
-      "full_stack_browser": "pending; current-source profile required"
-    }
+      "focused_e2e": "Focused layout unit test passed 13/13; corrected full frontend Vitest passed 1495/1495 across 151 files; Vue type-check and Playwright discovery passed with all five acquisition cases listed. The earlier 1494/1 full-suite result remains preserved as a failure predecessor.",
+      "full_stack_browser": "Source-matched full_stack_browser profile passed on implementation 802ef5b1e6a4246cc27f29da90950984878df947. Prepare/config/guard/component verification/up/probes/smoke/worker restart passed; smoke verified the private 10000-row fixture. Functional attempt 002 passed 201 with 2 configured skips and 0 failures; strict visual attempt 001 passed 104/104 across four 26-case projects with 0 skips/failures and 0 retries. Exact-project cleanup exited 0; protected inventory comparison is equal at 29 containers, 32 images, 10 networks and 51 volumes. Phase inputs remained hash-identical. The pretest functional permission failure and visual duplicate-start guard refusal are preserved and are not counted as test executions. Evidence receipt /tmp/etf-unxq-calendar-802ef5b1-20261031/artifacts/frontend-equivalence-receipt-correction-and-profile-results.json SHA256 94d97b5a559723c3ac383921227d88e0b3388590387c88f02642f7ee72c8d6e3. The verified frontend equivalence receipt hash f991c30ac8f1e211f4f22b9b64ebde051c13a6a28a04a9ba75447ccf23034d9a is recorded by the emitted component receipt; no stale prior-profile hash is used.",
+      "exact_branch_ci": "Exact push CI41186532340, attempt 1, is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E/Playwright succeeded; Exhaustive Integration Gate was skipped as configured. This is implementation-source CI. Any CI caused by the later four-record review publication is separate and is not self-referenced."
+    },
+    "remaining_gates": [
+      "Root reviews and accepts this bounded UNXQ calendar fixture checkpoint; acceptance remains pending and no integration is claimed.",
+      "After acceptance, the coordinator owns supported staging integration and later promotion/deployment. Genuine OIH source/account and returned-uncached-constituent operational proof remain outstanding."
+    ]
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -488,14 +493,14 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-30T23:03:00Z",
+  "last_checkpoint": "2026-10-31T09:51:12Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "Current bounded checkpoint etf-unresolved-calendar-side-read-fixture-20261031 is in progress from exact green staging a6558c4978311d7a21c3b29d3d8fd2f043610efb. The exact master replay red run41179345123 is preserved. Current change adds only a typed exact-path fictional UNXQ calendar fixture with route/query/reload observations; no product runtime change. Static type-check and Playwright discovery pass; the full frontend unit attempt is preserved with 1494 passed and one unrelated WorkspaceLayoutHost call-count failure. Full current-source browser profile and exact branch CI remain required.",
+  "latest_checkpoint": "Bounded checkpoint etf-unresolved-calendar-side-read-fixture-20261031 is ready for Root review. Tested source 802ef5b1e6a4246cc27f29da90950984878df947 passed the source-matched full_stack_browser profile (201 functional passed/2 configured skips;104 strict visual passed/0 skips) and exact push CI41186532340 (required jobs green; exhaustive gate skipped as configured). The earlier master replay 404 and Vitest1494/1 failure remain preserved. Root acceptance is pending; AC1-AC14 remain open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "result": "Exact implementation CI41135061084 is terminal green on tested source78dcca; the closing-tip CI is pending after this records-only publication.",
-    "run_id": 41135061084,
-    "sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2"
+    "result": "Exact implementation push CI41186532340 is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947; Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive Integration Gate was skipped as configured.",
+    "run_id": 41186532340,
+    "sha": "802ef5b1e6a4246cc27f29da90950984878df947"
   },
   "latest_staging_baseline_adoption": {
     "release_state": "exact synchronized-green staging adopted by fast-forward",
@@ -555,8 +560,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent test and four-record candidate after normal workstream checks, then use the retained equivalent backend/frontend runtime images in one fresh owner-isolated full_stack_browser profile with zero retries and strict diagnostics. Run exact branch CI in parallel; do not claim readiness until both required proofs are green.",
-  "plan_hash": "719cb46f3cdda5e8af5d34e60659ada385e03323a09889fc684ab47b66e0e567",
+  "next_action": "Hand off the frozen UCF1-UCF4 checkpoint for Root review/acceptance; do not integrate, deploy or claim genuine source acquisition.",
+  "plan_hash": "50cbd43d7eab17ce408905ebf7e2969076304a469d958ad5473133388e94a875",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -1205,11 +1210,16 @@
     }
   },
   "progress": {
-    "completed": [],
-    "current_blocker": "Master replay run41179345123/job124478798349 fails at the exact UNXQ calendar GET because the test fixture currently has no typed response. Preserve 15 Tier-0 and 156 Tier-1 investigations; AC1-AC14 remain open.",
-    "current_phase": "exact UNXQ calendar fixture correction and required validation in progress",
-    "next_action": "Complete focused frontend checks, publish the coherent candidate, then run the released full_stack_browser profile and exact-source owner CI with zero retries.",
-    "total": 4
+    "completed": [
+      "UCF1",
+      "UCF2",
+      "UCF3",
+      "UCF4"
+    ],
+    "total": 4,
+    "current_phase": "UCF1-UCF4 validated; ready_for_human_review with Root acceptance pending",
+    "current_blocker": "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+    "next_action": "Hand off the frozen UCF1-UCF4 checkpoint for Root review/acceptance; do not integrate, deploy or claim genuine source acquisition."
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -1247,9 +1257,9 @@
     "staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6"
   },
   "remote": "origin/feat/etf-holdings-constituents",
-  "remote_observation": "Before the one closing merge publication, local HEAD and origin/feat/etf-holdings-constituents both identified the accepted implementation78dcca03983de9304fe7e44303ab35e6d88a03c2. The authorized canonical green staging b1b06fd8344549484e26ce3bf960befc832531ef is being adopted as ancestry; the merge commit and four owned record changes must be published once. integration_capture: exact branch HEAD; do not self-reference the closing SHA.",
-  "remote_sha": "a248859ceb8697e42c74d006d5d4007f6313faee",
-  "remote_synchronized": false,
+  "remote_observation": "Immediately before this final record update, HEAD and origin/feat/etf-holdings-constituents both identified tested implementation 802ef5b1e6a4246cc27f29da90950984878df947 with a clean worktree. Exact-source push CI41186532340 is green. The records-only review publication does not change product/test bytes; any CI it triggers is separate evidence.",
+  "remote_sha": "802ef5b1e6a4246cc27f29da90950984878df947",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -1334,8 +1344,8 @@
     "static_contract_review": "The merged shared execute_provider_call is async with a synchronous non-awaitable invoke callback; ETF uses _sync_provider_invoke and the shared ETF_HOLDINGS capability. Source inspection only; runtime validation remains open.",
     "status": "merged_locally_no_conflicts_final_owner_record_commit_and_single_push_pending"
   },
-  "state": "in_progress",
-  "status": "in_progress",
+  "state": "ready_for_human_review",
+  "status": "ready_for_human_review",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
     "DFTT_responses": ".ai/validation/structural-donoghue-native-replay-20261015.log",
@@ -1396,7 +1406,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-31T08:57:00Z",
+  "updated_at": "2026-10-31T09:51:12Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -1604,7 +1614,7 @@
     "validated_implementation_sha": "7f30a8c330ffbb1e34c22f2f485aafec9fac0f23"
   },
   "implementation_source_baseline": "c91d556f89318509e96a0292453a22d6d7d96365",
-  "source_candidate_publication": "This implementation publication contains the exact-path UNXQ calendar fixture and the Root-reviewed deterministic test-only RAF/timer correction; the exact source SHA is captured by the resulting branch HEAD and exact-source CI, not embedded self-referentially. Full current-source browser profile and branch CI are required before ready_for_human_review.",
+  "source_candidate_publication": "Implementation source 802ef5b1e6a4246cc27f29da90950984878df947 is published and exact implementation CI41186532340 is green. The final review-record update preserves tested product/test bytes and does not self-reference its own publication SHA; integration_capture: exact branch HEAD.",
   "previously_accepted_odc_checkpoint_2026_10_27": {
     "acceptance_criteria": [
       {

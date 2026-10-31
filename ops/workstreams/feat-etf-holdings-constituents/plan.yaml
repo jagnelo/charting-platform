@@ -353,11 +353,7 @@ human_closure_authorization: >-
   Pending Root acceptance for `etf-unresolved-calendar-side-read-fixture-20261031`.
   The current Root release authorizes implementation and validation only and is
   not checkpoint acceptance or closure authority.
-closure_summary: >-
-  In progress: add only a deterministic exact UNXQ calendar response to the
-  controlled browser fixture and assert the real GET/path/date-range read.
-  Preserve strict diagnostics and all UHD/AC1-AC14 history; qualification and
-  Root acceptance remain pending.
+closure_summary: "The exact fictional UNXQ calendar side-read fixture and the scoped deterministic WorkspaceLayoutHost clock test correction are implemented and validated at source 802ef5b1e6a4246cc27f29da90950984878df947. Focused/full frontend checks, the complete current-source full_stack_browser profile, exact implementation CI and protected-resource cleanup passed. Checkpoint acceptance remains pending Root review; integration_capture: exact branch HEAD. No product runtime, backend, provider, production, quota, ledger, target or deployment change is claimed. The complete AC1-AC14 roadmap and all existing holds remain open."
 previously_accepted_odc_active_changeset_2026_10_27:
   name: explicit selected-fund ETF issuer acquisition
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -2365,20 +2361,15 @@ integration_checkpoint:
     first; its exact push CI41171928099 is terminal green. The independent
     master replay on that source remains red and is preserved as the trigger,
     not used as a green baseline.
-  status: implementation_in_progress
+  status: "ready_for_human_review"
   acceptance_authorization: pending_root_review
   source_baseline: a6558c4978311d7a21c3b29d3d8fd2f043610efb
   acceptance_criteria: *etf_unxq_calendar_fixture_criteria
   progress:
-    completed: []
+    completed: ["UCF1", "UCF2", "UCF3", "UCF4"]
     total: 4
-    current_phase: exact calendar fixture correction and validation in progress
-    current_blocker: >-
-      The master replay case at on_demand_acquisition.spec.ts:299 fails only
-      after the resolved UNXQ chart performs GET
-      /api/v1/calendar/instruments/UNXQ/calendar outside the controlled fixture;
-      it returns404 and strict BrowserDiagnostics correctly fails. No test body
-      is being skipped and no diagnostic rule is changed.
+    current_phase: "UCF1-UCF4 validated; ready_for_human_review with Root acceptance pending"
+    current_blocker: "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history."
   required_contracts:
     - Match only GET /api/v1/calendar/instruments/UNXQ/calendar; no wildcard calendar route or blanket empty response may absorb unrelated requests.
     - Return a typed CalendarEvent[] response matching backend/app/routers/calendar.py and UPlotChart's consumer; an empty list is the valid fixture for this fictional instrument.
@@ -2393,19 +2384,17 @@ integration_checkpoint:
     - ops/workstreams/feat-etf-holdings-constituents/session.json
     - ops/workstreams/feat-etf-holdings-constituents/validation.jsonl
   validation:
-    focused_e2e: static type-check/discovery and the 13-case WorkspaceLayoutHost unit file passed; corrected full Vitest passed 1495/1495. The earlier 1494/1 attempt remains preserved. No E2E body has run yet; it is pending the current-source full_stack_browser profile.
-    full_stack_browser: pending; fresh source-matched profile required
-    exact_branch_ci: pending
+    focused_e2e: "Focused layout unit test passed 13/13; corrected full frontend Vitest passed 1495/1495 across 151 files; Vue type-check and Playwright discovery passed with all five acquisition cases listed. The earlier 1494/1 full-suite result remains preserved as a failure predecessor."
+    full_stack_browser: "Source-matched full_stack_browser profile passed on implementation 802ef5b1e6a4246cc27f29da90950984878df947. Prepare/config/guard/component verification/up/probes/smoke/worker restart passed; smoke verified the private 10000-row fixture. Functional attempt 002 passed 201 with 2 configured skips and 0 failures; strict visual attempt 001 passed 104/104 across four 26-case projects with 0 skips/failures and 0 retries. Exact-project cleanup exited 0; protected inventory comparison is equal at 29 containers, 32 images, 10 networks and 51 volumes. Phase inputs remained hash-identical. The pretest functional permission failure and visual duplicate-start guard refusal are preserved and are not counted as test executions. Evidence receipt /tmp/etf-unxq-calendar-802ef5b1-20261031/artifacts/frontend-equivalence-receipt-correction-and-profile-results.json SHA256 94d97b5a559723c3ac383921227d88e0b3388590387c88f02642f7ee72c8d6e3. The verified frontend equivalence receipt hash f991c30ac8f1e211f4f22b9b64ebde051c13a6a28a04a9ba75447ccf23034d9a is recorded by the emitted component receipt; no stale prior-profile hash is used."
+    exact_branch_ci: "Exact push CI41186532340, attempt 1, is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E/Playwright succeeded; Exhaustive Integration Gate was skipped as configured. This is implementation-source CI. Any CI caused by the later four-record review publication is separate and is not self-referenced."
   local_validation_profile: full_stack_browser
   branch_validation_tier: full_integration
   integration_capture: exact branch HEAD
   full_roadmap_status: AC1-AC14 remain open and unchanged; preserve every previous checkpoint, hold, retention record and historical failure.
   remaining_gates:
-    - Focused source/static checks and frontend unit suite are green on corrected source; the E2E body and strict diagnostics remain pending the full current-source browser profile. Retain the first 1494/1 result as historical evidence.
-    - Full source-matched full_stack_browser profile passes with zero retries, strict existing references/oracles, and exact-owned cleanup plus protected inventory equality.
-    - Exact owner-branch CI passes; Root owns final checkpoint acceptance, integration, promotion, deployment and genuine source operations.
+    ["Root reviews and accepts this bounded UNXQ calendar fixture checkpoint; acceptance remains pending and no integration is claimed.", "After acceptance, the coordinator owns supported staging integration and later promotion/deployment. Genuine OIH source/account and returned-uncached-constituent operational proof remain outstanding."]
   closure_pending: true
-status: in_progress
+status: "ready_for_human_review"
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
   total: 3
@@ -2419,10 +2408,10 @@ previously_accepted_unresolved_holding_drilldown_progress_2026_10_30:
   total: 4
   current_phase: etf-unresolved-holding-drilldown-20261030 accepted; closing-tip CI pending external verification; AC1-AC14 remain open
 progress:
-  completed: []
+  completed: ["UCF1", "UCF2", "UCF3", "UCF4"]
   total: 4
-  current_phase: exact UNXQ calendar fixture correction in progress
-  current_blocker: The exact UNXQ calendar fixture and Root-reviewed adjacent WorkspaceLayoutHost clock test correction are implemented. The initial Vitest 1494/1 red is preserved; the corrected 151-file suite passes 1495/1495 and the focused layout file passes 13/13. Preserve 15 Tier-0 and 156 Tier-1; the current-source browser profile and exact branch CI remain pending.
+  current_phase: "UCF1-UCF4 validated; ready_for_human_review with Root acceptance pending"
+  current_blocker: "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history."
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2668,20 +2657,7 @@ backend_runner_timeout_remediation:
     issuer, SEC, target, quota, production, staging, sibling or deployment
     operation is authorized by this runner-only repair.
 
-current_blocker: >-
-  The independent master replay of a655 source run41179345123/job124478798349
-  failed at strict BrowserDiagnostics because the exact fictional UNXQ
-  calendar GET was not controlled and returned404; preserve that red result.
-  The exact-path typed fixture is implemented and static checks pass. The full
-  frontend Vitest attempt is separately preserved with 1494 passed and one
-  WorkspaceLayoutHost call-count failure. Root verified its real-time startup
-  wait could precede delayed requestAnimationFrame reassert callbacks; a
-  scoped deterministic RAF/fake-timer correction passes that file's 13 tests
-  without changing the component or assertions. A new full run passed all
-  1495 tests across 151 files. The current-source browser profile and exact
-  branch CI remain pending.
-  Preserve the invariant 15 Tier-0 and 156 Tier-1 investigations in the open
-  AC1-AC14 roadmap.
+current_blocker: "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history."
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3850,14 +3826,7 @@ latest_sec_first_use_candidate:
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
-next_action: >-
-  Finish focused frontend checks and publish this coherent E2E-fixture/record
-  change. Reuse only the retained backend/frontend runtime images after exact
-  current-source build-input equivalence is verified; run one fresh owned
-  full_stack_browser profile with zero retries, strict existing oracles and
-  exact cleanup, then verify exact branch CI. Preserve the full AC1-AC14
-  roadmap and all source/account/target holds; Root owns acceptance,
-  integration and deployment.
+next_action: "Hand off the frozen, validated UCF1-UCF4 checkpoint for Root review and acceptance. Root owns integration, promotion, deployment and genuine source/account proof."
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress
