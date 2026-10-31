@@ -1,28 +1,24 @@
 {
   "acceptance_criteria": [
     {
-      "id": "VJL1",
-      "text": "The existing admin-only job4 successor accepts the actual retained empty top-level provider_request_log_ids shape only when qualification_outcome.provider_attempt_evidence records exactly one positive integer request-log ID in both callback and persisted lists, with admitted_attempt_recorded and all_callback_logs_persisted true and positive_qualification_linked false; the server still proves the current immutable job, digest, scope, log, artifact, fingerprint, timing, and settled-reservation lineage."
+      "id": "VTR1",
+      "text": "The exact staging run 41229796689 on 1e06d16fa563c5a19027828b1c27354ef84a7d51 is recorded accurately as backend-job timeout/cancellation at the 30-minute limit, with 5,628 unit and 597 integration passes, three configured skips, and 84% coverage observed before cancellation; downstream gates skipped mean staging is not accepted. The separate Root watcher degraded receipt is recorded as CI evidence unavailable due to API rate limiting, not as test success or failure."
     },
     {
-      "id": "VJL2",
-      "text": "A populated legacy top-level request-log list retains its existing path, including job3 compatibility. Missing, malformed, ambiguous, mismatched, unpersisted, bool, or positive-qualification witnesses fail closed before transport; all one-shot, idempotency, admission, free-only, disabled/not_run, request caps, output checks, and genuine positive snapshot/fund/settlement predicates remain unchanged."
+      "id": "VTR2",
+      "text": "Only the GitHub Actions Backend Tests job timeout in .github/workflows/ci.yml changes from 30 to 45 minutes. Backend test selection, assertions, coverage threshold, skip policy, retry policy, concurrency and every other job timeout remain unchanged."
     },
     {
-      "id": "VJL3",
-      "text": "Historical job2/job3/job4, request log14, raw artifact5, reservations, native-usage unknowns, source/account records, and consumed allowances are not edited, replayed, reset, or inferred. The repair adds no arbitrary eligibility, production identifiers, schema migration, fabricated HTTP/status/body evidence, or provider/source request."
-    },
-    {
-      "id": "VJL4",
-      "text": "Focused unit and exact actual-shape PostgreSQL/SQLite regressions, applicable complete backend and joint runtime profiles, workstream/branch checks, and exact-source CI pass without changing assertions, retries, thresholds, tolerances, holds, or protected resources; stop at ready_for_human_review pending Root review and acceptance."
+      "id": "VTR3",
+      "text": "Focused workflow syntax/structure and timeout checks, repository workstream validation, and exact-source branch CI pass. Prior C28 product/build/test qualification is reused only under Root exact input-equivalence proof; no duplicate heavy fixture or provider/source transport is run."
     }
   ],
-  "active_checkpoint_id": "provider-vaneck-job4-lineage-gap-20261031",
+  "active_checkpoint_id": "provider-vjl-staging-backend-timeout-repair-20261031",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "Root accepted VJL1-VJL4 under the human standing delegation; bounded software checkpoint only, broader Provider roadmap and genuine source/target acceptance remain open.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-checkpoint-acceptance-root-review-20261031.json",
-  "checkpoint_authorization_state": "human standing delegation; Root technical acceptance recorded for VJL1-VJL4",
+  "checkpoint_acceptance_decision": "Root accepted the bounded CI-budget implementation for one closing publication; exact-source CI remains mandatory and pending.",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vtr-candidate-technical-acceptance-root-review-20261031.json",
+  "checkpoint_authorization_state": "Root technical acceptance under standing human delegation; exact final CI and protected gates remain separate.",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -78,6 +74,13 @@
       "runtime_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-full-runtime-qualified-root-review-20261031.json",
       "plan_archive": "plan.yaml: integration_checkpoint provider-vaneck-job4-lineage-gap-20261031",
       "note": "Genuine source/ordinary UI requirements and full roadmap remain open; no source HTTP or deployment."
+    },
+    {
+      "checkpoint_id": "provider-vjl-staging-backend-timeout-repair-20261031",
+      "status": "ready_for_human_review",
+      "source_sha_at_activation": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
+      "staging_sha": "1e06d16fa563c5a19027828b1c27354ef84a7d51",
+      "exact_ci": "pending"
     }
   ],
   "checkpoint_status": "ready_for_integration",
@@ -93,26 +96,30 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "closing_commit_ci": {
-    "source_sha": "exact closing branch HEAD",
+    "source_sha": "exact final published branch HEAD",
     "run_id": null,
-    "status": "pending; Root observes after push"
+    "status": "mandatory and pending; Root observes exact run"
   },
   "current_checkpoint_local_profile": {
     "profile": "full_stack_browser",
-    "backend": "6225 passed, 3 configured skips of 6228; 84.43% coverage",
-    "functional": "201 passed, 2 configured skips; all five on-demand cases and dense 10000-row case",
-    "visual": "104/104 across four projects; zero retries; tolerance 0.005",
-    "cleanup": "all 11 phases passed; exact owned cleanup and protected inventory verified",
-    "provider_http_requests": 0,
-    "quota_operations": 0,
-    "status": "Root technically accepted VJL1-VJL4; genuine source and ordinary UI acceptance remain open"
+    "backend": "reused C28 Root-qualified evidence: 6225 passed, 3 configured skips of 6228; 84.43% coverage",
+    "functional": "reused C28 Root-qualified evidence: 201 passed/2 configured skips; all five acquisition cases and dense10000",
+    "visual": "reused C28 Root-qualified evidence: 104/104 across four projects; zero retries; tolerance 0.005",
+    "reuse_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-1e06d16-staging-qualified-input-equivalence-root-review-20261031.json",
+    "status": "exact product/build/test input equivalence reviewed by Root; no duplicate local profile run for workflow-only timeout change"
   },
   "current_exact_ci": {
-    "source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
-    "run_id": 41211004128,
-    "status": "terminal success on implementation source; expected feature-branch Exhaustive skip; closing-tip CI pending"
+    "source_sha": "exact final published branch HEAD",
+    "run_id": null,
+    "status": "pending; VTR3 hosted-CI remainder is not green"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    ".github/workflows/ci.yml",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
+    "ops/workstreams/feat-market-data-provider-platform/session.json"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -130,17 +137,17 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Repair only the actual retained VanEck job4 request-log lineage gap (VJL1-VJL4), preserving the accepted VQS/OIH checkpoints, all 24 Provider roadmap criteria, holds and consumed-request history. No provider transport, production mutation, integration, or deployment.",
-  "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
+  "goal_objective": "Repair only the CI budget of the Backend Tests job for the timed-out staging workflow: change its timeout from 30 to 45 minutes, preserve all tests and other CI settings, and obtain exact-source CI. Preserve the completed VJL checkpoint, all 24 Provider roadmap criteria, accepted history and holds. No product/test/provider changes, transport, fixtures, deployment, staging/master or sibling mutations. Root owns acceptance and degraded-stage remediation.",
+  "goal_recorded_at": "2026-10-31T19:05:02+00:00",
   "goal_request": {
-    "objective": "Repair only the actual retained VanEck job4 request-log lineage gap (VJL1-VJL4), preserving the accepted VQS/OIH checkpoints, all 24 Provider roadmap criteria, holds and consumed-request history. No provider transport, production mutation, integration, or deployment.",
-    "recorded_at": "2026-10-31T14:32:35+00:00",
-    "authorization": "Human direct scoped activation in this original Provider thread, 2026-10-31."
+    "objective": "Repair only the CI budget of the Backend Tests job for the timed-out staging workflow: change its timeout from 30 to 45 minutes, preserve all tests and other CI settings, and obtain exact-source CI. Preserve the completed VJL checkpoint, all 24 Provider roadmap criteria, accepted history and holds. No product/test/provider changes, transport, fixtures, deployment, staging/master or sibling mutations. Root owns acceptance and degraded-stage remediation.",
+    "recorded_at": "2026-10-31T19:05:02Z",
+    "authorization": "Human direct activation in this original Provider session; new bounded unbudgeted goal after VJL completion."
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+  "head": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -157,10 +164,10 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
+  "implementation_sha": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
   "interrupted": false,
-  "last_checkpoint": "2026-10-28T15:16:12Z",
-  "last_human_progress_update": "2026-10-31T17:34:06.661895+00:00",
+  "last_checkpoint": "2026-10-31T19:12:11Z",
+  "last_human_progress_update": "2026-10-31T19:12:11Z",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "latest_staging_adoption": {
     "adoption": "exact green staging merged with --no-ff; no conflicts; no direct sibling-worktree import",
@@ -175,9 +182,9 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "After terminal-green exact closing-tip CI, hand the accepted bounded VJL checkpoint to Root for supported staging integration and promotion; preserve the remaining Provider roadmap and all holds.",
+  "next_action": "Publish one closing commit; hand exact final-source CI to Root observation. Root owns degraded-stage remediation and protected release.",
   "parent_branch": "staging",
-  "plan_hash": "7d9717d475701f21b53175639fb946e350c7f5cbddf2dca2a566563d96eb1468",
+  "plan_hash": "671561c9dc31b9d267a12da5469d187cedd584082de0154cc0acf4fb847608d3",
   "planning_required": false,
   "planning_state": "ready",
   "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
@@ -278,23 +285,21 @@
     "status": "completed: success"
   },
   "progress": {
-    "active_checkpoint": "provider-vaneck-job4-lineage-gap-20261031",
+    "active_checkpoint": "provider-vjl-staging-backend-timeout-repair-20261031",
     "completed": [
-      "VJL1",
-      "VJL2",
-      "VJL3",
-      "VJL4"
+      "VTR1",
+      "VTR2"
     ],
-    "total": 4,
-    "note": "Root accepted the bounded VJL1-VJL4 software checkpoint under the standing human delegation; exact closing-tip CI is pending. The broader Provider roadmap and genuine source/ordinary UI acceptance remain open.",
-    "current_phase": "provider_vaneck_job4_lineage_gap_closing_ci_pending",
-    "current_blocker": "Exact closing-tip CI pending; Root owns integration/promotion.",
-    "next_action": "After exact closing CI passes, hand accepted checkpoint to Root for supported staging integration and promotion.",
-    "updated_at": "2026-10-31T17:34:06.661876+00:00"
+    "total": 3,
+    "note": "Single workflow timeout repair only; exact-source CI and Root acceptance pending. All roadmaps and holds remain open.",
+    "current_phase": "provider_vjl_staging_backend_timeout_repair_exact_closing_ci_pending",
+    "current_blocker": "Exact final pushed branch CI is mandatory and pending. Root owns observation and all protected remediation/integration/deployment.",
+    "next_action": "Publish one closing commit; Root verifies exact final-source CI. Do not close VTR3 or broader product/release gates from prior evidence.",
+    "updated_at": "2026-10-31T19:16:08+00:00"
   },
   "remote": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
-  "remote_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
-  "remote_synchronized": true,
+  "remote_sha": "036c2ab0c348a5f9e8cfbb1880cea3192c913c90",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],
@@ -606,7 +611,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": null,
+  "validated_implementation_source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [
@@ -646,13 +651,88 @@
     "plan_archive": "plan.yaml: previously_accepted_provider_vqs_checkpoint"
   },
   "previously_accepted_vqs_goal_request": {
-    "objective": "Complete only the bounded VanEck successor/status repair VQS1\u2013VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
+    "objective": "Complete only the bounded VanEck successor/status repair VQS1–VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
   },
-  "recorded_at": "2026-10-31T14:37:05+00:00",
+  "recorded_at": "2026-10-31T19:16:08+00:00",
   "prepared_backend_manifest": {
     "path": "/tmp/provider-vjl-6d95eb54-20261031/provider-vjl-6d95eb54-full-backend-manifest-20261031.json",
     "sha256": "0df693c17d8ec6245ce421cfd75daab337535ad2db51a1a57b8af14d4828a513",
     "source_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
     "status": "inert; awaiting Root release"
-  }
+  },
+  "previously_accepted_vjl_session_state": {
+    "active_checkpoint_id": "provider-vaneck-job4-lineage-gap-20261031",
+    "checkpoint_status": "ready_for_integration",
+    "acceptance_criteria": [
+      {
+        "id": "VJL1",
+        "text": "The existing admin-only job4 successor accepts the actual retained empty top-level provider_request_log_ids shape only when qualification_outcome.provider_attempt_evidence records exactly one positive integer request-log ID in both callback and persisted lists, with admitted_attempt_recorded and all_callback_logs_persisted true and positive_qualification_linked false; the server still proves the current immutable job, digest, scope, log, artifact, fingerprint, timing, and settled-reservation lineage."
+      },
+      {
+        "id": "VJL2",
+        "text": "A populated legacy top-level request-log list retains its existing path, including job3 compatibility. Missing, malformed, ambiguous, mismatched, unpersisted, bool, or positive-qualification witnesses fail closed before transport; all one-shot, idempotency, admission, free-only, disabled/not_run, request caps, output checks, and genuine positive snapshot/fund/settlement predicates remain unchanged."
+      },
+      {
+        "id": "VJL3",
+        "text": "Historical job2/job3/job4, request log14, raw artifact5, reservations, native-usage unknowns, source/account records, and consumed allowances are not edited, replayed, reset, or inferred. The repair adds no arbitrary eligibility, production identifiers, schema migration, fabricated HTTP/status/body evidence, or provider/source request."
+      },
+      {
+        "id": "VJL4",
+        "text": "Focused unit and exact actual-shape PostgreSQL/SQLite regressions, applicable complete backend and joint runtime profiles, workstream/branch checks, and exact-source CI pass without changing assertions, retries, thresholds, tolerances, holds, or protected resources; stop at ready_for_human_review pending Root review and acceptance."
+      }
+    ],
+    "progress": {
+      "active_checkpoint": "provider-vaneck-job4-lineage-gap-20261031",
+      "completed": [
+        "VJL1",
+        "VJL2",
+        "VJL3",
+        "VJL4"
+      ],
+      "total": 4,
+      "note": "Root accepted the bounded VJL1-VJL4 software checkpoint under the standing human delegation; exact closing-tip CI is pending. The broader Provider roadmap and genuine source/ordinary UI acceptance remain open.",
+      "current_phase": "provider_vaneck_job4_lineage_gap_closing_ci_pending",
+      "current_blocker": "Exact closing-tip CI pending; Root owns integration/promotion.",
+      "next_action": "After exact closing CI passes, hand accepted checkpoint to Root for supported staging integration and promotion.",
+      "updated_at": "2026-10-31T17:34:06.661876+00:00"
+    },
+    "checkpoint_acceptance_decision": "Root accepted VJL1-VJL4 under the human standing delegation; bounded software checkpoint only, broader Provider roadmap and genuine source/target acceptance remain open.",
+    "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-checkpoint-acceptance-root-review-20261031.json",
+    "checkpoint_authorization_state": "human standing delegation; Root technical acceptance recorded for VJL1-VJL4",
+    "current_checkpoint_local_profile": {
+      "profile": "full_stack_browser",
+      "backend": "6225 passed, 3 configured skips of 6228; 84.43% coverage",
+      "functional": "201 passed, 2 configured skips; all five on-demand cases and dense 10000-row case",
+      "visual": "104/104 across four projects; zero retries; tolerance 0.005",
+      "cleanup": "all 11 phases passed; exact owned cleanup and protected inventory verified",
+      "provider_http_requests": 0,
+      "quota_operations": 0,
+      "status": "Root technically accepted VJL1-VJL4; genuine source and ordinary UI acceptance remain open"
+    },
+    "current_exact_ci": {
+      "source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+      "run_id": 41211004128,
+      "status": "terminal success on implementation source; expected feature-branch Exhaustive skip; closing-tip CI pending"
+    },
+    "goal_objective": "Repair only the actual retained VanEck job4 request-log lineage gap (VJL1-VJL4), preserving the accepted VQS/OIH checkpoints, all 24 Provider roadmap criteria, holds and consumed-request history. No provider transport, production mutation, integration, or deployment.",
+    "goal_request": {
+      "objective": "Repair only the actual retained VanEck job4 request-log lineage gap (VJL1-VJL4), preserving the accepted VQS/OIH checkpoints, all 24 Provider roadmap criteria, holds and consumed-request history. No provider transport, production mutation, integration, or deployment.",
+      "recorded_at": "2026-10-31T14:32:35+00:00",
+      "authorization": "Human direct scoped activation in this original Provider thread, 2026-10-31."
+    },
+    "implementation_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
+    "head": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+    "next_action": "After terminal-green exact closing-tip CI, hand the accepted bounded VJL checkpoint to Root for supported staging integration and promotion; preserve the remaining Provider roadmap and all holds.",
+    "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
+    "last_checkpoint": "2026-10-28T15:16:12Z"
+  },
+  "latest_degraded_staging_remediation_adoption": {
+    "sha": "1e06d16fa563c5a19027828b1c27354ef84a7d51",
+    "merge_commit": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
+    "run_id": 41229796689,
+    "watcher_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261031T190517Z-1e06d16fa563.json",
+    "watcher_state": "degraded; API rate limit exhausted; CI evidence unavailable",
+    "accepted": false
+  },
+  "integration_capture": "exact branch HEAD"
 }
