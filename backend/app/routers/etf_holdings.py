@@ -1410,6 +1410,8 @@ async def continue_vaneck_oih_qualification_after_uncertain_attempt(
             requested_by_user_id=current_user.id,
             predecessor_job_id=body.predecessor_job_id,
             request_id=str(body.request_id),
+            predecessor_contract=body.predecessor_contract,
+            predecessor_extra_data_sha256=body.predecessor_extra_data_sha256,
             review_evidence_reference=body.review_evidence_reference,
             review_evidence_sha256=body.review_evidence_sha256,
         )

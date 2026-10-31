@@ -777,10 +777,15 @@ class ETFHoldingsVanEckQualificationRecoveryRequest(BaseModel):
 
 
 class ETFHoldingsVanEckPostTransportContinuationRequest(BaseModel):
-    """Reviewed one-shot successor to the exact consumed post-transport OIH job."""
+    """Reviewed one-shot successor to a specifically supported OIH predecessor contract."""
 
     predecessor_job_id: int = Field(gt=0)
     request_id: UUID
+    # Omission preserves existing job3 clients and the old idempotency fingerprint.
+    predecessor_contract: Literal[
+        "job3_posttransport_linkage_v1", "job4_settlement_projection_v1"
+    ] = "job3_posttransport_linkage_v1"
+    predecessor_extra_data_sha256: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{64}$")
     # These values are audit attestations only; the server never reads caller paths.
     review_evidence_reference: str = Field(
         min_length=6,

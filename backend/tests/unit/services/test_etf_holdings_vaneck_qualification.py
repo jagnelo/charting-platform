@@ -26,7 +26,9 @@ from app.services.etf_holdings_vaneck_qualification import (
     VANECK_OIH_INITIAL_QUOTA_GROUP,
     VANECK_OIH_INITIAL_URL,
     VANECK_OIH_PRODUCT_SLUG,
+    _current_vaneck_application_usage_projection,
     _lock_and_validate_current_provider_review,
+    _posttransport_request_fingerprint,
     _provider_review_fingerprint,
     _quota_activity_exists_since_attempt,
     _verified_posttransport_spent_reservation,
@@ -35,6 +37,55 @@ from app.services.provider_runtime import (
     ProviderCapability,
     bind_vaneck_initial_etf_qualification,
 )
+
+
+def test_posttransport_request_fingerprint_keeps_legacy_default_and_separates_job4_contract():
+    shared = {
+        "predecessor_job_id": 4,
+        "request_id": "d6b08d78-ea66-4b2c-b1b1-0871634219ba",
+        "review_evidence_reference": "root-review:job4-settlement-successor-2026-10-30",
+        "review_evidence_sha256": "e" * 64,
+        "requested_by_user_id": 7,
+    }
+    omitted_contract = _posttransport_request_fingerprint(**shared)
+    explicit_legacy = _posttransport_request_fingerprint(
+        **shared,
+        predecessor_contract="job3_posttransport_linkage_v1",
+        predecessor_extra_data_sha256=None,
+    )
+    job4_contract = _posttransport_request_fingerprint(
+        **shared,
+        predecessor_contract="job4_settlement_projection_v1",
+        predecessor_extra_data_sha256="a" * 64,
+    )
+
+    assert omitted_contract == explicit_legacy
+    assert job4_contract != omitted_contract
+    assert job4_contract != _posttransport_request_fingerprint(
+        **shared,
+        predecessor_contract="job4_settlement_projection_v1",
+        predecessor_extra_data_sha256="b" * 64,
+    )
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ({}, ("call_count", "requests")),
+        (
+            {"usage_tracking": {"mode": "call_count", "unit_label": "requests"}},
+            ("call_count", "requests"),
+        ),
+        (
+            {"usage_tracking": {"mode": "call_count", "unit_label": "physical_http_requests"}},
+            None,
+        ),
+        ({"usage_tracking": {"mode": "native_usage", "unit_label": "requests"}}, None),
+        ({"usage_tracking": "invalid"}, ("call_count", "requests")),
+    ],
+)
+def test_job4_continuation_requires_current_request_count_projection(config, expected):
+    assert _current_vaneck_application_usage_projection(SimpleNamespace(config=config)) == expected
 
 
 def _seed_quota_ledger_history(monkeypatch, path, *, matching_activity=None):

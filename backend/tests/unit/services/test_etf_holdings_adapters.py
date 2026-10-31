@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import zipfile
 from datetime import UTC, date, datetime, timedelta
@@ -4766,6 +4767,14 @@ async def test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains
     assert FakeAsyncClient.constructed[0]["follow_redirects"] is False
     assert result.source_identifier == "oil-services-etf-oih"
     assert result.legal_metadata["initial_qualification"] is True
+    assert result.legal_metadata["upstream_response_diagnostic"] == {
+        "upstream_http_status": 200,
+        "response_body_bytes": len(workbook),
+        "response_body_sha256": hashlib.sha256(workbook).hexdigest(),
+        "allowlisted_response_headers": {
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+    }
     assert base64.b64decode(result.raw_json["raw_workbook_base64"]) == workbook
     assert result.raw_json["raw_workbook_bytes"] == len(workbook)
     assert result.rows[0].symbol == "SLB"
@@ -4795,8 +4804,96 @@ async def test_vaneck_initial_oih_qualification_records_redirect_without_followi
         )
 
     assert raised.value.location == "https://files.vaneck.com/oih.xlsx"
+    assert raised.value.vaneck_initial_response_diagnostic == {
+        "upstream_http_status": 302,
+        "response_body_bytes": 0,
+        "response_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "allowlisted_response_headers": {"content-type": "text/csv"},
+    }
     assert len(FakeAsyncClient.requested) == 1
     assert FakeAsyncClient.requested[0][1]["follow_redirects"] is False
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_qualification_error_retains_actual_status_and_bounded_body_hash(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    response_body = b"denied"
+    response = FakeResponse(
+        status_code=503,
+        content=response_body,
+        headers={"content-length": str(len(response_body)), "set-cookie": "private=value"},
+    )
+
+    def raise_for_status():
+        request = httpx.Request(
+            "GET",
+            "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+        )
+        httpx.Response(
+            response.status_code,
+            content=response.content,
+            headers=response.headers,
+            request=request,
+        ).raise_for_status()
+
+    response.raise_for_status = raise_for_status
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [response]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(adapter.InitialQualificationResponseError) as raised:
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    diagnostic = raised.value.vaneck_initial_response_diagnostic
+    assert diagnostic["upstream_http_status"] == 503
+    assert diagnostic["response_body_bytes"] == len(response_body)
+    assert diagnostic["response_body_sha256"] == hashlib.sha256(response_body).hexdigest()
+    assert diagnostic["allowlisted_response_headers"] == {
+        "content-type": "text/csv",
+        "content-length": str(len(response_body)),
+    }
+    assert "set-cookie" not in diagnostic["allowlisted_response_headers"]
+    assert len(FakeAsyncClient.requested) == 1
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_qualification_parse_failure_retains_actual_response_diagnostic(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    response_body = b"not-an-xlsx"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            status_code=200,
+            content=response_body,
+            headers={"content-length": str(len(response_body))},
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(adapter.InitialQualificationResponseError) as raised:
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    diagnostic = raised.value.vaneck_initial_response_diagnostic
+    assert diagnostic["upstream_http_status"] == 200
+    assert diagnostic["response_body_bytes"] == len(response_body)
+    assert diagnostic["response_body_sha256"] == hashlib.sha256(response_body).hexdigest()
+    assert diagnostic["allowlisted_response_headers"] == {
+        "content-type": "text/csv",
+        "content-length": str(len(response_body)),
+    }
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
