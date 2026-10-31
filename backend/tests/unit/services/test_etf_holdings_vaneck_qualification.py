@@ -27,6 +27,7 @@ from app.services.etf_holdings_vaneck_qualification import (
     VANECK_OIH_INITIAL_URL,
     VANECK_OIH_PRODUCT_SLUG,
     _current_vaneck_application_usage_projection,
+    _job4_request_log_lineage,
     _lock_and_validate_current_provider_review,
     _posttransport_request_fingerprint,
     _provider_review_fingerprint,
@@ -37,6 +38,126 @@ from app.services.provider_runtime import (
     ProviderCapability,
     bind_vaneck_initial_etf_qualification,
 )
+
+
+def test_job4_request_log_lineage_accepts_exact_empty_top_level_persisted_witness():
+    actual_shape = {
+        "provider_request_log_ids": [],
+        "qualification_outcome": {
+            "provider_attempt_evidence": {
+                "admitted_attempt_recorded": True,
+                "request_log_callback_ids": [14],
+                "persisted_request_log_ids": [14],
+                "all_callback_logs_persisted": True,
+                "positive_qualification_linked": False,
+            }
+        },
+    }
+
+    log_ids, evidence_source = _job4_request_log_lineage(actual_shape)
+
+    assert log_ids == [14]
+    assert evidence_source == "qualification_outcome.provider_attempt_evidence"
+
+
+def test_job4_request_log_lineage_preserves_populated_legacy_top_level_ids():
+    legacy_shape = {
+        "provider_request_log_ids": [9],
+        "qualification_outcome": {"provider_attempt_evidence": {"request_log_callback_ids": [8]}},
+    }
+
+    log_ids, evidence_source = _job4_request_log_lineage(legacy_shape)
+
+    assert log_ids == [9]
+    assert evidence_source == "job.provider_request_log_ids"
+
+
+@pytest.mark.parametrize(
+    "attempt_evidence",
+    [
+        None,
+        {},
+        {
+            "admitted_attempt_recorded": False,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [],
+            "persisted_request_log_ids": [],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [15],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14, 15],
+            "persisted_request_log_ids": [14, 15],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [True],
+            "persisted_request_log_ids": [True],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [True],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": False,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": True,
+        },
+    ],
+)
+def test_job4_request_log_lineage_rejects_incomplete_or_ambiguous_empty_top_level_witness(
+    attempt_evidence,
+):
+    extra = {
+        "provider_request_log_ids": [],
+        "qualification_outcome": {"provider_attempt_evidence": attempt_evidence},
+    }
+
+    with pytest.raises(ETFHoldingsRouteHeldError):
+        _job4_request_log_lineage(extra)
 
 
 def test_posttransport_request_fingerprint_keeps_legacy_default_and_separates_job4_contract():

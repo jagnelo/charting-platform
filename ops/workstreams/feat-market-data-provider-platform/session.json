@@ -1,28 +1,28 @@
 {
   "acceptance_criteria": [
     {
-      "id": "VQS1",
-      "text": "One existing admin-only continuation API/executor accepts an explicit strict contract for a terminal settlement-projection failure after reviewed unit-label correction, using generated IDs and server-verified immutable scope/log/raw/digest/fingerprint/settled-reservation lineage. Legacy job3 request behavior remains compatible. No arbitrary failed-job admission, new endpoint per failure, production ID literals, repeated predecessor successor or replay/reset."
+      "id": "VJL1",
+      "text": "The existing admin-only job4 successor accepts the actual retained empty top-level provider_request_log_ids shape only when qualification_outcome.provider_attempt_evidence records exactly one positive integer request-log ID in both callback and persisted lists, with admitted_attempt_recorded and all_callback_logs_persisted true and positive_qualification_linked false; the server still proves the current immutable job, digest, scope, log, artifact, fingerprint, timing, and settled-reservation lineage."
     },
     {
-      "id": "VQS2",
-      "text": "New successor admission remains free-only/current-review/disabled/not_run/account-scoped, locked and idempotent with one physical request/no retries/redirect/fallback, unchanged spacing/deadline/body caps and positive snapshot/fund identity/settled-request requirements. Empty, non-success, unverified or cancelled/error outcomes stay nonpositive with durable truthful lineage."
+      "id": "VJL2",
+      "text": "A populated legacy top-level request-log list retains its existing path, including job3 compatibility. Missing, malformed, ambiguous, mismatched, unpersisted, bool, or positive-qualification witnesses fail closed before transport; all one-shot, idempotency, admission, free-only, disabled/not_run, request caps, output checks, and genuine positive snapshot/fund/settlement predicates remain unchanged."
     },
     {
-      "id": "VQS3",
-      "text": "Future upstream status and bounded allowlisted body/hash diagnostics survive through appropriate existing raw artifact JSON/error evidence; status is not invented or disguised as header/body, old job2/3/4/log14/raw5 are never changed and native usage stays unknown. No speculative database migration or general settlement-unit alias/config-edit API."
+      "id": "VJL3",
+      "text": "Historical job2/job3/job4, request log14, raw artifact5, reservations, native-usage unknowns, source/account records, and consumed allowances are not edited, replayed, reset, or inferred. The repair adds no arbitrary eligibility, production identifiers, schema migration, fabricated HTTP/status/body evidence, or provider/source request."
     },
     {
-      "id": "VQS4",
-      "text": "Meaningful positive/negative/compatibility/idempotency/concurrency/ledger/empty-status/cancellation tests and normal source-impact-derived local profile, exact source/closing CI pass. Preserve all24Provider roadmap criteria/accepted archives/journal/claims, all14ETF roadmap and frozen UI source, datasets/quotas/holds. Stop at ready_for_human_review; Root owns acceptance/integration/promotion/deployment and genuine execution."
+      "id": "VJL4",
+      "text": "Focused unit and exact actual-shape PostgreSQL/SQLite regressions, applicable complete backend and joint runtime profiles, workstream/branch checks, and exact-source CI pass without changing assertions, retries, thresholds, tolerances, holds, or protected resources; stop at ready_for_human_review pending Root review and acceptance."
     }
   ],
-  "active_checkpoint_id": "provider-vaneck-posttransport-successor-status-20261030",
+  "active_checkpoint_id": "provider-vaneck-job4-lineage-gap-20261031",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "Root accepted the bounded VQS1-VQS4 checkpoint under the human standing delegation; exact closing-tip CI remains pending.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-38310-vqs-checkpoint-acceptance-root-review-20261031.json",
-  "checkpoint_authorization_state": "accepted for closure by Root under existing human standing delegation; no direct human quote inferred; Root owns staging integration and later protected gates",
+  "checkpoint_acceptance_decision": "pending; no acceptance decision for VJL1-VJL4 has been issued",
+  "checkpoint_acceptance_receipt": null,
+  "checkpoint_authorization_state": "Implementation authorized for VJL1-VJL4 only; Root technical acceptance pending.",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -39,11 +39,6 @@
       },
       "goal_state": "active",
       "implementation_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
-      "next_action": "After publishing the corrected records-only tip, Root reviews its exact-source CI; if green, Root owns supported staging integration. No Provider source or live work occurs before Root releases the branch.",
-      "note": "Historical accepted OIH checkpoint and the preexisting closure-metadata correction were preserved before activating VQS1-VQS4.",
-      "recorded_at": "2026-10-30T23:38:16+00:00",
-      "status": "accepted_checkpoint_closure_metadata_repair_pending_exact_ci",
-      "validated_implementation_source_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408",
       "local_profile": {
         "backend": "5574 unit passed + 1 existing native skip; 554 integration passed + 2 existing native skips; 6128 passed/3 skipped, 84% combined coverage and XML; exact manifest reconciled; Root review /home/m920q/charting-platform/.ai/staging-attempts/provider-e6e7-local-backend-root-qualification-20261029.json",
         "cleanup": "exact owned project cleanup exit 0; global container/volume/network diffs empty; image inventory unchanged; tested backend image retained sha256:59c21550410ddb6a81833922455612f76256919133d3cd51a6e76ace4f2486b3",
@@ -59,10 +54,24 @@
         "status": "qualified for bounded checkpoint under Root technical acceptance",
         "strict_visual": "104/104 passed across four projects, retries=0, original references/masks/assertions and 0.005 tolerance; browser exit 0/OOM false; wrapper exit 2 after summary due helper edited during execution, preserved separately",
         "worker_restart": "passed only with reviewed opt-in worker at 1 CPU, 512 MiB, 64 PIDs; all predicates and 15s/30s deadlines unchanged; earlier half-core failures preserved"
-      }
+      },
+      "next_action": "After publishing the corrected records-only tip, Root reviews its exact-source CI; if green, Root owns supported staging integration. No Provider source or live work occurs before Root releases the branch.",
+      "note": "Historical accepted OIH checkpoint and the preexisting closure-metadata correction were preserved before activating VQS1-VQS4.",
+      "recorded_at": "2026-10-30T23:38:16+00:00",
+      "status": "accepted_checkpoint_closure_metadata_repair_pending_exact_ci",
+      "validated_implementation_source_sha": "e6e7c5511153c6b49b138bac38ed08ae56532408"
+    },
+    {
+      "checkpoint_id": "provider-vaneck-posttransport-successor-status-20261030",
+      "status": "historical accepted bounded checkpoint; VJL continuation active",
+      "implementation_source_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
+      "acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-38310-vqs-checkpoint-acceptance-root-review-20261031.json",
+      "runtime_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-runtime-qualified-root-review-20261031.json",
+      "plan_archive": "plan.yaml: previously_accepted_provider_vqs_checkpoint",
+      "note": "Preserved as prior bounded acceptance; does not accept VJL1-VJL4 or close the 24-item roadmap."
     }
   ],
-  "checkpoint_status": "ready_for_integration",
+  "checkpoint_status": "in_progress",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -75,68 +84,22 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "closing_commit_ci": {
-    "head_sha": null,
-    "run_id": null,
-    "status": "pending; exact closing-tip CI must be inspected after publication"
+    "status": "not applicable; this is an in-progress implementation checkpoint, not a closure"
   },
   "current_checkpoint_local_profile": {
-    "status": "passed_for_bounded_checkpoint; exact closing-tip CI pending",
-    "focused_vqs": "Root-reviewed focused PostgreSQL/SQLite successor lineage 2/2, positive/empty successor cases 4/4, and legacy job3 compatibility 2/2; unchanged current backend diff SHA-256 c1ee86896d4c5c699387c7eb60575e9abefcb2156ac2c494b6629cec3c4aca9c.",
-    "full_backend": "Root-reviewed complete 6,214-ID manifest: 5,614 unit passes plus 1 existing configured skip; 597 integration passes plus 2 existing configured skips; total 6,211 passed/3 skipped, no failures. Combined coverage 84.42% against unchanged 75% threshold; XML passed. Review: /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-backend-root-review-20261031.json SHA-256 40d2254d1578601065becb361e47b1339c17bc9c32af9c8aa78612521d4d1023.",
-    "full_stack_browser": "All eleven released phases exited 0 on exact source 38310cc109d90278798d1e3c925bbcb7c150a60f. Functional 201 passed/2 configured live-canonical skips, all five acquisition cases executed, retries=0; strict visual 104 passed, retries=0, references/masks/tolerance unchanged. Browser states 0 false exited. Full Root review: /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-runtime-qualified-root-review-20261031.json SHA-256 e31925742af073277bf48f6eb4bc71656ab7290a584e4dcf49f06a3bd02aef6e.",
-    "runtime_artifact": "Backend image sha256:133c793ced07efeff1e6e867075efc5335ea2f56bfed1347cafb0370aa28a202 retained with source-bound archive SHA-256 46c40b441c0d95e396c12b0164da521edc083bd2ab859c8cc71c4662ba319e07; frontend/research inputs reused only after reviewed exact equivalence.",
-    "cleanup": "Exact owned cleanup completed. Normalized global before/after inventory equal=true: 29 containers, 32 images, 10 networks, 51 volumes; inventory SHA-256 4aa072fac1c595d90b81f94bd321412da25e06c32e94fadfb44bde63ba617719.",
-    "historical_failures": "Initial long-TMPDIR backend collector failure, ten-image inventory discrepancy before Root cache restoration, and phase prepare/config environment failures remain preserved and are not counted as passes; successful corrected phase attempts are recorded separately.",
-    "source_requests": 0,
-    "quota_operations": 0,
-    "provider_activation": false,
-    "source_hold": "All provider/source/quota/native/paid/trial/broker/capital holds remain unchanged. Genuine source holdings and ordinary UI acquisition/readiness are not proved by this synthetic fixture and remain Root-owned."
+    "profile": "full_stack_browser",
+    "status": "pending Root resource release",
+    "provider_http_requests": 0,
+    "quota_operations": 0
   },
   "current_exact_ci": {
-    "run_id": 41156428481,
-    "source_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
-    "status": "terminal green on exact implementation source; this is not the closing-tip CI for the records-only commit"
+    "source_sha": null,
+    "status": "pending publication of the current implementation/workstream checkpoint"
   },
-  "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": 3613000000,
-    "container_count": 8,
-    "containers": [
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-host-port-relay-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-worker-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-frontend-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-backend-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-postgres-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-redis-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
-    ],
-    "known_bytes": 3809756208,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-c6e40c66",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66"
-    ],
-    "testcontainer_sessions": [
-      "7e61d933-c00b-4256-892e-cff0e1d98780",
-      "82adae2f-2869-4c78-84c1-78911aa49dc4",
-      "9d5d5d33-7794-4a7e-85e5-cd8531be4628",
-      "efb3887f-15ac-425e-9d06-03092bb9e7f1"
-    ],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 191234800,
-    "volume_count": 4,
-    "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "available": true,
@@ -151,15 +114,23 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Complete only the bounded VanEck successor/status repair VQS1–VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration.",
+  "goal_objective": "Repair only the actual retained VanEck job4 request-log lineage gap (VJL1-VJL4), preserving the accepted VQS/OIH checkpoints, all 24 Provider roadmap criteria, holds and consumed-request history. No provider transport, production mutation, integration, or deployment.",
   "goal_recorded_at": "2026-10-20T00:59:41.364325+00:00",
   "goal_request": {
-    "objective": "Complete only the bounded VanEck successor/status repair VQS1–VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
+    "objective": "Repair only the actual retained VanEck job4 request-log lineage gap (VJL1-VJL4), preserving the accepted VQS/OIH checkpoints, all 24 Provider roadmap criteria, holds and consumed-request history. No provider transport, production mutation, integration, or deployment.",
+    "recorded_at": "2026-10-31T14:32:35+00:00",
+    "authorization": "Human direct scoped activation in this original Provider thread, 2026-10-31."
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "38310cc109d90278798d1e3c925bbcb7c150a60f",
+  "head": "59b38a0d094c905c83c8b89f49ba3049e567740e",
+  "historical_oih_closing_commit_ci_20261029": {
+    "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
+    "owner": "Root",
+    "run_id": 40816150446,
+    "status": "first closure tip failed manifest mapping only; corrected tip exact CI pending"
+  },
   "historical_root_full_profile_pre_oih_repair_2026_10_29": {
     "cleanup_inventory_diffs": 0,
     "functional_declared_skips": 2,
@@ -170,7 +141,7 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
+  "implementation_sha": null,
   "interrupted": false,
   "last_checkpoint": "2026-10-28T15:16:12Z",
   "last_human_progress_update": "2026-10-28T12:15:21.408448+00:00",
@@ -179,18 +150,18 @@
     "adoption": "exact green staging merged with --no-ff; no conflicts; no direct sibling-worktree import",
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261031T012028Z-8173ce8ef343.json",
     "canonical_receipt_sha256": "7904599b0d9e18dc7defac0f182b7c769e174dd80d022af02363768394f3c305",
+    "imported_delta": "frontend + ETF-owned workstream only; Provider backend subtree unchanged by staging",
+    "merge_commit": "0d3d96110f65222c044d85ed804f3776a4730bc7",
     "pre_adoption_head": "f0952f5ed3b2dd1cdff04945886e3a92b8bbebc7",
     "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-8173-terminal-green-staging-root-review-20261031.json",
     "run_id": 41146657584,
     "sha": "8173ce8ef34369a02183706fd18210506bd20202",
-    "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending",
-    "merge_commit": "0d3d96110f65222c044d85ed804f3776a4730bc7",
-    "imported_delta": "frontend + ETF-owned workstream only; Provider backend subtree unchanged by staging"
+    "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Verify terminal-green exact closing-tip CI for this records-only closing commit; Root owns supported staging integration and later protected release gates.",
+  "next_action": "Publish the coherent implementation/workstream source for exact CI; prepare a source-bound capped backend manifest, and coordinate Root resource release before any Docker/database/browser fixture.",
   "parent_branch": "staging",
-  "plan_hash": "0f8a95784b5e42da3cc9374fffb07b38020c86a93d84d11503a8299955e72ba6",
+  "plan_hash": "a1f9be59287728e11047eaf65df7505bdf55c2cffc8a55ff941560b041424b02",
   "planning_required": false,
   "planning_state": "ready",
   "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
@@ -291,19 +262,14 @@
     "status": "completed: success"
   },
   "progress": {
-    "active_checkpoint": "provider-vaneck-posttransport-successor-status-20261030",
-    "completed": [
-      "VQS1",
-      "VQS2",
-      "VQS3",
-      "VQS4"
-    ],
-    "note": "Root accepted only the bounded VQS1-VQS4 software checkpoint under the human standing delegation. Full backend and full_stack_browser evidence passed on source 38310cc; exact closing-tip CI remains pending. All 24 Provider roadmap criteria, the accepted OIH archive, failures, claims, data, and source/quota holds remain preserved.",
-    "total": 4
+    "active_checkpoint": "provider-vaneck-job4-lineage-gap-20261031",
+    "completed": [],
+    "total": 4,
+    "note": "59/59 focused VanEck lineage unit cases and static checks pass. Actual-shape PostgreSQL/SQLite route regression, full backend/full_stack_browser profile, exact-source CI and Root acceptance remain pending."
   },
-  "remote": "38310cc109d90278798d1e3c925bbcb7c150a60f",
-  "remote_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
-  "remote_synchronized": true,
+  "remote": "cdb04dd6050a80f8d15c77f74ef70b8545d93653",
+  "remote_sha": "cdb04dd6050a80f8d15c77f74ef70b8545d93653",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],
@@ -455,14 +421,14 @@
       "adoption": "exact synchronized green staging baseline adopted before VQS implementation; preserved as history",
       "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json",
       "canonical_receipt_sha256": "ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919",
-      "run_id": 41108906686,
-      "sha": "b1b06fd8344549484e26ce3bf960befc832531ef",
       "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vaneck-successor-implementation-release-root-review-20261030.json",
       "root_release_review_sha256": "0445f4877d54be9e73b590d21f77d17e0e67b17465f643f16b057bf44fff6bc8",
+      "run_id": 41108906686,
+      "sha": "b1b06fd8344549484e26ce3bf960befc832531ef",
       "status": "terminal_success"
     }
   ],
-  "state": "ready_for_integration",
+  "state": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -615,7 +581,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
+  "validated_implementation_source_sha": null,
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [
@@ -627,10 +593,35 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
   "worktree_id": "feat-market-data-provider-platform-c6e40c6608",
-  "historical_oih_closing_commit_ci_20261029": {
-    "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
-    "owner": "Root",
-    "run_id": 40816150446,
-    "status": "first closure tip failed manifest mapping only; corrected tip exact CI pending"
-  }
+  "previously_accepted_vqs_goal_objective": "Advance feat/market-data-provider-platform: Complete only Provider checkpoint provider-vaneck-posttransport-successor-status-20261030 (VQS1-VQS4). Preserve all 24 Provider roadmap criteria, accepted checkpoints, quota history, holds, and consumed-request history; no provider transport, production mutation, integration, or deployment.. Acceptance criteria: VQS1: One existing admin-only continuation API/executor accepts an explicit strict contract for a terminal settlement-projection failure after reviewed unit-label correction, using generated IDs and server-verified immutable scope/log/raw/digest/fingerprint/settled-reservation lineage. Legacy job3 request behavior remains compatible. No arbitrary failed-job admission, new endpoint per failure, production ID literals, repeated predecessor successor or replay/reset.; VQS2: New successor admission remains free-only/current-review/disabled/not_run/account-scoped, locked and idempotent with one physical request/no retries/redirect/fallback, unchanged spacing/deadline/body caps and positive snapshot/fund identity/settled-request requirements. Empty, non-success, unverified or cancelled/error outcomes stay nonpositive with durable truthful lineage.; VQS3: Future upstream status and bounded allowlisted body/hash diagnostics survive through appropriate existing raw artifact JSON/error evidence; status is not invented or disguised as header/body, old job2/3/4/log14/raw5 are never changed and native usage stays unknown. No speculative database migration or general settlement-unit alias/config-edit API.; VQS4: Meaningful positive/negative/compatibility/idempotency/concurrency/ledger/empty-status/cancellation tests and normal source-impact-derived local profile, exact source/closing CI pass. Preserve all24Provider roadmap criteria/accepted archives/journal/claims, all14ETF roadmap and frozen UI source, datasets/quotas/holds. Stop at ready_for_human_review; Root owns acceptance/integration/promotion/deployment and genuine execution.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "previously_accepted_vqs_implementation_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
+  "previously_accepted_vqs_current_exact_ci": {
+    "run_id": 41156428481,
+    "source_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
+    "status": "terminal green on exact implementation source; this is not the closing-tip CI for the records-only commit"
+  },
+  "previously_accepted_vqs_local_profile": {
+    "cleanup": "Exact owned cleanup completed. Normalized global before/after inventory equal=true: 29 containers, 32 images, 10 networks, 51 volumes; inventory SHA-256 4aa072fac1c595d90b81f94bd321412da25e06c32e94fadfb44bde63ba617719.",
+    "focused_vqs": "Root-reviewed focused PostgreSQL/SQLite successor lineage 2/2, positive/empty successor cases 4/4, and legacy job3 compatibility 2/2; unchanged current backend diff SHA-256 c1ee86896d4c5c699387c7eb60575e9abefcb2156ac2c494b6629cec3c4aca9c.",
+    "full_backend": "Root-reviewed complete 6,214-ID manifest: 5,614 unit passes plus 1 existing configured skip; 597 integration passes plus 2 existing configured skips; total 6,211 passed/3 skipped, no failures. Combined coverage 84.42% against unchanged 75% threshold; XML passed. Review: /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-backend-root-review-20261031.json SHA-256 40d2254d1578601065becb361e47b1339c17bc9c32af9c8aa78612521d4d1023.",
+    "full_stack_browser": "All eleven released phases exited 0 on exact source 38310cc109d90278798d1e3c925bbcb7c150a60f. Functional 201 passed/2 configured live-canonical skips, all five acquisition cases executed, retries=0; strict visual 104 passed, retries=0, references/masks/tolerance unchanged. Browser states 0 false exited. Full Root review: /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-runtime-qualified-root-review-20261031.json SHA-256 e31925742af073277bf48f6eb4bc71656ab7290a584e4dcf49f06a3bd02aef6e.",
+    "historical_failures": "Initial long-TMPDIR backend collector failure, ten-image inventory discrepancy before Root cache restoration, and phase prepare/config environment failures remain preserved and are not counted as passes; successful corrected phase attempts are recorded separately.",
+    "provider_activation": false,
+    "quota_operations": 0,
+    "runtime_artifact": "Backend image sha256:133c793ced07efeff1e6e867075efc5335ea2f56bfed1347cafb0370aa28a202 retained with source-bound archive SHA-256 46c40b441c0d95e396c12b0164da521edc083bd2ab859c8cc71c4662ba319e07; frontend/research inputs reused only after reviewed exact equivalence.",
+    "source_hold": "All provider/source/quota/native/paid/trial/broker/capital holds remain unchanged. Genuine source holdings and ordinary UI acquisition/readiness are not proved by this synthetic fixture and remain Root-owned.",
+    "source_requests": 0,
+    "status": "passed_for_bounded_checkpoint; exact closing-tip CI pending"
+  },
+  "previously_accepted_vqs_acceptance": {
+    "checkpoint_id": "provider-vaneck-posttransport-successor-status-20261030",
+    "decision": "Root accepted the bounded VQS1-VQS4 checkpoint under the human standing delegation; exact closing-tip CI remains pending.",
+    "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-38310-vqs-checkpoint-acceptance-root-review-20261031.json",
+    "status": "ready_for_integration",
+    "plan_archive": "plan.yaml: previously_accepted_provider_vqs_checkpoint"
+  },
+  "previously_accepted_vqs_goal_request": {
+    "objective": "Complete only the bounded VanEck successor/status repair VQS1\u2013VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
+  },
+  "recorded_at": "2026-10-31T14:32:35+00:00"
 }
