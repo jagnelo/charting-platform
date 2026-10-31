@@ -3,6 +3,7 @@ import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ETFHoldingsView from '@/views/ETFHoldingsView.vue'
+import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 
 const routerPush = vi.fn()
 
@@ -654,6 +655,98 @@ describe('ETFHoldingsView', () => {
     expect(historyButton.attributes('disabled')).toBeDefined()
     await historyButton.trigger('click')
     expect(routerPush).not.toHaveBeenCalled()
+  })
+
+  it('offers row-originated discovery for an eligible unresolved reported equity without mutating the snapshot', async () => {
+    const unresolvedPage = holdingsPage({
+      holdings: [{
+        ...holdingsPage().holdings[0],
+        constituent_instrument_id: null,
+        constituent_symbol: null,
+        reported_symbol: 'UNXQ',
+        reported_name: 'Uncached Example Equity',
+        source_row_id: 'issuer-row-100',
+        is_resolved: false,
+      }],
+      total: 1,
+      has_next: false,
+    })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([profile])
+      .mockResolvedValueOnce(dates)
+      .mockResolvedValueOnce(unresolvedPage)
+      .mockResolvedValueOnce(diffPayload())
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('UNXQ'))
+    const rowAction = wrapper.findAll('button').find(button => button.text().includes('Resolve reported holding UNXQ'))
+    expect(rowAction).toBeDefined()
+    await rowAction!.trigger('click')
+    expect(wrapper.findAll('.mock-search-bar input')[1]!.element.value).toBe('UNXQ')
+    expect(api.post).not.toHaveBeenCalled()
+    const context: ETFHoldingDrilldownContext = {
+      instrumentId: 987654,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 55,
+      compositionDate: '2026-06-07',
+      knownAt: '2026-06-07T04:15:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'issuer-test',
+      holdingRowId: 100,
+      sourceRowId: 'issuer-row-100',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    }
+    const searchBars = wrapper.findAllComponents({ name: 'SearchBar' })
+    searchBars[1]!.vm.$emit('select', 'UNXQ', {
+      instrument_id: context.instrumentId,
+      explicitlyResolved: true,
+      identity_status: 'verified',
+    })
+    await nextTick()
+    expect(routerPush).toHaveBeenCalledWith({
+      path: '/legacy/chart/UNXQ',
+      query: holdingDrilldownRouteQuery(context),
+    })
+    expect(unresolvedPage.holdings[0]?.is_resolved).toBe(false)
+    expect(unresolvedPage.holdings[0]?.constituent_instrument_id).toBeNull()
+  })
+
+  it('does not offer unresolved-row discovery when current-analysis capability is held', async () => {
+    const heldProfile = {
+      ...profile,
+      holdings_capability: {
+        ...profile.holdings_capability,
+        availability: 'held',
+        usable_for_current_analysis: false,
+      },
+    }
+    const unresolvedPage = holdingsPage({
+      holdings: [{
+        ...holdingsPage().holdings[0],
+        constituent_instrument_id: null,
+        constituent_symbol: null,
+        reported_symbol: 'UNXQ',
+        is_resolved: false,
+      }],
+      total: 1,
+      has_next: false,
+    })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([heldProfile])
+      .mockResolvedValueOnce(dates)
+      .mockResolvedValueOnce(unresolvedPage)
+      .mockResolvedValueOnce(diffPayload())
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('UNXQ'))
+    expect(wrapper.text()).not.toContain('Resolve reported holding')
+    expect(api.post).not.toHaveBeenCalled()
   })
 
   it('labels same-date parser-version differences as audit data while preserving raw rows and metrics', async () => {

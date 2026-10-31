@@ -310,11 +310,18 @@ previously_accepted_erf_goal: >-
   AC1-AC14 roadmap. Root owns full-source qualification and actual target
   API/UI acceptance; no provider request, target retry, quota replay, deployment,
   or full-roadmap completion is claimed.
-goal: *etf_full_roadmap_goal
-human_closure_authorization: >-
+goal: &etf_unresolved_holding_drilldown_goal >-
+  Let an ordinary user start from an unresolved real-security row in either ETFHoldingsView or the dashboard ETFHoldingsPanel, explicitly discover and resolve the exact reported ticker to a provider-verified canonical instrument, carry the dated source holding evidence into the chart, and explicitly request missing D1 history so persisted bars render after reload. Preserve the complete AC1-AC14 roadmap, all existing source and target holds, and resolved-row behavior.
+previously_accepted_meb_human_closure_authorization_2026_10_30: >-
   Root accepted `etf-master-exhaustive-integration-batching-20261030` under the existing human-delegated checkpoint authority. The acceptance receipt is `/home/m920q/charting-platform/.ai/staging-attempts/etf-d31b-runner-checkpoint-acceptance-root-review-20261030.json` (SHA256 `3fca6c9350648e96c63103c8e0c52f801d7569f057a5f293071f5baf34c99b96`). This records Root's delegated acceptance and does not invent a new human quote or accept the full ETF roadmap.
-closure_summary: >-
+previously_accepted_meb_closure_summary_2026_10_30: >-
   Root accepted only the bounded `etf-master-exhaustive-integration-batching-20261030` runner checkpoint under the existing delegation. Tested implementation source is `d31b84ab3514500729e3cf8b04e36a42c34e031c`. Exact push CI run `41090873497` (attempt 1) is terminal green on that SHA: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E/Playwright succeeded; the Exhaustive Integration Gate was skipped as expected for this feature-branch run. Playwright reported 196 passed, 110 configured skips and zero failures. The accepted focused runner suite passed 17/17 and the runtime/YAML narrative regression passed 1/1. The source change is limited to `scripts/backend_coverage.py` and `tests/workflow/test_backend_coverage.py`; this closing publication changes only four owned records. Backend/frontend product trees and runtime behavior are unchanged from exact green staging. The prior master run `41080375579` / job `124157576674` remains the preserved 900-second aggregate timeout (exit 124, no assertion traceback); no timeout increase or blind retry was used. The runner executes every collected integration ID once, in deterministic serial batches of 25, preserving order, duplicate rejection, one coverage erase, append for every test process, the 75-percent combined floor, unchanged 300-second collection/unit and 900-second integration limits, zero retries and fail-fast nonzero/signal/timeout handling. No product, API, schema, dependency, migration, UI, image or runtime delta is included. Root owns integration of exact staging frontier `870d37dcc2b9715402ccfefce12a61020465ab35`, staging/master exhaustive gates, later use of qualified image `36b99cc`, and the genuine OIH holdings/returned uncached constituent source/account/target journey. All original AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage, 30-day observation, and every historical archive/failure. No full-roadmap completion, live source operation, target change, integration, promotion or deployment is claimed. integration_capture: exact branch HEAD.
+
+closure_pending: false
+human_closure_authorization: >-
+  Root accepted `etf-unresolved-holding-drilldown-20261030` under the existing human-delegated checkpoint authority. Acceptance receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-drilldown-checkpoint-acceptance-root-review-20261030.json` SHA256 `ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4`. This records Root's delegated decision and does not invent a new human quote or accept the full AC1-AC14 roadmap.
+closure_summary: >-
+  Root accepted the bounded unresolved-holding drilldown checkpoint under the existing delegation. Tested implementation is `78dcca03983de9304fe7e44303ab35e6d88a03c2`; its exact-source CI `41135061084` is terminal green across Backend, Frontend Unit, Branch-declared Tests and E2E/Playwright. The accepted local full_stack_browser profile passed 201 functional cases with 2 configured skips and 104 strict visual cases across four projects, with zero retries and exact-owned cleanup/protected inventory equality. It covers all five on-demand browser cases, including unresolved Massive CS discovery, explicit canonical resolution, D1 history, lineage and reload. The retained frontend image `57d146888c3ee34d5976a8fde6b76d9a815df37e5ddb25a12fc69266088ef4ce` was built from D014; Root independently approved reuse because the current-source change affecting that image was non-bundled E2E test code. The runtime profile tested source78dcca with that immutable image; this does not relabel the image as newly built from78dcca. The unchanged backend tree/image `85154a468a08550596c41ceec27dbda673f0deb8` / `36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc` is reused component evidence; no backend, schema, migration, dependency, provider-policy, or production-runtime change is included. Exact green staging `b1b06fd8344549484e26ce3bf960befc832531ef` (receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json`, SHA256 `ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919`, CI `41108906686`) is adopted as ancestry in this coherent publication; its product tree matched the accepted base and the accepted78dcca product bytes remain unchanged. The four-record closing commit does not self-reference: `integration_capture: exact branch HEAD`; its exact-tip CI is pending external verification. AC1-AC14 remain open, including genuine OIH holdings/returned-uncached-constituent, source/account, target/API/UI and deployment acceptance; Root owns integration, promotion and deployment. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage, legacy retained datasets, 30-day observation and every historical failure/archive.
 active_changeset:
   name: explicit selected-fund ETF issuer acquisition
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -1770,7 +1777,16 @@ roadmap_acceptance_criteria: &etf_full_roadmap_criteria
     text: "ETF API and UI surfaces distinguish current, degraded, stale, unavailable, not-applicable, and unknown holdings; historical snapshots remain inspectable with provenance and current-analysis flows reject non-current data unless a user explicitly selects historical evidence."
   - id: AC14
     text: "A 30-day production shadow gate is documented as a post-integration/deployment acceptance step, targeting at least 95% eligible Tier 0 checks, no two consecutive missed freshness deadlines, and zero silent identity/schema/completeness violations."
-acceptance_criteria: *etf_full_roadmap_criteria
+acceptance_criteria: &etf_unresolved_holding_drilldown_criteria
+  - id: UHD1
+    text: An eligible unresolved real-security holding with an exact reported symbol exposes a row-originated resolve/open action in ETFHoldingsView and the dashboard ETFHoldingsPanel; action preparation makes no discovery or other request on render and never fans out over holdings.
+  - id: UHD2
+    text: The action reuses shared explicit free-source discovery and candidate resolution. The reported ticker remains query evidence; only an explicitly selected, resolved, exact-symbol response with a positive safe canonical instrument ID can open the chart. Missing, synthetic, reference/cash, held, no-match, conflict, mismatch, error, and unavailable-current-capability paths remain nonpositive and do not open a chart.
+  - id: UHD3
+    text: The row handoff preserves the actual snapshot ID, composition date, known_at, provenance/source provider, reported symbol/name, row ID, and returned canonical identity through the chart route; existing resolved-row navigation and stale/historical labeling remain unchanged.
+  - id: UHD4
+    text: >-
+      Chart history remains an explicit user action: D1 local coverage is checked first, canonical identity is reverified, and only a missing range proceeds to the existing bounded history acquisition. Persisted bars reload/render after success. Focused unit/E2E and the required source-matched full_stack_browser profile plus exact branch CI pass without assertion, retry, or visual-oracle weakening.
 branch_tests:
   - "uv run --project backend pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent -q --no-cov -p no:cacheprovider"
   - "uv run --project backend pytest tests/integration/api/test_etf_holdings.py::test_available_dates_breaks_same_knowledge_time_ties_by_snapshot_id -q --no-cov -p no:cacheprovider"
@@ -2057,7 +2073,7 @@ deferred_live_checks:
 live_test_impact: "Network-bearing issuer calls run only when RUN_LIVE_ETF_HOLDINGS_TESTS=1; the ordinary branch test explicitly sets it to 0 and retains nine no-network registry/route contracts. The network-enabled command remains under deferred_live_checks. Any authorized live check must be bounded, rate-conscious, and restricted to reviewed public/free or already-entitled routes. Live failures must distinguish route drift, issuer blocking, entitlement, network, parser, and source-data failures."
 migration_impact: "The ODC delta adds no Alembic migration paths relative to accepted Provider staging 6bff091d; no database migration was applied to a retained target. The two PostgreSQL-only DDL migration tests skipped by the assigned shared-DSN profile passed in a separate disposable Testcontainers PostgreSQL supplement with TEST_DATABASE_URL unset and no-cov. Earlier ETF schema/migration history is preserved."
 deployment_impact: "The ODC source delta adds no Alembic migration paths relative to accepted Provider staging 6bff091d; no target mutation or deployment occurred. Root owns any later OIH source/target qualification and acceptance."
-integration_checkpoint:
+previously_accepted_meb_checkpoint_2026_10_30:
   id: etf-master-exhaustive-integration-batching-20261030
   goal: Run every collected Docker integration test ID in deterministic bounded serial batches so the
     master exhaustive gate avoids the one-process 900-second timeout without changing assertions, IDs,
@@ -2123,15 +2139,140 @@ integration_checkpoint:
   - staging exhaustive integration gate and independent master exhaustive gate
   - Root-owned qualified 36b99 image rollout and genuine OIH holdings plus returned uncached constituent
     journey
+
+integration_checkpoint:
+  id: etf-unresolved-holding-drilldown-20261030
+  goal: *etf_unresolved_holding_drilldown_goal
+  planning_authorization: >-
+    Root released this feedback correction in /home/m920q/charting-platform/.ai/staging-attempts/etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json (SHA256 3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443). Work continued in the existing owned branch from accepted c91d556f89318509e96a0292453a22d6d7d96365. The prior b1b06fd staging run is now canonical green: receipt /home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json SHA256 ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919, CI41108906686. This coherent closing merge adopts exact b1b06fd ancestry; backend/frontend product trees remain byte-identical to the accepted78dcca implementation.
+  latest_required_correction:
+    root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-drilldown-Massive-CS-real-contract-correction-20261030-root-review.json
+    source_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json
+    scope: >-
+      Include Massive's verified native common-stock code CS in the explicit
+      discovery type filter and candidate scope. Preserve raw candidate type
+      and all non-equity/current-capability guards. Preserve valid holding
+      lineage during same-symbol URL hydration/reload while deliberate symbol
+      navigation clears stale lineage. Target the actual holding data button
+      in browser assertions and seed the 10000-row universe only in the private
+      backend/browser E2E fixture.
+  latest_test_diagnostics_correction:
+    root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json
+    scope: >-
+      Preserve the shared BrowserDiagnostics contract by calling
+      expectNoCriticalIssues(); provide explicit typed empty responses for the
+      controlled UNXQ options exposure and expiration reads used by ChartView.
+      Do not add a nonexistent diagnostics property, suppress 404s globally, or
+      weaken the row-originated CS resolution, history, lineage, reload, or
+      browser diagnostics assertions.
+  status: accepted
+  acceptance_authorization: >-
+    Root accepted under existing human-delegated checkpoint authority; receipt
+    /home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-drilldown-checkpoint-acceptance-root-review-20261030.json
+    SHA256 ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4.
+    This records Root's delegated decision, not a new human quote.
+  source_baseline: c91d556f89318509e96a0292453a22d6d7d96365
+  tested_implementation_sha: 78dcca03983de9304fe7e44303ab35e6d88a03c2
+  closing_publication: Adopts exact green staging b1b06fd8344549484e26ce3bf960befc832531ef as ancestry; accepted product trees remain byte-identical to tested78dcca.
+  acceptance_criteria: *etf_unresolved_holding_drilldown_criteria
+  progress:
+    completed: [UHD1, UHD2, UHD3, UHD4]
+    total: 4
+    current_phase: Root-accepted bounded checkpoint; one coherent closing publication is being verified, with exact closing-tip CI pending.
+    current_blocker: >-
+      Root accepted UHD1-UHD4 under delegated authority and the exact78dcca source CI and full local browser/visual profile are green. The single closing publication is being validated; its exact-tip CI is pending external verification. Preserve 15 Tier-0 and 156 Tier-1; AC1-AC14, genuine OIH/source/account/target/deployment work and all holds remain open and Root-owned.
+  required_contracts:
+  - Only an explicit action on one selected eligible unresolved security may start source discovery; no discovery on render, no per-holding fanout, and no implicit history request.
+  - Resolve using the exact reported symbol as query evidence and an explicitly selected provider candidate; preserve all unresolved/reference/synthetic/current-capability guards and do not synthesize or guess canonical identity.
+  - Carry source snapshot ID/date/known_at/provenance, source provider and reported row evidence with the resolved canonical ID into ChartView. The handoff does not mark the original holding row resolved or rewrite persisted snapshot data.
+  - After chart open, require a separate explicit missing-history click; verify D1 coverage and canonical identity before the existing history-acquisition POST, then reload bars from local storage.
+  - Request Massive's native CS type explicitly and prove the controlled discovery fixture applies the backend raw-type substring filter before returning the CS candidate; preserve ETF/cash/synthetic exclusions.
+  - Preserve valid dated holding evidence during initial ChartView URL hydration and reload; an explicit symbol selection still removes stale holding query parameters.
+  - Seed the 10000-row performance universe in both backend and browser contexts of the private E2E fixture; production seeding remains unchanged.
+  source_and_api_scope: frontend ETF list/panel, shared SearchBar/discovery control, chart/workstation handoff, focused unit/E2E tests and four owned workstream records only. No backend/provider/ledger/policy/config/dependency/runtime/production changes are authorized by this checkpoint.
+  validation:
+    focused: >-
+      The CS/route-hydration correction slice passed 28/28 Vitest tests across
+      the holding-action and ChartView modules. The full frontend Vitest run
+      exited 0 after correction; vue-tsc type-check and production build passed.
+      uPlot numerical contract (55 sources), visual-acceptance policy (26
+      assertions), and Compose contracts passed. The 43e browser attempt below
+      is predecessor evidence, not qualification of this corrected source.
+    predecessor_43e_functional:
+      source: 43e501b3c39d3ec2f320295bc56810daa393e566
+      result: 197 passed, 4 failed, 2 skipped, exit 1; strict visuals not run
+      log: /tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional.log
+      log_sha256: 8fc3f1f3ba892517b8ee5b98340de79189943ff16114f6722b3683b8b9d5542c
+      root_failure_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json
+      disposition: >-
+        Preserve this failed predecessor; failures show the broad header/data
+        locator, same-symbol hydration stripping valid holding lineage, and
+        the missing 10000-row private E2E seed. Root separately found the
+        Equity/Stock filter excluded Massive's native CS response.
+    predecessor_d014_functional:
+      source: d014a6e7e8959b077146fc5eeddaf80f3861e7fd
+      result: 200 passed, 1 failed, 2 skipped, exit 1; strict visuals not started
+      log: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log
+      log_sha256: c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631
+      phase_log: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/phase-driver-functional.log
+      phase_log_sha256: 5fafd98a61c3fde0da86f5bb90b2b7005d484b07c2aa6cdce74aa05b3ce66647
+      root_review: /home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json
+      root_review_sha256: d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d
+      error_context: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional-results/on_demand_acquisition-an-u-09f20-ies-lineage-into-D1-history-chromium/error-context.md
+      error_context_sha256: a816724c7378bab331128dc6fa2242e41dfdc47a57c3d21283d20962de9cf52f
+      disposition: >-
+        The new test completed all discovery, explicit CS candidate resolution,
+        D1 history, provenance, reload and persisted-bar assertions, then failed
+        because BrowserDiagnostics has no errors property. The attached
+        browser-critical-issues report records 404 console errors. Root review
+        traced the missing controlled responses to ChartView's exact UNXQ
+        options exposure and expiration endpoints; the test correction serves
+        typed empty/unavailable fixture data and calls the existing shared
+        expectNoCriticalIssues() contract. The saved local diagnostics include
+        generic console text, not full response paths; the corrected test now
+        asserts both exact endpoint reads and will expose any remaining
+        unexpected API 404 path. No product defect or browser pass is inferred.
+    corrected_current_profile_baseline:
+      root_release_receipt: /home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json
+      root_release_receipt_sha256: 72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa
+      protected_snapshot: /tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json
+      protected_snapshot_sha256: d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d
+      resource_counts: 29 containers, 31 images, 51 volumes, 10 networks
+      replacement_backend: 660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419
+      replacement_worker: ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520
+      disposition: >-
+        Captured after Root's backend-only production release window; exact new
+        backend and worker IDs are protected as foreign resources.
+    full_frontend_unit: >-
+      Full frontend Vitest, Vue type-check and production build passed on the tested78dcca source. The focused CS/ChartView slice passed28/28; uPlot numerical, visual-policy and Compose contracts passed. The exact-source CI and full local browser/visual results are recorded below.
+    backend_component_reuse: Current backend tree 85154a468a08550596c41ceec27dbda673f0deb8 exactly matches the Root-qualified 36b99 image and the accepted 5961 full backend run. That run accounted for 6202 IDs (6197 passed, 5 expected skips, zero failures/errors, 84.4% coverage) and canonical DDL 2/2; these are reused unchanged-component evidence, not new UI-profile results.
+    local_profile: >-
+      Root-accepted receipt /home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-full-runtime-qualified-root-review-20261030.json SHA256 70cc8134e56d0e82cb4d7098d745918760a135cfd653ffe6ff4bfa3f77b036ad: full_stack_browser passed all required phases; 201 functional passed, 2 configured skips; 104 strict visuals passed across four projects with zero skips/failures/retries. The 10000-row private fixture was verified; exact-owned cleanup and protected inventory comparison passed. D014 and43e red predecessors remain preserved separately. Image build source D014 and tested source78dcca remain distinctly identified.
+    remote_profile: Unchanged full_integration branch tier and exact-source CI; no weakening, no retries and no skipped assertions.
+  exact_source_ci: >-
+    Exact78dcca push CI41135061084 is terminal green across Backend, Frontend Unit, Branch-declared Tests and E2E/Playwright (197 passed,110 configured skips). This implementation CI is distinct from the exact closing-tip CI, which is pending after publication.
+  branch_validation_tier: full_integration
+  local_validation_profile: full_stack_browser
+  integration_capture: exact branch HEAD
+  full_roadmap_status: AC1-AC14 remain open and unchanged; retain 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, every hold/quarantine, raw/PIT lineage, legacy retained datasets and the 30-day observation.
+  remaining_gates:
+  - Root externally verifies the exact closing-tip branch CI triggered by this one coherent publication.
+  - Root owns the subsequent supported integration/promotion/deployment sequence and actual OIH source/account plus returned-uncached-constituent proof; no operational result is claimed here.
+  closure_pending: false
+
 status: ready_for_integration
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
   total: 3
   current_phase: accepted_and_integrated_in_staging_6d0a85da
-progress:
+previously_accepted_meb_roadmap_progress_at_acceptance_2026_10_30:
   completed: []
   total: 14
   current_phase: etf-master-exhaustive-integration-batching-20261030 accepted; AC1-AC14 remain open
+progress:
+  completed: [UHD1, UHD2, UHD3, UHD4]
+  total: 4
+  current_phase: etf-unresolved-holding-drilldown-20261030 accepted; closing-tip CI pending external verification; AC1-AC14 remain open
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2378,7 +2519,7 @@ backend_runner_timeout_remediation:
     operation is authorized by this runner-only repair.
 
 current_blocker: >-
-  Root accepted the runner checkpoint and exact implementation CI41090873497 is terminal green. One coherent closing-record publication remains; Root verifies its exact push CI externally. Root owns exact 870d remediation integration, staging/master exhaustive gates, qualified-image rollout, and genuine OIH/source/constituent/target acceptance. AC1-AC14 remain open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT history and 30-day observation.
+  Root accepted bounded checkpoint etf-unresolved-holding-drilldown-20261030 under delegated authority. Tested implementation78dcca03983de9304fe7e44303ab35e6d88a03c2 passed exact-source CI41135061084 and the source-matched full_stack_browser profile (201 functional passed/2 configured skips;104 strict visual passed across four projects; zero retries; exact cleanup/inventory equality). The single closing publication adopts green staging b1b06fd8344549484e26ce3bf960befc832531ef without product-tree changes. Exact closing-tip CI is pending external verification. Preserve 15 Tier-0 and 156 Tier-1; AC1-AC14, genuine source/account/target/deployment work and all holds remain open.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -3548,11 +3689,7 @@ latest_sec_first_use_candidate:
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
 next_action: >-
-  Complete final workstream, closure, narrative and diff checks; publish the
-  single four-record closing commit and verify its exact push CI. Root owns
-  integration, staging/master gates, qualified-image rollout and genuine OIH
-  source/target acceptance. No provider/issuer HTTP, ledger/target mutation,
-  replay, policy activation, deployment or full-roadmap completion is claimed.
+  Root externally verifies the exact closing-tip CI triggered by this one coherent publication. The bounded drilldown checkpoint is accepted and its local profile is complete; Root owns subsequent integration/promotion, qualified-image rollout, and genuine OIH holdings/returned-uncached-constituent source/account/target acceptance and deployment. AC1-AC14 remain open; no provider/issuer HTTP, ledger/target mutation, replay, policy activation or full-roadmap completion is claimed.
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress

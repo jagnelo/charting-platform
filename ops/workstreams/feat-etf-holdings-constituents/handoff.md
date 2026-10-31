@@ -1,3 +1,27 @@
+# Current implementation — unresolved holding drilldown (2026-10-30)
+
+## Active scope
+
+Root released this feedback correction in `/home/m920q/charting-platform/.ai/staging-attempts/etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json` (SHA256 `3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443`). Work starts from immutable accepted source `c91d556f89318509e96a0292453a22d6d7d96365` in the existing claimed branch/worktree. The accepted MEB checkpoint is archived in plan/session records; its closure and exact CI remain valid only for its own bytes. Current scope is in progress and has no new acceptance.
+
+The user path must begin on one eligible unresolved real-security row: explicitly discover the exact `reported_symbol`, explicitly choose and resolve a provider candidate, preserve snapshot/date/known_at/provenance and reported-row evidence into the chart route, then separately click the existing missing-history control for D1 and reload persisted bars. The row remains unresolved in its snapshot. Resolved-row navigation remains as before. Cash/reference/synthetic/missing ticker/current-capability and held/conflict/no-match/error states remain unavailable; no discovery on render, per-holding fanout, implicit history request, provider/issuer HTTP by this worker, or target mutation.
+
+## Preflight and state
+
+Current narrative check repair: the durable blocker summaries now retain the exact ledger-derived count `15 Tier-0 and 156 Tier-1`; implementation and focused checks are complete, while the isolated full profile and exact-source CI remain pending. The earlier failing narrative regression is preserved in validation history; no assertion or roadmap criterion changed.
+
+Supported existing-owner UV status preflight verified claim `f206bbc5-abbf-473a-a44f-fb5706c81282`, branch `feat/etf-holdings-constituents`, worktree ID `feat-etf-holdings-constituents-fdc36fa27a`, and local/origin HEAD `c91d556f89318509e96a0292453a22d6d7d96365`. Default sandbox denied Docker status; the authorized narrow read-only escalation succeeded. It reported Docker available, zero owned containers, two retained volumes (~464 MB), no cleanup/build/runtime action. The newly created session-local implementation goal is unbudgeted; previous completed goal/accounting archives were not reset or replaced.
+
+Staging candidate `b1b06fd8344549484e26ce3bf960befc832531ef` run `41108906686` is still in progress and is not this source's validation. Do not alter/cancel it or merge it unless Root later publishes canonical green. Product changes require their own exact-source CI and local profile. The minimum local profile for this frontend/UI handoff is `full_stack_browser`; remote tier remains `full_integration`.
+
+## Acceptance and next action
+
+UHD1-UHD4 implementation and focused checks are complete in the working candidate. The changed-slice frontend tests passed 63/63; the full frontend suite passed 1,493/1,493 across 151 files; `vue-tsc` and the production build passed. The E2E file lists five cases, including the controlled row-originated unresolved-symbol journey. The uPlot contract, 26-assertion visual policy and Compose contracts passed. `make test-fe` itself exited 2 after Vitest because its later UV helper hit the shared read-only UV cache; the isolated helper checks passed and the setup failure is retained.
+
+The reused backend component is explicitly source-bound: current `HEAD:backend` is tree `85154a468a08550596c41ceec27dbda673f0deb8`, the same tree label on Root-qualified image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc`. The existing accepted 5961 sharded backend evidence covers that exact tree (6,202 IDs: 6,197 passed, 5 expected skips, zero failures/errors, 84.4% coverage; canonical PostgreSQL DDL 2/2). It is reused component evidence, not a new frontend/runtime result.
+
+Next, freeze and publish the coherent candidate before the expensive runtime profile. Then build only the changed frontend image, use the immutable qualified backend and the Research image only after exact source-input equivalence, and run the owned isolated functional and strict visual profile with backend egress denied, no provider credentials or shared quota ledger, one browser worker, zero retries and unchanged screenshot oracles. Record the actual service/image/cgroup IDs and clean only this exact project, proving protected inventory equality. Run/verify exact-source branch CI. Root owns canonical staging adoption, actual VanEck continuation, genuine holdings/uncached-stock target proof, integration and deployment. All original AC1-AC14, accepted checkpoint archives, quota/production holds, raw/PIT lineage, retained datasets and 30-day observation remain open/preserved.
+
 ## Current bounded checkpoint - historical VanEck quota-dimension repair (2026-10-30)
 
 Root released this repair under the existing human-authorized on-demand workflow after verifying immutable settled reservation 41361. Exact synchronized-green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 was adopted by fast-forward from 206a1544234d362b39adccb24fafc37ecfad5e7f; canonical receipt [20261030T094848Z-cb8240f69647.json](/home/m920q/charting-platform/.ai/staging-attempts/20261030T094848Z-cb8240f69647.json) SHA256 6fe63d74d984040b43ccd2527d7dbce8911bb1393abcbb180f705e02cf9fd4b5, exact staging CI 41020845787. No tree delta or sibling source import occurred in adoption.
@@ -17856,3 +17880,100 @@ The source change is limited to `scripts/backend_coverage.py` and `tests/workflo
 The prior master exhaustive timeout remains preserved as historical evidence; it was not blindly retried or addressed by raising the timeout. HQD1-HQD4 closure metadata is archived in the plan and session before replacement. All original AC1-AC14 remain open, as do genuine OIH holdings, returned uncached constituent acquisition, source/account, target and deployment acceptance. Preserve 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the 30-day observation. Root owns exact 870d remediation integration, staging/master exhaustive gates, qualified 36b99 rollout and the genuine source/target journey.
 
 This is a Root-accepted bounded checkpoint, not full feature completion. The single closing commit does not self-reference its own SHA: `integration_capture: exact branch HEAD`. Root captures its exact closing-tip CI externally; no post-publication metadata commit is planned.
+
+## Massive CS and holding-lineage correction — 2026-10-30
+
+Root's review of source `43e501b3c39d3ec2f320295bc56810daa393e566` found that
+the unresolved-holding action requested only `Equity`/`Stock`, while Massive
+preserves a common-stock row's native type as `CS` and the backend applies a
+raw substring type filter before returning discovery candidates. The corrected
+request includes the verified `CS` code; the shared candidate scope accepts
+that raw type while retaining the non-equity guards. The controlled browser
+fixture now applies the same raw substring filter before returning a `CS`
+candidate, and the unit test exercises native `CS` plus an `ETF` negative.
+
+The preserved 43e functional attempt is terminal red: 197 passed, 4 failed,
+2 skipped, exit 1; strict visuals were not started. Its exact log is
+`/tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional.log`
+(SHA256 `8fc3f1f3ba892517b8ee5b98340de79189943ff16114f6722b3683b8b9d5542c`)
+and Root's disposition is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json`.
+The failures were: a broad `.holding-row` locator matched the table header and
+data button; two same-symbol ChartView hydration paths stripped valid holding
+lineage; and the 10000-row browser performance case lacked its private backend
+fixture seed. The correction targets actual `button.holding-row` elements,
+preserves valid lineage only during same-symbol initial URL hydration while
+deliberate symbol navigation clears it, and enables the existing large-universe
+seed only in the new private test backend/browser configuration. The 43e image
+and archive remain retained as predecessor evidence, not as the corrected
+frontend artifact.
+
+After that attempt reached its terminal result, only the exact owned browser
+container, Compose project, project volumes and detached empty project network
+were removed. Protected container/image/volume/network identity sets match the
+pre-profile snapshot, with the single owned 43e frontend image intentionally
+retained and its archive preserved. The post-cleanup snapshot is
+`/tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional-after-cleanup.json`
+(SHA256 `93b164e640219a4df74151f60c0cf5d6e53da825116cd472fbcab9d5ea791a20`).
+
+The focused CS/hydration unit slice passed 28/28. The full frontend Vitest run,
+Vue type-check and production build passed on the corrected working tree; the
+uPlot, visual-acceptance-policy and Compose contract checks passed as well.
+Current-source browser functional and strict-visual qualification, exact-source
+branch CI and Root review remain pending. No provider/source/issuer request,
+quota/ledger/target mutation, policy activation, production action, or
+staging/master write occurred. Preserve all prior accepted archives, the full
+AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 counts, holds and historical failures.
+
+## d014 browser diagnostics fixture correction — 2026-10-30
+
+The d014 functional profile is preserved as a failed predecessor: 200 passed,
+1 failed, 2 skipped, exit 1. Its sole failure was the final assertion in the
+new unresolved-holding journey, which read the nonexistent
+`browserDiagnostics.errors` property after the explicit Massive `CS` discovery,
+canonical resolution, D1 acquisition, lineage and reload assertions completed.
+The browser-critical attachment also records 404 console responses. Preserve
+the full log at `/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log`
+(SHA256 `c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631`)
+and Root's review at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json`
+(SHA256 `d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d`).
+
+The corrected E2E fixture now uses the supported
+`browserDiagnostics.expectNoCriticalIssues()` assertion and explicitly serves
+typed empty option-exposure and expiration responses for
+`/api/v1/instruments/UNXQ/options/exposure` and
+`/api/v1/instruments/UNXQ/options/exposure/expirations`. It asserts both exact
+reads occurred, so any remaining unexpected API 404 will be reported by the
+shared diagnostics contract. This is a test-fixture correction; no global
+diagnostics policy, product behavior, assertion, retry, or visual tolerance was
+changed. Playwright test discovery listed all five on-demand tests and Vue type
+checking passed. Browser execution of the corrected case and strict visuals
+remain pending.
+
+Exact owned-project cleanup completed with exit 0. The global cleanup
+comparison is `/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/global-inventory-cleanup-comparison.json`
+(SHA256 `9ef2803d952b7720b8f863d173e53dc45dd5cbfff11c5990669f0585efa4c3d3`)
+and reported equality. Root completed the separate production backend-only
+release window; receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json`
+(SHA256 `72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa`)
+records the new backend `660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419`
+and worker `ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520`
+IDs. The fresh post-release protected snapshot is
+`/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json`
+(SHA256 `d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d`):
+29 containers, 31 images, 51 volumes and 10 networks. Preserve the immutable
+frontend image/archive; runtime reuse remains conditional on Root confirming
+production build-input equivalence for this test-only delta. Exact-source CI
+and a complete corrected-source profile remain required. All source, quota,
+provider, target, deployment and full AC1-AC14 roadmap holds remain in force.
+
+## Current Root-accepted drilldown closure — 2026-10-30
+
+This is the authoritative current handoff and supersedes earlier in-progress/pending status text above. Root accepted bounded checkpoint `etf-unresolved-holding-drilldown-20261030` under existing delegated authority; receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-drilldown-checkpoint-acceptance-root-review-20261030.json` SHA256 `ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4`. Tested implementation is `78dcca03983de9304fe7e44303ab35e6d88a03c2`. Exact implementation CI `41135061084` is terminal green on that SHA across Backend, Frontend Unit, Branch-declared Tests and E2E/Playwright. Root's runtime qualification receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-full-runtime-qualified-root-review-20261030.json` SHA256 `70cc8134e56d0e82cb4d7098d745918760a135cfd653ffe6ff4bfa3f77b036ad` records all required phases passing: 201 functional passed/2 configured skips, 104 strict visuals passed across four projects, zero retries, exact-owned cleanup and protected inventory equality.
+
+The frontend image `57d146888c3ee34d5976a8fde6b76d9a815df37e5ddb25a12fc69266088ef4ce` was built from D014 and is retained as such. Root approved its use for the current test source because the changed E2E spec is not bundled in the image; runtime qualification is bound to tested source78dcca plus that separately identified image. Backend tree/image `85154a468a08550596c41ceec27dbda673f0deb8` / `36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc` remained unchanged and reused as component evidence. No backend/API/schema/migration/dependency/provider-policy/production-runtime change is part of this checkpoint.
+
+This one coherent closing publication adopts exact synchronized green staging `b1b06fd8344549484e26ce3bf960befc832531ef`, canonical receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json` SHA256 `ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919`, staging CI `41108906686`. Its product tree is unchanged from the accepted base; accepted78dcca product bytes remain intact. Closing record text does not self-reference its commit: `integration_capture: exact branch HEAD`. The closing-tip CI is pending external verification and is the only checkpoint publication gate still outstanding.
+
+UHD1-UHD4 are accepted; the original AC1-AC14 roadmap remains open and unchanged. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage, retained datasets, 30-day observation and all historical failures/archives. No genuine VanEck/OIH source response, returned uncached constituent, account/source operation, target acceptance, deployment or full-roadmap completion is claimed. Root owns integration, promotion, deployment and genuine operational proof. After Root verifies the exact closing-tip CI, hand off the frozen branch; do not create a self-referential records follow-up.
