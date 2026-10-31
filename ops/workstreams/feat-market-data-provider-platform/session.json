@@ -94,14 +94,13 @@
   },
   "current_exact_ci": {
     "run_id": null,
-    "source_sha": "pending combined VQS+8173 publication",
-    "status": "VQS implementation is not yet published; exact-source owner CI remains pending."
+    "source_sha": null,
+    "status": "combined source not yet published; exact branch CI remains pending after final owned-record update"
   },
   "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
-    "ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
@@ -160,7 +159,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b1b06fd8344549484e26ce3bf960befc832531ef",
+  "head": "0d3d96110f65222c044d85ed804f3776a4730bc7",
   "historical_root_full_profile_pre_oih_repair_2026_10_29": {
     "cleanup_inventory_diffs": 0,
     "functional_declared_skips": 2,
@@ -171,28 +170,27 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": "b1b06fd8344549484e26ce3bf960befc832531ef",
+  "implementation_sha": "f0952f5ed3b2dd1cdff04945886e3a92b8bbebc7",
   "interrupted": false,
   "last_checkpoint": "2026-10-28T15:16:12Z",
   "last_human_progress_update": "2026-10-28T12:15:21.408448+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "latest_staging_adoption": {
-    "adoption": "exact fast-forward in the assigned Provider branch; no conflicts; shared ETF files arrived only through the released staging commit",
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json",
-    "canonical_receipt_sha256": "ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919",
-    "frozen_upstream_import_manifest": "not applicable: no direct sibling checkout/import; only the exact released common staging commit was adopted",
-    "pre_adoption_head": "a2d0b38bcb7b5c948e0da44886da98c51303e18b",
-    "provider_owned_source_delta": "none in the accepted staging delta; VQS source work starts from this exact base",
-    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vaneck-successor-implementation-release-root-review-20261030.json",
-    "root_release_review_sha256": "0445f4877d54be9e73b590d21f77d17e0e67b17465f643f16b057bf44fff6bc8",
-    "run_id": 41108906686,
-    "sha": "b1b06fd8344549484e26ce3bf960befc832531ef",
-    "state": "green exact staging baseline; owner VQS validation pending"
+    "adoption": "exact green staging merged with --no-ff; no conflicts; no direct sibling-worktree import",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261031T012028Z-8173ce8ef343.json",
+    "canonical_receipt_sha256": "7904599b0d9e18dc7defac0f182b7c769e174dd80d022af02363768394f3c305",
+    "pre_adoption_head": "f0952f5ed3b2dd1cdff04945886e3a92b8bbebc7",
+    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-8173-terminal-green-staging-root-review-20261031.json",
+    "run_id": 41146657584,
+    "sha": "8173ce8ef34369a02183706fd18210506bd20202",
+    "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending",
+    "merge_commit": "0d3d96110f65222c044d85ed804f3776a4730bc7",
+    "imported_delta": "frontend + ETF-owned workstream only; Provider backend subtree unchanged by staging"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Commit the current VQS implementation and truthful records, reconcile only canonical green staging8173 into this Provider branch, then publish the combined clean source once. Root will release the fresh full-backend rerun using a short physical TMPDIR after exact source/profile bindings and current resource inventory are reviewed. Do not claim the failed collector as green; preserve all holds and the 24-item roadmap.",
+  "next_action": "Commit the owned staging-adoption/current-state record update, then publish once. Root observes exact branch CI. Root will release the fresh full backend collector with short physical TMPDIR after current capacity/inventory/source-pin review; all runtime/artifact build and full_stack_browser phases remain separately gated.",
   "parent_branch": "staging",
-  "plan_hash": "effcc6f7f69c1c287e85e89f44ae2c46d603f4a1972e7679d9f2ba85865366de",
+  "plan_hash": "cdb485ca1407211eb59718a90c19c3bdd89e4ef798ff4a954647314811e9cd8a",
   "planning_required": false,
   "planning_state": "in_progress",
   "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
@@ -295,7 +293,7 @@
   "progress": {
     "active_checkpoint": "provider-vaneck-posttransport-successor-status-20261030",
     "completed": [],
-    "note": "VQS1-VQS4 implementation and focused regressions are present. Full backend collector is terminal failed on a long-TMPDIR AF_UNIX path limit; the exact node passed once under a short isolated TMPDIR. Full backend/integration/coverage, combined full_stack_browser and exact-source CI remain pending; canonical green staging8173 is verified and awaiting Provider adoption.",
+    "note": "VQS code commit f0952f5 and exact green staging8173 merge 0d3d961 are present locally. Backend subtree remains byte-identical across the staging merge and matches prior focused-test inputs; full backend attempt remains red from the original long-TMPDIR socket-path defect. Full backend/integration/coverage, full_stack_browser, and exact owner-branch CI remain pending.",
     "total": 4
   },
   "remote": "a2d0b38bcb7b5c948e0da44886da98c51303e18b",
@@ -447,6 +445,16 @@
       "sha": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
       "status": "terminal_success",
       "tree_sha": "ee51d4e02f1659030d11507696b24055adec8303"
+    },
+    {
+      "adoption": "exact synchronized green staging baseline adopted before VQS implementation; preserved as history",
+      "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json",
+      "canonical_receipt_sha256": "ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919",
+      "run_id": 41108906686,
+      "sha": "b1b06fd8344549484e26ce3bf960befc832531ef",
+      "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vaneck-successor-implementation-release-root-review-20261030.json",
+      "root_release_review_sha256": "0445f4877d54be9e73b590d21f77d17e0e67b17465f643f16b057bf44fff6bc8",
+      "status": "terminal_success"
     }
   ],
   "state": "in_progress",
