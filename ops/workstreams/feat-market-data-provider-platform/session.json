@@ -20,9 +20,9 @@
   "active_checkpoint_id": "provider-vaneck-job4-lineage-gap-20261031",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "pending; no acceptance decision for VJL1-VJL4 has been issued",
-  "checkpoint_acceptance_receipt": null,
-  "checkpoint_authorization_state": "Implementation authorized for VJL1-VJL4 only; Root technical acceptance pending.",
+  "checkpoint_acceptance_decision": "Root accepted VJL1-VJL4 under the human standing delegation; bounded software checkpoint only, broader Provider roadmap and genuine source/target acceptance remain open.",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-checkpoint-acceptance-root-review-20261031.json",
+  "checkpoint_authorization_state": "human standing delegation; Root technical acceptance recorded for VJL1-VJL4",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -69,9 +69,18 @@
       "runtime_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-runtime-qualified-root-review-20261031.json",
       "plan_archive": "plan.yaml: previously_accepted_provider_vqs_checkpoint",
       "note": "Preserved as prior bounded acceptance; does not accept VJL1-VJL4 or close the 24-item roadmap."
+    },
+    {
+      "checkpoint_id": "provider-vaneck-job4-lineage-gap-20261031",
+      "status": "ready_for_integration; Root accepted bounded VJL1-VJL4 under human standing delegation; exact closing-tip CI pending",
+      "implementation_source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+      "acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-checkpoint-acceptance-root-review-20261031.json",
+      "runtime_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-full-runtime-qualified-root-review-20261031.json",
+      "plan_archive": "plan.yaml: integration_checkpoint provider-vaneck-job4-lineage-gap-20261031",
+      "note": "Genuine source/ordinary UI requirements and full roadmap remain open; no source HTTP or deployment."
     }
   ],
-  "checkpoint_status": "in_progress",
+  "checkpoint_status": "ready_for_integration",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -84,17 +93,24 @@
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "closing_commit_ci": {
-    "status": "not applicable; this is an in-progress implementation checkpoint, not a closure"
+    "source_sha": "exact closing branch HEAD",
+    "run_id": null,
+    "status": "pending; Root observes after push"
   },
   "current_checkpoint_local_profile": {
     "profile": "full_stack_browser",
-    "status": "pending Root resource release",
+    "backend": "6225 passed, 3 configured skips of 6228; 84.43% coverage",
+    "functional": "201 passed, 2 configured skips; all five on-demand cases and dense 10000-row case",
+    "visual": "104/104 across four projects; zero retries; tolerance 0.005",
+    "cleanup": "all 11 phases passed; exact owned cleanup and protected inventory verified",
     "provider_http_requests": 0,
-    "quota_operations": 0
+    "quota_operations": 0,
+    "status": "Root technically accepted VJL1-VJL4; genuine source and ordinary UI acceptance remain open"
   },
   "current_exact_ci": {
-    "source_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
-    "status": "pending publication; implementation and workstream are ready for exact-source branch CI"
+    "source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+    "run_id": 41211004128,
+    "status": "terminal success on implementation source; expected feature-branch Exhaustive skip; closing-tip CI pending"
   },
   "dirty_paths": [],
   "docker": {
@@ -124,7 +140,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6d95eb54be316d017da39bac8bc783d16c8e617a",
+  "head": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -144,7 +160,7 @@
   "implementation_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
   "interrupted": false,
   "last_checkpoint": "2026-10-28T15:16:12Z",
-  "last_human_progress_update": "2026-10-28T12:15:21.408448+00:00",
+  "last_human_progress_update": "2026-10-31T17:34:06.661895+00:00",
   "latest_no_transport_preflight": "2026-10-19T12:45:16Z on exact pushed source bef14e0c14b4c60be4f4d54dc954f8113ef5f2f9: durable coordinator reachable; 27 providers evaluated, 22 eligible and five quarantined (CTA Plan and EODHD lack full-matrix daily quota headroom; Dinari quota/cost contract unresolved; Marketstack monthly capacity/discovery cost/MIC unresolved; Tiingo plan/usage baseline unreviewed); zero provider requests, reservations, or spend. Global admission is ready; this is the currently admitted free-only candidate scope, not full 27-provider acceptance.",
   "latest_staging_adoption": {
     "adoption": "exact green staging merged with --no-ff; no conflicts; no direct sibling-worktree import",
@@ -159,9 +175,9 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the implementation source and current workstream records once; Root reviews exact CI and releases the source-bound backend/database phase using the prepared manifest.",
+  "next_action": "After terminal-green exact closing-tip CI, hand the accepted bounded VJL checkpoint to Root for supported staging integration and promotion; preserve the remaining Provider roadmap and all holds.",
   "parent_branch": "staging",
-  "plan_hash": "a1f9be59287728e11047eaf65df7505bdf55c2cffc8a55ff941560b041424b02",
+  "plan_hash": "7d9717d475701f21b53175639fb946e350c7f5cbddf2dca2a566563d96eb1468",
   "planning_required": false,
   "planning_state": "ready",
   "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
@@ -263,13 +279,22 @@
   },
   "progress": {
     "active_checkpoint": "provider-vaneck-job4-lineage-gap-20261031",
-    "completed": [],
+    "completed": [
+      "VJL1",
+      "VJL2",
+      "VJL3",
+      "VJL4"
+    ],
     "total": 4,
-    "note": "59/59 focused VanEck lineage unit cases and static checks pass. Actual-shape PostgreSQL/SQLite route regression, full backend/full_stack_browser profile, exact-source CI and Root acceptance remain pending."
+    "note": "Root accepted the bounded VJL1-VJL4 software checkpoint under the standing human delegation; exact closing-tip CI is pending. The broader Provider roadmap and genuine source/ordinary UI acceptance remain open.",
+    "current_phase": "provider_vaneck_job4_lineage_gap_closing_ci_pending",
+    "current_blocker": "Exact closing-tip CI pending; Root owns integration/promotion.",
+    "next_action": "After exact closing CI passes, hand accepted checkpoint to Root for supported staging integration and promotion.",
+    "updated_at": "2026-10-31T17:34:06.661876+00:00"
   },
-  "remote": "cdb04dd6050a80f8d15c77f74ef70b8545d93653",
-  "remote_sha": "cdb04dd6050a80f8d15c77f74ef70b8545d93653",
-  "remote_synchronized": false,
+  "remote": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+  "remote_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],

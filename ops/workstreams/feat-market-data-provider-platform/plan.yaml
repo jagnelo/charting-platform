@@ -1,5 +1,5 @@
 schema: 4
-status: in_progress
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -854,8 +854,9 @@ previously_accepted_provider_vqs_closure_summary: >-
   14 ETF roadmap criteria, accepted history, genuine holdings/ordinary UI admission, data/quota holds, and
   consumed-request history remain preserved. No source HTTP, quota operation, target mutation, paid/trial/native/
   broker/capital activation, or deployment occurred. integration_capture: exact branch HEAD
-human_closure_authorization: pending; no Root technical acceptance or closure has been granted for VJL1-VJL4.
-closure_summary: pending VJL1-VJL4 validation and Root review; no ready-for-integration status is claimed.
+human_closure_authorization: Root accepted VJL1-VJL4 under the human standing delegation; bounded software checkpoint only, not full Provider roadmap or genuine source/target acceptance.
+closure_summary: >-
+  Bounded checkpoint provider-vaneck-job4-lineage-gap-20261031 (VJL1-VJL4) is accepted by Root under the standing human delegation. Exact qualified source c28b4447a29a4fe0e28308a08c268215d8b66c62 includes green staging ancestor 59b38a0d094c905c83c8b89f49ba3049e567740e. Focused 59-unit, 4 actual-shape PostgreSQL/SQLite, and 2 legacy job3 cases passed. Complete backend profile: 6225 passed, 3 configured skips of 6228, 84.43% coverage. Joint runtime: all 11 phases passed; functional 201 passed/2 configured skips with all five on-demand cases and dense 10000-row case; strict visual 104/104 across four projects, zero retries, tolerance 0.005; exact cleanup verified. Exact implementation CI 41211004128 is green. Root acceptance and runtime receipts are recorded below. Exact closing-tip CI is pending and is not claimed. integration_capture: exact branch HEAD. Genuine VanEck holdings/returned holdings and ordinary UI acquisition/refresh remain open Root-owned requirements. All 24 Provider and 14 ETF roadmaps, accepted history, failures, job2/job3/job4/log14/raw5, reservations, native unknowns and holds remain preserved. No source HTTP, quota operation, production change, integration or deployment occurred.
 planning_state: ready
 previously_accepted_provider_on_demand_human_closure_authorization: >-
   Under the human's standing four-feature integration authority and explicit 2026-10-27 direction to implement on-demand acquisition, checkpoint acceptance was delegated to the central coordinator. Root's decision in /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only provider-on-demand-acquisition-20261027 for software checkpoint closure. This records delegated human authority plus Root technical acceptance; it does not claim personal human inspection, full Provider roadmap completion, live/source/target acceptance, provider activation, or feature-owner authority to integrate, promote, or deploy.
@@ -8621,13 +8622,13 @@ progress:
       pending criteria VQS1-VQS4; no new implementation or validation is claimed yet.
     - >-
       2026-10-31: Root activated VJL1-VJL4 after actual read-only evidence showed job4 extra_data.provider_request_log_ids=[] while qualification_outcome.provider_attempt_evidence and raw artifact5 independently retained log14. Exact staging 59b38a0d094c905c83c8b89f49ba3049e567740e is adopted. The prior Root-accepted VQS checkpoint and all 24 roadmap criteria remain archived. No historical records, reservations, usage units, native unknowns, holds, or source allowances were changed.
-  completed: []
+  completed: [VJL1, VJL2, VJL3, VJL4]
   total: 4
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: provider_vaneck_job4_lineage_gap_20261031_in_progress
+  current_phase: provider_vaneck_job4_lineage_gap_closing_ci_pending
   current_blocker: >-
-    VJL1-VJL4 repair is active from exact synchronized green staging 59b38a0d094c905c83c8b89f49ba3049e567740e. The exact empty-top-level/single nested persisted-log lineage repair and 59 focused unit cases pass with static checks. The actual database route regression and complete backend/full_stack_browser profile are pending Root's isolated resource release; exact-source CI will follow coherent publication. No source transport, target/database/ledger mutation, or acceptance is claimed.
+    Exact closing-tip CI is pending after the accepted VJL1-VJL4 records-only closure. Root owns integration and promotion. No broader roadmap or genuine-source acceptance is claimed.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -8912,7 +8913,7 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Publish the coherent implementation/workstream source for exact CI while preparing the current-source capped collector manifest. Coordinate with Root before the focused database/full backend/browser fixture; then complete the released local gates and stop at ready_for_human_review.
+    After exact closing CI passes, hand the accepted checkpoint to Root for supported staging integration and promotion; preserve remaining Provider roadmap items and all source/quota holds.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -10769,12 +10770,13 @@ historical_current_gate_checkpoint_2026_10_31_vqs_accepted: 'Accepted bounded ch
   previously_accepted_provider_oih_canonical_qualification_checkpoint. All 24 roadmap criteria and all
   source/native/paid/trial/broker/capital holds remain unchanged.'
 
-current_gate_checkpoint: 'Active bounded checkpoint provider-vaneck-job4-lineage-gap-20261031 (VJL1-VJL4), based on synchronized green staging 59b38a0d094c905c83c8b89f49ba3049e567740e. The exact retained record is admitted only through the nested single-ID callback/persistence witness plus existing immutable log/artifact/reservation checks. Focused qualification unit tests pass 59/59 with Ruff, format, py_compile and diff checks green. The actual PostgreSQL/SQLite route regression, full backend/full_stack_browser gates, exact-source CI and Root technical acceptance remain pending. Historical job2/3/4/log14/raw5, reservations, native-usage unknowns, all holds and all 24 roadmap criteria are preserved; no provider/source request, quota mutation, production change, integration or deployment occurred.'
+current_gate_checkpoint: >-
+  Root accepted the bounded VJL1-VJL4 checkpoint under the human standing delegation. Accepted implementation 6d95eb54be316d017da39bac8bc783d16c8e617a; exact qualified source c28b4447a29a4fe0e28308a08c268215d8b66c62, with green staging ancestor 59b38a0d094c905c83c8b89f49ba3049e567740e. Full backend 6225/6228 with three configured skips and 84.43% coverage; all eleven joint runtime phases passed, functional 201/2 configured skips including all five cases and dense10000, strict visual104/104. Implementation CI41211004128 green. The four VJL criteria are accepted; exact closing-tip CI remains pending. Genuine holdings and ordinary UI acquisition remain unproven and Root-owned. Preserve all24 Provider/14 ETF roadmap criteria, accepted history, job2/job3/job4/log14/raw5, reservations, native unknowns and holds. No source HTTP, quota operation, production change, integration or deployment occurred.
 
 integration_checkpoint:
   id: provider-vaneck-job4-lineage-gap-20261031
-  status: in_progress
-  acceptance_state: pending_root_technical_review
+  status: ready_for_integration
+  acceptance_state: accepted_by_root_under_human_standing_delegation_closing_ci_pending
   planning_authorization: Human direct activation in this original Provider session on 2026-10-31 under the existing
     on-demand objective. Root released only this bounded repair after read-only lineage evidence showed the actual
     job4 extra_data top-level ID list is empty. No provider/source request, production mutation, quota/ledger operation,
@@ -10827,21 +10829,18 @@ integration_checkpoint:
   - 'backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py: actual empty top-level persisted shape,
     pre-transport mismatch rejection, positive/empty response and legacy behavior'
   required_gates_remaining:
-  - Run the changed PostgreSQL/SQLite route integration regression in a fresh isolated fixture after Root resource
-    release; no provider transport.
-  - Run the complete backend collector with source-bound manifest, coverage threshold, exact timeouts and exact-owned
-    cleanup after Root release.
-  - Run the required current-source joint full_stack_browser profile after Root resource release; preserve normal
-    assertions/retries/tolerances and protected inventories.
-  - Pass exact-source feature CI and workstream validation; Root technical acceptance remains pending.
+    - "Exact closing-tip CI for this records-only closure publication; report only its terminal result."
+    - "Root-owned supported staging/master integration and protected promotion/deployment gates remain separate from this feature-owner closure."
+    - "Genuine VanEck holdings/returned-holding and ordinary UI acquisition/refresh evidence remain open Root-owned requirements; this checkpoint does not prove source acceptance."
   current_source_local_evidence:
-  - The focused VanEck qualification unit module passes 59/59 after this repair; Ruff check, Ruff format check and
-    Python compile pass for all three changed source/test modules; git diff --check passes.
-  - The new actual-shape PostgreSQL/SQLite route integration test has not yet run. The changed backend source and
-    test inputs are uncommitted at this records update; no full profile or exact-source CI result is claimed.
-  - No provider/issuer/SEC HTTP, production action, quota/ledger change, or historical job4/log14/raw5 mutation
-    occurred.
-  exact_source_ci: pending; publish the coherent implementation/workstream source before reporting a run
+    - "Focused VJL evidence: 59 unit cases, 4 actual-shape PostgreSQL/SQLite cases, and 2 legacy job3 cases passed; no provider transport."
+    - "Root-reviewed full backend: 6225 passed, 3 configured skips of 6228, 84.43% coverage; receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-full-backend-root-review-20261031.json SHA-256 21b60eabb37183dd87bbfae98c97de84f9c5ed95d56d72544ac3af756b8e1a82."
+    - "Joint runtime terminal summary /tmp/provider-vjl-c28b4447-app-20261031/artifacts/full-runtime-terminal-summary.json SHA-256 30b56be27a2fb40856cddf5208050cc2fca77809f0fa5c41d99f4678db52fd94: all 11 phases passed; functional 201 passed/2 configured skips, all five acquisition cases and dense10000; strict visual104/104 across four projects, zero retries, tolerance0.005; exact cleanup verified."
+    - "Exact implementation CI41211004128 passed on c28; Backend6225/3 configured skips, Frontend1495, Branch-declared success, E2E197/110 configured skips; Exhaustive expected feature-branch skip. Root review /home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-exact-branch-CI-green-root-review-20261031.json."
+    - "Root accepted VJL1-VJL4: /home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-checkpoint-acceptance-root-review-20261031.json SHA-256 9c15dd89a68c78d9715ac2d437e9aeff44cda7aa968778c55409878dc3db32e8; full runtime review /home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-c28b-full-runtime-qualified-root-review-20261031.json SHA-256 b6f3ab07024a0aa7ce2b3456fcf80fca758892eda44f92d48d4ae6aa1636b183."
+    - "No migration/default activation, provider/issuer/SEC request, quota operation, historical-record mutation, production mutation, paid/trial/native/broker/capital activation, integration or deployment occurred. All24 Provider and14 ETF roadmap criteria and accepted history remain preserved; genuine source/ordinary UI acceptance remains open."
+  exact_source_ci: >-
+    Implementation source c28b4447a29a4fe0e28308a08c268215d8b66c62 passed CI41211004128 with expected feature-branch Exhaustive skip. Exact closing-tip CI for this records-only publication is pending.
   validation_tier: full_integration
   local_validation_profile: full_stack_browser
   deployment_authorized: false
@@ -11058,6 +11057,5 @@ integration_checkpoint:
     continuation_acceptance_test: The 30-day deployed shadow run remains disabled and is not part of the current
       implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized
       as the final gate before human closure and staging integration.
-  next_action: Publish this coherent checkpoint for exact CI, then await Root release for the actual-shape database
-    regression and full local qualification. Stop at ready_for_human_review; Root owns technical acceptance and
-    protected integration/deployment.
+  next_action: >-
+    After exact closing CI passes, hand the accepted checkpoint to Root for supported staging integration and promotion. The broader Provider roadmap and genuine-source/ordinary UI requirements remain open.
