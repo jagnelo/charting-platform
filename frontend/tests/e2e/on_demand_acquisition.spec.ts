@@ -23,6 +23,31 @@ type HistoryRequestBody = HistoryAcquisitionRequest & { request_id: string }
 type IssuerRequest = { request_id: string; refresh: boolean }
 type InstrumentRequestBody = InstrumentAcquireRequest
 
+// Mirrors the backend CalendarEvent response model consumed by UPlotChart.
+// This test's fictional symbol has no events, so the valid typed response is
+// an empty list rather than an untyped catch-all fixture.
+type InstrumentCalendarEvent = {
+  id: number
+  date: string
+  event_time: string
+  fetched_at: string
+  event_type: string
+  symbol: string
+  title: string
+  value?: number | null
+  actual?: number | null
+  eps_estimate?: number | null
+  eps_actual?: number | null
+  eps_surprise?: number | null
+  eps_surprise_pct?: number | null
+  dividend_amount?: number | null
+  split_ratio?: number | null
+  currency?: string | null
+  time_hint: string
+  source: string
+  is_estimate: boolean
+}
+
 const fixtureOutcome = {
   provider: 'test-fixture',
   capability: 'fixture_only',
@@ -309,6 +334,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   let localReadCount = 0
   const optionsExposureReads: string[] = []
   const optionsExpirationReads: string[] = []
+  const calendarReads: Array<{ symbol: string; start: string; end: string }> = []
   const discoveryRequests: DiscoveryRequest[] = []
   const identityRequests: InstrumentRequestBody[] = []
   const historyRequests: HistoryRequestBody[] = []
@@ -346,6 +372,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   const holdingsPage: ETFHoldingsPage = {
     snapshot, holdings: [holding], total: 1, limit: 100, offset: 0, has_next: false,
   }
+  const noInstrumentCalendarEvents: InstrumentCalendarEvent[] = []
   const dates: ETFHoldingsDate[] = [{
     snapshot_id: snapshotId, composition_date: snapshot.composition_date,
     as_of_date: snapshot.as_of_date ?? null, known_at: snapshot.known_at ?? null,
@@ -370,6 +397,25 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     } else {
       await route.continue()
     }
+  })
+  // ChartView performs this bounded side-read only after local chart bars are
+  // available. Match the one fictional symbol and endpoint exactly so a typo
+  // or unrelated calendar URL still reaches the shared strict diagnostics.
+  await page.route(url => {
+    const parsed = new URL(url)
+    return parsed.pathname === `/api/v1/calendar/instruments/${symbol}/calendar`
+  }, async route => {
+    const request = route.request()
+    expect(request.method()).toBe('GET')
+    const url = new URL(request.url())
+    expect(url.pathname).toBe(`/api/v1/calendar/instruments/${symbol}/calendar`)
+    const start = url.searchParams.get('start')
+    const end = url.searchParams.get('end')
+    expect(start, 'the chart calendar read is bounded by its loaded bars').not.toBeNull()
+    expect(end, 'the chart calendar read is bounded by its loaded bars').not.toBeNull()
+    expect(Date.parse(end!)).toBeGreaterThan(Date.parse(start!))
+    calendarReads.push({ symbol, start: start!, end: end! })
+    await route.fulfill({ status: 200, json: noInstrumentCalendarEvents })
   })
   await page.route('**/api/v1/instruments/discover**', async route => {
     const body = route.request().postDataJSON() as DiscoveryRequest
@@ -469,6 +515,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(identityRequests).toHaveLength(0)
   expect(historyRequests).toHaveLength(0)
   expect(localReadCount).toBe(0)
+  expect(calendarReads).toHaveLength(0)
 
   await holdingButton.click()
   await page.getByRole('button', { name: `Resolve reported holding ${symbol}` }).click()
@@ -487,6 +534,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(historyRequests).toHaveLength(0)
   expect(localReadCount).toBeGreaterThan(0)
   expect(localReadBars[0]).toEqual([])
+  expect(calendarReads).toHaveLength(0)
 
   const lineageUrl = new URL(page.url())
   expect(lineageUrl.searchParams.get('holding_snapshot_id')).toBe(String(snapshotId))
@@ -507,7 +555,8 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
       && url.pathname === `/api/v1/instruments/${instrumentId}/history-acquisitions`
   })
   await page.getByTestId('history-load-missing').click()
-  expect((await historyResponseReady).status()).toBe(200)
+  const historyResponse = await historyResponseReady
+  expect(historyResponse.status()).toBe(200)
   await expect(page.getByRole('status').filter({ hasText: 'History loaded: 1 bars are available.' })).toBeVisible()
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]?.timeframe).toBe('D1')
@@ -515,7 +564,16 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(localReadBars.at(-1)).toEqual([bar])
 
   const readsBeforeReload = localReadCount
+  const calendarReadsBeforeReload = calendarReads.length
+  const calendarResponseAfterReloadReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === `/api/v1/calendar/instruments/${symbol}/calendar`
+  })
   await page.reload()
+  const calendarResponseAfterReload = await calendarResponseAfterReloadReady
+  expect(calendarResponseAfterReload.status()).toBe(200)
+  expect(await calendarResponseAfterReload.json()).toEqual(noInstrumentCalendarEvents)
   await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/) 
   await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
   await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
@@ -523,6 +581,9 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(historyRequests).toHaveLength(1)
   expect(optionsExposureReads.length).toBeGreaterThan(0)
   expect(optionsExpirationReads.length).toBeGreaterThan(0)
+  await expect.poll(() => calendarReads.length).toBeGreaterThan(calendarReadsBeforeReload)
+  expect(calendarReads.at(-1)).toMatchObject({ symbol, start: bar.ts })
+  expect(calendarReads.every(read => read.symbol === symbol)).toBe(true)
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
