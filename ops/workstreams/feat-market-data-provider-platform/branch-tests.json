@@ -2,10 +2,10 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/tests/unit/routers/test_instruments_router.py::TestExplicitAcquireCanonicalIdentity",
-    "backend/tests/unit/services/test_provider_persistence.py",
-    "backend/tests/integration/api/test_on_demand_history_postgres.py",
-    "the complete backend unit/integration coverage profile required by exact changed paths"
+    "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py",
+    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "complete backend unit/integration coverage and required full_stack_browser profile"
   ],
   "commands": [
     {
@@ -16,19 +16,23 @@
         2,
         3,
         4
-      ]
-    },
-    {
-      "id": "migration-compatibility",
-      "command": "INTEGRATION_BASE_SHA=origin/master make test-migration-compatibility",
-      "covers": [
-        4
       ],
-      "scope_note": "Supplemental compatibility validation for the complete backend profile; this checkpoint adds no migration."
+      "scope_note": "Required complete backend profile for VQS source/test impact; execute only in the Root-released isolated slot."
     }
   ],
   "ci_covered_commands": {
     "full-backend-suite": "Backend Tests"
   },
-  "external_gates": []
+  "external_gates": [
+    {
+      "id": "local-full-stack-browser-profile",
+      "covers": [
+        1,
+        2,
+        3,
+        4
+      ],
+      "reason": "The required full_stack_browser profile is a separately owned local gate; execute it with the reviewed isolated fixture after Root releases the resource slot."
+    }
+  ]
 }

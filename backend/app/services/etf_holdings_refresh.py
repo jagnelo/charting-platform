@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import csv
+import re
 import time
 import zipfile
 from contextlib import asynccontextmanager
@@ -3142,6 +3143,13 @@ async def _retain_rejected_fetch_artifact_in_session(
     logs = [logs_by_id[log_id] for log_id in request_log_ids if log_id in logs_by_id]
     raw_text = getattr(fetch_result, "raw_text", None)
     raw_json = getattr(fetch_result, "raw_json", None)
+    upstream_response_diagnostic = _vaneck_initial_response_diagnostic(failure)
+    if upstream_response_diagnostic is None:
+        fetch_metadata = getattr(fetch_result, "legal_metadata", None)
+        if isinstance(fetch_metadata, dict):
+            upstream_response_diagnostic = _vaneck_initial_response_diagnostic(
+                fetch_metadata.get("upstream_response_diagnostic")
+            )
     response_evidence = [
         {
             "request_log_id": row.id,
@@ -3169,6 +3177,19 @@ async def _retain_rejected_fetch_artifact_in_session(
         elif isinstance(last_response, dict | list):
             raw_json = last_response
     content_payload = raw_json if raw_json is not None else raw_text
+    if upstream_response_diagnostic is not None and content_payload in (None, ""):
+        # Keep status/body facts attributed to the adapter's actual response and
+        # make this attempt's diagnostic content-addressed without changing an
+        # older identical empty-body artifact's metadata.
+        content_payload = {
+            "failure_type": type(failure).__name__,
+            "failure_message": bounded_redact_provider_message(failure, max_length=1000),
+            "validation": validation,
+            "upstream_response_diagnostic": upstream_response_diagnostic,
+            "request_log_id": request_log_ids[-1] if request_log_ids else None,
+        }
+        raw_text = None
+        raw_json = content_payload
     if content_payload is None:
         # When no response body exists (for example a connect timeout), retain
         # a compact diagnostic as an explicit JSON evidence payload. Attempt
@@ -3197,6 +3218,16 @@ async def _retain_rejected_fetch_artifact_in_session(
             for log_id in request_log_ids
         ],
         "request_attempts": response_evidence,
+        "upstream_response_diagnostics": (
+            [
+                {
+                    "request_log_id": request_log_ids[-1] if request_log_ids else None,
+                    **upstream_response_diagnostic,
+                }
+            ]
+            if upstream_response_diagnostic is not None
+            else []
+        ),
     }
     if existing is not None:
         # Keep the content-addressed payload/provenance stable, but do not lose
@@ -3224,6 +3255,19 @@ async def _retain_rejected_fetch_artifact_in_session(
                 if item.get("request_log_id") is not None
             }
         )
+        prior_diagnostics = list(metadata.get("upstream_response_diagnostics") or [])
+        diagnostics_by_id = {
+            item.get("request_log_id"): item
+            for item in prior_diagnostics
+            if isinstance(item, dict) and item.get("request_log_id") is not None
+        }
+        diagnostics_by_id.update(
+            {
+                item["request_log_id"]: item
+                for item in current_attempt_evidence["upstream_response_diagnostics"]
+                if item.get("request_log_id") is not None
+            }
+        )
         merged_ids = list(dict.fromkeys([*prior_ids, *request_log_ids]))
         metadata.update(
             {
@@ -3231,6 +3275,11 @@ async def _retain_rejected_fetch_artifact_in_session(
                 "request_urls": [urls_by_id.get(log_id) for log_id in merged_ids],
                 "request_attempts": [
                     attempts_by_id[log_id] for log_id in merged_ids if log_id in attempts_by_id
+                ],
+                "upstream_response_diagnostics": [
+                    diagnostics_by_id[log_id]
+                    for log_id in merged_ids
+                    if log_id in diagnostics_by_id
                 ],
             }
         )
@@ -3287,6 +3336,52 @@ async def _retain_rejected_fetch_artifact_in_session(
     db.add(artifact)
     await db.flush()
     return artifact
+
+
+def _vaneck_initial_response_diagnostic(value: object) -> dict[str, Any] | None:
+    """Accept only the adapter's bounded, allowlisted initial-response metadata."""
+
+    if isinstance(value, BaseException):
+        value = getattr(value, "vaneck_initial_response_diagnostic", None)
+    if not isinstance(value, dict) or set(value) != {
+        "upstream_http_status",
+        "response_body_bytes",
+        "response_body_sha256",
+        "allowlisted_response_headers",
+    }:
+        return None
+    status = value.get("upstream_http_status")
+    body_bytes = value.get("response_body_bytes")
+    digest = value.get("response_body_sha256")
+    headers = value.get("allowlisted_response_headers")
+    if (
+        isinstance(status, bool)
+        or not isinstance(status, int)
+        or not 100 <= status <= 599
+        or isinstance(body_bytes, bool)
+        or not isinstance(body_bytes, int)
+        or body_bytes < 0
+        or not isinstance(digest, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", digest)
+        or not isinstance(headers, dict)
+        or set(headers) - {"content-type", "content-length"}
+    ):
+        return None
+    normalized_headers = {}
+    for key, header_value in headers.items():
+        if (
+            not isinstance(header_value, str)
+            or len(header_value) > 160
+            or any(ord(character) < 32 for character in header_value)
+        ):
+            return None
+        normalized_headers[key] = header_value
+    return {
+        "upstream_http_status": status,
+        "response_body_bytes": body_bytes,
+        "response_body_sha256": digest,
+        "allowlisted_response_headers": normalized_headers,
+    }
 
 
 async def _record_skip(

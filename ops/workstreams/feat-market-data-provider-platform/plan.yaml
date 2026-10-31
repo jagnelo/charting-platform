@@ -1,4 +1,5 @@
 schema: 4
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -820,38 +821,38 @@ schema: 4
 # browser matrix. Provider quota-held operations remain disabled; ICP2/ICP6 and
 # checkpoint review remain open.
 branch: feat/market-data-provider-platform
-base_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+base_sha: b1b06fd8344549484e26ce3bf960befc832531ef
 parent_branch: staging
-parent_sha: 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
+parent_sha: b1b06fd8344549484e26ce3bf960befc832531ef
 dependency_authorization: "not applicable: independent staging-based topic"
 human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
 previously_accepted_provider_on_demand_integration_checkpoint_authorization: "Human direction on 2026-10-27 authorized implementation of provider-on-demand-acquisition-20261027 under the standing four-feature authority. The central staging coordinator's acceptance at /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only its six software-contract criteria after the recorded exact-source CI and full local profile. Root alone owns protected staging integration and all later master/deployment gates."
-integration_checkpoint_authorization: The coordinator's direct 2026-10-29 instruction activates only provider-on-demand
-  OIH canonical qualification under the existing human-authorized goal. This is implementation authority,
-  not checkpoint acceptance. Root retains acceptance, staging integration, and release.
+integration_checkpoint_authorization: Root direct VQS1-VQS4 implementation release dated 2026-10-30, on
+  the existing Provider branch after exact green staging b1b06fd8344549484e26ce3bf960befc832531ef. This
+  does not authorize provider transport, production mutation, acceptance, integration, or deployment.
 human_closure_authorization: >-
-  Under the standing human four-feature authority and the coordinator's explicit on-demand acquisition direction,
-  delegated technical checkpoint acceptance is recorded by Root in
-  /home/m920q/charting-platform/.ai/staging-attempts/provider-oih-canonical-checkpoint-acceptance-20261029.md.
-  This is not a fabricated direct human quote or personal-human-inspection claim. Acceptance covers only the bounded
-  OIH canonical-qualification repair at e6e7c5511153c6b49b138bac38ed08ae56532408; Root owns protected staging/master
-  integration and deployment.
+  Under the human's existing standing delegation for the activated on-demand free-source workflow, Root
+  accepted the bounded provider-vaneck-posttransport-successor-status-20261030 checkpoint for closure in
+  /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-vqs-checkpoint-acceptance-root-review-20261031.json
+  (SHA-256 8a45eba8e47764d13b433af1dea3f8d9acc8e7f1cd0dff49418f5cd21700bdb2). This records delegated
+  authority and Root technical acceptance, not a direct human quote. Acceptance covers only VQS1-VQS4;
+  the complete Provider and ETF roadmaps, genuine source admission, deployment, and protected-role actions
+  remain outside this feature-owner closure.
 closure_summary: >-
-  Accepted only provider-oih-canonical-qualification-repair-20261029 at validated source
-  e6e7c5511153c6b49b138bac38ed08ae56532408. All six bounded criteria are accepted: apply only the exact validated
-  profile's stable identity to new/provisional instruments; preserve conflict quarantine and owned keys; keep optional
-  external lookup disabled; prove committed identity in an independent PostgreSQL session; complete the required
-  source-bound profile and exact-source CI; and build explicitly before unchanged bounded E2E stack startup. The full
-  local backend qualified 6,128 passes and three existing skips at 84 percent; exact CI 40801008605 is green on e6e7.
-  Frontend unit coverage; the retained functional log `/tmp/provider-p2-oih-e6e7c551-20261029/artifacts/functional.log`
-  (SHA-256 `02a0d5b4cda3a5145175980e722b1bfa143974e75f73a1c698e20db9849e0b09`) records one run with 200 passed and
-  2 skipped; strict visual assertions (104 browser passes, browser exit 0, with wrapper exit 2 separately preserved),
-  the accepted 1-CPU opt-in worker requalification, and exact-owned cleanup are recorded in the Root and owner receipts. The worker's temporary limit changed only from 0.5 to 1 CPU; memory512MiB/PIDs64 and all assertions
-  and deadlines were retained. No migration, default-routing change, provider HTTP, quota operation, paid/trial/native/
-  broker/capital activation, or consumed-119 request replay occurred. All 24 broader roadmap criteria and their prior
-  dispositions remain open/preserved. Root will inspect exact closing-tip CI before supported staging integration.
-  Deployment, genuine source acceptance, target/UI acceptance, and the full Provider roadmap are not claimed.
-  integration_capture: exact branch HEAD
+  Root accepted the bounded VQS1-VQS4 software checkpoint on implementation source
+  38310cc109d90278798d1e3c925bbcb7c150a60f under the human's standing delegated authority. Root's review
+  receipt is /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-vqs-checkpoint-acceptance-root-review-20261031.json
+  (SHA-256 8a45eba8e47764d13b433af1dea3f8d9acc8e7f1cd0dff49418f5cd21700bdb2); the independent full-runtime
+  receipt is /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-runtime-qualified-root-review-20261031.json
+  (SHA-256 e31925742af073277bf48f6eb4bc71656ab7290a584e4dcf49f06a3bd02aef6e). Focused successor regressions
+  passed; the full backend profile covered 6,214 IDs (6,211 passed, three existing skips) with 84.42% coverage;
+  all eleven isolated runtime phases passed, including 201 functional passes/two declared live-canonical skips,
+  all five acquisition cases, and all 104 strict visuals. Owned cleanup restored exact normalized inventory
+  equality. Implementation CI 41156428481 is green; the exact closing-tip CI remains pending and is not claimed.
+  Historical setup/test failures remain preserved. This closure accepts only VQS1-VQS4; all 24 Provider and
+  14 ETF roadmap criteria, accepted history, genuine holdings/ordinary UI admission, data/quota holds, and
+  consumed-request history remain preserved. No source HTTP, quota operation, target mutation, paid/trial/native/
+  broker/capital activation, or deployment occurred. integration_capture: exact branch HEAD
 planning_state: ready
 previously_accepted_provider_on_demand_human_closure_authorization: >-
   Under the human's standing four-feature integration authority and explicit 2026-10-27 direction to implement on-demand acquisition, checkpoint acceptance was delegated to the central coordinator. Root's decision in /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only provider-on-demand-acquisition-20261027 for software checkpoint closure. This records delegated human authority plus Root technical acceptance; it does not claim personal human inspection, full Provider roadmap completion, live/source/target acceptance, provider activation, or feature-owner authority to integrate, promote, or deploy.
@@ -874,38 +875,46 @@ previous_checkpoint_closure_summary: >-
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: full_stack_browser
-local_validation_reason: The checkpoint includes the exact-source stack image-build/start workflow as well
-  as persisted identity behavior. Qualify the complete backend unit/PostgreSQL profile and existing isolated
-  full-stack browser profile with egress denied, zero retries, and unchanged functional/visual assertions.
+local_validation_reason: Backend qualification API/executor, schema, transport diagnostics, and related
+  unit/integration tests change. The complete 6,214-ID backend manifest passed in 225 unit partitions and
+  24 integration batches (6,211 passed, three existing configured skips); combined coverage was 84.42%
+  against the unchanged 75% threshold and XML passed. The isolated full_stack_browser profile passed all
+  required phases on the exact source, including 201 functional passes/two declared live-canonical skips,
+  all 104 strict visuals, and exact owned cleanup. The original long-TMPDIR socket failure and all phase
+  environment/setup failures remain preserved as failed attempts; only the explicitly reviewed corrected
+  invocations are counted as qualification. Exact implementation CI 41156428481 is terminal green.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
 roadmap_goal: "Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work."
 previously_accepted_provider_on_demand_closure_summary: >-
   Accepted only the six software-contract criteria for provider-on-demand-acquisition-20261027 on implementation 51301c915d92c8ec4f8514cb4f85ac659791c33b. The central coordinator accepted this scope under the human standing four-feature authority and explicit 2026-10-27 on-demand implementation direction; this is delegated technical acceptance, not a claim of personal human inspection. The authenticated discovery, canonical identity, bounded selected-history, exact server-minted scope, free-only/hold-preserving admission, issuer-specific ETF helper, and no-network validation contracts were accepted. Exact feature CI 40540176697 is terminal green on source 51301c9. The complete 6,073-ID manifest was qualified with its declared dispositions: 5,522 unit-like IDs were covered in 221 bounded partitions (5,521 passed and one declared native RC6 skip: `app/strategy_lab_v2/tests/test_nautilus_forward_process_integration.py::test_exact_rc6_forward_process_restarts_across_settlement_and_ack_windows`); all 551 integration IDs were covered in six sequential batches (549 passed and two declared opt-in skips). Total: 6,070 passed and three declared native skips. Combined coverage was 84 percent against the unchanged 75 percent threshold and XML passed. Frontend coverage/build, 196 functional tests with two canonical live-only skips, all 104 strict visuals, and the unchanged sandbox/resource probes passed. The separate single-process integration timeout exit 124 and earlier diagnostic/environment/permission failures remain preserved as failures; the complete unchanged integration manifest subsequently passed in the authorized batches. Exact current-source cleanup restored the protected 33-container, 51-volume, 11-network, 61-image baseline. No provider/issuer/SEC HTTP, quota reservation/reset/spend, paid/trial/native/broker/capital activation, or replay of the consumed 119-request allowance occurred. No Alembic delta exists relative to deployed 02a7bae. Genuine source qualification, runtime/target acceptance, consumer integration, and the full 24-criterion roadmap remain open and Root-owned where specified. Preserve all operation holds and unknown/unverified dispositions. integration_capture: exact branch HEAD
-goal: Complete only the bounded provider-on-demand OIH canonical-qualification repair. Preserve all 24
-  Provider roadmap criteria and accepted checkpoint history; source/target qualification, deployment,
-  and the wider roadmap remain open.
+goal: Complete only Provider checkpoint provider-vaneck-posttransport-successor-status-20261030 (VQS1-VQS4).
+  Preserve all 24 Provider roadmap criteria, accepted checkpoints, quota history, holds, and consumed-request
+  history; no provider transport, production mutation, integration, or deployment.
 scope:
-- Diagnose the deployed OIH identity_conflict from retained records only; do not replay the completed
-  Massive discovery or issue provider, issuer, or SEC requests.
-- Apply stable identity only from the exact selected-provider profile after existing exact-symbol, provider,
-  stable-identifier, and listing-authority checks pass.
-- Keep allow_external_identifier=False and preserve identifier-owner collision quarantine, existing domain-key
-  mismatch rejection, listing requirements, and all other fail-closed behavior.
-- Prove new-instrument and existing-provisional paths, missing-authority rejection, identity collision
-  quarantine, and independent PostgreSQL persistence; retain all 24 original roadmap criteria and prior
-  accepted checkpoint evidence.
-- Preserve exact-source CI executability by explicitly building the same service images before the bounded
-  stack-start step and using --no-build there, without changing timeouts or test settings. Correct
-  the stale timeout-validator declaration count from five to the six already present on frozen fca662,
-  retaining all specific timeout checks and adding order/command checks for the build/start sequence.
+  - Adopt exact synchronized green staging b1b06fd8344549484e26ce3bf960befc832531ef in this Provider branch
+    and preserve all prior accepted checkpoint evidence and all 24 roadmap criteria.
+  - Add one strict typed predecessor contract to the existing admin-only VanEck initial-qualification
+    continuation API/executor, with backwards-compatible legacy job3 behavior and server verification
+    of immutable job4 scope/log/raw/digest/current review/fingerprint and settled reservation lineage.
+  - Keep successor creation one-shot, serialized, idempotent, generated-ID based, account/operation scoped,
+    disabled/not_run and free-only; preserve existing admission, bounds, one-HTTP/no-retry/no-redirect/no-fallback
+    rules and all successful-source predicates.
+  - Carry future upstream status and bounded allowlisted body/hash diagnostics in existing artifact/error
+    evidence without changing historical jobs 2/3/4, request log 14, raw artifact 5, quota history, native-unknown
+    facts, or adding a migration/general unit alias/config API.
+  - Implement offline unit/integration regressions and the applicable complete local profile plus exact-source
+    CI. Prepare the heavy-profile manifest and wait for Root's separate resource release before starting
+    any fixture or heavy phase.
 owned_paths:
-- backend/app/routers/instruments.py
-- backend/tests/unit/routers/test_instruments_router.py
-- backend/tests/integration/api/test_on_demand_history_postgres.py
-- .github/workflows/ci.yml
-- scripts/validate-ci-timeouts.py
-- ops/workstreams/feat-market-data-provider-platform/
+  - backend/app/services/etf_holdings_vaneck_qualification.py
+  - backend/app/schemas/etf_holdings.py
+  - backend/app/routers/etf_holdings.py
+  - backend/app/services/etf_holdings_adapters.py (VanEck qualification/error evidence only)
+  - backend/app/services/etf_holdings_refresh.py (VanEck rejected-artifact diagnostics only)
+  - backend/app/services/etf_holdings_provider_bridge.py (VanEck diagnostic seam only if needed)
+  - related backend unit/integration tests
+  - ops/workstreams/feat-market-data-provider-platform/
 dependencies:
   - staging baseline at 8b885a2ffd9cbb8b20c626e2c0381d3fce5cdc35
   - feat/etf-holdings-constituents owns ETF constituent provider adapters; this branch consumes compatible canonical identities only
@@ -961,29 +970,28 @@ roadmap_acceptance_criteria:
   - id: AC-SHADOW-FINAL-PHASE
     text: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.
 acceptance_criteria:
-- id: OIH-VALIDATED-PROFILE-IDENTITY
-  text: After the explicitly selected provider candidate and exact profile pass symbol, stable external
-    identifier, and listing-authority checks, apply that profile's identity to both a new instrument and
-    an existing provisional OIH scaffold; retain the existing stable domain-key and primary-listing requirements.
-- id: OIH-CONFLICT-QUARANTINE
-  text: 'Preserve early conflict checks and existing domain-key ownership rules: mismatched or missing
-    provider identity/listing authority never promotes a record, and a stable key owned by another instrument
-    remains quarantined without reassignment.'
-- id: OIH-NO-OPTIONAL-FALLBACK
-  text: Keep optional external-identifier lookup disabled in the explicit acquisition path; resolve only
-    from the already validated exact provider profile and do not add provider calls, retries, or fallback
-    sources.
-- id: OIH-COMMITTED-READBACK
-  text: A PostgreSQL regression commits the resolved domain key, primary identifier, listing, and provider
-    binding in the normal request session and verifies those exact rows from an independent session.
-- id: OIH-REQUIRED-QUALIFICATION
-  text: Complete the bounded repair's required local validation profile, exact-source branch CI, and workstream
-    checks before stopping ready_for_human_review; preserve all prior checkpoints and all 24 broader roadmap
-    criteria as open or previously accepted.
-- id: OIH-CI-STACK-START
-  text: The exact-source E2E workflow explicitly builds the existing Compose project before the bounded
-    Start stack step, then uses --no-build with --wait; the validator's stale expected count is corrected
-    to the six baseline declarations and still enforces every existing timeout and exhaustive command.
+  - id: VQS1
+    text: One existing admin-only continuation API/executor accepts an explicit strict contract for a
+      terminal settlement-projection failure after reviewed unit-label correction, using generated IDs
+      and server-verified immutable scope/log/raw/digest/fingerprint/settled-reservation lineage. Legacy
+      job3 request behavior remains compatible. No arbitrary failed-job admission, new endpoint per failure,
+      production ID literals, repeated predecessor successor or replay/reset.
+  - id: VQS2
+    text: New successor admission remains free-only/current-review/disabled/not_run/account-scoped, locked
+      and idempotent with one physical request/no retries/redirect/fallback, unchanged spacing/deadline/body
+      caps and positive snapshot/fund identity/settled-request requirements. Empty, non-success, unverified
+      or cancelled/error outcomes stay nonpositive with durable truthful lineage.
+  - id: VQS3
+    text: Future upstream status and bounded allowlisted body/hash diagnostics survive through appropriate
+      existing raw artifact JSON/error evidence; status is not invented or disguised as header/body, old
+      job2/3/4/log14/raw5 are never changed and native usage stays unknown. No speculative database migration
+      or general settlement-unit alias/config-edit API.
+  - id: VQS4
+    text: Meaningful positive/negative/compatibility/idempotency/concurrency/ledger/empty-status/cancellation
+      tests and normal source-impact-derived local profile, exact source/closing CI pass. Preserve all24Provider
+      roadmap criteria/accepted archives/journal/claims, all14ETF roadmap and frozen UI source, datasets/quotas/holds.
+      Stop at ready_for_human_review; Root owns acceptance/integration/promotion/deployment and genuine
+      execution.
 previously_accepted_provider_on_demand_checkpoint:
   id: provider-on-demand-acquisition-20261027
   status: ready_for_integration
@@ -2702,29 +2710,31 @@ previously_accepted_integration_checkpoint:
       owner: "feature owner plus deployment operator after integration"
       continuation_acceptance_test: "A separately authorized full 30-day run satisfies AC-SHADOW; no trial begins as part of checkpoint preparation or acceptance."
 branch_tests:
-  - backend/tests/unit/routers/test_instruments_router.py::TestExplicitAcquireCanonicalIdentity
-  - backend/tests/unit/services/test_provider_persistence.py
-  - backend/tests/integration/api/test_on_demand_history_postgres.py
-  - the complete backend unit/integration coverage profile required by exact changed paths
-branch_tests_reason: The change updates persisted canonical identity behavior and repairs the exact-source
-  stack image-build/start workflow. The required local profile is full_stack_browser in addition to complete
-  backend unit/integration coverage; exact-source branch CI remains required.
+  - backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  - complete backend unit/integration coverage and required full_stack_browser profile
+branch_tests_reason: The bounded checkpoint changes backend qualification admission, persistence/error
+  evidence, and related tests. Focused offline regressions precede the required complete local backend/full_stack_browser
+  profile; exact-source branch CI remains required. No test behavior or retry/tolerance is weakened.
 broader_roadmap_live_gate_disposition:
-  status: deferred_from_this_mock_no_transport_checkpoint
-  roadmap_owner: Provider workstream owner; Root owns source-operation admission and any future live gate.
-  continuation: AC-TEST and provider-specific live qualification remain open; run only after fresh source, rights,
-    quota, usage-baseline, and operation admission. This OIH repair used mocked/no-transport evidence and does not
-    authorize or claim the live matrix; the consumed-119 allowance is not reusable.
+  status: held_outside_checkpoint
+  roadmap_owner: Provider workstream owner; Root owns exact operational admission and any future source
+    execution.
+  continuation: No provider/issuer/SEC request is authorized by VQS1-VQS4. Preserve all live/native/paid/trial/broker/capital
+    holds and the consumed-119 no-replay boundary.
   inherited_external_gate:
     id: current-source-provider-live-matrix
-    covers: [5]
-    reason: "Required current-source exhaustive provider live validation is separate from untrusted feature-branch CI because it uses shared credentialed accounts. Run the explicit candidate gate only after provider-specific quota, usage-baseline, rights, and operation preflight admits each request. A CI skip or preflight-only result is not live evidence."
-live_test_impact: none; provider search/profile are mocked in tests and the retained one-time OIH discovery
-  is not replayed
-migration_impact: none; existing identity/listing/identifier/quarantine schema is reused
-deployment_impact: backend route behavior only; no target writes, provider activation, or deployment in
-  this checkpoint
-active_checkpoint_id: provider-oih-canonical-qualification-repair-20261029
+    covers:
+    - 5
+    reason: Remains an original roadmap gate and is not part of this offline repair; a skip or mock is
+      not live evidence.
+live_test_impact: No provider/issuer/SEC transport is authorized; VQS tests must use offline mocks/fixtures
+  with all production holds intact.
+migration_impact: No migration is anticipated or authorized; retain existing schema unless separate review
+  establishes necessity.
+deployment_impact: None in this checkpoint; Root retains production and release ownership.
+active_checkpoint_id: provider-vaneck-posttransport-successor-status-20261030
 previously_accepted_provider_cached_search_context:
   goal: 'Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached
     fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching.
@@ -2833,7 +2843,7 @@ previously_accepted_provider_cached_search_context:
   branch_tests_reason: Application models, migrations, providers, workers, Redis quota controls, and backend
     APIs are all changed; full backend integration is required. Frontend/browser validation is out of
     scope by explicit authorization.
-integration_checkpoint:
+previously_accepted_provider_oih_canonical_qualification_checkpoint:
   id: provider-oih-canonical-qualification-repair-20261029
   status: ready_for_integration
   acceptance_state: accepted_by_coordinator_for_ready_for_integration
@@ -3186,7 +3196,111 @@ integration_checkpoint:
   operational_trial_authorized: false
   merge_authorized: true
   next_action: Validate and publish the corrected records-only manifest/evidence, then Root inspects its exact-source CI; if green, Root performs supported protected staging integration. The next Provider-owned roadmap item remains AC-UNIVERSE-COMPLETE after Root releases the branch.
-status: ready_for_integration
+integration_checkpoint:
+  id: provider-vaneck-posttransport-successor-status-20261030
+  status: ready_for_integration
+  acceptance_state: root_accepted_bounded_checkpoint_for_closure_exact_closing_ci_pending
+  planning_authorization: Root direct implementation release dated 2026-10-30, under the existing human-authorized
+    on-demand acquisition goal and standing delegation. This activates only VQS1-VQS4 in the Provider-owned
+    source paths. It does not authorize provider/source HTTP, production mutation, quota operations, acceptance,
+    staging, deployment, or broader roadmap work.
+  scope:
+  - Preserve the initial exact green b1b06fd8344549484e26ce3bf960befc832531ef VQS base. After Root's canonical
+    release, merge exact synchronized green staging8173ce8ef34369a02183706fd18210506bd20202 into this Provider
+    branch without direct sibling imports; preserve all prior accepted checkpoint evidence and all 24 roadmap criteria.
+  - Add one strict typed predecessor contract to the existing admin-only VanEck initial-qualification
+    continuation API/executor, with backwards-compatible legacy job3 behavior and server verification
+    of immutable job4 scope/log/raw/digest/current review/fingerprint and settled reservation lineage.
+  - Keep successor creation one-shot, serialized, idempotent, generated-ID based, account/operation scoped,
+    disabled/not_run and free-only; preserve existing admission, bounds, one-HTTP/no-retry/no-redirect/no-fallback
+    rules and all successful-source predicates.
+  - Carry future upstream status and bounded allowlisted body/hash diagnostics in existing artifact/error
+    evidence without changing historical jobs 2/3/4, request log 14, raw artifact 5, quota history, native-unknown
+    facts, or adding a migration/general unit alias/config API.
+  - Implement offline unit/integration regressions and the applicable complete local profile plus exact-source
+    CI. Prepare the heavy-profile manifest and wait for Root's separate resource release before starting
+    any fixture or heavy phase.
+  downstream_consumers:
+  - Existing ETF admin-only one-shot VanEck initial-qualification continuation; ETF remains the sole owner
+    of its branch and accepted UI/source work.
+  required_contracts:
+  - Use only the existing continuation API/executor; add an explicit typed discriminator for the new predecessor
+    contract without making it required for legacy job3 callers.
+  - Load and lock caller-supplied generated predecessor identity; verify exact fund/profile/instrument/symbol/provider/capability/operation/account/fixed
+    URL, failed terminal disposition, immutable evidence digest, request-log/raw-artifact linkage and
+    hashes, and no prior successor using current server-side records.
+  - Require current reviewed source fingerprint, explicit account scope, current free-only admission,
+    disabled policy, not_run entitlement, the already reviewed zero-dollar commitment, positive known
+    application budget/quota and exactly one settled matching application reservation; do not infer native
+    usage/headroom.
+  - Preserve advisory-lock/one-shot/idempotency/cancellation semantics and all physical request spacing/deadline/response-body
+    bounds; no replay/reset or automatic retry.
+  - Only a successful usable workbook with exact fund identity, positive durable snapshot/provenance and
+    truthful settled request accounting can yield positive qualification. Empty, non-success, wrong-fund,
+    unverified, canceled, or failed outcomes remain nonpositive and durably linked.
+  - Keep upstream status separate from headers/body and persist only bounded allowlisted diagnostics through
+    existing artifact JSON/error paths; do not fabricate evidence or rewrite historical rows/artifacts.
+  acceptance_criteria:
+  - id: VQS1
+    text: One existing admin-only continuation API/executor accepts an explicit strict contract for a
+      terminal settlement-projection failure after reviewed unit-label correction, using generated IDs
+      and server-verified immutable scope/log/raw/digest/fingerprint/settled-reservation lineage. Legacy
+      job3 request behavior remains compatible. No arbitrary failed-job admission, new endpoint per failure,
+      production ID literals, repeated predecessor successor or replay/reset.
+  - id: VQS2
+    text: New successor admission remains free-only/current-review/disabled/not_run/account-scoped, locked
+      and idempotent with one physical request/no retries/redirect/fallback, unchanged spacing/deadline/body
+      caps and positive snapshot/fund identity/settled-request requirements. Empty, non-success, unverified
+      or cancelled/error outcomes stay nonpositive with durable truthful lineage.
+  - id: VQS3
+    text: Future upstream status and bounded allowlisted body/hash diagnostics survive through appropriate
+      existing raw artifact JSON/error evidence; status is not invented or disguised as header/body, old
+      job2/3/4/log14/raw5 are never changed and native usage stays unknown. No speculative database migration
+      or general settlement-unit alias/config-edit API.
+  - id: VQS4
+    text: Meaningful positive/negative/compatibility/idempotency/concurrency/ledger/empty-status/cancellation
+      tests and normal source-impact-derived local profile, exact source/closing CI pass. Preserve all24Provider
+      roadmap criteria/accepted archives/journal/claims, all14ETF roadmap and frozen UI source, datasets/quotas/holds.
+      Stop at ready_for_human_review; Root owns acceptance/integration/promotion/deployment and genuine
+      execution.
+  prior_checkpoint: provider-oih-canonical-qualification-repair-20261029
+  accepted_staging_baseline_sha: 8173ce8ef34369a02183706fd18210506bd20202
+  source_test_map:
+  - backend/app/services/etf_holdings_vaneck_qualification.py
+  - backend/app/schemas/etf_holdings.py
+  - backend/app/routers/etf_holdings.py
+  - backend/app/services/etf_holdings_adapters.py (VanEck qualification/error evidence only)
+  - backend/app/services/etf_holdings_refresh.py (VanEck rejected-artifact diagnostics only)
+  - backend/app/services/etf_holdings_provider_bridge.py (VanEck diagnostic seam only if needed)
+  - related backend unit/integration tests
+  required_gates_remaining:
+  - Verify terminal green exact closing-tip branch CI for this records-only closure commit.
+  - Root owns the supported staging integration and subsequent protected promotion/rollout gates.
+  current_source_local_evidence:
+  - 'VQS1-VQS4 implementation and focused unit/integration regressions are present in the Provider working tree; backend diff SHA-256 c1ee86896d4c5c699387c7eb60575e9abefcb2156ac2c494b6629cec3c4aca9c. Root-reviewed focused evidence: PostgreSQL/SQLite successor lineage 2/2; positive/empty successor cases 4/4; legacy job3 compatibility 2/2. Ruff, format, py_compile, workstream validation, and branch-test manifest listing passed on these unchanged inputs.'
+  - 'Historical first backend collector failure at /tmp/provider-vqs-full-backend-20261031/ remains preserved (exit 1 at unit shard 209/225, 119-byte AF_UNIX path); its original log SHA-256 e153971a472626de25f52ecb206f4b9ed945c3c94b0e95a1fe128696129514c8 and partial coverage SHA-256 9b59eee55b784c83ce641e0f9d3e05cbce4703365eab1eb9775c3e81049c8a9b were not overwritten. The full manifest later passed in the Root-reviewed R2 run below.'
+  - 'A separate no-credential, denied-proxy diagnostic passed the exact local-socket node once with a short physical TMPDIR (1 passed in 5.02s); its result is /tmp/pv-sock-ejj46n5b/result.json. The first default-sandbox attempt was denied before assertion by local AF_UNIX EPERM and is preserved at /tmp/pv-d1trskso/result.json. This is diagnostic only, not full backend qualification.'
+  - 'Collection-only recovery manifest confirms 5,615 unit-like and 599 integration IDs (6,214 total), 25-ID unit shards and 25-ID integration batches: /tmp/provider-vqs-backend-build-20261031/preparation/collector-terminal-and-recovery-facts-20261031.json, SHA-256 64fc5492723f181c6d18fcca85167f859ac868784c2e13eadb96a596d93ba6c6. It executed no tests.'
+  - 'Canonical staging 8173ce8ef34369a02183706fd18210506bd20202 is green and merged into this Provider branch with no conflicts. Exact receipt /home/m920q/charting-platform/.ai/staging-attempts/20261031T012028Z-8173ce8ef343.json has SHA-256 7904599b0d9e18dc7defac0f182b7c769e174dd80d022af02363768394f3c305; Root review /home/m920q/charting-platform/.ai/staging-attempts/etf-8173-terminal-green-staging-root-review-20261031.json. The imported delta is frontend plus ETF-owned workstream records only.'
+  - 'Historical early-run inventory reconciliation at /tmp/provider-vqs-full-backend-20261031/terminal-inventory-reconciliation.json (SHA-256 273ecd45a107267a8058f5d3ea23e48edf4c7bb5d7590c95e6d5bb04f08bc34b) records ten then-absent image IDs and is preserved. Root later restored the exact cache baseline; the final profile below proves semantic equality for all four inventory classes before/after owned cleanup.'
+  - 'Retained job4/log14/raw5 remain immutable; the one settled application request, empty body/zero response bytes, unknown upstream HTTP status, and unknown native usage/headroom remain unchanged. No provider request, quota operation, target mutation, or ledger change occurred.'
+  - 'The coherent local implementation commit is f0952f5ed3b2dd1cdff04945886e3a92b8bbebc7; exact staging merge commit is 0d3d96110f65222c044d85ed804f3776a4730bc7. Provider backend tree is 1926d47bec96874d1afbea1338c6fcc004ec6560 both before and after staging merge; the staging backend subtree is 85154a468a08550596c41ceec27dbda673f0deb8, unchanged by 8173.'
+  - 'At the time of the earlier focused-only record, the backend diff relative to b1 was byte-equivalent to tested diff SHA-256 c1ee86896d4c5c699387c7eb60575e9abefcb2156ac2c494b6629cec3c4aca9c; that entry did not qualify the then-failed collector. The later complete R2 backend profile below supersedes that pending disposition.'
+  - 'Superseding full backend evidence: Root-reviewed R2 covered all 6,214 collected IDs in 225 unit partitions and 24 integration batches (6,211 passed, three existing configured native skips), 84.42% combined coverage against the unchanged 75% threshold, XML pass. Receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-backend-root-review-20261031.json (SHA-256 40d2254d1578601065becb361e47b1339c17bc9c32af9c8aa78612521d4d1023); coverage XML is under backend/coverage-combined.xml.'
+  - 'The exact isolated full_stack_browser profile passed all released phases on source 38310cc109d90278798d1e3c925bbcb7c150a60f. Phase artifacts are under /tmp/provider-vqs-final-20261031/artifacts; all eleven final phase exit files are zero. Functional: 201 passed, two declared live-canonical skips (F8e.live-membership and F8e.live-sector-drilldown), five on-demand acquisition cases ran, retries zero. Strict visual: 104 passed, retries zero, original references/masks and 0.005 tolerance; browser exit/OOM state 0 false exited. Worker restart passed at the reviewed 1 CPU/512 MiB/64 PID fixture cap with original readiness deadlines.'
+  - 'The final owned cleanup comparison /tmp/provider-vqs-final-20261031/artifacts/global-inventory-cleanup-comparison.json reports equal=true for 29 containers, 32 images, 10 networks, and 51 volumes; baseline and post-cleanup normalized inventory SHA-256 are both 4aa072fac1c595d90b81f94bd321412da25e06c32e94fadfb44bde63ba617719. The exact backend image sha256:133c793ced07efeff1e6e867075efc5335ea2f56bfed1347cafb0370aa28a202 and its source-bound archive remain retained.'
+  - 'Delegated Root acceptance for this exact bounded checkpoint is recorded at /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-vqs-checkpoint-acceptance-root-review-20261031.json (SHA-256 8a45eba8e47764d13b433af1dea3f8d9acc8e7f1cd0dff49418f5cd21700bdb2). Root separately reviewed full runtime evidence at /home/m920q/charting-platform/.ai/staging-attempts/provider-38310-full-runtime-qualified-root-review-20261031.json (SHA-256 e31925742af073277bf48f6eb4bc71656ab7290a584e4dcf49f06a3bd02aef6e); genuine holdings and ordinary UI admission remain explicitly unproved and open.'
+  - 'The three phase-environment/setup failures (prepare sandbox, missing private source marker, and the two earlier config-environment failures) remain as separate immutable attempts; only prepare003/config003 and final released phases are counted green. No external provider/issuer/SEC request, quota operation, paid/trial/native/broker/capital activation, or consumed-allowance replay occurred.'
+  exact_source_ci: implementation source 38310cc109d90278798d1e3c925bbcb7c150a60f has terminal-green run 41156428481; exact closing-tip CI is pending on the forthcoming records-only commit
+  validation_tier: full_integration
+  local_validation_profile: full_stack_browser
+  deployment_authorized: false
+  provider_activation_authorized: false
+  operational_trial_authorized: false
+  merge_authorized: false
+  next_action: Verify terminal green exact closing-tip CI, then hand the ready closure to Root for supported staging
+    integration. Root owns protected promotion, rollout, and all genuine-source execution; preserve full roadmaps,
+    historical failures, source/quota holds, and consumed-request history.
 approved_execution_decisions:
   provider_use:
     rule: Use every eligible provider for every capability it supports, ranked dynamically by capability, history, freshness, health, entitlement, exact cost, and remaining usage.
@@ -8479,22 +8593,21 @@ progress:
       Narrow repair now applies the validated profile identifiers through the
       existing collision/quarantine helper. No provider/issuer/SEC HTTP or target
       mutation occurred; full local profile and exact-source CI remain pending.
-  completed:
-    - OIH-VALIDATED-PROFILE-IDENTITY
-    - OIH-CONFLICT-QUARANTINE
-    - OIH-NO-OPTIONAL-FALLBACK
-    - OIH-COMMITTED-READBACK
-    - OIH-REQUIRED-QUALIFICATION
-    - OIH-CI-STACK-START
-  total: 6
+    - >-
+      2026-10-30: the accepted provider-oih-canonical-qualification-repair-20261029 checkpoint
+      remains archived and accepted with its six OIH criteria. It is not the current active goal.
+      New active checkpoint provider-vaneck-posttransport-successor-status-20261030 has four
+      pending criteria VQS1-VQS4; no new implementation or validation is claimed yet.
+  completed: []
+  total: 4
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: provider_oih_canonical_qualification_repair_accepted_pending_closing_tip_ci
+  current_phase: provider_vaneck_posttransport_successor_status_20261030_in_progress
   current_blocker: >-
-    Root accepted the bounded OIH canonical-qualification checkpoint and the implementation source e6e7 is exact-CI green.
-    The records-only closing commit and its exact-head CI must be published and reviewed before Root's protected staging
-    integration. All 24 Provider roadmap criteria remain open/preserved; no live-source, quota, paid/trial/native/broker/
-    capital, deployment, or consumed-119 hold is changed.
+    VQS1-VQS4 implementation is active from exact green staging b1b06fd8344549484e26ce3bf960befc832531ef.
+    Focused offline unit regressions and static/workstream checks pass; the real-database continuation regression
+    and required full local profile remain pending Root's isolated resource release. No provider transport, quota
+    operation, production mutation, or Root acceptance is claimed.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -10626,5 +10739,13 @@ historical_current_gate_checkpoint_2026_10_29_preclosure: >-
   with provider-supplied composite FIGI, active ARCX primary listing, and Massive OIH/ARCX binding but provisional identity
   and null domain_key. Optional external lookup disabled apply_domain_identity, leaving the canonical qualification
   incomplete. This pre-closure snapshot preserves the original diagnosed state and pending evidence.
-current_gate_checkpoint: >-
-  Root accepted the bounded OIH canonical-qualification checkpoint on validated implementation e6e7c5511153c6b49b138bac38ed08ae56532408; all six criteria, full local profile, and implementation CI 40801008605 remain accepted. The first records-only closure tip 5e1aabdde44d7810d1cb286dee23d4f89a00b1ba failed Branch-declared Tests in CI 40816150446 because its branch-tests.json mapping described a stale five-item plan; backend, frontend-unit, and E2E succeeded. This metadata repair aligns that manifest with the four current descriptions and records the retained functional.log evidence (200 passed/2 skipped in one run). Exact CI for the corrected closing tip is pending. The tested backend image sha256:59c21550410ddb6a81833922455612f76256919133d3cd51a6e76ace4f2486b3 remains retained. No migration, default routing or source activation occurred. This ready_for_integration closure captures the exact final branch HEAD via integration_capture; Root reviews exact-head CI before staging. The broader 24-item roadmap and all source/target/native/paid/trial/broker/capital/quota holds and consumed-119 no-replay boundary remain unchanged.
+current_gate_checkpoint: 'Accepted bounded checkpoint: provider-vaneck-posttransport-successor-status-20261030
+  (VQS1-VQS4), based on accepted green staging b1b06fd8344549484e26ce3bf960befc832531ef and validated
+  implementation source 38310cc109d90278798d1e3c925bbcb7c150a60f. Focused VQS regressions, the complete
+  backend profile, all required isolated runtime phases, cleanup inventory equality, and exact-source
+  implementation CI are green. Root accepted this checkpoint for closure under the human standing delegation;
+  exact closing-tip CI remains pending. Root owns integration and all subsequent protected release gates; no
+  live-source qualification is claimed. The accepted
+  provider-oih-canonical-qualification-repair-20261029 checkpoint remains preserved under
+  previously_accepted_provider_oih_canonical_qualification_checkpoint. All 24 roadmap criteria and all
+  source/native/paid/trial/broker/capital holds remain unchanged.'

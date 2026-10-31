@@ -5670,9 +5670,36 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     class InitialQualificationRedirect(ValueError):
         """A first-probe redirect was recorded but deliberately not followed."""
 
-        def __init__(self, location: str | None):
+        def __init__(self, location: str | None, diagnostic: dict[str, Any]):
             super().__init__("VanEck initial qualification stopped at an unreviewed redirect.")
             self.location = location
+            self.vaneck_initial_response_diagnostic = diagnostic
+
+    class InitialQualificationResponseError(ValueError):
+        """A rejected initial response with bounded, explicitly attributed metadata."""
+
+        def __init__(self, message: str, diagnostic: dict[str, Any]):
+            super().__init__(message)
+            self.vaneck_initial_response_diagnostic = diagnostic
+
+    @staticmethod
+    def _initial_response_diagnostic(response: Any) -> dict[str, Any]:
+        body = response.content
+        allowlisted_headers: dict[str, str] = {}
+        for name in ("content-type", "content-length"):
+            value = response.headers.get(name)
+            if (
+                isinstance(value, str)
+                and len(value) <= 160
+                and not any(ord(character) < 32 for character in value)
+            ):
+                allowlisted_headers[name] = value
+        return {
+            "upstream_http_status": int(response.status_code),
+            "response_body_bytes": len(body),
+            "response_body_sha256": hashlib.sha256(body).hexdigest(),
+            "allowlisted_response_headers": allowlisted_headers,
+        }
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -5776,22 +5803,40 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=self._request_headers(product_slug=product_slug),
                 follow_redirects=False,
             )
+        response_diagnostic = self._initial_response_diagnostic(response)
         if response.status_code in {301, 302, 303, 307, 308}:
-            raise self.InitialQualificationRedirect(response.headers.get("location"))
-        response.raise_for_status()
-        raw_workbook = response.content
-        if not raw_workbook or len(raw_workbook) > self.INITIAL_QUALIFICATION_MAX_BODY_BYTES:
-            raise ValueError("VanEck OIH workbook is empty or exceeds the reviewed 5 MiB limit.")
-        rows, composition_date = self._parse_workbook(raw_workbook)
-        if composition_date is None:
-            raise ValueError("VanEck OIH workbook has no valid composition date.")
-        if composition_date > datetime.now(UTC).date():
-            raise ValueError("VanEck OIH workbook composition date is in the future.")
-        workbook_rows = parse_xlsx_table(raw_workbook)
-        body_identity_status, body_identity_evidence = self._initial_workbook_identity(
-            raw_workbook, workbook_rows
-        )
-        raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
+            raise self.InitialQualificationRedirect(
+                response.headers.get("location"), response_diagnostic
+            )
+        try:
+            response.raise_for_status()
+            raw_workbook = response.content
+            if not raw_workbook or len(raw_workbook) > self.INITIAL_QUALIFICATION_MAX_BODY_BYTES:
+                raise ValueError(
+                    "VanEck OIH workbook is empty or exceeds the reviewed 5 MiB limit."
+                )
+            rows, composition_date = self._parse_workbook(raw_workbook)
+            if composition_date is None:
+                raise ValueError("VanEck OIH workbook has no valid composition date.")
+            if composition_date > datetime.now(UTC).date():
+                raise ValueError("VanEck OIH workbook composition date is in the future.")
+            workbook_rows = parse_xlsx_table(raw_workbook)
+            body_identity_status, body_identity_evidence = self._initial_workbook_identity(
+                raw_workbook, workbook_rows
+            )
+            raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
+        except _httpx.HTTPStatusError as exc:
+            raise self.InitialQualificationResponseError(
+                "VanEck initial qualification returned a non-success HTTP status.",
+                response_diagnostic,
+            ) from exc
+        except ValueError as exc:
+            raise self.InitialQualificationResponseError(str(exc), response_diagnostic) from exc
+        except (ET.ParseError, OSError, zipfile.BadZipFile, StopIteration) as exc:
+            raise self.InitialQualificationResponseError(
+                "VanEck initial qualification response could not be parsed as the reviewed workbook.",
+                response_diagnostic,
+            ) from exc
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -5818,6 +5863,7 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "initial_qualification": True,
                 "body_identity_status": body_identity_status,
                 "body_identity_evidence": body_identity_evidence,
+                "upstream_response_diagnostic": response_diagnostic,
                 **(
                     {
                         "source_quality": "issuer_reported_dated_complete_holdings",
