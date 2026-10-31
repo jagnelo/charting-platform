@@ -93,8 +93,8 @@
     "quota_operations": 0
   },
   "current_exact_ci": {
-    "source_sha": null,
-    "status": "pending publication of the current implementation/workstream checkpoint"
+    "source_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
+    "status": "pending publication; implementation and workstream are ready for exact-source branch CI"
   },
   "dirty_paths": [],
   "docker": {
@@ -124,7 +124,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "59b38a0d094c905c83c8b89f49ba3049e567740e",
+  "head": "6d95eb54be316d017da39bac8bc783d16c8e617a",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -141,7 +141,7 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": null,
+  "implementation_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
   "interrupted": false,
   "last_checkpoint": "2026-10-28T15:16:12Z",
   "last_human_progress_update": "2026-10-28T12:15:21.408448+00:00",
@@ -159,7 +159,7 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent implementation/workstream source for exact CI; prepare a source-bound capped backend manifest, and coordinate Root resource release before any Docker/database/browser fixture.",
+  "next_action": "Publish the implementation source and current workstream records once; Root reviews exact CI and releases the source-bound backend/database phase using the prepared manifest.",
   "parent_branch": "staging",
   "plan_hash": "a1f9be59287728e11047eaf65df7505bdf55c2cffc8a55ff941560b041424b02",
   "planning_required": false,
@@ -623,5 +623,11 @@
   "previously_accepted_vqs_goal_request": {
     "objective": "Complete only the bounded VanEck successor/status repair VQS1\u2013VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
   },
-  "recorded_at": "2026-10-31T14:32:35+00:00"
+  "recorded_at": "2026-10-31T14:37:05+00:00",
+  "prepared_backend_manifest": {
+    "path": "/tmp/provider-vjl-6d95eb54-20261031/provider-vjl-6d95eb54-full-backend-manifest-20261031.json",
+    "sha256": "0df693c17d8ec6245ce421cfd75daab337535ad2db51a1a57b8af14d4828a513",
+    "source_sha": "6d95eb54be316d017da39bac8bc783d16c8e617a",
+    "status": "inert; awaiting Root release"
+  }
 }
