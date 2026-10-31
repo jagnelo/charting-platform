@@ -18,138 +18,43 @@
     }
   ],
   "active_changeset": {
-    "name": "VanEck job3 evidence durability and exact response-byte retention",
-    "baseline": "08fd268ce871e5e8bae96c68f9986bef7390ce4a",
-    "source_paths": [
-      "backend/app/routers/etf_holdings.py",
-      "backend/app/schemas/etf_holdings.py",
-      "backend/app/services/etf_holdings_provider_bridge.py",
-      "backend/app/services/etf_holdings_vaneck_qualification.py",
-      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
-      "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py"
-    ],
+    "authorization": "/home/m920q/charting-platform/.ai/staging-attempts/provider-a655-master-calendar-fixture-failure-owner-release-20261031.json",
+    "baseline": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
+    "name": "exact UNXQ calendar side-read E2E fixture",
+    "scope": "Exact fictional UNXQ calendar E2E fixture and Root-authorized adjacent deterministic WorkspaceLayoutHost unit-test clock correction, plus four owned records; no product runtime/backend/provider/production/target/ledger change.",
     "source_file_sha256": {
-      "backend/app/routers/etf_holdings.py": "71b9b6be8a1903d79c4c9c2b2330380b2e7bf9656b38d42c68091344bbf4c318",
-      "backend/app/schemas/etf_holdings.py": "22d206cd28c33e6a8c072ee225bb8f912c4e8e90ad080520ada2230476995301",
-      "backend/app/services/etf_holdings_provider_bridge.py": "0824d4f431fed4f55e5ae7e8372f5f478d6bf44cdd8f4511a59840ffb810a815",
-      "backend/app/services/etf_holdings_vaneck_qualification.py": "df48465168f172733d5332050fa929591ba09748314ee62ed269549d3d357a1c",
-      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "f537dbe0eb83f10537349cf573b457a9b530bae64cdb21c46b9769f8ba379696",
-      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py": "1be8d7ae01c76e96079031c20cb8fca2c1d3b20f42767138ee960561e5beda3b",
-      "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py": "becc747ba5dcba30b192b3c5472ad35389759259ea4b1128dc1b3a8c5f4a579f"
+      "frontend/tests/e2e/on_demand_acquisition.spec.ts": "39dfb8ffdb45115aa7f3b7b5b16d524892b18b53174e79f5988d30acbf57a2b2",
+      "frontend/tests/unit/components/test_workspace_layout_host.test.ts": "931bb61b528e0abab2a12fb2b4a06dfa7d5eda59b6779ffc8c00e320f569455d"
     },
-    "state": "root_accepted_bounded_software_checkpoint_implementation_7449f84e; closing_tip_CI_pending",
-    "focused_validation": {
-      "attempt_004": {
-        "result": "preserved red: 5 passed, 6 failed, 0 skipped, exit 1",
-        "result_path": "/tmp/etf-job3-focused-20261030/attempt-004/result.json",
-        "result_sha256": "f55eb008ae75f5915e8c1bbd674131870044566e66c84fc1136d12800e629beb",
-        "log_sha256": "121ad6479949573f614868e363c0e3f7b0ee0eeef2d78f58f412ea7f3f2cb7c4",
-        "junit_sha256": "4c0fdb058fd1eb29eadf969e5a6cdb84590db301d0ce55e20be054560d0bf933",
-        "cause": "NUL/invalid-UTF8 workbook was recovered through decoded response.text and PostgreSQL text rejected it before the intended named settlement predicate"
-      },
-      "unit_binary_and_scope_slice": "11 passed in 1.57s; UV offline; no-cov",
-      "ruff": "passed on four changed backend source/test files",
-      "attempt_005": {
-        "status": "preserved_red",
-        "result": "10 passed, 2 failed, 0 skipped; exit 1; 146.41 seconds",
-        "path": "/tmp/etf-job3-focused-20261030/attempt-005",
-        "result_sha256": "ed09fcd5d4a512747d38622c7a4beb063fb957a86910cd7d8395a2b6441483d4",
-        "log_sha256": "bbf75874807b741214338874666ac8ce321578eb094484254f0249d765bd0aac",
-        "junit_sha256": "3648f1ec3b99a3a43211b5daabe3ed7de7960206f235d82467c0f2d7a8281e0f",
-        "failures": [
-          "caller_cancel_after_admission assertion incorrectly expected an empty top-level request-log linkage; the durable log ID was correctly retained while qualification_linked remained false.",
-          "dated cancellation fixture inherited PROVIDER_ROUTING_ENABLED=0 and therefore failed before the mocked transport."
-        ],
-        "correction": "Assert persisted request-log IDs for cancelled nonpositive evidence while preserving qualification_linked=false; explicitly enable routing only inside the dated MockTransport test fixture."
-      },
-      "attempt_006": {
-        "status": "preserved_red",
-        "result": "9 passed, 3 failed, 0 skipped; exit 1; 146.41 seconds",
-        "path": "/tmp/etf-job3-focused-20261030/attempt-006",
-        "result_sha256": "a505b889c8b4c1f0b03671b24646c6b0efbf37a88cfcd7ac570372759e696f91",
-        "log_sha256": "568899d82b00f5ed082cf130fd4228ef1de5115a95efb459128eae72880dfb83",
-        "junit_sha256": "62aed62de08139b37363e9f0b84114d78e0620db2e9855cbde0db4745b820297",
-        "failure": "The assertion expected no top-level request-log IDs for all non-success statuses. Actual ordinary failure paths retain IDs in nested attempt evidence only; cancellation after successful Provider linkage can retain IDs at top level while the finalizer marks the job interrupted and nonpositive.",
-        "correction": "Name the boolean positive_qualification_linked=false and assert top-level request IDs according to the actual persistence phase without discarding any IDs."
-      },
-      "attempt_007": {
-        "status": "passed",
-        "result": "12 passed, 0 failed/errors/skips in 115.42s; exit 0; source_unchanged true",
-        "path": "/tmp/etf-job3-focused-20261030/attempt-007",
-        "result_sha256": "90acb779b61868bee13ffd621f4bb0493389a7f6f4df7164636f3054463ea0fb",
-        "log_sha256": "e662ec5fa85e487d89e27e8ec8d8838abb83166017973fbff11c4965a57a2b6a",
-        "junit_sha256": "94ec0a02cb43ca5c77113da8dd160ca6df51b0ba96ebcdf006162d899b1a3538",
-        "collection_sha256": "c97d3c1fdc7722b7a39078681f3c08b6b9aa307ad698ef030cc494009f09594e",
-        "scope": "same owned isolated PostgreSQL, MockTransport only, no provider/issuer egress, credentials empty, live flags 0, no-cov, zero retries",
-        "cases": "OIH valid; contradictory SMH denial; failed pretransport serialization; success with filing serialization; missing-settlement link rejection with exact binary bytes; HTTP error binary retention; pre-response transport error; outer caller rollback; actual cancellation/finalization; SEC failure compatibility; dated route cancellation; unscoped request-driven ETF denial"
-      },
-      "attempt_015": {
-        "status": "passed",
-        "tests": 20,
-        "failures": 0,
-        "skips": 0,
-        "exit_code": 0,
-        "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-job3-focused-attempt015-root-review-20261030.json",
-        "result_sha256": "bb3908dd702a8577c3eb638aa6104dfaf722b929ac628b1bed0c8f0836695e68"
-      },
-      "attempt_016": {
-        "status": "passed_locally_root_review_pending",
-        "tests": 21,
-        "failures": 0,
-        "errors": 0,
-        "skips": 0,
-        "exit_code": 0,
-        "duration_seconds": 180.21,
-        "worker_count": 1,
-        "retries": 0,
-        "result_path": "/tmp/etf-job3-focused-20261030/attempt-016/result.json",
-        "result_sha256": "1e0887d402c8803c0e8e95b3f62ac059681efe0149b8dc32cff7a0b5dbdf34a5",
-        "junit_sha256": "861abb41981b80a1ae245c92d6e0476d1ebf92c62b19330f5f299d72eb84a42b",
-        "log_sha256": "421b78f7b540ccc2b55df8a499b847bbfa5b9baed2d4bbe859ff36ad307434a8",
-        "collection_sha256": "f9b44fc511c063eb8d005b46164375caeb17bde3a444319efd1067b04a25193f",
-        "environment_fingerprint": "5dc026900ff282b9e3048e3837c94ef09013b33f7ab3e61e05aa33d880cb7646",
-        "source_unchanged": true,
-        "source_head": "08fd268ce871e5e8bae96c68f9986bef7390ce4a",
-        "fixture_ready_sha256": "4a7e7108c3e571f0b3cfa1473374c24f2011112ca7bfd34e8a4382c1c7fb0452",
-        "detail": "20 engine-backed PostgreSQL/SQLite contract cases plus nullable review_due_at unit case; zero skips. Actual SQLite driver in_transaction was observed during reads. Provider/issuer transports were controlled, credentials empty, live flags0, provider egress denied.",
-        "source_file_sha256": {
-          "backend/app/routers/etf_holdings.py": "71b9b6be8a1903d79c4c9c2b2330380b2e7bf9656b38d42c68091344bbf4c318",
-          "backend/app/schemas/etf_holdings.py": "22d206cd28c33e6a8c072ee225bb8f912c4e8e90ad080520ada2230476995301",
-          "backend/app/services/etf_holdings_provider_bridge.py": "0824d4f431fed4f55e5ae7e8372f5f478d6bf44cdd8f4511a59840ffb810a815",
-          "backend/app/services/etf_holdings_vaneck_qualification.py": "df48465168f172733d5332050fa929591ba09748314ee62ed269549d3d357a1c",
-          "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "f537dbe0eb83f10537349cf573b457a9b530bae64cdb21c46b9769f8ba379696",
-          "backend/tests/unit/services/test_etf_holdings_provider_bridge.py": "1be8d7ae01c76e96079031c20cb8fca2c1d3b20f42767138ee960561e5beda3b",
-          "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py": "becc747ba5dcba30b192b3c5472ad35389759259ea4b1128dc1b3a8c5f4a579f"
-        }
-      }
-    },
-    "product_tree_changed": true,
-    "next_action": "Root externally verifies exact closing-tip branch CI after this publication; Root owns subsequent integration, promotion, deployment and genuine OIH/source/account acceptance."
+    "source_paths": [
+      "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "frontend/tests/unit/components/test_workspace_layout_host.test.ts"
+    ],
+    "state": "Accepted bounded UCF1-UCF4 checkpoint at tested source 802ef5b1e6a4246cc27f29da90950984878df947; exact source CI41186532340 and local full_stack_browser qualification green; records-only closing-tip CI pending. Full AC1-AC14 remains open."
   },
   "active_follow_up": {
-    "id": "etf-master-exhaustive-integration-batching-20261030",
-    "baseline_head": "870d37dcc2b9715402ccfefce12a61020465ab35",
-    "adopted_staging_sha": "870d37dcc2b9715402ccfefce12a61020465ab35",
-    "adoption": "Exact synchronized-green staging was fast-forward adopted in this same branch before the runner repair.",
+    "baseline_head": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
     "completed": [
-      "Preserved existing claim, completed HQD goal history and full AC1-AC14 roadmap",
-      "Focused runner tests passed 17/17; narrative regression passed 1/1",
-      "Implementation d31b84ab3514500729e3cf8b04e36a42c34e031c passed exact push CI41090873497 with Backend, Frontend, Branch-declared and Playwright green; Exhaustive skipped as expected",
-      "Root accepted this bounded checkpoint; branch remains full_integration and runner-only local minimum is unit"
+      "Existing owner claim and full AC1-AC14 roadmap preserved",
+      "Exact green staging a655 adopted by fast-forward before this implementation",
+      "Added exact fictional UNXQ calendar GET fixture with typed empty CalendarEvent[] response, bounded-date assertions and after-history/reload observations; Vue type-check and Playwright discovery passed.",
+      "Scoped WorkspaceLayoutHost fake-timer/RAF test correction passed its 13-case file; component source and all assertions remain unchanged.",
+      "The corrected full frontend Vitest suite passed 1495/1495 tests across 151 files; the initial 1494/1 failure remains preserved in validation history.",
+      "Source-matched full_stack_browser passed: 201 functional passed, 2 configured skips; 104 strict visual passed across four projects, zero retries.",
+      "Exact-owned cleanup exited 0 with protected inventory equality: 29 containers, 32 images, 10 networks, 51 volumes.",
+      "Exact implementation CI41186532340 is terminal green; required jobs succeeded and exhaustive was skipped as configured."
     ],
+    "id": "etf-unresolved-calendar-side-read-fixture-20261031",
     "pending": [
-      "Root externally captures exact closing-tip push CI triggered by this one records-only publication",
-      "Root-owned exact 870d remediation integration and staging/master exhaustive gates",
-      "Root-owned qualified 36b99 rollout and genuine OIH holdings/returned-constituent target journey",
-      "Full AC1-AC14 remains open"
+      "Root review and acceptance of the bounded UCF1-UCF4 checkpoint.",
+      "Root-owned integration, promotion/deployment and genuine OIH source/account/returned-uncached-constituent proof; full AC1-AC14 remains open."
     ],
-    "status": "accepted_checkpoint; four-record closing publication pending; exact closing-tip CI required; no wider feature completion",
-    "minimum_local_profile": "unit",
-    "validation_tier": "full_integration",
-    "tested_implementation_sha": "d31b84ab3514500729e3cf8b04e36a42c34e031c",
-    "exact_source_ci_run_id": 41090873497,
-    "source_capture": "integration_capture: exact branch HEAD; no closing commit SHA embedded in these records."
+    "prior_checkpoint_archive": "previously_accepted_unresolved_holding_drilldown_checkpoint_2026_10_30",
+    "staging_ci_run_id": 41171928099,
+    "staging_ci_state": "terminal_green_attempt_1",
+    "status": "ready_for_human_review; profile and exact implementation CI green; Root acceptance pending",
+    "trigger": "Master run41179345123/job124478798349 returned404 for the exact UNXQ calendar side-read and strict BrowserDiagnostics failed; red result retained.",
+    "validation_tier": "full_integration"
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -200,15 +105,10 @@
     "objective": "Publish the Root-accepted bounded ETF master-exhaustive integration batching checkpoint as one coherent four-record closing commit, preserve the full AC1-AC14 roadmap and prior accepted HQD history, then verify exact closing-tip push CI and hand off to Root. Do not integrate, promote, deploy, or claim the wider ETF objective complete.",
     "accounting_note": "New unbudgeted closing-publication goal in the same original thread; preceding runner-repair goal complete with accounting preserved, earlier HQD goal history unchanged."
   },
-  "current_blocker_latest": "Root accepted UHD1-UHD4 under delegated authority. Tested implementation78dcca03983de9304fe7e44303ab35e6d88a03c2 passed exact-source CI41135061084 and the full local profile (201 functional passed/2 configured skips;104 strict visual passed across four projects; zero retries; exact cleanup/protected inventory equality). The coherent close adopts green staging b1b06fd8344549484e26ce3bf960befc832531ef without product changes. Exact closing-tip CI is pending external verification. Preserve 15 Tier-0 and 156 Tier-1; AC1-AC14, genuine source/account/target/deployment work and holds remain open.",
-  "current_checkpoint_objective": "Accepted bounded checkpoint etf-unresolved-holding-drilldown-20261030; publish one coherent four-record close adopting exact green staging b1b06fd8344549484e26ce3bf960befc832531ef, then Root verifies exact closing-tip CI. AC1-AC14 and genuine OIH source/account/target/deployment work remain open.",
-  "current_local_delta": "Accepted implementation78dcca03983de9304fe7e44303ab35e6d88a03c2: row-originated unresolved-holding discovery and explicit canonical resolution preserve holding lineage and support explicit D1 history/reload. Frontend-only product delta; backend tree remains unchanged. Exact source CI41135061084 green. Full local profile: 201 functional passed/2 configured skips and104 strict visuals passed across four projects, zero retries, exact cleanup/inventory equality. Frontend image57d146... was built from D014 and reused only under Root-reviewed build-input equivalence; staging b1b adoption is ancestry-only.",
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "No implementation or local qualification gate remains for this bounded checkpoint. The records-only closing tip must receive its own exact branch CI; Root owns subsequent integration/promotion/deployment and genuine OIH source/account/target proof. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+  "current_checkpoint_objective": "Close the Root-accepted UCF1-UCF4 UNXQ calendar side-read fixture checkpoint with one four-record publication and exact closing-tip CI; do not integrate or deploy. The full AC1-AC14 roadmap remains open.",
+  "current_local_delta": "Exact UNXQ calendar GET fixture plus scoped deterministic WorkspaceLayoutHost clock-test correction; no product runtime/backend/provider change. Focused layout 13/13, full Vitest 1495/1495, type-check and E2E discovery passed. Current source 802ef5 full profile passed 201 functional/2 configured skips and 104 strict visual, zero retries; cleanup equality and exact implementation CI41186532340 green. Initial full Vitest1494/1 and all setup/refusal evidence remain preserved.",
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -245,15 +145,15 @@
     "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Implement the Root-released unresolved ETF holding drilldown in feat/etf-holdings-constituents: let a user discover and explicitly resolve the exact reported ticker from its holding row, preserve snapshot provenance, then explicitly acquire missing D1 history and reload the chart. Preserve all prior accepted checkpoints and the full AC1-AC14 roadmap; complete focused tests, the required full_stack_browser profile, exact-source CI, and hand off at ready_for_human_review. No provider requests, production operations, or integration/deployment.",
-  "goal_recorded_at": "2026-10-30T19:38:53Z",
+  "goal_objective": "Fix the bounded unresolved-holding browser fixture for the exact fictional UNXQ calendar side-read. Serve only GET /api/v1/calendar/instruments/UNXQ/calendar with the typed calendar-event list, assert the bounded query and reload observation, and preserve all BrowserDiagnostics, identity/history/lineage assertions and the full AC1-AC14 roadmap.",
+  "goal_recorded_at": "2026-10-31T08:55:00Z",
   "goal_request": {
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
   },
   "goal_request_state": "active",
-  "goal_state": "active",
+  "goal_state": "ready_for_human_review",
   "goal_unavailable_reason": null,
-  "head": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
+  "head": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
   "historical_integration_checkpoint_erf_2026_10_26": {
     "acceptance_criteria": [
       {
@@ -498,104 +398,69 @@
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
-  "implementation_sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
+  "implementation_sha": "802ef5b1e6a4246cc27f29da90950984878df947",
   "integration_capture": "exact branch HEAD",
   "integration_checkpoint": {
-    "id": "etf-unresolved-holding-drilldown-20261030",
-    "status": "accepted",
-    "acceptance_authorization": "Root accepted under existing human-delegated checkpoint authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-drilldown-checkpoint-acceptance-root-review-20261030.json SHA256 ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4. This records Root's delegated decision, not a new human quote.",
-    "source_baseline": "c91d556f89318509e96a0292453a22d6d7d96365",
-    "planning_authorization": "Root release etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json SHA256 3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443",
+    "acceptance_authorization": "accepted_by_coordinator_under_existing_human_delegation",
     "acceptance_criteria": [
       {
-        "id": "UHD1",
-        "text": "An eligible unresolved real-security holding with an exact reported symbol exposes a row-originated resolve/open action in ETFHoldingsView and the dashboard ETFHoldingsPanel; action preparation makes no discovery or other request on render and never fans out over holdings."
+        "id": "UCF1",
+        "text": "The controlled unresolved-UNXQ browser test intercepts only GET /api/v1/calendar/instruments/UNXQ/calendar and returns the valid typed CalendarEvent[] response for the fictional symbol; unrelated calendar paths remain visible to strict diagnostics."
       },
       {
-        "id": "UHD2",
-        "text": "The action reuses shared explicit free-source discovery and candidate resolution. The reported ticker remains query evidence; only an explicitly selected, resolved, exact-symbol response with a positive safe canonical instrument ID can open the chart. Missing, synthetic, reference/cash, held, no-match, conflict, mismatch, error, and unavailable-current-capability paths remain nonpositive and do not open a chart."
+        "id": "UCF2",
+        "text": "The test observes the exact bounded calendar GET after the explicit D1 action and on reload, checks its start/end query range against the loaded chart bars, and proves there is no calendar call on render or before history is available."
       },
       {
-        "id": "UHD3",
-        "text": "The row handoff preserves the actual snapshot ID, composition date, known_at, provenance/source provider, reported symbol/name, row ID, and returned canonical identity through the chart route; existing resolved-row navigation and stale/historical labeling remain unchanged."
+        "id": "UCF3",
+        "text": "Existing canonical resolution, missing-history, lineage, persisted-bar reload, options side-read, and BrowserDiagnostics.expectNoCriticalIssues assertions remain intact; no retries, filters, suppressions, or oracle/assertion weakening are introduced."
       },
       {
-        "id": "UHD4",
-        "text": "Chart history remains an explicit user action: D1 local coverage is checked first, canonical identity is reverified, and only a missing range proceeds to the existing bounded history acquisition. Persisted bars reload/render after success. Focused unit/E2E and the required source-matched full_stack_browser profile plus exact branch CI pass without assertion, retry, or visual-oracle weakening."
+        "id": "UCF4",
+        "text": "The corrected current-source browser scope passes focused and full_stack_browser validation plus exact owner-branch CI, with the accepted product source and all AC1-AC14 history preserved."
       }
     ],
+    "branch_validation_tier": "full_integration",
+    "closure_pending": false,
+    "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted archives and historical failures.",
+    "goal": "Fix the bounded unresolved-holding browser fixture for the exact fictional UNXQ calendar side-read. Serve only GET /api/v1/calendar/instruments/UNXQ/calendar with the typed calendar-event list, assert the bounded query and reload observation, and preserve all BrowserDiagnostics, identity/history/lineage assertions and the full AC1-AC14 roadmap.",
+    "id": "etf-unresolved-calendar-side-read-fixture-20261031",
+    "integration_capture": "exact branch HEAD",
+    "local_validation_profile": "full_stack_browser",
+    "planning_authorization": "/home/m920q/charting-platform/.ai/staging-attempts/provider-a655-master-calendar-fixture-failure-owner-release-20261031.json",
     "progress": {
       "completed": [
-        "UHD1",
-        "UHD2",
-        "UHD3",
-        "UHD4"
+        "UCF1",
+        "UCF2",
+        "UCF3",
+        "UCF4"
       ],
       "total": 4,
-      "current_phase": "Root-accepted bounded checkpoint; one coherent closing publication is being verified, with exact closing-tip CI pending."
+      "current_phase": "UCF1-UCF4 accepted by Root under existing delegated authority; ready_for_integration; exact closing-tip CI follows the single records publication; AC1-AC14 remain open",
+      "current_blocker": "Only the exact records-closing-tip CI remains for this bounded checkpoint; Root owns integration/promotion/deployment and genuine source/account/target proof. AC1-AC14 remain open.",
+      "next_action": "Publish the one coherent four-record closing commit, then Root verifies its exact push CI and owns integration/promotion/deployment."
     },
-    "branch_validation_tier": "full_integration",
-    "local_validation_profile": "full_stack_browser",
-    "integration_capture": "exact branch HEAD",
-    "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve all existing ledger counts, holds, archives and observations.",
-    "remaining_gates": [
-      "Root externally verifies the exact closing-tip branch CI triggered by this publication.",
-      "Root owns subsequent integration/promotion/deployment and genuine OIH holdings/returned-uncached-constituent source/account/target proof; no operational result is claimed here."
+    "source_baseline": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
+    "source_scope": [
+      "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+      "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+      "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+      "ops/workstreams/feat-etf-holdings-constituents/session.json",
+      "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
+    "status": "accepted_ready_for_integration",
     "validation": {
-      "focused": "The CS/route-hydration correction slice passed 28/28 Vitest tests across the holding-action and ChartView modules. The E2E regression returns a native CS row only when the request contains CS, and targets the actual holding data button.",
-      "full_frontend_unit": "Full frontend Vitest exited 0 on the corrected working tree; Vue type-check and production build passed. uPlot numerical contract (55 source files), visual-acceptance policy (26 screenshot assertions, unchanged thresholds), and Compose contract checks passed. No corrected-source browser runtime result is claimed.",
-      "backend_component_reuse": "Current HEAD:backend tree 85154a468a08550596c41ceec27dbda673f0deb8 exactly matches Root-qualified 36b99 image sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc and the accepted 5961 full backend run (6202 IDs; 6197 passed,5 expected skips,0 failures/errors,84.4% coverage; canonical DDL 2 passed). Reused unchanged-backend evidence only.",
-      "full_stack_browser": "Root-accepted receipt /home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-full-runtime-qualified-root-review-20261030.json SHA256 70cc8134e56d0e82cb4d7098d745918760a135cfd653ffe6ff4bfa3f77b036ad: all required phases passed; 201 functional passed/2 configured skips,104 strict visuals passed across four projects, zero visual skips/failures/retries, and exact cleanup/protected inventory equality.",
-      "exact_source_ci": "Exact78dcca push CI41135061084 terminal green across Backend, Frontend Unit, Branch-declared and E2E/Playwright (197 passed,110 configured skips); closing-tip CI remains pending after publication.",
-      "d014_functional_attempt_001": {
-        "source": "d014a6e7e8959b077146fc5eeddaf80f3861e7fd",
-        "result": "200 passed, 1 failed, 2 skipped, exit 1; strict visuals not started",
-        "functional_log": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log",
-        "functional_log_sha256": "c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631",
-        "phase_log": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/phase-driver-functional.log",
-        "phase_log_sha256": "5fafd98a61c3fde0da86f5bb90b2b7005d484b07c2aa6cdce74aa05b3ce66647",
-        "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json",
-        "root_review_sha256": "d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d",
-        "disposition": "Preserved red. The sole assertion failure followed successful holding CS discovery/resolution, D1 acquisition, provenance and reload checks. Root identified missing options exposure/expiration fixture responses; no product failure or browser pass is inferred."
-      },
-      "corrected_test_static_checks": {
-        "playwright_list": "5 E2E cases listed in on_demand_acquisition.spec.ts after the correction.",
-        "vue_typecheck": "vue-tsc --noEmit exited 0.",
-        "git_diff_check": "passed.",
-        "browser_execution": "Accepted current-source functional/visual profile passed as recorded in the Root runtime receipt; immutable frontend image57d146... was reused only under Root-reviewed D014-to-78dcca production-input equivalence.",
-        "workstream_validator": "make branch-validate validated 46 records.",
-        "narrative_regression": "test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers passed 1/1.",
-        "session_integrity": "session JSON parsed; plan hash and 15 Tier-0/156 Tier-1 current blocker invariants passed."
-      },
-      "production_image_equivalence": {
-        "candidate_image": "sha256:57d146888c3ee34d5976a8fde6b76d9a815df37e5ddb25a12fc69266088ef4ce",
-        "image_archive": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/frontend-d014a6e7.docker.tar",
-        "archive_sha256": "eeb8fe4ea7acf21b6568cc1f5bd8acdda6318a3f11ce0e0d066d5c71b2d9496a",
-        "changed_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts only",
-        "build_contract": "The effective Dockerfile runs npm run build and the final Nginx stage copies only /app/dist and nginx.conf; production source/package/lock/Dockerfile inputs are unchanged.",
-        "reuse_state": "Root independently approved reuse because only non-bundled E2E test code differs in current-source test inputs; image remains honestly identified as D014-built, not as a78dcca build."
-      },
-      "fresh_protected_baseline": {
-        "root_release_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json",
-        "root_release_receipt_sha256": "72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa",
-        "snapshot": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json",
-        "snapshot_sha256": "d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d",
-        "counts": {
-          "containers": 29,
-          "images": 31,
-          "volumes": 51,
-          "networks": 10
-        },
-        "production_backend_id": "660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419",
-        "production_worker_id": "ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520"
-      },
-      "local_profile": "Accepted full_stack_browser profile:201 functional passed/2 configured skips,104 strict visuals across four projects, zero retries, unchanged oracles, exact owned cleanup and protected inventory equality. Private 10000-row fixture verified. Image build source D014 and test source78dcca remain separately identified."
+      "focused_e2e": "Focused layout unit test passed 13/13; corrected full frontend Vitest passed 1495/1495 across 151 files; Vue type-check and Playwright discovery passed with all five acquisition cases listed. The earlier 1494/1 full-suite result remains preserved as a failure predecessor.",
+      "full_stack_browser": "Source-matched full_stack_browser profile passed on implementation 802ef5b1e6a4246cc27f29da90950984878df947. Prepare/config/guard/component verification/up/probes/smoke/worker restart passed; smoke verified the private 10000-row fixture. Functional attempt 002 passed 201 with 2 configured skips and 0 failures; strict visual attempt 001 passed 104/104 across four 26-case projects with 0 skips/failures and 0 retries. Exact-project cleanup exited 0; protected inventory comparison is equal at 29 containers, 32 images, 10 networks and 51 volumes. Phase inputs remained hash-identical. The pretest functional permission failure and visual duplicate-start guard refusal are preserved and are not counted as test executions. Evidence receipt /tmp/etf-unxq-calendar-802ef5b1-20261031/artifacts/frontend-equivalence-receipt-correction-and-profile-results.json SHA256 94d97b5a559723c3ac383921227d88e0b3388590387c88f02642f7ee72c8d6e3. The verified frontend equivalence receipt hash f991c30ac8f1e211f4f22b9b64ebde051c13a6a28a04a9ba75447ccf23034d9a is recorded by the emitted component receipt; no stale prior-profile hash is used.",
+      "exact_branch_ci": "Exact implementation push CI41186532340, attempt1, is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947: Backend, Frontend Unit, Branch-declared and E2E/Playwright succeeded; Exhaustive Integration Gate was skipped as configured. The records-only closing commit is a distinct source SHA and requires its own exact push CI after publication; that CI is pending and is not represented as green here."
     },
-    "tested_implementation_sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
-    "closing_publication": "Adopts exact green staging b1b06fd8344549484e26ce3bf960befc832531ef as ancestry; accepted product trees remain byte-identical to tested78dcca.",
-    "current_blocker": "Root accepted UHD1-UHD4 under delegated authority. Implementation CI41135061084 and the full local profile are green; exact closing-tip CI is pending. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all holds, and genuine source/account/target/deployment work.",
-    "closure_pending": false
+    "remaining_gates": [
+      "Root verifies the exact push CI for the one coherent records-only closing commit; no self-referential metadata follow-up is planned.",
+      "Root owns supported staging/master integration, promotion/deployment, and genuine OIH holdings plus returned-uncached-constituent source/account/target proof. AC1-AC14 remain open."
+    ],
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json",
+    "root_acceptance_receipt_sha256": "ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827"
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -630,14 +495,14 @@
       "unexpected": 0
     }
   },
-  "last_checkpoint": "2026-10-30T23:03:00Z",
+  "last_checkpoint": "2026-10-31T09:51:12Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "Root accepted etf-unresolved-holding-drilldown-20261030 under delegated authority (receipt ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4). Tested78dcca passed exact CI41135061084 and the full local functional/strict visual profile. One coherent close adopts green staging b1b06fd8344549484e26ce3bf960befc832531ef; exact closing-tip CI remains pending. AC1-AC14 and genuine OIH/source/account/target/deployment work remain open.",
+  "latest_checkpoint": "Root accepted etf-unresolved-calendar-side-read-fixture-20261031 on tested source 802ef5b1e6a4246cc27f29da90950984878df947 under receipt SHA256 ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827; implementation CI41186532340 and the complete local full_stack_browser profile are green. The four-record closing tip CI remains pending. AC1-AC14 and genuine source/account/target work remain open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
-    "result": "Exact implementation CI41135061084 is terminal green on tested source78dcca; the closing-tip CI is pending after this records-only publication.",
-    "run_id": 41135061084,
-    "sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2"
+    "result": "Exact implementation push CI41186532340 is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947; Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive Integration Gate was skipped as configured.",
+    "run_id": 41186532340,
+    "sha": "802ef5b1e6a4246cc27f29da90950984878df947"
   },
   "latest_staging_baseline_adoption": {
     "release_state": "exact synchronized-green staging adopted by fast-forward",
@@ -697,8 +562,8 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Root verifies the exact closing-tip CI triggered by this one publication; Root owns integration/promotion/deployment and the actual genuine OIH holdings plus returned-uncached-constituent workflow. Preserve all AC1-AC14 and operational holds.",
-  "plan_hash": "cda9c9db138744c57553b7b3830cd7098df7413f8e1797bc30947b17a68827e9",
+  "next_action": "Complete final workstream, narrative, closure and diff checks; publish only the four owned records once. Root owns exact closing-tip CI verification and all integration/promotion/deployment.",
+  "plan_hash": "49637a2d4596e04a28c3627fde2b7fd817d61b4833da7c16ab34bb6c8e0f422e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -1348,15 +1213,15 @@
   },
   "progress": {
     "completed": [
-      "UHD1",
-      "UHD2",
-      "UHD3",
-      "UHD4"
+      "UCF1",
+      "UCF2",
+      "UCF3",
+      "UCF4"
     ],
     "total": 4,
-    "current_phase": "etf-unresolved-holding-drilldown-20261030 accepted; closing-tip CI pending external verification; AC1-AC14 remain open",
-    "current_blocker": "Root accepted UHD1-UHD4 under delegated authority. Tested source78dcca and its full local profile/exact-source CI are green; closing-tip CI is pending after this one publication. Preserve 15 Tier-0 and 156 Tier-1 and all AC1-AC14/source/target holds.",
-    "next_action": "Root verifies exact closing-tip CI; Root owns subsequent integration and genuine operational proof."
+    "current_phase": "UCF1-UCF4 accepted by Root under existing delegated authority; ready_for_integration; exact closing-tip CI follows the single records publication; AC1-AC14 remain open",
+    "current_blocker": "No implementation or local qualification gate remains for this bounded checkpoint. The records-only closing tip must receive its own exact branch CI; Root owns subsequent integration/promotion/deployment and genuine OIH source/account/target proof. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+    "next_action": "Publish one coherent closing record commit; Root verifies its exact-tip CI and owns the subsequent integration gates."
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -1393,10 +1258,10 @@
     "sibling_imports": "none",
     "staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6"
   },
-  "remote": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
-  "remote_observation": "Before the one closing merge publication, local HEAD and origin/feat/etf-holdings-constituents both identified the accepted implementation78dcca03983de9304fe7e44303ab35e6d88a03c2. The authorized canonical green staging b1b06fd8344549484e26ce3bf960befc832531ef is being adopted as ancestry; the merge commit and four owned record changes must be published once. integration_capture: exact branch HEAD; do not self-reference the closing SHA.",
-  "remote_sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
-  "remote_synchronized": false,
+  "remote": "origin/feat/etf-holdings-constituents",
+  "remote_observation": "Immediately before this final record update, HEAD and origin/feat/etf-holdings-constituents both identified tested implementation 802ef5b1e6a4246cc27f29da90950984878df947 with a clean worktree. Exact-source push CI41186532340 is green. The records-only review publication does not change product/test bytes; any CI it triggers is separate evidence.",
+  "remote_sha": "802ef5b1e6a4246cc27f29da90950984878df947",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -1481,7 +1346,7 @@
     "static_contract_review": "The merged shared execute_provider_call is async with a synchronous non-awaitable invoke callback; ETF uses _sync_provider_invoke and the shared ETF_HOLDINGS capability. Source inspection only; runtime validation remains open.",
     "status": "merged_locally_no_conflicts_final_owner_record_commit_and_single_push_pending"
   },
-  "state": "ready_for_integration",
+  "state": "ready_for_human_review",
   "status": "ready_for_integration",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
@@ -1543,7 +1408,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-30T23:03:00Z",
+  "updated_at": "2026-10-31T09:51:12Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -1751,7 +1616,7 @@
     "validated_implementation_sha": "7f30a8c330ffbb1e34c22f2f485aafec9fac0f23"
   },
   "implementation_source_baseline": "c91d556f89318509e96a0292453a22d6d7d96365",
-  "source_candidate_publication": "The four-record closing commit records tested implementation 596163e81066111158c2a19268f81aaf2bcec56c; its own closing SHA is captured externally by integration_capture: exact branch HEAD and is not embedded in itself.",
+  "source_candidate_publication": "Implementation source 802ef5b1e6a4246cc27f29da90950984878df947 is published and exact implementation CI41186532340 is green. The final review-record update preserves tested product/test bytes and does not self-reference its own publication SHA; integration_capture: exact branch HEAD.",
   "previously_accepted_odc_checkpoint_2026_10_27": {
     "acceptance_criteria": [
       {
@@ -2553,5 +2418,352 @@
     "completed": [],
     "total": 14,
     "full_roadmap_status": "AC1-AC14 remain open and unchanged."
-  }
+  },
+  "previous_active_changeset_pre_calendar_repair_2026_10_31": {
+    "baseline": "08fd268ce871e5e8bae96c68f9986bef7390ce4a",
+    "focused_validation": {
+      "attempt_004": {
+        "cause": "NUL/invalid-UTF8 workbook was recovered through decoded response.text and PostgreSQL text rejected it before the intended named settlement predicate",
+        "junit_sha256": "4c0fdb058fd1eb29eadf969e5a6cdb84590db301d0ce55e20be054560d0bf933",
+        "log_sha256": "121ad6479949573f614868e363c0e3f7b0ee0eeef2d78f58f412ea7f3f2cb7c4",
+        "result": "preserved red: 5 passed, 6 failed, 0 skipped, exit 1",
+        "result_path": "/tmp/etf-job3-focused-20261030/attempt-004/result.json",
+        "result_sha256": "f55eb008ae75f5915e8c1bbd674131870044566e66c84fc1136d12800e629beb"
+      },
+      "attempt_005": {
+        "correction": "Assert persisted request-log IDs for cancelled nonpositive evidence while preserving qualification_linked=false; explicitly enable routing only inside the dated MockTransport test fixture.",
+        "failures": [
+          "caller_cancel_after_admission assertion incorrectly expected an empty top-level request-log linkage; the durable log ID was correctly retained while qualification_linked remained false.",
+          "dated cancellation fixture inherited PROVIDER_ROUTING_ENABLED=0 and therefore failed before the mocked transport."
+        ],
+        "junit_sha256": "3648f1ec3b99a3a43211b5daabe3ed7de7960206f235d82467c0f2d7a8281e0f",
+        "log_sha256": "bbf75874807b741214338874666ac8ce321578eb094484254f0249d765bd0aac",
+        "path": "/tmp/etf-job3-focused-20261030/attempt-005",
+        "result": "10 passed, 2 failed, 0 skipped; exit 1; 146.41 seconds",
+        "result_sha256": "ed09fcd5d4a512747d38622c7a4beb063fb957a86910cd7d8395a2b6441483d4",
+        "status": "preserved_red"
+      },
+      "attempt_006": {
+        "correction": "Name the boolean positive_qualification_linked=false and assert top-level request IDs according to the actual persistence phase without discarding any IDs.",
+        "failure": "The assertion expected no top-level request-log IDs for all non-success statuses. Actual ordinary failure paths retain IDs in nested attempt evidence only; cancellation after successful Provider linkage can retain IDs at top level while the finalizer marks the job interrupted and nonpositive.",
+        "junit_sha256": "62aed62de08139b37363e9f0b84114d78e0620db2e9855cbde0db4745b820297",
+        "log_sha256": "568899d82b00f5ed082cf130fd4228ef1de5115a95efb459128eae72880dfb83",
+        "path": "/tmp/etf-job3-focused-20261030/attempt-006",
+        "result": "9 passed, 3 failed, 0 skipped; exit 1; 146.41 seconds",
+        "result_sha256": "a505b889c8b4c1f0b03671b24646c6b0efbf37a88cfcd7ac570372759e696f91",
+        "status": "preserved_red"
+      },
+      "attempt_007": {
+        "cases": "OIH valid; contradictory SMH denial; failed pretransport serialization; success with filing serialization; missing-settlement link rejection with exact binary bytes; HTTP error binary retention; pre-response transport error; outer caller rollback; actual cancellation/finalization; SEC failure compatibility; dated route cancellation; unscoped request-driven ETF denial",
+        "collection_sha256": "c97d3c1fdc7722b7a39078681f3c08b6b9aa307ad698ef030cc494009f09594e",
+        "junit_sha256": "94ec0a02cb43ca5c77113da8dd160ca6df51b0ba96ebcdf006162d899b1a3538",
+        "log_sha256": "e662ec5fa85e487d89e27e8ec8d8838abb83166017973fbff11c4965a57a2b6a",
+        "path": "/tmp/etf-job3-focused-20261030/attempt-007",
+        "result": "12 passed, 0 failed/errors/skips in 115.42s; exit 0; source_unchanged true",
+        "result_sha256": "90acb779b61868bee13ffd621f4bb0493389a7f6f4df7164636f3054463ea0fb",
+        "scope": "same owned isolated PostgreSQL, MockTransport only, no provider/issuer egress, credentials empty, live flags 0, no-cov, zero retries",
+        "status": "passed"
+      },
+      "attempt_015": {
+        "exit_code": 0,
+        "failures": 0,
+        "result_sha256": "bb3908dd702a8577c3eb638aa6104dfaf722b929ac628b1bed0c8f0836695e68",
+        "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-job3-focused-attempt015-root-review-20261030.json",
+        "skips": 0,
+        "status": "passed",
+        "tests": 20
+      },
+      "attempt_016": {
+        "collection_sha256": "f9b44fc511c063eb8d005b46164375caeb17bde3a444319efd1067b04a25193f",
+        "detail": "20 engine-backed PostgreSQL/SQLite contract cases plus nullable review_due_at unit case; zero skips. Actual SQLite driver in_transaction was observed during reads. Provider/issuer transports were controlled, credentials empty, live flags0, provider egress denied.",
+        "duration_seconds": 180.21,
+        "environment_fingerprint": "5dc026900ff282b9e3048e3837c94ef09013b33f7ab3e61e05aa33d880cb7646",
+        "errors": 0,
+        "exit_code": 0,
+        "failures": 0,
+        "fixture_ready_sha256": "4a7e7108c3e571f0b3cfa1473374c24f2011112ca7bfd34e8a4382c1c7fb0452",
+        "junit_sha256": "861abb41981b80a1ae245c92d6e0476d1ebf92c62b19330f5f299d72eb84a42b",
+        "log_sha256": "421b78f7b540ccc2b55df8a499b847bbfa5b9baed2d4bbe859ff36ad307434a8",
+        "result_path": "/tmp/etf-job3-focused-20261030/attempt-016/result.json",
+        "result_sha256": "1e0887d402c8803c0e8e95b3f62ac059681efe0149b8dc32cff7a0b5dbdf34a5",
+        "retries": 0,
+        "skips": 0,
+        "source_file_sha256": {
+          "backend/app/routers/etf_holdings.py": "71b9b6be8a1903d79c4c9c2b2330380b2e7bf9656b38d42c68091344bbf4c318",
+          "backend/app/schemas/etf_holdings.py": "22d206cd28c33e6a8c072ee225bb8f912c4e8e90ad080520ada2230476995301",
+          "backend/app/services/etf_holdings_provider_bridge.py": "0824d4f431fed4f55e5ae7e8372f5f478d6bf44cdd8f4511a59840ffb810a815",
+          "backend/app/services/etf_holdings_vaneck_qualification.py": "df48465168f172733d5332050fa929591ba09748314ee62ed269549d3d357a1c",
+          "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "f537dbe0eb83f10537349cf573b457a9b530bae64cdb21c46b9769f8ba379696",
+          "backend/tests/unit/services/test_etf_holdings_provider_bridge.py": "1be8d7ae01c76e96079031c20cb8fca2c1d3b20f42767138ee960561e5beda3b",
+          "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py": "becc747ba5dcba30b192b3c5472ad35389759259ea4b1128dc1b3a8c5f4a579f"
+        },
+        "source_head": "08fd268ce871e5e8bae96c68f9986bef7390ce4a",
+        "source_unchanged": true,
+        "status": "passed_locally_root_review_pending",
+        "tests": 21,
+        "worker_count": 1
+      },
+      "ruff": "passed on four changed backend source/test files",
+      "unit_binary_and_scope_slice": "11 passed in 1.57s; UV offline; no-cov"
+    },
+    "name": "VanEck job3 evidence durability and exact response-byte retention",
+    "next_action": "Root externally verifies exact closing-tip branch CI after this publication; Root owns subsequent integration, promotion, deployment and genuine OIH/source/account acceptance.",
+    "product_tree_changed": true,
+    "source_file_sha256": {
+      "backend/app/routers/etf_holdings.py": "71b9b6be8a1903d79c4c9c2b2330380b2e7bf9656b38d42c68091344bbf4c318",
+      "backend/app/schemas/etf_holdings.py": "22d206cd28c33e6a8c072ee225bb8f912c4e8e90ad080520ada2230476995301",
+      "backend/app/services/etf_holdings_provider_bridge.py": "0824d4f431fed4f55e5ae7e8372f5f478d6bf44cdd8f4511a59840ffb810a815",
+      "backend/app/services/etf_holdings_vaneck_qualification.py": "df48465168f172733d5332050fa929591ba09748314ee62ed269549d3d357a1c",
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "f537dbe0eb83f10537349cf573b457a9b530bae64cdb21c46b9769f8ba379696",
+      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py": "1be8d7ae01c76e96079031c20cb8fca2c1d3b20f42767138ee960561e5beda3b",
+      "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py": "becc747ba5dcba30b192b3c5472ad35389759259ea4b1128dc1b3a8c5f4a579f"
+    },
+    "source_paths": [
+      "backend/app/routers/etf_holdings.py",
+      "backend/app/schemas/etf_holdings.py",
+      "backend/app/services/etf_holdings_provider_bridge.py",
+      "backend/app/services/etf_holdings_vaneck_qualification.py",
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+      "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+      "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py"
+    ],
+    "state": "root_accepted_bounded_software_checkpoint_implementation_7449f84e; closing_tip_CI_pending"
+  },
+  "previous_active_follow_up_pre_calendar_repair_2026_10_31": {
+    "adopted_staging_sha": "870d37dcc2b9715402ccfefce12a61020465ab35",
+    "adoption": "Exact synchronized-green staging was fast-forward adopted in this same branch before the runner repair.",
+    "baseline_head": "870d37dcc2b9715402ccfefce12a61020465ab35",
+    "completed": [
+      "Preserved existing claim, completed HQD goal history and full AC1-AC14 roadmap",
+      "Focused runner tests passed 17/17; narrative regression passed 1/1",
+      "Implementation d31b84ab3514500729e3cf8b04e36a42c34e031c passed exact push CI41090873497 with Backend, Frontend, Branch-declared and Playwright green; Exhaustive skipped as expected",
+      "Root accepted this bounded checkpoint; branch remains full_integration and runner-only local minimum is unit"
+    ],
+    "exact_source_ci_run_id": 41090873497,
+    "id": "etf-master-exhaustive-integration-batching-20261030",
+    "minimum_local_profile": "unit",
+    "pending": [
+      "Root externally captures exact closing-tip push CI triggered by this one records-only publication",
+      "Root-owned exact 870d remediation integration and staging/master exhaustive gates",
+      "Root-owned qualified 36b99 rollout and genuine OIH holdings/returned-constituent target journey",
+      "Full AC1-AC14 remains open"
+    ],
+    "source_capture": "integration_capture: exact branch HEAD; no closing commit SHA embedded in these records.",
+    "status": "accepted_checkpoint; four-record closing publication pending; exact closing-tip CI required; no wider feature completion",
+    "tested_implementation_sha": "d31b84ab3514500729e3cf8b04e36a42c34e031c",
+    "validation_tier": "full_integration"
+  },
+  "previously_accepted_unresolved_holding_drilldown_checkpoint_2026_10_30": {
+    "accepted_checkpoint_source": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
+    "current_blocker_latest": "Root accepted UHD1-UHD4 under delegated authority. Tested implementation78dcca03983de9304fe7e44303ab35e6d88a03c2 passed exact-source CI41135061084 and the full local profile (201 functional passed/2 configured skips;104 strict visual passed across four projects; zero retries; exact cleanup/protected inventory equality). The coherent close adopts green staging b1b06fd8344549484e26ce3bf960befc832531ef without product changes. Exact closing-tip CI is pending external verification. Preserve 15 Tier-0 and 156 Tier-1; AC1-AC14, genuine source/account/target/deployment work and holds remain open.",
+    "current_checkpoint_objective": "Accepted bounded checkpoint etf-unresolved-holding-drilldown-20261030; publish one coherent four-record close adopting exact green staging b1b06fd8344549484e26ce3bf960befc832531ef, then Root verifies exact closing-tip CI. AC1-AC14 and genuine OIH source/account/target/deployment work remain open.",
+    "goal_objective": "Advance feat/etf-holdings-constituents: Let an ordinary user start from an unresolved real-security row in either ETFHoldingsView or the dashboard ETFHoldingsPanel, explicitly discover and resolve the exact reported ticker to a provider-verified canonical instrument, carry the dated source holding evidence into the chart, and explicitly request missing D1 history so persisted bars render after reload. Preserve the complete AC1-AC14 roadmap, all existing source and target holds, and resolved-row behavior.. Acceptance criteria: UHD1: An eligible unresolved real-security holding with an exact reported symbol exposes a row-originated resolve/open action in ETFHoldingsView and the dashboard ETFHoldingsPanel; action preparation makes no discovery or other request on render and never fans out over holdings.; UHD2: The action reuses shared explicit free-source discovery and candidate resolution. The reported ticker remains query evidence; only an explicitly selected, resolved, exact-symbol response with a positive safe canonical instrument ID can open the chart. Missing, synthetic, reference/cash, held, no-match, conflict, mismatch, error, and unavailable-current-capability paths remain nonpositive and do not open a chart.; UHD3: The row handoff preserves the actual snapshot ID, composition date, known_at, provenance/source provider, reported symbol/name, row ID, and returned canonical identity through the chart route; existing resolved-row navigation and stale/historical labeling remain unchanged.; UHD4: Chart history remains an explicit user action: D1 local coverage is checked first, canonical identity is reverified, and only a missing range proceeds to the existing bounded history acquisition. Persisted bars reload/render after success. Focused unit/E2E and the required source-matched full_stack_browser profile plus exact branch CI pass without assertion, retry, or visual-oracle weakening.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+    "integration_checkpoint": {
+      "acceptance_authorization": "Root accepted under existing human-delegated checkpoint authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-drilldown-checkpoint-acceptance-root-review-20261030.json SHA256 ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4. This records Root's delegated decision, not a new human quote.",
+      "acceptance_criteria": [
+        {
+          "id": "UHD1",
+          "text": "An eligible unresolved real-security holding with an exact reported symbol exposes a row-originated resolve/open action in ETFHoldingsView and the dashboard ETFHoldingsPanel; action preparation makes no discovery or other request on render and never fans out over holdings."
+        },
+        {
+          "id": "UHD2",
+          "text": "The action reuses shared explicit free-source discovery and candidate resolution. The reported ticker remains query evidence; only an explicitly selected, resolved, exact-symbol response with a positive safe canonical instrument ID can open the chart. Missing, synthetic, reference/cash, held, no-match, conflict, mismatch, error, and unavailable-current-capability paths remain nonpositive and do not open a chart."
+        },
+        {
+          "id": "UHD3",
+          "text": "The row handoff preserves the actual snapshot ID, composition date, known_at, provenance/source provider, reported symbol/name, row ID, and returned canonical identity through the chart route; existing resolved-row navigation and stale/historical labeling remain unchanged."
+        },
+        {
+          "id": "UHD4",
+          "text": "Chart history remains an explicit user action: D1 local coverage is checked first, canonical identity is reverified, and only a missing range proceeds to the existing bounded history acquisition. Persisted bars reload/render after success. Focused unit/E2E and the required source-matched full_stack_browser profile plus exact branch CI pass without assertion, retry, or visual-oracle weakening."
+        }
+      ],
+      "branch_validation_tier": "full_integration",
+      "closing_publication": "Adopts exact green staging b1b06fd8344549484e26ce3bf960befc832531ef as ancestry; accepted product trees remain byte-identical to tested78dcca.",
+      "closure_pending": false,
+      "current_blocker": "Root accepted UHD1-UHD4 under delegated authority. Implementation CI41135061084 and the full local profile are green; exact closing-tip CI is pending. Preserve 15 Tier-0 and 156 Tier-1, AC1-AC14, all holds, and genuine source/account/target/deployment work.",
+      "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve all existing ledger counts, holds, archives and observations.",
+      "id": "etf-unresolved-holding-drilldown-20261030",
+      "integration_capture": "exact branch HEAD",
+      "local_validation_profile": "full_stack_browser",
+      "planning_authorization": "Root release etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json SHA256 3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443",
+      "progress": {
+        "completed": [
+          "UHD1",
+          "UHD2",
+          "UHD3",
+          "UHD4"
+        ],
+        "current_phase": "Root-accepted bounded checkpoint; one coherent closing publication is being verified, with exact closing-tip CI pending.",
+        "total": 4
+      },
+      "remaining_gates": [
+        "Root externally verifies the exact closing-tip branch CI triggered by this publication.",
+        "Root owns subsequent integration/promotion/deployment and genuine OIH holdings/returned-uncached-constituent source/account/target proof; no operational result is claimed here."
+      ],
+      "source_baseline": "c91d556f89318509e96a0292453a22d6d7d96365",
+      "status": "accepted",
+      "tested_implementation_sha": "78dcca03983de9304fe7e44303ab35e6d88a03c2",
+      "validation": {
+        "backend_component_reuse": "Current HEAD:backend tree 85154a468a08550596c41ceec27dbda673f0deb8 exactly matches Root-qualified 36b99 image sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc and the accepted 5961 full backend run (6202 IDs; 6197 passed,5 expected skips,0 failures/errors,84.4% coverage; canonical DDL 2 passed). Reused unchanged-backend evidence only.",
+        "corrected_test_static_checks": {
+          "browser_execution": "Accepted current-source functional/visual profile passed as recorded in the Root runtime receipt; immutable frontend image57d146... was reused only under Root-reviewed D014-to-78dcca production-input equivalence.",
+          "git_diff_check": "passed.",
+          "narrative_regression": "test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers passed 1/1.",
+          "playwright_list": "5 E2E cases listed in on_demand_acquisition.spec.ts after the correction.",
+          "session_integrity": "session JSON parsed; plan hash and 15 Tier-0/156 Tier-1 current blocker invariants passed.",
+          "vue_typecheck": "vue-tsc --noEmit exited 0.",
+          "workstream_validator": "make branch-validate validated 46 records."
+        },
+        "d014_functional_attempt_001": {
+          "disposition": "Preserved red. The sole assertion failure followed successful holding CS discovery/resolution, D1 acquisition, provenance and reload checks. Root identified missing options exposure/expiration fixture responses; no product failure or browser pass is inferred.",
+          "functional_log": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log",
+          "functional_log_sha256": "c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631",
+          "phase_log": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/phase-driver-functional.log",
+          "phase_log_sha256": "5fafd98a61c3fde0da86f5bb90b2b7005d484b07c2aa6cdce74aa05b3ce66647",
+          "result": "200 passed, 1 failed, 2 skipped, exit 1; strict visuals not started",
+          "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json",
+          "root_review_sha256": "d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d",
+          "source": "d014a6e7e8959b077146fc5eeddaf80f3861e7fd"
+        },
+        "exact_source_ci": "Exact78dcca push CI41135061084 terminal green across Backend, Frontend Unit, Branch-declared and E2E/Playwright (197 passed,110 configured skips); closing-tip CI remains pending after publication.",
+        "focused": "The CS/route-hydration correction slice passed 28/28 Vitest tests across the holding-action and ChartView modules. The E2E regression returns a native CS row only when the request contains CS, and targets the actual holding data button.",
+        "fresh_protected_baseline": {
+          "counts": {
+            "containers": 29,
+            "images": 31,
+            "networks": 10,
+            "volumes": 51
+          },
+          "production_backend_id": "660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419",
+          "production_worker_id": "ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520",
+          "root_release_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json",
+          "root_release_receipt_sha256": "72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa",
+          "snapshot": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json",
+          "snapshot_sha256": "d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d"
+        },
+        "full_frontend_unit": "Full frontend Vitest exited 0 on the corrected working tree; Vue type-check and production build passed. uPlot numerical contract (55 source files), visual-acceptance policy (26 screenshot assertions, unchanged thresholds), and Compose contract checks passed. No corrected-source browser runtime result is claimed.",
+        "full_stack_browser": "Root-accepted receipt /home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-full-runtime-qualified-root-review-20261030.json SHA256 70cc8134e56d0e82cb4d7098d745918760a135cfd653ffe6ff4bfa3f77b036ad: all required phases passed; 201 functional passed/2 configured skips,104 strict visuals passed across four projects, zero visual skips/failures/retries, and exact cleanup/protected inventory equality.",
+        "local_profile": "Accepted full_stack_browser profile:201 functional passed/2 configured skips,104 strict visuals across four projects, zero retries, unchanged oracles, exact owned cleanup and protected inventory equality. Private 10000-row fixture verified. Image build source D014 and test source78dcca remain separately identified.",
+        "production_image_equivalence": {
+          "archive_sha256": "eeb8fe4ea7acf21b6568cc1f5bd8acdda6318a3f11ce0e0d066d5c71b2d9496a",
+          "build_contract": "The effective Dockerfile runs npm run build and the final Nginx stage copies only /app/dist and nginx.conf; production source/package/lock/Dockerfile inputs are unchanged.",
+          "candidate_image": "sha256:57d146888c3ee34d5976a8fde6b76d9a815df37e5ddb25a12fc69266088ef4ce",
+          "changed_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts only",
+          "image_archive": "/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/frontend-d014a6e7.docker.tar",
+          "reuse_state": "Root independently approved reuse because only non-bundled E2E test code differs in current-source test inputs; image remains honestly identified as D014-built, not as a78dcca build."
+        }
+      }
+    },
+    "next_action": "Root verifies the exact closing-tip CI triggered by this one publication; Root owns integration/promotion/deployment and the actual genuine OIH holdings plus returned-uncached-constituent workflow. Preserve all AC1-AC14 and operational holds.",
+    "plan_hash": "cda9c9db138744c57553b7b3830cd7098df7413f8e1797bc30947b17a68827e9",
+    "progress": {
+      "completed": [
+        "UHD1",
+        "UHD2",
+        "UHD3",
+        "UHD4"
+      ],
+      "current_blocker": "Root accepted UHD1-UHD4 under delegated authority. Tested source78dcca and its full local profile/exact-source CI are green; closing-tip CI is pending after this one publication. Preserve 15 Tier-0 and 156 Tier-1 and all AC1-AC14/source/target holds.",
+      "current_phase": "etf-unresolved-holding-drilldown-20261030 accepted; closing-tip CI pending external verification; AC1-AC14 remain open",
+      "next_action": "Root verifies exact closing-tip CI; Root owns subsequent integration and genuine operational proof.",
+      "total": 4
+    },
+    "state": "ready_for_integration",
+    "status": "ready_for_integration"
+  },
+  "staging_adoption_a6558c497831_2026_10_31": {
+    "adoption_method": "fast_forward",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261031T070709Z-a6558c497831.json",
+    "conflicts": [],
+    "exact_staging_ci_run_id": 41171928099,
+    "exact_staging_ci_state": "terminal_green_attempt_1",
+    "master_replay": {
+      "job_id": 124478798349,
+      "run_id": 41179345123,
+      "sha": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
+      "state": "failed_preserved_not_a_green_baseline"
+    },
+    "prior_feature_tip": "a248859ceb8697e42c74d006d5d4007f6313faee",
+    "released_staging_sha": "a6558c4978311d7a21c3b29d3d8fd2f043610efb"
+  },
+  "previously_review_ready_unresolved_calendar_checkpoint_2026_10_31": {
+    "archive_reason": "Preserve the complete pre-acceptance review-ready checkpoint object before recording Root delegated acceptance.",
+    "status_at_archive": "ready_for_human_review",
+    "progress_at_archive": {
+      "completed": [
+        "UCF1",
+        "UCF2",
+        "UCF3",
+        "UCF4"
+      ],
+      "total": 4,
+      "current_phase": "UCF1-UCF4 validated; ready_for_human_review with Root acceptance pending",
+      "current_blocker": "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+      "next_action": "Hand off the frozen UCF1-UCF4 checkpoint for Root review/acceptance; do not integrate, deploy or claim genuine source acquisition."
+    },
+    "integration_checkpoint": {
+      "acceptance_authorization": "pending_root_review",
+      "acceptance_criteria": [
+        {
+          "id": "UCF1",
+          "text": "The controlled unresolved-UNXQ browser test intercepts only GET /api/v1/calendar/instruments/UNXQ/calendar and returns the valid typed CalendarEvent[] response for the fictional symbol; unrelated calendar paths remain visible to strict diagnostics."
+        },
+        {
+          "id": "UCF2",
+          "text": "The test observes the exact bounded calendar GET after the explicit D1 action and on reload, checks its start/end query range against the loaded chart bars, and proves there is no calendar call on render or before history is available."
+        },
+        {
+          "id": "UCF3",
+          "text": "Existing canonical resolution, missing-history, lineage, persisted-bar reload, options side-read, and BrowserDiagnostics.expectNoCriticalIssues assertions remain intact; no retries, filters, suppressions, or oracle/assertion weakening are introduced."
+        },
+        {
+          "id": "UCF4",
+          "text": "The corrected current-source browser scope passes focused and full_stack_browser validation plus exact owner-branch CI, with the accepted product source and all AC1-AC14 history preserved."
+        }
+      ],
+      "branch_validation_tier": "full_integration",
+      "closure_pending": true,
+      "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted archives and historical failures.",
+      "goal": "Fix the bounded unresolved-holding browser fixture for the exact fictional UNXQ calendar side-read. Serve only GET /api/v1/calendar/instruments/UNXQ/calendar with the typed calendar-event list, assert the bounded query and reload observation, and preserve all BrowserDiagnostics, identity/history/lineage assertions and the full AC1-AC14 roadmap.",
+      "id": "etf-unresolved-calendar-side-read-fixture-20261031",
+      "integration_capture": "exact branch HEAD",
+      "local_validation_profile": "full_stack_browser",
+      "planning_authorization": "/home/m920q/charting-platform/.ai/staging-attempts/provider-a655-master-calendar-fixture-failure-owner-release-20261031.json",
+      "progress": {
+        "completed": [
+          "UCF1",
+          "UCF2",
+          "UCF3",
+          "UCF4"
+        ],
+        "total": 4,
+        "current_phase": "UCF1-UCF4 validated; ready_for_human_review with Root acceptance pending",
+        "current_blocker": "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.",
+        "next_action": "Hand off the frozen UCF1-UCF4 checkpoint for Root review/acceptance; do not integrate, deploy or claim genuine source acquisition."
+      },
+      "source_baseline": "a6558c4978311d7a21c3b29d3d8fd2f043610efb",
+      "source_scope": [
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
+        "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+        "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+        "ops/workstreams/feat-etf-holdings-constituents/session.json",
+        "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+      ],
+      "status": "ready_for_human_review",
+      "validation": {
+        "focused_e2e": "Focused layout unit test passed 13/13; corrected full frontend Vitest passed 1495/1495 across 151 files; Vue type-check and Playwright discovery passed with all five acquisition cases listed. The earlier 1494/1 full-suite result remains preserved as a failure predecessor.",
+        "full_stack_browser": "Source-matched full_stack_browser profile passed on implementation 802ef5b1e6a4246cc27f29da90950984878df947. Prepare/config/guard/component verification/up/probes/smoke/worker restart passed; smoke verified the private 10000-row fixture. Functional attempt 002 passed 201 with 2 configured skips and 0 failures; strict visual attempt 001 passed 104/104 across four 26-case projects with 0 skips/failures and 0 retries. Exact-project cleanup exited 0; protected inventory comparison is equal at 29 containers, 32 images, 10 networks and 51 volumes. Phase inputs remained hash-identical. The pretest functional permission failure and visual duplicate-start guard refusal are preserved and are not counted as test executions. Evidence receipt /tmp/etf-unxq-calendar-802ef5b1-20261031/artifacts/frontend-equivalence-receipt-correction-and-profile-results.json SHA256 94d97b5a559723c3ac383921227d88e0b3388590387c88f02642f7ee72c8d6e3. The verified frontend equivalence receipt hash f991c30ac8f1e211f4f22b9b64ebde051c13a6a28a04a9ba75447ccf23034d9a is recorded by the emitted component receipt; no stale prior-profile hash is used.",
+        "exact_branch_ci": "Exact push CI41186532340, attempt 1, is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947: Backend Tests, Frontend Unit Tests, Branch-declared Tests and E2E/Playwright succeeded; Exhaustive Integration Gate was skipped as configured. This is implementation-source CI. Any CI caused by the later four-record review publication is separate and is not self-referenced."
+      },
+      "remaining_gates": [
+        "Root reviews and accepts this bounded UNXQ calendar fixture checkpoint; acceptance remains pending and no integration is claimed.",
+        "After acceptance, the coordinator owns supported staging integration and later promotion/deployment. Genuine OIH source/account and returned-uncached-constituent operational proof remain outstanding."
+      ]
+    }
+  },
+  "closure_pending": false,
+  "human_closure_authorization": "Root accepted `etf-unresolved-calendar-side-read-fixture-20261031` under the existing human standing checkpoint delegation. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json` (SHA256 `ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827`). This records Root's delegated decision and does not invent a new human quote or accept the full AC1-AC14 roadmap.",
+  "closure_summary": "Root accepted the bounded etf-unresolved-calendar-side-read-fixture-20261031 checkpoint under the existing human-delegated authority (receipt SHA256 ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827). Tested implementation is 802ef5b1e6a4246cc27f29da90950984878df947; exact implementation-source CI41186532340 is terminal green. Frontend passed1495; backend accounted for5614 unit and597 integration cases at84% combined coverage. The current-source local full_stack_browser profile passed all required phases: functional201 passed/2 configured skips across all five acquisition cases, strict visual104 passed across four projects, zero retries, and exact-owned cleanup with protected inventory equal at29 containers,32 images,10 networks,51 volumes; the private10000-row smoke passed. Product/runtime build provenance remains distinct from tested source; this test-fixture checkpoint makes no runtime, migration, provider-policy, paid-source or production change. The four-record closing tip has its own CI gate after publication; no self-referential CI claim is made. integration_capture: exact branch HEAD. AC1-AC14, 15 Tier-0 and156 Tier-1, genuine OIH holdings and returned-uncached-constituent proof, source/account acceptance, target/deployment work and all other roadmap gates remain open; Root owns integration, promotion and deployment."
 }
