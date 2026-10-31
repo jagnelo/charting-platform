@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+import copy
 import gzip
 import hashlib
 import json
@@ -3940,7 +3941,10 @@ async def _seed_failed_vaneck_settlement_projection_attempt(provider_db, setup, 
                 "reason": VANECK_SETTLEMENT_PROJECTION_FAILURE_REASON,
                 "provider_attempt_evidence": attempt_evidence,
             },
-            "provider_request_log_ids": log_ids,
+            # Actual retained job4 shape: the job-level projection is empty;
+            # the admitted-attempt callback/persistence witness and immutable
+            # artifact below retain the same persisted request-log ID.
+            "provider_request_log_ids": [],
             "posttransport_continuation": {
                 "predecessor_job_id": fixture["job3_id"],
                 "request_id": predecessor_request_id,
@@ -4411,6 +4415,37 @@ async def test_admin_vaneck_job4_settlement_projection_continuation_is_scoped_an
             assert wrong_digest.status_code == 409
             assert runner.calls == []
 
+            async with provider_db() as mutation:
+                job4 = await mutation.get(ETFHoldingsBackfillJob, fixture["job4_id"])
+                assert job4 is not None
+                mismatched_extra = copy.deepcopy(predecessor_extra)
+                mismatched_extra["qualification_outcome"]["provider_attempt_evidence"][
+                    "persisted_request_log_ids"
+                ] = [fixture["request_log_id"] + 1]
+                job4.extra_data = mismatched_extra
+                await mutation.commit()
+            mismatched_digest = hashlib.sha256(
+                json.dumps(
+                    mismatched_extra, sort_keys=True, separators=(",", ":"), default=str
+                ).encode()
+            ).hexdigest()
+            mismatched_witness = await client.post(
+                endpoint,
+                headers={"Authorization": f"Bearer {token}"},
+                json={
+                    **payload,
+                    "request_id": str(uuid4()),
+                    "predecessor_extra_data_sha256": mismatched_digest,
+                },
+            )
+            assert mismatched_witness.status_code == 409
+            assert runner.calls == []
+            async with provider_db() as restoration:
+                job4 = await restoration.get(ETFHoldingsBackfillJob, fixture["job4_id"])
+                assert job4 is not None
+                job4.extra_data = copy.deepcopy(predecessor_extra)
+                await restoration.commit()
+
             first = await client.post(
                 endpoint,
                 headers={"Authorization": f"Bearer {token}"},
@@ -4443,6 +4478,8 @@ async def test_admin_vaneck_job4_settlement_projection_continuation_is_scoped_an
     lineage = continuation["predecessor_lineage"]
     assert lineage["predecessor_contract"] == VANECK_SETTLEMENT_PROJECTION_JOB4_CONTRACT
     assert lineage["request_log_id"] == fixture["request_log_id"]
+    assert lineage["request_log_id_evidence"] == ("qualification_outcome.provider_attempt_evidence")
+    assert lineage["top_level_provider_request_log_ids"] == []
     assert lineage["diagnostic_artifact_id"] == fixture["artifact5_id"]
     assert lineage["diagnostic_content_hash"] == fixture["artifact5_hash"]
     assert lineage["upstream_http_status"] is None

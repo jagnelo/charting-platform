@@ -1104,6 +1104,60 @@ async def _validate_posttransport_predecessor(
     return predecessor, lineage
 
 
+def _job4_request_log_lineage(
+    extra: dict[str, object],
+) -> tuple[object, str]:
+    """Return the request-log pointer and its recorded source for an exact job4.
+
+    Existing job4 rows normally retain the log ID at the top level. One actual
+    failed attempt retained an empty top-level list while its admitted-attempt
+    callback and persistence disposition both named the same persisted log.
+    Accept that shape only when the attempt evidence proves a single, fully
+    persisted, non-positive attempt; the caller still verifies the log, artifact,
+    scope, timing, digest, and settled reservation independently.
+    """
+
+    top_level_log_ids = extra.get("provider_request_log_ids")
+    if not (isinstance(top_level_log_ids, list) and not top_level_log_ids):
+        return top_level_log_ids, "job.provider_request_log_ids"
+
+    outcome = extra.get("qualification_outcome")
+    attempt_evidence = (
+        outcome.get("provider_attempt_evidence") if isinstance(outcome, dict) else None
+    )
+    callback_ids = (
+        attempt_evidence.get("request_log_callback_ids")
+        if isinstance(attempt_evidence, dict)
+        else None
+    )
+    persisted_ids = (
+        attempt_evidence.get("persisted_request_log_ids")
+        if isinstance(attempt_evidence, dict)
+        else None
+    )
+    if (
+        not isinstance(attempt_evidence, dict)
+        or attempt_evidence.get("admitted_attempt_recorded") is not True
+        or attempt_evidence.get("all_callback_logs_persisted") is not True
+        or attempt_evidence.get("positive_qualification_linked") is not False
+        or not isinstance(callback_ids, list)
+        or len(callback_ids) != 1
+        or isinstance(callback_ids[0], bool)
+        or not isinstance(callback_ids[0], int)
+        or callback_ids[0] <= 0
+        or not isinstance(persisted_ids, list)
+        or len(persisted_ids) != 1
+        or isinstance(persisted_ids[0], bool)
+        or not isinstance(persisted_ids[0], int)
+        or persisted_ids[0] <= 0
+        or persisted_ids != callback_ids
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The failed settlement-projection job has no consistent persisted request-log witness."
+        )
+    return callback_ids, "qualification_outcome.provider_attempt_evidence"
+
+
 async def _validate_settlement_projection_predecessor(
     db: AsyncSession,
     *,
@@ -1160,7 +1214,8 @@ async def _validate_settlement_projection_predecessor(
     scope = extra.get("qualification_scope")
     outcome = extra.get("qualification_outcome")
     continuation = extra.get(VANECK_POSTTRANSPORT_CONTINUATION_KEY)
-    log_ids = extra.get("provider_request_log_ids")
+    log_ids, log_ids_evidence = _job4_request_log_lineage(extra)
+    top_level_log_ids = extra.get("provider_request_log_ids")
     if not isinstance(continuation, dict):
         raise ETFHoldingsRouteHeldError(
             "The failed settlement-projection job does not match its reviewed OIH scope."
@@ -1433,6 +1488,8 @@ async def _validate_settlement_projection_predecessor(
         "predecessor_contract": VANECK_SETTLEMENT_PROJECTION_JOB4_CONTRACT,
         "predecessor_job_extra_sha256": actual_extra_sha256,
         "request_log_id": request_log.id,
+        "request_log_id_evidence": log_ids_evidence,
+        "top_level_provider_request_log_ids": top_level_log_ids,
         "diagnostic_artifact_id": artifact.id,
         "diagnostic_content_hash": artifact.content_hash,
         "settled_prior_usage": spent,
