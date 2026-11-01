@@ -146,24 +146,16 @@
     "visual_log": "/tmp/provider-vjd-e46645b1-app-20261101/artifacts/visual.log"
   },
   "current_exact_ci": {
-    "run_id": 41256146432,
-    "source_sha": "e46645b1a0d42aedd679761e96644b04979b3d0f",
-    "status": "terminal success on implementation source; expected feature-branch Exhaustive skip; does not qualify closing-tip CI."
+    "run_id": 41291454985,
+    "source_sha": "ed08bb8ad965de619d934549ea47144f26bd7ffa",
+    "status": "terminal failure; only the new ordinary OIH integration case used SQLite while persistent coordinator required PostgreSQL under GITHUB_ACTIONS=true; focused corrected PostgreSQL fixture now passes; preserve the failed run."
   },
   "dirty_paths": [
-    " M backend/app/schemas/etf_holdings.py",
-    " M backend/app/services/etf_holdings_adapters.py",
-    " M backend/app/services/etf_holdings_refresh.py",
-    " M backend/app/services/etf_holdings_vaneck_qualification.py",
     " M backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    " M backend/tests/unit/services/test_etf_holdings_adapters.py",
-    " M backend/tests/unit/services/test_etf_holdings_refresh.py",
-    " M ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
     " M ops/workstreams/feat-market-data-provider-platform/handoff.md",
     " M ops/workstreams/feat-market-data-provider-platform/plan.yaml",
     " M ops/workstreams/feat-market-data-provider-platform/session.json",
-    " M ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
-    "?? backend/tests/fixtures/"
+    " M ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -223,7 +215,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "39794281b2f0402476685d6d3c2bcf5aace90419",
+  "head": "ed08bb8ad965de619d934549ea47144f26bd7ffa",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -240,10 +232,10 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": "e46645b1a0d42aedd679761e96644b04979b3d0f",
+  "implementation_sha": "ed08bb8ad965de619d934549ea47144f26bd7ffa",
   "integration_capture": "exact branch HEAD",
   "interrupted": false,
-  "last_checkpoint": "2026-10-31T19:12:11Z",
+  "last_checkpoint": "2026-11-01T09:51:35.394735+00:00",
   "last_human_progress_update": "2026-11-01T08:54:35.059257+00:00",
   "latest_degraded_staging_remediation_adoption": {
     "accepted": false,
@@ -267,9 +259,9 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "After this one closing publication, Root observes exact final-tip CI. Root owns supported staging integration/promotion/deployment and separately binds/releases any future source action.",
+  "next_action": "Prepare exact corrected-source complete backend/DDL, backend-image and full_stack_browser manifests for Root allocation; do not reuse the interrupted collector or old ed08 image artifact.",
   "parent_branch": "staging",
-  "plan_hash": "19bfb244f82d7d1d8fbccc975d20b5f815790d631c1e77b9db3c91c953c5f19f",
+  "plan_hash": "4d12986f679ed2fdc413feea627a8c4fc9c8227c9ff502459c4fed7c2e566a80",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -537,15 +529,15 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Focused ordinary acquisition regression passed; full backend/DDL and full_stack_browser require separate Root resource allocation, and exact-source CI awaits coherent publication.",
-    "current_phase": "provider_job6_ordinary_db_r2_pass_full_profile_pending",
-    "next_action": "Finish offline/source validation, publish one coherent implementation source, then bind exact current-source full backend and browser manifests for Root allocation.",
     "total": 4,
-    "updated_at": "2026-11-01T08:54:35.059239+00:00"
+    "current_phase": "provider_job6_corrective_source_published_full_gates_pending",
+    "current_blocker": "Corrected-source exact CI and complete backend/DDL plus full_stack_browser qualification are pending; no gate is inferred from prior source.",
+    "next_action": "Prepare exact corrected-source complete backend/DDL, backend-image and full_stack_browser manifests for Root allocation; do not reuse the interrupted collector or old ed08 image artifact.",
+    "updated_at": "2026-11-01T09:51:35.394735+00:00"
   },
-  "recorded_at": "2026-10-31T19:16:08+00:00",
-  "remote": "4ac3f8b750a7afafd7894f50261f5283abc5beab",
-  "remote_sha": "4ac3f8b750a7afafd7894f50261f5283abc5beab",
+  "recorded_at": "2026-11-01T09:51:35.394735+00:00",
+  "remote": "ed08bb8ad965de619d934549ea47144f26bd7ffa",
+  "remote_sha": "ed08bb8ad965de619d934549ea47144f26bd7ffa",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
@@ -706,7 +698,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "ready_for_integration",
+  "status": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -870,5 +862,18 @@
     "ops/workstreams/feat-market-data-provider-platform/branch-tests.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
-  "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+  "worktree_id": "feat-market-data-provider-platform-c6e40c6608",
+  "corrected_source_exact_ci": {
+    "run_id": null,
+    "source_sha": "exact branch HEAD after this one corrective source publication",
+    "status": "pending; Root owns exact-source CI observation; this publication does not close or qualify the checkpoint."
+  },
+  "latest_job6_validation": {
+    "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-job6-r3-github-postgres-fixture-qualified-root-review-20261101.json",
+    "local_terminal_receipt": "/tmp/provider-job6-ordinary-db-20261101-r3/terminal-result.json",
+    "local_terminal_receipt_sha256": "3a4cf9e5b371cff5904a75016261db49468510e35cc7902056738ec272be518c",
+    "focused_case": "1 passed/0 skipped/0 failed under GITHUB_ACTIONS=true and isolated PostgreSQL",
+    "old_full_backend": "interrupted exit124 after Root stopped exact owned scope; not green",
+    "next_gates": "Prepare exact corrected-source complete backend/DDL, backend-image and full_stack_browser manifests for Root allocation; do not reuse the interrupted collector or old ed08 image artifact."
+  }
 }

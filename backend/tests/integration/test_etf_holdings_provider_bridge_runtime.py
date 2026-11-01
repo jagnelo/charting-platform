@@ -1374,7 +1374,7 @@ async def test_ordinary_oih_acquisition_persists_verified_complete_snapshot_with
     monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
     _configure_vaneck_quota_test_ledger(
-        provider_db, monkeypatch, backend="sqlite", tmp_path=tmp_path
+        provider_db, monkeypatch, backend="postgres", tmp_path=tmp_path
     )
     seeds = dict(settings.PROVIDER_ENTITLEMENT_SEEDS or {})
     seeds.pop("vaneck", None)

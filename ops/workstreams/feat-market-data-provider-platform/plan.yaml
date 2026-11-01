@@ -11569,17 +11569,20 @@ closure_summary: Pending. This bounded checkpoint closes only after strict parse
 integration_checkpoint_authorization: Implementation authorization is limited to provider-job6-worksheet-identity-repair-20261101.
   No source request, provider policy enablement, target mutation, staging/master integration, deployment,
   or sibling-worktree mutation is authorized.
-local_validation_reason: Focused offline tests may run after implementation. PostgreSQL/SQLite, complete
-  backend and full_stack_browser profiles require exact immutable manifests and Root resource allocation.
+local_validation_reason: Focused offline and ordinary-acquisition PostgreSQL checks pass. Complete backend/DDL
+  and full_stack_browser profiles require exact corrected-source manifests and Root resource allocation.
   Assertions, retries, coverage, selection, references and visual tolerance remain unchanged.
-current_gate_checkpoint: Job6 worksheet identity and ordinary refresh completeness repair is active on
-  adopted green source 39794281b2f0402476685d6d3c2bcf5aace90419. Retained workbook hash c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2
-  is reproduced offline; anchored single-sheet/date identity, strict ordinary OIH acquisition, identity-conflict
-  precedence, and conditional dated-complete metadata are implemented. Focused offline checks pass (adapter23,
-  refresh identity3, qualification59); the new alias-absent ordinary acquisition integration case collects
-  as one test but awaits Root DB allocation. Full backend/runtime and exact-source CI remain pending;
-  no source request is authorized. The accepted VJD1-VJD4 checkpoint and all24 roadmap criteria remain
-  preserved.
+current_gate_checkpoint: Job6 worksheet identity and ordinary refresh completeness repair remains in progress
+  on the corrected source published from ed08 with this one-line test-fixture repair. Retained
+  workbook hash c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2 is reproduced offline;
+  anchored single-sheet/date identity, strict ordinary OIH acquisition, identity-conflict precedence, and
+  conditional dated-complete metadata are implemented. Focused offline checks pass (adapter25, refresh identity3,
+  qualification59); the alias-absent ordinary acquisition PostgreSQL regression passed 1/1 under
+  GITHUB_ACTIONS=true after selecting the persistent PostgreSQL test-ledger fixture. Exact CI41291454985 was
+  red only on the prior SQLite test setup; that source failure is preserved. The earlier full backend collector
+  was stopped by Root with exit124 after shard119 and is interrupted, not green. A corrected-source complete
+  backend/DDL run, full_stack_browser, and exact-source CI remain pending. No source request is authorized.
+  The accepted VJD1-VJD4 checkpoint and all24 roadmap criteria remain preserved.
 integration_capture: exact branch HEAD
 integration_checkpoint:
   id: provider-job6-worksheet-identity-repair-20261101
@@ -11651,9 +11654,8 @@ integration_checkpoint:
     VJL/VQS/OIH/cached-search histories, green staging ancestry 39794281b2f0402476685d6d3c2bcf5aace90419,
     and all24 roadmap criteria remain preserved.
   required_gates_remaining:
-  - Focused parser/qualification/refresh-identity unit regressions and locked lint/format/source checks.
-  - Root-released exact-shape PostgreSQL/SQLite successor, legacy-contract and ordinary OIH refresh regressions.
-  - Complete backend unit/integration/DDL coverage at unchanged threshold and zero retries.
+  - Complete corrected-source backend unit/integration/DDL selection, including job6, legacy job3/job4/job5
+    PostgreSQL/SQLite contracts, unchanged coverage threshold and zero retries.
   - Root-allocated full_stack_browser functional and strict-visual profile at unchanged selection, references,
     tolerance, and zero retries.
   - Exact-source branch CI and Root technical acceptance; no earlier staging/implementation receipt qualifies
