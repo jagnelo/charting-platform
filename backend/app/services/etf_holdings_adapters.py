@@ -6,6 +6,7 @@ import csv
 import hashlib
 import html
 import json
+import posixpath
 import re
 import shutil
 import ssl
@@ -5766,6 +5767,23 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"VanEck workbook did not expose holdings for {normalized_symbol}.")
         workbook_rows = parse_xlsx_table(response.content)
+        body_identity_status: str | None = None
+        body_identity_evidence: list[str] = []
+        if normalized_symbol == "OIH":
+            if composition_date is None:
+                raise ValueError("VanEck OIH workbook has no valid composition date.")
+            if composition_date > datetime.now(UTC).date():
+                raise ValueError("VanEck OIH workbook composition date is in the future.")
+            body_identity_status, body_identity_evidence = self._initial_workbook_identity(
+                response.content,
+                workbook_rows,
+                composition_date=composition_date,
+            )
+            if body_identity_status != "matched":
+                raise ValueError(
+                    "VanEck OIH workbook body identity is "
+                    f"{body_identity_status}; ordinary holdings acquisition denied."
+                )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -5781,6 +5799,25 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_slug": product_slug,
                 "snapshot_provenance": "vaneck_native_daily_holdings_workbook",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+                **(
+                    {
+                        "body_identity_status": body_identity_status,
+                        "body_identity_evidence": body_identity_evidence,
+                    }
+                    if body_identity_status is not None
+                    else {}
+                ),
+                **(
+                    {
+                        "source_quality": "issuer_reported_dated_complete_holdings",
+                        "completeness_status": "complete",
+                    }
+                    if normalized_symbol == "OIH"
+                    and body_identity_status == "matched"
+                    and composition_date is not None
+                    and rows
+                    else {}
+                ),
             },
         )
 
@@ -5837,7 +5874,7 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 raise ValueError("VanEck OIH workbook composition date is in the future.")
             workbook_rows = parse_xlsx_table(raw_workbook)
             body_identity_status, body_identity_evidence = self._initial_workbook_identity(
-                raw_workbook, workbook_rows
+                raw_workbook, workbook_rows, composition_date=composition_date
             )
             raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
         except _httpx.HTTPStatusError as exc:
@@ -5892,14 +5929,21 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @classmethod
     def _initial_workbook_identity(
-        cls, raw_workbook: bytes, workbook_rows: list[list[Any]]
+        cls,
+        raw_workbook: bytes,
+        workbook_rows: list[list[Any]],
+        *,
+        composition_date: date | None,
     ) -> tuple[str, list[str]]:
-        """Use independent workbook title metadata; the request URL is not body identity."""
+        """Use workbook-internal identity; a request URL is never body identity."""
 
         title_cells: list[str] = []
+        worksheet_names: list[str] = []
+        parsed_sheet_is_only_declared_sheet = False
         try:
             with zipfile.ZipFile(BytesIO(raw_workbook)) as workbook:
-                if "docProps/core.xml" in workbook.namelist():
+                members = set(workbook.namelist())
+                if "docProps/core.xml" in members:
                     properties = ET.fromstring(workbook.read("docProps/core.xml"))
                     allowed = {"title", "subject", "description", "keywords"}
                     title_cells.extend(
@@ -5908,6 +5952,41 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         if node.tag.rsplit("}", 1)[-1].lower() in allowed
                         and (value := (node.text or "").strip())
                     )
+                if "xl/workbook.xml" in members:
+                    workbook_root = ET.fromstring(workbook.read("xl/workbook.xml"))
+                    sheet_nodes = [
+                        node
+                        for node in workbook_root.iter()
+                        if node.tag.rsplit("}", 1)[-1] == "sheet"
+                    ]
+                    worksheet_names = [node.attrib.get("name", "") for node in sheet_nodes]
+                    if len(sheet_nodes) == 1:
+                        relationship_id = sheet_nodes[0].attrib.get(
+                            "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+                        )
+                        if "xl/_rels/workbook.xml.rels" in members and relationship_id:
+                            relationships = ET.fromstring(
+                                workbook.read("xl/_rels/workbook.xml.rels")
+                            )
+                            target = next(
+                                (
+                                    node.attrib.get("Target")
+                                    for node in relationships.iter()
+                                    if node.tag.rsplit("}", 1)[-1] == "Relationship"
+                                    and node.attrib.get("Id") == relationship_id
+                                ),
+                                None,
+                            )
+                            if target:
+                                sheet_path = posixpath.normpath(
+                                    target.lstrip("/")
+                                    if target.startswith("/")
+                                    else posixpath.join("xl", target)
+                                )
+                                parsed_sheet_is_only_declared_sheet = (
+                                    sheet_path == "xl/worksheets/sheet1.xml"
+                                    and sheet_path in members
+                                )
         except (ET.ParseError, OSError, zipfile.BadZipFile):
             return "unverified", []
 
@@ -5947,23 +6026,62 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
         # A known contradictory fund identity takes precedence even if a stale
         # OIH label also appears elsewhere in workbook metadata.
+        worksheet_markers: list[tuple[str, date | None, str]] = []
+        sheet_identity_pattern = re.compile(
+            r"([A-Z][A-Z0-9.-]{0,11})_asof_(\d{8})", flags=re.IGNORECASE
+        )
+        for name in worksheet_names:
+            match = sheet_identity_pattern.fullmatch(name)
+            if match is None:
+                continue
+            try:
+                sheet_date = datetime.strptime(match.group(2), "%Y%m%d").date()
+            except ValueError:
+                sheet_date = None
+            worksheet_markers.append((match.group(1).upper(), sheet_date, name))
+
+        worksheet_status = "unverified"
+        if worksheet_markers:
+            marked_tickers = {ticker for ticker, _, _ in worksheet_markers}
+            marked_dates = {sheet_date for _, sheet_date, _ in worksheet_markers}
+            if any(ticker != "OIH" for ticker in marked_tickers) or len(marked_dates) > 1:
+                worksheet_status = "mismatch"
+            elif len(worksheet_markers) > 1:
+                # Multiple same-fund sheets are ambiguous even when their labels agree.
+                worksheet_status = "unverified"
+            elif worksheet_markers[0][1] is None:
+                worksheet_status = "unverified"
+            elif not parsed_sheet_is_only_declared_sheet:
+                worksheet_status = "unverified"
+            elif composition_date is None:
+                worksheet_status = "unverified"
+            elif worksheet_markers[0][1] != composition_date:
+                worksheet_status = "mismatch"
+            else:
+                worksheet_status = "matched"
+            title_cells.extend(f"worksheet:{name}" for _, _, name in worksheet_markers)
+
         if (
             any(ticker.upper() != "OIH" for ticker in explicit_tickers)
-            or "semiconductor etf" in title_text
-            or "steel etf" in title_text
+            or re.search(r"\bsemiconductor\s+etf\b", title_text)
+            or re.search(r"\bsteel\s+etf\b", title_text)
             or re.search(r"\b(?:smh|slx)\b", title_text)
             or (
-                "vaneck" in title_text and " etf" in title_text and "oil services" not in title_text
+                re.search(r"\bvaneck\b", title_text)
+                and re.search(r"\betf\b", title_text)
+                and not re.search(r"\boil\s+services\b", title_text)
             )
+            or worksheet_status == "mismatch"
         ):
-            return "mismatch", title_cells
+            return "mismatch", title_cells[:40]
         if (
             "OIH" in {ticker.upper() for ticker in explicit_tickers}
             or re.search(r"\boih\b", title_text)
-            or "oil services etf" in title_text
+            or re.search(r"\boil\s+services\s+etf\b", title_text)
+            or worksheet_status == "matched"
         ):
-            return "matched", title_cells
-        return "unverified", title_cells
+            return "matched", title_cells[:40]
+        return "unverified", title_cells[:40]
 
     @staticmethod
     async def _get_with_timeout_retry(

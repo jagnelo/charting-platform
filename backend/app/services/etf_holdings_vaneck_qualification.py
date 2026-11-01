@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import hashlib
 import json
 import re
 import time
+import xml.etree.ElementTree as ET
+import zipfile
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
@@ -78,8 +81,12 @@ VANECK_POSTTRANSPORT_CONTINUATION_KEY = "posttransport_continuation"
 VANECK_POSTTRANSPORT_JOB3_CONTRACT = "job3_posttransport_linkage_v1"
 VANECK_SETTLEMENT_PROJECTION_JOB4_CONTRACT = "job4_settlement_projection_v1"
 VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT = "job5_canonical_redirect_v1"
+VANECK_BODY_IDENTITY_JOB6_CONTRACT = "job6_body_identity_v1"
 VANECK_JOB5_REDIRECT_FAILURE_REASON = (
     "VanEck initial qualification stopped at an unreviewed redirect."
+)
+VANECK_JOB6_BODY_IDENTITY_FAILURE_REASON = (
+    "VanEck OIH workbook body identity is unverified; qualification denied."
 )
 VANECK_SETTLEMENT_PROJECTION_FAILURE_CODE = "settled_usage_units_missing"
 VANECK_SETTLEMENT_PROJECTION_FAILURE_REASON = (
@@ -1389,6 +1396,7 @@ async def _validate_settlement_projection_predecessor(
         or request_log.completed_at > predecessor.completed_at
         or request_log.success is not True
         or request_log.error_type is not None
+        or request_log.error_message is not None
         or request_log.usage_mode != "call_count"
         # The retained job4 predates the supported operator metadata correction.
         # Preserve its immutable historical label; the independently verified
@@ -1878,6 +1886,496 @@ async def _validate_job5_canonical_redirect_predecessor(
     return predecessor, lineage
 
 
+async def _validate_job6_body_identity_predecessor(
+    db: AsyncSession,
+    *,
+    predecessor_job_id: int,
+    expected_extra_data_sha256: str,
+    profile: ETFProfile,
+    source: DataSource,
+    entitlement: ProviderEntitlement,
+    account_scope: str,
+    current_fingerprint: str,
+) -> tuple[ETFHoldingsBackfillJob, dict[str, object]]:
+    """Verify job6's exact retained identity rejection and its immutable lineage."""
+
+    predecessor = await db.scalar(
+        select(ETFHoldingsBackfillJob)
+        .where(ETFHoldingsBackfillJob.id == predecessor_job_id)
+        .with_for_update()
+        .execution_options(populate_existing=True)
+    )
+    if (
+        predecessor is None
+        or predecessor.etf_profile_id != profile.id
+        or predecessor.requested_by_user_id is None
+        or predecessor.source_provider != "vaneck"
+        or predecessor.job_type != VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE
+        or predecessor.status != "failed"
+        or predecessor.started_at is None
+        or predecessor.completed_at is None
+        or predecessor.completed_at < predecessor.started_at
+        or predecessor.failure_reason != VANECK_JOB6_BODY_IDENTITY_FAILURE_REASON
+        or predecessor.discovered_count != 0
+        or predecessor.ingested_count != 0
+        or predecessor.skipped_count != 0
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Only the exact failed VanEck OIH body-identity attempt can receive a continuation."
+        )
+
+    current_usage_projection = _current_vaneck_application_usage_projection(source)
+    if current_usage_projection != ("call_count", "requests"):
+        raise ETFHoldingsRouteHeldError(
+            "The current VanEck usage projection does not match the reviewed request unit."
+        )
+
+    extra = predecessor.extra_data if isinstance(predecessor.extra_data, dict) else {}
+    actual_extra_sha256 = hashlib.sha256(
+        json.dumps(extra, sort_keys=True, separators=(",", ":"), default=str).encode()
+    ).hexdigest()
+    if (
+        not re.fullmatch(r"[0-9a-f]{64}", expected_extra_data_sha256)
+        or actual_extra_sha256 != expected_extra_data_sha256.lower()
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The job6 extra_data digest does not match its retained immutable evidence."
+        )
+
+    scope = extra.get("qualification_scope")
+    outcome = extra.get("qualification_outcome")
+    continuation = extra.get(VANECK_POSTTRANSPORT_CONTINUATION_KEY)
+    log_ids = extra.get("provider_request_log_ids")
+    if not isinstance(continuation, dict):
+        raise ETFHoldingsRouteHeldError("The job6 continuation witness is missing.")
+    try:
+        continuation_request_id = str(UUID(str(continuation.get("request_id"))))
+    except (TypeError, ValueError) as exc:
+        raise ETFHoldingsRouteHeldError("The retained job6 request id is invalid.") from exc
+
+    continuation_predecessor_id = continuation.get("predecessor_job_id")
+    continuation_predecessor_digest = continuation.get("predecessor_extra_data_sha256")
+    continuation_operator_id = continuation.get("operator_user_id")
+    continuation_review_reference = continuation.get("review_evidence_reference")
+    continuation_review_sha256 = continuation.get("review_evidence_sha256")
+    continuation_keys = {
+        "predecessor_job_id",
+        "request_id",
+        "review_evidence_reference",
+        "review_evidence_sha256",
+        "request_fingerprint",
+        "predecessor_contract",
+        "predecessor_extra_data_sha256",
+        "predecessor_lineage",
+        "review_revision",
+        "provider_review_fingerprint",
+        "created_at",
+        "completed_at",
+        "operator_user_id",
+        "status",
+        "physical_request_limit",
+        "positive_qualification",
+    }
+    expected_scope_keys = {
+        "provider",
+        "capability",
+        "operation",
+        "profile_id",
+        "instrument_id",
+        "provider_symbol",
+        "product_slug",
+        "request_url",
+        "allowed_initial_host",
+        "account_scope",
+        "review_revision",
+        "expires_at",
+        "concurrency",
+        "minimum_physical_interval_seconds",
+        "burst_capacity",
+        "max_physical_requests",
+        "deadline_seconds",
+        "max_response_bytes",
+        "automatic_retries",
+        "follow_redirects",
+        "provider_review_fingerprint",
+    }
+    if (
+        set(extra)
+        != {
+            "qualification_scope",
+            "qualification_outcome",
+            "provider_request_log_ids",
+            VANECK_POSTTRANSPORT_CONTINUATION_KEY,
+        }
+        or not isinstance(scope, dict)
+        or set(scope) != expected_scope_keys
+        or scope.get("provider") != "vaneck"
+        or scope.get("capability") != ProviderCapability.ETF_HOLDINGS.value
+        or scope.get("operation") != VANECK_OIH_INITIAL_QUALIFICATION_OPERATION
+        or scope.get("profile_id") != profile.id
+        or scope.get("instrument_id") != profile.instrument_id
+        or scope.get("provider_symbol") != "OIH"
+        or scope.get("product_slug") != VANECK_OIH_PRODUCT_SLUG
+        or scope.get("request_url") != VANECK_OIH_CANONICAL_DOWNLOAD_URL
+        or scope.get("allowed_initial_host") != "www.vaneck.com"
+        or scope.get("account_scope") != account_scope
+        or scope.get("concurrency") != 1
+        or scope.get("minimum_physical_interval_seconds") != VANECK_OIH_INITIAL_MIN_INTERVAL_SECONDS
+        or scope.get("burst_capacity") != 1
+        or scope.get("max_physical_requests") != 1
+        or scope.get("deadline_seconds") != VANECK_OIH_INITIAL_DEADLINE_SECONDS
+        or scope.get("max_response_bytes") != VANECK_OIH_INITIAL_MAX_BODY_BYTES
+        or scope.get("automatic_retries") != 0
+        or scope.get("follow_redirects") is not False
+        or isinstance(scope.get("review_revision"), bool)
+        or scope.get("review_revision") != int(entitlement.revision or 1)
+        or scope.get("provider_review_fingerprint") != current_fingerprint
+        or set(continuation) != continuation_keys
+        or continuation.get("request_id") != continuation_request_id
+        or isinstance(continuation_predecessor_id, bool)
+        or not isinstance(continuation_predecessor_id, int)
+        or continuation_predecessor_id <= 0
+        or continuation_predecessor_id >= predecessor.id
+        or not isinstance(continuation_predecessor_digest, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", continuation_predecessor_digest)
+        or continuation_operator_id != predecessor.requested_by_user_id
+        or isinstance(continuation_operator_id, bool)
+        or not isinstance(continuation_review_reference, str)
+        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9:_.-]{5,179}", continuation_review_reference)
+        or not isinstance(continuation_review_sha256, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", continuation_review_sha256)
+        or continuation.get("predecessor_contract") != VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT
+        or continuation.get("status") != "failed"
+        or continuation.get("positive_qualification") is not False
+        or continuation.get("physical_request_limit") != 1
+        or isinstance(continuation.get("physical_request_limit"), bool)
+        or continuation.get("review_revision") != scope.get("review_revision")
+        or continuation.get("provider_review_fingerprint") != current_fingerprint
+        or continuation.get("request_fingerprint")
+        != _posttransport_request_fingerprint(
+            predecessor_job_id=continuation_predecessor_id,
+            request_id=continuation_request_id,
+            review_evidence_reference=continuation_review_reference,
+            review_evidence_sha256=continuation_review_sha256,
+            requested_by_user_id=continuation_operator_id,
+            predecessor_contract=VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT,
+            predecessor_extra_data_sha256=continuation_predecessor_digest,
+        )
+        or not isinstance(log_ids, list)
+        or len(log_ids) != 1
+        or isinstance(log_ids[0], bool)
+        or not isinstance(log_ids[0], int)
+        or log_ids[0] <= 0
+        or not isinstance(outcome, dict)
+        or set(outcome) != {"status", "reason", "provider_attempt_evidence"}
+        or outcome.get("status") != "not_qualified"
+        or outcome.get("reason") != VANECK_JOB6_BODY_IDENTITY_FAILURE_REASON
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The failed job6 does not match the exact reviewed OIH workbook identity scope."
+        )
+
+    attempt_evidence = outcome.get("provider_attempt_evidence")
+    if (
+        not isinstance(attempt_evidence, dict)
+        or set(attempt_evidence)
+        != {
+            "admitted_attempt_recorded",
+            "request_log_callback_ids",
+            "persisted_request_log_ids",
+            "all_callback_logs_persisted",
+            "positive_qualification_linked",
+        }
+        or attempt_evidence.get("admitted_attempt_recorded") is not True
+        or attempt_evidence.get("request_log_callback_ids") != log_ids
+        or attempt_evidence.get("persisted_request_log_ids") != log_ids
+        or attempt_evidence.get("all_callback_logs_persisted") is not True
+        or attempt_evidence.get("positive_qualification_linked") is not False
+    ):
+        raise ETFHoldingsRouteHeldError("The failed job6 has no complete persisted log witness.")
+
+    try:
+        expires_at = datetime.fromisoformat(str(scope["expires_at"]))
+        created_at = datetime.fromisoformat(str(continuation["created_at"]))
+        continuation_completed_at = datetime.fromisoformat(str(continuation["completed_at"]))
+    except (TypeError, ValueError) as exc:
+        raise ETFHoldingsRouteHeldError("The job6 qualification timing is invalid.") from exc
+    if (
+        expires_at.tzinfo is None
+        or expires_at.utcoffset() is None
+        or created_at.tzinfo is None
+        or created_at.utcoffset() is None
+        or continuation_completed_at.tzinfo is None
+        or continuation_completed_at.utcoffset() is None
+        or expires_at - predecessor.started_at
+        != timedelta(seconds=VANECK_OIH_INITIAL_DEADLINE_SECONDS)
+        or predecessor.completed_at > expires_at
+        or created_at != predecessor.started_at
+        or continuation_completed_at != predecessor.completed_at
+    ):
+        raise ETFHoldingsRouteHeldError("The job6 qualification timing is invalid.")
+
+    job5, job5_lineage = await _validate_job5_canonical_redirect_predecessor(
+        db,
+        predecessor_job_id=continuation_predecessor_id,
+        expected_extra_data_sha256=continuation_predecessor_digest,
+        profile=profile,
+        source=source,
+        entitlement=entitlement,
+        account_scope=account_scope,
+        current_fingerprint=current_fingerprint,
+    )
+    if job5.id >= predecessor.id or continuation.get("predecessor_lineage") != job5_lineage:
+        raise ETFHoldingsRouteHeldError(
+            "The job6-to-job5 immutable predecessor lineage is inconsistent."
+        )
+
+    observed_logs = list(
+        (
+            await db.scalars(
+                select(ProviderRequestLog)
+                .where(
+                    ProviderRequestLog.data_source_id == source.id,
+                    ProviderRequestLog.capability == ProviderCapability.ETF_HOLDINGS,
+                    ProviderRequestLog.operation == VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                    ProviderRequestLog.instrument_id == profile.instrument_id,
+                    ProviderRequestLog.requested_at >= predecessor.started_at,
+                    ProviderRequestLog.requested_at <= predecessor.completed_at,
+                )
+                .order_by(ProviderRequestLog.id)
+            )
+        ).all()
+    )
+    if len(observed_logs) != 1 or observed_logs[0].id != log_ids[0]:
+        raise ETFHoldingsRouteHeldError(
+            "The job6 time window contains an unexpected or unlinked Provider request log."
+        )
+
+    request_log = await db.get(ProviderRequestLog, log_ids[0])
+    if (
+        request_log is None
+        or request_log.data_source_id != source.id
+        or request_log.capability != ProviderCapability.ETF_HOLDINGS
+        or request_log.operation != VANECK_OIH_INITIAL_QUALIFICATION_OPERATION
+        or request_log.instrument_id != profile.instrument_id
+        or (request_log.provider_symbol or "").strip().upper() != "OIH"
+        or request_log.requested_at < predecessor.started_at
+        or request_log.completed_at is None
+        or request_log.completed_at > predecessor.completed_at
+        or request_log.success is not True
+        or request_log.error_type is not None
+        or request_log.error_message is not None
+        or request_log.usage_mode != "call_count"
+        or request_log.usage_unit_label != "requests"
+        or float(request_log.usage_units or 0) != 1.0
+        or float(request_log.settled_usage_units or 0) != 1.0
+        or request_log.http_requests != 1
+        or isinstance(request_log.response_bytes, bool)
+        or not isinstance(request_log.response_bytes, int)
+        or request_log.response_bytes <= 0
+        or set(request_log.response_headers or {}) != {"content-length"}
+        or (request_log.response_headers or {}).get("content-length")
+        != str(request_log.response_bytes)
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The job6 Provider log does not prove one settled body fetch."
+        )
+
+    payloads = request_log.response_payloads
+    if not isinstance(payloads, list) or len(payloads) != 1 or not isinstance(payloads[0], dict):
+        raise ETFHoldingsRouteHeldError(
+            "The job6 Provider log has no single complete body witness."
+        )
+    body_evidence = payloads[0]
+    if (
+        set(body_evidence)
+        != {"kind", "encoding", "complete", "bytes_received", "sha256", "body_base64"}
+        or body_evidence.get("kind") != "vaneck_initial_response_body"
+        or body_evidence.get("encoding") != "base64"
+        or body_evidence.get("complete") is not True
+        or body_evidence.get("bytes_received") != request_log.response_bytes
+        or not isinstance(body_evidence.get("body_base64"), str)
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The job6 Provider body witness is incomplete or malformed."
+        )
+    try:
+        raw_workbook = base64.b64decode(body_evidence["body_base64"], validate=True)
+    except (ValueError, TypeError) as exc:
+        raise ETFHoldingsRouteHeldError(
+            "The job6 Provider body witness is not valid base64."
+        ) from exc
+    raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
+    if (
+        not raw_workbook
+        or len(raw_workbook) > VANECK_OIH_INITIAL_MAX_BODY_BYTES
+        or len(raw_workbook) != request_log.response_bytes
+        or body_evidence.get("sha256") != raw_sha256
+    ):
+        raise ETFHoldingsRouteHeldError("The job6 Provider body hash or byte count is invalid.")
+
+    try:
+        from app.services.etf_holdings_adapters import get_holdings_adapter, parse_xlsx_table
+
+        adapter = get_holdings_adapter("vaneck")
+        if adapter is None:
+            raise ValueError("VanEck adapter is unavailable")
+        rows, composition_date = adapter._parse_workbook(raw_workbook)
+        workbook_rows = parse_xlsx_table(raw_workbook)
+        current_identity_status, current_identity_evidence = adapter._initial_workbook_identity(
+            raw_workbook, workbook_rows, composition_date=composition_date
+        )
+    except (ET.ParseError, OSError, ValueError, zipfile.BadZipFile, StopIteration) as exc:
+        raise ETFHoldingsRouteHeldError(
+            "The retained job6 workbook no longer passes the strict OIH identity parser."
+        ) from exc
+    if not rows or composition_date is None or current_identity_status != "matched":
+        raise ETFHoldingsRouteHeldError(
+            "The retained job6 workbook no longer passes the strict OIH identity parser."
+        )
+
+    artifacts = list(
+        (
+            await db.scalars(
+                select(ETFHoldingsRawArtifact)
+                .where(
+                    ETFHoldingsRawArtifact.etf_profile_id == profile.id,
+                    ETFHoldingsRawArtifact.fetched_at >= predecessor.started_at,
+                    ETFHoldingsRawArtifact.fetched_at <= predecessor.completed_at,
+                )
+                .order_by(ETFHoldingsRawArtifact.id)
+            )
+        ).all()
+    )
+    if len(artifacts) != 1:
+        raise ETFHoldingsRouteHeldError("The job6 rejected-workbook artifact is ambiguous.")
+    artifact = artifacts[0]
+    payload = artifact.payload_json if isinstance(artifact.payload_json, dict) else {}
+    metadata = artifact.legal_metadata if isinstance(artifact.legal_metadata, dict) else {}
+    allowlisted_headers = {
+        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content-length": str(len(raw_workbook)),
+    }
+    diagnostic = {
+        "upstream_http_status": 200,
+        "response_body_bytes": len(raw_workbook),
+        "response_body_sha256": raw_sha256,
+        "allowlisted_response_headers": allowlisted_headers,
+    }
+    validation = metadata.get("validation")
+    if (
+        artifact.data_source_id != source.id
+        or artifact.source_kind != "issuer_adapter_rejected_fetch"
+        or artifact.source_url != VANECK_OIH_CANONICAL_DOWNLOAD_URL
+        or artifact.source_identifier is not None
+        or artifact.content_type != "text/plain"
+        or artifact.payload_text is None
+        or artifact.payload_json is None
+        or set(payload)
+        != {
+            "source_format",
+            "workbook_rows",
+            "raw_workbook_base64",
+            "raw_workbook_sha256",
+            "raw_workbook_bytes",
+        }
+        or payload.get("source_format") != "xlsx"
+        or payload.get("workbook_rows") != workbook_rows
+        or payload.get("raw_workbook_base64") != body_evidence["body_base64"]
+        or payload.get("raw_workbook_sha256") != raw_sha256
+        or payload.get("raw_workbook_bytes") != len(raw_workbook)
+        or artifact.content_hash != _hash_payload(payload)
+        or artifact.composition_date is not None
+        or artifact.as_of_date is not None
+        or artifact.published_at is not None
+        or artifact.fetched_at < predecessor.started_at
+        or artifact.fetched_at > predecessor.completed_at
+        or set(metadata)
+        != {
+            "provider_request_log_ids",
+            "request_urls",
+            "request_attempts",
+            "upstream_response_diagnostics",
+            "failure_type",
+            "failure_message",
+            "validation",
+            "evidence_source",
+        }
+        or metadata.get("provider_request_log_ids") != log_ids
+        or metadata.get("request_urls") != [VANECK_OIH_CANONICAL_DOWNLOAD_URL]
+        or metadata.get("request_attempts")
+        != [
+            {
+                "request_log_id": request_log.id,
+                "request_url": VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+                "success": request_log.success,
+                "error_type": request_log.error_type,
+                "error_message": request_log.error_message,
+                "response_headers": request_log.response_headers,
+                "response_payloads": request_log.response_payloads,
+            }
+        ]
+        or metadata.get("upstream_response_diagnostics")
+        != [{"request_log_id": request_log.id, **diagnostic}]
+        or metadata.get("failure_type") != "ValueError"
+        or metadata.get("failure_message") != VANECK_JOB6_BODY_IDENTITY_FAILURE_REASON
+        or not isinstance(validation, dict)
+        or set(validation) != {"status", "body_identity_status", "body_identity_evidence"}
+        or validation.get("status") != "fund_identity_rejected"
+        or validation.get("body_identity_status") != "unverified"
+        or not isinstance(validation.get("body_identity_evidence"), list)
+        or not validation["body_identity_evidence"]
+        or metadata.get("evidence_source") != "shared_provider_request_log_and_refresh_rejection"
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "The job6 artifact does not prove the exact retained unverified workbook response."
+        )
+
+    if await db.scalar(
+        select(func.count(ETFHoldingsBackfillFiling.id)).where(
+            ETFHoldingsBackfillFiling.last_job_id == predecessor.id
+        )
+    ) or await db.scalar(
+        select(func.count(ETFHoldingsSnapshot.id)).where(
+            ETFHoldingsSnapshot.etf_profile_id == profile.id,
+            ETFHoldingsSnapshot.created_at >= predecessor.started_at,
+            ETFHoldingsSnapshot.created_at <= predecessor.completed_at,
+        )
+    ):
+        raise ETFHoldingsRouteHeldError("The failed job6 produced output; continuation is denied.")
+
+    spent = await asyncio.to_thread(
+        _verified_posttransport_spent_reservation,
+        account_scope=account_scope,
+        started_at=predecessor.started_at,
+        completed_at=predecessor.completed_at,
+    )
+    lineage = {
+        "predecessor_job_id": predecessor.id,
+        "predecessor_contract": VANECK_BODY_IDENTITY_JOB6_CONTRACT,
+        "predecessor_job_extra_sha256": actual_extra_sha256,
+        "predecessor_job5_id": job5.id,
+        "predecessor_job5_lineage": job5_lineage,
+        "request_log_id": request_log.id,
+        "diagnostic_artifact_id": artifact.id,
+        "diagnostic_content_hash": artifact.content_hash,
+        "body_sha256": raw_sha256,
+        "body_bytes": len(raw_workbook),
+        "upstream_http_status": 200,
+        "response_headers": allowlisted_headers,
+        "historical_identity_status": "unverified",
+        "current_identity_status": current_identity_status,
+        "current_identity_evidence": current_identity_evidence,
+        "settled_prior_usage": spent,
+        "physical_outcome": "http_200_oih_body_identity_unverified_no_positive_output",
+        "native_usage": "unknown",
+        "current_usage_mode": request_log.usage_mode,
+        "current_usage_unit_label": request_log.usage_unit_label,
+        "current_provider_review_fingerprint": current_fingerprint,
+    }
+    return predecessor, lineage
+
+
 async def _qualify_vaneck_oih_fund(
     db: AsyncSession,
     *,
@@ -2145,6 +2643,13 @@ async def _qualify_vaneck_oih_fund(
                         "The canonical-redirect contract requires its reviewed predecessor digest."
                     )
                 validator = _validate_job5_canonical_redirect_predecessor
+            elif predecessor_contract == VANECK_BODY_IDENTITY_JOB6_CONTRACT:
+                expected_digest = continuation_attestation.get("predecessor_extra_data_sha256")
+                if not isinstance(expected_digest, str):
+                    raise ETFHoldingsRouteHeldError(
+                        "The body-identity contract requires a reviewed predecessor digest."
+                    )
+                validator = _validate_job6_body_identity_predecessor
             else:
                 raise ETFHoldingsRouteHeldError("The predecessor contract is unsupported.")
             validation_args = {
@@ -2159,6 +2664,7 @@ async def _qualify_vaneck_oih_fund(
             if predecessor_contract in {
                 VANECK_SETTLEMENT_PROJECTION_JOB4_CONTRACT,
                 VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT,
+                VANECK_BODY_IDENTITY_JOB6_CONTRACT,
             }:
                 validation_args["expected_extra_data_sha256"] = continuation_attestation[
                     "predecessor_extra_data_sha256"
@@ -2213,7 +2719,8 @@ async def _qualify_vaneck_oih_fund(
         )
         qualification_request_url = (
             VANECK_OIH_CANONICAL_DOWNLOAD_URL
-            if predecessor_contract == VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT
+            if predecessor_contract
+            in {VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT, VANECK_BODY_IDENTITY_JOB6_CONTRACT}
             else VANECK_OIH_INITIAL_URL
         )
         scope = {
@@ -2518,6 +3025,7 @@ async def continue_vaneck_oih_fund(
         VANECK_POSTTRANSPORT_JOB3_CONTRACT,
         VANECK_SETTLEMENT_PROJECTION_JOB4_CONTRACT,
         VANECK_CANONICAL_REDIRECT_JOB5_CONTRACT,
+        VANECK_BODY_IDENTITY_JOB6_CONTRACT,
     }:
         raise ETFHoldingsRouteHeldError("The predecessor contract is unsupported.")
     if predecessor_contract == VANECK_POSTTRANSPORT_JOB3_CONTRACT:
@@ -2529,7 +3037,7 @@ async def continue_vaneck_oih_fund(
         r"[0-9a-fA-F]{64}", predecessor_extra_data_sha256
     ):
         raise ETFHoldingsRouteHeldError(
-            "The settlement-projection contract requires a predecessor digest."
+            "The selected successor contract requires a predecessor digest."
         )
     request_fingerprint = _posttransport_request_fingerprint(
         predecessor_job_id=predecessor_job_id,

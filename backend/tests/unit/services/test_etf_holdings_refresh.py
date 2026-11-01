@@ -97,6 +97,47 @@ async def _no_prior_snapshot(*_args, **_kwargs):
     return None
 
 
+@pytest.mark.parametrize(
+    ("raw_text", "expected_status"),
+    [
+        ("Daily Holdings (%) 10/29/2026\nTicker,Weight,Name\nSLB,1.0%,SLB Ltd", "matched"),
+        ("Fund Ticker,SMH\nTicker,Weight\nSLB,1.0%", "mismatch"),
+        (
+            "Fund Name,VanEck Semiconductor ETF (SMH)\nTicker,Weight\nSLB,1.0%",
+            "mismatch",
+        ),
+    ],
+)
+def test_verified_oih_worksheet_identity_fills_missing_table_identity_but_not_conflicts(
+    raw_text, expected_status
+):
+    profile_value = _profile("OIH")
+    profile_value.adapter_key = "vaneck"
+    profile_value.instrument.name = "VanEck Oil Services ETF"
+    profile_value.provider_aliases = {
+        "product_slug": "oil-services-etf-oih",
+        "expected_etf_symbol": "OIH",
+        "expected_etf_name": "VanEck Oil Services ETF",
+    }
+
+    result = refresh._validate_artifact_identity(
+        profile_value,
+        raw_text,
+        verified_body_identity=["worksheet:OIH_asof_20261029"],
+    )
+
+    assert result["status"] == expected_status
+    if expected_status == "matched":
+        assert result["matched"] == [
+            {
+                "type": "verified_body_identity",
+                "value": "worksheet:OIH_asof_20261029",
+            }
+        ]
+    else:
+        assert result["matched"] == []
+
+
 def test_curated_spdr_route_metadata_binds_adapter_and_publisher_identity():
     profile_value = _profile("SPY")
     profile_value.provider_aliases = {"operator_review_ref": "retained-review-record"}

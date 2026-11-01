@@ -786,6 +786,7 @@ class ETFHoldingsVanEckPostTransportContinuationRequest(BaseModel):
         "job3_posttransport_linkage_v1",
         "job4_settlement_projection_v1",
         "job5_canonical_redirect_v1",
+        "job6_body_identity_v1",
     ] = "job3_posttransport_linkage_v1"
     predecessor_extra_data_sha256: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{64}$")
     # These values are audit attestations only; the server never reads caller paths.

@@ -167,6 +167,70 @@ def _xlsx_workbook_sheets(sheets: list[list[list[str]]]) -> bytes:
     return output.getvalue()
 
 
+def _xlsx_with_declared_worksheet_names(
+    workbook_bytes: bytes,
+    names: list[str],
+    *,
+    hidden_indexes: set[int] | None = None,
+    first_sheet_relationship_target: str | None = None,
+    core_title: str | None = None,
+) -> bytes:
+    """Add workbook metadata for identity tests without changing sheet1 holdings."""
+
+    source = BytesIO(workbook_bytes)
+    output = BytesIO()
+    hidden_indexes = hidden_indexes or set()
+    with zipfile.ZipFile(source) as original, zipfile.ZipFile(output, mode="w") as updated:
+        members = {name: original.read(name) for name in original.namelist()}
+        for member, content in members.items():
+            updated.writestr(member, content)
+        template = members["xl/worksheets/sheet1.xml"]
+        for index in range(2, len(names) + 1):
+            updated.writestr(f"xl/worksheets/sheet{index}.xml", template)
+        if first_sheet_relationship_target and "sheet2.xml" in first_sheet_relationship_target:
+            updated.writestr("xl/worksheets/sheet2.xml", template)
+        sheet_nodes = []
+        relationships = []
+        for index, name in enumerate(names, start=1):
+            state = ' state="hidden"' if index in hidden_indexes else ""
+            sheet_nodes.append(
+                f'<sheet name="{escape(name, {chr(34): "&quot;"})}" sheetId="{index}"'
+                f'{state} r:id="rId{index}"/>'
+            )
+            target = (
+                first_sheet_relationship_target
+                if index == 1 and first_sheet_relationship_target
+                else f"worksheets/sheet{index}.xml"
+            )
+            relationships.append(
+                f'<Relationship Id="rId{index}" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+                f'Target="{target}"/>'
+            )
+        workbook_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            f'<sheets>{"".join(sheet_nodes)}</sheets></workbook>'
+        )
+        relationships_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            f'{"".join(relationships)}</Relationships>'
+        )
+        updated.writestr("xl/workbook.xml", workbook_xml)
+        updated.writestr("xl/_rels/workbook.xml.rels", relationships_xml)
+        if core_title is not None:
+            updated.writestr(
+                "docProps/core.xml",
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                f"<dc:title>{escape(core_title)}</dc:title></cp:coreProperties>",
+            )
+    return output.getvalue()
+
+
 class FakeResponse:
     def __init__(
         self,
@@ -5085,6 +5149,175 @@ async def test_vaneck_initial_workbook_identity_comes_from_body_not_requested_sl
         assert "SMH" in evidence
     else:
         assert title_with_date in evidence
+
+
+def _generic_oih_workbook_rows(*, identity_row: list[str] | None = None) -> list[list[str]]:
+    return [
+        ["Daily Holdings (%) 10/29/2026"],
+        identity_row or [],
+        [
+            "Number",
+            "Ticker",
+            "Holding Name",
+            "Identifier (FIGI)",
+            "Shares",
+            "Asset Class",
+            "Market Value (US$)",
+            "% of Net Assets",
+        ],
+        ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+    ]
+
+
+def test_vaneck_retained_job6_workbook_uses_exact_single_sheet_identity_fixture():
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook_path = Path(__file__).parents[2] / "fixtures/vaneck/oih_job6_identity.xlsx"
+    raw_workbook = workbook_path.read_bytes()
+    assert hashlib.sha256(raw_workbook).hexdigest() == (
+        "c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2"
+    )
+
+    rows, composition_date = adapter._parse_workbook(raw_workbook)
+    workbook_rows = parse_xlsx_table(raw_workbook)
+    status, evidence = adapter._initial_workbook_identity(
+        raw_workbook, workbook_rows, composition_date=composition_date
+    )
+
+    assert rows
+    assert composition_date == date(2026, 10, 29)
+    assert status == "matched"
+    assert "worksheet:OIH_asof_20261029" in evidence
+
+
+@pytest.mark.parametrize(
+    ("sheet_names", "identity_row", "core_title", "relationship_target", "expected"),
+    [
+        (["OIH_asof_20261029"], None, None, None, "matched"),
+        (["SMH_asof_20261029"], None, None, None, "mismatch"),
+        (["OIH_asof_20260230"], None, None, None, "unverified"),
+        (["prefix_OIH_asof_20261029"], None, None, None, "unverified"),
+        (["OIH_asof_20261029_backup"], None, None, None, "unverified"),
+        (["OIH_asof_20261028"], None, None, None, "mismatch"),
+        (["OIH_asof_20261029", "SMH_asof_20261029"], None, None, None, "mismatch"),
+        (["OIH_asof_20261028", "OIH_asof_20261029"], None, None, None, "mismatch"),
+        (["Holdings", "OIH_asof_20261029"], None, None, None, "unverified"),
+        (["OIH_asof_20261029"], ["Fund Ticker", "SMH"], None, None, "mismatch"),
+        (["OIH_asof_20261029"], None, "VanEck Semiconductor ETF (SMH)", None, "mismatch"),
+        (["OIH_asof_20261029"], None, None, "worksheets/sheet2.xml", "unverified"),
+    ],
+)
+def test_vaneck_worksheet_identity_is_anchored_single_sheet_and_date_bound(
+    sheet_names, identity_row, core_title, relationship_target, expected
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook = _xlsx_with_declared_worksheet_names(
+        _xlsx_workbook(_generic_oih_workbook_rows(identity_row=identity_row)),
+        sheet_names,
+        hidden_indexes={2},
+        first_sheet_relationship_target=relationship_target,
+        core_title=core_title,
+    )
+    rows, composition_date = adapter._parse_workbook(workbook)
+    status, evidence = adapter._initial_workbook_identity(
+        workbook, parse_xlsx_table(workbook), composition_date=composition_date
+    )
+    assert rows
+    assert composition_date == date(2026, 10, 29)
+    assert status == expected
+    assert evidence
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "identity_source",
+    ["retained_sheet", "generic_title_only", "wrong_fund_ticker", "wrong_fund_name"],
+)
+async def test_vaneck_ordinary_oih_fetch_uses_same_body_identity_gate(monkeypatch, identity_source):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    if identity_source == "retained_sheet":
+        workbook = (
+            Path(__file__).parents[2] / "fixtures/vaneck/oih_job6_identity.xlsx"
+        ).read_bytes()
+    elif identity_source == "generic_title_only":
+        workbook = _xlsx_workbook(_generic_oih_workbook_rows())
+    else:
+        identity_row = (
+            ["Fund Ticker", "SMH"]
+            if identity_source == "wrong_fund_ticker"
+            else ["Fund Name", "VanEck Semiconductor ETF (SMH)"]
+        )
+        workbook = _xlsx_with_declared_worksheet_names(
+            _xlsx_workbook(_generic_oih_workbook_rows(identity_row=identity_row)),
+            ["OIH_asof_20261029"],
+        )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [FakeResponse(content=workbook, url=VANECK_OIH_CANONICAL_DOWNLOAD_URL)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    if identity_source == "retained_sheet":
+        result = await adapter.fetch_latest(
+            symbol="OIH",
+            issuer_product_id="oil-services-etf-oih",
+            identifiers={"product_slug": "oil-services-etf-oih"},
+        )
+        assert result.legal_metadata["body_identity_status"] == "matched"
+        assert "worksheet:OIH_asof_20261029" in result.legal_metadata["body_identity_evidence"]
+        assert result.legal_metadata["source_quality"] == "issuer_reported_dated_complete_holdings"
+        assert result.legal_metadata["completeness_status"] == "complete"
+    else:
+        expected_identity_status = (
+            "unverified" if identity_source == "generic_title_only" else "mismatch"
+        )
+        with pytest.raises(ValueError, match=f"body identity is {expected_identity_status}"):
+            await adapter.fetch_latest(
+                symbol="OIH",
+                issuer_product_id="oil-services-etf-oih",
+                identifiers={"product_slug": "oil-services-etf-oih"},
+            )
+    assert FakeAsyncClient.requested[0][0] == VANECK_OIH_CANONICAL_DOWNLOAD_URL
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("case", "expected_error"),
+    [
+        ("invalid_date", "no valid composition date"),
+        ("future_date", "composition date is in the future"),
+        ("empty_rows", "did not expose holdings"),
+    ],
+)
+async def test_vaneck_ordinary_oih_does_not_mark_invalid_or_empty_workbook_complete(
+    monkeypatch, case, expected_error
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    if case == "invalid_date":
+        title = "OIH | Daily Holdings (%) 13/41/2026"
+        rows = _generic_oih_workbook_rows()
+        rows[0] = [title]
+    elif case == "future_date":
+        tomorrow = datetime.now(UTC).date() + timedelta(days=1)
+        rows = _generic_oih_workbook_rows()
+        rows[0] = [f"OIH | Daily Holdings (%) {tomorrow:%m/%d/%Y}"]
+    else:
+        rows = _generic_oih_workbook_rows()[:-1]
+    workbook = _xlsx_workbook(rows)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [FakeResponse(content=workbook, url=VANECK_OIH_CANONICAL_DOWNLOAD_URL)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match=expected_error):
+        await adapter.fetch_latest(
+            symbol="OIH",
+            issuer_product_id="oil-services-etf-oih",
+            identifiers={"product_slug": "oil-services-etf-oih"},
+        )
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
