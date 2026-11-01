@@ -2,10 +2,10 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/tests/unit/services/test_etf_holdings_adapters.py",
-    "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py and test_etf_holdings_provider_bridge.py",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (job5 canonical successor and legacy job3/job4 compatibility)",
-    "complete backend unit/integration coverage and required full_stack_browser profile"
+    "backend/tests/unit/services/test_etf_holdings_adapters.py and backend/tests/unit/services/test_etf_holdings_refresh.py (retained job6 workbook identity, worksheet/date, ordinary OIH metadata and explicit identity precedence)",
+    "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py (typed successor admission and legacy compatibility)",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (job6 immutable successor, PostgreSQL/SQLite, job3/job4/job5 compatibility, ordinary OIH persisted completeness/current-analysis eligibility)",
+    "complete backend unit/integration/DDL coverage and required full_stack_browser profile"
   ],
   "commands": [
     {
@@ -17,7 +17,7 @@
         3,
         4
       ],
-      "scope_note": "Required complete backend profile for VJD source/test impact; execute only in the Root-released isolated slot."
+      "scope_note": "Required complete backend profile for VJ6 parser, ordinary route and immutable job6 continuation impact; execute only in a Root-released isolated slot."
     }
   ],
   "ci_covered_commands": {
@@ -32,7 +32,7 @@
         3,
         4
       ],
-      "reason": "Required full_stack_browser profile for VJD source/test impact; execute with the Root-reviewed isolated fixture after resource release."
+      "reason": "Required full_stack_browser profile for VJ6 source/test impact; execute with the Root-reviewed isolated fixture after explicit resource release, retaining the existing assertions, selection, references, tolerance and zero retries."
     }
   ]
 }

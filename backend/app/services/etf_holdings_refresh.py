@@ -2656,12 +2656,69 @@ def _validate_extracted_artifact_identity(
 def _validate_artifact_identity(
     profile: ETFProfile,
     raw_text: str | None,
+    *,
+    verified_body_identity: list[str] | None = None,
 ) -> dict[str, Any]:
     expectations = _artifact_identity_expectations(profile)
     extracted = _extract_artifact_identities(raw_text)
     required = bool(expectations) or _bool_alias(
         _aliases(profile), "require_artifact_identity_match"
     )
+    # A strict adapter may validate identity from a structured source artifact
+    # that is not represented in the normalized holdings table text (for
+    # example, an XLSX worksheet title). The caller supplies this only after
+    # checking the registered VanEck OIH adapter and its matched body evidence.
+    if verified_body_identity:
+        profile_expectations = _profile_identity_expectations(profile)
+        symbol_expectations = [
+            item["value"]
+            for item in (*profile_expectations, *expectations)
+            if item["type"] in {"profile_symbol", "expected_symbol"}
+        ]
+        name_expectations = [
+            item["value"]
+            for item in (*profile_expectations, *expectations)
+            if item["type"] in {"profile_name", "expected_name"}
+        ]
+        identifier_expectations = {
+            "artifact_cusip": [
+                item["value"] for item in expectations if item["type"] == "expected_cusip"
+            ],
+            "artifact_isin": [
+                item["value"] for item in expectations if item["type"] == "expected_isin"
+            ],
+        }
+        for identity in extracted:
+            expected_values = (
+                symbol_expectations
+                if identity["type"] == "artifact_symbol"
+                else name_expectations
+                if identity["type"] == "artifact_name"
+                else identifier_expectations.get(identity["type"], [])
+            )
+            if expected_values and not all(
+                _identity_matches(identity["value"], expected) for expected in expected_values
+            ):
+                return {
+                    "status": "mismatch",
+                    "required": True,
+                    "matched": [],
+                    "expected": expectations or profile_expectations,
+                    "artifact_identity": extracted,
+                    "body_identity_evidence": verified_body_identity,
+                    "reason": "Structured workbook identity conflicts with explicit fund identity.",
+                }
+        return {
+            "status": "matched",
+            "required": required,
+            "matched": [
+                {"type": "verified_body_identity", "value": evidence}
+                for evidence in verified_body_identity
+            ],
+            "expected": expectations,
+            "artifact_identity": extracted,
+            "body_identity_evidence": verified_body_identity,
+        }
     if not raw_text:
         status = "missing_raw_artifact" if required else "unverified"
         return {
@@ -2707,6 +2764,39 @@ def _validate_artifact_identity(
         "artifact_identity": extracted,
         "reason": "No explicit ETF artifact identity expectations were configured.",
     }
+
+
+def _verified_vaneck_oih_body_identity(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+) -> list[str] | None:
+    """Return strict OIH workbook identity only from the registered adapter result."""
+
+    instrument = profile.instrument
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    aliases = _string_aliases(profile)
+    evidence = metadata.get("body_identity_evidence")
+    composition_date = _date_from_value(metadata.get("composition_date"))
+    if (
+        str(getattr(adapter, "adapter_key", "")).strip().lower() != "vaneck"
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != "vaneck"
+        or instrument is None
+        or instrument.symbol.strip().upper() != "OIH"
+        or _first_alias(aliases, "product_slug", "issuer_product_id", "fund_slug")
+        != "oil-services-etf-oih"
+        or metadata.get("source_provider") != "vaneck"
+        or metadata.get("product_slug") != "oil-services-etf-oih"
+        or metadata.get("body_identity_status") != "matched"
+        or composition_date is None
+        or not isinstance(evidence, list)
+        or not evidence
+        or any(
+            not isinstance(item, str) or not item.strip() or len(item) > 240 for item in evidence
+        )
+    ):
+        return None
+    return [item.strip() for item in evidence]
 
 
 def _ensure_artifact_identity_is_safe(validation: dict[str, Any]) -> None:
@@ -2824,7 +2914,12 @@ async def _refresh_adapter_route(
             validation=_acquisition_validation(acquisition_request_id),
         )
         raise failure
-    artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
+    verified_body_identity = _verified_vaneck_oih_body_identity(profile, adapter, fetch_result)
+    artifact_identity_validation = _validate_artifact_identity(
+        profile,
+        fetch_result.raw_text,
+        verified_body_identity=verified_body_identity,
+    )
     try:
         _ensure_artifact_identity_is_safe(artifact_identity_validation)
     except ValueError as exc:
