@@ -1,6 +1,6 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: in_progress
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -8625,13 +8625,17 @@ progress:
       2026-10-31: Root activated VJL1-VJL4 after actual read-only evidence showed job4 extra_data.provider_request_log_ids=[] while qualification_outcome.provider_attempt_evidence and raw artifact5 independently retained log14. Exact staging 59b38a0d094c905c83c8b89f49ba3049e567740e is adopted. The prior Root-accepted VQS checkpoint and all 24 roadmap criteria remain archived. No historical records, reservations, usage units, native unknowns, holds, or source allowances were changed.
     - >-
       2026-11-01: activated VJD1-VJD4 after retained log15/artifact6 and the existing ledger independently proved the exact same-fund VanEck 302 destination. This adds one fixed canonical-path successor while preserving consumed jobs, request usage, disabled policy, holds, all24 roadmap criteria, and accepted checkpoint history; no source request has occurred.
-  completed: []
+  completed:
+  - VJD1
+  - VJD2
+  - VJD3
+  - VJD4
   total: 4
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: provider_vaneck_job5_canonical_download_implementation_and_gates
+  current_phase: provider_vaneck_job5_canonical_download_closing_tip_ci_pending
   current_blocker: >-
-    Focused job5/job3/job4 PostgreSQL/SQLite slice passed 12/12 after fixing the confirmed checked-out quota connection that blocked R1 schema teardown. R1 remains preserved as interrupted and is not green. Full backend, full_stack_browser, exact-source CI, and the separate Root-reviewed source action remain pending; no live source request has occurred.
+    The accepted VJD1-VJD4 checkpoint has one records-only closing publication pending exact-tip CI. Root owns exact CI observation and protected integration/promotion/deployment. Genuine OIH source and ordinary UI qualification remain unproven; the separately governed one-request action remains unexecuted and requires future deployed-source binding and Root release.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -8916,7 +8920,7 @@ progress:
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
   next_action: >-
-    Publish the coherent implementation with the focused DB evidence, then prepare exact-source full-backend and full_stack_browser manifests for Root resource review. Do not launch heavy profiles or the separate source action until their respective Root releases.
+    Publish the single accepted records-only closure and hand the exact final branch HEAD to Root for closing-tip CI observation; after green CI, Root owns supported staging integration and all later protected release and source-action gates.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -11546,26 +11550,58 @@ acceptance_criteria: &id002
     functional and strict-visual qualification, workstream checks and exact-source branch CI pass without weakening
     assertions, limits, retries, references, tolerances or cleanup. Any live source action remains separately Root
     reviewed/released and its real outcome is recorded truthfully.
-human_closure_authorization: Pending. Human directly activated this bounded implementation in the original Provider
-  session under the standing on-demand direction. Root retains technical acceptance, the separate source-action
-  release, protected integration/promotion/deployment; no checkpoint closure is authorized yet.
-closure_summary: Pending implementation, full validation and Root checkpoint acceptance. Previous accepted checkpoint
-  results do not qualify this scope.
+human_closure_authorization: >-
+  Root acceptance receipt `/home/m920q/charting-platform/.ai/staging-attempts/provider-vjd-e466-checkpoint-acceptance-root-review-20261101.json`
+  (SHA-256 `04f63d55fe40ebd97296770530fa59e6d5a93d4d0cb86119d8192f343c0b7667`)
+  records delegated technical acceptance under the existing standing human authority for this named VJD1-VJD4
+  software checkpoint. This is not represented as a direct human quotation. It authorizes this records-only closure
+  and `ready_for_integration`; Root retains exact closing-tip CI observation, protected staging/master integration,
+  promotion/deployment, and any separately reviewed/released source action.
+closure_summary: >-
+  Closed only `provider-vaneck-job5-canonical-download-20261101` (VJD1-VJD4) on validated implementation source
+  `e46645b1a0d42aedd679761e96644b04979b3d0f`. Root accepted this bounded software checkpoint under the existing
+  standing human delegation; acceptance receipt above. Exact implementation CI `41256146432` is green on e466 and
+  is not closing-tip CI. Focused evidence includes 59 VanEck qualification unit cases, three OIH adapter cases, and
+  12 actual-shape PostgreSQL/SQLite job5/job3/job4 cases passed. Root accepted the complete backend manifest at
+  6,234 passed and three configured skips of 6,237, with 84.42% coverage, in
+  `/home/m920q/charting-platform/.ai/staging-attempts/provider-vjd-e466-full-backend-root-review-20261101.json`
+  (SHA-256 `62975f534cfe57445307360284f350e5d63ec73f695ff182f9388ae54430af55`). The full current-source runtime
+  receipt `/home/m920q/charting-platform/.ai/staging-attempts/provider-vjd-e466-full-runtime-qualified-root-review-20261101.json`
+  (SHA-256 `57262544e2c8a8872a30bbee5b65af4c19f28b672026ab6e14e945d0bac95d9a`) records all 11 phases exit 0,
+  functional 201 passed/two configured skips including all five acquisition cases and the 10,000-row case, and
+  strict visuals 104/104 across all four projects with zero retries and unchanged references/masks/tolerance 0.005.
+  The exact profile logs are `/tmp/provider-vjd-e46645b1-app-20261101/artifacts/functional.log` and `visual.log`;
+  the profile used the Root-reviewed backend image `sha256:6efb38ef8b12214a7c181f47814854f1f16f91d8e03b16b0f33b0bf6afb54edc`.
+  Cleanup returned all owned runtime resources; Root verified the 34-image candidate-inclusive profile inventory,
+  then removed only the unused temporary candidate tag/image and verified every original asset restored at 29
+  containers/33 images/10 networks/51 volumes. Root also verified all seven shared-ledger table hashes and
+  inode/device/mode unchanged. The initial prepare and config setup failures remain preserved with their successful
+  corrected attempts; no test assertions, limits, retries, or profile inputs were weakened. No migration/default
+  activation, provider/issuer/SEC request, quota operation, or genuine holdings snapshot occurred; policy remains
+  disabled/not_run, native usage unknown, and all source/quota/paid/trial/native/broker/capital holds remain.
+  The separate request proposal `/tmp/provider-job5-canonical-live-manifest-e466-20261101-v2.json` remains
+  prepared for Root review only; deployed-target binding and execution authorization are pending. The full 24-item
+  Provider roadmap, 14-item ETF roadmap, and all accepted checkpoint/history archives remain preserved and open
+  beyond this checkpoint. `integration_capture: exact branch HEAD`. Exact closing-tip CI for this records-only
+  publication remains pending; Root owns that observation and all protected integration/promotion/deployment.
 integration_checkpoint_authorization: Human direct scoped implementation activation in this original Provider session
   on 2026-11-01, limited to VJD1-VJD4. Root separately controls source-action release, acceptance, staging/master
   integration, promotion and deployment.
-local_validation_reason: Backend service/schema/adapter and integration tests changed. Complete backend and full_stack_browser
-  are mandatory. Focused unit evidence does not qualify PostgreSQL/SQLite integration, full runtime, exact-source
-  CI or genuine source availability. Root allocates isolated DB/heavy-profile resources.
-current_gate_checkpoint: VJD1-VJD4 are active and incomplete. Root receipts establish the immutable consumed job5
-  log15/artifact6 exact empty302 and one settled application request; no source action or genuine OIH snapshot exists
-  from this implementation. Policy remains disabled/not_run. The separate bounded source manifest is for Root review
-  only. All24 Provider roadmap items, accepted histories and source/quota holds remain intact.
+local_validation_reason: Required full_integration and full_stack_browser profiles are complete and Root accepted the
+  exact-source backend and runtime evidence. Exact closing-tip CI applies to this records-only publication. Genuine
+  provider availability and ordinary returned-holdings UI evidence remain separate Root-owned requirements; no
+  fixture result substitutes for those real-source gates.
+current_gate_checkpoint: Root accepted VJD1-VJD4 as a bounded software checkpoint on source e46645b1a0d42aedd679761e96644b04979b3d0f.
+  Exact implementation CI and full local backend/runtime evidence are recorded above; the new records-only closing-tip
+  CI is pending. The consumed job5/log15/artifact6 lineage remains immutable, no live source request or genuine OIH
+  snapshot has occurred, policy remains disabled/not_run and native usage unknown. The separately prepared one-request
+  manifest remains unauthorized pending Root's deployed-source binding and distinct release. All 24 Provider roadmap
+  items, accepted histories, and source/quota/paid/trial/native/broker/capital holds remain intact.
 integration_capture: exact branch HEAD
 integration_checkpoint:
   id: provider-vaneck-job5-canonical-download-20261101
-  status: in_progress
-  acceptance_state: pending_implementation_validation_and_root_review
+  status: ready_for_integration
+  acceptance_state: accepted_by_root_under_human_standing_delegation_closing_ci_pending
   planning_authorization: Human directly activated this bounded continuation in the original Provider session. Only
     the actual retained job5 evidence and the exact fixed OIH canonical URL are in scope. Root controls any live
     request, acceptance and protected release.
@@ -11598,11 +11634,9 @@ integration_checkpoint:
   prior_checkpoint: Preserve accepted VJL/VQS/OIH/cached-search histories and exact green staging ancestry fc26f02dd3a9c005aaddcffb87ff45247570bbbc;
     no earlier acceptance transfers to VJD.
   required_gates_remaining:
-  - focused PostgreSQL and SQLite actual-shape integration regressions
-  - complete backend suite and coverage gate
-  - full_stack_browser functional and strict-visual suites
-  - exact-source branch CI
-  - Root review and separate release for one bounded source action
+  - Exact closing-tip CI for this one records-only publication; implementation CI does not qualify the closing tip.
+  - Root-owned supported staging/master integration and protected promotion/deployment are separate gates.
+  - A future distinct Root-reviewed/released one-request source action and genuine ordinary OIH holdings/UI proof remain open and are not part of this accepted software closure.
   live_source_status: No source request performed in this implementation. Prior job5 remains consumed/immutable;
     policy disabled/not_run; no genuine OIH snapshot.
   validation_tier: full_integration
@@ -11944,6 +11978,4 @@ integration_checkpoint:
     continuation_acceptance_test: The 30-day deployed shadow run remains disabled and is not part of the current
       implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized
       as the final gate before human closure and staging integration.
-  next_action: Finish offline source checks and the Root-review-only bounded source manifest; obtain Root isolated
-    DB/full-profile allocation, then publish one exact implementation source and await the separate Root source-action
-    release.
+  next_action: Root observes terminal required-job success for the exact closing branch HEAD, then owns supported integration and protected release. Root separately binds and releases any future source action; do not issue source HTTP from this checkpoint.
