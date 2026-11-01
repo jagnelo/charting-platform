@@ -1,24 +1,28 @@
 {
   "acceptance_criteria": [
     {
-      "id": "VTR1",
-      "text": "The exact staging run 41229796689 on 1e06d16fa563c5a19027828b1c27354ef84a7d51 is recorded accurately as backend-job timeout/cancellation at the 30-minute limit, with 5,628 unit and 597 integration passes, three configured skips, and 84% coverage observed before cancellation; downstream gates skipped mean staging is not accepted. The separate Root watcher degraded receipt is recorded as CI evidence unavailable due to API rate limiting, not as test success or failure."
+      "id": "VJD1",
+      "text": "A new additive `job5_canonical_redirect_v1` continuation accepts only the immutable failed OIH job 5 when its exact extra_data digest, job/profile/instrument/provider/operation/account/review revision/fingerprint/expiry, retained log 15, diagnostic artifact 6, exact 302 Location, empty response, and one settled application request all verify. It recursively validates immutable job4/job3 lineage and never repairs historical rows."
     },
     {
-      "id": "VTR2",
-      "text": "Only the GitHub Actions Backend Tests job timeout in .github/workflows/ci.yml changes from 30 to 45 minutes. Backend test selection, assertions, coverage threshold, skip policy, retry policy, concurrency and every other job timeout remain unchanged."
+      "id": "VJD2",
+      "text": "The successor binds only the fixed reviewed OIH canonical HTTPS URL, with one physical request, 120-second deadline, 5 MiB cap, at least 30-second spacing, concurrency 1, burst 1, no redirect following, no automatic retry and no fallback. Positive qualification still requires a complete identity-matched workbook, persisted snapshot/artifact/log and settled request; failures stay nonpositive. After separate valid qualification and ordinary policy admission, normal OIH acquisition selects the same canonical URL despite a stale profile query URL."
     },
     {
-      "id": "VTR3",
-      "text": "Focused workflow syntax/structure and timeout checks, repository workstream validation, and exact-source branch CI pass. Prior C28 product/build/test qualification is reused only under Root exact input-equivalence proof; no duplicate heavy fixture or provider/source transport is run."
+      "id": "VJD3",
+      "text": "Legacy job3 and job4 contracts remain compatible. Jobs2–5, logs14–15, artifacts5–6, reservations, native-usage unknowns, disabled/not_run policy, free-only rules, all provider/quota/paid/trial/native/broker/capital holds and all 24 Provider roadmap criteria remain unchanged. No arbitrary URL, replay/reset, fabricated evidence, migration, provider request or target mutation is introduced. A distinct one-request manifest is prepared for Root review only."
+    },
+    {
+      "id": "VJD4",
+      "text": "Meaningful unit and actual-shape PostgreSQL/SQLite regressions, full backend coverage, full_stack_browser functional and strict-visual qualification, workstream checks and exact-source branch CI pass without weakening assertions, limits, retries, references, tolerances or cleanup. Any live source action remains separately Root reviewed/released and its real outcome is recorded truthfully."
     }
   ],
-  "active_checkpoint_id": "provider-vjl-staging-backend-timeout-repair-20261031",
+  "active_checkpoint_id": "provider-vaneck-job5-canonical-download-20261101",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "Root accepted the bounded CI-budget implementation for one closing publication; exact-source CI remains mandatory and pending.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vtr-candidate-technical-acceptance-root-review-20261031.json",
-  "checkpoint_authorization_state": "Root technical acceptance under standing human delegation; exact final CI and protected gates remain separate.",
+  "checkpoint_acceptance_decision": "pending; Root acceptance not yet given for VJD1-VJD4",
+  "checkpoint_acceptance_receipt": null,
+  "checkpoint_authorization_state": "Human direct scoped implementation activation in original Provider session; Root separately owns source-action release and checkpoint acceptance.",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -83,7 +87,7 @@
       "exact_ci": "pending"
     }
   ],
-  "checkpoint_status": "ready_for_integration",
+  "checkpoint_status": "in_progress",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -102,23 +106,43 @@
   },
   "current_checkpoint_local_profile": {
     "profile": "full_stack_browser",
-    "backend": "reused C28 Root-qualified evidence: 6225 passed, 3 configured skips of 6228; 84.43% coverage",
-    "functional": "reused C28 Root-qualified evidence: 201 passed/2 configured skips; all five acquisition cases and dense10000",
-    "visual": "reused C28 Root-qualified evidence: 104/104 across four projects; zero retries; tolerance 0.005",
-    "reuse_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-1e06d16-staging-qualified-input-equivalence-root-review-20261031.json",
-    "status": "exact product/build/test input equivalence reviewed by Root; no duplicate local profile run for workflow-only timeout change"
+    "status": "focused_db_slice_passed; full backend and full_stack_browser pending Root resource review",
+    "focused_unit": "3 OIH adapter cases passed; 59 VanEck qualification cases passed",
+    "actual_shape_postgres_sqlite": {
+      "status": "passed",
+      "selected_cases": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "duration_seconds": 119.378,
+      "root_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-canonical-db-r2-green-root-review-20261101.json",
+      "terminal_receipt": "/tmp/provider-canonical-db-r2-20261101/terminal-result.json",
+      "junit": "/tmp/provider-canonical-db-r2-20261101/result.junit.xml",
+      "prior_r1": "preserved interrupted after confirmed quota connection blocked DROP SCHEMA; not green"
+    },
+    "full_backend": "pending Root resource review/release",
+    "functional_visual": "pending Root resource review/release",
+    "provider_http_requests": 0,
+    "quota_operations": 0,
+    "protected_inventory": "29 containers/33 images/10 networks/51 volumes; exact before/after equality"
   },
   "current_exact_ci": {
-    "source_sha": "exact final published branch HEAD",
-    "run_id": null,
-    "status": "pending; VTR3 hosted-CI remainder is not green"
+    "source_sha": null,
+    "status": "pending; implementation source not yet committed/published"
   },
   "dirty_paths": [
-    ".github/workflows/ci.yml",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "backend/app/schemas/etf_holdings.py",
+    "backend/app/services/etf_holdings_adapters.py",
+    "backend/app/services/etf_holdings_provider_bridge.py",
+    "backend/app/services/etf_holdings_refresh.py",
+    "backend/app/services/etf_holdings_vaneck_qualification.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl",
-    "ops/workstreams/feat-market-data-provider-platform/session.json"
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/session.json",
+    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -137,17 +161,17 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Repair only the CI budget of the Backend Tests job for the timed-out staging workflow: change its timeout from 30 to 45 minutes, preserve all tests and other CI settings, and obtain exact-source CI. Preserve the completed VJL checkpoint, all 24 Provider roadmap criteria, accepted history and holds. No product/test/provider changes, transport, fixtures, deployment, staging/master or sibling mutations. Root owns acceptance and degraded-stage remediation.",
+  "goal_objective": "Implement only VJD1-VJD4: the bounded exact OIH job5 canonical-download successor and ordinary admitted OIH route. Preserve all24 roadmap criteria, accepted history, source/quota holds; wait for Root review/release before any live call; complete required local and exact-source CI gates. No protected integration/deployment.",
   "goal_recorded_at": "2026-10-31T19:05:02+00:00",
   "goal_request": {
-    "objective": "Repair only the CI budget of the Backend Tests job for the timed-out staging workflow: change its timeout from 30 to 45 minutes, preserve all tests and other CI settings, and obtain exact-source CI. Preserve the completed VJL checkpoint, all 24 Provider roadmap criteria, accepted history and holds. No product/test/provider changes, transport, fixtures, deployment, staging/master or sibling mutations. Root owns acceptance and degraded-stage remediation.",
-    "recorded_at": "2026-10-31T19:05:02Z",
-    "authorization": "Human direct activation in this original Provider session; new bounded unbudgeted goal after VJL completion."
+    "objective": "Implement only VJD1-VJD4: the bounded exact OIH job5 canonical-download successor and ordinary admitted OIH route. Preserve all24 roadmap criteria, accepted history, source/quota holds; wait for Root review/release before any live call; complete required local and exact-source CI gates. No protected integration/deployment.",
+    "recorded_at": "2026-11-01T00:02:56Z",
+    "authorization": "Human direct scoped implementation activation in this original Provider thread, 2026-11-01."
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
+  "head": "d806fa9c394a671641bc423ef12dbbbfce8810f8",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -164,7 +188,7 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
+  "implementation_sha": null,
   "interrupted": false,
   "last_checkpoint": "2026-10-31T19:12:11Z",
   "last_human_progress_update": "2026-10-31T19:12:11Z",
@@ -182,9 +206,9 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish one closing commit; hand exact final-source CI to Root observation. Root owns degraded-stage remediation and protected release.",
+  "next_action": "Publish the coherent implementation with focused evidence, then prepare source-bound full-backend and full_stack_browser manifests for Root review. Do not launch heavy profiles or source HTTP without their separate Root releases.",
   "parent_branch": "staging",
-  "plan_hash": "671561c9dc31b9d267a12da5469d187cedd584082de0154cc0acf4fb847608d3",
+  "plan_hash": "c7d4b5e4e9eb599bedb1626d8d834eae759f4cbb7c1343a2b1a412e6f68ae906",
   "planning_required": false,
   "planning_state": "ready",
   "previous_accepted_checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md",
@@ -285,17 +309,13 @@
     "status": "completed: success"
   },
   "progress": {
-    "active_checkpoint": "provider-vjl-staging-backend-timeout-repair-20261031",
-    "completed": [
-      "VTR1",
-      "VTR2"
-    ],
-    "total": 3,
-    "note": "Single workflow timeout repair only; exact-source CI and Root acceptance pending. All roadmaps and holds remain open.",
-    "current_phase": "provider_vjl_staging_backend_timeout_repair_exact_closing_ci_pending",
-    "current_blocker": "Exact final pushed branch CI is mandatory and pending. Root owns observation and all protected remediation/integration/deployment.",
-    "next_action": "Publish one closing commit; Root verifies exact final-source CI. Do not close VTR3 or broader product/release gates from prior evidence.",
-    "updated_at": "2026-10-31T19:16:08+00:00"
+    "active_checkpoint": "provider-vaneck-job5-canonical-download-20261101",
+    "completed": [],
+    "total": 4,
+    "current_phase": "offline implementation and focused checks",
+    "current_blocker": "Actual-shape PostgreSQL/SQLite and full-profile phases require Root allocation; source action requires separate Root review/release.",
+    "next_action": "Prepare bounded source manifest for Root review, then complete allocated DB/full profile and exact-source CI.",
+    "updated_at": "2026-11-01T00:02:56Z"
   },
   "remote": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
   "remote_sha": "036c2ab0c348a5f9e8cfbb1880cea3192c913c90",
@@ -611,7 +631,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+  "validated_implementation_source_sha": null,
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [
@@ -734,5 +754,70 @@
     "watcher_state": "degraded; API rate limit exhausted; CI evidence unavailable",
     "accepted": false
   },
-  "integration_capture": "exact branch HEAD"
+  "integration_capture": "exact branch HEAD",
+  "previously_active_vtr_session_state": {
+    "acceptance_criteria": [
+      {
+        "id": "VTR1",
+        "text": "The exact staging run 41229796689 on 1e06d16fa563c5a19027828b1c27354ef84a7d51 is recorded accurately as backend-job timeout/cancellation at the 30-minute limit, with 5,628 unit and 597 integration passes, three configured skips, and 84% coverage observed before cancellation; downstream gates skipped mean staging is not accepted. The separate Root watcher degraded receipt is recorded as CI evidence unavailable due to API rate limiting, not as test success or failure."
+      },
+      {
+        "id": "VTR2",
+        "text": "Only the GitHub Actions Backend Tests job timeout in .github/workflows/ci.yml changes from 30 to 45 minutes. Backend test selection, assertions, coverage threshold, skip policy, retry policy, concurrency and every other job timeout remain unchanged."
+      },
+      {
+        "id": "VTR3",
+        "text": "Focused workflow syntax/structure and timeout checks, repository workstream validation, and exact-source branch CI pass. Prior C28 product/build/test qualification is reused only under Root exact input-equivalence proof; no duplicate heavy fixture or provider/source transport is run."
+      }
+    ],
+    "active_checkpoint_id": "provider-vjl-staging-backend-timeout-repair-20261031",
+    "checkpoint_acceptance_decision": "Root accepted the bounded CI-budget implementation for one closing publication; exact-source CI remains mandatory and pending.",
+    "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vtr-candidate-technical-acceptance-root-review-20261031.json",
+    "checkpoint_authorization_state": "Root technical acceptance under standing human delegation; exact final CI and protected gates remain separate.",
+    "checkpoint_status": "ready_for_integration",
+    "current_exact_ci": {
+      "source_sha": "exact final published branch HEAD",
+      "run_id": null,
+      "status": "pending; VTR3 hosted-CI remainder is not green"
+    },
+    "current_checkpoint_local_profile": {
+      "profile": "full_stack_browser",
+      "backend": "reused C28 Root-qualified evidence: 6225 passed, 3 configured skips of 6228; 84.43% coverage",
+      "functional": "reused C28 Root-qualified evidence: 201 passed/2 configured skips; all five acquisition cases and dense10000",
+      "visual": "reused C28 Root-qualified evidence: 104/104 across four projects; zero retries; tolerance 0.005",
+      "reuse_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vjl-1e06d16-staging-qualified-input-equivalence-root-review-20261031.json",
+      "status": "exact product/build/test input equivalence reviewed by Root; no duplicate local profile run for workflow-only timeout change"
+    },
+    "goal_objective": "Repair only the CI budget of the Backend Tests job for the timed-out staging workflow: change its timeout from 30 to 45 minutes, preserve all tests and other CI settings, and obtain exact-source CI. Preserve the completed VJL checkpoint, all 24 Provider roadmap criteria, accepted history and holds. No product/test/provider changes, transport, fixtures, deployment, staging/master or sibling mutations. Root owns acceptance and degraded-stage remediation.",
+    "goal_state": "active",
+    "goal_request": {
+      "objective": "Repair only the CI budget of the Backend Tests job for the timed-out staging workflow: change its timeout from 30 to 45 minutes, preserve all tests and other CI settings, and obtain exact-source CI. Preserve the completed VJL checkpoint, all 24 Provider roadmap criteria, accepted history and holds. No product/test/provider changes, transport, fixtures, deployment, staging/master or sibling mutations. Root owns acceptance and degraded-stage remediation.",
+      "recorded_at": "2026-10-31T19:05:02Z",
+      "authorization": "Human direct activation in this original Provider session; new bounded unbudgeted goal after VJL completion."
+    },
+    "head": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
+    "implementation_sha": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
+    "integration_capture": "exact branch HEAD",
+    "local_validation_profile": "full_stack_browser",
+    "next_action": "Publish one closing commit; hand exact final-source CI to Root observation. Root owns degraded-stage remediation and protected release.",
+    "progress": {
+      "active_checkpoint": "provider-vjl-staging-backend-timeout-repair-20261031",
+      "completed": [
+        "VTR1",
+        "VTR2"
+      ],
+      "total": 3,
+      "note": "Single workflow timeout repair only; exact-source CI and Root acceptance pending. All roadmaps and holds remain open.",
+      "current_phase": "provider_vjl_staging_backend_timeout_repair_exact_closing_ci_pending",
+      "current_blocker": "Exact final pushed branch CI is mandatory and pending. Root owns observation and all protected remediation/integration/deployment.",
+      "next_action": "Publish one closing commit; Root verifies exact final-source CI. Do not close VTR3 or broader product/release gates from prior evidence.",
+      "updated_at": "2026-10-31T19:16:08+00:00"
+    },
+    "remote": "c28b4447a29a4fe0e28308a08c268215d8b66c62",
+    "remote_sha": "036c2ab0c348a5f9e8cfbb1880cea3192c913c90",
+    "remote_synchronized": false,
+    "state": "in_progress",
+    "validated_implementation_source_sha": "c28b4447a29a4fe0e28308a08c268215d8b66c62"
+  },
+  "status": "in_progress"
 }

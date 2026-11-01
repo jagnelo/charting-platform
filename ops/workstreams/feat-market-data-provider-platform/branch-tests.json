@@ -2,9 +2,9 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py",
-    "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "backend/tests/unit/services/test_etf_holdings_adapters.py",
+    "backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py and test_etf_holdings_provider_bridge.py",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (job5 canonical successor and legacy job3/job4 compatibility)",
     "complete backend unit/integration coverage and required full_stack_browser profile"
   ],
   "commands": [
@@ -17,7 +17,7 @@
         3,
         4
       ],
-      "scope_note": "Required complete backend profile for VQS source/test impact; execute only in the Root-released isolated slot."
+      "scope_note": "Required complete backend profile for VJD source/test impact; execute only in the Root-released isolated slot."
     }
   ],
   "ci_covered_commands": {
@@ -32,7 +32,7 @@
         3,
         4
       ],
-      "reason": "The required full_stack_browser profile is a separately owned local gate; execute it with the reviewed isolated fixture after Root releases the resource slot."
+      "reason": "Required full_stack_browser profile for VJD source/test impact; execute with the Root-reviewed isolated fixture after resource release."
     }
   ]
 }

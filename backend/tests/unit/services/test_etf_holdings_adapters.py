@@ -68,6 +68,7 @@ from app.services.etf_holdings_capability import (
     _NON_TIER_0_SYMBOL_AUDITS,
     _TIER_0_SYMBOL_AUDITS,
 )
+from app.services.etf_holdings_provider_bridge import VANECK_OIH_CANONICAL_DOWNLOAD_URL
 
 
 class MockDate(date):
@@ -4778,6 +4779,119 @@ async def test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains
     assert base64.b64decode(result.raw_json["raw_workbook_base64"]) == workbook
     assert result.raw_json["raw_workbook_bytes"] == len(workbook)
     assert result.rows[0].symbol == "SLB"
+
+
+@pytest.mark.asyncio
+async def test_vaneck_job5_qualification_uses_only_the_reviewed_canonical_url(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook = _xlsx_workbook(
+        [
+            [f"OIH | Daily Holdings (%)  {datetime.now(UTC):%m/%d/%Y}"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_initial_qualification(
+        symbol="OIH",
+        identifiers={"product_slug": "oil-services-etf-oih"},
+        reviewed_request_url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+    )
+
+    assert FakeAsyncClient.requested == [
+        (
+            VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+            {
+                "headers": adapter._request_headers(product_slug="oil-services-etf-oih"),
+                "follow_redirects": False,
+            },
+        )
+    ]
+    assert FakeAsyncClient.constructed[0]["follow_redirects"] is False
+    assert result.source_url == VANECK_OIH_CANONICAL_DOWNLOAD_URL
+    assert result.legal_metadata["initial_qualification"] is True
+
+
+@pytest.mark.asyncio
+async def test_vaneck_job5_qualification_rejects_unreviewed_url_before_transport(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="not a reviewed OIH destination"):
+        await adapter.fetch_initial_qualification(
+            symbol="OIH",
+            identifiers={"product_slug": "oil-services-etf-oih"},
+            reviewed_request_url="https://www.vaneck.com/us/en/other-fund.xlsx",
+        )
+
+    assert FakeAsyncClient.requested == []
+
+
+@pytest.mark.asyncio
+async def test_vaneck_ordinary_oih_acquisition_uses_canonical_url_over_stale_profile_url(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook = _xlsx_workbook(
+        [
+            [f"OIH | Daily Holdings (%)  {datetime.now(UTC):%m/%d/%Y}"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(
+        symbol="OIH",
+        issuer_product_id="oil-services-etf-oih",
+        source_url="https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+    )
+
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0] == VANECK_OIH_CANONICAL_DOWNLOAD_URL
+    assert result.source_url == VANECK_OIH_CANONICAL_DOWNLOAD_URL
 
 
 @pytest.mark.asyncio

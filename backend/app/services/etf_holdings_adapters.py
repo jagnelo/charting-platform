@@ -27,6 +27,8 @@ import requests as _requests
 
 from app.config import settings
 from app.services.etf_holdings_provider_bridge import (
+    VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+    VANECK_OIH_INITIAL_REQUEST_URL,
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
     require_bound_etf_holdings_adapter,
@@ -5746,7 +5748,13 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not normalized_symbol or not product_slug:
             raise ValueError("VanEck holdings require an ETF symbol and issuer product slug.")
-        holdings_url = source_url or self._holdings_url(product_slug)
+        if normalized_symbol == "OIH" and product_slug == "oil-services-etf-oih":
+            # The OIH profile may still carry the original ?cken=true route.
+            # After the reviewed redirect, ordinary admitted acquisition uses
+            # the exact canonical URL; other VanEck routes keep their template.
+            holdings_url = VANECK_OIH_CANONICAL_DOWNLOAD_URL
+        else:
+            holdings_url = source_url or self._holdings_url(product_slug)
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await self._get_with_timeout_retry(
                 client,
@@ -5782,6 +5790,7 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         symbol: str,
         issuer_product_id: str | None = None,
         identifiers: dict[str, str] | None = None,
+        reviewed_request_url: str | None = None,
     ) -> HoldingsFetchResult:
         """Fetch one exact OIH workbook attempt with no retry or redirect follow."""
 
@@ -5792,7 +5801,13 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if normalized_symbol != "OIH" or product_slug != "oil-services-etf-oih":
             raise ValueError("VanEck first qualification is restricted to the reviewed OIH route.")
-        request_url = self._holdings_url(product_slug)
+        request_url = reviewed_request_url or self._holdings_url(product_slug)
+        if request_url not in {VANECK_OIH_INITIAL_REQUEST_URL, VANECK_OIH_CANONICAL_DOWNLOAD_URL}:
+            raise ValueError("VanEck initial qualification URL is not a reviewed OIH destination.")
+        if request_url == VANECK_OIH_CANONICAL_DOWNLOAD_URL and (
+            normalized_symbol != "OIH" or product_slug != "oil-services-etf-oih"
+        ):
+            raise ValueError("VanEck canonical download qualification is restricted to OIH.")
         async with httpx.AsyncClient(
             timeout=120.0,
             follow_redirects=False,

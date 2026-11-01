@@ -73,6 +73,15 @@ ETF_SEC_MAX_ARCHIVE_PAGE_BYTES = 2 * 1024 * 1024
 ETF_SEC_MAX_FILING_BYTES = 16 * 1024 * 1024
 ETF_SEC_MAX_AGGREGATE_DECODED_BYTES = 20 * 1024 * 1024
 _ETF_SEC_RESPONSE_LIMIT_MARKER = "etf_sec_response_limit_error"
+VANECK_OIH_INITIAL_REQUEST_URL = (
+    "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/" "downloads/holdings/?cken=true"
+)
+VANECK_OIH_REVIEWED_REDIRECT_LOCATION = (
+    "/us/en/investments/oil-services-etf-oih/downloads/holdings/"
+)
+VANECK_OIH_CANONICAL_DOWNLOAD_URL = (
+    "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/"
+)
 _sec_budget_monotonic = time.monotonic
 
 
@@ -180,7 +189,10 @@ class ETFVaneckInitialQualificationBudget:
     last_attempt_monotonic: float | None = None
 
     async def before_attempt(self, request_url: str) -> None:
-        if _canonical_request_url(request_url) != _canonical_request_url(self.expected_url):
+        if self.expected_url not in {
+            VANECK_OIH_INITIAL_REQUEST_URL,
+            VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+        } or _canonical_request_url(request_url) != _canonical_request_url(self.expected_url):
             raise ETFHoldingsRouteHeldError(
                 "VanEck initial qualification URL is outside its exact reviewed route."
             )
@@ -1112,7 +1124,9 @@ async def _vaneck_initial_job_scope_matches(
 
     budget = binding.vaneck_initial_qualification_budget
     if (
-        _canonical_request_url(request_url) != _canonical_request_url(budget.expected_url)
+        budget.expected_url
+        not in {VANECK_OIH_INITIAL_REQUEST_URL, VANECK_OIH_CANONICAL_DOWNLOAD_URL}
+        or _canonical_request_url(request_url) != _canonical_request_url(budget.expected_url)
         or _normalized_host(request_url) != "www.vaneck.com"
     ):
         return False
