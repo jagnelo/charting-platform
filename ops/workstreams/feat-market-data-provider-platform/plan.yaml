@@ -1,6 +1,6 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: in_progress
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -2756,7 +2756,7 @@ live_test_impact: No provider/issuer/SEC transport is authorized; VQS tests must
 migration_impact: No migration is anticipated or authorized; retain existing schema unless separate review
   establishes necessity.
 deployment_impact: None in this checkpoint; Root retains production and release ownership.
-active_checkpoint_id: provider-job6-actual-artifact-slug-compatibility-20261101
+active_checkpoint_id: provider-job6-artifact-slug-witness-repair-20261101
 previously_accepted_provider_cached_search_context:
   goal: 'Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached
     fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching.
@@ -8624,12 +8624,12 @@ progress:
       2026-10-31: Root activated VJL1-VJL4 after actual read-only evidence showed job4 extra_data.provider_request_log_ids=[] while qualification_outcome.provider_attempt_evidence and raw artifact5 independently retained log14. Exact staging 59b38a0d094c905c83c8b89f49ba3049e567740e is adopted. The prior Root-accepted VQS checkpoint and all 24 roadmap criteria remain archived. No historical records, reservations, usage units, native unknowns, holds, or source allowances were changed.
     - >-
       2026-11-01: activated VJD1-VJD4 after retained log15/artifact6 and the existing ledger independently proved the exact same-fund VanEck 302 destination. This adds one fixed canonical-path successor while preserving consumed jobs, request usage, disabled policy, holds, all24 roadmap criteria, and accepted checkpoint history; no source request has occurred.
-  completed: [VJ6-WITNESS-1, VJ6-WITNESS-2]
+  completed: [VJ6-WITNESS-1, VJ6-WITNESS-2, VJ6-WITNESS-3]
   total: 3
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: source-publication-and-full-qualification
-  current_blocker: The focused authentic regressions pass. Complete backend/DDL, exact-source image, full_stack_browser and exact-source CI are pending for this change.
+  current_phase: ready_for_integration
+  current_blocker: The accepted implementation and full local qualification are complete. Exact closing-tip CI for this records-only publication is pending Root observation; Root owns that CI and protected integration. Genuine issuer qualification, ordinary live eligibility, returned holdings and the full roadmap remain open and are not claimed by this checkpoint.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -8913,7 +8913,7 @@ progress:
     acceptance remains open. Preserve all quota holds, response data, and
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
-  next_action: Publish the narrow source/test/workstream update once, then run the canonical backend collector and exact-source image/profile gates.
+  next_action: Root observes terminal required-job success for the exact closing tip, then owns supported staging integration, promotion, deployment and any separately released source action.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -11539,27 +11539,54 @@ acceptance_criteria: &id003
     image, the full required isolated full_stack_browser profile, workstream validation and exact-source CI pass
     with all assertions, retries, resource bounds, references, masks and tolerances unchanged; no provider HTTP
     or target mutation occurs.
-human_closure_authorization: The user activated this exact retained-artifact compatibility repair in the existing
-  Provider session. Root independently accepted the diagnosis that source_identifier must equal oil-services-etf-oih.
-  This authorizes ordinary owner-worktree source/tests and allocated local qualification only; it is not checkpoint
-  acceptance, source HTTP, policy enablement, target mutation, protected integration or deployment.
-closure_summary: Pending. The focused regression passed; complete backend/DDL, exact-source build/profile/CI and
-  Root technical acceptance remain required. No provider HTTP, quota operation or target mutation occurred. The
-  consumed job6 failure and disabled policy/native unknowns remain unchanged.
-integration_checkpoint_authorization: Implementation authorization is limited to provider-job6-actual-artifact-slug-compatibility-20261101.
-  No new source request, provider policy enablement, target mutation, staging/master integration, deployment or
-  sibling-worktree mutation is authorized.
-local_validation_reason: The focused full-validator PostgreSQL/SQLite regression passed 10/10 and the VanEck qualification
-  unit module passed59/59. Complete backend/DDL, exact-source image, full_stack_browser and exact-source CI are
-  still pending for this source change.
-current_gate_checkpoint: The only product change is the exact canonical source_identifier equality in the job6 artifact
-  witness. The positive route test uses the retained workbook hash/byte count, payload and metadata shape; missing/wrong
-  slugs and body/artifact hash tampering are rejected before transport. All full qualification gates remain pending.
-validated_implementation_source_sha: null
+human_closure_authorization: Root accepted the bounded provider-job6-artifact-slug-witness-repair-20261101 checkpoint
+  under the standing explicit human delegation. This records Root's delegated technical acceptance, not a direct human
+  quote. Root authorized one records-only owner publication for VJ6-WITNESS-1/2/3. Root owns exact closing-tip CI
+  observation and protected staging integration, promotion and deployment. Genuine issuer qualification and the
+  ordinary returned-holdings journey remain open; this authorization does not release source HTTP, policy activation,
+  target mutation or owner-side protected integration.
+closure_summary: >-
+  Root accepted only provider-job6-artifact-slug-witness-repair-20261101 (VJ6-WITNESS-1/2/3) under the standing human
+  delegation. The validated implementation is 5e1540883645f6f7b011efe24be1558605c68aa5; exact implementation CI
+  41336561769 is green on that source. The authentic retained job6/log16/artifact7 witness accepts only the exact
+  canonical source identifier oil-services-etf-oih while preserving all digest, body, diagnostic, settlement, account,
+  review, fingerprint, expiry and recursive lineage checks. Actual-shape positive and negative route regressions passed.
+  Root verified the full backend/DDL (6,268 passed, 3 configured skips of 6,271; 84.42% coverage; both DDL cases passed)
+  and full isolated runtime. All 11 phases exited 0 with frozen inputs stable; functional results were 201 passed and 2
+  configured skips, including all five acquisition cases and dense 10,000-row scenarios; strict visual results were
+  104/104 across four projects, zero retries, unchanged references/masks and 0.005 tolerance. Root verified exact cleanup
+  restored 29 containers, 36 images, 10 networks and 51 volumes and preserved all seven real-ledger tables and metadata.
+  Historical failures and setup attempts remain retained. No source HTTP, quota operation, policy activation or target
+  mutation occurred; the consumed job6 failure, disabled/not_run policy, native unknowns, four spent VanEck units and
+  799 unrelated holds remain unchanged. Genuine issuer qualification, ordinary live eligibility, returned holdings and
+  the complete Provider roadmap remain open. Exact closing-tip CI for this records-only publication remains pending
+  Root observation. integration_capture: exact branch HEAD.
+integration_checkpoint_authorization: Root accepted the named bounded checkpoint under the standing human delegation
+  and authorized this single records-only publication. Root alone observes the exact closing-tip CI and owns supported
+  staging integration, promotion, deployment and any separately released source action. No source HTTP, policy
+  activation, target mutation or owner-side protected integration is authorized.
+local_validation_reason: Focused actual-shape PostgreSQL/SQLite regressions, the complete canonical backend/DDL collector,
+  exact-source backend artifact, exact-source CI 41336561769, and Root-allocated full_stack_browser profile all passed.
+  The profile retained all assertions, selection, resource bounds, zero retries, references, masks and 0.005 tolerance.
+  Root verified exact cleanup and real-ledger preservation. Only exact closing-tip CI for this records-only publication
+  remains pending Root observation; no product or local validation gate remains.
+current_gate_checkpoint: Root accepted VJ6-WITNESS-1/2/3 on implementation source 5e1540883645f6f7b011efe24be1558605c68aa5.
+  The authentic job6 witness and full-validator route regression passed with the canonical source identifier and strict
+  negatives. Exact implementation CI 41336561769, full backend/DDL, all 11 isolated runtime phases, functional 201+2
+  configured skips, strict visuals 104/104 and exact cleanup are verified by Root receipts. No provider request or target
+  mutation occurred; all holds and unknowns remain. Closing-tip CI is pending Root observation; genuine holdings and the
+  full Provider roadmap remain open.
+validated_implementation_source_sha: 5e1540883645f6f7b011efe24be1558605c68aa5
 integration_checkpoint:
-  id: provider-job6-actual-artifact-slug-compatibility-20261101
-  status: in_progress
-  acceptance_state: pending
+  id: provider-job6-artifact-slug-witness-repair-20261101
+  status: ready_for_integration
+  acceptance_state: accepted_under_standing_human_delegation
+  accepted_at: '2026-11-01T20:45:34.934959+00:00'
+  accepted_root_receipt: /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-5e154-checkpoint-acceptance-root-review-20261101.json
+  accepted_root_receipt_sha256: 7d5e252d7bdb07fe829a6fd35adbe7dc57a2e4c17587f69c39a8f4d4dbcc818c
+  validated_implementation_source_sha: 5e1540883645f6f7b011efe24be1558605c68aa5
+  closing_tip_ci: pending; Root observes the exact records-only publication SHA.
+  integration_capture: exact branch HEAD
   planning_authorization: Direct user activation after Root independently verified the exact retained artifact slug.
     This is an owner-worktree software repair only.
   source_base_sha: bb2e60b99449f0b79bd8fc5f2acb8118267db018
@@ -11581,10 +11608,7 @@ integration_checkpoint:
   acceptance_criteria: *id003
   prior_checkpoint: The Root-accepted VJ6-1..VJ6-4 checkpoint is preserved under previously_accepted_provider_job6_worksheet_identity_checkpoint_archive.
   required_gates_remaining:
-  - Complete canonical backend unit/integration/DDL collector with unchanged coverage threshold
-  - One exact-source backend image build/export retained for Root review
-  - One isolated full_stack_browser profile with existing selection/references/tolerance/retries unchanged
-  - Exact-source hosted CI and Root technical acceptance
+  - Exact closing-tip CI for this records-only publication; Root owns terminal observation.
   live_source_status: No source HTTP or new request. Job6/log16/artifact7 remain failed/consumed; four spent VanEck
     units, 799 unrelated holds, disabled/not_run policy and native usage unknown are preserved.
   validation_tier: full_integration
@@ -11926,8 +11950,9 @@ integration_checkpoint:
     continuation_acceptance_test: The 30-day deployed shadow run remains disabled and is not part of the current
       implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized
       as the final gate before human closure and staging integration.
-  next_action: Run full backend/DDL on this fixed source, retain its exact-source backend image, then run the single
-    isolated full_stack_browser profile and exact-source CI; Root owns acceptance and deployment.
+  next_action: Root observes terminal required-job success for the exact closing tip, then owns supported staging
+    integration, promotion, deployment and any separately released source action.
+  integration_capture: exact branch HEAD
 previously_accepted_provider_vjd_job5_checkpoint_archive:
   active_checkpoint_id: provider-vaneck-job5-canonical-download-20261101
   status: ready_for_integration
