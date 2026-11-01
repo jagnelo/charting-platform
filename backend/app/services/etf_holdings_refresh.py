@@ -2778,6 +2778,11 @@ async def _refresh_adapter_route(
                     symbol=symbol,
                     issuer_product_id=issuer_product_id,
                     identifiers=identifiers,
+                    reviewed_request_url=(
+                        vaneck_initial_qualification_budget.expected_url
+                        if vaneck_initial_qualification_budget is not None
+                        else None
+                    ),
                 )
             else:
                 fetch_result = await adapter.fetch_latest(
