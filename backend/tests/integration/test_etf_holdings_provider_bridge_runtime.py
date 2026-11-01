@@ -4569,7 +4569,7 @@ async def _seed_failed_vaneck_body_identity_attempt(provider_db, setup, monkeypa
         data_source_id=source.id,
         source_kind="issuer_adapter_rejected_fetch",
         source_url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
-        source_identifier=None,
+        source_identifier=VANECK_OIH_PRODUCT_SLUG,
         content_type="text/plain",
         content_hash=_hash_payload(artifact_payload),
         composition_date=None,
@@ -4595,6 +4595,27 @@ async def _seed_failed_vaneck_body_identity_attempt(provider_db, setup, monkeypa
         },
     )
     setup.add(artifact)
+    assert artifact.source_identifier == VANECK_OIH_PRODUCT_SLUG
+    assert (
+        artifact.content_hash == "3feca1ff2a323399dffd492a5068ae5711b641dd85e658cbab75db761c24028b"
+    )
+    assert artifact.payload_json == {
+        "source_format": "xlsx",
+        "workbook_rows": workbook_rows,
+        "raw_workbook_base64": body_base64,
+        "raw_workbook_sha256": "c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2",
+        "raw_workbook_bytes": len(raw_workbook),
+    }
+    assert request_log.response_payloads == [log_payload]
+    assert artifact.legal_metadata["provider_request_log_ids"] == log_ids
+    assert artifact.legal_metadata["request_urls"] == [VANECK_OIH_CANONICAL_DOWNLOAD_URL]
+    assert artifact.legal_metadata["request_attempts"] == [request_attempt]
+    assert artifact.legal_metadata["upstream_response_diagnostics"] == [request_diagnostic]
+    assert artifact.legal_metadata["validation"] == {
+        "status": "fund_identity_rejected",
+        "body_identity_status": "unverified",
+        "body_identity_evidence": old_identity_evidence,
+    }
 
     request_id = str(uuid4())
     review_reference = "root-review:job6-worksheet-identity-retained-evidence"
@@ -5627,6 +5648,7 @@ async def test_admin_vaneck_job6_identity_successor_is_bound_to_retained_body_an
     from app.services.etf_holdings_vaneck_qualification import (
         VANECK_BODY_IDENTITY_JOB6_CONTRACT,
         VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+        VANECK_OIH_PRODUCT_SLUG,
         VANECK_POSTTRANSPORT_CONTINUATION_KEY,
     )
 
@@ -5766,13 +5788,22 @@ async def test_admin_vaneck_job6_identity_successor_is_bound_to_retained_body_an
         assert job4 is not None and job4.extra_data == fixture["job4_extra"]
         assert job3 is not None and job3.extra_data == fixture["job3_extra"]
         assert artifact is not None and artifact.content_hash == job6_artifact_hash_before
+        assert artifact.source_identifier == VANECK_OIH_PRODUCT_SLUG
         assert policy is not None and policy.is_enabled is False
         assert entitlement is not None and entitlement.live_probe_status == "passed"
 
 
 @pytest.mark.integration
 @pytest.mark.parametrize("ledger_backend", ["postgres", "sqlite"])
-@pytest.mark.parametrize("tamper", ["request_body_hash", "artifact_body_hash"])
+@pytest.mark.parametrize(
+    "tamper",
+    [
+        "request_body_hash",
+        "artifact_body_hash",
+        "artifact_source_identifier_missing",
+        "artifact_source_identifier_wrong",
+    ],
+)
 @pytest.mark.asyncio
 async def test_admin_vaneck_job6_successor_denies_tampered_retained_body_witness(
     provider_db, monkeypatch, tmp_path, ledger_backend, tamper
@@ -5786,6 +5817,7 @@ async def test_admin_vaneck_job6_successor_denies_tampered_retained_body_witness
     from app.models.provider_runtime import ProviderRequestLog
     from app.services.etf_holdings_vaneck_qualification import (
         VANECK_BODY_IDENTITY_JOB6_CONTRACT,
+        VANECK_OIH_PRODUCT_SLUG,
     )
 
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
@@ -5803,6 +5835,16 @@ async def test_admin_vaneck_job6_successor_denies_tampered_retained_body_witness
             payloads = copy.deepcopy(request_log.response_payloads)
             payloads[0]["sha256"] = "0" * 64
             request_log.response_payloads = payloads
+        elif tamper == "artifact_source_identifier_missing":
+            artifact = await setup.get(ETFHoldingsRawArtifact, fixture["job6_artifact_id"])
+            assert artifact is not None
+            assert artifact.source_identifier == VANECK_OIH_PRODUCT_SLUG
+            artifact.source_identifier = None
+        elif tamper == "artifact_source_identifier_wrong":
+            artifact = await setup.get(ETFHoldingsRawArtifact, fixture["job6_artifact_id"])
+            assert artifact is not None
+            assert artifact.source_identifier == VANECK_OIH_PRODUCT_SLUG
+            artifact.source_identifier = "oil-services-etf-other"
         else:
             artifact = await setup.get(ETFHoldingsRawArtifact, fixture["job6_artifact_id"])
             assert artifact is not None

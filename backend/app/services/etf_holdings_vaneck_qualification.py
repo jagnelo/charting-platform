@@ -2267,7 +2267,7 @@ async def _validate_job6_body_identity_predecessor(
         artifact.data_source_id != source.id
         or artifact.source_kind != "issuer_adapter_rejected_fetch"
         or artifact.source_url != VANECK_OIH_CANONICAL_DOWNLOAD_URL
-        or artifact.source_identifier is not None
+        or artifact.source_identifier != VANECK_OIH_PRODUCT_SLUG
         or artifact.content_type != "text/plain"
         or artifact.payload_text is None
         or artifact.payload_json is None
