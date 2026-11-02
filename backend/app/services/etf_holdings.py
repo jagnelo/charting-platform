@@ -1158,6 +1158,7 @@ async def ingest_holdings_snapshot(
     parser_version: str = "v1",
     raw_payload_text: str | None = None,
     raw_payload_json: dict | None = None,
+    schema_fingerprint_override: str | None = None,
     legal_metadata: dict | None = None,
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
@@ -1246,7 +1247,8 @@ async def ingest_holdings_snapshot(
             legal_metadata=legal_metadata,
         ),
         "expected_cadence": legal_metadata.get("expected_cadence"),
-        "schema_fingerprint": _schema_fingerprint(
+        "schema_fingerprint": schema_fingerprint_override
+        or _schema_fingerprint(
             raw_payload_text=raw_payload_text,
             raw_payload_json=raw_payload_json,
         ),
@@ -1290,9 +1292,9 @@ async def ingest_holdings_snapshot(
         await db.execute(
             _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
             .options(
-                selectinload(ETFHoldingsSnapshot.rows).selectinload(
-                    ETFHolding.constituent_instrument
-                )
+                selectinload(ETFHoldingsSnapshot.rows)
+                .selectinload(ETFHolding.constituent_instrument)
+                .selectinload(Instrument.equity_detail)
             )
             .where(
                 ETFHoldingsSnapshot.etf_profile_id == profile.id,
@@ -1304,6 +1306,11 @@ async def ingest_holdings_snapshot(
         )
     ).scalar_one_or_none()
     if existing is not None:
+        if schema_fingerprint_override is not None:
+            existing.extra_data = {
+                **(existing.extra_data if isinstance(existing.extra_data, dict) else {}),
+                "schema_fingerprint": schema_fingerprint_override,
+            }
         return await _reconcile_existing_snapshot_rows(
             db,
             snapshot=existing,

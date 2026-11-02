@@ -191,6 +191,118 @@ def _state_metadata(value: Any) -> dict[str, Any]:
     return value if isinstance(value, dict) else {}
 
 
+_VANECK_OIH_RAW_WORKBOOK_SCHEMA_FIELDS = frozenset(
+    {"raw_workbook_base64", "raw_workbook_sha256", "raw_workbook_bytes"}
+)
+_VANECK_OIH_RETAINED_WORKBOOK_COLUMNS = (
+    "Number",
+    "Ticker",
+    "Holding Name",
+    "Identifier (FIGI)",
+    "Shares",
+    "Asset Class",
+    "Market Value (US$)",
+    "Notional Value",
+    "% of Net Assets",
+)
+
+
+def _vaneck_oih_schema_fingerprints(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+    *,
+    parser_version: str,
+    verified_body_identity: list[str] | None,
+) -> tuple[str | None, str | None]:
+    """Fingerprint OIH's parsed XLSX schema independently of retained raw diagnostics.
+
+    The qualification response carries raw workbook diagnostics in its stored
+    JSON envelope; ordinary refresh carries the same parsed workbook rows
+    without those diagnostics. Only this exact, already body-verified OIH
+    adapter path may normalize that envelope difference.
+    """
+
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    instrument = getattr(profile, "instrument", None)
+    payload = fetch_result.raw_json
+    if not (
+        str(getattr(adapter, "adapter_key", "")).strip().lower() == "vaneck"
+        and str(getattr(adapter, "source_provider", "")).strip().lower() == "vaneck"
+        and instrument is not None
+        and str(getattr(instrument, "symbol", "")).strip().upper() == "OIH"
+        and fetch_result.source_identifier == "oil-services-etf-oih"
+        and metadata.get("source_provider") == "vaneck"
+        and metadata.get("adapter_key") == "vaneck"
+        and metadata.get("product_slug") == "oil-services-etf-oih"
+        and metadata.get("source_format") == "xlsx"
+        and metadata.get("body_identity_status") == "matched"
+        and isinstance(verified_body_identity, list)
+        and bool(verified_body_identity)
+        and parser_version == "vaneck-xlsx-v1"
+        and isinstance(payload, dict)
+    ):
+        return None, None
+
+    base_fields = {"source_format", "workbook_rows"}
+    payload_fields = set(payload)
+    has_diagnostics = payload_fields == base_fields | _VANECK_OIH_RAW_WORKBOOK_SCHEMA_FIELDS
+    if payload_fields != base_fields and not has_diagnostics:
+        return None, None
+    if payload.get("source_format") != "xlsx" or not isinstance(payload.get("workbook_rows"), list):
+        return None, None
+    if has_diagnostics and not (
+        isinstance(payload.get("raw_workbook_base64"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", str(payload.get("raw_workbook_sha256") or ""))
+        and isinstance(payload.get("raw_workbook_bytes"), int)
+        and not isinstance(payload.get("raw_workbook_bytes"), bool)
+        and payload["raw_workbook_bytes"] > 0
+    ):
+        return None, None
+
+    workbook_rows = payload["workbook_rows"]
+    header_row_index = 2
+    header_row = (
+        workbook_rows[header_row_index]
+        if len(workbook_rows) > header_row_index
+        and isinstance(workbook_rows[header_row_index], list)
+        else None
+    )
+    parsed_schema = {
+        "source_format": payload["source_format"],
+        "workbook_rows": workbook_rows,
+        # `_payload_schema_shape` intentionally summarizes arrays by element
+        # type. Include the actual OIH column row so workbook header changes
+        # remain visible to this source-specific drift contract.
+        "workbook_header": {
+            f"row_{header_row_index}": (
+                {
+                    f"{index}:{column}": "column"
+                    for index, column in enumerate(header_row)
+                    if isinstance(column, str)
+                }
+                if header_row is not None
+                else None
+            )
+        },
+    }
+    observed = _schema_fingerprint(raw_payload_json=parsed_schema)
+    legacy_qualification = None
+    if not has_diagnostics and header_row == list(_VANECK_OIH_RETAINED_WORKBOOK_COLUMNS):
+        # Existing deployed qualification rows used this exact diagnostic-
+        # expanded shape. This is only a compatibility witness; the next
+        # successful ordinary refresh stores `observed` in adapter state.
+        legacy_payload = {
+            "source_format": payload["source_format"],
+            "workbook_rows": workbook_rows,
+            "raw_workbook_base64": "",
+            "raw_workbook_sha256": "",
+            "raw_workbook_bytes": 0,
+        }
+        legacy_qualification = _schema_fingerprint(raw_payload_json=legacy_payload)
+    return observed, legacy_qualification
+
+
 def _failure_streak(value: Any) -> int:
     """Read a persisted failure streak without allowing malformed JSON to abort a run."""
 
@@ -856,6 +968,8 @@ async def _ensure_schema_fingerprint_is_stable(
     parser_version: str,
     raw_payload_text: str | None = None,
     raw_payload_json: dict | None = None,
+    schema_fingerprint_override: str | None = None,
+    legacy_qualification_fingerprint: str | None = None,
 ) -> None:
     """Reject an unexplained artifact-shape change before snapshot persistence.
 
@@ -870,7 +984,7 @@ async def _ensure_schema_fingerprint_is_stable(
     execute = getattr(db, "execute", None)
     if not callable(execute):
         return
-    observed = _schema_fingerprint(
+    observed = schema_fingerprint_override or _schema_fingerprint(
         raw_payload_text=raw_payload_text,
         raw_payload_json=raw_payload_json,
     )
@@ -891,6 +1005,12 @@ async def _ensure_schema_fingerprint_is_stable(
         return
     previous_parser = str(getattr(state, "parser_version", None) or "")
     if previous_parser and previous_parser != parser_version:
+        return
+    if (
+        legacy_qualification_fingerprint is not None
+        and previous_parser == parser_version == "vaneck-xlsx-v1"
+        and str(previous) == legacy_qualification_fingerprint
+    ):
         return
     raise ETFHoldingsSchemaDriftError(
         previous=str(previous),
@@ -3044,6 +3164,15 @@ async def _refresh_adapter_route(
     parser_version = str(
         result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
     )
+    vaneck_oih_schema_fingerprint, legacy_qualification_fingerprint = (
+        _vaneck_oih_schema_fingerprints(
+            profile,
+            adapter,
+            fetch_result,
+            parser_version=parser_version,
+            verified_body_identity=verified_body_identity,
+        )
+    )
     try:
         await _ensure_schema_fingerprint_is_stable(
             db,
@@ -3051,6 +3180,8 @@ async def _refresh_adapter_route(
             parser_version=parser_version,
             raw_payload_text=fetch_result.raw_text,
             raw_payload_json=fetch_result.raw_json,
+            schema_fingerprint_override=vaneck_oih_schema_fingerprint,
+            legacy_qualification_fingerprint=legacy_qualification_fingerprint,
         )
     except ETFHoldingsSchemaDriftError as exc:
         await _retain_rejected_fetch_artifact(
@@ -3118,6 +3249,7 @@ async def _refresh_adapter_route(
                 parser_version=parser_version,
                 raw_payload_text=fetch_result.raw_text,
                 raw_payload_json=fetch_result.raw_json,
+                schema_fingerprint_override=vaneck_oih_schema_fingerprint,
                 legal_metadata={
                     **(fetch_result.legal_metadata or {}),
                     **(
