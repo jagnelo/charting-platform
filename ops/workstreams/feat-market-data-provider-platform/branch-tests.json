@@ -4,7 +4,7 @@
   "plan_tests": [
     "backend/app/services/etf_holdings.py and backend/app/services/etf_holdings_refresh.py (exact VanEck OIH schema normalization and legacy-state migration guard)",
     "backend/tests/unit/services/test_etf_holdings_refresh.py (legacy exact-match migration, header drift rejection, generic-provider fail-closed behavior)",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (authentic qualification → persisted adapter/artifact state → ordinary refresh, PG sequence, raw evidence retention and repeat idempotence)",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (authentic qualification \u2192 persisted adapter/artifact state \u2192 ordinary refresh, PG sequence, raw evidence retention and repeat idempotence)",
     "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx (authentic 5,396-byte qualification/ordinary response; SHA-256 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653)",
     "complete backend/DDL, exact-source backend artifact, full_stack_browser and exact-source CI; Root resource release required before heavy phases"
   ],
@@ -25,7 +25,8 @@
         1,
         2,
         3,
-        4
+        4,
+        5
       ],
       "scope_note": "Canonical complete backend/DDL collector; exact current-source selection and coverage are immutable, zero retries."
     }
@@ -43,6 +44,13 @@
         4
       ],
       "reason": "Required unchanged full_stack_browser profile with original functional/visual assertions, references, masks, tolerance and zero retries; Root resource admission required."
+    },
+    {
+      "id": "current-source-artifact-runtime-and-ci",
+      "covers": [
+        5
+      ],
+      "reason": "Requires the complete current-source backend/DDL collector, independently verified exact-source backend artifact, full_stack_browser runtime profile, and terminal-green exact-source CI; each gate remains separately evidenced and none is inferred from another."
     }
   ]
 }

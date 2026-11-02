@@ -19,11 +19,11 @@
   ],
   "active_checkpoint_id": "provider-vj6w-ordinary-schema-continuity-20261102",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "Focused R6 PostgreSQL regression is green. Root resource allocation remains required for complete backend/DDL, backend artifact build, and full_stack_browser; exact-source CI starts after coherent source publication.",
+  "blocker": "Exact closing-tip CI is pending and mandatory before Root-owned protected staging integration; no product/full-profile gate remains.",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "Root accepted VJ6-WITNESS-1/2/3 under standing explicit human delegation; this is delegated technical acceptance, not a direct human quote.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-5e154-checkpoint-acceptance-root-review-20261101.json",
-  "checkpoint_acceptance_receipt_sha256": "7d5e252d7bdb07fe829a6fd35adbe7dc57a2e4c17587f69c39a8f4d4dbcc818c",
+  "checkpoint_acceptance_decision": "Root delegated technical acceptance of bounded checkpoint on caac446e982228cb13c259d7ed36274b1f68a679; receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-checkpoint-acceptance-root-review-20261102.json SHA-256 7fa88beec48afc708db009034686a85423bb62ef269c271c6170df811dcd66d7. Exact closing-tip CI pending.",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-checkpoint-acceptance-root-review-20261102.json",
+  "checkpoint_acceptance_receipt_sha256": "7fa88beec48afc708db009034686a85423bb62ef269c271c6170df811dcd66d7",
   "checkpoint_authorization_state": "Root delegated technical acceptance recorded; Root owns exact closing-tip CI observation and protected integration/promotion/deployment.",
   "checkpoint_history": [
     {
@@ -150,7 +150,7 @@
       "status": "ready_for_integration"
     }
   ],
-  "checkpoint_status": "in_progress",
+  "checkpoint_status": "ready_for_integration",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -164,30 +164,24 @@
   },
   "closing_commit_ci": {
     "run_id": null,
-    "source_sha": "pending one records-only publication",
-    "status": "pending; Root observes the exact closing-tip SHA."
+    "source_sha": "exact branch HEAD (see integration_capture; no self-referential SHA stored)",
+    "status": "pending; Root observes the exact closing-tip CI; the prior caac run 41376711568 remains overall failed solely for the corrected records mismatch."
   },
   "corrected_source_exact_ci": {
-    "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-job6-5f5-exact-source-ci-root-review-20261101.json",
-    "run_id": 41294959403,
-    "source_sha": "5f5a315f52d3d8662da7c84e3793908180d9ae9b",
-    "status": "terminal success; this implementation CI does not qualify the later records-only closing tip."
+    "run_id": 41376711568,
+    "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
+    "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "Root accepted the exact-shape witness repair. Full backend/DDL: 6268 passed, 3 configured skips of 6271, 84.42%; both canonical DDL cases passed. Full runtime: all11 phases exit0; functional201 passed/2 configured skips including all5 acquisition cases and dense10000; strict visual104/104 across4 projects, zero retries, unchanged references/masks/tolerance0.005; exact cleanup and seven-ledger-table preservation verified.",
+  "current_checkpoint_local_profile": "Root-qualified implementation caac446e982228cb13c259d7ed36274b1f68a679. Focused unit 28/28 and authentic PostgreSQL 1/1; backend/DDL 6273 passed/3 configured skips of 6276, 84.42%, both canonical DDL passed (receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac446-full-backend-root-review-20261102.json, SHA-256 cd568091a270b9b89ac1f49b01b58f0741ceba003e5836daef0f391f53870f9b); exact backend artifact sha256:76b2eb840b3796a2cb975fceaa4a38f13f7f15501dc1e210ee92a42878effd53. All 11 runtime phases exit 0; functional 201 passed/2 configured skips/all five acquisition cases/dense 10000, visual 104/104/four projects/zero retries/tolerance 0.005; full preservation verified (receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-complete-runtime-root-review-20261102.json, SHA-256 1ceab5ae233fae4b874fe5325130f361edd6d9f53692ade4d6d2d6280d36379d). Exact caac CI 41376711568 remains overall failed only for branch-declared records mismatch. Closing-tip CI pending.",
   "current_exact_ci": {
-    "run_id": 41336561769,
-    "source_sha": "5e1540883645f6f7b011efe24be1558605c68aa5",
-    "status": "terminal success on exact implementation source; records-only closing-tip CI remains pending Root observation."
+    "run_id": 41376711568,
+    "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
+    "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; historical result retained."
   },
   "current_native_goal_created_at": 1793581216,
   "current_native_goal_token_budget": null,
   "current_source_base_sha": "7546e7690ababcbefeff2c3279ea8b3bae638f10",
   "dirty_paths": [
-    "backend/app/services/etf_holdings.py",
-    "backend/app/services/etf_holdings_refresh.py",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "backend/tests/unit/services/test_etf_holdings_refresh.py",
-    "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx",
     "ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
@@ -195,39 +189,8 @@
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": 3613000000,
-    "container_count": 8,
-    "containers": [
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-host-port-relay-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-worker-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-frontend-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-backend-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-postgres-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-redis-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
-    ],
-    "known_bytes": 3810489208,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-market-data-provider-platform-c6e40c66",
-      "charting-stack-feat-market-data-provider-platform-c6e40c66"
-    ],
-    "testcontainer_sessions": [
-      "7e61d933-c00b-4256-892e-cff0e1d98780",
-      "82adae2f-2869-4c78-84c1-78911aa49dc4",
-      "9d5d5d33-7794-4a7e-85e5-cd8531be4628",
-      "efb3887f-15ac-425e-9d06-03092bb9e7f1"
-    ],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 191967800,
-    "volume_count": 4,
-    "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_before_cleanup": {
     "available": true,
@@ -242,7 +205,7 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Repair the genuine VanEck OIH ordinary-refresh schema-continuity defect. Keep qualification and ordinary refresh on one strictly verified OIH XLSX schema contract while retaining raw diagnostics and fail-closed header/schema drift detection. Support only the exact existing deployed legacy fingerprint, prove authentic qualification→state→ordinary refresh and idempotence plus changed-schema rejection, preserve accepted history/roadmaps/holds, and complete focused plus Root-allocated full qualification without source HTTP or production edits.",
+  "goal_objective": "Advance feat/market-data-provider-platform: Repair the genuine VanEck OIH ordinary-refresh schema-continuity defect. Keep qualification and ordinary refresh on one strictly verified OIH XLSX schema contract while retaining raw diagnostics and fail-closed header/schema drift detection. Support only the exact existing deployed legacy fingerprint, prove authentic qualification→state→ordinary refresh and idempotence plus changed-schema rejection, preserve accepted history/roadmaps/holds, and complete focused plus Root-allocated full qualification without source HTTP or production edits.. Acceptance criteria: VJ6-SCHEMA-1: Initial VanEck OIH qualification and ordinary issuer refresh derive the same schema fingerprint only after exact OIH adapter/provider/slug, matched workbook identity, xlsx format, and parser-version checks. The qualification raw workbook base64/hash/byte diagnostics remain unchanged in the retained artifact; ordinary artifacts retain their actual source payload.; VJ6-SCHEMA-2: Existing deployed adapter state migrates only when parser_version is exactly vaneck-xlsx-v1 and its stored fingerprint equals the exact legacy diagnostic-expanded fingerprint for the current ordinary payload with the reviewed OIH header. A successful/idempotent refresh stores the normalized fingerprint in adapter state; any changed workbook header, row schema, parser, identity, slug, or non-OIH source remains fail-closed.; VJ6-SCHEMA-3: Authentic qualification → persisted adapter/artifact state → ordinary refresh is exercised against the retained genuine OIH workbook fixture, including diagnostic artifact retention, legacy-state compatibility, normalized state readback, repeat-refresh idempotence, and a changed-header/schema rejection. Cover PostgreSQL plus applicable SQLite/unit contracts without provider transport.; VJ6-SCHEMA-4: Focused/static checks, complete backend/DDL coverage, exact-source backend artifact, unchanged full_stack_browser profile, workstream validation, and exact-source CI pass with original coverage, assertions, resource limits, references, masks, tolerance and zero retries. No source HTTP, production edit, ledger mutation, or hold change.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-11-02T01:06:01Z",
   "goal_request": {
     "authorization": "Direct user activation in the original visible Provider session after Root reviewed the actual genuine OIH schema-continuity failure.",
@@ -252,7 +215,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7546e7690ababcbefeff2c3279ea8b3bae638f10",
+  "head": "caac446e982228cb13c259d7ed36274b1f68a679",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -269,11 +232,11 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": null,
+  "implementation_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
   "integration_capture": "exact branch HEAD",
   "interrupted": false,
   "last_checkpoint": "2026-11-02T02:14:51.835172+00:00",
-  "last_human_progress_update": "2026-11-02T02:13:35.294350+00:00",
+  "last_human_progress_update": "2026-11-02T05:11:17.152049+00:00",
   "latest_degraded_staging_remediation_adoption": {
     "accepted": false,
     "merge_commit": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
@@ -338,9 +301,9 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent implementation with R6 proof, then prepare exact-source full backend/DDL, backend artifact, and full_stack_browser manifests for Root resource review.",
+  "next_action": "Root observes exact closing-tip CI for the one coherent records-only publication; on terminal required-job success, Root owns protected staging integration and subsequent release decisions.",
   "parent_branch": "staging",
-  "plan_hash": "765f1301f668405b4000274f4dc8a92c7475fc0097f970b1474adfb9a8b0fc72",
+  "plan_hash": "9464363331947bcc3ff8be7bf819acb42b9d7a27b0668fc3ba4b144b14f74640",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -677,16 +640,16 @@
       "VJ6-SCHEMA-2",
       "VJ6-SCHEMA-3"
     ],
-    "current_blocker": "Root resource allocation is required for full backend/DDL, backend artifact build, and full_stack_browser; no focused-test blocker remains.",
-    "current_phase": "focused_postgresql_passed_full_profile_pending",
-    "next_action": "Publish the coherent implementation with R6 evidence, then prepare exact-source full backend/DDL, backend artifact, and full_stack_browser manifests for Root resource review.",
+    "current_blocker": "All local qualification gates are Root-qualified; terminal-green exact closing-tip CI remains mandatory and Root-owned.",
+    "current_phase": "provider_vj6_schema_continuity_ready_for_integration_exact_closing_ci_pending",
+    "next_action": "After the one coherent records-only publication, Root observes exact closing-tip CI; if all required jobs pass, Root owns supported protected staging integration.",
     "total": 4,
-    "updated_at": "2026-11-02T02:13:35.294328+00:00"
+    "updated_at": "2026-11-02T05:11:17.152031+00:00"
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
-  "remote": "e5799e7fe26d53fe73c699515f9051236e3d67a2",
-  "remote_sha": "e5799e7fe26d53fe73c699515f9051236e3d67a2",
-  "remote_synchronized": false,
+  "remote": "caac446e982228cb13c259d7ed36274b1f68a679",
+  "remote_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
+  "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],
@@ -851,7 +814,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "in_progress",
+  "status": "ready_for_integration",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -1004,7 +967,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": null,
+  "validated_implementation_source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [

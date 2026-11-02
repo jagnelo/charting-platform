@@ -1,6 +1,6 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: in_progress
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -2735,9 +2735,11 @@ previously_accepted_integration_checkpoint:
       owner: "feature owner plus deployment operator after integration"
       continuation_acceptance_test: "A separately authorized full 30-day run satisfies AC-SHADOW; no trial begins as part of checkpoint preparation or acceptance."
 branch_tests:
-  - "backend/app/services/etf_holdings_vaneck_qualification.py and backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (full job6 immutable predecessor validator; exact canonical slug positive; missing/wrong slug and body/artifact digest negatives across PostgreSQL and SQLite)"
-  - "backend/tests/fixtures/vaneck/oih_job6_identity.xlsx (retained 5,395-byte body hash c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2 and canonical artifact payload hash)"
-  - "complete backend unit/integration/DDL coverage, exact-source backend image qualification, and required full_stack_browser profile"
+  - "backend/app/services/etf_holdings.py and backend/app/services/etf_holdings_refresh.py (exact VanEck OIH schema normalization and legacy-state migration guard)"
+  - "backend/tests/unit/services/test_etf_holdings_refresh.py (legacy exact-match migration, header drift rejection, generic-provider fail-closed behavior)"
+  - "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (authentic qualification → persisted adapter/artifact state → ordinary refresh, PG sequence, raw evidence retention and repeat idempotence)"
+  - "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx (authentic 5,396-byte qualification/ordinary response; SHA-256 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653)"
+  - "complete backend/DDL, exact-source backend artifact, full_stack_browser and exact-source CI; Root resource release required before heavy phases"
 previously_accepted_provider_vjl_branch_tests_reason: The bounded checkpoint changes backend qualification admission and persistence lineage. Focused unit regressions are required; the exact database and full backend/full_stack_browser profiles remain mandatory and must use Root-reviewed isolated resources. Exact-source branch CI remains required; no assertion, retry, threshold, tolerance, hold, or safety control is weakened.
 broader_roadmap_live_gate_disposition:
   status: held_outside_checkpoint
@@ -8632,6 +8634,16 @@ progress:
       2026-11-02 allocated R6 authentic qualification-to-persisted-state-to-ordinary-refresh
       PostgreSQL regression passed 1/1 on source base 7546e7690ababcbefeff2c3279ea8b3bae638f10.
       The exact header-aware OIH fingerprint oracle is d5622fbb3b702444cce00a653d363ad028b65fa4e2d916eec8f6d50b5c0688b7; retained workbook diagnostic bytes, exact canonical URL, three mocked requests, one persisted snapshot, legacy compatibility, and repeat-refresh idempotence were asserted. The authentic optional-header-drift unit regression remains fail-closed. R6 JUnit and cleanup are green; exact owned PG container/session removed, all29/36/10/51 protected Docker inventory objects and all seven real-ledger table hashes/device/inode equal Root baseline, zero source HTTP or real-ledger writes. Full backend/DDL, exact-source artifact, full_stack_browser and exact-source CI remain pending.
+    - >-
+      2026-11-02 Root accepted the bounded VJ6 ordinary-refresh schema-continuity checkpoint on exact
+      implementation source caac446e982228cb13c259d7ed36274b1f68a679 under standing human delegation.
+      Authentic focused unit/PostgreSQL evidence, the complete backend/DDL profile, exact backend artifact,
+      all 11 isolated full_stack_browser phases, 201 functional passes plus 2 configured skips, 104 strict
+      visual passes across four projects, and complete protected inventory/ledger preservation are qualified.
+      Exact caac implementation CI 41376711568 remains overall failed solely for the branch-declared
+      plan/manifest mismatch; the reviewed records correction is applied in this closing publication. The
+      exact closing-tip CI remains pending and mandatory before Root-owned staging integration. All Provider/
+      ETF roadmaps and genuine post-deployment OIH refresh remain open; no source HTTP or production change.
   completed:
   - VJ6-SCHEMA-1
   - VJ6-SCHEMA-2
@@ -8639,8 +8651,8 @@ progress:
   total: 4
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: focused_postgresql_passed_full_profile_pending
-  current_blocker: The allocated focused PostgreSQL regression passed. Root resource allocation is still required before the complete backend/DDL, candidate artifact build, and full_stack_browser phases; exact-source CI will begin with the coherent implementation publication.
+  current_phase: ready_for_integration_exact_closing_tip_CI_pending
+  current_blocker: All local qualification gates are Root-qualified; terminal-green exact closing-tip CI remains mandatory and is owned/observed by Root.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -8924,7 +8936,7 @@ progress:
     acceptance remains open. Preserve all quota holds, response data, and
     source-bound receipts; no paid/trial activation, deployment, integration,
     reset, or cleanup is authorized.
-  next_action: Publish the coherent implementation with this focused proof, then prepare exact-source complete backend/DDL, backend artifact, and full_stack_browser manifests for Root resource review; keep all broader gates pending.
+  next_action: Publish this one coherent records-only closing tip, then Root observes its exact CI; after terminal required-job success Root owns protected staging integration.
   historical_next_action_pre_on_demand_20261027: >-
     Preserve current exact-source evidence at `3283d668b27fd5b714369d79cb9db79db86398a7`
     / Actions `39952646134` and the focused SEC restart/failure/rollback proof.
@@ -11560,28 +11572,57 @@ acceptance_criteria: &vj6active003
     full_stack_browser profile, workstream validation, and exact-source CI pass with original coverage,
     assertions, resource limits, references, masks, tolerance and zero retries. No source HTTP, production
     edit, ledger mutation, or hold change.
-human_closure_authorization: Pending; the user directly activated this bounded repair. This is planning
-  authority only, not acceptance, closure, integration, deployment, or source-action approval.
-closure_summary: Pending implementation and focused/full validation. Preserve the accepted VJ6 closure
-  and all broader Provider/ETF roadmap criteria.
-integration_checkpoint_authorization: No integration or closure is authorized by this repair activation.
-  Root retains acceptance and protected release ownership.
-local_validation_reason: Focused refresh-unit module passes 28/28, including authentic OIH header-drift
-  rejection. R5 PostgreSQL reached qualification and both idempotent ordinary refreshes, then failed only its
-  stale ordinary URL assertion; the strict expectation now uses the approved canonical URL. A fresh
-  source-bound Root allocation is pending for that updated integration input. Full backend/DDL, exact-source
-  artifact, full_stack_browser and exact-source CI remain pending Root admission.
-current_gate_checkpoint: New active checkpoint provider-vj6w-ordinary-schema-continuity-20261102. The
-  exact authentic artifact evidence shows only the three raw diagnostic envelope keys differ; OIH schema
-  fingerprints now normalize those keys and include workbook header names/order. Focused unit module 28/28,
-  including an authentic changed-header negative. R5 PostgreSQL completed qualification and both ordinary
-  refreshes before its stale URL expectation failed; the expectation is corrected to the approved canonical
-  URL, and a fresh allocation is pending before another PostgreSQL run. No provider HTTP or production edit.
-validated_implementation_source_sha: null
+human_closure_authorization: >-
+  Root accepted this bounded software checkpoint under the standing human authorization recorded
+  in the cited Root receipt; this is delegated technical acceptance, not a fabricated direct human
+  quote. Exact closing-tip CI remains required before protected integration.
+closure_summary: >-
+  Root technically accepted the bounded VJ6 ordinary-refresh schema-continuity checkpoint on
+  implementation source caac446e982228cb13c259d7ed36274b1f68a679 under the standing human
+  delegation. Focused authentic PostgreSQL/unit, complete backend/DDL, exact-source artifact, all
+  11 full_stack_browser phases, functional and visual assertions, and protected cleanup are
+  qualified. The previous caac exact CI overall failure remains recorded as a branch-test manifest
+  mismatch; exact closing-tip CI is pending and mandatory before Root-owned staging integration.
+  All 24 Provider and 14 ETF roadmap criteria and genuine post-deployment OIH refresh remain open.
+  integration_capture: exact branch HEAD.
+integration_checkpoint_authorization: >-
+  Root delegated technical acceptance of this bounded checkpoint under the standing human
+  authorization and authorized one records-only closing publication. Exact closing-tip CI is still
+  required; Root retains protected staging/master integration, deployment, and genuine-source
+  operation ownership.
+local_validation_reason: >-
+  Focused authentic OIH schema unit coverage passed 28/28; the allocated R6 PostgreSQL
+  qualification-to-persisted-state-to-two-idempotent-ordinary-refresh case passed 1/1 with the
+  exact header-aware fingerprint and changed-header negative retained. Root qualified the complete
+  caac backend/DDL collection (6,273 passed, 3 configured skips of 6,276, 84.42% coverage; both
+  canonical DDL cases passed) and exact backend artifact. Root qualified all 11 full_stack_browser
+  phases at exit 0: functional 201 passed/2 configured skips including all 5 acquisition cases and
+  10,000-row scenarios; strict visuals 104/104 across four projects, zero retries, unchanged
+  references/masks and 0.005 tolerance. Exact cleanup restored 29 containers/37 images/10
+  networks/51 volumes and all seven real-ledger tables/metadata/device/inode. Exact caac CI
+  41376711568 passed product jobs but overall failed only branch-declared plan/manifest mismatch;
+  this record-only correction fixes that mapping. Exact closing-tip CI remains pending and
+  mandatory before integration. No provider HTTP, shared-ledger mutation, production edit or hold
+  change.
+current_gate_checkpoint: >-
+  Root accepted bounded checkpoint provider-vj6w-ordinary-schema-continuity-20261102 on
+  implementation source caac446e982228cb13c259d7ed36274b1f68a679. Authentic R6 PostgreSQL and 28
+  focused unit regressions passed; full backend/DDL, exact artifact, all 11 isolated browser
+  phases, functional/visual thresholds and preservation checks are Root-qualified. Root acceptance
+  receipt
+  /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-checkpoint-acceptance-root-review-20261102.json
+  SHA-256 7fa88beec48afc708db009034686a85423bb62ef269c271c6170df811dcd66d7. The earlier caac CI
+  run 41376711568 remains overall red solely for the now-corrected plan/branch-tests mismatch; do
+  not relabel it green. One coherent records-only publication is authorized; exact closing-tip CI
+  remains pending Root observation. No source HTTP, production edit, ledger mutation or hold
+  change.
+validated_implementation_source_sha: caac446e982228cb13c259d7ed36274b1f68a679
 integration_checkpoint:
   id: provider-vj6w-ordinary-schema-continuity-20261102
-  status: in_progress
-  acceptance_state: pending
+  status: ready_for_integration
+  acceptance_state: accepted_by_root_under_standing_human_delegation_exact_closing_ci_pending
+  root_technical_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-checkpoint-acceptance-root-review-20261102.json
+  root_technical_acceptance_receipt_sha256: 7fa88beec48afc708db009034686a85423bb62ef269c271c6170df811dcd66d7
   planning_authorization: Direct user activation in the original visible Provider session after Root verified
     the genuine qualification/ordinary-refresh schema mismatch. This authorizes only the owner-branch
     offline repair and normal source validation; no live provider request or production edit.
@@ -11610,11 +11651,7 @@ integration_checkpoint:
   prior_checkpoint: Root-accepted VJ6-WITNESS-1/2/3, VJ6-1..4, VJL, VQS, VJD and earlier checkpoints remain
     archived unchanged; this repair does not revise their evidence.
   required_gates_remaining:
-  - Focused SQLite/unit and authentic PostgreSQL regression
-  - Root-reviewed complete backend/DDL collector and protected cleanup
-  - Root-reviewed exact-source backend artifact
-  - Root-reviewed unchanged full_stack_browser profile and cleanup
-  - Exact-source branch CI and normal workstream validation
+  - Exact closing-tip branch CI on the one coherent records-only publication; Root independently verifies all required jobs terminal green before protected integration.
   live_source_status: No new provider request. Job7/log17/artifact8/snapshot4 remain historical genuine
     qualification; ordinary attempt artifact9/log18 remains a retained schema-drift rejection. Policy
     remains re-held; 840 unrelated holds (EDGAR838/FINRA2), all VanEck usage history and native unknowns
@@ -11988,8 +12025,7 @@ integration_checkpoint:
     continuation_acceptance_test: The 30-day deployed shadow run remains disabled and is not part of the
       current implementation phase; after every other controllable acceptance gate is complete, it will
       be planned and authorized as the final gate before human closure and staging integration.
-  next_action: Complete focused offline regressions and prepare exact-source full backend/DDL, artifact,
-    and full_stack_browser manifests; obtain Root resource admission before heavy execution.
+  next_action: Root observes terminal exact closing-tip CI; if all required jobs are green, Root owns supported protected staging integration and subsequent release decisions.
 previously_accepted_provider_vj6_artifact_slug_witness_checkpoint_archive:
   goal: Repair the exact retained job6 artifact source_identifier compatibility while keeping every body,
     log, metadata, digest, settlement, account, review, fingerprint, expiry and recursive lineage predicate
