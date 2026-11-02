@@ -2,20 +2,32 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/services/etf_holdings_vaneck_qualification.py and backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (full job6 immutable predecessor validator; exact canonical slug positive; missing/wrong slug and body/artifact digest negatives across PostgreSQL and SQLite)",
-    "backend/tests/fixtures/vaneck/oih_job6_identity.xlsx (retained 5,395-byte body hash c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2 and canonical artifact payload hash)",
-    "complete backend unit/integration/DDL coverage, exact-source backend image qualification, and required full_stack_browser profile"
+    "backend/app/services/etf_holdings.py and backend/app/services/etf_holdings_refresh.py (exact VanEck OIH schema normalization and legacy-state migration guard)",
+    "backend/tests/unit/services/test_etf_holdings_refresh.py (legacy exact-match migration, header drift rejection, generic-provider fail-closed behavior)",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (authentic qualification → persisted adapter/artifact state → ordinary refresh, PG sequence, raw evidence retention and repeat idempotence)",
+    "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx (authentic 5,396-byte qualification/ordinary response; SHA-256 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653)",
+    "complete backend/DDL, exact-source backend artifact, full_stack_browser and exact-source CI; Root resource release required before heavy phases"
   ],
   "commands": [
+    {
+      "id": "focused-schema-contract",
+      "command": "pytest backend/tests/unit/services/test_etf_holdings_refresh.py",
+      "covers": [
+        1,
+        2,
+        3
+      ]
+    },
     {
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "scope_note": "Required full canonical backend/DDL profile for the exact retained job6 artifact witness change; preserve collection, coverage threshold, retries and session isolation."
+      "scope_note": "Canonical complete backend/DDL collector; exact current-source selection and coverage are immutable, zero retries."
     }
   ],
   "ci_covered_commands": {
@@ -27,9 +39,10 @@
       "covers": [
         1,
         2,
-        3
+        3,
+        4
       ],
-      "reason": "Required full_stack_browser profile after current-source image qualification; preserve the existing functional selection, strict visual references/masks, tolerance and zero retries."
+      "reason": "Required unchanged full_stack_browser profile with original functional/visual assertions, references, masks, tolerance and zero retries; Root resource admission required."
     }
   ]
 }

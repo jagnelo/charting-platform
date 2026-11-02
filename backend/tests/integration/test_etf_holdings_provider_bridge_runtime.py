@@ -2857,6 +2857,250 @@ async def test_vaneck_initial_qualification_uses_disabled_policy_and_durably_lin
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+async def test_vaneck_qualification_schema_continues_through_ordinary_refresh_idempotently(
+    provider_db, monkeypatch
+):
+    """Authentic OIH bytes keep raw qualification evidence while ordinary refresh migrates state."""
+
+    from pathlib import Path
+
+    from app.models.etf_holdings import (
+        ETFHoldingsAdapterState,
+        ETFHoldingsBackfillJob,
+        ETFHoldingsRawArtifact,
+        ETFHoldingsSnapshot,
+    )
+    from app.services.etf_holdings_provider_bridge import (
+        VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+    )
+    from app.services.etf_holdings_vaneck_qualification import (
+        VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+        VANECK_OIH_INITIAL_URL,
+        VANECK_OIH_PRODUCT_SLUG,
+        qualify_vaneck_oih_fund,
+    )
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    workbook = (
+        Path(__file__).resolve().parents[1] / "fixtures/vaneck/oih_schema_continuity.xlsx"
+    ).read_bytes()
+    assert len(workbook) == 5396
+    assert hashlib.sha256(workbook).hexdigest() == (
+        "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653"
+    )
+
+    class AuthenticWorkbookTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            return httpx.Response(
+                200,
+                content=workbook,
+                headers={
+                    "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                },
+                request=request,
+            )
+
+    runner = AuthenticWorkbookTransport()
+    _use_mocktransport(monkeypatch, runner)
+    suffix = uuid4().hex[:10]
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=3,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["www.vaneck.com"],
+                operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                provider_name_override="vaneck",
+                instrument_symbol_override="OIH",
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            instrument.identity_status = "resolved"
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                issuer="VanEck",
+                adapter_key="vaneck",
+                adapter_status="ready",
+                provider_aliases={
+                    "product_slug": VANECK_OIH_PRODUCT_SLUG,
+                    "holdings_adapter": "vaneck",
+                    "holdings_source_provider": "vaneck",
+                    "expected_fund_symbol": "OIH",
+                },
+            )
+            setup.add(profile)
+            case.policy.is_enabled = False
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert entitlement is not None
+            entitlement.live_probe_status = "not_run"
+            entitlement.revision = 7
+            admin = User(
+                username=f"vaneck-schema-{suffix}",
+                email=f"vaneck-schema-{suffix}@example.test",
+                hashed_password="synthetic-test-only",
+                is_active=True,
+                is_admin=True,
+            )
+            setup.add(admin)
+            await setup.flush()
+            profile_id = profile.id
+            admin_id = admin.id
+            policy_id = case.policy.id
+
+    async with provider_db() as qualification_session:
+        completed = await qualify_vaneck_oih_fund(
+            qualification_session,
+            requested_by_user_id=admin_id,
+        )
+    assert completed.status == "completed"
+    assert runner.calls == [("GET", VANECK_OIH_INITIAL_URL)]
+
+    # Recreate the exact legacy state shape written by the already deployed
+    # qualification path before the schema contract was normalized.
+    async with provider_db() as compatibility_setup:
+        job = await compatibility_setup.get(ETFHoldingsBackfillJob, completed.id)
+        assert job is not None
+        snapshot = await compatibility_setup.get(
+            ETFHoldingsSnapshot,
+            job.extra_data["qualification_outcome"]["snapshot_id"],
+        )
+        assert snapshot is not None and snapshot.source_artifact_id is not None
+        qualification_artifact = await compatibility_setup.get(
+            ETFHoldingsRawArtifact,
+            snapshot.source_artifact_id,
+        )
+        assert qualification_artifact is not None
+        assert set(qualification_artifact.payload_json) == {
+            "source_format",
+            "workbook_rows",
+            "raw_workbook_base64",
+            "raw_workbook_sha256",
+            "raw_workbook_bytes",
+        }
+        state = await compatibility_setup.scalar(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile_id,
+                ETFHoldingsAdapterState.adapter_key == "vaneck",
+            )
+        )
+        assert state is not None and state.parser_version == "vaneck-xlsx-v1"
+        legacy_fingerprint = refresh._schema_fingerprint(
+            raw_payload_json=qualification_artifact.payload_json
+        )
+        state.extra_data = {**state.extra_data, "schema_fingerprint": legacy_fingerprint}
+        policy = await compatibility_setup.get(ProviderPolicy, policy_id)
+        assert policy is not None and policy.is_enabled is False
+        policy.is_enabled = True
+        await compatibility_setup.commit()
+
+    snapshot_ids = []
+    for _ in range(2):
+        async with provider_db() as ordinary_session:
+            ordinary_profile = await _load_profile(ordinary_session, profile_id)
+            ordinary_snapshot = await refresh._refresh_adapter_route(
+                ordinary_session,
+                ordinary_profile,
+            )
+            await refresh._record_success(
+                ordinary_session,
+                ordinary_profile,
+                snapshot=ordinary_snapshot,
+            )
+            snapshot_ids.append(ordinary_snapshot.id)
+            await ordinary_session.commit()
+
+    assert snapshot_ids[0] == snapshot_ids[1] == snapshot.id
+    assert runner.calls == [
+        ("GET", VANECK_OIH_INITIAL_URL),
+        ("GET", VANECK_OIH_CANONICAL_DOWNLOAD_URL),
+        ("GET", VANECK_OIH_CANONICAL_DOWNLOAD_URL),
+    ]
+    async with provider_db() as readback:
+        artifacts = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsRawArtifact).where(
+                        ETFHoldingsRawArtifact.etf_profile_id == profile_id
+                    )
+                )
+            ).all()
+        )
+        qualification_artifacts = [
+            artifact
+            for artifact in artifacts
+            if isinstance(artifact.payload_json, dict)
+            and "raw_workbook_base64" in artifact.payload_json
+        ]
+        ordinary_artifacts = [
+            artifact
+            for artifact in artifacts
+            if isinstance(artifact.payload_json, dict)
+            and set(artifact.payload_json) == {"source_format", "workbook_rows"}
+        ]
+        assert len(qualification_artifacts) == len(ordinary_artifacts) == 1
+        assert qualification_artifacts[0].payload_json["raw_workbook_sha256"] == (
+            "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653"
+        )
+        assert (
+            base64.b64decode(
+                qualification_artifacts[0].payload_json["raw_workbook_base64"],
+                validate=True,
+            )
+            == workbook
+        )
+        assert (
+            len(
+                list(
+                    (
+                        await readback.scalars(
+                            select(ETFHoldingsSnapshot).where(
+                                ETFHoldingsSnapshot.etf_profile_id == profile_id
+                            )
+                        )
+                    ).all()
+                )
+            )
+            == 1
+        )
+        state = await readback.scalar(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile_id,
+                ETFHoldingsAdapterState.adapter_key == "vaneck",
+            )
+        )
+        assert state is not None
+        # Header-aware OIH contract, independently pinned from the authentic fixture.
+        assert state.extra_data["schema_fingerprint"] == (
+            "d5622fbb3b702444cce00a653d363ad028b65fa4e2d916eec8f6d50b5c0688b7"
+        )
+        assert state.extra_data["schema_fingerprint"] != refresh._schema_fingerprint(
+            raw_payload_json=ordinary_artifacts[0].payload_json
+        )
+        assert state.extra_data["schema_fingerprint"] != legacy_fingerprint
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "scenario",
     [
