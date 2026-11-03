@@ -1,30 +1,30 @@
 {
   "acceptance_criteria": [
     {
-      "id": "VJ6-SCHEMA-1",
-      "text": "Initial VanEck OIH qualification and ordinary issuer refresh derive the same schema fingerprint only after exact OIH adapter/provider/slug, matched workbook identity, xlsx format, and parser-version checks. The qualification raw workbook base64/hash/byte diagnostics remain unchanged in the retained artifact; ordinary artifacts retain their actual source payload."
+      "id": "NATIVE-ETF-QUAL-1",
+      "text": "Provider exposes bind_native_etf_initial_qualification() and a non-consuming disabled-policy predicate for the ETF bridge. Authority is task-local/sealed and binds attempt ID, registered publisher/DataSource identity, ETF profile/instrument/symbol, exact operation, entitlement revision and canonical review fingerprint, resolved account scope, expiry, and bounded maximum physical requests; malformed or nested scopes are rejected."
     },
     {
-      "id": "VJ6-SCHEMA-2",
-      "text": "Existing deployed adapter state migrates only when parser_version is exactly vaneck-xlsx-v1 and its stored fingerprint equals the exact legacy diagnostic-expanded fingerprint for the current ordinary payload with the reviewed OIH header. A successful/idempotent refresh stores the normalized fingerprint in adapter state; any changed workbook header, row schema, parser, identity, slug, or non-OIH source remains fail-closed."
+      "id": "NATIVE-ETF-QUAL-2",
+      "text": "Only the exact disabled/not_run native ETF row matching current source identity, active publisher, capability/operation, profile/instrument/symbol, entitlement revision/fingerprint, and account scope can enter initial qualification. Mismatch, expiry, review drift, wrong adapter, exhausted request budget, or invalid source cannot authorize transport; ordinary calls without the scope still require positive live-probe evidence."
     },
     {
-      "id": "VJ6-SCHEMA-3",
-      "text": "Authentic qualification → persisted adapter/artifact state → ordinary refresh is exercised against the retained genuine OIH workbook fixture, including diagnostic artifact retention, legacy-state compatibility, normalized state readback, repeat-refresh idempotence, and a changed-header/schema rejection. Cover PostgreSQL plus applicable SQLite/unit contracts without provider transport."
+      "id": "NATIVE-ETF-QUAL-3",
+      "text": "Every physical ETF bridge hop consumes one slot before provider resolution and transport through execute_provider_call. Existing request-driven scope, free-only/terms, known operation cost, provider configuration/routing controls, and durable shared quota reservation/settlement remain mandatory; paid/trial and unknown/exhausted quotas remain denied."
     },
     {
-      "id": "VJ6-SCHEMA-4",
-      "text": "Focused/static checks, complete backend/DDL coverage, exact-source backend artifact, unchanged full_stack_browser profile, workstream validation, and exact-source CI pass with original coverage, assertions, resource limits, references, masks, tolerance and zero retries. No source HTTP, production edit, ledger mutation, or hold change."
+      "id": "NATIVE-ETF-QUAL-4",
+      "text": "Focused no-network tests exercise two unrelated native publisher identities, exact binding, mismatch/expiry/revision/fingerprint/account/budget and paid denials, and ordinary not_run rejection. Ruff/format/static/workstream checks pass; complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration and exact-source CI remain pending Root allocation and required before checkpoint acceptance. The combined consumer browser profile is owned by Root after integration and is not a Producer-only gate."
     }
   ],
-  "active_checkpoint_id": "provider-vj6w-ordinary-schema-continuity-20261102",
+  "active_checkpoint_id": "provider-native-etf-initial-qualification-authority-20261103",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "Exact closing-tip CI is pending and mandatory before Root-owned protected staging integration; no product/full-profile gate remains.",
+  "blocker": "Complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration, and exact-source CI remain pending Root resource coordination; no live qualification request is authorized.",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "Root delegated technical acceptance of bounded checkpoint on caac446e982228cb13c259d7ed36274b1f68a679; receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-checkpoint-acceptance-root-review-20261102.json SHA-256 7fa88beec48afc708db009034686a85423bb62ef269c271c6170df811dcd66d7. Exact closing-tip CI pending.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-checkpoint-acceptance-root-review-20261102.json",
-  "checkpoint_acceptance_receipt_sha256": "7fa88beec48afc708db009034686a85423bb62ef269c271c6170df811dcd66d7",
-  "checkpoint_authorization_state": "Root delegated technical acceptance recorded; Root owns exact closing-tip CI observation and protected integration/promotion/deployment.",
+  "checkpoint_acceptance_decision": null,
+  "checkpoint_acceptance_receipt": null,
+  "checkpoint_acceptance_receipt_sha256": null,
+  "checkpoint_authorization_state": "Direct human activation for the bounded Provider-owned native ETF qualification authority repair; technical acceptance pending required validation.",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -150,7 +150,7 @@
       "status": "ready_for_integration"
     }
   ],
-  "checkpoint_status": "ready_for_integration",
+  "checkpoint_status": "in_progress",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -172,16 +172,16 @@
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "Root-qualified implementation caac446e982228cb13c259d7ed36274b1f68a679. Focused unit 28/28 and authentic PostgreSQL 1/1; backend/DDL 6273 passed/3 configured skips of 6276, 84.42%, both canonical DDL passed (receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac446-full-backend-root-review-20261102.json, SHA-256 cd568091a270b9b89ac1f49b01b58f0741ceba003e5836daef0f391f53870f9b); exact backend artifact sha256:76b2eb840b3796a2cb975fceaa4a38f13f7f15501dc1e210ee92a42878effd53. All 11 runtime phases exit 0; functional 201 passed/2 configured skips/all five acquisition cases/dense 10000, visual 104/104/four projects/zero retries/tolerance 0.005; full preservation verified (receipt /home/m920q/charting-platform/.ai/staging-attempts/provider-vj6w-schema-caac-complete-runtime-root-review-20261102.json, SHA-256 1ceab5ae233fae4b874fe5325130f361edd6d9f53692ade4d6d2d6280d36379d). Exact caac CI 41376711568 remains overall failed only for branch-declared records mismatch. Closing-tip CI pending.",
+  "current_checkpoint_local_profile": "Focused no-network provider_runtime validation passed 10/10 with Ruff/format/workstream checks. Complete backend/DDL, isolated PostgreSQL/quota-ledger authority integration and exact-source CI remain pending Root resource allocation; no browser/image gate for this Producer-only scope.",
   "current_exact_ci": {
-    "run_id": 41376711568,
-    "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
-    "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; historical result retained."
+    "status": "pending exact source publication and hosted run; no current-source result is claimed."
   },
-  "current_native_goal_created_at": 1793581216,
+  "current_native_goal_created_at": 1793706426,
   "current_native_goal_token_budget": null,
   "current_source_base_sha": "7546e7690ababcbefeff2c3279ea8b3bae638f10",
   "dirty_paths": [
+    "backend/app/services/provider_runtime.py",
+    "backend/tests/unit/services/test_provider_runtime.py",
     "ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
     "ops/workstreams/feat-market-data-provider-platform/handoff.md",
     "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
@@ -189,8 +189,39 @@
     "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": 3613000000,
+    "container_count": 8,
+    "containers": [
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-host-port-relay-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-worker-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-frontend-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-backend-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-postgres-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-redis-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
+    ],
+    "known_bytes": 3811108208,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-market-data-provider-platform-c6e40c66",
+      "charting-stack-feat-market-data-provider-platform-c6e40c66"
+    ],
+    "testcontainer_sessions": [
+      "7e61d933-c00b-4256-892e-cff0e1d98780",
+      "82adae2f-2869-4c78-84c1-78911aa49dc4",
+      "9d5d5d33-7794-4a7e-85e5-cd8531be4628",
+      "efb3887f-15ac-425e-9d06-03092bb9e7f1"
+    ],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 192586800,
+    "volume_count": 4,
+    "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
   "docker_before_cleanup": {
     "available": true,
@@ -205,17 +236,17 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/market-data-provider-platform: Repair the genuine VanEck OIH ordinary-refresh schema-continuity defect. Keep qualification and ordinary refresh on one strictly verified OIH XLSX schema contract while retaining raw diagnostics and fail-closed header/schema drift detection. Support only the exact existing deployed legacy fingerprint, prove authentic qualification→state→ordinary refresh and idempotence plus changed-schema rejection, preserve accepted history/roadmaps/holds, and complete focused plus Root-allocated full qualification without source HTTP or production edits.. Acceptance criteria: VJ6-SCHEMA-1: Initial VanEck OIH qualification and ordinary issuer refresh derive the same schema fingerprint only after exact OIH adapter/provider/slug, matched workbook identity, xlsx format, and parser-version checks. The qualification raw workbook base64/hash/byte diagnostics remain unchanged in the retained artifact; ordinary artifacts retain their actual source payload.; VJ6-SCHEMA-2: Existing deployed adapter state migrates only when parser_version is exactly vaneck-xlsx-v1 and its stored fingerprint equals the exact legacy diagnostic-expanded fingerprint for the current ordinary payload with the reviewed OIH header. A successful/idempotent refresh stores the normalized fingerprint in adapter state; any changed workbook header, row schema, parser, identity, slug, or non-OIH source remains fail-closed.; VJ6-SCHEMA-3: Authentic qualification → persisted adapter/artifact state → ordinary refresh is exercised against the retained genuine OIH workbook fixture, including diagnostic artifact retention, legacy-state compatibility, normalized state readback, repeat-refresh idempotence, and a changed-header/schema rejection. Cover PostgreSQL plus applicable SQLite/unit contracts without provider transport.; VJ6-SCHEMA-4: Focused/static checks, complete backend/DDL coverage, exact-source backend artifact, unchanged full_stack_browser profile, workstream validation, and exact-source CI pass with original coverage, assertions, resource limits, references, masks, tolerance and zero retries. No source HTTP, production edit, ledger mutation, or hold change.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-11-02T01:06:01Z",
+  "goal_objective": "Implement the bounded Provider-owned sealed one-shot native ETF initial-qualification authority, preserving ordinary disabled/not_run admission holds and shared physical-hop quota guards; define the callable contract for ETF's executor, add focused no-network tests across unrelated native publishers and denial cases, and complete the focused source/workstream checkpoint without live provider, policy, quota, or deployment changes.",
+  "goal_recorded_at": "2026-11-03T11:47:06+00:00",
   "goal_request": {
-    "authorization": "Direct user activation in the original visible Provider session after Root reviewed the actual genuine OIH schema-continuity failure.",
-    "objective": "Repair the genuine VanEck OIH ordinary-refresh schema-continuity defect. Keep qualification and ordinary refresh on one strictly verified OIH XLSX schema contract while retaining raw diagnostics and fail-closed header/schema drift detection. Support only the exact existing deployed legacy fingerprint, prove authentic qualification→state→ordinary refresh and idempotence plus changed-schema rejection, preserve accepted history/roadmaps/holds, and complete focused plus Root-allocated full qualification without source HTTP or production edits.",
-    "recorded_at": "2026-11-02T01:06:01Z"
+    "authorization": "Direct human activation in the original visible Provider session on 2026-11-03 after Root reviewed the generic native publisher qualification gap.",
+    "objective": "Implement the bounded Provider-owned sealed one-shot native ETF initial-qualification authority, preserving ordinary disabled/not_run admission holds and shared physical-hop quota guards; define the callable contract for ETF's executor, add focused no-network tests across unrelated native publishers and denial cases, and complete the focused source/workstream checkpoint without live provider, policy, quota, or deployment changes.",
+    "recorded_at": "2026-11-03T11:47:06+00:00"
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "caac446e982228cb13c259d7ed36274b1f68a679",
+  "head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -236,7 +267,7 @@
   "integration_capture": "exact branch HEAD",
   "interrupted": false,
   "last_checkpoint": "2026-11-02T02:14:51.835172+00:00",
-  "last_human_progress_update": "2026-11-02T05:11:17.152049+00:00",
+  "last_human_progress_update": "2026-11-03T12:09:33.799196+00:00",
   "latest_degraded_staging_remediation_adoption": {
     "accepted": false,
     "merge_commit": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
@@ -300,10 +331,10 @@
     "sha": "8173ce8ef34369a02183706fd18210506bd20202",
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
-  "local_validation_profile": "full_stack_browser",
-  "next_action": "Root observes exact closing-tip CI for the one coherent records-only publication; on terminal required-job success, Root owns protected staging integration and subsequent release decisions.",
+  "local_validation_profile": "docker_integration",
+  "next_action": "Commit and push the focused-green implementation/workstream checkpoint, then submit immutable backend and PostgreSQL resource manifests to Root for release.",
   "parent_branch": "staging",
-  "plan_hash": "9464363331947bcc3ff8be7bf819acb42b9d7a27b0668fc3ba4b144b14f74640",
+  "plan_hash": "bf8318ca46018a866d18a98e00977191d6de4fd6020dd66ee8305cf5a26f2b7f",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -409,7 +440,7 @@
       "source_sha": "5f5a315f52d3d8662da7c84e3793908180d9ae9b",
       "status": "terminal success on exact implementation source; closing-tip CI for the records-only publication remains pending."
     },
-    "goal_objective": "Advance feat/market-data-provider-platform: Repair the retained job6 OIH workbook identity gap with strict workbook-internal worksheet/date evidence, preserve fail-closed ordinary acquisition and immutable job lineage, and complete the required offline and allocated validation gates. Preserve accepted history, all24 Provider roadmap criteria, four spent VanEck units, 799 unrelated holds, native unknowns, and all source/paid/trial/native/broker/capital holds. No source HTTP or target mutation in this checkpoint.. Acceptance criteria: VJ6-1: Strict OIH worksheet identity is read from an anchored ticker_asof_YYYYMMDD sheet name in the actual XLSX workbook, and its date must equal the independently parsed composition date. Contradictory core/title/preamble/ticker evidence denies; the retained workbook hash c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2 is reproduced offline. URL, slug, filename and holding plausibility never establish identity.; VJ6-2: Malformed, substring-only, invalid-date, wrong-ticker, conflicting/multiple worksheet, date-mismatched and explicitly contradictory identity cases remain denied; generic titles remain unverified. Ordinary admitted OIH acquisition uses the same strict body identity contract, preserves contradictory explicit fund identity over worksheet evidence, and emits issuer_reported_dated_complete_holdings/complete only for a matched, dated, nonempty OIH workbook so a profile with no completeness aliases persists a current-analysis-eligible snapshot.; VJ6-3: If required, one typed job6_body_identity_v1 successor extends only the existing continuation API and validates immutable job6 digest/raw body/log/artifact/diagnostic/settled reservation, current account/review/fingerprint/expiry and recursive job5→job4→job3 lineage. Legacy job3/job4/job5 behavior remains compatible; one fixed canonical GET, one request, 120s, 5MiB, 30s interval, concurrency/burst1, no redirects/retries, no positive-output fabrication or replay.; VJ6-4: Focused unit and actual-shape PostgreSQL/SQLite regressions, complete backend/DDL coverage, full_stack_browser functional and strict visuals, workstream validation, and exact-source CI pass without changing assertions, retry policy, coverage, references or tolerance. Heavy resource phases require Root allocation; no live source request occurs in this checkpoint.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+    "goal_objective": "Advance feat/market-data-provider-platform: Repair the retained job6 OIH workbook identity gap with strict workbook-internal worksheet/date evidence, preserve fail-closed ordinary acquisition and immutable job lineage, and complete the required offline and allocated validation gates. Preserve accepted history, all24 Provider roadmap criteria, four spent VanEck units, 799 unrelated holds, native unknowns, and all source/paid/trial/native/broker/capital holds. No source HTTP or target mutation in this checkpoint.. Acceptance criteria: VJ6-1: Strict OIH worksheet identity is read from an anchored ticker_asof_YYYYMMDD sheet name in the actual XLSX workbook, and its date must equal the independently parsed composition date. Contradictory core/title/preamble/ticker evidence denies; the retained workbook hash c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2 is reproduced offline. URL, slug, filename and holding plausibility never establish identity.; VJ6-2: Malformed, substring-only, invalid-date, wrong-ticker, conflicting/multiple worksheet, date-mismatched and explicitly contradictory identity cases remain denied; generic titles remain unverified. Ordinary admitted OIH acquisition uses the same strict body identity contract, preserves contradictory explicit fund identity over worksheet evidence, and emits issuer_reported_dated_complete_holdings/complete only for a matched, dated, nonempty OIH workbook so a profile with no completeness aliases persists a current-analysis-eligible snapshot.; VJ6-3: If required, one typed job6_body_identity_v1 successor extends only the existing continuation API and validates immutable job6 digest/raw body/log/artifact/diagnostic/settled reservation, current account/review/fingerprint/expiry and recursive job5\u2192job4\u2192job3 lineage. Legacy job3/job4/job5 behavior remains compatible; one fixed canonical GET, one request, 120s, 5MiB, 30s interval, concurrency/burst1, no redirects/retries, no positive-output fabrication or replay.; VJ6-4: Focused unit and actual-shape PostgreSQL/SQLite regressions, complete backend/DDL coverage, full_stack_browser functional and strict visuals, workstream validation, and exact-source CI pass without changing assertions, retry policy, coverage, references or tolerance. Heavy resource phases require Root allocation; no live source request occurs in this checkpoint.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
     "goal_request": {
       "authorization": "Human direct scoped implementation activation in this original Provider thread, 2026-11-01.",
       "objective": "Implement only VJD1-VJD4: the bounded exact OIH job5 canonical-download successor and ordinary admitted OIH route. Preserve all24 roadmap criteria, accepted history, source/quota holds; wait for Root review/release before any live call; complete required local and exact-source CI gates. No protected integration/deployment.",
@@ -522,7 +553,7 @@
   },
   "previously_accepted_vqs_goal_objective": "Advance feat/market-data-provider-platform: Complete only Provider checkpoint provider-vaneck-posttransport-successor-status-20261030 (VQS1-VQS4). Preserve all 24 Provider roadmap criteria, accepted checkpoints, quota history, holds, and consumed-request history; no provider transport, production mutation, integration, or deployment.. Acceptance criteria: VQS1: One existing admin-only continuation API/executor accepts an explicit strict contract for a terminal settlement-projection failure after reviewed unit-label correction, using generated IDs and server-verified immutable scope/log/raw/digest/fingerprint/settled-reservation lineage. Legacy job3 request behavior remains compatible. No arbitrary failed-job admission, new endpoint per failure, production ID literals, repeated predecessor successor or replay/reset.; VQS2: New successor admission remains free-only/current-review/disabled/not_run/account-scoped, locked and idempotent with one physical request/no retries/redirect/fallback, unchanged spacing/deadline/body caps and positive snapshot/fund identity/settled-request requirements. Empty, non-success, unverified or cancelled/error outcomes stay nonpositive with durable truthful lineage.; VQS3: Future upstream status and bounded allowlisted body/hash diagnostics survive through appropriate existing raw artifact JSON/error evidence; status is not invented or disguised as header/body, old job2/3/4/log14/raw5 are never changed and native usage stays unknown. No speculative database migration or general settlement-unit alias/config-edit API.; VQS4: Meaningful positive/negative/compatibility/idempotency/concurrency/ledger/empty-status/cancellation tests and normal source-impact-derived local profile, exact source/closing CI pass. Preserve all24Provider roadmap criteria/accepted archives/journal/claims, all14ETF roadmap and frozen UI source, datasets/quotas/holds. Stop at ready_for_human_review; Root owns acceptance/integration/promotion/deployment and genuine execution.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "previously_accepted_vqs_goal_request": {
-    "objective": "Complete only the bounded VanEck successor/status repair VQS1–VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
+    "objective": "Complete only the bounded VanEck successor/status repair VQS1\u2013VQS4: implement the reviewed additive one-shot successor contract with truthful diagnostics, focused offline regressions, and required source validation. Preserve all 24 Provider roadmap items, accepted checkpoint history, quota/source holds, consumed request history, and stop at ready_for_human_review; no provider transport, deployment, or protected-role integration."
   },
   "previously_accepted_vqs_implementation_sha": "38310cc109d90278798d1e3c925bbcb7c150a60f",
   "previously_accepted_vqs_local_profile": {
@@ -607,7 +638,7 @@
       "accounting_source": "native goal completion preserved before activating this new repair",
       "completed_at": "2026-11-02",
       "created_at": 1793555919,
-      "objective": "Advance feat/market-data-provider-platform: Repair the exact retained job6 artifact source_identifier compatibility while keeping every body, log, metadata, digest, settlement, account, review, fingerprint, expiry and recursive lineage predicate strict. Preserve accepted checkpoints, all24 Provider roadmap criteria, job6/log16/artifact7 and spent usage/holds; no source HTTP or target mutation.. Acceptance criteria: VJ6-WITNESS-1: The complete job6 body-identity predecessor validator accepts artifact source_identifier only when it exactly equals the canonical OIH slug oil-services-etf-oih; all other retained log, artifact, body digest, diagnostic, settlement, account, review, fingerprint, expiry and recursive job5→job4→job3 guards remain unchanged.; VJ6-WITNESS-2: A full continuation-route positive regression uses the retained 5,395-byte workbook body and exact SHA-256 c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2, canonical artifact content hash and actual job6/log16/artifact7 metadata semantics; missing and wrong source_identifier values, plus body/artifact hash disagreements, are denied before transport.; VJ6-WITNESS-3: Focused PostgreSQL/SQLite, complete backend/DDL with unchanged coverage threshold, one exact-source backend image, the full required isolated full_stack_browser profile, workstream validation and exact-source CI pass with all assertions, retries, resource bounds, references, masks and tolerances unchanged; no provider HTTP or target mutation occurs.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+      "objective": "Advance feat/market-data-provider-platform: Repair the exact retained job6 artifact source_identifier compatibility while keeping every body, log, metadata, digest, settlement, account, review, fingerprint, expiry and recursive lineage predicate strict. Preserve accepted checkpoints, all24 Provider roadmap criteria, job6/log16/artifact7 and spent usage/holds; no source HTTP or target mutation.. Acceptance criteria: VJ6-WITNESS-1: The complete job6 body-identity predecessor validator accepts artifact source_identifier only when it exactly equals the canonical OIH slug oil-services-etf-oih; all other retained log, artifact, body digest, diagnostic, settlement, account, review, fingerprint, expiry and recursive job5\u2192job4\u2192job3 guards remain unchanged.; VJ6-WITNESS-2: A full continuation-route positive regression uses the retained 5,395-byte workbook body and exact SHA-256 c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2, canonical artifact content hash and actual job6/log16/artifact7 metadata semantics; missing and wrong source_identifier values, plus body/artifact hash disagreements, are denied before transport.; VJ6-WITNESS-3: Focused PostgreSQL/SQLite, complete backend/DDL with unchanged coverage threshold, one exact-source backend image, the full required isolated full_stack_browser profile, workstream validation and exact-source CI pass with all assertions, retries, resource bounds, references, masks and tolerances unchanged; no provider HTTP or target mutation occurs.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
       "request": {
         "authorization": "Direct user activation in the existing Provider session after Root independently verified the exact canonical slug.",
         "objective": "Repair the exact retained job6 artifact source_identifier compatibility so the canonical OIH continuation validates only authentic immutable evidence. Preserve accepted checkpoints, all24 Provider roadmap criteria, job6/log16/artifact7 and spent usage/holds, and ordinary fail-closed identity checks; complete required offline and allocated qualification without source HTTP or target mutation.",
@@ -617,6 +648,12 @@
       "time_used_seconds": 9883,
       "token_budget": null,
       "tokens_used": 1660986
+    },
+    {
+      "completed_at": "2026-11-03 before the current activation",
+      "created_at": 1793581216,
+      "objective": "Repair the genuine VanEck OIH ordinary-refresh schema-continuity defect. Keep qualification and ordinary refresh on one strictly verified OIH XLSX schema contract while retaining raw diagnostics and fail-closed header/schema drift detection. Support only the exact existing deployed legacy fingerprint, prove authentic qualification\u2192state\u2192ordinary refresh and idempotence plus changed-schema rejection, preserve accepted history/roadmaps/holds, and complete focused plus Root-allocated full qualification without source HTTP or production edits.",
+      "status": "completed before the new goal was created; native goal accounting was preserved and not reset"
     }
   ],
   "prior_exact_ci_b68_baseline": {
@@ -636,20 +673,20 @@
   },
   "progress": {
     "completed": [
-      "VJ6-SCHEMA-1",
-      "VJ6-SCHEMA-2",
-      "VJ6-SCHEMA-3"
+      "NATIVE-ETF-QUAL-1",
+      "NATIVE-ETF-QUAL-2",
+      "NATIVE-ETF-QUAL-3"
     ],
-    "current_blocker": "All local qualification gates are Root-qualified; terminal-green exact closing-tip CI remains mandatory and Root-owned.",
-    "current_phase": "provider_vj6_schema_continuity_ready_for_integration_exact_closing_ci_pending",
-    "next_action": "After the one coherent records-only publication, Root observes exact closing-tip CI; if all required jobs pass, Root owns supported protected staging integration.",
+    "current_blocker": "Complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration, and exact-source CI remain pending Root resource coordination; no live qualification request is authorized.",
+    "current_phase": "native_etf_focused_green_backend_and_postgresql_resource_manifest_pending",
+    "next_action": "Commit and push the focused-green implementation/workstream checkpoint, then submit immutable backend and PostgreSQL resource manifests to Root for release.",
     "total": 4,
-    "updated_at": "2026-11-02T05:11:17.152031+00:00"
+    "updated_at": "2026-11-03T12:09:33.799175+00:00"
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
-  "remote": "caac446e982228cb13c259d7ed36274b1f68a679",
-  "remote_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
-  "remote_synchronized": true,
+  "remote": "f08319b10e0c20d74e44c7fbc705af2f58d2228a",
+  "remote_sha": "f08319b10e0c20d74e44c7fbc705af2f58d2228a",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],

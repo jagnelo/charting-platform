@@ -1,6 +1,6 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: ready_for_integration
+status: in_progress
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -822,11 +822,11 @@ status: ready_for_integration
 # browser matrix. Provider quota-held operations remain disabled; ICP2/ICP6 and
 # checkpoint review remain open.
 branch: feat/market-data-provider-platform
-base_sha: 7546e7690ababcbefeff2c3279ea8b3bae638f10
+base_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
 parent_branch: staging
-parent_sha: 7546e7690ababcbefeff2c3279ea8b3bae638f10
+parent_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
 dependency_authorization: "not applicable: independent staging-based topic"
-human_intent_authorization: "Implement the approved US-first multi-provider market-data platform and the approved corrective plan: complete provider-specific contracts and usage accounting; dynamically use every eligible free provider within its exact entitlement/quota; complete NMS/OTC reconciliation and lifecycle handling; isolate local, staging, master, and production credentials; and require exhaustive provider live validation. Backend/data only; do not modify frontend or ETF constituent provider adapters."
+human_intent_authorization: "Direct human activation on 2026-11-03 for a disjoint Provider-owned generic sealed native ETF initial-qualification runtime authority. Reconcile only this feature branch to exact green staging f8323af179922193f4dcf3c9f0a5d9001282455f; preserve prior claims, accepted checkpoints, completed goal history, and all 24 Provider/14 ETF roadmap criteria. Provider owns provider_runtime.py, its directly relevant tests, and this workstream only. ETF owns the publisher executor and bridge use of the callable contract; Root owns review/configuration/execution and protected integration/deployment. No source HTTP, real policy/quota/ledger mutation, paid/trial activation, heavy fixture/full matrix before Root allocation, or edits to ETF acquisition/adapters/routers or TC."
 previously_accepted_provider_on_demand_integration_checkpoint_authorization: "Human direction on 2026-10-27 authorized implementation of provider-on-demand-acquisition-20261027 under the standing four-feature authority. The central staging coordinator's acceptance at /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only its six software-contract criteria after the recorded exact-source CI and full local profile. Root alone owns protected staging integration and all later master/deployment gates."
 previously_accepted_provider_vjl_checkpoint_authorization: Human direct activation on 2026-10-31 for the narrowly scoped actual job4 lineage repair VJL1-VJL4 in this existing Provider branch, after Root verified the exact synchronized green staging 59b38a0d094c905c83c8b89f49ba3049e567740e and retained job4 evidence. This authorizes source implementation and normal validation only; it is not checkpoint acceptance, source transport, target mutation, integration, or deployment.
 previously_accepted_provider_vqs_integration_checkpoint_authorization: Root direct VQS1-VQS4 implementation release dated 2026-10-30, on
@@ -879,7 +879,7 @@ previous_checkpoint_closure_summary: >-
   HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: full_stack_browser
+local_validation_profile: docker_integration
 previously_accepted_provider_vjl_local_validation_reason: The change is a backend persisted-lineage admission repair. Focused no-network unit tests and static checks run first; the actual PostgreSQL/SQLite route regression and complete backend/full_stack_browser profile require the current Root-owned isolated resource release. Prior profile evidence is not rebound to this source. Exact-source branch CI remains required; no provider transport or protected-resource mutation is authorized.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
@@ -2735,11 +2735,11 @@ previously_accepted_integration_checkpoint:
       owner: "feature owner plus deployment operator after integration"
       continuation_acceptance_test: "A separately authorized full 30-day run satisfies AC-SHADOW; no trial begins as part of checkpoint preparation or acceptance."
 branch_tests:
-  - "backend/app/services/etf_holdings.py and backend/app/services/etf_holdings_refresh.py (exact VanEck OIH schema normalization and legacy-state migration guard)"
-  - "backend/tests/unit/services/test_etf_holdings_refresh.py (legacy exact-match migration, header drift rejection, generic-provider fail-closed behavior)"
-  - "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (authentic qualification → persisted adapter/artifact state → ordinary refresh, PG sequence, raw evidence retention and repeat idempotence)"
-  - "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx (authentic 5,396-byte qualification/ordinary response; SHA-256 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653)"
-  - "complete backend/DDL, exact-source backend artifact, full_stack_browser and exact-source CI; Root resource release required before heavy phases"
+  - "backend/app/services/provider_runtime.py (sealed native ETF qualification scope, publisher review fingerprint, and pre-hop disabled-policy predicate)"
+  - "backend/tests/unit/services/test_provider_runtime.py (unrelated native publishers; exact source/adapter/scope/review/budget checks; paid and ordinary not_run denial)"
+  - "backend/app/services/provider_runtime.py::execute_provider_call (each physical bridge hop consumes one bounded slot before resolution and transport)"
+  - "backend/tests/unit/services/test_provider_runtime.py (multi-hop predicate/consume sequence plus expiry and review-revision drift rejection)"
+  - "complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration under Root allocation, and exact-source branch CI"
 previously_accepted_provider_vjl_branch_tests_reason: The bounded checkpoint changes backend qualification admission and persistence lineage. Focused unit regressions are required; the exact database and full backend/full_stack_browser profiles remain mandatory and must use Root-reviewed isolated resources. Exact-source branch CI remains required; no assertion, retry, threshold, tolerance, hold, or safety control is weakened.
 broader_roadmap_live_gate_disposition:
   status: held_outside_checkpoint
@@ -2758,7 +2758,7 @@ live_test_impact: No provider/issuer/SEC transport is authorized; VQS tests must
 migration_impact: No migration is anticipated or authorized; retain existing schema unless separate review
   establishes necessity.
 deployment_impact: None in this checkpoint; Root retains production and release ownership.
-active_checkpoint_id: provider-vj6w-ordinary-schema-continuity-20261102
+active_checkpoint_id: provider-native-etf-initial-qualification-authority-20261103
 previously_accepted_provider_cached_search_context:
   goal: 'Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached
     fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching.
@@ -8645,14 +8645,14 @@ progress:
       exact closing-tip CI remains pending and mandatory before Root-owned staging integration. All Provider/
       ETF roadmaps and genuine post-deployment OIH refresh remain open; no source HTTP or production change.
   completed:
-  - VJ6-SCHEMA-1
-  - VJ6-SCHEMA-2
-  - VJ6-SCHEMA-3
+  - NATIVE-ETF-QUAL-1
+  - NATIVE-ETF-QUAL-2
+  - NATIVE-ETF-QUAL-3
   total: 4
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: ready_for_integration_exact_closing_tip_CI_pending
-  current_blocker: All local qualification gates are Root-qualified; terminal-green exact closing-tip CI remains mandatory and is owned/observed by Root.
+  current_phase: native_etf_scope_focused_green_full_backend_and_postgresql_pending
+  current_blocker: Complete backend/DDL coverage, isolated PostgreSQL/quota-ledger integration, and exact-source CI remain pending Root resource coordination; no live qualification request is authorized.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -11513,70 +11513,34 @@ previously_active_provider_vtr_integration_checkpoint:
     exact-source CI remains mandatory and pending.
 
 # Historical checkpoint heading retained verbatim from the prior plan revision:
-# 2026-11-01 active narrow job6 retained-artifact slug compatibility repair; prior accepted VJ6 checkpoint is archived below.
-# 2026-11-02 active OIH ordinary-refresh schema-continuity repair; prior accepted checkpoint archived below.
-goal: Repair the genuine VanEck OIH ordinary-refresh schema-continuity defect. Keep qualification and
-  ordinary refresh on one strictly verified OIH XLSX schema contract while retaining raw diagnostics and
-  fail-closed header/schema drift detection. Support only the exact existing deployed legacy fingerprint,
-  prove authentic qualification→state→ordinary refresh and idempotence plus changed-schema rejection,
-  preserve accepted history/roadmaps/holds, and complete focused plus Root-allocated full qualification
-  without source HTTP or production edits.
-scope: &vj6active001
-- Continue from synchronized canonical green staging 7546e7690ababcbefeff2c3279ea8b3bae638f10 in the existing
-  Provider owner branch; no protected branch, sibling, or target mutation.
-- Use one narrow VanEck OIH XLSX source-schema fingerprint contract shared by successful initial qualification
-  and ordinary refresh; preserve exact identity, slug, parser, source, date, body and artifact checks.
-- Retain raw qualification workbook diagnostics in the immutable raw artifact. Exclude only their exact
-  envelope keys from the schema fingerprint after strict OIH body identity; include the actual parsed
-  OIH column-header names/order in the fingerprint.
-- Permit deployed-state compatibility only for the exact parser vaneck-xlsx-v1 and exact diagnostic-expanded
-  legacy fingerprint derived from the current ordinary payload with the reviewed OIH worksheet columns.
-  Persist the normalized fingerprint after successful ordinary refresh, including snapshot-idempotent
-  refreshes; reject real header/row/schema drift.
-- Add authentic PostgreSQL end-to-end qualification-to-persisted-state-to-ordinary-refresh coverage using
-  the retained workbook bytes, repeat-success/idempotence and changed-schema negatives, plus focused unit/SQLite
-  coverage where applicable.
-- Prepare immutable full backend/DDL, backend artifact, and full_stack_browser manifests for Root resource
-  admission before any heavy fixture/build/runtime. No provider/issuer/SEC HTTP, credential activation,
-  production edit, shared-ledger operation, or quota/hold change.
-owned_paths: &vj6active002
-- backend/app/services/etf_holdings.py
-- backend/app/services/etf_holdings_refresh.py
-- backend/tests/unit/services/test_etf_holdings_refresh.py
-- backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
-- backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx
+goal: Implement only the Provider-owned sealed one-shot native ETF initial-qualification runtime authority. It must bind a durable attempt to one exact registered native publisher, DataSource, ETF profile/instrument/symbol, operation, reviewed entitlement revision/fingerprint, resolved account scope, expiry, and finite physical-hop budget. The disabled/not_run exception must remain scoped to that attempt; ordinary unqualified, paid, trial, unresolved-quota, and mismatched publisher cases stay held. Define the callable contract for ETF's executor, add no-network regressions, preserve all prior checkpoints and roadmaps, and stop before source HTTP, heavy profile execution, or deployment.
+scope: &nativeetfqual001
+- Continue from synchronized canonical green staging f8323af179922193f4dcf3c9f0a5d9001282455f in the existing Provider owner branch; preserve the original claim, prior completed goal accounting, every accepted archive and all 24 Provider/14 ETF roadmap criteria.
+- Add the reusable sealed native ETF initial qualification context and review fingerprint in backend/app/services/provider_runtime.py. Bind exact attempt ID, registered source name/DataSource ID, profile/instrument/provider symbol, fixed ETF_HOLDINGS operation, entitlement revision/fingerprint, account scope, UTC deadline, and finite physical request maximum.
+- Permit only the exact active native ETF source with disabled policy and not_run entitlement at the bound revision/fingerprint/account scope. Normal enabled-policy/request flow continues requiring a positive probe and no scope.
+- Consume one slot before resolution for each physical ETF bridge hop routed through execute_provider_call. Preserve the existing shared quota reservations, free-only/terms/operation-cost/configuration/routing/health checks; do not add a bypass for unknown quotas or paid/trial plans.
+- Expose the callable context and narrow disabled-policy predicate for ETF's separately owned executor/bridge. The ETF executor must claim its durable attempt before entering the scope, validate actual issuer evidence, and publish passed only on a genuine valid response; this Provider checkpoint does not implement that runner.
+- Add focused no-network unit coverage for at least two unrelated native publishers, exact adapter/source binding, mismatch/expiry/revision/fingerprint/account/budget denial, paid-plan denial, and ordinary not_run routing remaining held. Keep complete backend/DDL and exact-source CI pending Root resource coordination.
+- No provider/issuer/SEC HTTP, real policy/quota/ledger mutation, credential activation, paid/trial operation, production edit, deployment, protected-branch change, sibling worktree change, or ETF/TC source change.
+owned_paths: &nativeetfqual002
+- backend/app/services/provider_runtime.py
+- backend/tests/unit/services/test_provider_runtime.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
-branch_tests_reason: The change is backend schema continuity for the genuine VanEck OIH qualification
-  and ordinary refresh paths. Preserve the generic fail-closed drift contract, cover exact legacy-state
-  migration/idempotence and real header drift, then complete the full canonical backend/DDL and unchanged
-  full_stack_browser profile with exact-source CI. Heavy phases require Root resource admission.
-acceptance_criteria: &vj6active003
-- id: VJ6-SCHEMA-1
-  text: Initial VanEck OIH qualification and ordinary issuer refresh derive the same schema fingerprint
-    only after exact OIH adapter/provider/slug, matched workbook identity, xlsx format, and parser-version
-    checks. The qualification raw workbook base64/hash/byte diagnostics remain unchanged in the retained
-    artifact; ordinary artifacts retain their actual source payload.
-- id: VJ6-SCHEMA-2
-  text: Existing deployed adapter state migrates only when parser_version is exactly vaneck-xlsx-v1 and
-    its stored fingerprint equals the exact legacy diagnostic-expanded fingerprint for the current ordinary
-    payload with the reviewed OIH header. A successful/idempotent refresh stores the normalized fingerprint
-    in adapter state; any changed workbook header, row schema, parser, identity, slug, or non-OIH source
-    remains fail-closed.
-- id: VJ6-SCHEMA-3
-  text: Authentic qualification → persisted adapter/artifact state → ordinary refresh is exercised against
-    the retained genuine OIH workbook fixture, including diagnostic artifact retention, legacy-state compatibility,
-    normalized state readback, repeat-refresh idempotence, and a changed-header/schema rejection. Cover
-    PostgreSQL plus applicable SQLite/unit contracts without provider transport.
-- id: VJ6-SCHEMA-4
-  text: Focused/static checks, complete backend/DDL coverage, exact-source backend artifact, unchanged
-    full_stack_browser profile, workstream validation, and exact-source CI pass with original coverage,
-    assertions, resource limits, references, masks, tolerance and zero retries. No source HTTP, production
-    edit, ledger mutation, or hold change.
-human_closure_authorization: >-
+branch_tests_reason: Provider runtime changes add a sealed, exact-scope exception for first native ETF qualification while retaining ordinary routing, entitlement and durable quota controls. Run focused provider_runtime no-network cases, complete backend/DDL coverage, and the isolated PostgreSQL/quota-ledger authority integration under Root allocation; exact-source CI is also required. ETF owns executor/bridge implementation against the recorded callable contract.
+acceptance_criteria: &nativeetfqual003
+- id: NATIVE-ETF-QUAL-1
+  text: Provider exposes bind_native_etf_initial_qualification() and a non-consuming disabled-policy predicate for the ETF bridge. Authority is task-local/sealed and binds attempt ID, registered publisher/DataSource identity, ETF profile/instrument/symbol, exact operation, entitlement revision and canonical review fingerprint, resolved account scope, expiry, and bounded maximum physical requests; malformed or nested scopes are rejected.
+- id: NATIVE-ETF-QUAL-2
+  text: Only the exact disabled/not_run native ETF row matching current source identity, active publisher, capability/operation, profile/instrument/symbol, entitlement revision/fingerprint, and account scope can enter initial qualification. Mismatch, expiry, review drift, wrong adapter, exhausted request budget, or invalid source cannot authorize transport; ordinary calls without the scope still require positive live-probe evidence.
+- id: NATIVE-ETF-QUAL-3
+  text: Every physical ETF bridge hop consumes one slot before provider resolution and transport through execute_provider_call. Existing request-driven scope, free-only/terms, known operation cost, provider configuration/routing controls, and durable shared quota reservation/settlement remain mandatory; paid/trial and unknown/exhausted quotas remain denied.
+- id: NATIVE-ETF-QUAL-4
+  text: Focused no-network tests exercise two unrelated native publisher identities, exact binding, mismatch/expiry/revision/fingerprint/account/budget and paid denials, and ordinary not_run rejection. Ruff/format/static/workstream checks pass; complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration and exact-source CI remain pending Root allocation and required before checkpoint acceptance. The combined consumer browser profile is owned by Root after integration and is not a Producer-only gate.
+previously_accepted_vj6_human_closure_authorization: >-
   Root accepted this bounded software checkpoint under the standing human authorization recorded
   in the cited Root receipt; this is delegated technical acceptance, not a fabricated direct human
   quote. Exact closing-tip CI remains required before protected integration.
-closure_summary: >-
+previously_accepted_vj6_closure_summary: >-
   Root technically accepted the bounded VJ6 ordinary-refresh schema-continuity checkpoint on
   implementation source caac446e982228cb13c259d7ed36274b1f68a679 under the standing human
   delegation. Focused authentic PostgreSQL/unit, complete backend/DDL, exact-source artifact, all
@@ -11585,12 +11549,12 @@ closure_summary: >-
   mismatch; exact closing-tip CI is pending and mandatory before Root-owned staging integration.
   All 24 Provider and 14 ETF roadmap criteria and genuine post-deployment OIH refresh remain open.
   integration_capture: exact branch HEAD.
-integration_checkpoint_authorization: >-
+previously_accepted_vj6_integration_checkpoint_authorization: >-
   Root delegated technical acceptance of this bounded checkpoint under the standing human
   authorization and authorized one records-only closing publication. Exact closing-tip CI is still
   required; Root retains protected staging/master integration, deployment, and genuine-source
   operation ownership.
-local_validation_reason: >-
+previously_accepted_vj6_local_validation_reason: >-
   Focused authentic OIH schema unit coverage passed 28/28; the allocated R6 PostgreSQL
   qualification-to-persisted-state-to-two-idempotent-ordinary-refresh case passed 1/1 with the
   exact header-aware fingerprint and changed-header negative retained. Root qualified the complete
@@ -11604,7 +11568,7 @@ local_validation_reason: >-
   this record-only correction fixes that mapping. Exact closing-tip CI remains pending and
   mandatory before integration. No provider HTTP, shared-ledger mutation, production edit or hold
   change.
-current_gate_checkpoint: >-
+previously_accepted_vj6_current_gate_checkpoint: >-
   Root accepted bounded checkpoint provider-vj6w-ordinary-schema-continuity-20261102 on
   implementation source caac446e982228cb13c259d7ed36274b1f68a679. Authentic R6 PostgreSQL and 28
   focused unit regressions passed; full backend/DDL, exact artifact, all 11 isolated browser
@@ -11616,7 +11580,29 @@ current_gate_checkpoint: >-
   not relabel it green. One coherent records-only publication is authorized; exact closing-tip CI
   remains pending Root observation. No source HTTP, production edit, ledger mutation or hold
   change.
-validated_implementation_source_sha: caac446e982228cb13c259d7ed36274b1f68a679
+previously_accepted_vj6_implementation_source_sha: caac446e982228cb13c259d7ed36274b1f68a679
+checkpoint_status: in_progress
+human_closure_authorization: No checkpoint acceptance has been issued for the 2026-11-03 native ETF qualification authority repair.
+closure_summary: >-
+  This bounded Provider-owned implementation is active. It defines a sealed native ETF initial-qualification
+  context and callable bridge contract; focused no-network checks are running. No full-backend, artifact,
+  full_stack_browser, or exact-source CI evidence is claimed yet. All 24 Provider and 14 ETF roadmap criteria,
+  prior accepted checkpoints, live/quota holds, and Root-owned operational requirements remain preserved.
+integration_checkpoint_authorization: >-
+  No integration, promotion, deployment, source HTTP, or policy/quota/ledger mutation is authorized by this
+  implementation activation. Root retains protected integration and operational ownership.
+local_validation_reason: >-
+  This Provider-only runtime change requires docker_integration: focused no-network tests, complete canonical
+  backend/DDL coverage, and one isolated PostgreSQL/quota-ledger integration proving the scoped disabled/not_run
+  authority and physical-hop accounting. Exact-source branch CI is mandatory. A Producer-only image/browser
+  fixture is unnecessary; Root owns the full combined consumer browser profile after integration. No live provider
+  transport or real ledger access is part of this checkpoint.
+current_gate_checkpoint: >-
+  Active source is being implemented from synchronized green staging f8323af179922193f4dcf3c9f0a5d9001282455f.
+  Focused static/unit validation is underway. Full backend/DDL, source-bound artifact, full_stack_browser and
+  exact-source CI are pending Root coordination. The callable contract is being handed to ETF for its separately
+  owned executor; no live source or production operation is authorized.
+validated_implementation_source_sha: null
 integration_checkpoint:
   id: provider-vj6w-ordinary-schema-continuity-20261102
   status: ready_for_integration
@@ -11630,8 +11616,40 @@ integration_checkpoint:
   downstream_consumers:
   - VanEck OIH initial qualification artifact/state
   - ordinary ETF holdings refresh and current-analysis consumers
-  scope: *vj6active001
-  owned_paths: *vj6active002
+  scope: &vj6active001
+  - Continue from synchronized canonical green staging 7546e7690ababcbefeff2c3279ea8b3bae638f10 in the existing
+    Provider owner branch; no protected branch, sibling, or target mutation.
+  - Use one narrow VanEck OIH XLSX source-schema fingerprint contract shared by successful initial qualification
+    and ordinary refresh; preserve exact identity, slug, parser, source, date, body and artifact checks.
+  - Retain raw qualification workbook diagnostics in the immutable raw artifact. Exclude only their exact
+    envelope keys from the schema fingerprint after strict OIH body identity; include the actual parsed
+    OIH column-header names/order in the fingerprint.
+  - Permit deployed-state compatibility only for the exact parser vaneck-xlsx-v1 and exact diagnostic-expanded
+    legacy fingerprint derived from the current ordinary payload with the reviewed OIH worksheet columns.
+    Persist the normalized fingerprint after successful ordinary refresh, including snapshot-idempotent
+    refreshes; reject real header/row/schema drift.
+  - Add authentic PostgreSQL end-to-end qualification-to-persisted-state-to-ordinary-refresh coverage using
+    the retained workbook bytes, repeat-success/idempotence and changed-schema negatives, plus focused unit/SQLite
+    coverage where applicable.
+  - Prepare immutable full backend/DDL, backend artifact, and full_stack_browser manifests for Root resource
+    admission before any heavy fixture/build/runtime. No provider/issuer/SEC HTTP, credential activation,
+    production edit, shared-ledger operation, or quota/hold change.
+  owned_paths: &vj6active002
+  - backend/app/services/etf_holdings.py
+  - backend/app/services/etf_holdings_refresh.py
+  - backend/tests/unit/services/test_etf_holdings_refresh.py
+  - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  - backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx
+  - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
+  acceptance_criteria: &vj6active003
+  - id: VJ6-SCHEMA-1
+    text: Initial VanEck OIH qualification and ordinary issuer refresh derive the same schema fingerprint only after exact OIH adapter/provider/slug, matched workbook identity, xlsx format, and parser-version checks. The qualification raw workbook base64/hash/byte diagnostics remain unchanged in the retained artifact; ordinary artifacts retain their actual source payload.
+  - id: VJ6-SCHEMA-2
+    text: Existing deployed adapter state migrates only when parser_version is exactly vaneck-xlsx-v1 and its stored fingerprint equals the exact legacy diagnostic-expanded fingerprint for the current ordinary payload with the reviewed OIH header. A successful/idempotent refresh stores the normalized fingerprint in adapter state; any changed workbook header, row schema, parser, identity, slug, or non-OIH source remains fail-closed.
+  - id: VJ6-SCHEMA-3
+    text: Authentic qualification → persisted adapter/artifact state → ordinary refresh is exercised against the retained genuine OIH workbook fixture, including diagnostic artifact retention, legacy-state compatibility, normalized state readback, repeat-refresh idempotence, and a changed-header/schema rejection. Cover PostgreSQL plus applicable SQLite/unit contracts without provider transport.
+  - id: VJ6-SCHEMA-4
+    text: Focused/static checks, complete backend/DDL coverage, exact-source backend artifact, unchanged full_stack_browser profile, workstream validation, and exact-source CI pass with original coverage, assertions, resource limits, references, masks, tolerance and zero retries. No source HTTP, production edit, ledger mutation, or hold change.
   required_contracts:
   - The genuine qualification payload contains source_format/workbook_rows plus raw_workbook_base64/raw_workbook_sha256/raw_workbook_bytes;
     the ordinary payload contains only source_format/workbook_rows. Raw artifact payload/content hashes
