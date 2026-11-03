@@ -677,9 +677,9 @@
       "NATIVE-ETF-QUAL-2",
       "NATIVE-ETF-QUAL-3"
     ],
-    "current_blocker": "Complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration, and exact-source CI remain pending Root resource coordination; no live qualification request is authorized.",
-    "current_phase": "native_etf_focused_green_backend_and_postgresql_resource_manifest_pending",
-    "next_action": "Commit and push the focused-green implementation/workstream checkpoint, then submit immutable backend and PostgreSQL resource manifests to Root for release.",
+    "current_blocker": "The PostgreSQL-backed exact-authority integration and complete backend/DDL coverage require Root's isolated resource release; exact-source CI is also pending. No live qualification request is authorized.",
+    "current_phase": "native_etf_focused_green_postgresql_integration_and_backend_resource_manifest_pending",
+    "next_action": "Publish the PostgreSQL authority integration regression and coherent workstream update, then submit the frozen exact-source backend manifest to Root for release.",
     "total": 4,
     "updated_at": "2026-11-03T12:09:33.799175+00:00"
   },

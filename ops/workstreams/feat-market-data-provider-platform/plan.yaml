@@ -11521,12 +11521,14 @@ scope: &nativeetfqual001
 - Consume one slot before resolution for each physical ETF bridge hop routed through execute_provider_call. Preserve the existing shared quota reservations, free-only/terms/operation-cost/configuration/routing/health checks; do not add a bypass for unknown quotas or paid/trial plans.
 - Expose the callable context and narrow disabled-policy predicate for ETF's separately owned executor/bridge. The ETF executor must claim its durable attempt before entering the scope, validate actual issuer evidence, and publish passed only on a genuine valid response; this Provider checkpoint does not implement that runner.
 - Add focused no-network unit coverage for at least two unrelated native publishers, exact adapter/source binding, mismatch/expiry/revision/fingerprint/account/budget denial, paid-plan denial, and ordinary not_run routing remaining held. Keep complete backend/DDL and exact-source CI pending Root resource coordination.
+- Add an offline PostgreSQL integration regression using a durable fixture attempt, an exact disabled/not_run source review, two independently admitted physical hops, PostgreSQL quota windows and the isolated PostgreSQL-backed coordinator ledger; assert both reservations settle while Provider leaves qualification publication to ETF.
 - No provider/issuer/SEC HTTP, real policy/quota/ledger mutation, credential activation, paid/trial operation, production edit, deployment, protected-branch change, sibling worktree change, or ETF/TC source change.
 owned_paths: &nativeetfqual002
 - backend/app/services/provider_runtime.py
 - backend/tests/unit/services/test_provider_runtime.py
+- backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
-branch_tests_reason: Provider runtime changes add a sealed, exact-scope exception for first native ETF qualification while retaining ordinary routing, entitlement and durable quota controls. Run focused provider_runtime no-network cases, complete backend/DDL coverage, and the isolated PostgreSQL/quota-ledger authority integration under Root allocation; exact-source CI is also required. ETF owns executor/bridge implementation against the recorded callable contract.
+branch_tests_reason: Provider runtime changes add a sealed, exact-scope exception for first native ETF qualification while retaining ordinary routing, entitlement and durable quota controls. Run focused provider_runtime no-network cases, the PostgreSQL-backed native authority/two-hop quota-ledger regression, complete backend/DDL coverage, and exact-source CI. ETF owns executor/bridge implementation against the recorded callable contract.
 acceptance_criteria: &nativeetfqual003
 - id: NATIVE-ETF-QUAL-1
   text: Provider exposes bind_native_etf_initial_qualification() and a non-consuming disabled-policy predicate for the ETF bridge. Authority is task-local/sealed and binds attempt ID, registered publisher/DataSource identity, ETF profile/instrument/symbol, exact operation, entitlement revision and canonical review fingerprint, resolved account scope, expiry, and bounded maximum physical requests; malformed or nested scopes are rejected.
@@ -11585,8 +11587,9 @@ checkpoint_status: in_progress
 human_closure_authorization: No checkpoint acceptance has been issued for the 2026-11-03 native ETF qualification authority repair.
 closure_summary: >-
   This bounded Provider-owned implementation is active. It defines a sealed native ETF initial-qualification
-  context and callable bridge contract; focused no-network checks are running. No full-backend, artifact,
-  full_stack_browser, or exact-source CI evidence is claimed yet. All 24 Provider and 14 ETF roadmap criteria,
+  context and callable bridge contract. Focused no-network unit checks pass, and a PostgreSQL/quota-ledger
+  regression has been added but still requires Root's isolated execution release. No full-backend or exact-source
+  CI evidence is claimed yet. All 24 Provider and 14 ETF roadmap criteria,
   prior accepted checkpoints, live/quota holds, and Root-owned operational requirements remain preserved.
 integration_checkpoint_authorization: >-
   No integration, promotion, deployment, source HTTP, or policy/quota/ledger mutation is authorized by this
@@ -11599,8 +11602,10 @@ local_validation_reason: >-
   transport or real ledger access is part of this checkpoint.
 current_gate_checkpoint: >-
   Active source is being implemented from synchronized green staging f8323af179922193f4dcf3c9f0a5d9001282455f.
-  Focused static/unit validation is underway. Full backend/DDL, source-bound artifact, full_stack_browser and
-  exact-source CI are pending Root coordination. The callable contract is being handed to ETF for its separately
+  Focused no-network tests pass. The PostgreSQL-backed regression is collected and exercises two exact authority
+  hops with isolated durable quota settlement, pending Root's execution release. Complete backend/DDL coverage and
+  exact-source CI remain pending. This Producer-only runtime checkpoint does not require a backend image or browser profile;
+  Root owns the later combined consumer profile. The callable contract is available to ETF for its separately
   owned executor; no live source or production operation is authorized.
 validated_implementation_source_sha: null
 integration_checkpoint:

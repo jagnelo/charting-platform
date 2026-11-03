@@ -20,6 +20,14 @@
       ]
     },
     {
+      "id": "native-etf-postgresql-quota-ledger-integration",
+      "command": "pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_native_etf_initial_authority_rechecks_each_postgres_quota_hop -q",
+      "covers": [
+        5
+      ],
+      "scope_note": "One exact native disabled/not_run authority and two physical execute_provider_call hops against an isolated PostgreSQL schema and PostgreSQL-backed quota coordinator; telemetry is synthetic and no provider HTTP occurs."
+    },
+    {
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
