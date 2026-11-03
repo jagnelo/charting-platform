@@ -2,21 +2,30 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/services/etf_holdings.py and backend/app/services/etf_holdings_refresh.py (exact VanEck OIH schema normalization and legacy-state migration guard)",
-    "backend/tests/unit/services/test_etf_holdings_refresh.py (legacy exact-match migration, header drift rejection, generic-provider fail-closed behavior)",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (authentic qualification \u2192 persisted adapter/artifact state \u2192 ordinary refresh, PG sequence, raw evidence retention and repeat idempotence)",
-    "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx (authentic 5,396-byte qualification/ordinary response; SHA-256 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653)",
-    "complete backend/DDL, exact-source backend artifact, full_stack_browser and exact-source CI; Root resource release required before heavy phases"
+    "backend/app/services/provider_runtime.py (sealed native ETF qualification scope, publisher review fingerprint, and pre-hop disabled-policy predicate)",
+    "backend/tests/unit/services/test_provider_runtime.py (unrelated native publishers; exact source/adapter/scope/review/budget checks; paid and ordinary not_run denial)",
+    "backend/app/services/provider_runtime.py::execute_provider_call (each physical bridge hop consumes one bounded slot before resolution and transport)",
+    "backend/tests/unit/services/test_provider_runtime.py (multi-hop predicate/consume sequence plus expiry and review-revision drift rejection)",
+    "complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration under Root allocation, and exact-source branch CI"
   ],
   "commands": [
     {
-      "id": "focused-schema-contract",
-      "command": "pytest backend/tests/unit/services/test_etf_holdings_refresh.py",
+      "id": "focused-native-etf-qualification",
+      "command": "pytest backend/tests/unit/services/test_provider_runtime.py -k 'native_etf_initial or native_etf_bridge or ordinary_native_etf_route_stays_held_without_positive_probe'",
       "covers": [
         1,
         2,
-        3
+        3,
+        4
       ]
+    },
+    {
+      "id": "native-etf-postgresql-quota-ledger-integration",
+      "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_native_etf_initial_authority_rechecks_each_postgres_quota_hop -q",
+      "covers": [
+        5
+      ],
+      "scope_note": "One exact native disabled/not_run authority and two physical execute_provider_call hops against an isolated PostgreSQL schema and PostgreSQL-backed quota coordinator; telemetry is synthetic and no provider HTTP occurs."
     },
     {
       "id": "full-backend-suite",
@@ -36,21 +45,18 @@
   },
   "external_gates": [
     {
-      "id": "local-full-stack-browser-profile",
-      "covers": [
-        1,
-        2,
-        3,
-        4
-      ],
-      "reason": "Required unchanged full_stack_browser profile with original functional/visual assertions, references, masks, tolerance and zero retries; Root resource admission required."
-    },
-    {
-      "id": "current-source-artifact-runtime-and-ci",
+      "id": "isolated-postgresql-native-authority-integration",
       "covers": [
         5
       ],
-      "reason": "Requires the complete current-source backend/DDL collector, independently verified exact-source backend artifact, full_stack_browser runtime profile, and terminal-green exact-source CI; each gate remains separately evidenced and none is inferred from another."
+      "reason": "One source-bound PostgreSQL/quota-ledger integration under Root resource allocation; private test ledger only, no source HTTP or real-ledger access."
+    },
+    {
+      "id": "exact-source-branch-ci",
+      "covers": [
+        5
+      ],
+      "reason": "Terminal required-job success on the exact coherent implementation source is required; no predecessor or staging receipt substitutes."
     }
   ]
 }

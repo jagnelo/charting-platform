@@ -31,29 +31,37 @@ from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
 from app.providers.registry import get_provider_usage_profile
 from app.providers.telemetry import observe_binary_response_payload, observe_response
+from app.services import provider_runtime
 from app.services.provider_quota_coordinator import (
     ProviderQuotaAdmissionError,
     provider_quota_coordinator_summary,
 )
 from app.services.provider_runtime import (
     PROVIDER_SERVICE_OPERATION_ALIASES,
+    ProviderNoDataError,
     ProviderQuotaUnknownError,
+    ProviderRequestScopeDeniedError,
     ResolvedProvider,
     TokenBucket,
     _apply_marketstack_api_error_usage,
     _apply_policy_defaults,
     _apply_provider_capacity_hold,
     _capacity_response_headers,
+    _consume_native_etf_initial_qualification_request,
     _coordinator_settlement,
     _entitlement_seed,
     _get_bucket,
     _get_semaphore,
+    _native_etf_initial_qualification_matches,
+    bind_native_etf_initial_qualification,
     execute_provider_call,
     list_provider_status,
+    native_etf_initial_qualification_allows_disabled_policy,
     policy_allows_account_usage_bootstrap,
     policy_allows_unreviewed_account_usage_checkpoint,
     provider_checkpoint_operation_hold_reason,
     provider_entitlement_admission,
+    provider_native_etf_review_fingerprint,
     provider_runtime_quota_admission_active,
     quota_contract_missing_dimensions,
     record_entitlement_revision,
@@ -61,6 +69,392 @@ from app.services.provider_runtime import (
     seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
+
+
+def _native_etf_review_objects(provider_name: str, source_id: int):
+    source = SimpleNamespace(
+        id=source_id,
+        name=provider_name,
+        base_url=f"https://{provider_name}.example.test",
+        supported_capabilities=[ProviderCapability.ETF_HOLDINGS.value],
+        is_active=True,
+        config={"etf_holdings_review": {"version": "reviewed-v1"}},
+    )
+    policy = SimpleNamespace(
+        is_enabled=False,
+        quota_scope="account",
+        quota_source="operator_verified",
+        quota_verified_at=datetime(2026, 11, 3, tzinfo=UTC),
+        quota_contract={"operation_costs": {"fetch_etf_holdings_latest": 1}},
+        max_concurrency=1,
+        tokens_per_minute=2,
+        burst_capacity=1,
+        cooldown_seconds=30,
+        freshness_seconds=86400,
+    )
+    entitlement = SimpleNamespace(
+        configured_plan="issuer-free",
+        is_free=True,
+        authentication_required=False,
+        usage_terms="Reviewed issuer terms",
+        redistribution_allowed=False,
+        quota_policy={"reviewed": True},
+        history_depth="latest",
+        venue_coverage="US ETF",
+        freshness_semantics="issuer reported",
+        enabled_environments=["development"],
+        effective_at=datetime(2026, 11, 3, tzinfo=UTC),
+        review_due_at=datetime(2026, 12, 3, tzinfo=UTC),
+        live_probe_status="not_run",
+        revision=4,
+    )
+    return source, policy, entitlement
+
+
+def _native_etf_adapter(provider_name: str):
+    return SimpleNamespace(
+        source_provider=provider_name,
+        fetch_latest=lambda **_kwargs: None,
+        fetch_for_date=lambda **_kwargs: None,
+    )
+
+
+def _bind_native_etf_scope(provider_name: str, source, policy, entitlement, **overrides):
+    values = {
+        "attempt_id": 91,
+        "provider_name": provider_name,
+        "data_source_id": source.id,
+        "fund_profile_id": 81,
+        "instrument_id": 71,
+        "provider_symbol": "SPY",
+        "operation": "fetch_etf_holdings_latest",
+        "account_scope": provider_name,
+        "entitlement_revision": entitlement.revision,
+        "provider_review_fingerprint": provider_native_etf_review_fingerprint(
+            source, policy, entitlement
+        ),
+        "expires_at": datetime.now(UTC) + timedelta(minutes=2),
+        "max_physical_requests": 2,
+    }
+    values.update(overrides)
+    return bind_native_etf_initial_qualification(**values)
+
+
+@pytest.mark.parametrize(("provider_name", "source_id"), [("spdr", 31), ("invesco", 32)])
+def test_native_etf_initial_scope_matches_exact_unrelated_publishers(provider_name, source_id):
+    source, policy, entitlement = _native_etf_review_objects(provider_name, source_id)
+    original_quota_contract = deepcopy(policy.quota_contract)
+    with _bind_native_etf_scope(provider_name, source, policy, entitlement):
+        assert native_etf_initial_qualification_allows_disabled_policy(
+            provider_name=provider_name,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="spy",
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter(provider_name),
+        )
+        assert not native_etf_initial_qualification_allows_disabled_policy(
+            provider_name=provider_name,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="SPY",
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter("another-publisher"),
+        )
+        authority = _consume_native_etf_initial_qualification_request(
+            provider_name=provider_name,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="SPY",
+        )
+        assert authority is not None
+        assert authority.attempt_id == 91
+        assert authority.physical_requests_started == 1
+        assert _native_etf_initial_qualification_matches(
+            authority=authority,
+            provider_name=provider_name,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="SPY",
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+        )
+        assert policy.quota_contract == original_quota_contract
+
+
+def test_native_etf_initial_scope_mismatch_invalidates_attempt_before_transport():
+    source, policy, entitlement = _native_etf_review_objects("spdr", 31)
+    with _bind_native_etf_scope("spdr", source, policy, entitlement):
+        with pytest.raises(ProviderRequestScopeDeniedError, match="scope_mismatch"):
+            _consume_native_etf_initial_qualification_request(
+                provider_name="invesco",
+                capability=ProviderCapability.ETF_HOLDINGS,
+                operation="fetch_etf_holdings_latest",
+                profile_id=81,
+                instrument_id=71,
+                provider_symbol="SPY",
+            )
+        assert not native_etf_initial_qualification_allows_disabled_policy(
+            provider_name="spdr",
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="SPY",
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter("invesco"),
+        )
+
+
+def test_native_etf_initial_scope_rejects_expiry_revision_and_review_drift():
+    source, policy, entitlement = _native_etf_review_objects("invesco", 32)
+    with pytest.raises(ValueError, match="invalid native ETF initial qualification scope"):
+        with _bind_native_etf_scope(
+            "invesco",
+            source,
+            policy,
+            entitlement,
+            expires_at=datetime.now(UTC) - timedelta(seconds=1),
+        ):
+            pytest.fail("expired scope unexpectedly entered")
+    with _bind_native_etf_scope("invesco", source, policy, entitlement):
+        assert native_etf_initial_qualification_allows_disabled_policy(
+            provider_name="invesco",
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="SPY",
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter("invesco"),
+        )
+        entitlement.revision += 1
+        assert not native_etf_initial_qualification_allows_disabled_policy(
+            provider_name="invesco",
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            profile_id=81,
+            instrument_id=71,
+            provider_symbol="SPY",
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter("invesco"),
+        )
+
+
+def test_native_etf_initial_scope_budget_is_pre_send_and_ordinary_context_is_absent():
+    source, policy, entitlement = _native_etf_review_objects("spdr", 31)
+    arguments = {
+        "provider_name": "spdr",
+        "capability": ProviderCapability.ETF_HOLDINGS,
+        "operation": "fetch_etf_holdings_latest",
+        "profile_id": 81,
+        "instrument_id": 71,
+        "provider_symbol": "SPY",
+    }
+    assert not native_etf_initial_qualification_allows_disabled_policy(
+        **arguments,
+        source=source,
+        policy=policy,
+        entitlement=entitlement,
+        adapter=_native_etf_adapter("spdr"),
+    )
+    with _bind_native_etf_scope("spdr", source, policy, entitlement, max_physical_requests=1):
+        _consume_native_etf_initial_qualification_request(**arguments)
+        with pytest.raises(ProviderRequestScopeDeniedError, match="budget_exhausted"):
+            _consume_native_etf_initial_qualification_request(**arguments)
+
+
+@pytest.mark.asyncio
+async def test_native_etf_bridge_rechecks_and_consumes_each_physical_hop(monkeypatch):
+    source, policy, entitlement = _native_etf_review_objects("spdr", 31)
+    arguments = {
+        "provider_name": "spdr",
+        "capability": ProviderCapability.ETF_HOLDINGS,
+        "operation": "fetch_etf_holdings_latest",
+        "profile_id": 81,
+        "instrument_id": 71,
+        "provider_symbol": "SPY",
+    }
+    adapter = _native_etf_adapter("spdr")
+
+    resolution_checks = []
+
+    async def resolve_current_source(_db, _capability, **_kwargs):
+        authority = provider_runtime._NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.get()
+        resolution_checks.append(
+            _native_etf_initial_qualification_matches(
+                authority=authority,
+                **arguments,
+                source=source,
+                policy=policy,
+                entitlement=entitlement,
+            )
+        )
+        return []
+
+    monkeypatch.setattr(provider_runtime, "resolve_provider_chain", resolve_current_source)
+
+    with _bind_native_etf_scope("spdr", source, policy, entitlement, max_physical_requests=2):
+        for expected_started in (1, 2):
+            assert native_etf_initial_qualification_allows_disabled_policy(
+                **arguments,
+                source=source,
+                policy=policy,
+                entitlement=entitlement,
+                adapter=adapter,
+            )
+            with pytest.raises(ProviderNoDataError, match="No currently-supported providers"):
+                await execute_provider_call(
+                    None,
+                    ProviderCapability.ETF_HOLDINGS,
+                    "fetch_etf_holdings_latest",
+                    provider_name="spdr",
+                    profile_id=81,
+                    instrument_id=71,
+                    provider_symbol="SPY",
+                    invoke=lambda *_args: pytest.fail("empty resolver must not invoke adapter"),
+                )
+            assert resolution_checks[-1] is True
+            authority = provider_runtime._NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.get()
+            assert authority is not None
+            assert authority.physical_requests_started == expected_started
+
+        assert not native_etf_initial_qualification_allows_disabled_policy(
+            **arguments,
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=adapter,
+        )
+        with pytest.raises(ProviderRequestScopeDeniedError, match="budget_exhausted"):
+            await execute_provider_call(
+                None,
+                ProviderCapability.ETF_HOLDINGS,
+                "fetch_etf_holdings_latest",
+                provider_name="spdr",
+                profile_id=81,
+                instrument_id=71,
+                provider_symbol="SPY",
+                invoke=lambda *_args: pytest.fail("exhausted scope must not invoke adapter"),
+            )
+
+
+@pytest.mark.parametrize("drift", ["revision", "expiry"])
+def test_native_etf_bridge_stops_next_hop_after_review_or_expiry_drift(drift):
+    source, policy, entitlement = _native_etf_review_objects("invesco", 32)
+    arguments = {
+        "provider_name": "invesco",
+        "capability": ProviderCapability.ETF_HOLDINGS,
+        "operation": "fetch_etf_holdings_latest",
+        "profile_id": 81,
+        "instrument_id": 71,
+        "provider_symbol": "SPY",
+    }
+    with _bind_native_etf_scope("invesco", source, policy, entitlement, max_physical_requests=3):
+        assert native_etf_initial_qualification_allows_disabled_policy(
+            **arguments,
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter("invesco"),
+        )
+        authority = _consume_native_etf_initial_qualification_request(**arguments)
+        assert authority is not None and authority.physical_requests_started == 1
+        if drift == "revision":
+            entitlement.revision += 1
+        else:
+            authority.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+        assert not native_etf_initial_qualification_allows_disabled_policy(
+            **arguments,
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=_native_etf_adapter("invesco"),
+        )
+
+
+def test_native_etf_initial_scope_cannot_admit_paid_or_edgar_authority():
+    source, policy, entitlement = _native_etf_review_objects("spdr", 31)
+    paid = deepcopy(entitlement)
+    paid.is_free = False
+    paid.configured_plan = "premium"
+    assert not provider_entitlement_admission(
+        paid,
+        provider_name="spdr",
+        capability=ProviderCapability.ETF_HOLDINGS,
+        checkpoint_free_only=True,
+        allow_paid=False,
+    )["allowed"]
+    with pytest.raises(ValueError, match="invalid native ETF initial qualification scope"):
+        with _bind_native_etf_scope("edgar", source, policy, entitlement):
+            pytest.fail("SEC source unexpectedly received native issuer authority")
+
+
+@pytest.mark.asyncio
+async def test_ordinary_native_etf_route_stays_held_without_positive_probe(db, monkeypatch):
+    source = DataSource(
+        name="spdr",
+        is_active=True,
+        supported_capabilities=[ProviderCapability.ETF_HOLDINGS.value],
+        config={"capabilities": [ProviderCapability.ETF_HOLDINGS.value]},
+    )
+    db.add(source)
+    db.flush()
+    db.add(
+        ProviderPolicy(
+            data_source_id=source.id,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            is_enabled=True,
+        )
+    )
+    db.add(
+        ProviderEntitlement(
+            data_source_id=source.id,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            configured_plan="reviewed-free",
+            is_free=True,
+            live_probe_status="not_run",
+            revision=1,
+        )
+    )
+    db.flush()
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    async_db = AsyncSessionAdapter(db)
+    adapter = SimpleNamespace(
+        source_provider="spdr",
+        fetch_latest=lambda **_kwargs: None,
+        fetch_for_date=lambda **_kwargs: None,
+    )
+    chain = await resolve_provider_chain(
+        async_db,
+        ProviderCapability.ETF_HOLDINGS,
+        instrument_id=71,
+        profile_id=81,
+        provider_symbol="SPY",
+        operation="fetch_etf_holdings_latest",
+        etf_holdings_adapters={"spdr": adapter},
+    )
+    assert chain == []
 
 
 def _grant_test_perpetual_archive(monkeypatch, prefix: str) -> None:

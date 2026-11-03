@@ -37,6 +37,7 @@ from app.models.data_source import DataSource
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsBackfillJob,
     ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
     ETFProfile,
@@ -761,6 +762,8 @@ async def _create_committed_fixture(
     reviewed_hosts=None,
     operation="fetch_etf_holdings_latest",
     dated_route_template=None,
+    provider_name_override=None,
+    instrument_symbol_override=None,
 ):
     """Commit only synthetic setup rows before isolated Provider attempts."""
     async with provider_db() as session:
@@ -771,6 +774,8 @@ async def _create_committed_fixture(
                 monkeypatch=monkeypatch,
                 reviewed_hosts=reviewed_hosts,
                 operation=operation,
+                provider_name_override=provider_name_override,
+                instrument_symbol_override=instrument_symbol_override,
             )
             profile = None
             if with_profile:
@@ -8249,3 +8254,211 @@ async def test_bootstrap_treats_held_optional_sec_enrichment_separately_from_iss
         assert capability["availability"] == "current"
         assert capability["usable_for_current_analysis"]
         assert await _attempt_counts(reopened, case) == (1, 1, 1)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_native_etf_initial_authority_rechecks_each_postgres_quota_hop(
+    provider_db, monkeypatch
+):
+    """A sealed not_run authority admits each exact offline hop through real ledgers."""
+
+    from app.providers.telemetry import observe_response
+    from app.services.provider_runtime import (
+        bind_native_etf_initial_qualification,
+        execute_provider_call,
+        native_etf_initial_qualification_allows_disabled_policy,
+        provider_native_etf_review_fingerprint,
+    )
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    case, profile_id = await _create_committed_fixture(
+        provider_db,
+        monkeypatch,
+        limit=2,
+        with_profile=True,
+        operation="fetch_etf_holdings_latest",
+        reviewed_hosts=["publisher.example"],
+        provider_name_override="spdr",
+        instrument_symbol_override="SPY",
+    )
+    provider_name = case.provider_name
+    assert provider_name == "spdr"
+    operation = "fetch_etf_holdings_latest"
+
+    async with provider_db() as setup:
+        async with setup.begin():
+            source = await setup.get(DataSource, case.source_id)
+            policy = await setup.scalar(
+                select(ProviderPolicy).where(
+                    ProviderPolicy.data_source_id == case.source_id,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert source is not None and policy is not None and entitlement is not None
+            policy.is_enabled = False
+            entitlement.live_probe_status = "not_run"
+            entitlement.revision = 7
+            await setup.flush()
+            profile = await setup.get(ETFProfile, profile_id)
+            assert profile is not None
+            attempt = ETFHoldingsBackfillJob(
+                etf_profile_id=profile_id,
+                source_provider=provider_name,
+                job_type="native_etf_initial_qualification",
+                status="running",
+                started_at=datetime.now(UTC),
+                extra_data={"attempt_contract": "test-only durable row"},
+            )
+            setup.add(attempt)
+            await setup.flush()
+            attempt_id = attempt.id
+            source_id = source.id
+            profile_id = profile.id
+            instrument_id = case.instrument_id
+            provider_symbol = case.instrument_symbol
+            account_scope = case.account_scope
+            revision = entitlement.revision
+            fingerprint = provider_native_etf_review_fingerprint(source, policy, entitlement)
+
+    observed_hops = []
+
+    def invoke(_adapter, symbol):
+        hop_number = len(observed_hops) + 1
+        request = httpx.Request("GET", f"https://publisher.example/hop/{hop_number}")
+        observe_response(
+            httpx.Response(200, content=b"synthetic offline response", request=request)
+        )
+        observed_hops.append((symbol, hop_number))
+        return {"hop": hop_number}
+
+    async with provider_db() as session:
+        async with session.begin():
+            source = await session.get(DataSource, source_id)
+            policy = await session.scalar(
+                select(ProviderPolicy).where(
+                    ProviderPolicy.data_source_id == source_id,
+                    ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            entitlement = await session.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert source is not None and policy is not None and entitlement is not None
+            assert policy.is_enabled is False
+            assert entitlement.live_probe_status == "not_run"
+            assert entitlement.revision == revision
+            scope = bind_native_etf_initial_qualification(
+                attempt_id=attempt_id,
+                provider_name=provider_name,
+                data_source_id=source_id,
+                fund_profile_id=profile_id,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                operation=operation,
+                account_scope=account_scope,
+                entitlement_revision=revision,
+                provider_review_fingerprint=fingerprint,
+                expires_at=datetime.now(UTC) + timedelta(minutes=2),
+                max_physical_requests=2,
+            )
+            with scope:
+                for expected_hop in (1, 2):
+                    assert native_etf_initial_qualification_allows_disabled_policy(
+                        provider_name=provider_name,
+                        capability=ProviderCapability.ETF_HOLDINGS,
+                        operation=operation,
+                        profile_id=profile_id,
+                        instrument_id=instrument_id,
+                        provider_symbol=provider_symbol,
+                        source=source,
+                        policy=policy,
+                        entitlement=entitlement,
+                        adapter=case.adapter,
+                    )
+                    result = await execute_provider_call(
+                        session,
+                        ProviderCapability.ETF_HOLDINGS,
+                        operation,
+                        instrument_id=instrument_id,
+                        provider_symbol=provider_symbol,
+                        profile_id=profile_id,
+                        provider_name=provider_name,
+                        etf_holdings_adapters={provider_name: case.adapter},
+                        invoke=invoke,
+                    )
+                    assert result.result == {"hop": expected_hop}
+
+    assert observed_hops == [(provider_symbol, 1), (provider_symbol, 2)]
+    async with provider_db() as reopened:
+        logs = list(
+            (
+                await reopened.scalars(
+                    select(ProviderRequestLog)
+                    .where(
+                        ProviderRequestLog.data_source_id == source_id,
+                        ProviderRequestLog.operation == operation,
+                    )
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert len(logs) == 2
+        assert all(row.success and row.http_requests == 1 for row in logs)
+        assert all(row.completed_at is not None for row in logs)
+        windows = list(
+            (
+                await reopened.scalars(
+                    select(ProviderQuotaWindow).where(
+                        ProviderQuotaWindow.data_source_id == source_id,
+                        ProviderQuotaWindow.dimension == "requests_per_minute",
+                    )
+                )
+            ).all()
+        )
+        _assert_second_bucket_contract(windows, consumed_units=2, reserved_units=0)
+        policy = await reopened.scalar(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source_id,
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        entitlement = await reopened.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        attempt = await reopened.get(ETFHoldingsBackfillJob, attempt_id)
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "not_run"
+        assert attempt is not None and attempt.status == "running"
+
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations).where(
+                    quota_coordinator._reservations.c.provider_name == provider_name,
+                    quota_coordinator._reservations.c.operation == operation,
+                )
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 2
+    assert all(row["state"] == "settled" for row in reservations)
+    assert all(row["reserved_units"] == 1 for row in reservations)
