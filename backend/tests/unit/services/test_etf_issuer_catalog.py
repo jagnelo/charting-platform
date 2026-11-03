@@ -183,6 +183,19 @@ def test_partial_catalog_can_prove_a_present_row_but_not_absence():
     assert parsed.product_for("IGM") is None
 
 
+def test_482_of_482_label_does_not_make_a_partial_catalog_complete():
+    parsed = parse_ishares_us_product_catalog(
+        _catalog_html(
+            _row("IGV", "iShares Expanded Tech-Software Sector ETF", "239771"),
+            result_count="Showing 482 of 482 total funds",
+        )
+    )
+
+    assert parsed.reported_total == 482
+    assert parsed.complete is False
+    assert parsed.product_for("IGV") is not None
+
+
 @pytest.mark.parametrize(
     "rows",
     [
@@ -508,7 +521,7 @@ async def test_ishares_selected_fetch_resolves_catalog_only_for_exact_canonical_
                             "holdingPercent": {"value": [5.5]},
                             "unitsHeld": {"value": [100]},
                             "marketValue": {"value": [10000]},
-                            "asOfDate": {"value": "2026-10-30"},
+                            "asOfDate": {"value": "20261030"},
                         }
                     }
                 }
@@ -703,12 +716,32 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
         def __init__(self):
             self.commit_calls = 0
             self.flush_calls = 0
+            self.catalog_cache = None
+            self.catalog_logs: list[Any] = []
+            self.catalog_source = SimpleNamespace(id=61, name="ishares")
 
         async def flush(self, *_args, **_kwargs):
             self.flush_calls += 1
 
         async def commit(self):
             self.commit_calls += 1
+
+        async def scalar(self, _statement):
+            return self.catalog_source
+
+        async def get(self, _model, object_id):
+            assert object_id == 51
+            return self.catalog_cache
+
+        async def scalars(self, _statement):
+            class Rows:
+                def __init__(self, rows):
+                    self.rows = rows
+
+                def all(self):
+                    return self.rows
+
+            return Rows(self.catalog_logs)
 
         async def execute(self, *_args, **_kwargs):
             raise AssertionError("unexpected failed-acquire persistence in this success fixture")
@@ -728,14 +761,22 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
     requested_urls: list[str] = []
     response_queue: list[Any] = []
 
+    # Keep this small controlled success fixture internally complete. The
+    # separate 482/482 regression proves a truncated body cannot borrow the
+    # issuer's reported total to claim catalog completeness.
+    catalog_rows = _row_with_paths(
+        "IGV",
+        "iShares Expanded Tech-Software Sector ETF",
+        "239771",
+        name_slug="ishares-expanded-tech-software-sector-etf",
+    ) + _row(
+        "XLK",
+        "iShares U.S. Technology ETF",
+        "239726",
+    )
     catalog_html = _catalog_html(
-        _row_with_paths(
-            "IGV",
-            "iShares Expanded Tech-Software Sector ETF",
-            "239771",
-            name_slug="ishares-expanded-tech-software-sector-etf",
-        ),
-        result_count="Showing 482 of 482 total funds",
+        catalog_rows,
+        result_count="2 of 2 funds",
     )
     holding_payload = {
         "fundName": "iShares Expanded Tech-Software Sector ETF",
@@ -749,7 +790,7 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
                             "holdingPercent": {"value": [5.5]},
                             "unitsHeld": {"value": [100]},
                             "marketValue": {"value": [10000]},
-                            "asOfDate": {"value": "2026-10-30"},
+                            "asOfDate": {"value": "20261030"},
                         }
                     }
                 }
@@ -804,6 +845,18 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
             request_id = len(binding.request_log_ids) + 1
             binding.request_log_ids.append(request_id)
             binding.request_urls_by_log_id[request_id] = url
+            if url == ISHARES_US_CATALOG_URL:
+                self_request_log = SimpleNamespace(
+                    id=request_id,
+                    data_source_id=61,
+                    capability=ProviderCapability.ETF_HOLDINGS,
+                    operation="fetch_etf_holdings_latest",
+                    instrument_id=instrument.id,
+                    provider_symbol="IGV",
+                    success=True,
+                    completed_at=None,
+                )
+                db.catalog_logs.append(self_request_log)
             return response_queue.pop(0)
 
     async def no_cache(_db, *, ticker):
@@ -814,11 +867,32 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
         parsed = parse_ishares_us_product_catalog(catalog_html)
         assert kwargs["ticker"] == "IGV"
         assert kwargs["request_urls"] == [ISHARES_US_CATALOG_URL]
+        retrieved_at = datetime.now(UTC)
+        db.catalog_cache = SimpleNamespace(
+            id=51,
+            provider_name="ishares",
+            catalog_key=ISHARES_US_CATALOG_KEY,
+            data_source_id=61,
+            source_url=ISHARES_US_CATALOG_URL,
+            final_url=ISHARES_US_CATALOG_URL,
+            content_sha256=hashlib.sha256(catalog_html.encode()).hexdigest(),
+            response_bytes=len(catalog_html.encode()),
+            response_encoding="utf-8",
+            raw_body_base64=base64.b64encode(catalog_html.encode()).decode("ascii"),
+            parsed_entries=[entry.as_json() for entry in parsed.entries],
+            reported_total=parsed.reported_total,
+            catalog_complete=parsed.complete,
+            requested_symbol="IGV",
+            provider_request_log_ids=tuple(kwargs["request_log_ids"]),
+            request_urls=tuple(kwargs["request_urls"]),
+            fetched_at=retrieved_at,
+        )
+        db.catalog_logs[0].completed_at = retrieved_at
         return CachedIssuerCatalog(
             cache_id=51,
             catalog=parsed,
             content_sha256=hashlib.sha256(catalog_html.encode()).hexdigest(),
-            retrieved_at=datetime(2026, 11, 3, tzinfo=UTC),
+            retrieved_at=retrieved_at,
             request_log_ids=(kwargs["request_log_ids"][0],),
             source_url=ISHARES_US_CATALOG_URL,
             final_url=ISHARES_US_CATALOG_URL,

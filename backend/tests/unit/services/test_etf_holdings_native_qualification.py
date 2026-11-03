@@ -1090,7 +1090,7 @@ async def test_invesco_ordinary_fetch_revalidates_catalog_with_warm_cusip_hint(m
         instrument_id=profile.instrument_id,
         provider_symbol="QQQ",
         operation="fetch_etf_holdings_latest",
-    ):
+    ) as binding:
         result = await adapter.fetch_latest(
             symbol="QQQ",
             identifiers={
@@ -1098,9 +1098,9 @@ async def test_invesco_ordinary_fetch_revalidates_catalog_with_warm_cusip_hint(m
             },
         )
 
-    assert ordinary_binding is not None
-    assert ordinary_binding.native_initial_qualification_job_id is None
-    assert ordinary_binding.native_initial_qualification_scope is None
+    assert ordinary_binding is binding
+    assert binding.native_initial_qualification_job_id is None
+    assert binding.native_initial_qualification_scope is None
     assert _OfflineAdapterClient.requested == [adapter._PRODUCT_CATALOG_URL, holdings_url]
     catalog = result.legal_metadata["issuer_product_catalog"]
     assert catalog["matched_product"] == {
@@ -1113,6 +1113,26 @@ async def test_invesco_ordinary_fetch_revalidates_catalog_with_warm_cusip_hint(m
         == catalog["response_sha256"]
     )
     assert result.legal_metadata["effective_business_date"] == "2026-11-02"
+    ordinary_evidence = _native_adapter_fetch_evidence(
+        profile,
+        adapter,
+        result,
+        request_binding=binding,
+        require_body_witness=False,
+    )
+    assert ordinary_evidence["fund_identity"] == {
+        "basis": "invesco_product_catalog",
+        "ticker": "QQQ",
+        "cusip": "46090E103",
+        "source_identifier": "46090E103",
+        "account_name": "Invesco QQQ Trust",
+        "catalog_request_url": adapter._PRODUCT_CATALOG_URL,
+        "catalog_response_body_base64": catalog["response_body_base64"],
+        "catalog_response_sha256": catalog["response_sha256"],
+        "holdings_source_url": holdings_url,
+    }
+    assert ordinary_evidence["composition_date"] == "2026-11-02"
+    assert ordinary_evidence["composition_date_source_field"] == "effective_business_date"
 
 
 @pytest.mark.asyncio

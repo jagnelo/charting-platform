@@ -4019,7 +4019,7 @@ latest_sec_first_use_candidate:
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
-next_action: "Complete exact-source CI for the focused ETF candidate. When Root releases the Provider callable through synchronized green staging, adopt that green source and run the engine-backed contract tests; no provider HTTP or target/policy/ledger operation is part of this preparation."
+next_action: "Publish the corrected ordinary-mode catalog/test-fixture candidate with this focused validation evidence, then require exact-source branch CI. After Root releases the Provider callable through synchronized green staging, adopt that green source and run the engine-backed contract tests; no provider HTTP or target/policy/ledger operation is authorized here."
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress
@@ -4357,3 +4357,35 @@ previously_accepted_hqd1_hqd4_closure_2026_10_30:
       or target acceptance; the feature owner does not integrate or deploy.
     - Do not claim genuine OIH source qualification or full feature-roadmap completion from offline tests
       or green staging ancestry.
+
+ordinary_mode_catalog_ci_followup_2026_11_03:
+  prior_published_source: fc0840dabfb6bad9308dda8631b12dfc48b69b66
+  exact_branch_ci_run: 41665410601
+  failed_backend_job: 126019268196
+  preserved_failure: >-
+    Backend Tests had 5,764 passed, 2 skipped and one failed after the IGV selected-acquire
+    success fixture was incorrectly marked complete with a 482/482 label while containing
+    only one catalog row. The strict parser correctly rejected that incomplete fixture; the
+    failure then entered the expected durable failed-acquire path. No production/provider
+    behavior failure was established by this result.
+  corrective_test_evidence: >-
+    The successful IGV acquisition fixture now uses an internally complete controlled 2/2
+    catalog; a separate regression feeds one visible row with the observed “Showing 482 of
+    482 total funds” label and asserts reported_total=482 but complete=false. The iShares
+    holdings date uses the adapter's actual YYYYMMDD schema. Its read-only DB double supplies
+    the exact persisted catalog bytes/cache row and successful catalog request log required
+    by the ordinary durable verifier. A separate direct ordinary Invesco fetch test
+    asserts no qualification job/scope, catalog then holdings requests despite warm CUSIP
+    cache and caller CUSIP, retained exact catalog hash, selected fund identity and the
+    effective-business-date evidence. Existing four-provider ordinary adapter cases still
+    exercise actual adapter fetches and native identity/date normalization.
+  focused_result: >-
+    Final native qualification, issuer catalog and refresh modules passed 115 with 1 existing
+    Producer-contract skip. The separate partial-body case confirms a 482/482 reported total
+    does not make a one-row catalog complete. Ruff check/format, narrative regression 1/1,
+    branch validation (46 records), and git diff --check passed.
+  remaining: >-
+    The corrected candidate and current workstream records are not yet published or exact-CI
+    qualified. The real Provider callable/engine-backed test remains held for
+    synchronized green staging adoption and Root's fixture release. No provider HTTP,
+    Docker/DB fixture, policy/quota/ledger/target operation or deployment occurred.

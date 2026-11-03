@@ -40,7 +40,8 @@
       "backend/app/services/etf_issuer_catalog.py": "0572489026d6b5bfc48dbaaf60dc5790e8beb58302ae4c89940032a93405ea80",
       "backend/tests/unit/services/test_etf_holdings_adapters.py": "6b3fd7e293c05e5fac1b2c29cc3ced6380f40b97c8ba78777f000df3bf87acec",
       "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "a6d70d1a764ed12d6217af8cd768cc07fcc61a1ab2417fd1f75e0a3c82020492",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py": "a23968d7acd97d48b40e1a36b0ec15ab8b366606cc52ff74e0ec487f988deee0"
+      "backend/tests/unit/services/test_etf_issuer_catalog.py": "0ba10187c894bf9e51c755b66e4d1040efce8bffb0b09a2ca5d0c6a3aac79cbb",
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "742a75c9494234359eb15e940a45b0147677a8b331adac1da1f462b0a31f1585"
     },
     "source_paths": [
       "backend/app/routers/etf_holdings.py",
@@ -54,7 +55,8 @@
       "backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
       "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py"
+      "backend/tests/unit/services/test_etf_issuer_catalog.py",
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py"
     ],
     "state": "Selected-acquire routing and reusable iShares catalog metadata resolution are implemented and focused locally green. The generic sealed initial-qualification executor and full qualification remain pending; no live source call is claimed."
   },
@@ -764,8 +766,8 @@
         "OSA3",
         "OSA4"
       ],
-      "current_blocker": "Provider callable bind_native_etf_initial_qualification, including data_source_id, is not yet adopted through synchronized green staging. This ordinary-mode adapter correction is validated offline; real callable integration and engine-backed persistence still wait for the released green source and Root fixture release. No provider HTTP or target/policy/ledger mutation is authorized here. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
-      "current_phase": "Selected-fund route/catalog evidence remains focused-green. Separate actual ordinary bindings now exercise SPDR, Invesco, iShares and Amplify with qualification job/scope absent, checking request URL lineage, native identity, provider-reported date, schema continuity and current eligibility. Native/refresh/narrative tests pass78 with1 existing skip; the complete adapter module passes681/681. The real Provider callable and engine-backed persistence test remain pending.",
+      "current_blocker": "The exact-source CI on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is preserved red (run 41665410601; one IGV success-fixture failure, 5,764 passed/2 skipped). Its incomplete catalog-count fixture and read-only DB-double gaps are corrected locally; the affected native qualification, issuer catalog and refresh modules pass 115 with one existing Producer-contract skip. Publish this corrected candidate for a new exact-source CI. Provider callable adoption and the engine-backed test still await synchronized green staging and Root fixture release. No provider HTTP or target/policy/ledger mutation is authorized. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
+      "current_phase": "Ordinary adapter paths for SPDR, Invesco, iShares and Amplify are exercised with ordinary bindings and no qualification job/scope. Direct Invesco coverage proves catalog evidence survives a warm CUSIP cache and caller CUSIP hint; catalog and holdings request lineage, fund identity and effective business date are checked. The prior exact CI red remains historical; the corrected focused native/catalog/refresh modules pass 115 with one existing dependency-contract skip. Engine-backed Provider integration remains pending its separate staging/fixture release.",
       "total": 5
     },
     "remaining_gates": [
@@ -803,11 +805,19 @@
     ],
     "status": "implementation_in_progress",
     "validation": {
-      "exact_source_ci": "pending_for_this_focused_candidate_publication",
+      "exact_source_ci": "Run 41665410601 on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is terminal red: Backend Tests 5764 passed, 2 skipped, 1 failed in test_selected_acquire_from_null_issuer_igv_requires_official_catalog_identity. Preserve this result; corrected fixture/tests are locally green and require a new exact-source run after publication.",
       "focused_selected_acquire": "From the backend project, the affected no-network modules passed 743/743: tests/unit/services/test_etf_issuer_catalog.py, test_etf_holdings_bootstrap.py, and test_etf_holdings_adapters.py. This includes the issuer_id=NULL IGV selection path, exact catalog-row identity before holdings fetch, numeric/official-slug paths, conflicting slug and mismatched identity rejection, and the 482-of-482 label without false completeness. Ruff check/format, Alembic head e6f7a8b9c012, branch-validate (46 records), the narrative regression (1/1), and git diff --check passed. No DB fixture, provider/issuer/SEC HTTP, target or policy/quota/ledger mutation occurred.",
       "local_profile": "focused_offline_unit_slice_only; no Docker or local full profile launched; combined engine/provider qualification remains pending",
       "provider_initial_qualification": "offline executor/body-evidence implementation present; actual Provider callable/engine integration is held until exact green staging adoption; no fake probe or bypass",
-      "focused_native_routing_and_body_evidence": "Focused offline source slice passed 939 tests with one contract-dependent skip (940 collected): migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh, and issuer-catalog modules. Tests cover unseeded XES/SPDR and PXJ/Invesco plus fictitious SPDR/Invesco/Amplify nominations, trusted issuer hints, default non-selected holds, ambiguous/foreign-brand mismatches, and no product-ID fabrication. Actual-format offline adapter cases bind SPDR workbook ticker, Invesco catalog CUSIP/holdings JSON, iShares exact catalog/holdings JSON, and Amplify selected-account CSV to captured-body/parser/artifact hashes and request scope. Invalid-UTF8/NUL workbook transport proves exact base64 wire retention. Shared Strategy migration compatibility passes with its additive catalog head. Ruff check/format and diff checks pass. The sole skip is the exact Producer callable contract test, absent from synchronized staging; no provider HTTP, target, policy, quota, ledger, Docker or full profile ran."
+      "focused_native_routing_and_body_evidence": "Focused offline source slice passed 939 tests with one contract-dependent skip (940 collected): migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh, and issuer-catalog modules. Tests cover unseeded XES/SPDR and PXJ/Invesco plus fictitious SPDR/Invesco/Amplify nominations, trusted issuer hints, default non-selected holds, ambiguous/foreign-brand mismatches, and no product-ID fabrication. Actual-format offline adapter cases bind SPDR workbook ticker, Invesco catalog CUSIP/holdings JSON, iShares exact catalog/holdings JSON, and Amplify selected-account CSV to captured-body/parser/artifact hashes and request scope. Invalid-UTF8/NUL workbook transport proves exact base64 wire retention. Shared Strategy migration compatibility passes with its additive catalog head. Ruff check/format and diff checks pass. The sole skip is the exact Producer callable contract test, absent from synchronized staging; no provider HTTP, target, policy, quota, ledger, Docker or full profile ran.",
+      "ordinary_mode_ci_followup": {
+        "failed_run": 41665410601,
+        "failed_job": 126019268196,
+        "local_command": "From backend, UV_CACHE_DIR=/tmp/etf-ordinary-native-fix-uv rtk proxy uv run --project backend pytest -q tests/unit/services/test_etf_holdings_native_qualification.py tests/unit/services/test_etf_issuer_catalog.py tests/unit/services/test_etf_holdings_refresh.py",
+        "local_result": "115 passed, 1 existing Producer-contract skip; branch-validate accepted46 records; narrative regression1/1; Ruff and diff checks passed.",
+        "cause_and_correction": "The published IGV success fixture asserted a complete 482/482 catalog with one row; parser rejection was correct. The success fixture now uses an internally complete controlled 2/2 catalog, and a separate regression asserts that a partial body with the observed 482/482 label remains incomplete. The fixture uses the adapter YYYYMMDD date and supplies read-only cache/source/request-log facts required by the ordinary verifier. A direct ordinary Invesco warm-cache plus caller-CUSIP regression runs _native_adapter_fetch_evidence and asserts identity/date evidence with qualification job/scope absent.",
+        "next": "Publish corrected candidate; exact-source CI remains required."
+      }
     }
   },
   "interrupted_local_profile_execution": {
@@ -912,9 +922,9 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent focused candidate and complete exact-source CI; when Root releases the Provider callable through synchronized green staging, adopt that exact source and run engine-backed contract tests. No source HTTP or target/policy/ledger operation is authorized here.",
-  "plan_hash": "42db1bba4fab00c0784a0d6229c9ee3a909f86cb493006dd0ba3b2c3ffcee908",
-  "plan_sha256": "42db1bba4fab00c0784a0d6229c9ee3a909f86cb493006dd0ba3b2c3ffcee908",
+  "next_action": "Publish the corrected ordinary-mode catalog/test-fixture candidate and current records once, then complete its exact-source branch CI. When Root releases the Provider callable through synchronized green staging, adopt that exact source and run the engine-backed contract tests. No source HTTP or target/policy/ledger operation is authorized here.",
+  "plan_hash": "ee4f655f5d5bc8dcdc9aec682ae622c2b3672e3537dcfaf8a06b304c3b5aa0fd",
+  "plan_sha256": "ee4f655f5d5bc8dcdc9aec682ae622c2b3672e3537dcfaf8a06b304c3b5aa0fd",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -2771,8 +2781,8 @@
       "OSA3",
       "OSA4"
     ],
-    "current_blocker": "Provider callable bind_native_etf_initial_qualification, including data_source_id, is not yet adopted through synchronized green staging. The offline executor may be prepared, but exact callable integration and engine-backed contract tests wait for the released green source. No provider HTTP or target/policy/ledger mutation is authorized here. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
-    "current_phase": "Selected-fund route hints for four registered core adapters, actual-format offline evidence checks, and body-to-parser/log witness validation pass focused tests. Offline executor implementation is in this candidate; real Provider callable integration and engine-backed verification remain pending.",
+    "current_blocker": "The exact-source CI on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is preserved red (run 41665410601; one IGV success-fixture failure, 5,764 passed/2 skipped). Its incomplete 482-row fixture and read-only DB-double gaps are corrected locally; 114 focused cases pass with one existing Producer-contract skip. Publish this corrected candidate for a new exact-source CI. Provider callable adoption and the engine-backed test still await synchronized green staging and Root fixture release. No provider HTTP or target/policy/ledger mutation is authorized. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
+    "current_phase": "Ordinary adapter paths for SPDR, Invesco, iShares and Amplify are exercised with ordinary bindings and no qualification job/scope. Direct Invesco coverage proves catalog evidence survives a warm CUSIP cache and caller CUSIP hint; catalog and holdings request lineage, fund identity and effective business date are checked. The prior exact CI red remains historical; the corrected focused native/catalog/refresh modules pass 114 with one existing dependency-contract skip. Engine-backed Provider integration remains pending its separate staging/fixture release.",
     "total": 5
   },
   "provider_release": {
@@ -2981,7 +2991,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-03T14:32:39Z",
+  "updated_at": "2026-11-03T15:58:30Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
