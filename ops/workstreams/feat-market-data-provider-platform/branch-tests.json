@@ -21,7 +21,7 @@
     },
     {
       "id": "native-etf-postgresql-quota-ledger-integration",
-      "command": "pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_native_etf_initial_authority_rechecks_each_postgres_quota_hop -q",
+      "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_native_etf_initial_authority_rechecks_each_postgres_quota_hop -q",
       "covers": [
         5
       ],

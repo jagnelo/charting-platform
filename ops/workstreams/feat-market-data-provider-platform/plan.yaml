@@ -1,6 +1,6 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: in_progress
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -8648,11 +8648,12 @@ progress:
   - NATIVE-ETF-QUAL-1
   - NATIVE-ETF-QUAL-2
   - NATIVE-ETF-QUAL-3
+  - NATIVE-ETF-QUAL-4
   total: 4
   historical_current_phase_pre_on_demand_20261027: exact_source_ci_green_full_profile_pending
   historical_current_phase_pre_oih_accepted_closure_2026_10_29: green_staging_4bc50_adopted_pending_adoption_tip_ci
-  current_phase: native_etf_scope_focused_green_full_backend_and_postgresql_pending
-  current_blocker: Complete backend/DDL coverage, isolated PostgreSQL/quota-ledger integration, and exact-source CI remain pending Root resource coordination; no live qualification request is authorized.
+  current_phase: native_etf_checkpoint_accepted_closing_tip_ci_pending
+  current_blocker: The bounded checkpoint is accepted by Root. Exact closing-tip CI remains pending and Root owns observation and protected integration; the original local full collector failure remains recorded with unknown cause. No live qualification request is authorized.
   historical_current_blocker_pre_on_demand_20261027: >-
     CURRENT STATUS — 2026-10-23 13:04Z: Provider HEAD and origin are both
     `3283d668b27fd5b714369d79cb9db79db86398a7`; exact Actions run
@@ -11520,7 +11521,7 @@ scope: &nativeetfqual001
 - Permit only the exact active native ETF source with disabled policy and not_run entitlement at the bound revision/fingerprint/account scope. Normal enabled-policy/request flow continues requiring a positive probe and no scope.
 - Consume one slot before resolution for each physical ETF bridge hop routed through execute_provider_call. Preserve the existing shared quota reservations, free-only/terms/operation-cost/configuration/routing/health checks; do not add a bypass for unknown quotas or paid/trial plans.
 - Expose the callable context and narrow disabled-policy predicate for ETF's separately owned executor/bridge. The ETF executor must claim its durable attempt before entering the scope, validate actual issuer evidence, and publish passed only on a genuine valid response; this Provider checkpoint does not implement that runner.
-- Add focused no-network unit coverage for at least two unrelated native publishers, exact adapter/source binding, mismatch/expiry/revision/fingerprint/account/budget denial, paid-plan denial, and ordinary not_run routing remaining held. Keep complete backend/DDL and exact-source CI pending Root resource coordination.
+- Add focused no-network unit coverage for at least two unrelated native publishers, exact adapter/source binding, mismatch/expiry/revision/fingerprint/account/budget denial, paid-plan denial, and ordinary not_run routing remaining held. Record the isolated PostgreSQL, affected-shard diagnostic, complete backend/DDL CI evidence, original local collector failure, and exact closing-tip CI disposition in the accepted checkpoint.
 - Add an offline PostgreSQL integration regression using a durable fixture attempt, an exact disabled/not_run source review, two independently admitted physical hops, PostgreSQL quota windows and the isolated PostgreSQL-backed coordinator ledger; assert both reservations settle while Provider leaves qualification publication to ETF.
 - No provider/issuer/SEC HTTP, real policy/quota/ledger mutation, credential activation, paid/trial operation, production edit, deployment, protected-branch change, sibling worktree change, or ETF/TC source change.
 owned_paths: &nativeetfqual002
@@ -11583,32 +11584,47 @@ previously_accepted_vj6_current_gate_checkpoint: >-
   remains pending Root observation. No source HTTP, production edit, ledger mutation or hold
   change.
 previously_accepted_vj6_implementation_source_sha: caac446e982228cb13c259d7ed36274b1f68a679
-checkpoint_status: in_progress
-human_closure_authorization: No checkpoint acceptance has been issued for the 2026-11-03 native ETF qualification authority repair.
+checkpoint_status: accepted_bounded_software_checkpoint
+human_closure_authorization: >-
+  Root accepted the bounded native ETF qualification authority checkpoint under the standing human delegation,
+  as documented in /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-diagnostic-disposition-checkpoint-review-20261103.json
+  (SHA-256 d1bfd6c36b35b55df298a5d5e77cb08852f74e5a94161887736f4643643afcd0). This is delegated Root technical
+  acceptance, not a direct human quote. Exact closing-tip CI remains required before protected integration.
 closure_summary: >-
-  This bounded Provider-owned implementation is active. It defines a sealed native ETF initial-qualification
-  context and callable bridge contract. Focused no-network unit checks pass, and a PostgreSQL/quota-ledger
-  regression has been added but still requires Root's isolated execution release. No full-backend or exact-source
-  CI evidence is claimed yet. All 24 Provider and 14 ETF roadmap criteria,
-  prior accepted checkpoints, live/quota holds, and Root-owned operational requirements remain preserved.
+  Root accepted the bounded Provider-owned sealed native ETF initial-qualification authority checkpoint on
+  implementation source 3efc7a7ba451479387b3e387d6684df05df22c48 under standing human delegation. The focused
+  no-network authority tests passed 10/10, the allocated isolated PostgreSQL/quota-ledger case passed 1/1,
+  and the exact failed-shard diagnostic passed all 25 ordered nodes. Exact-source backend CI passed 5,668 unit
+  plus 616 integration tests, three configured skips, 84% coverage, and both canonical DDL cases; the overall
+  CI run remains failed only because Branch-declared used the missing backend/ path, corrected in this records
+  publication. The original local full collector remains failed with SIGSEGV exit 139 and unknown cause; the
+  diagnostic pass does not erase or explain it. Root reconciled preserved Docker assets by immutable IDs and
+  reference semantics. Exact closing-tip CI is pending and Root-owned. All 24 Provider and 14 ETF roadmap items,
+  source/quota holds, and Root-owned promotion/deployment/operational work remain open. No source HTTP or target
+  mutation occurred. integration_capture: exact branch HEAD.
 integration_checkpoint_authorization: >-
-  No integration, promotion, deployment, source HTTP, or policy/quota/ledger mutation is authorized by this
-  implementation activation. Root retains protected integration and operational ownership.
+  Root delegated technical acceptance under the standing human authorization and authorized this one coherent
+  records-only closure. Root owns terminal exact closing-tip CI observation and all protected staging integration,
+  promotion, deployment, and live provider operations. No such protected or operational action is authorized
+  for this feature owner.
 local_validation_reason: >-
-  This Provider-only runtime change requires docker_integration: focused no-network tests, complete canonical
-  backend/DDL coverage, and one isolated PostgreSQL/quota-ledger integration proving the scoped disabled/not_run
-  authority and physical-hop accounting. Exact-source branch CI is mandatory. A Producer-only image/browser
-  fixture is unnecessary; Root owns the full combined consumer browser profile after integration. No live provider
-  transport or real ledger access is part of this checkpoint.
+  The required local docker_integration evidence consists of 10 focused no-network native authority unit tests,
+  one isolated PostgreSQL/quota-ledger authority integration, and the Root-released exact 25-node diagnostic
+  for failed shard 120, all passing on source 3efc7a7ba451479387b3e387d6684df05df22c48. The separate canonical
+  full local collector is preserved as FAILED (exit 139/SIGSEGV while faulthandler emitted a SQLAlchemy weakref
+  stack; cause unknown, not proven OOM and not an assertion failure). The exact-source CI backend job independently
+  passed the full 6,287-node selection (5,668 unit + 616 integration passed, 3 configured skips), 84% coverage,
+  and both canonical DDL cases. The overall CI run failed only in the branch-declared path check before tests;
+  the path is corrected here and exact closing-tip CI remains pending. Root accepted this evidence disposition.
 current_gate_checkpoint: >-
-  Active source is being implemented from synchronized green staging f8323af179922193f4dcf3c9f0a5d9001282455f.
-  Focused no-network tests pass. The PostgreSQL-backed regression is collected and exercises two exact authority
-  hops with isolated durable quota settlement, pending Root's execution release. Complete backend/DDL coverage and
-  exact-source CI remain pending. This Producer-only runtime checkpoint does not require a backend image or browser profile;
-  Root owns the later combined consumer profile. The callable contract is available to ETF for its separately
-  owned executor; no live source or production operation is authorized.
-validated_implementation_source_sha: null
-integration_checkpoint:
+  Source implementation 3efc7a7ba451479387b3e387d6684df05df22c48 is unchanged. Root accepts the bounded
+  checkpoint on the focused 10-unit + isolated PostgreSQL 1-test evidence, affected shard diagnostic 25/25,
+  and complete exact-source CI backend/DDL/coverage evidence. Preserve the original full local collector SIGSEGV
+  as a failure with unknown cause, not interrupted, green, fixed, or proven OOM. Branch-declared CI failed before
+  tests because the manifest omitted backend/; the manifest now has the repository-root-correct path. Exact
+  closing-tip CI is the only remaining checkpoint integration gate and is pending Root observation.
+validated_implementation_source_sha: 3efc7a7ba451479387b3e387d6684df05df22c48
+previously_accepted_vj6_integration_checkpoint:
   id: provider-vj6w-ordinary-schema-continuity-20261102
   status: ready_for_integration
   acceptance_state: accepted_by_root_under_standing_human_delegation_exact_closing_ci_pending
@@ -13656,3 +13672,431 @@ previously_accepted_provider_job6_worksheet_identity_checkpoint_archive:
       action.
   accepted_root_receipt: /home/m920q/charting-platform/.ai/staging-attempts/provider-job6-5f5-checkpoint-acceptance-root-review-20261101.json
   accepted_root_receipt_sha256: 2be4c0772fb4b0fd951b7265b7fdea45fa29dc2f00b644c1997fcdb23366472f
+
+
+integration_checkpoint:
+  id: provider-native-etf-initial-qualification-authority-20261103
+  status: ready_for_integration
+  acceptance_state: accepted_by_root_under_standing_human_delegation_exact_closing_ci_pending
+  root_technical_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-diagnostic-disposition-checkpoint-review-20261103.json
+  root_technical_acceptance_receipt_sha256: d1bfd6c36b35b55df298a5d5e77cb08852f74e5a94161887736f4643643afcd0
+  planning_authorization: Direct human activation in the original visible Provider session on 2026-11-03
+    for the Provider-owned generic native ETF sealed initial-qualification authority. Root accepted this
+    bounded checkpoint under standing human delegation; this records delegated acceptance, not a direct
+    human quote.
+  source_base_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+  implementation_source_sha: 3efc7a7ba451479387b3e387d6684df05df22c48
+  downstream_consumers:
+  - ETF-owned generic native qualification executor/bridge
+  - ordinary native ETF acquisition routes
+  scope:
+  - Provider supplies a sealed one-shot task-local qualification authority bound to the exact registered
+    native publisher/DataSource, ETF profile/instrument/symbol, operation, reviewed entitlement revision/fingerprint,
+    resolved account scope, expiry, and finite physical-hop budget.
+  - Only the exact live scope may admit its disabled/not_run qualification attempt; each physical hop
+    rechecks current review and consumes one slot through execute_provider_call. Ordinary unqualified,
+    paid/trial, unresolved-quota, mismatched, expired, and exhausted cases remain held.
+  - No source HTTP, real policy/quota/ledger mutation, paid/trial activation, production or sibling change,
+    deployment, or protected branch mutation is included.
+  owned_paths:
+  - backend/app/services/provider_runtime.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
+  required_contracts:
+  - The authority is sealed, non-nestable, exact-scope, expiry- and current-review-bound, and finite across
+    actual physical HTTP hops.
+  - Existing source, adapter, account, capability, cost, free-only/terms, routing, configuration, and
+    durable quota reservation/settlement guards remain mandatory.
+  - The exact local full collector failure remains failed with unknown cause; successful affected-shard
+    diagnostic and exact-source backend CI are separate evidence and do not erase that failure.
+  - Exact closing-tip CI must be terminal green before protected staging integration; Root owns integration
+    and later operational/deployment gates.
+  required_gates_remaining:
+  - Terminal all-required exact closing-tip branch CI; Root owns observation and protected integration
+    after success.
+  current_validation:
+    focused_no_network_units: 10 passed, 0 failed/skipped
+    isolated_postgresql_quota_ledger: 1 passed, exit 0; private test fixture only
+    affected_local_shard_diagnostic: 25/25 passed in exact original order, exit 0; original shard-120
+      SIGSEGV remains separately failed with unknown cause
+    exact_source_backend_ci: Run 41635035741 backend job 125914257354 passed 5,668 unit + 616 integration,
+      3 configured skips, 84% coverage; both canonical DDL cases executed. Overall run failed only branch-declared
+      path check before tests.
+    corrected_branch_test: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_native_etf_initial_authority_rechecks_each_postgres_quota_hop
+      -q
+    closing_tip_ci: pending Root observation
+  original_local_full_collector_disposition: FAILED, exit 139/SIGSEGV during faulthandler stack emission
+    in unit shard 120 after earlier shards passed; not interrupted, not green, cause unknown. The 25-node
+    shard diagnostic passed but did not reproduce or fix the original crash.
+  protected_inventory_disposition: Root confirmed all 29 container IDs, 10 network IDs, 51 volume names
+    and all 37 baseline image IDs remain inspectable with baseline-known references preserved. The untagged
+    6ef image exists by immutable ID; old formatter reference differences are representation-only. No
+    cleanup or resource mutation was performed.
+  roadmap_dispositions:
+  - id: AC-IDENTITY
+    original_criterion: New and reconciled US-listed securities use stable FIGI-domain keys where applicable,
+      issuer identity is separate from security identity, effective-dated listing/provider-symbol history
+      is retained, and unresolved candidates are quarantined without silent merges.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: New and reconciled US-listed securities use stable FIGI-domain keys where applicable,
+      issuer identity is separate from security identity, effective-dated listing/provider-symbol history
+      is retained, and unresolved candidates are quarantined without silent merges.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: New and reconciled US-listed securities use stable FIGI-domain keys
+      where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol
+      history is retained, and unresolved candidates are quarantined without silent merges.
+  - id: AC-SERIES
+    original_criterion: Canonical bars distinguish instrument, market/feed scope, session, timeframe,
+      adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default
+      series mapping.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment
+      basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Canonical bars distinguish instrument, market/feed scope, session, timeframe,
+      adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default
+      series mapping.
+  - id: AC-CALENDAR
+    original_criterion: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules,
+      and user-local projections are versioned and used by freshness and daily-completion logic.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules,
+      and user-local projections are versioned and used by freshness and daily-completion logic.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Exchange sessions, timezones, holidays, early closes, overnight trade-date
+      rules, and user-local projections are versioned and used by freshness and daily-completion logic.
+  - id: AC-ROUTING
+    original_criterion: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms
+      entitlement, health, quota, and workload budget; quota reservations are safe across workers and
+      every decision is observable.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms
+      entitlement, health, quota, and workload budget; quota reservations are safe across workers and
+      every decision is observable.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms
+      entitlement, health, quota, and workload budget; quota reservations are safe across workers and
+      every decision is observable.
+  - id: AC-RECURRING-COST
+    original_criterion: A durable shared admission contract enforces the explicitly configured monthly
+      recurring-subscription ceiling across all active and proposed provider commitments, deduplicates
+      subscriptions shared by keys/capabilities in the same provider billing account/environment, records
+      exact plan/price/currency/interval/effective-state/evidence and post-trial price, normalizes only
+      verified billing periods, fails closed on unknown material inputs or unreviewed mixed-currency conversion,
+      admits concurrent proposals atomically, and remains separate from quota usage and paid-activation
+      authority.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: A durable shared admission contract enforces the explicitly configured monthly recurring-subscription
+      ceiling across all active and proposed provider commitments, deduplicates subscriptions shared by
+      keys/capabilities in the same provider billing account/environment, records exact plan/price/currency/interval/effective-state/evidence
+      and post-trial price, normalizes only verified billing periods, fails closed on unknown material
+      inputs or unreviewed mixed-currency conversion, admits concurrent proposals atomically, and remains
+      separate from quota usage and paid-activation authority.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: A durable shared admission contract enforces the explicitly configured
+      monthly recurring-subscription ceiling across all active and proposed provider commitments, deduplicates
+      subscriptions shared by keys/capabilities in the same provider billing account/environment, records
+      exact plan/price/currency/interval/effective-state/evidence and post-trial price, normalizes only
+      verified billing periods, fails closed on unknown material inputs or unreviewed mixed-currency conversion,
+      admits concurrent proposals atomically, and remains separate from quota usage and paid-activation
+      authority.
+  - id: AC-REFRESH
+    original_criterion: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups,
+      exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry
+      are implemented without provider calls inside evaluation loops.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact
+      missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are
+      implemented without provider calls inside evaluation loops.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Whole-universe core-session D1 refresh, tiered intraday polling, local
+      rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic
+      retry are implemented without provider calls inside evaluation loops.
+  - id: AC-DATA
+    original_criterion: Provider adapters cover the approved practical roster, with US identity/lifecycle,
+      OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest,
+      crypto, current options, and optional futures paths represented honestly by capability and provenance.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Provider adapters cover the approved practical roster, with US identity/lifecycle,
+      OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest,
+      crypto, current options, and optional futures paths represented honestly by capability and provenance.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Provider adapters cover the approved practical roster, with US identity/lifecycle,
+      OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest,
+      crypto, current options, and optional futures paths represented honestly by capability and provenance.
+  - id: AC-OPTIONS
+    original_criterion: Current option chains and quotes are retained; QuantLib-backed American-option
+      Greeks and the existing fallback are labeled with model/version/input provenance and tested against
+      numerical edge cases.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Current option chains and quotes are retained; QuantLib-backed American-option Greeks
+      and the existing fallback are labeled with model/version/input provenance and tested against numerical
+      edge cases.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Current option chains and quotes are retained; QuantLib-backed American-option
+      Greeks and the existing fallback are labeled with model/version/input provenance and tested against
+      numerical edge cases.
+  - id: AC-OPS
+    original_criterion: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost
+      usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies,
+      and detailed shadow reports.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost
+      usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies,
+      and detailed shadow reports.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Backend-only admin and diagnostic APIs expose capabilities, entitlements,
+      quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation
+      state, anomalies, and detailed shadow reports.
+  - id: AC-SHADOW
+    original_criterion: New routing defaults remain disabled until a separately approved deployed 30-day
+      shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage
+      before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy
+      evidence.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: New routing defaults remain disabled until a separately approved deployed 30-day shadow
+      run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before
+      the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy
+      evidence.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: New routing defaults remain disabled until a separately approved deployed
+      30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1
+      coverage before the next regular session, no silent identity/license/quota violations, and AI-readable
+      discrepancy evidence.
+  - id: AC-COMPAT
+    original_criterion: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional
+      only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional
+      only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Existing symbol-based API aliases and legacy yfinance-dependent paths
+      remain functional only through explicit compatibility behavior; yfinance is absent from default
+      and acceptance routing.
+  - id: AC-TEST
+    original_criterion: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker,
+      API, numerical, point-in-time, and full backend integration validation pass; every live-enabled
+      provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend
+      files are modified.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API,
+      numerical, point-in-time, and full backend integration validation pass; every live-enabled provider
+      has either bounded keyless evidence or an explicit credential preflight failure; no frontend files
+      are modified.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration,
+      worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled
+      provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend
+      files are modified.
+  - id: AC-QUOTA-SAFETY
+    original_criterion: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second
+      fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with
+      the exact missing contract dimensions.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second
+      fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with
+      the exact missing contract dimensions.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: No provider policy contains a generic 60/min, 15-burst, 2-concurrency,
+      or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and
+      surfaced with the exact missing contract dimensions.
+  - id: AC-RATE-FAILURE
+    original_criterion: 429/418/quota responses parse provider reset headers where present, stop the affected
+      provider scope, persist a typed capacity event, defer work until the reset (or operator decision),
+      and do not create a retry storm or unsafe fallback.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: 429/418/quota responses parse provider reset headers where present, stop the affected
+      provider scope, persist a typed capacity event, defer work until the reset (or operator decision),
+      and do not create a retry storm or unsafe fallback.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: 429/418/quota responses parse provider reset headers where present,
+      stop the affected provider scope, persist a typed capacity event, defer work until the reset (or
+      operator decision), and do not create a retry storm or unsafe fallback.
+  - id: AC-LIVE-EVIDENCE
+    original_criterion: The manifest-driven live matrix covers keyless and credentialed providers separately.
+      Missing credentials identify exact environment variables and block ready-for-review; no live skip
+      is represented as proof.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: The manifest-driven live matrix covers keyless and credentialed providers separately.
+      Missing credentials identify exact environment variables and block ready-for-review; no live skip
+      is represented as proof.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: The manifest-driven live matrix covers keyless and credentialed providers
+      separately. Missing credentials identify exact environment variables and block ready-for-review;
+      no live skip is represented as proof.
+  - id: AC-SECRET-DISTRIBUTION
+    original_criterion: Local development, GitHub staging validation, GitHub master validation, and live/production
+      each use separate explicit secret stores; current local keys are never copied to CI; no credential
+      is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker
+      processes.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Local development, GitHub staging validation, GitHub master validation, and live/production
+      each use separate explicit secret stores; current local keys are never copied to CI; no credential
+      is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker
+      processes.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Local development, GitHub staging validation, GitHub master validation,
+      and live/production each use separate explicit secret stores; current local keys are never copied
+      to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials
+      reach only trusted backend/worker processes.
+  - id: AC-PROVIDER-CONTRACT-AUDIT
+    original_criterion: Every registered external provider capability has a source-backed, versioned contract
+      for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs,
+      pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation,
+      account endpoints, and live headers are reconciled, and verified limits are not left unknown or
+      incorrectly gated.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Every registered external provider capability has a source-backed, versioned contract
+      for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs,
+      pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation,
+      account endpoints, and live headers are reconciled, and verified limits are not left unknown or
+      incorrectly gated.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Every registered external provider capability has a source-backed, versioned
+      contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation
+      costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation,
+      account endpoints, and live headers are reconciled, and verified limits are not left unknown or
+      incorrectly gated.
+  - id: AC-DURABLE-DATA-RIGHTS
+    original_criterion: The owner has granted blanket approval for private durable storage of data returned
+      by all providers; do not request per-provider owner approval again. Provider authentication, account
+      entitlements, quotas, and any explicit provider or embedded third-party restrictions remain separate
+      provider facts and must be reported accurately rather than described as missing owner consent.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: The owner has granted blanket approval for private durable storage of data returned
+      by all providers; do not request per-provider owner approval again. Provider authentication, account
+      entitlements, quotas, and any explicit provider or embedded third-party restrictions remain separate
+      provider facts and must be reported accurately rather than described as missing owner consent.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: The owner has granted blanket approval for private durable storage of
+      data returned by all providers; do not request per-provider owner approval again. Provider authentication,
+      account entitlements, quotas, and any explicit provider or embedded third-party restrictions remain
+      separate provider facts and must be reported accurately rather than described as missing owner consent.
+  - id: AC-DURABLE-CROSS-SESSION-USAGE
+    original_criterion: Provider usage reservations survive process/session restart and coordinate all
+      workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments
+      use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case
+      interrupted usage before spending shared credentials.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Provider usage reservations survive process/session restart and coordinate all workers
+      sharing the same account scope; local worktrees share an owner-only local ledger, deployments use
+      shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case
+      interrupted usage before spending shared credentials.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Provider usage reservations survive process/session restart and coordinate
+      all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments
+      use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case
+      interrupted usage before spending shared credentials.
+  - id: AC-UNIVERSE-COMPLETE
+    original_criterion: Complete US-listed equity/ETF reconciliation must cover distinct official listing-source
+      scopes rather than treating Nasdaq Trader's two files as the whole market. Include CTA Plan's daily
+      Tape A/B symbol file (preserve prior symbols and every source row; parse instrument type and primary
+      listing participant code) and Nasdaq's Nasdaq-listed/Tape C roster; retain Nasdaq Trader's two files
+      as valuable supplementary/cross-check evidence, not sole whole-NMS authority. Verify each source's
+      full pagination/file integrity, date/generation evidence, participant-code-to-MIC mappings, and
+      venue coverage before it can contribute absence evidence. Combine only same-session, individually
+      complete source scopes for universe-wide lifecycle decisions; partial or stale source runs may add
+      observations but may not count absence. Preserve every OTC source row/page from FINRA's official
+      Query API otcSecurityMaster dataset, live-verified against the public Symbol Directory, plus FINRA
+      Daily List lifecycle deltas. Commit each SEC issuer response, candidate, failure-retry state, and
+      next cursor atomically per CIK so a restart never re-fetches completed CIKs; test totals, cursor
+      completion, duplicate detection, stable partition dates, ticker changes, and three-distinct-complete-snapshot-day
+      deactivation evidence. A partial snapshot is never authoritative and no relevant provider row may
+      be silently discarded.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Complete US-listed equity/ETF reconciliation must cover distinct official listing-source
+      scopes rather than treating Nasdaq Trader's two files as the whole market. Include CTA Plan's daily
+      Tape A/B symbol file (preserve prior symbols and every source row; parse instrument type and primary
+      listing participant code) and Nasdaq's Nasdaq-listed/Tape C roster; retain Nasdaq Trader's two files
+      as valuable supplementary/cross-check evidence, not sole whole-NMS authority. Verify each source's
+      full pagination/file integrity, date/generation evidence, participant-code-to-MIC mappings, and
+      venue coverage before it can contribute absence evidence. Combine only same-session, individually
+      complete source scopes for universe-wide lifecycle decisions; partial or stale source runs may add
+      observations but may not count absence. Preserve every OTC source row/page from FINRA's official
+      Query API otcSecurityMaster dataset, live-verified against the public Symbol Directory, plus FINRA
+      Daily List lifecycle deltas. Commit each SEC issuer response, candidate, failure-retry state, and
+      next cursor atomically per CIK so a restart never re-fetches completed CIKs; test totals, cursor
+      completion, duplicate detection, stable partition dates, ticker changes, and three-distinct-complete-snapshot-day
+      deactivation evidence. A partial snapshot is never authoritative and no relevant provider row may
+      be silently discarded.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Complete US-listed equity/ETF reconciliation must cover distinct official
+      listing-source scopes rather than treating Nasdaq Trader's two files as the whole market. Include
+      CTA Plan's daily Tape A/B symbol file (preserve prior symbols and every source row; parse instrument
+      type and primary listing participant code) and Nasdaq's Nasdaq-listed/Tape C roster; retain Nasdaq
+      Trader's two files as valuable supplementary/cross-check evidence, not sole whole-NMS authority.
+      Verify each source's full pagination/file integrity, date/generation evidence, participant-code-to-MIC
+      mappings, and venue coverage before it can contribute absence evidence. Combine only same-session,
+      individually complete source scopes for universe-wide lifecycle decisions; partial or stale source
+      runs may add observations but may not count absence. Preserve every OTC source row/page from FINRA's
+      official Query API otcSecurityMaster dataset, live-verified against the public Symbol Directory,
+      plus FINRA Daily List lifecycle deltas. Commit each SEC issuer response, candidate, failure-retry
+      state, and next cursor atomically per CIK so a restart never re-fetches completed CIKs; test totals,
+      cursor completion, duplicate detection, stable partition dates, ticker changes, and three-distinct-complete-snapshot-day
+      deactivation evidence. A partial snapshot is never authoritative and no relevant provider row may
+      be silently discarded.
+  - id: AC-SEC-PRELISTING-POLICY
+    original_criterion: SEC directory scans first stage a complete report with issuer creation disabled;
+      after that exact clean report is reviewed, a bounded no-refetch operation materializes only validated
+      missing CIK/name issuer rows from retained source payloads, while likely future listings become
+      inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence
+      is quarantined.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: SEC directory scans first stage a complete report with issuer creation disabled; after
+      that exact clean report is reviewed, a bounded no-refetch operation materializes only validated
+      missing CIK/name issuer rows from retained source payloads, while likely future listings become
+      inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence
+      is quarantined.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: SEC directory scans first stage a complete report with issuer creation
+      disabled; after that exact clean report is reviewed, a bounded no-refetch operation materializes
+      only validated missing CIK/name issuer rows from retained source payloads, while likely future listings
+      become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence
+      is quarantined.
+  - id: AC-INTEGRATION-WORKFLOW
+    original_criterion: External-service code changes are enforced by repository workflow checks requiring
+      provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests,
+      secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass
+      the live-validation policy.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: External-service code changes are enforced by repository workflow checks requiring
+      provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests,
+      secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass
+      the live-validation policy.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: External-service code changes are enforced by repository workflow checks
+      requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source
+      live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently
+      bypass the live-validation policy.
+  - id: AC-DINARI-SANDBOX-ISOLATION
+    original_criterion: Dinari Sandbox may run only through a separately capped canary; every returned
+      response payload is retained in the owner-private redacted response archive, while Sandbox observations
+      never enter canonical production data, usage, alert, or analytics tables. Dinari production routing
+      remains disabled under the approved free-only budget.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: Dinari Sandbox may run only through a separately capped canary; every returned response
+      payload is retained in the owner-private redacted response archive, while Sandbox observations never
+      enter canonical production data, usage, alert, or analytics tables. Dinari production routing remains
+      disabled under the approved free-only budget.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: Dinari Sandbox may run only through a separately capped canary; every
+      returned response payload is retained in the owner-private redacted response archive, while Sandbox
+      observations never enter canonical production data, usage, alert, or analytics tables. Dinari production
+      routing remains disabled under the approved free-only budget.
+  - id: AC-SHADOW-FINAL-PHASE
+    original_criterion: The 30-day deployed shadow run remains disabled and is not part of the current
+      implementation phase; after every other controllable acceptance gate is complete, it will be planned
+      and authorized as the final gate before human closure and staging integration.
+    disposition: deferred_from_this_bounded_checkpoint
+    remaining_work: The 30-day deployed shadow run remains disabled and is not part of the current implementation
+      phase; after every other controllable acceptance gate is complete, it will be planned and authorized
+      as the final gate before human closure and staging integration.
+    owner: Provider roadmap owner with existing consumer owners where assigned
+    continuation_acceptance_test: The 30-day deployed shadow run remains disabled and is not part of the
+      current implementation phase; after every other controllable acceptance gate is complete, it will
+      be planned and authorized as the final gate before human closure and staging integration.
+  deployment_authorized: false
+  provider_activation_authorized: false
+  merge_authorized: false
+  integration_capture: exact branch HEAD
