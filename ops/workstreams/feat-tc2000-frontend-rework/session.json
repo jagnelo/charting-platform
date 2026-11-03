@@ -72,15 +72,8 @@
     "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/stores/chart.ts",
-    "frontend/src/views/WorkstationView.vue",
-    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
-    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
+    "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
@@ -183,7 +176,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "4ec9a9e21b64ba35708698044041d81649a2b93b",
+  "head": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -284,23 +277,23 @@
   },
   "latest_staging_adoption": {
     "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json",
-    "receipt_sha256": "bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb",
-    "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
-    "staging_ci_run": 41653944273,
-    "staging_ci_attempt": 1,
-    "staging_ci_status": "terminal success for Backend, Frontend, Playwright, and actual Exhaustive; expected Branch-declared skip",
-    "premerge_feature_head": "a33c848d6820d30f0a47a797f8760d15dbd73131",
-    "merge_base": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-    "merge_commit": "c1f512659e79cf6d62173cd4e6bf5fe527c79dc6",
-    "merge_result": "Exact origin/staging source merged normally with no conflicts; no sibling import or manual source copy.",
+    "checkpoint": "Ordinary ticker journey remains in progress; all nine original roadmap criteria and V25 remain open.",
+    "component_equivalence": "TC frontend tree equals premerge feature tree; backend tree equals exact staging eb74 tree.",
+    "full_profile": "Pending Root-frozen ETF backend artifact and combined functional/strict-visual allocation.",
     "import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/eb74b439319ad32006a3d68fc7b6e98959148af7.yaml",
     "import_manifest_sha256": "e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f",
     "imported_path_count": 8,
-    "component_equivalence": "TC frontend tree equals premerge feature tree; backend tree equals exact staging eb74 tree.",
     "local_validation": "Adoption-only checks pending completion; no tests/build/runtime rerun claimed. Existing 81-test and build evidence stays bound to premerge source.",
-    "full_profile": "Pending Root-frozen ETF backend artifact and combined functional/strict-visual allocation.",
-    "checkpoint": "Ordinary ticker journey remains in progress; all nine original roadmap criteria and V25 remain open.",
-    "publication": "One coherent owned adoption publication follows local validation; exact branch CI will be required."
+    "merge_base": "f8323af179922193f4dcf3c9f0a5d9001282455f",
+    "merge_commit": "c1f512659e79cf6d62173cd4e6bf5fe527c79dc6",
+    "merge_result": "Exact origin/staging source merged normally with no conflicts; no sibling import or manual source copy.",
+    "premerge_feature_head": "a33c848d6820d30f0a47a797f8760d15dbd73131",
+    "publication": "One coherent owned adoption publication follows local validation; exact branch CI will be required.",
+    "receipt_sha256": "bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb",
+    "staging_ci_attempt": 1,
+    "staging_ci_run": 41653944273,
+    "staging_ci_status": "terminal success for Backend, Frontend, Playwright, and actual Exhaustive; expected Branch-declared skip",
+    "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7"
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
@@ -347,6 +340,21 @@
     "40277689-45a1-4b10-b129-2435358ad9d2",
     "9dffc01c-3c8b-4580-9e17-84148e8878e7"
   ],
+  "prior_f832_adoption": {
+    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f8323af179922193f4dcf3c9f0a5d9001282455f.json",
+    "checkpoint": "Exact synchronized-green f832 staging is the adopted baseline. Existing TCO/F8Y checkpoints remain historical accepted scopes; ordinary ticker repair is new and unaccepted.",
+    "feature_tree": "TC application changes remain branch-owned and are layered over exact f832 ancestry; current local consumer delta is separately under focused validation.",
+    "import_reconciliation": "Complete f832 frozen-import manifest ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f8323af179922193f4dcf3c9f0a5d9001282455f.yaml pins the accepted non-TC changed paths; older manifests remain historical.",
+    "independent_master_ci_status": "No current master or deployment acceptance is claimed by this feature-scope record.",
+    "local_validation": "For unchanged imported source, reuse only canonical green staging CI41397907218. The active local TC consumer changes have focused tests/build only; exact-source branch CI and full combined profile remain pending.",
+    "merge_base": "7e6eeb44d04e4df839466277e51070ef107a65e4",
+    "merge_result": "Fast-forward ancestry to exact f832 staging; no sibling merge and no product conflict resolution during adoption.",
+    "next_action": "Complete ordinary ticker SearchBar/Chart focused validation and publish the coherent candidate for Root review; keep combined runtime qualification Root-coordinated.",
+    "premerge_feature_head": "7e6eeb44d04e4df839466277e51070ef107a65e4",
+    "receipt_sha256": "506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188",
+    "staging_ci_run": 41397907218,
+    "staging_sha": "f8323af179922193f4dcf3c9f0a5d9001282455f"
+  },
   "progress": {
     "completed": [
       "OTJ1",
@@ -363,14 +371,14 @@
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
+    "current_pending_range": "Exact branch CI; adoption of Root-released corrected Provider staging; Root's new immutable frontend/backend artifact binding and combined functional/strict-visual qualification.",
+    "failure_category": null,
     "remote": "origin",
     "remote_tracking_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
-    "status": "This candidate adds the ordinary ticker selection fixes and owned evidence in one coherent source-and-records publication. Its exact CI result is separate; the corrected Provider classification must enter green staging before a new application image or full browser profile.",
-    "current_pending_range": "Exact branch CI; adoption of Root-released corrected Provider staging; Root's new immutable frontend/backend artifact binding and combined functional/strict-visual qualification.",
-    "failure_category": null
+    "status": "This candidate adds the ordinary ticker selection fixes and owned evidence in one coherent source-and-records publication. Its exact CI result is separate; the corrected Provider classification must enter green staging before a new application image or full browser profile."
   },
-  "remote": "4ec9a9e21b64ba35708698044041d81649a2b93b",
-  "remote_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
+  "remote": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
+  "remote_sha": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
   "remote_synchronized": true,
   "remote_tracking_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
   "retained_docker_resources": [
@@ -485,18 +493,18 @@
       "tree_sha": "ee51d4e02f1659030d11507696b24055adec8303"
     },
     {
-      "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
-      "staging_ci_run": 41653944273,
-      "receipt_sha256": "bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb",
-      "premerge_head": "a33c848d6820d30f0a47a797f8760d15dbd73131",
-      "merge_base": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-      "local_merge_commit": "c1f512659e79cf6d62173cd4e6bf5fe527c79dc6",
+      "full_profile": "Pending Root artifact and allocation.",
       "imported_paths": 8,
-      "manifest_sha256": "e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f",
-      "scope_result": "Exact released staging ancestry and import bytes; no conflicts; frontend tree unchanged; backend equals staging.",
       "local_consumer_tests": "Not rerun for adoption; pre-adoption focused evidence remains source-bound.",
+      "local_merge_commit": "c1f512659e79cf6d62173cd4e6bf5fe527c79dc6",
+      "manifest_sha256": "e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f",
+      "merge_base": "f8323af179922193f4dcf3c9f0a5d9001282455f",
+      "premerge_head": "a33c848d6820d30f0a47a797f8760d15dbd73131",
       "publication": "Pending required local checks and one coherent own-branch push.",
-      "full_profile": "Pending Root artifact and allocation."
+      "receipt_sha256": "bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb",
+      "scope_result": "Exact released staging ancestry and import bytes; no conflicts; frontend tree unchanged; backend equals staging.",
+      "staging_ci_run": 41653944273,
+      "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7"
     }
   ],
   "state": "in_progress",
@@ -580,20 +588,5 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
-  "prior_f832_adoption": {
-    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f8323af179922193f4dcf3c9f0a5d9001282455f.json",
-    "checkpoint": "Exact synchronized-green f832 staging is the adopted baseline. Existing TCO/F8Y checkpoints remain historical accepted scopes; ordinary ticker repair is new and unaccepted.",
-    "feature_tree": "TC application changes remain branch-owned and are layered over exact f832 ancestry; current local consumer delta is separately under focused validation.",
-    "import_reconciliation": "Complete f832 frozen-import manifest ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f8323af179922193f4dcf3c9f0a5d9001282455f.yaml pins the accepted non-TC changed paths; older manifests remain historical.",
-    "independent_master_ci_status": "No current master or deployment acceptance is claimed by this feature-scope record.",
-    "local_validation": "For unchanged imported source, reuse only canonical green staging CI41397907218. The active local TC consumer changes have focused tests/build only; exact-source branch CI and full combined profile remain pending.",
-    "merge_base": "7e6eeb44d04e4df839466277e51070ef107a65e4",
-    "merge_result": "Fast-forward ancestry to exact f832 staging; no sibling merge and no product conflict resolution during adoption.",
-    "next_action": "Complete ordinary ticker SearchBar/Chart focused validation and publish the coherent candidate for Root review; keep combined runtime qualification Root-coordinated.",
-    "premerge_feature_head": "7e6eeb44d04e4df839466277e51070ef107a65e4",
-    "receipt_sha256": "506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188",
-    "staging_ci_run": 41397907218,
-    "staging_sha": "f8323af179922193f4dcf3c9f0a5d9001282455f"
-  }
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
 }

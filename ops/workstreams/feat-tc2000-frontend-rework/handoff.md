@@ -25933,3 +25933,31 @@ workstream and diff checks pass. No browser fixture was run; the native browser
 single-fill proof, exact candidate CI, and corrected-Provider combined profile
 remain pending. Existing CI failures and F8y/V25/full-roadmap evidence remain
 unchanged.
+
+## Current narrow continuation — chart readout lifecycle coverage
+
+Published source `c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55` has a red
+Frontend Unit CI result in run `41722035105`: all 154 files and 1,552 tests
+passed, but global function coverage was 69.44% against the unchanged 70%
+threshold. The failure was coverage-only. The mounted UPlotChart regression
+now exercises rendered lifecycle behavior: populated SPY readout, synchronous
+clear for empty TCNEW, fresh TCNEW values, captured x-axis date formatting,
+y-axis price labels and size, current-data range, resize/draw/scale callbacks,
+keyboard date-pointer mode, settings/help/menu focus and dismissal, and
+chart-type/timeframe changes. The prior-readout and current-data assertions
+remain; all seven ordinary acquisition browser flows are unchanged.
+
+The final local one-worker frontend coverage run passed all 154 files / 1,552
+tests and measured 2,582 / 3,671 functions (70.3351%), above the existing
+70% gate. The focused mounted regression passed 1/1. No production code,
+browser fixture, provider/source request, runtime resource, visual reference,
+mask, tolerance, threshold, or retry policy changed. New exact-source CI and
+the eventual full combined functional/strict-visual profile remain pending;
+Provider staging run `41706834463` has not been released green for adoption.
+This is a coverage repair checkpoint, not whole-topic acceptance. The exact
+Provider source `4d4a278b1b086745b22aab05d3d960539ad02c97` was released green
+by Root during this continuation (canonical receipt SHA256
+`c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7`); the
+pending-status phrase in the appended coverage record is superseded by the
+subsequent adoption record. Adoption is now proceeding through this same
+worktree after the coverage repair boundary.
