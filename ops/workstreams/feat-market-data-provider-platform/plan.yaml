@@ -14123,16 +14123,22 @@ human_intent_authorization: >-
   staging eb74b439319ad32006a3d68fc7b6e98959148af. Scope is limited to Provider-owned taxonomy and
   retained-profile reconciliation, with no provider transport, target or policy mutation, protected
   integration, deployment, or sibling worktree changes.
-checkpoint_status: in_progress
+checkpoint_status: ready_for_integration
 human_closure_authorization: >-
-  No closure or integration authorization has been issued for this active classification goal.
+  Root issued delegated technical acceptance under the existing human standing delegation; this is not
+  represented as a direct human quotation. Acceptance receipt: ordinary-journey-provider-taxonomy-bounded-software-acceptance-20261103.json.
 closure_summary: >-
-  The active implementation remains in progress. The focused local docker_integration profile passed
-  after preserving and correcting two test-harness failures; exact-source branch CI remains mandatory
-  and pending. Root owns the combined browser and protected release gates.
+  The bounded generic ETF/ETN/ETV taxonomy and retained-profile reconciliation implementation at
+  144580d0cd1a72fb9ff2793f377deba2e87b43fd is accepted for ready_for_integration. The owner manifest
+  now restores the established full-backend-suite alias. The predecessor exact CI run 41691823546 remains
+  overall failed because Branch-declared rejected that alias before tests; Backend and Frontend passed.
+  Exact final-tip CI remains mandatory and pending; TAXONOMY-4 exact-CI completion is not claimed. Root
+  owns final CI observation and protected integration. All prior failures and the full roadmap remain.
 integration_checkpoint_authorization: >-
-  Human activation authorizes implementation and normal source-branch validation only. Root owns exact
-  CI review, the combined consumer browser profile, protected staging/master integration, and deployment.
+  Root delegated technical acceptance authorizes this bounded checkpoint as ready_for_integration under
+  the standing human delegation. Root owns exact final-tip CI review and will integrate only after all
+  required final-tip jobs are terminal green; Root also owns consumer validation, protected staging/master
+  integration, and deployment.
 local_validation_reason: >-
   Changed backend taxonomy and acquisition route require docker_integration as the minimum local profile.
   The affected unit suite passed 84/84 and the isolated PostgreSQL API/ORM regression passed 1/1 on the
@@ -14140,15 +14146,16 @@ local_validation_reason: >-
   and full inventory restoration. Complete backend/DDL coverage remains required through exact-source CI;
   no duplicate full local collector or Producer-only browser/build was run.
 current_gate_checkpoint: >-
-  Generic ETF/ETN/ETV type mapping, cached selected-acquire reconciliation, and source provenance are
-  implemented. The focused 84-unit suite and one isolated PostgreSQL regression passed. The PostgreSQL
-  run preserved canonical identity/listing, returned Exchange Traded Vehicle, retained original provider
-  observed/fetched times, recorded reconciliation separately, and made zero provider calls. Prior
-  PostgreSQL setup/assertion failures remain preserved as harness failures. Exact CI run 41691823546 on
-  144580d0cd1a72fb9ff2793f377deba2e87b43fd passed Backend (5676 unit-like and 617 integration passed,
-  three configured skips, 84% coverage) and Frontend (1495 passed). Branch-declared failed before tests
-  because CI expects command ID full-backend-suite while the manifest used complete-backend-coverage;
-  this metadata-only repair restores the established ID and coverage mapping. E2E was still running at
-  last observation. A new exact-tip CI remains required; Root owns downstream consumer and protected
-  release gates.
+  The bounded implementation at 144580d0cd1a72fb9ff2793f377deba2e87b43fd is accepted by Root for
+  ready_for_integration. Focused units passed 84/84; the isolated PostgreSQL API/ORM regression passed
+  1/1 with retained ETV evidence, identity/listing preservation, original classification provenance,
+  separate reconciliation time, and zero provider calls. Exact CI run 41691823546 passed Backend (5,676
+  unit-like and 617 integration, 3 configured skips, 84% coverage) and Frontend Unit (1,495 passed); its
+  Branch-declared job failed before tests because the owner manifest omitted the established
+  full-backend-suite alias. The manifest-only correction restores that ID and its matching coverage key;
+  `make test-backend-coverage` and workflow are unchanged. The pre-correction CI failure is preserved, not
+  relabeled green. Exact final-tip CI remains mandatory and pending; TAXONOMY-4 is not complete. Root
+  owns final-tip observation and protected integration. All prior setup/test failures, holds, accepted
+  history, and the complete Provider/ETF roadmaps remain preserved.
 validated_implementation_source_sha: 144580d0cd1a72fb9ff2793f377deba2e87b43fd
+integration_capture: exact branch HEAD
