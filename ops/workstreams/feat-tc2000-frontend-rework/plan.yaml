@@ -287,6 +287,18 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   and the complete roadmap remain open.'
 current_blocker: The focused source/tests are ready for exact-source CI; the combined full functional/strict-visual profile remains pending green ETF staging adoption and Root's allocated slot. No browser, fixture, provider/issuer request, target, or hold change is included in this context.
 current_checkpoint_status: 'The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes with their original evidence and archives. Current active implementation is ordinary-ticker-journey-repair-20261103. Focused coverage now includes one no-page.route real-API seeded flow through Workstation discovery/selection, Chart selection, and API-backed seeded ETF holding drilldown with exact snapshot lineage and local chart readback; this is controlled fixture wiring evidence, not genuine source-download proof. Exact-source CI and the combined functional/strict-visual profile remain pending. The synchronized-green f832 baseline is adopted; the newer Provider staging eb74 is not yet adopted. All nine original AC1-AC9 and official REF-HELP-V25 remain open.'
+ordinary_ticker_latest_update: >-
+  The dedicated ETF view reads producer capability only after deliberate
+  profile-card or picker selection and makes at most one existing admitted
+  refresh when no saved snapshot exists or server capability is not current.
+  Current identity-verified usable holdings skip refresh. Passive mount and
+  saved-data browsing remain read-only. Workstation Space/Ctrl+Space and
+  Backspace explicit ticker navigation use bounded selected-history flow;
+  selectSymbol remains cache-only by default. Focused tests cover current-cache
+  reuse, no-snapshot/new-fund selection, held-data retention, late A-to-B
+  failure isolation, and the three keyboard paths. Exact-source CI and combined
+  functional/strict-visual profile remain pending. No live source request or
+  fixture was run; all nine AC1-AC9 and REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -3057,6 +3069,19 @@ approved_provider_contract_adaptations:
     delta: Extend the retained-bar response expectation with released derived-lineage fields.
     rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
 approved_frontend_consumer_adaptations:
+  - path: frontend/src/views/ETFHoldingsView.vue
+    source_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+    accepted_blob: b55828d962432fca3a391fce306df2b5862c3d8e
+    delta: >-
+      On deliberate canonical ETF profile-card or picker selection, reuse the existing
+      producer-qualified capability and acquire APIs to load or refresh only that selected
+      fund's holdings. Keep mount/list selection and browsing interactions read-only.
+    rationale: >-
+      Root's 2026-11-03 ordinary-journey approval explicitly extends this exact imported
+      consumer path beyond its existing presentation and optional-instrument-ID guards.
+      It changes no backend route, provider policy, identity/admission decision, persisted
+      data, ETF source implementation, or other imported path. Current/stale semantics
+      remain server-owned; stale or unknown selection outcomes preserve labelled snapshots.
   - path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
     source_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
     accepted_blob: 9c899304ac51f9fa1de652c5d9a655800414ae4f
@@ -3232,10 +3257,10 @@ status: in_progress
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: F8Y remains an accepted historical checkpoint. The active ordinary-ticker-journey-repair-20261103 work is tracked under active_implementation; focused real-API seeded flow collection and static checks pass, but its new case has not run in a browser.
-  current_blocker: This ordinary-ticker candidate's exact-source CI is pending publication. Its combined functional/strict-visual profile awaits actual green ETF staging adoption and Root's slot; staging eb74 CI41653944273 is live and must not be adopted yet.
-  next_action: Publish this focused test and coherent owned records once for exact-source CI. After Root releases green ETF staging, adopt it and obtain the combined-profile slot; preserve the full original roadmap and all operational holds.
-  updated_at: '2026-11-03T14:42:00Z'
+  current_phase: F8Y and TCO1-TCO6 remain accepted historical checkpoints. Ordinary ticker repair now includes deliberate ETF refresh and keyboard ticker-selection intent; the full roadmap remains open.
+  current_blocker: Exact-source CI is pending publication. Root has not released green ETF staging adoption or the combined functional/strict-visual slot.
+  next_action: Publish the focused source and owned records once, follow exact-source CI, then adopt only Root-released green ETF staging before the combined full profile.
+  updated_at: '2026-11-03T16:05:00Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -4012,10 +4037,10 @@ active_implementation:
       status: completed
     - id: OTJ3
       text: Direct ETF selection clears or rebinds holdings context immediately; intentional constituent drilldown retains parent lineage; every reported holding remains visible with type and identity state even when unresolved; only eligible selected equities enter canonical acquisition, and null/unavailable outcomes remain typed. On deliberate ETF selection, reuse holdings only when the backend capability qualifies them as current, identity-verified, and usable for current analysis; otherwise make at most one governed refresh while retaining and labelling last-known data on held/error.
-      status: in_progress
+      status: completed
     - id: OTJ4
       text: Shared SearchBar and ordinary Chart entrypoints use the shared discovery trigger and bounded history orchestration without acquisition from picker-only controls.
-      status: in_progress
+      status: completed
     - id: OTJ5
       text: Focused tests/typecheck/build/scope and exact-source CI pass; Root-coordinated full combined browser/profile gate remains pending.
       status: in_progress
@@ -4023,21 +4048,20 @@ active_implementation:
       text: After complete or partial selected history persists, reload local chart and technical/details data for the still-current visible symbol without a second action; late prior-symbol completion cannot repaint the new selection.
       status: completed
   validation: >-
-    Eleven focused frontend suites passed 331 tests with one worker, including
-    current-capability local reread with zero source refresh, stale-capability
-    single refresh, held/error last-known preservation, reported-holding
-    selection, and local technical refresh/stale-completion regressions;
-    vue-tsc and the Vite build passed (540 modules). The ordinary-acquisition
-    Playwright file collects seven cases: six existing controlled-response
-    cases and one new no-page.route real seeded-API flow across Workstation
-    discovery, Chart selection and seeded ETF holding lineage/chart readback.
-    The new case has not been browser-executed. In this context Playwright
-    collection with --reporter=list passed (7 tests); npm run type-check
-    passed; scope self-tests/full guard and the workstream validator passed
-    (881 immutable imports, 29 exact Provider adaptations, 112 presentation
-    paths, two exact f832-pinned consumer adaptations); git diff --check
-    passed. No browser, fixture, build, source HTTP or provider/issuer
-    operation occurred. Exact-source CI and the Root-coordinated full
-    functional/strict-visual profile remain pending; staging eb74
-    CI41653944273 is active and is not adopted.
+    The two directly affected frontend unit suites passed 81/81 with one Vitest
+    fork: 63 Workstation binding tests and 18 ETF Holdings view tests. Coverage
+    proves passive initial ETF selection, producer-qualified current-cache reuse
+    without a source POST, one admitted refresh for deliberate no-snapshot
+    selection, automatic identity and refresh for a new fund selection, held
+    retention of saved rows/known_at, late A-to-B failure isolation, and
+    Space/Ctrl+Space/Backspace history intent while selectSymbol defaults to
+    cache-only. Vue type-check and Vite production build passed (540 modules;
+    existing large Workstation chunk warning). The seeded no-page.route browser
+    flow remains unexecuted and is not genuine source proof. Exact-source CI and
+    the combined functional/strict-visual profile remain pending; green ETF
+    producer staging has not been released for adoption. A mistaken Vitest
+    invocation from repository root discovered ignored historical source
+    snapshots and failed before collection; the correct frontend-rooted
+    single-fork invocation passed all 81 tests. No browser, fixture, source
+    HTTP, provider/issuer operation or service action occurred.
   next_action: Publish this focused test and coherent owned records once, then require exact-source CI. After Root releases green ETF staging, adopt it and obtain Root's combined-profile slot; run the canonical full functional suite with dense 10,000-row data seeded in backend and browser and observed browse count, then the unchanged 104-case/four-project strict visual suite. Preserve all historical red/setup evidence and do not infer genuine source success from seeded fixtures.

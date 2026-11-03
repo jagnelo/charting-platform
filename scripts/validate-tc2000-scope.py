@@ -32,6 +32,10 @@ PRESENTATION_SUFFIXES = {".vue", ".ts", ".css"}
 CONSUMER_ADAPTATION_PATHS = {
     "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
     "frontend/src/lib/etfHoldingDrilldown.ts",
+    "frontend/src/views/ETFHoldingsView.vue",
+}
+CONSUMER_PRESENTATION_OVERLAP_PATHS = {
+    "frontend/src/views/ETFHoldingsView.vue",
 }
 
 
@@ -304,10 +308,13 @@ def validate_frontend_consumer_adaptations(
         rationale = str(item.get("rationale", "")).strip()
         if path not in CONSUMER_ADAPTATION_PATHS:
             raise ValueError(f"frontend consumer adaptation path is not explicitly supported: {path}")
-        if path in adaptations or path in {
+        presentation_paths = {
             entry.get("path") for entry in plan.get("approved_presentation_adaptations", [])
             if isinstance(entry, dict)
-        }:
+        }
+        if path in adaptations or (
+            path in presentation_paths and path not in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        ):
             raise ValueError(f"frontend consumer adaptation overlaps another adaptation: {path}")
         if source not in approved or not HEX40.fullmatch(blob):
             raise ValueError(f"frontend consumer adaptation lacks an approved green source: {path}")
@@ -461,7 +468,7 @@ def validate_frozen_imports(
             if path in manifest_paths:
                 raise ValueError(f"frozen import path appears more than once: {path}")
             manifest_paths.add(path)
-            if path in presentation_adaptations:
+            if path in presentation_adaptations and path not in consumer_adaptations:
                 if state != "present":
                     raise ValueError(f"presentation cannot adapt a frozen deleted path: {path}")
                 mode = str(entry.get("mode", ""))
@@ -718,6 +725,21 @@ def self_test() -> int:
     checks["one exact consumer picker exception preserves the ETF directory exclusion"] = (
         authorized(consumer_path, consumer_adaptation_plan)[0]
         and not authorized("frontend/src/components/etf/ETFHoldingsPanel.vue", consumer_adaptation_plan)[0]
+    )
+    consumer_view_path = "frontend/src/views/ETFHoldingsView.vue"
+    consumer_view_plan = {
+        "excluded_paths": ["frontend/src/views/ETFHoldingsView.vue"],
+        "approved_frontend_consumer_adaptations": [{"path": consumer_view_path}],
+    }
+    checks["one exact approved ETF view adaptation does not broaden ownership"] = (
+        consumer_view_path in CONSUMER_ADAPTATION_PATHS
+        and authorized(consumer_view_path, consumer_view_plan)[0]
+        and not authorized("frontend/src/views/OtherETFView.vue", consumer_view_plan)[0]
+    )
+    checks["only the approved ETF view may retain presentation and consumer pins"] = (
+        consumer_view_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
+        not in CONSUMER_PRESENTATION_OVERLAP_PATHS
     )
     with tempfile.TemporaryDirectory(prefix="tc-scope-frozen-") as directory:
         root = Path(directory)

@@ -2553,7 +2553,7 @@ function handleKeydown(event: KeyboardEvent) {
     const previous = recentStore.previous()
     if (!previous) return
     historyNavigationTarget = previous
-    void selectSymbol(previous, undefined, true, undefined, false).finally(() => {
+    void selectSymbol(previous, undefined, true, undefined, false, false, '', true).finally(() => {
       if (historyNavigationTarget === previous) historyNavigationTarget = null
     })
     return
@@ -2602,7 +2602,7 @@ function handleKeydown(event: KeyboardEvent) {
   const currentSymbol = allSymbols.value.includes(draftSymbol) ? draftSymbol : activeSymbol.value
   const currentIndex = allSymbols.value.indexOf(currentSymbol)
   const nextIndex = (currentIndex + (event.ctrlKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
-  void selectSymbol(allSymbols.value[nextIndex], undefined, true)
+  void selectSymbol(allSymbols.value[nextIndex], undefined, true, undefined, true, false, '', true)
 }
 
 // Escape is a workstation-wide command. Handle it during capture so nested

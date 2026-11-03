@@ -25695,3 +25695,29 @@ observed `total >= 10000` and exactly-10,000-ID browse assertions, then run the
 unchanged full functional suite and 104-case/four-project strict visual suite
 with one worker, zero retries and existing oracles unchanged. All original
 roadmap criteria and operational holds remain open.
+
+
+## 2026-11-03 — ordinary selection intent and ETF view continuation
+
+Completed the bounded ordinary-selection follow-up in the owned Workstation and
+ETF view. Deliberate Space/Ctrl+Space traversal and Backspace history selection
+now opt into the existing selected-data flow; `selectSymbol` remains cache-only
+by default, so mount, hydration, linked-state synchronization, and rerenders do
+not initiate acquisition. Dedicated ETF profile/search selection now checks the
+producer's current-cache capability and, only when it is absent or not qualified,
+uses the existing single governed refresh path. Passive mount and history/snapshot
+browsing remain read-only; held/error outcomes retain saved rows and provenance.
+The approved frozen-source ETFHoldingsView consumer adaptation is exact-source
+pinned in the plan. No backend/provider code or API contract changed.
+
+The focused Workstation and ETF view suites passed 81/81 with one Vitest worker;
+Vue type-check and Vite production build passed (540 modules; the existing
+large Workstation chunk warning remains). A mistakenly root-launched Vitest
+command traversed ignored historical snapshots and failed before test collection;
+the correct frontend-rooted command then passed. No browser, fixture, external
+source request, provider operation, or service action was run. Exact-source CI,
+the seeded browser companion, and the combined full functional/strict-visual
+profile remain pending; controlled seed data is not genuine issuer/provider
+qualification. Preserve the full AC1–AC9 roadmap and all checkpoint history.
+Next: publish this coherent change once, follow its exact CI, then wait for Root's
+green ETF staging adoption and combined-profile allocation.

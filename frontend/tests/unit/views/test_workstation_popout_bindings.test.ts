@@ -647,10 +647,69 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.recent.previous).toHaveBeenCalledOnce()
     expect(harness.recent.add).toHaveBeenCalledWith('XLK', undefined, false)
     expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLK', group: 'blue' }))
+    expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/XLK/ohlcv', expect.objectContaining({
+      timeframe: 'D1', mode: 'historical', adjusted: true,
+    }))
+    expect(apiPost).not.toHaveBeenCalled()
     const oldestEntryEvent = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
     wrapper.find('.workstation').element.dispatchEvent(oldestEntryEvent)
     expect(oldestEntryEvent.defaultPrevented).toBe(true)
     expect(harness.recent.previous).toHaveBeenCalledTimes(2)
+    wrapper.unmount()
+  })
+
+  it('runs bounded history selection for deliberate Space and Ctrl+Space traversal only', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockImplementation(async (path: string, params: Record<string, unknown> = {}) => {
+      if (path.startsWith('/coverage/instruments/')) {
+        return path.includes('/QQQ/')
+          ? { status: 'missing', bar_count: 0, missing_slices: [{ start: params.start, end: params.end }] }
+          : { status: 'ready', bar_count: 20, missing_slices: [] }
+      }
+      return []
+    })
+    apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
+      if (path === '/instruments/acquire') {
+        return { status: 'resolved', instrument: { instrument_id: 78, symbol: body.symbol, identity_status: 'verified' } }
+      }
+      if (path === '/instruments/78/history-acquisitions') {
+        return {
+          status: 'partial', instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
+          requested_start: body.start, requested_end: body.end,
+          coverage: { status: 'partial', bar_count: 1, missing_slices: [] }, bars: [{}], source_outcomes: [],
+        }
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+
+    expect(apiGet).not.toHaveBeenCalledWith(expect.stringMatching(/^\/coverage\/instruments\//), expect.anything())
+    apiGet.mockClear()
+    const workstation = wrapper.find('.workstation').element
+    workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/QQQ/ohlcv', expect.objectContaining({
+      timeframe: 'D1', mode: 'historical', adjusted: true,
+    })))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/78/history-acquisitions', expect.objectContaining({
+      timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String),
+    })))
+    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/acquire', expect.objectContaining({ symbol: 'QQQ' }))
+    expect(apiPost.mock.calls[1][1].start).toEqual(expect.any(String))
+    const requestedSpan = Date.parse(apiPost.mock.calls[1][1].end) - Date.parse(apiPost.mock.calls[1][1].start)
+    expect(requestedSpan).toBeGreaterThan(0)
+    expect(requestedSpan / 86_400_000 + 1).toBeLessThanOrEqual(2000)
+
+    apiGet.mockClear()
+    workstation.dispatchEvent(new KeyboardEvent('keydown', { key: ' ', ctrlKey: true, bubbles: true, cancelable: true }))
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY/ohlcv', expect.objectContaining({
+      timeframe: 'D1', mode: 'historical', adjusted: true,
+    })))
+    expect(apiPost).toHaveBeenCalledTimes(2)
     wrapper.unmount()
   })
 

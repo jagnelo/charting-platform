@@ -9,8 +9,9 @@ release:
   receipt_sha256: 506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188
 limitations: Complete replacement of prior frozen-import snapshots, pinning every non-TC-owned changed path since
   the fixed TC scope baseline to exact accepted green f832 staging bytes or explicit deletion. TC-owned paths and
-  the separately pinned Provider/presentation adaptations remain outside this immutable manifest. This records imported
-  bytes only; it does not transfer producer ownership or complete TC consumer acceptance.
+  the separately pinned Provider/presentation adaptations remain outside this immutable manifest. ETFHoldingsView.vue
+  is listed below solely as the exact source/blob provenance for its separately approved consumer adaptation. This
+  records imported bytes only; it does not transfer producer ownership or complete TC consumer acceptance.
 paths:
 - path: .env.example
   state: present
@@ -3544,3 +3545,7 @@ paths:
   state: present
   mode: '100644'
   blob: 3cc90f13deae4f3ba134784fc1d8edbc95f560e7
+- path: frontend/src/views/ETFHoldingsView.vue
+  state: present
+  mode: '100644'
+  blob: b55828d962432fca3a391fce306df2b5862c3d8e
