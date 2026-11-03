@@ -430,7 +430,7 @@ def test_native_postfetch_review_must_match_current_rows_before_positive_update(
         assert not evaluate(changed_state), changed_state
 
 
-def test_native_evidence_requires_provider_reported_fund_date_and_raw_schema():
+def test_native_evidence_rejects_unknown_publisher_completeness_contract():
     profile, adapter, fetch_result = _native_fetch_fixture(
         raw_text=(
             "Fund Ticker,TST\n"
@@ -439,16 +439,8 @@ def test_native_evidence_requires_provider_reported_fund_date_and_raw_schema():
         )
     )
 
-    evidence = _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)
-
-    assert evidence["provider"] == "test_issuer"
-    assert evidence["instrument_id"] == profile.instrument_id
-    assert evidence["symbol"] == "TST"
-    assert evidence["composition_date"] == date(2026, 10, 30).isoformat()
-    assert evidence["fund_identity"]["basis"] == "raw_source_identity"
-    assert evidence["parser_version"] == "test-native-csv-v1"
-    assert len(evidence["schema_fingerprint"]) == 64
-    assert len(evidence["raw_payload_hash"]) == 64
+    with pytest.raises(ValueError, match="composition completeness is not proven"):
+        _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)
 
 
 @pytest.mark.parametrize(
@@ -490,7 +482,7 @@ def test_native_evidence_rejects_wrong_fund_or_missing_reported_date(raw_text, m
         _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)
 
 
-def test_native_evidence_accepts_exact_adapter_fund_identity_with_retained_raw_json():
+def test_native_evidence_does_not_treat_adapter_identity_as_completeness_proof():
     profile, adapter, fetch_result = _native_fetch_fixture(
         raw_json={"holdings": [{"ticker": "ABC", "weight": 1.0}]},
         metadata={
@@ -502,11 +494,8 @@ def test_native_evidence_accepts_exact_adapter_fund_identity_with_retained_raw_j
         },
     )
 
-    evidence = _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)
-
-    assert evidence["fund_identity"]["basis"] == "adapter_fund_identity"
-    assert evidence["fund_identity"]["instrument_id"] == 824
-    assert evidence["raw_payload_hash"]
+    with pytest.raises(ValueError, match="composition completeness is not proven"):
+        _native_initial_qualification_fetch_evidence(profile, adapter, fetch_result)
 
 
 class _OfflineAdapterResponse:
@@ -1068,6 +1057,7 @@ async def test_invesco_ordinary_fetch_revalidates_catalog_with_warm_cusip_hint(m
     holdings_payload = {
         "effectiveBusinessDate": "2026-11-02",
         "effectiveDate": "2026-11-03",
+        "totalNumberOfHoldings": 1,
         "holdings": [{"ticker": "NVDA", "issuerName": "NVIDIA Corp"}],
     }
     holdings_url = adapter._holdings_url("46090E103")
@@ -1555,6 +1545,34 @@ def _ishares_catalog_evidence_fixture(*, cache_hit=False, cached_request_symbol=
         raw_json={"holdings": [{"ticker": "MSFT", "weight": 1.0}]}, symbol="IGV"
     )
     profile.instrument.name = "iShares Expanded Tech-Software Sector ETF"
+    profile.adapter_key = "ishares"
+    profile.provider_aliases.update(
+        {"holdings_adapter": "ishares", "holdings_source_provider": "ishares"}
+    )
+    adapter.adapter_key = "ishares"
+    adapter.source_provider = "ishares"
+    fetch_result.legal_metadata.update(
+        {
+            "source_provider": "ishares",
+            "adapter_key": "ishares",
+            "source_format": "json",
+            "parser_version": "ishares-json-v1",
+        }
+    )
+    fetch_result.legal_metadata["native_holdings_response_witness"]["provider_capture"][
+        "provider"
+    ] = "ishares"
+    fetch_result.legal_metadata["native_composition_completeness"] = {
+        "basis": "blackrock_holdings_all_container",
+        "status": "complete",
+        "all_reported_rows_parsed": True,
+        "reported_rows": len(fetch_result.rows),
+        "parsed_rows": len(fetch_result.rows),
+        "core_columns_aligned": True,
+        "all_list_columns_aligned": True,
+        "authoritative_total_matches": True,
+        "continuation_clear": True,
+    }
     html = _ishares_catalog_html()
     body = html.encode()
     content_hash = hashlib.sha256(body).hexdigest()

@@ -3056,6 +3056,7 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         assert initial_legal["timing_provenance"]["composition_date"] == (
             "provider_reported:composition_date"
         )
+        assert initial_legal["native_composition_completeness_evidence"] == (completeness_evidence)
 
         artifact = await reopened.get(ETFHoldingsRawArtifact, snapshot.source_artifact_id)
         assert artifact is not None
@@ -3153,6 +3154,9 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         assert refreshed_legal["timing_provenance"]["composition_date"] == (
             "provider_reported:composition_date"
         )
+        assert refreshed_legal["native_composition_completeness_evidence"] == (
+            refreshed_completeness
+        )
         refreshed_capability = evaluate_capability(
             profile,
             refreshed,
@@ -3228,6 +3232,127 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
     assert all(row["account_scope"] == case.account_scope for row in reservations)
     assert all(row["state"] == "settled" and row["settled_at"] is not None for row in reservations)
     assert all(row["reserved_units"] == 1 for row in reservations)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_native_qualification_failure_is_durably_latched_after_rollback(
+    provider_db, monkeypatch
+):
+    """A failed one-shot keeps its primary error and durable replay latch."""
+
+    from app.services import etf_holdings_native_qualification as qualification
+    from app.services.etf_holdings_native_qualification import qualify_native_etf_fund
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    suffix = uuid4().hex[:10]
+    symbol = "XES"
+    fund_name = "State Street SPDR S&P Oil & Gas Equipment & Services ETF"
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=4,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["www.ssga.com"],
+                provider_name_override="spdr",
+                instrument_symbol_override=symbol,
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            instrument.name = fund_name
+            instrument.identity_status = "resolved"
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                issuer="State Street",
+                adapter_key="spdr",
+                adapter_status="ready",
+                provider_aliases={
+                    "holdings_adapter": "spdr",
+                    "holdings_source_provider": "spdr",
+                    "expected_fund_symbol": symbol,
+                },
+            )
+            case.policy.is_enabled = False
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert entitlement is not None
+            entitlement.live_probe_status = "not_run"
+            entitlement.revision = 7
+            admin = User(
+                username=f"native-fail-{suffix.lower()}",
+                email=f"native-fail-{suffix.lower()}@example.test",
+                hashed_password="synthetic-test-only",
+                is_active=True,
+                is_admin=True,
+            )
+            setup.add_all([profile, admin])
+            await setup.flush()
+            profile_id = profile.id
+            admin_id = admin.id
+
+    primary_error = ETFHoldingsRouteHeldError(
+        "native qualification evidence was rejected before snapshot acceptance"
+    )
+    refresh_calls = 0
+
+    async def reject_qualification(*_args, **_kwargs):
+        nonlocal refresh_calls
+        refresh_calls += 1
+        raise primary_error
+
+    monkeypatch.setattr(qualification, "_refresh_adapter_route", reject_qualification)
+    async with provider_db() as request_session:
+        with pytest.raises(ETFHoldingsRouteHeldError) as raised:
+            await qualify_native_etf_fund(
+                request_session,
+                profile_id=profile_id,
+                requested_by_user_id=admin_id,
+            )
+    assert raised.value is primary_error
+    assert refresh_calls == 1
+
+    async with provider_db() as reopened:
+        attempt = await reopened.scalar(
+            select(ETFHoldingsBackfillJob).where(
+                ETFHoldingsBackfillJob.etf_profile_id == profile_id,
+                ETFHoldingsBackfillJob.job_type == "native_etf_initial_qualification",
+            )
+        )
+        assert attempt is not None
+        assert attempt.status == "failed"
+        assert attempt.failure_reason == str(primary_error)
+        assert attempt.completed_at is not None
+        assert attempt.extra_data["qualification_outcome"] == {
+            "status": "not_qualified",
+            "reason": str(primary_error),
+        }
+        assert (
+            await reopened.scalar(
+                select(func.count(ETFHoldingsSnapshot.id)).where(
+                    ETFHoldingsSnapshot.etf_profile_id == profile_id
+                )
+            )
+            == 0
+        )
+        with pytest.raises(ETFHoldingsRouteHeldError, match="already latched"):
+            await qualify_native_etf_fund(
+                reopened,
+                profile_id=profile_id,
+                requested_by_user_id=admin_id,
+            )
+    assert refresh_calls == 1
 
 
 @pytest.mark.integration

@@ -226,7 +226,8 @@ def _verified_native_composition_completeness(
         and parsed_rows == len(rows) == reported_rows
     )
     checks_pass = bool(
-        isinstance(evidence, dict)
+        expected_basis is not None
+        and isinstance(evidence, dict)
         and evidence.get("status") == "complete"
         and evidence.get("basis") == expected_basis
         and evidence.get("all_reported_rows_parsed") is True
@@ -3615,6 +3616,15 @@ async def _refresh_adapter_route(
                         {
                             "composition_date_source_field": native_source_evidence[
                                 "composition_date_source_field"
+                            ]
+                        }
+                        if native_source_evidence is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            "native_composition_completeness_evidence": native_source_evidence[
+                                "composition_completeness"
                             ]
                         }
                         if native_source_evidence is not None

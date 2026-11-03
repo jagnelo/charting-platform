@@ -1088,6 +1088,7 @@ async def qualify_native_etf_fund(
     operation_db = AsyncSession(bind=db.bind, expire_on_commit=False)
     lock_db = AsyncSession(bind=db.bind, expire_on_commit=False)
     attempt: ETFHoldingsBackfillJob | None = None
+    attempt_id: int | None = None
     try:
         (
             profile,
@@ -1161,8 +1162,11 @@ async def qualify_native_etf_fund(
         )
         operation_db.add(attempt)
         await operation_db.flush()
+        # Keep the durable identifier independent of ORM expiration.  A later
+        # rollback expires ``attempt`` even with expire_on_commit=False.
+        attempt_id = int(attempt.id)
         scope = _attempt_scope(
-            attempt_id=attempt.id,
+            attempt_id=attempt_id,
             provider_name=provider_name,
             data_source_id=source.id,
             profile=profile,
@@ -1180,7 +1184,7 @@ async def qualify_native_etf_fund(
         await operation_db.commit()
 
         with bind_native(
-            attempt_id=attempt.id,
+            attempt_id=attempt_id,
             provider_name=provider_name,
             data_source_id=source.id,
             fund_profile_id=profile.id,
@@ -1196,7 +1200,7 @@ async def qualify_native_etf_fund(
             snapshot = await _refresh_adapter_route(
                 operation_db,
                 profile,
-                native_initial_qualification_job_id=attempt.id,
+                native_initial_qualification_job_id=attempt_id,
                 native_initial_qualification_scope=scope,
             )
 
@@ -1262,24 +1266,24 @@ async def qualify_native_etf_fund(
         await record_entitlement_revision(
             operation_db,
             current_entitlement,
-            change_reason=f"native_etf_initial_qualification:{attempt.id}",
+            change_reason=f"native_etf_initial_qualification:{attempt_id}",
         )
         await operation_db.commit()
         return (
             await operation_db.execute(
                 select(ETFHoldingsBackfillJob)
                 .options(selectinload(ETFHoldingsBackfillJob.filings))
-                .where(ETFHoldingsBackfillJob.id == attempt.id)
+                .where(ETFHoldingsBackfillJob.id == attempt_id)
                 .execution_options(populate_existing=True)
             )
         ).scalar_one()
     except asyncio.CancelledError:
         await operation_db.rollback()
-        if attempt is not None:
+        if attempt_id is not None:
             await _await_shielded_finalizer(
                 _finalize_native_qualification(
                     db.bind,
-                    attempt_id=attempt.id,
+                    attempt_id=attempt_id,
                     status="cancelled",
                     reason="native ETF initial qualification was cancelled; replay denied",
                 )
@@ -1287,11 +1291,11 @@ async def qualify_native_etf_fund(
         raise
     except BaseException as exc:
         await operation_db.rollback()
-        if attempt is not None:
+        if attempt_id is not None:
             await _await_shielded_finalizer(
                 _finalize_native_qualification(
                     db.bind,
-                    attempt_id=attempt.id,
+                    attempt_id=attempt_id,
                     status="failed",
                     reason=bounded_redact_provider_message(exc, max_length=1000),
                 )
