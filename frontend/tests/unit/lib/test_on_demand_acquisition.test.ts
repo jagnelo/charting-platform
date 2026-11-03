@@ -13,8 +13,10 @@ import {
   HISTORY_TIMEFRAME_SECONDS,
   historyRangeFitsBarBudget,
   historyRangeIsAllowed,
+  isCurrentETFHoldingsCapability,
   makeAcquisitionRequestId,
   requestedHistoryBarSlots,
+  readETFHoldingsCapability,
   resolveDiscoveredInstrument,
   type InstrumentDiscoveryCandidate,
 } from '@/lib/onDemandAcquisition'
@@ -30,6 +32,31 @@ beforeEach(() => {
 })
 
 describe('explicit acquisition API contracts', () => {
+  it('reads the selected ETF capability without turning the read into acquisition', async () => {
+    const capability = {
+      availability: 'current', source_tier: 'issuer_native', identity_verified: true,
+      usable_for_current_analysis: true, displayable_last_known: true,
+      consecutive_failures: 0, reason: 'Current fixture cache.',
+      symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+    }
+    vi.mocked(api.get).mockResolvedValueOnce(capability)
+
+    expect(await readETFHoldingsCapability(' spy ')).toEqual(capability)
+    expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/capability')
+    expect(api.post).not.toHaveBeenCalled()
+    expect(isCurrentETFHoldingsCapability(capability)).toBe(true)
+    expect(isCurrentETFHoldingsCapability({ ...capability, availability: 'stale' })).toBe(false)
+    expect(isCurrentETFHoldingsCapability({ ...capability, usable_for_current_analysis: false })).toBe(false)
+    expect(isCurrentETFHoldingsCapability({ ...capability, identity_verified: false })).toBe(false)
+  })
+
+  it('treats a capability-read failure as unknown rather than current', async () => {
+    vi.mocked(api.get).mockRejectedValueOnce(new Error('offline'))
+    const capability = await readETFHoldingsCapability('OIH')
+    expect(capability).toBeNull()
+    expect(isCurrentETFHoldingsCapability(capability)).toBe(false)
+  })
+
   it('uses the secure-context UUID API when available', () => {
     expect(makeAcquisitionRequestId()).toBe('f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d')
   })

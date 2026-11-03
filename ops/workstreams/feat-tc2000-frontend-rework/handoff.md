@@ -25587,3 +25587,59 @@ candidate remain pending. No provider/issuer/SEC request, fixture, service,
 target, sibling, staging, master or deployment action occurred. The existing
 F8Y/TCO checkpoints, original AC1–AC9, official V25 remainder and all holds
 remain unchanged.
+
+## 2026-11-03 — reported ETF holdings and selected-history refresh
+
+The current dirty ordinary-selection slice now keeps every reported holding
+visible in the Workstation constituent widget, including unresolved equities,
+derivatives and cash, with reported type and identity state. Only an eligible
+equity holding proceeds through the existing canonical identity picker; a
+deliberate row click opens that picker immediately and the exact snapshot/row
+lineage is checked again before chart navigation. Root explicitly authorized
+the functional TC consumer adaptation of the imported
+`ETFHoldingResolutionAction.vue` seam, including generic copy and immediate
+picker activation. The exact source SHA/blob remains pinned in `plan.yaml`, and
+the scope validator permits only the two recorded consumer paths.
+
+After a successful/partial selected-history acquisition, the still-current
+Workstation selection refreshes local chart bars and derived technicals without
+a second action. Focused tests cover empty-first/loaded-second technical data
+and a late prior-symbol completion. The 11 focused frontend files pass
+324/324 with one worker; vue-tsc/Vite build passes (540 modules). Playwright
+collection lists six controlled cases, but no browser profile or exact-source
+CI has run for this dirty candidate. Scope self-tests, full scope guard,
+workstream validation and diff check pass: 1091 changed paths, 881 immutable
+imports, 29 exact Provider adaptations, 112 presentation paths and two exact
+f832-pinned consumer adaptations. The earlier `ecd9de13` CI failure remains
+historical. Full functional/strict-visual qualification is pending Root's
+allocation; controlled responses are not genuine Provider/issuer proof. All
+nine original roadmap criteria and operational holds remain open/unchanged.
+
+## 2026-11-03 — producer-qualified ETF cache reuse
+
+Root review found that selection previously treated any locally saved ETF
+snapshot as permanently fresh. The ordinary Workstation path now reads the
+producer-owned `/etf-holdings/{symbol}/capability` view on deliberate selection.
+It skips source refresh only when the response says `availability=current`,
+`identity_verified=true`, and `usable_for_current_analysis=true`; it then
+refreshes the local saved holdings read so an old client-side page cannot mask
+the server's current snapshot. Stale, degraded, unknown, or unreadable
+capability makes at most one normal admitted `refresh=true` request for that
+selected canonical ETF. Last-known holdings stay visible with truthful status
+when a refresh is held or fails. The change adds no client TTL, calendar rule,
+render-triggered retry, or background scheduler.
+
+Eleven focused frontend suites passed 331/331 on one worker, including current
+cache local reread with zero source-refresh POSTs, stale cache refresh and same-
+fund readback, held/error preservation, and existing late-selection fencing
+cases. An intermediate focused run exposed a test assertion comparing Pinia
+proxy wrapper identity; it now compares retained state structurally, and the
+complete corrected run passes. Vue type-check and Vite production build passed
+(540 modules; existing Workstation chunk-size warning remains). Playwright lists the six
+controlled ordinary-acquisition cases; no browser was launched. Scope
+self-test, full TC guard (1,091 changed paths, 881 immutable imports, 29
+Provider adaptations, 112 presentation paths, two exact f832-pinned consumer
+adaptations), workstream validator, and diff check passed. Exact-source CI and
+Root-coordinated combined functional/strict-visual profile remain pending. No
+provider/issuer/SEC request, fixture, Docker service, data, quota, or hold was
+changed; controlled responses are software evidence only.

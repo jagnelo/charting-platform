@@ -75,7 +75,7 @@
     </div>
     <div ref="scrollElement" class="watchlist__scroll" role="listbox" :aria-label="`${label} symbols`" :aria-multiselectable="true" :aria-activedescendant="activeDescendantId" tabindex="0" @scroll="syncHeaderScroll" @keydown.stop="onKeydown" @wheel.ctrl.prevent.stop="onCtrlWheel">
       <div :data-render-epoch="renderEpoch" :style="rowCanvasStyle">
-        <template v-for="virtualRow in virtualItems" :key="filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol">
+        <template v-for="virtualRow in virtualItems" :key="filteredRows[virtualRow.index].rowKey ?? filteredRows[virtualRow.index].instrumentId ?? filteredRows[virtualRow.index].symbol">
           <button
           type="button"
           role="option"
@@ -83,9 +83,16 @@
           :aria-label="rowAccessibilityLabel(filteredRows[virtualRow.index], virtualRow.index)"
           :aria-setsize="filteredRows.length"
           :aria-posinset="virtualRow.index + 1"
-          :aria-selected="selectedSymbols.includes(filteredRows[virtualRow.index].symbol) || filteredRows[virtualRow.index].symbol === selected"
+          :aria-selected="selectedRowKey != null
+            ? filteredRows[virtualRow.index].rowKey === selectedRowKey
+            : selectedSymbols.includes(filteredRows[virtualRow.index].symbol) || filteredRows[virtualRow.index].symbol === selected"
           class="watchlist__row"
-          :class="{ 'watchlist__row--active': filteredRows[virtualRow.index].symbol === selected, 'watchlist__row--selected': selectedSymbols.includes(filteredRows[virtualRow.index].symbol) }"
+          :class="{
+            'watchlist__row--active': selectedRowKey != null
+              ? filteredRows[virtualRow.index].rowKey === selectedRowKey
+              : filteredRows[virtualRow.index].symbol === selected,
+            'watchlist__row--selected': selectedRowKey == null && selectedSymbols.includes(filteredRows[virtualRow.index].symbol),
+          }"
           :draggable="reorderable && filteredRows[virtualRow.index].itemId != null"
           :style="rowStyle(virtualRow)"
           @click="selectRow(filteredRows[virtualRow.index], $event)"
@@ -157,6 +164,8 @@ import { parseTagColumnWatchlistIds, tagColumnKey, tagColumnMembership, type Tag
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
 
 export interface WatchlistRow {
+  /** Stable identity for reported rows that do not have a canonical instrument ID yet. */
+  rowKey?: string
   itemId?: number
   sourceWatchlistId?: number
   instrumentId: number | null
@@ -212,6 +221,7 @@ const props = withDefaults(defineProps<{
   label: string
   rows: WatchlistRow[]
   selected?: string
+  selectedRowKey?: string | null
   columns?: WatchlistColumn[]
   initialSortKey?: string
   initialSortDirection?: 'asc' | 'desc'
@@ -421,7 +431,7 @@ const columnSetMenuTriggerId = `${watchlistDomId}-column-sets-trigger`
 const columnSetMenuId = `${watchlistDomId}-column-sets-dialog`
 const membershipInspectionId = `${watchlistDomId}-membership-inspection`
 function rowDomId(row: WatchlistRow) {
-  const identity = row.instrumentId != null ? String(row.instrumentId) : row.symbol
+  const identity = row.rowKey ?? (row.instrumentId != null ? String(row.instrumentId) : row.symbol)
   return `${watchlistDomId}-row-${identity.replace(/[^a-zA-Z0-9_-]/g, '-')}`
 }
 function rowAccessibilityLabel(row: WatchlistRow, filteredIndex: number) {

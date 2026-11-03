@@ -4,7 +4,7 @@
       Resolve reported holding {{ reportedSymbol }}
     </button>
     <div v-else class="holding-resolution-picker">
-      <p>Search free sources for the reported ticker {{ reportedSymbol }}, then explicitly resolve a matching candidate.</p>
+      <p>Confirm the reported ticker {{ reportedSymbol }} against an exact listing before opening its chart. The saved fund snapshot will not be changed.</p>
       <SearchBar
         :key="`${holding.id}:${reportedSymbol}`"
         :model-value="reportedSymbol"
@@ -47,12 +47,13 @@ const props = defineProps<{
   holding: ETFHolding
   snapshot: ETFHoldingsSnapshot
   available: boolean
+  startImmediately?: boolean
 }>()
 const emit = defineEmits<{
   resolved: [symbol: string, context: ETFHoldingDrilldownContext]
 }>()
 
-const active = ref(false)
+const active = ref(Boolean(props.startImmediately))
 const message = ref('')
 const isError = ref(false)
 const reportedSymbol = computed(() => String(props.holding.reported_symbol || '').trim())

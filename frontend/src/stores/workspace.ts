@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { isEditorTarget as isWorkstationEditorTarget } from '@/lib/workstation/keyboard'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 import type { LinkGroup } from '@/stores/dashboardLinks'
+import type { ETFHolding, ETFHoldingsPage } from '@/types'
 
 export type { LinkGroup } from '@/stores/dashboardLinks'
 
@@ -831,28 +832,8 @@ export interface PythonBreadthRunState {
   diagnostics: Array<Record<string, unknown>>
 }
 
-export interface ETFHoldingState {
-  constituent_instrument_id: number | null
-  constituent_symbol: string | null
-  constituent_name: string | null
-  reported_symbol: string | null
-  reported_name: string | null
-  weight: number | null
-  is_resolved: boolean
-}
-
-export interface ETFHoldingsPageState {
-  snapshot: {
-    etf_symbol: string
-    composition_date: string
-    known_at: string | null
-    provenance: string
-    source_provider: string
-    completeness_status: string
-  }
-  holdings: ETFHoldingState[]
-  total: number
-}
+export type ETFHoldingState = ETFHolding
+export type ETFHoldingsPageState = ETFHoldingsPage
 
 export interface ETFConstituentSnapshotState extends GroupSnapshotState {
   etf_symbol: string
@@ -2726,7 +2707,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
-        etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
+        // A missing current read must not erase a retained last-known snapshot.
+        // Empty first use is represented as null; refresh failure preserves the
+        // exact prior page and its provenance for the selected fund.
+        if (!etfHoldings.value[normalized]) {
+          etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
+        }
         return null
       }
       error.value = cause?.message ?? `Unable to load ETF holdings for ${normalized}`

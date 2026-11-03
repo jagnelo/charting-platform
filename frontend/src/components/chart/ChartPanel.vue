@@ -23,61 +23,19 @@
         </button>
         <!-- Inline search dropdown -->
         <div v-if="searchOpen" class="panel-search-dropdown" @click.stop>
-          <input
-            ref="searchInputRef"
-            v-model="searchQuery"
-            class="panel-search-input"
-            type="search"
-            role="combobox"
-            aria-label="Search chart symbol"
-            placeholder="Symbol…"
-            :aria-expanded="searchOpen ? 'true' : 'false'"
-            :aria-controls="symbolSearchResultsId"
-            :aria-activedescendant="activeSearchOptionId"
-            @input="onSearchInput"
-            @keydown.escape="closeSearch"
-            @keydown.enter="selectFirst"
-            @keydown.arrow-down.prevent="moveDown"
-            @keydown.arrow-up.prevent="moveUp"
+          <SearchBar
+            ref="searchBarRef"
+            :model-value="searchQuery"
+            mode="chart"
+            fluid
+            :show-recent="false"
+            :show-screener-link="false"
+            :allow-source-discovery="true"
+            :results-id="symbolSearchResultsId"
+            :input-aria-label="`Search chart symbol for panel ${panelId}`"
+            @update:model-value="searchQuery = $event"
+            @select="onSearchSelection"
           />
-          <div v-if="searchResults.length || isExpression || searchMessage" :id="symbolSearchResultsId" class="panel-search-results" role="listbox" aria-label="Chart symbol search results">
-            <button
-              v-if="canResolveExpression"
-              :id="symbolExpressionOptionId"
-              :class="['psr-item', 'psr-item--expr', { highlighted: hlIdx === 0 }]"
-              type="button"
-              role="option"
-              :aria-selected="hlIdx === 0 ? 'true' : 'false'"
-              @click="selectExpression"
-              @mouseenter="hlIdx = 0"
-            >
-              <span class="psr-sym">f(x)</span>
-              <span class="psr-name">Create expression chart: {{ searchQuery }}</span>
-            </button>
-            <div
-              v-else-if="expressionHint || searchMessage"
-              class="panel-search-message"
-              :class="{ 'panel-search-message--hint': expressionHint && !searchMessage }"
-            >
-              {{ searchMessage || expressionHint }}
-            </div>
-            <template v-else>
-              <button
-                v-for="(r, i) in searchResults"
-                :key="r.symbol"
-                :id="symbolOptionId(i)"
-                :class="['psr-item', { highlighted: i === hlIdx }]"
-                type="button"
-                role="option"
-                :aria-selected="i === hlIdx ? 'true' : 'false'"
-                @click="selectResult(r)"
-                @mouseenter="hlIdx = i"
-              >
-                <span class="psr-sym">{{ r.symbol }}</span>
-                <span class="psr-name">{{ r.name }}</span>
-              </button>
-            </template>
-          </div>
         </div>
       </div>
 
@@ -122,6 +80,8 @@
       </div>
 
       <span v-if="store.instrument?.name" class="psym-name">{{ store.instrument.name }}</span>
+      <span v-if="historyProgress" class="panel-history-status" role="status" aria-live="polite">{{ historyProgress }}</span>
+      <span v-if="historyError" class="panel-history-status panel-history-status--error" role="alert">{{ historyError }}</span>
 
       <TimeframeSelector v-if="store.symbol" v-model="localTf" class="panel-tf" />
     </div>
@@ -147,18 +107,10 @@ import { usePanelLinksStore, PANEL_LINK_GROUPS } from '@/stores/panelLinks'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
+import SearchBar from '@/components/common/SearchBar.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
-import { api }           from '@/lib/api'
-import {
-  ensureKnownInstrumentSymbol,
-  formatInstrumentLookupError,
-  getInstrumentInputHint,
-  isExpressionInput,
-  isResolvableExpressionInput,
-} from '@/lib/instruments'
+import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import type { Timeframe } from '@/types'
-
-interface SearchResult { symbol: string; name: string; exchange: string; type: string }
 
 const props = defineProps<{ panelId: string }>()
 
@@ -180,29 +132,16 @@ const localTf = ref<Timeframe>(panelConfig.value?.timeframe ?? 'D1')
 // ── Inline search ──────────────────────────────────────────────────────────
 const searchOpen    = ref(false)
 const searchQuery   = ref('')
-const searchResults = ref<SearchResult[]>([])
-const hlIdx         = ref(0)
 const symWrapRef    = ref<HTMLDivElement | null>(null)
 const linkWrapRef   = ref<HTMLDivElement | null>(null)
-const searchInputRef = ref<HTMLInputElement | null>(null)
-let searchTimer: ReturnType<typeof setTimeout> | null = null
+const searchBarRef = ref<{ focusInput: () => void } | null>(null)
 const linkMenuOpen = ref(false)
-const searchMessage = ref('')
 const linkMenuId = `panel-link-menu-${props.panelId}`
 const symbolSearchResultsId = `chart-panel-search-results-${props.panelId}`
-const symbolExpressionOptionId = `${symbolSearchResultsId}-expression`
 let lifecycleGeneration = 0
 let selectionGeneration = 0
-
-function symbolOptionId(index: number) {
-  return `${symbolSearchResultsId}-option-${index}`
-}
-
-const activeSearchOptionId = computed(() => {
-  if (isExpression.value && canResolveExpression.value) return symbolExpressionOptionId
-  if (hlIdx.value >= 0 && searchResults.value[hlIdx.value]) return symbolOptionId(hlIdx.value)
-  return undefined
-})
+const historyProgress = ref('')
+const historyError = ref('')
 
 function isCurrent(generation: number, selection = selectionGeneration) {
   return generation === lifecycleGeneration && selection === selectionGeneration
@@ -211,73 +150,23 @@ function isCurrent(generation: number, selection = selectionGeneration) {
 const linkGroup = computed(() => panelLinks.groupFor(props.panelId))
 const linkColor = computed(() => panelLinks.colorFor(props.panelId))
 
-const isExpression = computed(() => isExpressionInput(searchQuery.value.trim()))
-const canResolveExpression = computed(() => isResolvableExpressionInput(searchQuery.value.trim()))
-const expressionHint = computed(() => getInstrumentInputHint(searchQuery.value.trim()))
-
 async function toggleSearch() {
   if (searchOpen.value) { closeSearch(); return }
   searchOpen.value = true
   searchQuery.value = store.symbol ?? ''
   await nextTick()
-  searchInputRef.value?.select()
+  searchBarRef.value?.focusInput()
 }
 
 function closeSearch() {
   searchOpen.value = false
   searchQuery.value = ''
-  searchResults.value = []
-  searchMessage.value = ''
 }
 
-async function onSearchInput() {
-  searchMessage.value = ''
-  if (searchTimer) clearTimeout(searchTimer)
-  if (!searchQuery.value) { searchResults.value = []; return }
-  if (isExpression.value) {
-    searchResults.value = canResolveExpression.value
-      ? [{ symbol: searchQuery.value.trim(), name: '', exchange: '', type: 'Synthetic' }]
-      : []
-    hlIdx.value = 0
-    return
-  }
-  searchTimer = setTimeout(async () => {
-    const generation = lifecycleGeneration
-    try {
-      const results = await api.get<SearchResult[]>('/instruments/search', { q: searchQuery.value })
-      if (!isCurrent(generation)) return
-      searchResults.value = results
-      hlIdx.value = 0
-    } catch { /* ignore */ }
-  }, 250)
-}
-
-async function selectResult(r: SearchResult) {
+function onSearchSelection(symbol: string, result?: { type?: string }) {
   closeSearch()
-  await onSymbolSelect(r.symbol)
+  void onSymbolSelect(symbol, result?.type !== 'Synthetic')
 }
-
-async function selectExpression() {
-  const expr = searchQuery.value.trim()
-  if (!expr) return
-  const generation = lifecycleGeneration
-  try {
-    const instr = { symbol: await ensureKnownInstrumentSymbol(expr) }
-    if (!isCurrent(generation)) return
-    closeSearch()
-    await onSymbolSelect(instr.symbol)
-  } catch (e) {
-    searchMessage.value = formatInstrumentLookupError(expr, e)
-  }
-}
-
-function selectFirst() {
-  if (isExpression.value) { void selectExpression(); return }
-  if (searchResults.value.length) void selectResult(searchResults.value[hlIdx.value])
-}
-
-function moveDown() { hlIdx.value = Math.min(hlIdx.value + 1, searchResults.value.length - 1) }
-function moveUp()   { hlIdx.value = Math.max(hlIdx.value - 1, 0) }
 
 function handleClickOutside(e: MouseEvent) {
   if (symWrapRef.value && !symWrapRef.value.contains(e.target as Node)) closeSearch()
@@ -291,8 +180,6 @@ onMounted(() => {
 onUnmounted(() => {
   lifecycleGeneration += 1
   selectionGeneration += 1
-  if (searchTimer) clearTimeout(searchTimer)
-  searchTimer = null
   document.removeEventListener('mousedown', handleClickOutside)
 })
 
@@ -302,9 +189,16 @@ function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
   linkMenuOpen.value = false
 }
 
-async function onSymbolSelect(symbol: string) {
+async function onSymbolSelect(symbol: string, acquireHistory = true) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
+  const selectedTimeframe = localTf.value
+  historyProgress.value = ''
+  historyError.value = ''
+  layoutStore.updatePanel(props.panelId, { symbol, timeframe: selectedTimeframe })
+  // A deliberate symbol selection may request missing history for this panel.
+  // Layout restoration and timeframe changes remain local-only.
+  if (acquireHistory) void acquirePanelHistory(symbol, selectedTimeframe, generation, selection)
   const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
   for (const id of targetIds) {
     if (!isCurrent(generation, selection)) return
@@ -320,6 +214,63 @@ async function onSymbolSelect(symbol: string) {
     await drawStore.loadDrawings(store.instrument.id, localTf.value)
     if (!isCurrent(generation, selection)) return
     await alertsStore.loadAlerts(store.instrument.id)
+  }
+}
+
+async function acquirePanelHistory(symbol: string, timeframe: Timeframe, generation: number, selection: number) {
+  const normalized = symbol.trim().toUpperCase()
+  const isSelectedScope = () => {
+    const panel = layoutStore.panels.find(item => item.id === props.panelId)
+    return isCurrent(generation, selection)
+      && panel?.symbol.trim().toUpperCase() === normalized
+      && panel.timeframe === timeframe
+  }
+  const range = defaultHistoryRange(timeframe)
+  const stageMessage: Record<SelectedHistoryStage, string> = {
+    coverage: `Checking local ${timeframe} history for ${normalized}…`,
+    identity: `Confirming ${normalized}…`,
+    history: `Loading missing ${timeframe} history for ${normalized}…`,
+  }
+  try {
+    const outcome = await acquireSelectedHistory(
+      normalized,
+      timeframe,
+      true,
+      { timeframe, adjusted: true, start: range.start, end: range.end },
+      stage => { if (isSelectedScope()) historyProgress.value = stageMessage[stage] },
+      isSelectedScope,
+    )
+    if (!isSelectedScope() || outcome.kind === 'superseded') return
+    if (outcome.kind === 'already-covered') {
+      historyProgress.value = `Local ${timeframe} history is available for ${normalized}.`
+      return
+    }
+    if (outcome.kind === 'identity-unavailable') {
+      historyProgress.value = outcome.status === 'held'
+        ? `History for ${normalized} is currently unavailable; saved chart data remains visible.`
+        : `The canonical identity for ${normalized} could not be confirmed; no history was requested.`
+      return
+    }
+    const result = outcome.result
+    historyProgress.value = result.status === 'complete'
+      ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${normalized}.`
+      : result.status === 'partial'
+        ? `Some ${timeframe} history for ${normalized} loaded; the rest remains unavailable.`
+        : result.status === 'held'
+          ? `History for ${normalized} is currently unavailable; saved chart data remains visible.`
+          : result.status === 'no_data'
+            ? `No ${timeframe} history is available for ${normalized}; saved chart data remains visible.`
+            : `History for ${normalized} could not be loaded; saved chart data remains visible.`
+    if ((result.status === 'complete' || result.status === 'partial')
+      && isSelectedScope()
+      && store.symbol.trim().toUpperCase() === normalized
+      && store.timeframe === timeframe) {
+      await store.refreshLocalBars()
+    }
+  } catch {
+    if (isSelectedScope()) {
+      historyError.value = `History for ${normalized} could not be checked or loaded; saved chart data remains visible.`
+    }
   }
 }
 
@@ -417,49 +368,21 @@ onMounted(async () => {
   border: 1px solid #333;
   border-radius: 4px;
   min-width: 240px;
+  width: min(320px, calc(100vw - 24px));
+  padding: 4px;
 }
 
-.panel-search-input {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  background: #1a1a1a;
-  border: none;
-  border-bottom: 1px solid #222;
-  color: #ccc;
-  font-size: 12px;
-  font-family: 'JetBrains Mono', monospace;
-  padding: 7px 10px;
-  outline: none;
-}
+.panel-search-dropdown :deep(.search-bar) { width: 100%; }
+.panel-search-dropdown :deep(.search-results) { max-height: 200px; }
 
-.panel-search-results { max-height: 200px; overflow-y: auto; }
-
-.psr-item {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  cursor: pointer;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  text-align: left;
-  font-size: 11px;
-}
-.psr-item.highlighted { background: #1a2a3a; }
-.psr-item--expr { border-left: 2px solid #64b5f6; }
-.psr-sym { color: #64b5f6; font-weight: 700; min-width: 56px; font-family: monospace; }
-.psr-name { color: #888; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.panel-search-message {
-  padding: 8px 10px;
-  color: #ef5350;
+.panel-history-status {
+  flex: 1 0 100%;
+  min-width: 0;
+  color: var(--tc-text-muted);
   font-size: 10px;
+  overflow-wrap: anywhere;
 }
-.panel-search-message--hint {
-  color: #8aa3bb;
-}
+.panel-history-status--error { color: var(--tc-danger, #e58f8f); }
 
 .panel-link-wrap {
   position: relative;

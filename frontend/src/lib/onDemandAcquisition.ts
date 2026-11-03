@@ -305,3 +305,23 @@ export function acquireETFHoldings(symbol: string, refresh: boolean, instrumentI
     ...(instrumentId != null ? { instrument_id: instrumentId } : {}),
   })
 }
+
+/** Read the producer's authoritative freshness/admission view for one ETF. */
+export async function readETFHoldingsCapability(symbol: string): Promise<ETFHoldingsCapability | null> {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized) return null
+  try {
+    return await api.get<ETFHoldingsCapability>(`/etf-holdings/${encodeURIComponent(normalized)}/capability`)
+  } catch {
+    // An unavailable capability read is unknown, not evidence that a saved
+    // snapshot is current. The caller may make one ordinary admitted refresh.
+    return null
+  }
+}
+
+/** Only a producer-qualified current cache is sufficient to skip refresh. */
+export function isCurrentETFHoldingsCapability(capability: ETFHoldingsCapability | null | undefined): boolean {
+  return capability?.availability === 'current'
+    && capability.identity_verified === true
+    && capability.usable_for_current_analysis === true
+}

@@ -181,7 +181,7 @@
         :timeframe="activeTimeframe"
         :label="isFavoritesTool ? 'My Favorites' : flaggedItemsSelected ? 'Flagged Items' : selectedCombo?.name ?? selectedPersonalWatchlist?.name ?? 'WatchList'"
         :rows="isFavoritesTool ? favoriteRows : flaggedItemsSelected ? flaggedWatchlistRows : selectedCombo ? comboWatchlistRows : personalWatchlistRows"
-        :selected="activeSymbol"
+        :selected="selectedConstituentDisplaySymbol"
         :columns="personalWatchlistColumns"
         :initial-sort-key="customDateSortListColumns[0]?.key"
         :initial-sort-direction="customDateSortListColumns.length ? 'desc' : 'asc'"
@@ -453,6 +453,7 @@
         :timeframe="activeTimeframe"
         :rows="constituentRows"
         :selected="activeSymbol"
+        :selected-row-key="selectedConstituentRowKey"
         :columns="constituentColumns"
         :visible-column-keys="configuredColumnKeys"
         :filter-text="configuredFilterText"
@@ -472,7 +473,7 @@
         :membership-targets="personalWatchlistTargets"
         :tag-columns="configuredTagColumns"
         :market-map-source-id="constituentMarketMapSourceId"
-        @select="selectSymbol($event.symbol, $event.instrumentId)"
+        @select="selectConstituentRow"
         @compare="emit('compare', $event)"
         @market-map="emit('marketMap', $event)"
         @row-action="handleRowAction"
@@ -490,6 +491,23 @@
         @plot-drop="addPlotColumn"
         @condition-drop="addConditionColumn"
       />
+      <ETFHoldingResolutionAction
+        v-if="selectedUnresolvedConstituent && isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent) && holdings?.snapshot"
+        :key="`${selectedETF}:${holdings.snapshot.id}:${selectedUnresolvedConstituent.id}`"
+        :holding="selectedUnresolvedConstituent"
+        :snapshot="holdings.snapshot"
+        :available="true"
+        start-immediately
+        @resolved="openResolvedConstituentHolding"
+      />
+      <p v-else-if="selectedNonChartableConstituent" class="constituent-tool__selection-state" role="status" aria-live="polite">
+        {{ reportedHoldingChartState(selectedNonChartableConstituent) }}
+        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+      </p>
+      <p v-else-if="selectedUnresolvedConstituent && !isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent)" class="constituent-tool__selection-state" role="status" aria-live="polite">
+        {{ reportedHoldingLabel(selectedUnresolvedConstituent) }} is shown from the reported snapshot, but its equity identity is not confirmed yet.
+        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+      </p>
       <small
         v-if="constituentExclusionSummary"
         class="constituent-tool__provenance"
@@ -986,6 +1004,7 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent, defineComponent, h, nextTick, onBeforeUnmount, onMounted, provide, ref, watch, type Component } from 'vue'
+import { RouterLink } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
@@ -1006,6 +1025,17 @@ import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
 import ToolWindow from './ToolWindow.vue'
 import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from './VirtualWatchlistTool.vue'
+import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
+import {
+  createETFHoldingDrilldownContext,
+  isEligibleUnresolvedEquityHolding,
+  isEquitySecurityHolding,
+  isCurrentETFHoldingSelection,
+  isResolvedCanonicalEquityHolding,
+  type ETFHoldingDrilldownContext,
+} from '@/lib/etfHoldingDrilldown'
+import { etfHoldingWatchlistRowKey, projectReportedETFHoldings } from '@/lib/workstation/etfReportedConstituents'
+import type { ETFHolding } from '@/types'
 import {
   createTagColumnMembershipToggler,
   mergeTagColumnConfiguration,
@@ -1118,7 +1148,7 @@ let personalMutationSequence = 0
 let benchmarkFamilyReadinessSequence = 0
 let familyAnalyticsSequence = 0
 let familyOverviewSequence = 0
-const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null, preserveConstituentContext?: boolean]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null, preserveConstituentContext?: boolean]; holdingDrilldown: [symbol: string, context: ETFHoldingDrilldownContext]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -1844,7 +1874,7 @@ onMounted(async () => {
     ...sectorRows.value,
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
-    ...constituentRows.value,
+    ...canonicalConstituentRows.value,
     ])
   void loadConditionColumns([
     ...personalWatchlistRows.value,
@@ -1854,7 +1884,7 @@ onMounted(async () => {
     ...sectorRows.value,
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
-    ...constituentRows.value,
+    ...canonicalConstituentRows.value,
     ])
 })
 
@@ -2049,6 +2079,51 @@ function selectSymbol(symbol: string, instrumentId?: number | null) {
   // row selections through it as well as the local link-group mutation so every
   // watchlist interaction follows the same top-down path as symbol entry.
   emit('select', symbol, instrumentId, props.tool.instance_key === 'constituent-list')
+}
+
+function selectConstituentRow(row: WatchlistRow) {
+  const snapshot = holdings.value?.snapshot
+  const holding = selectedETF.value && !selectedIndustry.value && snapshot
+    ? holdings.value?.holdings.find(item => holdingWatchlistRowKey(selectedETF.value, snapshot.id, item.id) === row.rowKey)
+    : null
+  if (!holding || !snapshot) {
+    selectedConstituentRowKey.value = null
+    selectSymbol(row.symbol, row.instrumentId)
+    return
+  }
+
+  selectedConstituentRowKey.value = row.rowKey ?? null
+  if (!isResolvedCanonicalEquityHolding(holding)) return
+  emit('holdingDrilldown', holding.constituent_symbol, createETFHoldingDrilldownContext(
+    snapshot,
+    holding,
+    holding.constituent_instrument_id,
+    holding.constituent_symbol,
+  ))
+}
+
+function openResolvedConstituentHolding(symbol: string, context: ETFHoldingDrilldownContext) {
+  const holding = selectedUnresolvedConstituent.value
+  const snapshot = holdings.value?.snapshot
+  if (!holding || !snapshot
+    || !isCurrentETFHoldingSelection(context, selectedETF.value, snapshot, holding)
+    || context.canonicalSymbol.trim().toUpperCase() !== symbol.trim().toUpperCase()
+    || String(holding.reported_symbol || '').trim().toUpperCase() !== symbol.trim().toUpperCase()) return
+  emit('holdingDrilldown', symbol, context)
+}
+
+function reportedHoldingLabel(row: ETFHolding) {
+  return [row.reported_symbol || row.constituent_symbol, row.reported_name || row.constituent_name]
+    .filter(Boolean)
+    .join(' · ') || `Reported ${row.holding_type || 'holding'}`
+}
+
+function reportedHoldingChartState(row: ETFHolding) {
+  const label = reportedHoldingLabel(row)
+  if (!isEquitySecurityHolding(row)) {
+    return `${label} is reported as ${row.holding_type || row.row_type || 'a non-equity holding'} and cannot be opened as an equity chart.`
+  }
+  return `${label} has no eligible real-equity identity for charting.`
 }
 
 function selectRotationSymbol(symbol: string, instrumentId?: number | null) {
@@ -3256,6 +3331,10 @@ async function saveGenericBreadthDefinition() {
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
+const selectedConstituentRowKey = ref<string | null>(null)
+function holdingWatchlistRowKey(etfSymbol: string, snapshotId: number, holdingId: number) {
+  return etfHoldingWatchlistRowKey(etfSymbol, snapshotId, holdingId)
+}
 const sectorSymbols = computed(() => new Set(
   (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
     .map(member => member.instrument.symbol.trim().toUpperCase())
@@ -3283,12 +3362,30 @@ const ratioBenchmarks = computed(() => {
   )
 })
 const holdings = computed(() => selectedETF.value ? workspaceStore.etfHoldings[selectedETF.value] : null)
+const selectedConstituentHolding = computed(() => {
+  if (!selectedConstituentRowKey.value || workspaceStore.selectedIndustry) return null
+  return holdings.value?.holdings.find(row => holdingWatchlistRowKey(selectedETF.value, holdings.value!.snapshot.id, row.id) === selectedConstituentRowKey.value) ?? null
+})
+const selectedConstituentDisplaySymbol = computed(() => selectedConstituentHolding.value?.reported_symbol
+  || selectedConstituentHolding.value?.constituent_symbol
+  || activeSymbol.value)
+const selectedUnresolvedConstituent = computed(() => selectedConstituentHolding.value
+  && !isResolvedCanonicalEquityHolding(selectedConstituentHolding.value)
+  ? selectedConstituentHolding.value
+  : null)
+const selectedNonChartableConstituent = computed(() => selectedConstituentHolding.value
+  && !isEquitySecurityHolding(selectedConstituentHolding.value)
+  ? selectedConstituentHolding.value
+  : null)
 const constituentSnapshot = computed(() => selectedETF.value ? workspaceStore.etfConstituentSnapshots[selectedETF.value] : null)
 const industryComposition = computed(() => selectedETF.value ? workspaceStore.etfIndustries[selectedETF.value] : null)
 const industries = computed(() => industryComposition.value?.industries ?? [])
 const industrySnapshot = computed(() => selectedETF.value ? workspaceStore.industrySnapshots[selectedETF.value] : null)
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
+watch(() => [selectedETF.value, holdings.value?.snapshot.id, selectedIndustry.value] as const, () => {
+  selectedConstituentRowKey.value = null
+})
 const industryProxyState = computed(() => selectedETF.value && selectedIndustry.value
   ? workspaceStore.industryProxies[`${selectedETF.value}:${selectedIndustry.value}`]
   : null)
@@ -3600,18 +3697,45 @@ const currentPrice = computed(() => latestChartBar.value?.close ?? null)
 const currentSessionHigh = computed(() => latestChartBar.value?.high ?? null)
 const currentSessionLow = computed(() => latestChartBar.value?.low ?? null)
 const constituentRows = computed(() => {
-  const source = selectedETF.value && selectedIndustry.value
-    ? workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents ?? []
-    : holdings.value?.holdings.filter(row => row.is_resolved && row.constituent_instrument_id && row.constituent_symbol).map(row => ({
-        id: row.constituent_instrument_id as number, symbol: row.constituent_symbol as string, name: row.constituent_name ?? row.reported_name ?? row.constituent_symbol as string,
-        weight: row.weight,
-      })) ?? []
-  return source.map(row => {
-    const analysis = constituentSnapshot.value?.rows.find(item => item.instrument_id === row.id)
+  if (selectedETF.value && selectedIndustry.value) {
+    const source = workspaceStore.industryConstituents[`${selectedETF.value}:${selectedIndustry.value}`]?.constituents ?? []
+    return source.map(row => {
+      const analysis = constituentSnapshot.value?.rows.find(item => item.instrument_id === row.id)
+      const reportedWeight = 'weight' in row && row.weight != null ? Number(row.weight) : null
+      return {
+        instrumentId: row.id, symbol: row.symbol, name: row.name,
+        values: {
+          weight: reportedWeight != null && Number.isFinite(reportedWeight) ? reportedWeight : null,
+          holding_type: 'security · equity',
+          resolution: 'Canonical constituent',
+          performance_1d: analysis?.performance['1D']?.value ?? null,
+          performance_1w: analysis?.performance['1W']?.value ?? null,
+          performance_1m: analysis?.performance['1M']?.value ?? null,
+          performance_3m: analysis?.performance['3M']?.value ?? null,
+          performance_6m: analysis?.performance['6M']?.value ?? null,
+          performance_ytd: analysis?.performance.YTD?.value ?? null,
+          performance_1y: analysis?.performance['1Y']?.value ?? null,
+          relative_ratio: analysis?.relative_to_benchmark?.value == null ? null : analysis.relative_to_benchmark.value.toFixed(4),
+          relative_spy: analysis?.relative_to_market?.value == null ? null : analysis.relative_to_market.value.toFixed(4),
+          rsi14: analysis?.technical?.rsi14?.value ?? null,
+          above_ma50: analysis?.technical?.above_ma50?.value ?? null,
+          position_52w: analysis?.technical?.position_52w?.value ?? null,
+          ...snapshotLineage(constituentSnapshot.value),
+        },
+        warnings: snapshotWarnings(analysis),
+      }
+    })
+  }
+
+  if (!holdings.value) return []
+  return projectReportedETFHoldings(selectedETF.value, holdings.value.snapshot.id, holdings.value.holdings).map(row => {
+    const analysis = row.instrumentId == null
+      ? undefined
+      : constituentSnapshot.value?.rows.find(item => item.instrument_id === row.instrumentId)
     return {
-      instrumentId: row.id, symbol: row.symbol, name: row.name,
+      ...row,
       values: {
-        weight: 'weight' in row ? row.weight ?? null : null,
+        ...row.values,
         performance_1d: analysis?.performance['1D']?.value ?? null,
         performance_1w: analysis?.performance['1W']?.value ?? null,
         performance_1m: analysis?.performance['1M']?.value ?? null,
@@ -3623,8 +3747,8 @@ const constituentRows = computed(() => {
         relative_spy: analysis?.relative_to_market?.value == null ? null : analysis.relative_to_market.value.toFixed(4),
         rsi14: analysis?.technical?.rsi14?.value ?? null,
         above_ma50: analysis?.technical?.above_ma50?.value ?? null,
-      position_52w: analysis?.technical?.position_52w?.value ?? null,
-      ...snapshotLineage(constituentSnapshot.value),
+        position_52w: analysis?.technical?.position_52w?.value ?? null,
+        ...snapshotLineage(constituentSnapshot.value),
       },
       warnings: snapshotWarnings(analysis),
     }
@@ -3634,6 +3758,9 @@ const constituentMarketMapSourceId = computed(() => {
   if (selectedETF.value && !selectedIndustry.value) return `etf-holdings:${selectedETF.value}`
   return explicitMarketMapSourceId(constituentRows.value)
 })
+// Reported rows are rendered even before identity resolution, but only verified
+// canonical equities participate in automatic workstation analysis batches.
+const canonicalConstituentRows = computed(() => constituentRows.value.filter(row => row.instrumentId != null))
 const sectorColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '54px' },
   { key: 'name', label: 'Sector', width: 'minmax(90px, 1fr)' },
@@ -3696,6 +3823,8 @@ const constituentColumns: WatchlistColumn[] = [
   { key: 'symbol', label: 'Symbol', width: '60px' },
   { key: 'name', label: 'Constituent', width: 'minmax(100px, 1fr)' },
   { key: 'weight', label: 'Weight', width: '62px' },
+  { key: 'holding_type', label: 'Reported type', width: '126px' },
+  { key: 'resolution', label: 'Identity', width: '156px' },
   { key: 'performance_1d', label: '1D', width: '52px' },
   { key: 'performance_1w', label: '1W', width: '52px' },
   { key: 'performance_1m', label: '1M', width: '58px' },
@@ -3906,7 +4035,7 @@ async function addConditionColumn(payload: TechnicalConditionDragPayload) {
     // new Boolean header remains hidden until the user edits Columns.
     const nextKeys = configuredKeys.includes(column.key) ? configuredKeys : [...configuredKeys, column.key]
     emit('configuration', props.tool.instance_key, { ...props.tool.configuration, column_keys: nextKeys, condition_columns: [...columns, column] })
-    void loadConditionColumns([...personalWatchlistRows.value, ...flaggedWatchlistRows.value, ...comboWatchlistRows.value, ...activeBenchmarkRows.value, ...sectorRows.value, ...factoryWatchlistRows.value, ...proxyRows.value, ...constituentRows.value])
+    void loadConditionColumns([...personalWatchlistRows.value, ...flaggedWatchlistRows.value, ...comboWatchlistRows.value, ...activeBenchmarkRows.value, ...sectorRows.value, ...factoryWatchlistRows.value, ...proxyRows.value, ...canonicalConstituentRows.value])
   } catch (cause: any) {
     pendingConditionColumns.value = pendingConditionColumns.value.filter(column => column.key !== key)
     conditionDropError.value = `Unable to create ${name} Boolean column: ${cause?.message ?? 'unknown error'}`
@@ -3967,7 +4096,7 @@ watch(
     ...sectorRows.value,
     ...factoryWatchlistRows.value,
     ...proxyRows.value,
-    ...constituentRows.value,
+    ...canonicalConstituentRows.value,
   ].map(row => row.symbol).join(',') + JSON.stringify(configuredIndicatorColumns.value) + JSON.stringify(configuredConditionColumns.value),
   () => {
     void loadIndicatorColumns([
@@ -3978,7 +4107,7 @@ watch(
       ...sectorRows.value,
       ...factoryWatchlistRows.value,
       ...proxyRows.value,
-      ...constituentRows.value,
+      ...canonicalConstituentRows.value,
     ])
     void loadConditionColumns([
       ...personalWatchlistRows.value,
@@ -3988,7 +4117,7 @@ watch(
       ...sectorRows.value,
       ...factoryWatchlistRows.value,
       ...proxyRows.value,
-      ...constituentRows.value,
+      ...canonicalConstituentRows.value,
     ])
   },
   { immediate: true },
@@ -4338,8 +4467,9 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
-.constituent-tool { display: grid; grid-template-rows: minmax(0, 1fr) auto; height: 100%; min-height: 0; background: #11161b; }
+.constituent-tool { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; height: 100%; min-height: 0; background: #11161b; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
+.constituent-tool__selection-state { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 6px 8px; border-top: 1px solid #28343c; color: #b8c5cf; font: 11px "Segoe UI", Arial, sans-serif; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__row span, .industry-list small { color: #7d9db0; }

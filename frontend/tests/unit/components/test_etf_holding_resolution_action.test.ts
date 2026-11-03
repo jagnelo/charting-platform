@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import {
   createETFHoldingDrilldownContext,
   holdingDrilldownRouteQuery,
+  isCurrentETFHoldingSelection,
   isEligibleUnresolvedEquityHolding,
 } from '@/lib/etfHoldingDrilldown'
 import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
@@ -77,6 +78,8 @@ describe('ETFHoldingResolutionAction', () => {
     expect(api.get).not.toHaveBeenCalled()
     expect(api.post).not.toHaveBeenCalled()
     await wrapper.get('button').trigger('click')
+    expect(wrapper.text()).toContain('Confirm the reported ticker UNXQ against an exact listing before opening its chart.')
+    expect(wrapper.text()).not.toContain('Search free sources')
     expect(wrapper.get('input').element.value).toBe('UNXQ')
     expect(wrapper.get('input').attributes('readonly')).toBeDefined()
     expect(api.get).not.toHaveBeenCalled()
@@ -126,6 +129,21 @@ describe('ETFHoldingResolutionAction', () => {
       holding_reported_symbol: 'UNXQ',
       holding_reported_name: 'Unlisted Example Corp',
     })
+  })
+
+  it('starts the same bounded resolver when a selected reported row opens the widget flow', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20', status: 'no_match', candidates: [], source_outcomes: [] })
+    const wrapper = mount(ETFHoldingResolutionAction, {
+      props: { holding, snapshot, available: true, startImmediately: true },
+      global: { stubs: { RouterLink: true } },
+    })
+
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
+      query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+    }))
+    expect(wrapper.find('button').text()).toBe('Cancel')
+    expect(wrapper.text()).toContain('The saved fund snapshot will not be changed.')
+    expect(wrapper.emitted('resolved')).toBeUndefined()
   })
 
   it('keeps held, conflict, no-match, and non-exact identity results nonpositive', async () => {
@@ -218,5 +236,14 @@ describe('ETFHoldingResolutionAction', () => {
   it('checks row eligibility independently of a reported ticker being a canonical identity', () => {
     expect(isEligibleUnresolvedEquityHolding(holding)).toBe(true)
     expect(isEligibleUnresolvedEquityHolding({ ...holding, reported_symbol: 'HOLDING-32' })).toBe(false)
+    expect(isEligibleUnresolvedEquityHolding({ ...holding, reported_symbol: null, constituent_symbol: 'UNXQ' })).toBe(false)
+  })
+
+  it('rejects a resolver completion after selected fund or snapshot changes', () => {
+    const context = createETFHoldingDrilldownContext(snapshot, holding, 987654, 'UNXQ')
+    expect(isCurrentETFHoldingSelection(context, 'IGV', snapshot, holding)).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'IGV', { ...snapshot, id: 8 }, holding)).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'IGV', snapshot, { ...holding, id: 33 })).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'OIH', snapshot, holding)).toBe(true)
   })
 })

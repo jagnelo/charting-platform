@@ -258,7 +258,7 @@ import WatchlistPanel       from '@/components/watchlist/WatchlistPanel.vue'
 import OptionsChainPanel    from '@/components/options/OptionsChainPanel.vue'
 import OptionsExposurePanel from '@/components/options/exposure/OptionsExposurePanel.vue'
 import ETFHoldingsPanel     from '@/components/etf/ETFHoldingsPanel.vue'
-import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import { holdingDrilldownRouteQuery, parseETFHoldingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import TextPromptModal      from '@/components/common/TextPromptModal.vue'
 import { buildRadarDrawingOverlays, buildRadarIndicatorOverlays, mergeChartDrawingsWithRadar } from '@/lib/radar/visuals'
 import type { ChartComparisonSeries, OHLCVBar, Timeframe } from '@/types'
@@ -330,6 +330,10 @@ const historicalHoldingContext = computed(() => {
     reportedName: value('holding_reported_name'),
     holdingRowId: value('holding_row_id'),
   }
+})
+const historicalHoldingRouteContext = computed(() => {
+  const symbol = typeof route.params.symbol === 'string' ? route.params.symbol : ''
+  return parseETFHoldingDrilldownRouteQuery(route.query as Record<string, unknown>, symbol)
 })
 
 function isBasketSymbol(symbol: string | null | undefined) {
@@ -794,7 +798,13 @@ onMounted(async () => {
       historicalHoldingContext.value
       && historicalHoldingContext.value.symbol.toUpperCase() === sym.toUpperCase(),
     )
-    const symbolSelection = selectChartSymbol(sym, undefined, preserveHydratedHoldingContext)
+    const selectedHoldingContext = historicalHoldingRouteContext.value
+    const symbolSelection = selectChartSymbol(
+      sym,
+      selectedHoldingContext ?? undefined,
+      preserveHydratedHoldingContext,
+      selectedHoldingContext !== null && route.query.holding_history_intent === 'selected',
+    )
     const bootstrapSelection = selectionGeneration
     const bootstrapIndicatorEdit = chartStore.indicatorEditGeneration
     await Promise.all([presetsLoad, symbolSelection])

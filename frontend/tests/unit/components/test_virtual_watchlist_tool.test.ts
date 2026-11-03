@@ -23,6 +23,31 @@ beforeEach(() => { apiGet.mockResolvedValue([]); apiPost.mockReset(); apiPut.moc
 afterEach(() => { apiGet.mockReset(); apiPost.mockReset(); apiPut.mockReset(); apiDelete.mockReset(); vi.unstubAllGlobals() })
 
 describe('VirtualWatchlistTool', () => {
+  it('selects a reported ETF holding by its stable row identity when tickers repeat', async () => {
+    const duplicateReportedRows = [
+      { rowKey: 'igv:510:610', instrumentId: null, symbol: 'DUP', name: 'Older reported line' },
+      { rowKey: 'igv:511:710', instrumentId: null, symbol: 'DUP', name: 'Current reported line' },
+    ]
+    const wrapper = mount(VirtualWatchlistTool, {
+      props: {
+        label: 'IGV reported holdings',
+        rows: duplicateReportedRows,
+        selected: 'DUP',
+        selectedRowKey: 'igv:511:710',
+        columns: [{ key: 'symbol', label: 'Symbol' }, { key: 'name', label: 'Name' }],
+      },
+    })
+
+    const options = wrapper.findAll('[role="option"]')
+    expect(options).toHaveLength(2)
+    expect(options.map(option => option.attributes('aria-selected'))).toEqual(['false', 'true'])
+    expect(options.map(option => option.classes().includes('watchlist__row--active'))).toEqual([false, true])
+
+    await options[1]!.trigger('click')
+    expect(wrapper.emitted('select')?.[0]?.[0]).toMatchObject({ rowKey: 'igv:511:710', symbol: 'DUP' })
+    wrapper.unmount()
+  })
+
   it('launches the exact canonical source in Market Map, including locked universes', async () => {
     const wrapper = mount(VirtualWatchlistTool, {
       props: { label: 'S&P 500 constituents', rows, marketMapSourceId: 'benchmark-family:sp500:cap_weight' },

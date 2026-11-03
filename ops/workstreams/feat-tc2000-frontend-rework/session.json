@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published source ecd9de13cd9ca2d862c8c2aff34c9fa616bbf00d has exact CI41634743064 Frontend Unit terminal failure: 1506 passed and 7 failed. The failures exposed stale ETF holding-resolution expectations that expected a second discovery click and prior copy, plus an assertion that omitted the explicit false constituent-lineage argument. The tests now reflect the existing automatic discovery and event contract without changing product source. Nine focused frontend suites pass239/239 with one worker and vue-tsc/Vite build passes; corrected-source exact CI and the Root-coordinated combined browser profile remain pending. Prior F8Y/TCO accepted checkpoints remain historical; all9 AC1-AC9 and official REF-HELP-V25 remain open.",
-  "current_checkpoint_status": "Current implementation is ordinary-ticker-journey-repair-20261103 on adopted synchronized-green staging f8323af179922193f4dcf3c9f0a5d9001282455f. OTJ1-OTJ3 have focused implementation coverage; OTJ4 remains in progress for shared SearchBar/multi-chart entrypoint coverage; OTJ5, corrected-source exact CI, Root-coordinated full profile and review remain pending. Prior F8Y and TCO acceptance objects/archives are preserved and do not accept this new source.",
+  "current_candidate_ci_status": "Current ordinary-ticker-journey candidate is based on adopted synchronized-green staging f8323af179922193f4dcf3c9f0a5d9001282455f. Eleven focused frontend unit suites pass 331/331 on one worker; vue-tsc/Vite build passes (540 modules); the controlled Playwright file collects six cases but no browser profile has run. Scope self-tests and full guard pass (1091 changed paths, 881 immutable imports, 29 exact Provider adaptations, 112 exact presentation paths, two source-pinned consumer adaptations). Exact candidate CI and Root-coordinated functional/strict-visual qualification are pending. Published ecd9de13 CI41634743064 remains historical red; all nine AC1-AC9 and official REF-HELP-V25 remain open.",
+  "current_checkpoint_status": "The ordinary-ticker-journey-repair-20261103 implementation covers Workstation, shared SearchBar, Chart entrypoints, direct ETF selection, producer-qualified ETF cache freshness, reported constituent rows, and stale-selection/local-derived-data refresh guards. Root's exact functional consumer approval for ETFHoldingResolutionAction.vue is recorded in plan.yaml and enforced as one source-pinned path exception. Prior F8Y and TCO acceptance objects/archives remain historical and do not accept this candidate; exact-source CI and the Root-coordinated full functional/strict-visual profile remain pending.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -72,27 +72,31 @@
     "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
   },
   "dirty_paths": [
+    "frontend/src/components/chart/ChartPanel.vue",
     "frontend/src/components/common/SearchBar.vue",
+    "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
+    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
     "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/etfHoldingDrilldown.ts",
     "frontend/src/lib/onDemandAcquisition.ts",
-    "frontend/src/lib/workstationSymbolSearch.ts",
+    "frontend/src/lib/workstation/etfReportedConstituents.ts",
     "frontend/src/stores/workspace.ts",
     "frontend/src/views/ChartView.vue",
-    "frontend/src/views/ETFHoldingsView.vue",
     "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
+    "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
     "frontend/tests/unit/components/test_search_bar.test.ts",
+    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
+    "frontend/tests/unit/lib/test_etf_reported_constituents.test.ts",
     "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
-    "frontend/tests/unit/lib/workstation_symbol_search.test.ts",
     "frontend/tests/unit/stores/test_workspace_store.test.ts",
-    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
-    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
     "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/f8323af179922193f4dcf3c9f0a5d9001282455f.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f8323af179922193f4dcf3c9f0a5d9001282455f.json",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
+    "scripts/validate-tc2000-scope.py"
   ],
   "docker": {
     "available": false,
@@ -135,10 +139,10 @@
   "finished_at": null,
   "frozen_upstream_import_guard": {
     "approved_snapshot": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
-    "candidate_source": "98ad55a2061a9ae2e3d6630edc431aca177a712e",
+    "candidate_source": "f8323af179922193f4dcf3c9f0a5d9001282455f",
     "manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4bc50a9de9eb2453c75eda047d01466309a3a3da.yaml",
-    "manifest_sha256": "ebab8effb18813a1e26ec45cb156a841c620824e19e80f5b7ca65430680674b9",
-    "result": "Scope self-test passed; full guard passed for1075 changed paths with878 byte-verified imports,29 Provider adaptations and112 presentation adaptations."
+    "manifest_sha256": "678d50c222799cbc83c8a39e6ed05fc900b7d204ffdfa2858a5aeac536aceb63",
+    "result": "Scope self-test passed; full guard passed for1091 changed paths with881 byte-verified imports,29 Provider adaptations,112 presentation adaptations and2 exact frontend consumer adaptations."
   },
   "frozen_upstream_import_history": [
     {
@@ -222,8 +226,8 @@
         "text": "Apply the human-authorized TC2000 presentation handoff to every exact reachable route/component path in frontend_presentation_handoff; preserve all workflows, URLs, data, keyboard/accessibility/mobile behavior and upstream domain contracts; qualify with focused checks and later Root-assigned exact-source full visual/functional gates. This does not close official V25 parity or the full roadmap."
       }
     ],
-    "current_candidate_ci_status": "Local candidate is source-bound to base cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e and remains unpublished/uncommitted. Exact owned frontend image sha256:f271611f118300abab4fe3091d2f4562d3a2249fff941c264d55dbd73cf41758 was built from the current product source; attempt17 passed the four controlled-response Chromium cases at zero retries. Focused unit tests passed85/85, vue-tsc/Vite build passed, provider-boundary test passed1/1, and current Playwright collection lists four tests. No exact-source branch CI has run. Green ETF staging adoption and the later full combined profile remain pending.",
-    "current_checkpoint_status": "The local candidate now covers the real main Workstation front door as well as ChartView and ETF flows. From an unknown local ticker, ordinary search remains local-only, explicit discovery and identity selection resolve the symbol, and a deliberate bounded history action from the focused empty chart requests only that instrument/timeframe/range and displays local bar readback. All four controlled-response Chromium cases passed in attempt17 (23.0s, one worker, zero retries, exit0/no OOM) on the current source-built image; attempts11 and13-16 remain preserved, and attempt12 is qualified only for its three legacy-chart/ETF cases. These are fixture-only software checks, not Provider/ETF source evidence. No visual oracle changed. The source remains local and unpublished; producer staging adoption and full combined qualification remain pending; all nine roadmap criteria remain open.",
+    "current_candidate_ci_status": "Dirty candidate is based on adopted f832 staging and covers the ordinary Workstation, SearchBar, Chart, ETF holdings/constituent, and refresh paths. Current focused evidence: 11 unit files passed 324/324 with one worker; vue-tsc/Vite build passed with 540 modules; E2E collection lists six controlled cases, but no browser profile or exact CI has run. Scope passes with 881 immutable imports, 29 exact Provider adaptations, 112 presentation adaptations, and two exact f832-pinned consumer adaptations. No source/provider/issuer HTTP or fixture operation occurred in this turn.",
+    "current_checkpoint_status": "The ordinary flow keeps typing and mount local-only, discovers an unknown ticker after an exact local miss, requires deliberate identity selection, and independently runs bounded history/metadata/ETF holdings with generation guards. Direct ETF switches clear old context; current cached holdings are reused; reported unresolved holdings remain visible and eligible rows open the existing canonical picker immediately while preserving snapshot lineage. Full browser and visual qualification remain pending Root allocation; controlled fixtures are not genuine source proof. Prior failed attempts and accepted F8Y/TCO scopes remain unchanged; all nine original roadmap criteria stay open.",
     "current_software_checkpoint": {
       "acceptance": "pending; no checkpoint acceptance is claimed",
       "criteria_completed": [],
@@ -231,7 +235,7 @@
       "id": "tc-on-demand-workstation-consumer-20261027",
       "local_evidence": "Attempt17 proves four controlled-response software flows only. The exact TC fixture/browser/builder was cleaned after evidence capture with all protected baseline identities unchanged. Green ETF staging adoption, exact-source branch CI and full combined functional/strict-visual profile remain pending.",
       "planning_direction": "/home/m920q/charting-platform/.ai/staging-attempts/tc-on-demand-checkpoint-planning-direction-20261027.md",
-      "source_base": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
+    "source_base": "f8323af179922193f4dcf3c9f0a5d9001282455f",
       "status": "in_progress"
     },
     "head": "cc4b88226f6fb6ad40f4f0a133d84e80c31a9b4e",
@@ -255,7 +259,7 @@
       ],
       "current_blocker": "No local focused-validation blocker. This local candidate has four passing controlled-response browser cases, 85 focused unit tests and a successful frontend build; green ETF staging adoption and the later full combined profile are still pending.",
       "current_phase": "Implement on-demand acquisition consumers in ChartView, ETF holdings and the real main Workstation focused-chart front door; controlled four-case browser evidence is green on the exact local image, while source publication and full combined acceptance remain open.",
-      "next_action": "Await Root's exact green ETF staging release and later full-profile allocation. Adopt only the released source through the supported workflow; do not push this preparation or treat controlled fixtures as live source proof. Preserve all roadmap and operational holds.",
+    "next_action": "Publish one coherent focused-green candidate for exact-source CI, then obtain Root's single combined full functional/strict-visual profile allocation. Do not claim controlled fixture data as genuine source proof; preserve all nine roadmap criteria and operational holds.",
       "total": 6,
       "updated_at": "2026-10-27T22:19:23Z"
     },
@@ -310,7 +314,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Finish the active ordinary ticker journey scope/workstream checks, then publish one coherent candidate for exact CI. Root owns the later full combined profile allocation; no provider/source calls or fixture launch are included here.",
+  "next_action": "Commit and publish one coherent focused-green ordinary-selection candidate for exact branch CI; Root owns the later full functional/strict-visual profile allocation. No provider/source calls or fixture launch are included.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -341,7 +345,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "8e07839048afdc1cab9a967fca0553e5b91a9164b0f865f05c1981730149358b",
+  "plan_hash": "46003963556a0969a1b886202e3e6381a11e1ae4cb10facec02583f0f7d438a6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -357,14 +361,13 @@
     "completed": [
       "OTJ1",
       "OTJ2",
-      "OTJ3",
-      "OTJ4"
+      "OTJ6"
     ],
-    "current_blocker": "OTJ5 scope/workstream checks and exact-source CI remain pending; no full combined browser profile has been allocated by this turn.",
-    "current_phase": "Ordinary ticker-selection repair is active over adopted f832 staging. The Workstation and shared SearchBar/Chart consumer paths have focused tests/build; no new checkpoint is accepted.",
-    "next_action": "Complete scope/workstream/hash/history checks, publish one coherent candidate for Root review, then await its exact CI and later Root-coordinated profile allocation.",
-    "total": 5,
-    "updated_at": "2026-11-03T12:10:59Z"
+    "current_blocker": "No focused source blocker remains. Exact-source branch CI and Root's combined full functional/strict-visual profile allocation are pending; no browser fixture was launched in this validation turn.",
+    "current_phase": "Ordinary ticker-selection repair is active over adopted f832 staging. Producer-qualified ETF capability now controls saved-cache reuse; 331 focused tests and the frontend typecheck/build pass. No new checkpoint is accepted.",
+    "next_action": "Publish one coherent focused-green candidate for exact branch CI, then obtain Root's combined full functional/strict-visual profile allocation. Preserve current-cache zero-refresh, stale-cache one-refresh, last-known-on-hold/error, and selection-generation assertions.",
+    "total": 6,
+    "updated_at": "2026-11-03T13:53:14Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -531,7 +534,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-10-28T19:16:14Z",
+  "updated_at": "2026-11-03T13:53:14Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

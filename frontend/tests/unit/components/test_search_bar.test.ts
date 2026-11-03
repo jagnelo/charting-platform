@@ -355,7 +355,10 @@ describe('SearchBar', () => {
     expect(api.post).toHaveBeenCalledWith('/instruments/resolve-expression', {
       expression: '=SPY-QQQ',
     })
-    expect(wrapper.emitted('select')?.[0]).toEqual(['=SPY-QQQ', undefined])
+    expect(wrapper.emitted('select')?.[0]).toEqual([
+      '=SPY-QQQ',
+      { symbol: '=SPY-QQQ', name: '=SPY-QQQ', exchange: '', type: 'Synthetic' },
+    ])
   })
 
   it('shows a hint and skips API calls for incomplete expressions', async () => {

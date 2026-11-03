@@ -9,6 +9,12 @@
         :readonly="readonly"
         :placeholder="placeholder"
         class="search-input"
+        role="combobox"
+        aria-haspopup="listbox"
+        :aria-expanded="showDropdown ? 'true' : 'false'"
+        :aria-controls="optionsListId"
+        :aria-activedescendant="activeOptionId"
+        :aria-label="inputAriaLabel || placeholder"
         @input="onInput"
         @focus="onFocus"
         @keydown.escape="handleEscape"
@@ -18,11 +24,13 @@
       />
       <span v-if="loading" class="search-spinner">⟳</span>
     </div>
-    <div v-if="showDropdown" class="search-results">
+    <div v-if="showDropdown" :id="dropdownId" class="search-results" role="group" aria-label="Symbol search">
       <!-- Expression chart row (shown instead of normal results when query looks like expression) -->
+      <div v-if="canResolveExpression" :id="optionsListId" class="search-option-list" role="listbox" aria-label="Symbol search results">
       <div
-        v-if="canResolveExpression"
         :class="['result-item', 'result-item--expr', { highlighted: highlightIdx === 0 }]"
+        role="option"
+        :aria-selected="highlightIdx === 0 ? 'true' : 'false'"
         @click="selectExpression"
         @mouseenter="highlightIdx = 0"
       >
@@ -30,12 +38,17 @@
         <span class="r-name">{{ expressionActionLabel }}: <em>{{ query }}</em></span>
         <span class="r-type">Synthetic</span>
       </div>
+      </div>
       <template v-else>
         <template v-if="query.trim() && !isExpression">
+          <div :id="optionsListId" class="search-option-list" role="listbox" aria-label="Symbol search results">
           <div
             v-for="(r, i) in results"
             :key="r.symbol"
+            :id="optionId(i)"
             :class="['result-item', { highlighted: i === highlightIdx }]"
+            role="option"
+            :aria-selected="i === highlightIdx ? 'true' : 'false'"
             @click="select(r)"
             @mouseenter="highlightIdx = i"
           >
@@ -43,14 +56,32 @@
             <span class="r-name">{{ r.name }}</span>
             <span class="r-type">{{ r.type }}</span>
           </div>
+          <button
+            v-for="(candidate, index) in discoveryCandidates"
+            :id="candidateOptionId(index)"
+            :key="`${candidate.provider}:${candidate.symbol}:${candidate.exchange}`"
+            type="button"
+            role="option"
+            class="search-source-candidate"
+            :class="{ highlighted: highlightIdx === results.length + index }"
+            :aria-selected="highlightIdx === results.length + index ? 'true' : 'false'"
+            :disabled="discoveryLoading || resolvingCandidate"
+            @click="resolveCandidate(candidate)"
+            @mouseenter="highlightIdx = results.length + index"
+          >Use {{ candidate.symbol }} · {{ candidate.exchange || candidate.type }} <span>{{ candidate.name }}</span></button>
+          </div>
         </template>
         <template v-else>
           <template v-if="showRecentResults">
             <div class="recent-title">Recently viewed</div>
+            <div :id="optionsListId" class="search-option-list" role="listbox" aria-label="Recently viewed symbols">
             <div
               v-for="(r, i) in recentStore.recent"
               :key="r.symbol"
+              :id="optionId(i)"
               :class="['result-item', { highlighted: i === highlightIdx }]"
+              role="option"
+              :aria-selected="i === highlightIdx ? 'true' : 'false'"
               @click="selectRecent(r.symbol)"
               @mouseenter="highlightIdx = i"
             >
@@ -58,19 +89,11 @@
               <span class="r-name">{{ r.name || 'Recent instrument' }}</span>
               <span class="r-type">Recent</span>
             </div>
+            </div>
           </template>
         </template>
         <section v-if="allowSourceDiscovery && query.trim() && !isExpression" class="search-source-discovery" aria-label="Ticker availability" @keydown.esc="handleEscape">
           <p v-if="discoveryScheduled || discoveryLoading" class="search-message" role="status" aria-live="polite">No exact local match. Checking ticker availability…</p>
-          <button
-            v-for="(candidate, index) in discoveryCandidates"
-            :key="`${candidate.provider}:${candidate.symbol}:${candidate.exchange}`"
-            type="button"
-            class="search-source-candidate"
-            :class="{ highlighted: highlightIdx === results.length + index }"
-            :disabled="discoveryLoading || resolvingCandidate"
-            @click="resolveCandidate(candidate)"
-          >Use {{ candidate.symbol }} · {{ candidate.exchange || candidate.type }} <span>{{ candidate.name }}</span></button>
           <p v-if="resolvingCandidate" class="search-message" role="status" aria-live="polite">Verifying ticker identity…</p>
           <p v-if="discoveryMessage" class="search-message" role="status" aria-live="polite">{{ discoveryMessage }}</p>
           <p v-if="discoveryError" class="search-message search-message--error" role="alert">{{ discoveryError }}</p>
@@ -93,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, useId } from 'vue'
 import { api } from '@/lib/api'
 import {
   ensureKnownInstrumentSymbol,
@@ -126,6 +149,8 @@ const props = withDefaults(defineProps<{
   sourceDiscoveryOnly?: boolean
   openOnMount?: boolean
   requiredResolvedSymbol?: string
+  resultsId?: string
+  inputAriaLabel?: string
 }>(), {
   placeholder: 'Symbol…',
   modelValue: '',
@@ -140,12 +165,18 @@ const props = withDefaults(defineProps<{
   sourceDiscoveryOnly: false,
   openOnMount: false,
   requiredResolvedSymbol: '',
+  resultsId: '',
+  inputAriaLabel: '',
 })
 const emit = defineEmits<{
   select: [symbol: string, result?: SearchResult]
   'update:modelValue': [value: string]
 }>()
 const recentStore = useRecentInstrumentsStore()
+const generatedSearchId = useId()
+const searchId = computed(() => props.resultsId || `search-bar-${generatedSearchId}`)
+const dropdownId = computed(() => `${searchId.value}-popup`)
+const optionsListId = computed(() => searchId.value)
 
 const query            = ref(props.modelValue)
 const results          = ref<SearchResult[]>([])
@@ -191,6 +222,18 @@ const showDropdown = computed(() =>
     || (!query.value.trim() && showRecentResults.value && recentStore.recent.length > 0)
   )
 )
+const activeOptionId = computed(() => {
+  if (canResolveExpression.value) return optionsListId.value
+  if (query.value.trim() && highlightIdx.value >= 0) {
+    if (highlightIdx.value < results.value.length) return optionId(highlightIdx.value)
+    const candidateIndex = highlightIdx.value - results.value.length
+    if (discoveryCandidates.value[candidateIndex]) return candidateOptionId(candidateIndex)
+  }
+  if (!query.value.trim() && showRecentResults.value && recentStore.recent[highlightIdx.value]) {
+    return optionId(highlightIdx.value)
+  }
+  return undefined
+})
 
 watch(() => props.modelValue, value => {
   if (value !== query.value) {
@@ -346,6 +389,14 @@ function onFocus() {
   if (!query.value.trim()) highlightIdx.value = 0
 }
 
+function optionId(index: number) {
+  return `${optionsListId.value}-option-${index}`
+}
+
+function candidateOptionId(index: number) {
+  return `${optionsListId.value}-candidate-${index}`
+}
+
 function select(r: SearchResult) {
   commitSelection(r.symbol, r.name, r)
 }
@@ -359,7 +410,7 @@ async function selectExpression() {
   loading.value = true
   try {
     const symbol = await ensureKnownInstrumentSymbol(expr)
-    commitSelection(symbol, expr)
+    commitSelection(symbol, expr, { symbol, name: expr, exchange: '', type: 'Synthetic' })
     expressionSelected.value = true
   } catch (e) {
     errorMessage.value = formatInstrumentLookupError(expr, e)
@@ -480,6 +531,12 @@ onUnmounted(() => {
   invalidateSearch()
   document.removeEventListener('mousedown', handleClickOutside)
 })
+defineExpose({
+  focusInput() {
+    inputRef.value?.focus()
+    inputRef.value?.select()
+  },
+})
 </script>
 
 <style scoped>
@@ -541,6 +598,24 @@ onUnmounted(() => {
   cursor: pointer;
   font-size: 12px;
 }
+
+.search-source-candidate {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--tc-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+.search-source-candidate span { color: var(--tc-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-source-candidate.highlighted { background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); }
+.search-source-candidate:disabled { cursor: wait; opacity: 0.65; }
 
 .result-item.highlighted { background: #1a2a3a; }
 .result-item--expr { border-left: 2px solid #64b5f6; }

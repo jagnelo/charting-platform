@@ -671,6 +671,23 @@ describe('workspace store layout tabs', () => {
     expect(store.selectedIndustryProxy).toBeNull()
   })
 
+  it('preserves a saved ETF snapshot when a later local holdings read returns not found', async () => {
+    const saved = {
+      snapshot: { id: 44, etf_symbol: 'OIH', composition_date: '2026-10-01', provenance: 'last-known' },
+      holdings: [{ id: 45, reported_symbol: 'XLE', is_resolved: false }],
+      total: 1,
+    }
+    apiGet.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }))
+    const store = useWorkspaceStore()
+    store.etfHoldings = { OIH: saved as any }
+    store.setConstituentETF('OIH')
+
+    await store.loadETFHoldings('OIH')
+
+    expect(store.etfHoldings.OIH).toEqual(saved)
+    expect(store.etfHoldings.OIH?.snapshot).toMatchObject({ id: 44, etf_symbol: 'OIH', provenance: 'last-known' })
+  })
+
   it('does not clear a newer holdings context when an older symbol returns unavailable', async () => {
     apiGet.mockImplementation((path: string) => {
       if (path === '/etf-holdings/OIH/holdings') return Promise.reject(Object.assign(new Error('not found'), { status: 404 }))

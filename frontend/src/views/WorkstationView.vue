@@ -160,7 +160,7 @@
               type="button"
               role="option"
               :aria-selected="index === searchIndex"
-              @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id)"
+              @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id, result.type)"
             ><strong>{{ result.symbol }}</strong><span>{{ result.name }}</span><small>{{ result.exchange || result.type }}</small></button>
           </div>
           <div v-if="sourceDiscoveryMessage" class="workstation__symbol-search-message" role="status" aria-live="polite">{{ sourceDiscoveryMessage }}</div>
@@ -250,6 +250,7 @@
         :active-window-key="popoutTool.instance_key"
         :factory-layout="workspaceStore.activeTabKey"
         @select="(symbol, instrumentId, preserveETFContext) => selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true)"
+        @holding-drilldown="openHoldingDrilldown"
         @compare="compareSymbols"
         @ratio="openMarketMapRatio"
         @reorder="reorderWatchlistItems"
@@ -304,7 +305,7 @@ import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { acquireETFHoldings, acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { acquireETFHoldings, acquireSelectedHistory, defaultHistoryRange, isCurrentETFHoldingsCapability, readETFHoldingsCapability, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
@@ -317,6 +318,7 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
 
@@ -1075,6 +1077,16 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
+function openHoldingDrilldown(symbol: string, context: ETFHoldingDrilldownContext) {
+  const canonical = symbol.trim().toUpperCase()
+  if (!canonical || canonical !== context.canonicalSymbol.trim().toUpperCase()
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
+  void router.push({
+    path: `/legacy/chart/${encodeURIComponent(canonical)}`,
+    query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
+  })
+}
+
 async function selectSymbol(
   raw: string,
   timestamp?: string,
@@ -1272,8 +1284,17 @@ async function acquireSelectedTickerData(
                 ? `No ${timeframe} history is available for ${symbol}; the selected chart is unchanged.`
                 : `History for ${symbol} could not be loaded; the selected chart is unchanged.`
         if ((result.status === 'complete' || result.status === 'partial')
-          && chartStore.symbol === symbol && generation === symbolSelectionGeneration) {
-          await chartStore.refreshLocalBars()
+          && chartStore.symbol === symbol
+          && generation === symbolSelectionGeneration) {
+          // The initial selection read may have completed before these bars
+          // were persisted. Refresh chart bars and local derived data together
+          // so the visible technical/details panel catches up without another
+          // user action. The workspace store also fences overlapping symbol
+          // technical reads; recheck this selection before starting either read.
+          await Promise.all([
+            chartStore.refreshLocalBars(),
+            workspaceStore.loadTechnical(symbol),
+          ])
         }
       }
     } catch {
@@ -1317,12 +1338,25 @@ async function acquireSelectedTickerData(
       await localDataReady
       if (generation !== symbolSelectionGeneration) return
       const stored = workspaceStore.etfHoldings[symbol.toUpperCase()]
-      if (stored?.snapshot) {
-        selectionHoldingsMessage.value = `Saved holdings for ${symbol} are available locally.`
+      const capability = await readETFHoldingsCapability(symbol)
+      if (generation !== symbolSelectionGeneration) return
+      if (isCurrentETFHoldingsCapability(capability)) {
+        const currentPage = await workspaceStore.loadETFHoldings(symbol)
+        if (generation !== symbolSelectionGeneration) return
+        const latestLocalSnapshot = currentPage?.snapshot
+          ?? workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot
+        selectionHoldingsMessage.value = currentPage?.snapshot
+          ? `Current holdings for ${symbol} are available locally.`
+          : latestLocalSnapshot
+            ? `The holdings feed for ${symbol} is current; showing saved holdings while the latest local snapshot is unavailable.`
+            : `Holdings for ${symbol} are current, but no saved snapshot was returned.`
         return
       }
 
-      selectionHoldingsMessage.value = `Checking holdings for ${symbol}…`
+      const hasLastKnown = Boolean(stored?.snapshot)
+      selectionHoldingsMessage.value = hasLastKnown
+        ? `Showing last-known holdings for ${symbol}; checking for a current update…`
+        : `Checking holdings for ${symbol}…`
       const holdings = await acquireETFHoldings(symbol, true, Number(resolvedInstrumentId))
       if (generation !== symbolSelectionGeneration) return
       if (holdings.symbol.trim().toUpperCase() !== symbol.toUpperCase()
@@ -1333,17 +1367,29 @@ async function acquireSelectedTickerData(
         return
       }
       if (holdings.outcome === 'unavailable') {
-        selectionHoldingsMessage.value = holdings.message?.trim()
-          ? `Holdings for ${symbol}: ${holdings.message.trim()}`
-          : `Holdings for ${symbol} are not available for this ticker.`
+        const detail = holdings.message?.trim()
+        selectionHoldingsMessage.value = hasLastKnown
+          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
+          : detail
+            ? `Holdings for ${symbol} are not available: ${detail}`
+            : `Holdings for ${symbol} are not available for this ticker.`
         return
       }
       if (holdings.outcome === 'held') {
-        selectionHoldingsMessage.value = `Holdings for ${symbol} are currently unavailable; saved data remains visible.`
+        const detail = holdings.message?.trim()
+        selectionHoldingsMessage.value = hasLastKnown
+          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
+          : detail
+            ? `Current holdings for ${symbol} are unavailable: ${detail}`
+            : `Current holdings for ${symbol} are unavailable; no saved snapshot is available.`
         return
       }
       if (holdings.outcome === 'failed') {
-        selectionHoldingsError.value = `Holdings for ${symbol} could not be loaded; saved data remains visible.`
+        if (hasLastKnown) {
+          selectionHoldingsError.value = `Holdings for ${symbol} could not be updated; last-known holdings remain visible.${holdings.message?.trim() ? ` ${holdings.message.trim()}` : ''}`
+        } else {
+          selectionHoldingsError.value = `Holdings for ${symbol} could not be loaded; no saved snapshot is available.`
+        }
         return
       }
       if (holdings.profile) {
@@ -1351,14 +1397,21 @@ async function acquireSelectedTickerData(
         selectionHoldingsMessage.value = holdings.outcome === 'acquired'
           ? `Holdings for ${symbol} are available from the selected ticker.`
           : holdings.outcome === 'no_data'
-            ? `No holdings snapshot is available for ${symbol}.`
+            ? hasLastKnown
+              ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
+              : `No holdings snapshot is available for ${symbol}.`
             : `Saved holdings for ${symbol} are available locally.`
       } else {
-        selectionHoldingsMessage.value = `No holdings snapshot is available for ${symbol}.`
+        selectionHoldingsMessage.value = hasLastKnown
+          ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
+          : `No holdings snapshot is available for ${symbol}.`
       }
     } catch {
       if (generation === symbolSelectionGeneration) {
-        selectionHoldingsError.value = `Holdings for ${symbol} could not be checked; saved data remains visible.`
+        const hasLastKnown = Boolean(workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot)
+        selectionHoldingsError.value = hasLastKnown
+          ? `Holdings for ${symbol} could not be checked; last-known holdings remain visible.`
+          : `Holdings for ${symbol} could not be checked; no saved snapshot is available.`
       }
     }
   })()
@@ -2280,6 +2333,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
     onSelect: (symbol: string, instrumentId?: number | null, preserveETFContext?: boolean) => void selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true),
+    onHoldingDrilldown: (symbol: string, context: ETFHoldingDrilldownContext) => openHoldingDrilldown(symbol, context),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),

@@ -285,8 +285,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   has the identical application tree and passed its full required CI40656688915. This feature-branch adoption records
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
-current_blocker: Workstation ticker selection has focused coverage/build results; shared SearchBar and Chart entrypoints are in the same focused validation slice. Exact-source CI and Root-coordinated combined browser qualification remain pending. No provider, issuer, target, or hold changes are included.
-current_checkpoint_status: 'The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes with their original evidence and archives. Current active implementation is ordinary-ticker-journey-repair-20261103; its generalized SearchBar/Chart integration and exact-source review remain pending. The synchronized-green f832 baseline is adopted; it does not accept this new consumer delta. All nine original AC1-AC9 and official REF-HELP-V25 remain open.'
+current_blocker: Focused ordinary-selection checks pass, but exact-source branch CI and Root-coordinated full functional/strict-visual browser qualification remain pending; no browser slot has been allocated for this candidate. No provider, issuer, target, or hold changes are included.
+current_checkpoint_status: 'The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes with their original evidence and archives. Current active implementation is ordinary-ticker-journey-repair-20261103; generalized SearchBar/Chart flows, uncached reported-holding drilldown, post-acquisition local technical refresh, exact-source CI, and combined browser qualification remain under qualification. The synchronized-green f832 baseline is adopted; it does not accept this new consumer delta. All nine original AC1-AC9 and official REF-HELP-V25 remain open.'
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -3056,6 +3056,28 @@ approved_provider_contract_adaptations:
     accepted_blob: 43a54455835ddb60ecc0116649df7172e2a43965
     delta: Extend the retained-bar response expectation with released derived-lineage fields.
     rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
+approved_frontend_consumer_adaptations:
+  - path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
+    source_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+    accepted_blob: 9c899304ac51f9fa1de652c5d9a655800414ae4f
+    delta: >-
+      TC's ordinary selected-holding workflow starts the existing canonical picker immediately and
+      replaces producer-implementation wording with user-facing selection language.
+    rationale: >-
+      Root's 2026-11-03 review explicitly authorized functional consumer adaptation of this
+      exact imported UI seam for the human-activated ordinary ticker journey, including generic
+      user-facing copy and immediate activation of the existing picker after a deliberate row click.
+      This is not presentation-only authority. It changes no ETF API, identity/admission policy,
+      holdings data, or source behavior; every other frontend/src/components/etf path remains excluded.
+  - path: frontend/src/lib/etfHoldingDrilldown.ts
+    source_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+    accepted_blob: 5b40ea8f143c1477d3eece2bc44ef668368f1f19
+    delta: >-
+      TC-owned ordinary constituent flow validates reported equity eligibility and preserves the exact
+      parent instrument, snapshot, holding row, source and known-at lineage through chart navigation.
+    rationale: >-
+      This source-only UI consumer helper adds no ETF identity decision, persisted data mutation, backend
+      policy, source call, automatic constituent fan-out, or current-analysis eligibility override.
 approved_frozen_upstream_snapshots:
 - source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
   receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
@@ -3210,10 +3232,10 @@ status: in_progress
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: The F8Y checkpoint remains accepted historical work. Active development is ordinary-ticker-journey-repair-20261103; OTJ1-OTJ4 have focused coverage and OTJ5 exact-source/profile gates remain pending.
+  current_phase: The F8Y checkpoint remains accepted historical work. Active ordinary-ticker-journey-repair-20261103 has focused search/chart/technical-refresh coverage; unresolved reported-holding flows and exact-source/full-profile qualification remain pending.
   current_blocker: Exact-source branch CI and Root-coordinated full combined browser profile remain pending; no new fixture is allocated by this turn.
-  next_action: Complete scope/workstream and append-only record checks, then publish one coherent candidate for Root review without claiming full acceptance.
-  updated_at: '2026-11-03T12:10:59Z'
+  next_action: Complete the ordinary-flow source and record checks, publish one coherent candidate for exact CI, then request Root allocation for the unchanged full combined profile.
+  updated_at: '2026-11-03T13:32:00Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -3986,16 +4008,19 @@ active_implementation:
       text: Local search stays read-only; debounce shared ticker discovery only when enabled search lacks an exact local canonical match, including one-character tickers.
       status: completed
     - id: OTJ2
-      text: Canonical selection starts bounded history independently of metadata and ETF holdings, retaining cached data and rejecting stale selection completions.
+      text: Canonical selection starts bounded history independently of metadata and ETF holdings, retains cached data, refreshes local derived technicals after successful persisted history, and rejects stale selection completions.
       status: completed
     - id: OTJ3
-      text: Direct ETF selection clears or rebinds holdings context immediately; intentional constituent drilldown retains parent lineage; null/unavailable outcomes remain typed; stored holdings are reused.
-      status: completed
+      text: Direct ETF selection clears or rebinds holdings context immediately; intentional constituent drilldown retains parent lineage; every reported holding remains visible with type and identity state even when unresolved; only eligible selected equities enter canonical acquisition, and null/unavailable outcomes remain typed. On deliberate ETF selection, reuse holdings only when the backend capability qualifies them as current, identity-verified, and usable for current analysis; otherwise make at most one governed refresh while retaining and labelling last-known data on held/error.
+      status: in_progress
     - id: OTJ4
       text: Shared SearchBar and ordinary Chart entrypoints use the shared discovery trigger and bounded history orchestration without acquisition from picker-only controls.
       status: in_progress
     - id: OTJ5
       text: Focused tests/typecheck/build/scope and exact-source CI pass; Root-coordinated full combined browser/profile gate remains pending.
       status: in_progress
-  validation: Nine focused frontend suites passed 239 tests with one Vitest worker; vue-tsc and Vite build passed (539 modules). Exact CI41634743064 for published ecd9de13 is red in Frontend Unit (1506 passed, 7 failed); six stale ETF resolution expectations and one Workstation event assertion are corrected in tests to match automatic discovery and the explicit false lineage flag. No corrected-source CI has run. Root-coordinated combined browser profile remains pending.
-  next_action: Publish the focused correction to the published candidate, then unify multi-chart panel selection with shared discovery and bounded acquisition before combined profile review; preserve the red ecd9de13 receipt.
+    - id: OTJ6
+      text: After complete or partial selected history persists, reload local chart and technical/details data for the still-current visible symbol without a second action; late prior-symbol completion cannot repaint the new selection.
+      status: completed
+  validation: Eleven focused frontend suites passed 331 tests with one worker, including current-capability local reread with zero source refresh, stale-capability single refresh, held/error last-known preservation, reported-holding selection, and local technical refresh/stale-completion regressions; vue-tsc and the Vite build passed (540 modules). The ordinary-acquisition Playwright file collects six controlled cases; no browser profile has run for this candidate. Scope self-tests and the full guard passed with 881 immutable imports, 29 exact Provider adaptations, 112 presentation adaptations, and two exact f832-pinned frontend consumer adaptations. The earlier ecd9de13 red remains historical; no CI for this candidate has run. Root-coordinated full functional and strict-visual qualification remain pending.
+  next_action: Finish the current source and record reconciliation, publish one coherent focused-green candidate for exact branch CI, then obtain Root's single combined full functional/strict-visual profile allocation; preserve all historical red/setup evidence.

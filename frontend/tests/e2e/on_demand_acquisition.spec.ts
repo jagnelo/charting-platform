@@ -4,6 +4,7 @@ import type {
   ETFHoldingsDate,
   ETFHoldingsPage,
   ETFHoldingsSnapshot,
+  ETFHoldingsCapability,
   ETFProfile,
   ExpirationSummary,
   OptionsExposureResponse,
@@ -20,7 +21,7 @@ import type {
 
 type DiscoveryRequest = { query: string; types: string[]; limit: number; request_id: string }
 type HistoryRequestBody = HistoryAcquisitionRequest & { request_id: string }
-type IssuerRequest = { request_id: string; refresh: boolean }
+type IssuerRequest = { request_id: string; refresh: boolean; instrument_id?: number }
 type InstrumentRequestBody = InstrumentAcquireRequest
 
 // Mirrors the backend CalendarEvent response model consumed by UPlotChart.
@@ -104,6 +105,17 @@ function expectBoundedM1Request(request: HistoryRequestBody) {
   expect(Math.ceil((end - start) / 60_000) + 1).toBeLessThanOrEqual(2000)
 }
 
+function expectBoundedD1Request(request: HistoryRequestBody) {
+  expect(request).toMatchObject({ timeframe: 'D1', adjusted: true })
+  expect(request.request_id).toMatch(/^[0-9a-f-]{36}$/i)
+  expect(request.start).toMatch(/(?:Z|[+-]\d{2}:\d{2})$/i)
+  expect(request.end).toMatch(/(?:Z|[+-]\d{2}:\d{2})$/i)
+  const start = Date.parse(request.start)
+  const end = Date.parse(request.end)
+  expect(end).toBeGreaterThan(start)
+  expect(Math.ceil((end - start) / 86_400_000) + 1).toBeLessThanOrEqual(2000)
+}
+
 function missingCoverage(url: URL) {
   const start = url.searchParams.get('start') ?? ''
   const end = url.searchParams.get('end') ?? ''
@@ -116,7 +128,7 @@ function missingCoverage(url: URL) {
   }
 }
 
-test('explicit chart discovery, identity selection, and bounded missing-history request', async ({ page, loggedIn, browserDiagnostics }) => {
+test('chart search discovers an unknown ticker automatically, then requires identity selection before bounded history', async ({ page, loggedIn, browserDiagnostics }) => {
   await page.goto('about:blank')
 
   const fixtureInstrumentId = 990010
@@ -127,8 +139,8 @@ test('explicit chart discovery, identity selection, and bounded missing-history 
   const canonicalSearchRequests: string[] = []
 
   // TCNEW is deliberately absent from the local canonical master in this
-  // controlled browser case. Keep that local read deterministic; discovery and
-  // acquisition remain explicit user actions below.
+  // controlled browser case. Discovery follows the debounced local miss;
+  // identity resolution and chart selection still require the user's choice.
   await page.route('**/api/v1/instruments/search**', async route => {
     const url = new URL(route.request().url())
     if (route.request().method() !== 'GET' || url.searchParams.get('q')?.toUpperCase() !== 'TCNEW') {
@@ -263,6 +275,10 @@ test('explicit chart discovery, identity selection, and bounded missing-history 
       && url.pathname === '/api/v1/instruments/search'
       && url.searchParams.get('q')?.toUpperCase() === 'TCNEW'
   })
+  const discoveryResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/discover'
+  }, { timeout: 10_000 })
   await search.fill('')
   await search.pressSequentially('TCNEW', { delay: 25 })
   const canonicalResults = await canonicalSearch
@@ -273,11 +289,6 @@ test('explicit chart discovery, identity selection, and bounded missing-history 
   expect(instrumentRequests).toHaveLength(0)
   expect(historyRequests).toHaveLength(0)
 
-  const discoveryResponseReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST' && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/discover'
-  }, { timeout: 10_000 })
-  await page.getByRole('button', { name: 'Search free sources for TCNEW' }).click()
   const discoveryResponse = await discoveryResponseReady
   expect(discoveryResponse.status()).toBe(200)
   expect(await discoveryResponse.json()).toMatchObject({ status: 'complete', candidates: [{ symbol: 'TCNEW', identity_status: 'unresolved' }] })
@@ -287,7 +298,7 @@ test('explicit chart discovery, identity selection, and bounded missing-history 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/TCNEW'
   }, { timeout: 10_000 })
-  await page.getByRole('button', { name: /Resolve TCNEW · TEST/ }).click()
+  await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const instrumentReadback = await instrumentReadbackReady
   expect(instrumentReadback.status()).toBe(200)
   expect(await instrumentReadback.json()).toMatchObject({ id: fixtureInstrumentId, symbol: 'TCNEW' })
@@ -347,6 +358,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     availability: 'current', source_tier: 'issuer_native', identity_verified: true,
     usable_for_current_analysis: true, displayable_last_known: true,
     consecutive_failures: 0, reason: 'Controlled fixture capability only.',
+    symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
   }
   const profile: ETFProfile = {
     id: profileId, instrument_id: 779000, symbol: 'OIH', name: 'Controlled Oil Services ETF',
@@ -423,7 +435,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     expect(body.query).toBe(symbol)
     expect(body.types).toEqual(['Equity', 'Stock', 'CS'])
     const providerCandidate = {
-      symbol, name: holding.reported_name, exchange: 'XNYS', type: 'CS',
+      symbol, name: holding.reported_name ?? symbol, exchange: 'XNYS', type: 'CS',
       provider: 'test-fixture', instrument_id: null, identity_status: 'unresolved' as const,
     }
     // Match the backend's raw-type substring filter so a native CS candidate
@@ -517,18 +529,17 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect(localReadCount).toBe(0)
   expect(calendarReads).toHaveLength(0)
 
-  await holdingButton.click()
-  await page.getByRole('button', { name: `Resolve reported holding ${symbol}` }).click()
-  expect(discoveryRequests).toHaveLength(0)
   const discoveryResponseReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/discover'
   })
-  await page.getByRole('button', { name: `Search free sources for ${symbol}` }).click()
+  await holdingButton.click()
+  await page.getByRole('button', { name: `Resolve reported holding ${symbol}` }).click()
+  expect(discoveryRequests).toHaveLength(0)
   expect((await discoveryResponseReady).status()).toBe(200)
   expect(discoveryRequests).toHaveLength(1)
   expect(identityRequests).toHaveLength(0)
-  await page.getByRole('button', { name: /Resolve UNXQ · XNYS/ }).click()
+  await page.getByRole('button', { name: /Use UNXQ · XNYS/ }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/)
   expect(identityRequests).toHaveLength(1)
   expect(historyRequests).toHaveLength(0)
@@ -587,7 +598,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
-test('main Workstation explicitly discovers an unknown ticker and loads its missing bars into the focused chart', async ({ page, loggedIn, browserDiagnostics }) => {
+test('main Workstation automatically discovers an unknown ticker and loads missing bars after selection', async ({ page, loggedIn, browserDiagnostics }) => {
   await page.goto('about:blank')
 
   const fixtureInstrumentId = 990014
@@ -618,11 +629,16 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
 
   await page.route('**/api/v1/instruments/search**', async route => {
     const url = new URL(route.request().url())
-    if (route.request().method() !== 'GET' || url.searchParams.get('q')?.toUpperCase() !== 'TCNEW') {
+    const query = url.searchParams.get('q')?.toUpperCase()
+    if (route.request().method() !== 'GET' || !['TCNEW', 'BWET'].includes(query ?? '')) {
       await route.continue()
       return
     }
-    canonicalSearchRequests.push(url.searchParams.get('q') ?? '')
+    canonicalSearchRequests.push(query ?? '')
+    if (query === 'BWET') {
+      await route.fulfill({ status: 200, json: [] })
+      return
+    }
     await route.fulfill({
       status: 200,
       json: canonicalInstrumentResolved ? [{
@@ -683,14 +699,17 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
   await page.route('**/api/v1/instruments/discover**', async route => {
     const body = route.request().postDataJSON() as DiscoveryRequest
     discoveryRequests.push(body)
+    const hasControlledListing = body.query.trim().toUpperCase() === 'TCNEW'
     const response = {
       request_id: body.request_id,
-      status: 'complete',
-      candidates: [{
+      status: hasControlledListing ? 'complete' : 'no_match',
+      candidates: hasControlledListing ? [{
         symbol: 'TCNEW', name: 'Unknown ticker (controlled test fixture)', exchange: 'TEST', type: 'Stock',
         provider: 'test-fixture', instrument_id: null, identity_status: 'unresolved',
-      }],
-      source_outcomes: [{ ...fixtureOutcome, capability: 'instrument_search', operation: 'search', status: 'returned', result_count: 1 }],
+      }] : [],
+      source_outcomes: hasControlledListing
+        ? [{ ...fixtureOutcome, capability: 'instrument_search', operation: 'search', status: 'returned', result_count: 1 }]
+        : [{ ...fixtureOutcome, capability: 'instrument_search', operation: 'search', status: 'no_match', result_count: 0 }],
     } satisfies InstrumentDiscoveryResponse
     await route.fulfill({ status: 200, json: response })
   })
@@ -714,9 +733,11 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
     const barMs = Math.ceil(startMs / 60_000) * 60_000
     expect(barMs).toBeGreaterThanOrEqual(startMs)
     expect(barMs).toBeLessThan(endMs)
-    acquiredBar = {
+    const bar: OHLCVBar = {
       ts: new Date(barMs).toISOString(), open: 10, high: 11, low: 9, close: 10.5, volume: 100,
-    } satisfies OHLCVBar
+      is_adjusted: true, is_derived: false,
+    }
+    acquiredBar = bar
     historyAcquired = true
     const response = {
       request_id: body.request_id,
@@ -730,11 +751,11 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
       coverage: {
         status: 'partial',
         bar_count: 1,
-        covered_start: acquiredBar.ts,
-        covered_end: acquiredBar.ts,
+        covered_start: bar.ts,
+        covered_end: bar.ts,
         missing_slices: [{ start: new Date(barMs + 60_000).toISOString(), end: body.end }],
       },
-      bars: [acquiredBar],
+      bars: [bar],
       source_outcomes: [{ ...fixtureOutcome, status: 'used' }],
     } satisfies HistoryAcquisitionResponse
     await route.fulfill({ status: 200, json: response })
@@ -754,6 +775,10 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
       && url.pathname === '/api/v1/instruments/search'
       && url.searchParams.get('q')?.toUpperCase() === 'TCNEW'
   })
+  const discoveryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/discover'
+  }, { timeout: 10_000 })
   await search.click()
   await search.fill('')
   await search.pressSequentially('TCNEW', { delay: 25 })
@@ -764,11 +789,6 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
   expect(instrumentRequests).toHaveLength(0)
   expect(historyRequests).toHaveLength(0)
 
-  const discoveryReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/discover'
-  }, { timeout: 10_000 })
-  await page.getByRole('button', { name: 'Search free sources for TCNEW' }).click()
   const discovery = await discoveryReady
   expect(discovery.status()).toBe(200)
   expect(await discovery.json()).toMatchObject({ candidates: [{ symbol: 'TCNEW', identity_status: 'unresolved' }] })
@@ -780,7 +800,7 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
     const url = new URL(response.url())
     return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
   }, { timeout: 10_000 })
-  await page.getByRole('button', { name: /Resolve TCNEW · TEST/ }).click()
+  await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const candidateResolve = await candidateResolveReady
   expect(candidateResolve.status()).toBe(200)
   await expect(search).toHaveValue('TCNEW')
@@ -819,6 +839,30 @@ test('main Workstation explicitly discovers an unknown ticker and loads its miss
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
   expect(historyRequests).toHaveLength(1)
+
+  // A second unknown ticker with no controlled candidate stays a search result:
+  // it does not resolve an identity or replace the already loaded chart.
+  const noMatchSearchReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/v1/instruments/search'
+      && url.searchParams.get('q')?.toUpperCase() === 'BWET'
+  })
+  const noMatchDiscoveryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/discover'
+      && (response.request().postDataJSON() as DiscoveryRequest).query.trim().toUpperCase() === 'BWET'
+  }, { timeout: 10_000 })
+  await search.fill('BWET')
+  expect(await (await noMatchSearchReady).json()).toEqual([])
+  const noMatchDiscovery = await noMatchDiscoveryReady
+  expect(noMatchDiscovery.status()).toBe(200)
+  expect(await noMatchDiscovery.json()).toMatchObject({ status: 'no_match', candidates: [] })
+  await expect(page.getByRole('button', { name: /Search free sources/ })).toHaveCount(0)
+  expect(discoveryRequests.map(request => request.query.trim().toUpperCase())).toEqual(['TCNEW', 'BWET'])
+  expect(instrumentRequests).toHaveLength(1)
+  expect(historyRequests).toHaveLength(1)
+  await expect(page.locator('.tool-window--active .chart-root')).toHaveAttribute('aria-busy', 'false')
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
@@ -864,6 +908,8 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     if (!selectedProfile) throw new Error('Expected the seeded IWM profile before its explicit issuer request')
     const response = {
       request_id: body.request_id,
+      instrument_id: selectedProfile.instrument_id,
+      symbol: selectedProfile.symbol,
       outcome: 'held',
       refresh: body.refresh,
       refresh_attempted: true,
@@ -1169,6 +1215,8 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     issuerRequests.push(body)
     const response = {
       request_id: body.request_id,
+      instrument_id: fixtureInstrumentId,
+      symbol: 'OIH',
       outcome: 'acquired',
       refresh: body.refresh,
       refresh_attempted: true,
@@ -1318,27 +1366,14 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(discoveryRequests).toHaveLength(0)
   expect(issuerRequests).toHaveLength(0)
 
-  const discoveryResponseReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/discover'
-  }, { timeout: 10_000 })
-  await page.getByRole('button', { name: 'Search free sources for OIH' }).click()
-  const discoveryResponse = await discoveryResponseReady
-  expect(discoveryResponse.status()).toBe(200)
-  expect(await discoveryResponse.json()).toMatchObject({ status: 'complete', candidates: [{ symbol: 'OIH', identity_status: 'unresolved' }] })
-  expect(discoveryRequests).toHaveLength(1)
-  await page.getByRole('button', { name: /Resolve OIH · TEST/ }).click()
+  const oihOption = page.getByRole('option', { name: /^OIH\b/ })
+  await expect(oihOption).toBeVisible()
+  await oihOption.click()
   expect(fixtureProfile.instrument_id).toBe(fixtureInstrumentId)
   expect(fixtureSnapshot.etf_instrument_id).toBe(fixtureInstrumentId)
   expect(fixtureHolding.constituent_instrument_id).toBe(amdInstrumentId)
-  expect(discoveryRequests).toHaveLength(1)
-  expect(identityRequests).toHaveLength(1)
-  expect(identityRequests[0]).toMatchObject({
-    symbol: 'OIH',
-    provider_candidate: { provider: 'test-fixture', symbol: 'OIH', exchange: 'TEST' },
-  })
-  expect(identityRequests[0]?.request_id).toMatch(/^[0-9a-f-]{36}$/i)
+  expect(discoveryRequests).toHaveLength(0)
+  expect(identityRequests).toHaveLength(0)
 
   await expect(page.getByText('No stored snapshot is selected.')).toBeVisible()
   expect(issuerRequests).toHaveLength(0)
@@ -1417,4 +1452,603 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(readbackBars[0]).toMatchObject({ ts: acquiredFixtureBar!.ts, close: acquiredFixtureBar!.close })
   await expect(historicalContext).toBeVisible()
   await browserDiagnostics.expectNoCriticalIssues()
+})
+
+test('main Workstation keeps selected ETF chart history independent and ignores late prior-fund holdings', async ({ page, loggedIn, browserDiagnostics }) => {
+  await page.goto('about:blank')
+
+  const instruments = {
+    SPY: { id: 991000, name: 'Controlled S&P 500 ETF' },
+    XHB: { id: 991001, name: 'Controlled Homebuilders ETF' },
+    OIH: { id: 991002, name: 'Controlled Oil Services ETF' },
+    IGV: { id: 991003, name: 'Controlled Software ETF' },
+    RSP: { id: 991004, name: 'Controlled Equal Weight ETF' },
+    QQQ: { id: 991005, name: 'Controlled Nasdaq 100 ETF' },
+    UNXQ: { id: 991006, name: 'Unlisted Example Software Corp' },
+  } as const
+  type FixtureSymbol = keyof typeof instruments
+  type FixtureETF = Exclude<FixtureSymbol, 'UNXQ'>
+  const historyRequests: Array<{ symbol: FixtureSymbol; body: HistoryRequestBody }> = []
+  const issuerRequests: Array<{ symbol: FixtureSymbol; body: IssuerRequest }> = []
+  const discoveryRequests: DiscoveryRequest[] = []
+  const holdingsReads: FixtureSymbol[] = []
+  const industryReads: FixtureSymbol[] = []
+  const calendarReads: string[] = []
+  const localReadbacks: Array<{ symbol: FixtureSymbol; timeframe: string; bars: OHLCVBar[] }> = []
+  const acquired = new Set<FixtureSymbol>()
+  const bars = new Map<FixtureSymbol, OHLCVBar>()
+  function deferred() {
+    let resolve!: () => void
+    const promise = new Promise<void>(done => { resolve = done })
+    return { promise, resolve }
+  }
+  const xhbAcquireStarted = deferred()
+  const xhbAcquireGate = deferred()
+  const oihAcquireStarted = deferred()
+  const oihAcquireGate = deferred()
+  const oihFailureStarted = deferred()
+  const oihFailureGate = deferred()
+  const igvAcquireStarted = deferred()
+  const igvAcquireGate = deferred()
+  const unresolvedDiscoveryStarted = deferred()
+  const unresolvedDiscoveryGate = deferred()
+  let oihAcquireCount = 0
+  let igvSnapshotAvailable = false
+  const capabilityReads: FixtureETF[] = []
+  let unxqDiscoveryCount = 0
+  const identityRequests: InstrumentRequestBody[] = []
+  const igvSnapshotId = 991203
+  const unxqHolding: ETFHolding = {
+    id: 991601,
+    snapshot_id: igvSnapshotId,
+    constituent_instrument_id: null,
+    constituent_symbol: null,
+    constituent_name: null,
+    reported_symbol: 'UNXQ',
+    reported_name: 'Unlisted Example Software Corp',
+    position: 1,
+    weight: '0.125',
+    holding_type: 'equity',
+    row_type: 'security',
+    source_row_id: 'igv-controlled-row-991601',
+    is_resolved: false,
+  }
+  const fixtureFuture: ETFHolding = {
+    id: 991602,
+    snapshot_id: igvSnapshotId,
+    constituent_instrument_id: null,
+    constituent_symbol: null,
+    constituent_name: null,
+    reported_symbol: 'FUTURE-A',
+    reported_name: 'Controlled futures position',
+    position: 2,
+    weight: '0.01',
+    holding_type: 'future',
+    row_type: 'derivative',
+    source_row_id: 'igv-controlled-row-991602',
+    is_resolved: false,
+  }
+  const fixtureCash: ETFHolding = {
+    id: 991603,
+    snapshot_id: igvSnapshotId,
+    constituent_instrument_id: null,
+    constituent_symbol: null,
+    constituent_name: null,
+    reported_symbol: null,
+    reported_name: 'Cash and equivalents',
+    position: 3,
+    weight: '0.0025',
+    holding_type: 'cash',
+    row_type: 'cash',
+    source_row_id: 'igv-controlled-row-991603',
+    is_resolved: false,
+  }
+  const igvSnapshot: ETFHoldingsSnapshot = {
+    id: igvSnapshotId,
+    etf_profile_id: instruments.IGV.id + 100,
+    etf_instrument_id: instruments.IGV.id,
+    etf_symbol: 'IGV',
+    etf_name: 'Controlled mixed-type fixture fund',
+    composition_date: '2026-11-02',
+    known_at: '2026-11-03T08:15:00Z',
+    provenance: 'controlled_fixture_only',
+    source_provider: 'test-fixture',
+    source_quality: 'controlled_fixture',
+    completeness_status: 'complete',
+    row_count: 3,
+    resolved_count: 0,
+    unresolved_count: 3,
+    parser_version: 'fixture-v1',
+    holdings: [unxqHolding, fixtureFuture, fixtureCash],
+  }
+  const igvHoldingsPage: ETFHoldingsPage = {
+    snapshot: igvSnapshot,
+    holdings: [unxqHolding, fixtureFuture, fixtureCash],
+    total: 3,
+    limit: 500,
+    offset: 0,
+    has_next: false,
+  }
+
+  const profileFor = (symbol: FixtureETF): ETFProfile => ({
+    id: instruments[symbol].id + 100,
+    instrument_id: instruments[symbol].id,
+    symbol,
+    name: instruments[symbol].name,
+    issuer: 'test-fixture',
+    fund_family: 'controlled browser fixture',
+    adapter_status: 'ready',
+    latest_composition_date: '2026-11-02',
+    latest_snapshot_id: symbol === 'IGV' && !igvSnapshotAvailable ? null : symbol === 'IGV' ? igvSnapshotId : instruments[symbol].id + 200,
+    resolved_count: 0,
+    unresolved_count: symbol === 'IGV' && igvSnapshotAvailable ? 3 : 0,
+    holdings_capability: null,
+  })
+  const holdingsResponse = (symbol: FixtureETF, body: IssuerRequest, outcome: 'acquired' | 'unavailable'): ETFProfileAcquireResponse => ({
+    request_id: body.request_id,
+    instrument_id: instruments[symbol].id,
+    symbol,
+    outcome,
+    refresh: body.refresh,
+    refresh_attempted: true,
+    refresh_succeeded: outcome === 'acquired',
+    profile: outcome === 'acquired' ? profileFor(symbol) : null,
+    provider_request_log_ids: [],
+    source_provider: 'test-fixture',
+    source_operation: 'controlled_browser_fixture',
+    message: outcome === 'acquired'
+      ? 'Controlled fixture response only; not issuer evidence.'
+      : 'No holdings profile is available in this controlled fixture.',
+  })
+
+  await page.route('**/api/v1/instruments/search**', async route => {
+    const url = new URL(route.request().url())
+    const symbol = (url.searchParams.get('q') ?? '').trim().toUpperCase() as FixtureSymbol
+    if (route.request().method() !== 'GET' || !(symbol in instruments)) return route.continue()
+    if (symbol === 'UNXQ') {
+      await route.fulfill({ status: 200, json: [] })
+      return
+    }
+    await route.fulfill({ status: 200, json: [{
+      symbol,
+      name: instruments[symbol].name,
+      exchange: 'TEST',
+      type: symbol === 'UNXQ' ? 'Equity' : 'ETF',
+      instrument_id: instruments[symbol].id,
+      identity_status: 'resolved',
+    }] })
+  })
+  await page.route(url => /^\/api\/v1\/instruments\/(?:XHB|OIH|IGV|UNXQ)$/.test(new URL(url).pathname), async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/').at(-1) as FixtureSymbol
+    if (route.request().method() !== 'GET') return route.continue()
+    await route.fulfill({ status: 200, json: {
+      id: instruments[symbol].id,
+      symbol,
+      name: instruments[symbol].name,
+      currency: 'USD',
+      is_active: true,
+    } })
+  })
+  await page.route('**/api/v1/instruments/acquire', async route => {
+    const body = route.request().postDataJSON() as InstrumentRequestBody
+    const symbol = body.symbol.trim().toUpperCase() as FixtureSymbol
+    expect(instruments[symbol], 'history identity must remain within the deliberately selected instrument').toBeTruthy()
+    if (symbol === 'UNXQ') expect(body.provider_candidate).toMatchObject({ provider: 'test-fixture', symbol: 'UNXQ', exchange: 'TEST' })
+    else expect(body.provider_candidate).toBeUndefined()
+    identityRequests.push(body)
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instruments[symbol].id) })
+  })
+  await page.route('**/api/v1/instruments/discover', async route => {
+    const body = route.request().postDataJSON() as DiscoveryRequest
+    discoveryRequests.push(body)
+    if (body.query.trim().toUpperCase() === 'UNXQ') {
+      unxqDiscoveryCount += 1
+      if (unxqDiscoveryCount === 1) {
+        unresolvedDiscoveryStarted.resolve()
+        await unresolvedDiscoveryGate.promise
+      }
+      const response: InstrumentDiscoveryResponse = {
+        request_id: body.request_id,
+        status: 'complete',
+        candidates: [{ symbol: 'UNXQ', name: instruments.UNXQ.name, exchange: 'TEST', type: 'CS', provider: 'test-fixture', instrument_id: null, identity_status: 'unresolved' }],
+        source_outcomes: [fixtureOutcome],
+      }
+      await route.fulfill({ status: 200, json: response })
+      return
+    }
+    await route.fulfill({ status: 200, json: {
+      request_id: body.request_id,
+      status: 'no_match',
+      candidates: [],
+      source_outcomes: [{ ...fixtureOutcome, status: 'no_match', result_count: 0 }],
+    } satisfies InstrumentDiscoveryResponse })
+  })
+  await page.route('**/api/v1/coverage/instruments/*/ohlcv**', async route => {
+    const url = new URL(route.request().url())
+    const symbol = url.pathname.split('/')[5] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    expect(url.searchParams.get('mode')).toBe('historical')
+    expect(url.searchParams.get('adjusted')).toBe('true')
+    await route.fulfill({ status: 200, json: missingCoverage(url) })
+  })
+  await page.route('**/api/v1/instruments/*/history-acquisitions', async route => {
+    const body = route.request().postDataJSON() as HistoryRequestBody
+    const id = Number(new URL(route.request().url()).pathname.match(/\/instruments\/(\d+)\//)?.[1])
+    const symbol = (Object.keys(instruments) as FixtureSymbol[]).find(key => instruments[key].id === id)
+    if (!symbol) return route.continue()
+    expect(body).toMatchObject({ timeframe: 'D1', adjusted: true })
+    expect(body.request_id).toMatch(/^[0-9a-f-]{36}$/i)
+    const start = Date.parse(body.start)
+    const end = Date.parse(body.end)
+    expect(end).toBeGreaterThan(start)
+    expect(Math.ceil((end - start) / 86_400_000) + 1).toBeLessThanOrEqual(2000)
+    historyRequests.push({ symbol, body })
+    const bar: OHLCVBar = {
+      ts: body.start,
+      open: 41,
+      high: 43,
+      low: 40,
+      close: 42,
+      volume: 700,
+      is_adjusted: true,
+      is_derived: false,
+    }
+    bars.set(symbol, bar)
+    acquired.add(symbol)
+    const response: HistoryAcquisitionResponse = {
+      request_id: body.request_id,
+      status: 'partial',
+      instrument_id: id,
+      symbol,
+      timeframe: body.timeframe,
+      adjusted: body.adjusted,
+      requested_start: body.start,
+      requested_end: body.end,
+      coverage: {
+        status: 'partial',
+        covered_start: bar.ts,
+        covered_end: bar.ts,
+        bar_count: 1,
+        missing_slices: [{ start: new Date(Date.parse(bar.ts) + 86_400_000).toISOString(), end: body.end }],
+      },
+      bars: [bar],
+      source_outcomes: [{ ...fixtureOutcome, capability: 'historical_ohlcv', operation: 'history', status: 'returned', result_count: 1 }],
+    }
+    await route.fulfill({ status: 200, json: response })
+  })
+  await page.route('**/api/v1/ohlcv/local/*/*', async route => {
+    const parts = new URL(route.request().url()).pathname.split('/')
+    const symbol = parts.at(-2) as FixtureSymbol
+    const timeframe = parts.at(-1) ?? ''
+    if (!(symbol in instruments)) return route.continue()
+    const rows = acquired.has(symbol) && bars.has(symbol) ? [bars.get(symbol)!] : []
+    localReadbacks.push({ symbol, timeframe, bars: rows })
+    await route.fulfill({ status: 200, json: rows })
+  })
+  await page.route('**/api/v1/instruments/*/data-coverage', async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    await route.fulfill({ status: 200, json: { symbol, is_fetching: false, coverage: {} } })
+  })
+  await page.route('**/api/v1/instruments/*/options/exposure**', async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    if (route.request().url().includes('/expirations')) {
+      await route.fulfill({ status: 200, json: [] })
+      return
+    }
+    await route.fulfill({ status: 200, json: {
+      symbol, spot: null, expirations: [], active_expirations: [], computed_at: '2026-11-03T00:00:00Z',
+      ladder: [], key_levels: { call_wall: null, put_wall: null, gamma_flip: null, max_pain: null },
+      pcr_oi: null, pcr_volume: null, implied_move_pct: null, total_gex: 0, total_net_dex: 0,
+    } satisfies OptionsExposureResponse })
+  })
+  await page.route(url => /^\/api\/v1\/calendar\/instruments\/[^/]+\/calendar$/.test(new URL(url).pathname), async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const symbol = decodeURIComponent(url.pathname.split('/')[5] ?? '').toUpperCase()
+    if (request.method() !== 'GET' || !(symbol in instruments) && symbol !== 'SPY') return route.continue()
+    calendarReads.push(symbol)
+    await route.fulfill({ status: 200, json: [] })
+  })
+  await page.route('**/api/v1/etf-holdings/*/holdings**', async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    holdingsReads.push(symbol)
+    if (symbol === 'IGV' && igvSnapshotAvailable) {
+      await route.fulfill({ status: 200, json: igvHoldingsPage })
+      return
+    }
+    await route.fulfill({ status: 404, json: { detail: 'No stored snapshot in this controlled fixture.' } })
+  })
+  await page.route('**/api/v1/etf-holdings/*/capability', async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    capabilityReads.push(symbol as FixtureETF)
+    const current = symbol === 'IGV' && igvSnapshotAvailable
+    const capability: ETFHoldingsCapability = {
+      availability: current ? 'current' : 'unknown',
+      source_tier: current ? 'issuer_native' : 'none',
+      identity_verified: true,
+      usable_for_current_analysis: current,
+      displayable_last_known: current,
+      consecutive_failures: 0,
+      reason: current ? 'Current controlled cache fixture.' : 'No current controlled cache fixture.',
+      symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+    }
+    await route.fulfill({ status: 200, json: capability })
+  })
+  await page.route('**/api/v1/market-groups/etf/*/industries**', async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/')[5] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    industryReads.push(symbol)
+    await route.fulfill({ status: 404, json: { detail: 'No point-in-time industry snapshot in this controlled fixture.' } })
+  })
+  await page.route('**/api/v1/etf-holdings/*/acquire', async route => {
+    const symbol = new URL(route.request().url()).pathname.split('/')[4] as FixtureSymbol
+    if (!(symbol in instruments)) return route.continue()
+    if (symbol === 'UNXQ') return route.continue()
+    const body = route.request().postDataJSON() as IssuerRequest
+    expect(body.refresh).toBe(true)
+    expect(body.instrument_id).toBe(instruments[symbol].id)
+    issuerRequests.push({ symbol, body })
+    if (symbol === 'XHB') {
+      xhbAcquireStarted.resolve()
+      await xhbAcquireGate.promise
+      await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'unavailable') })
+      return
+    }
+    if (symbol === 'OIH') {
+      oihAcquireCount += 1
+      if (oihAcquireCount === 1) {
+        oihAcquireStarted.resolve()
+        await oihAcquireGate.promise
+        await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'acquired') })
+        return
+      }
+      oihFailureStarted.resolve()
+      await oihFailureGate.promise
+      await route.fulfill({ status: 503, json: { detail: 'Controlled fixture error; no source request was made.' } })
+      return
+    }
+    if (symbol === 'IGV') {
+      igvAcquireStarted.resolve()
+      await igvAcquireGate.promise
+      igvSnapshotAvailable = true
+      await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'acquired') })
+      return
+    }
+    await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'unavailable') })
+  })
+
+  try {
+    await page.goto('/')
+    const symbolSearch = page.getByRole('combobox', { name: 'Active symbol' })
+    await expect(symbolSearch).toBeVisible()
+    expect(historyRequests).toHaveLength(0)
+    expect(issuerRequests).toHaveLength(0)
+    expect(discoveryRequests).toHaveLength(0)
+
+    async function chooseETF(symbol: FixtureSymbol) {
+      const localSearchReady = page.waitForResponse(response => {
+        const url = new URL(response.url())
+        return response.request().method() === 'GET'
+          && url.pathname === '/api/v1/instruments/search'
+          && url.searchParams.get('q')?.toUpperCase() === symbol
+      })
+      await symbolSearch.fill(symbol)
+      expect(await (await localSearchReady).json()).toMatchObject([{ symbol, type: 'ETF', instrument_id: instruments[symbol].id }])
+      const option = page.getByRole('option', { name: new RegExp(`^${symbol}\\b`) })
+      await expect(option).toBeVisible()
+      await option.click()
+      await expect(symbolSearch).toHaveValue(symbol)
+    }
+
+    const xhbHistoryResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST'
+        && url.pathname === `/api/v1/instruments/${instruments.XHB.id}/history-acquisitions`
+    })
+    const xhbIssuerResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/XHB/acquire'
+    })
+    await chooseETF('XHB')
+    const xhbHistoryResponse = await xhbHistoryResponseReady
+    expect(xhbHistoryResponse.status()).toBe(200)
+    await xhbAcquireStarted.promise
+    expect(issuerRequests.map(request => request.symbol)).toContain('XHB')
+    await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'XHB' && readback.bars.length === 1)).toBe(true)
+    expect(issuerRequests.find(request => request.symbol === 'XHB')?.body).toMatchObject({ refresh: true, instrument_id: instruments.XHB.id })
+    expect(holdingsReads).toContain('XHB')
+    expect(localReadbacks.find(readback => readback.symbol === 'XHB' && readback.bars.length === 1)?.timeframe).toBe('D1')
+
+    xhbAcquireGate.resolve()
+    expect((await xhbIssuerResponseReady).status()).toBe(200)
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB:' })).toBeVisible()
+
+    for (const symbol of ['SPY', 'RSP', 'QQQ'] as const) {
+      const historyResponseReady = page.waitForResponse(response => {
+        const url = new URL(response.url())
+        return response.request().method() === 'POST'
+          && url.pathname === `/api/v1/instruments/${instruments[symbol].id}/history-acquisitions`
+      })
+      const issuerResponseReady = page.waitForResponse(response => {
+        const url = new URL(response.url())
+        return response.request().method() === 'POST' && url.pathname === `/api/v1/etf-holdings/${symbol}/acquire`
+      })
+      await chooseETF(symbol)
+      expect((await historyResponseReady).status()).toBe(200)
+      expect((await issuerResponseReady).status()).toBe(200)
+      await expect.poll(() => localReadbacks.some(readback => readback.symbol === symbol && readback.bars.length === 1)).toBe(true)
+      await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: `Holdings for ${symbol} are not available` })).toBeVisible()
+    }
+
+    const oihIssuerResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
+    })
+    await chooseETF('OIH')
+    await oihAcquireStarted.promise
+    const oihReadsBeforeSwitch = holdingsReads.filter(symbol => symbol === 'OIH').length
+
+    const igvIssuerResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IGV/acquire'
+    })
+    await chooseETF('IGV')
+    await igvAcquireStarted.promise
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Checking holdings for IGV' })).toBeVisible()
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for OIH' })).toHaveCount(0)
+    expect(holdingsReads.at(-1)).toBe('IGV')
+    igvAcquireGate.resolve()
+    expect((await igvIssuerResponseReady).status()).toBe(200)
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for IGV are available from the selected ticker' })).toBeVisible()
+    expect(industryReads.at(-1)).toBe('IGV')
+    expect(holdingsReads.filter(symbol => symbol === 'IGV').length).toBeGreaterThan(0)
+    const oihIndustryReadsBeforeLateResponse = industryReads.filter(symbol => symbol === 'OIH').length
+
+    // The prior direct OIH selection resolves only after IGV is current. A late
+    // success may not restore OIH holdings or replace IGV's channel message.
+    oihAcquireGate.resolve()
+    expect((await oihIssuerResponseReady).status()).toBe(200)
+    await expect(symbolSearch).toHaveValue('IGV')
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for IGV are available from the selected ticker' })).toBeVisible()
+    expect(holdingsReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihReadsBeforeSwitch)
+    expect(industryReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihIndustryReadsBeforeLateResponse)
+
+    const delayedOihFailureResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
+    })
+    await chooseETF('OIH')
+    await oihFailureStarted.promise
+    const xhbAfterFailureSelectionReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/XHB/acquire'
+    })
+    await chooseETF('XHB')
+    expect((await xhbAfterFailureSelectionReady).status()).toBe(200)
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB:' })).toBeVisible()
+    oihFailureGate.resolve()
+    igvAcquireGate.resolve()
+    expect((await delayedOihFailureResponseReady).status()).toBe(503)
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB:' })).toBeVisible()
+    await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
+
+    expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'XHB'])
+    expect(historyRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'XHB'])
+    expect(discoveryRequests).toHaveLength(0)
+    expect(historyRequests.every(request => request.body.timeframe === 'D1' && request.body.adjusted)).toBe(true)
+    const requestIds = historyRequests.map(request => request.body.request_id)
+    expect(requestIds.every(requestId => /^[0-9a-f-]{36}$/i.test(requestId))).toBe(true)
+    expect(new Set(requestIds).size).toBe(requestIds.length)
+    const issuerRequestIds = issuerRequests.map(request => request.body.request_id)
+    expect(issuerRequestIds.every(requestId => /^[0-9a-f-]{36}$/i.test(requestId))).toBe(true)
+    expect(new Set(issuerRequestIds).size).toBe(issuerRequestIds.length)
+    expect(calendarReads.every(symbol => symbol === 'SPY' || symbol in instruments)).toBe(true)
+
+    // The acquired IGV snapshot is a real-shape controlled fixture with zero
+    // canonical equities. Reported values remain visible before identity work.
+    const igvIssuerCount = issuerRequests.filter(request => request.symbol === 'IGV').length
+    expect(igvIssuerCount).toBe(1)
+    expect(capabilityReads).toContain('IGV')
+    await chooseETF('IGV')
+    const igvWidget = page.getByRole('listbox', { name: /IGV holdings.*symbols/i })
+    await expect(igvWidget).toBeVisible()
+    const reportedHolding = igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
+    await expect(reportedHolding).toBeVisible()
+    await expect(reportedHolding).toContainText('12.50%')
+    await expect(reportedHolding).toContainText('security · equity')
+    await expect(reportedHolding).toContainText('Equity identity not resolved')
+    const futureHolding = igvWidget.getByRole('option', { name: /FUTURE-A Controlled futures position/ })
+    const cashHolding = igvWidget.getByRole('option', { name: /— Cash and equivalents/ })
+    await expect(futureHolding).toContainText('derivative · future')
+    await expect(cashHolding).toContainText('cash · cash')
+    const identityRequestsBeforeNonEquities = identityRequests.length
+    const historyRequestsBeforeNonEquities = historyRequests.length
+    await futureHolding.click()
+    await expect(page.getByRole('status').filter({ hasText: 'FUTURE-A · Controlled futures position is reported as future and cannot be opened as an equity chart.' })).toBeVisible()
+    await expect(page.getByRole('link', { name: 'Review ETF holdings' })).toBeVisible()
+    await cashHolding.click()
+    await expect(page.getByRole('status').filter({ hasText: 'Cash and equivalents is reported as cash and cannot be opened as an equity chart.' })).toBeVisible()
+    expect(issuerRequests.filter(request => request.symbol === 'IGV')).toHaveLength(igvIssuerCount)
+    expect(identityRequests).toHaveLength(identityRequestsBeforeNonEquities)
+    expect(historyRequests).toHaveLength(historyRequestsBeforeNonEquities)
+    expect(unxqHolding.constituent_instrument_id).toBeNull()
+    expect(unxqHolding.is_resolved).toBe(false)
+    expect(identityRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
+    expect(historyRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
+
+    // Row selection starts bounded discovery; changing funds before that
+    // response settles must invalidate the old snapshot-bound action.
+    const staleDiscoveryReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST'
+        && url.pathname === '/api/v1/instruments/discover'
+        && (response.request().postDataJSON() as DiscoveryRequest).query.toUpperCase() === 'UNXQ'
+    })
+    await reportedHolding.click()
+    await unresolvedDiscoveryStarted.promise
+    await chooseETF('XHB')
+    unresolvedDiscoveryGate.resolve()
+    expect((await staleDiscoveryReady).status()).toBe(200)
+    await expect(symbolSearch).toHaveValue('XHB')
+    await expect(page).toHaveURL(/\/$/)
+    await expect(page.getByRole('button', { name: /Use UNXQ · TEST/ })).toHaveCount(0)
+    expect(identityRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
+    expect(historyRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
+
+    // Re-select the fund and explicitly select its same reported row. The exact
+    // candidate is acquired once, the route retains snapshot/row lineage, and
+    // chart history is then loaded for only that one selected equity.
+    await chooseETF('IGV')
+    await expect(igvWidget).toBeVisible()
+    await expect(igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })).toBeVisible()
+    const identityResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
+        && (response.request().postDataJSON() as InstrumentRequestBody).symbol === 'UNXQ'
+    })
+    const historyResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST'
+        && url.pathname === `/api/v1/instruments/${instruments.UNXQ.id}/history-acquisitions`
+    })
+    await igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ }).click()
+    const candidate = page.getByRole('button', { name: /Use UNXQ · TEST/ })
+    await expect(candidate).toBeVisible()
+    await candidate.click()
+    expect((await identityResponseReady).status()).toBe(200)
+    expect((await historyResponseReady).status()).toBe(200)
+    await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/)
+    const holdingChartUrl = new URL(page.url())
+    expect(holdingChartUrl.searchParams.get('holding_snapshot_id')).toBe(String(igvSnapshot.id))
+    expect(holdingChartUrl.searchParams.get('holding_composition_date')).toBe(igvSnapshot.composition_date)
+    expect(holdingChartUrl.searchParams.get('holding_known_at')).toBe(igvSnapshot.known_at)
+    expect(holdingChartUrl.searchParams.get('holding_provenance')).toBe(igvSnapshot.provenance)
+    expect(holdingChartUrl.searchParams.get('holding_source_provider')).toBe(igvSnapshot.source_provider)
+    expect(holdingChartUrl.searchParams.get('holding_instrument_id')).toBe(String(instruments.UNXQ.id))
+    expect(holdingChartUrl.searchParams.get('holding_row_id')).toBe(String(unxqHolding.id))
+    expect(holdingChartUrl.searchParams.get('holding_source_row_id')).toBe(unxqHolding.source_row_id)
+    expect(holdingChartUrl.searchParams.get('holding_reported_symbol')).toBe(unxqHolding.reported_symbol)
+    expect(holdingChartUrl.searchParams.get('holding_reported_name')).toBe(unxqHolding.reported_name)
+    expect(holdingChartUrl.searchParams.get('holding_type')).toBe('equity')
+    expect(identityRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(1)
+    expect(identityRequests.find(request => request.symbol === 'UNXQ')?.provider_candidate).toMatchObject({ provider: 'test-fixture', symbol: 'UNXQ', exchange: 'TEST' })
+    const unxqHistory = historyRequests.filter(request => request.symbol === 'UNXQ')
+    expect(unxqHistory).toHaveLength(1)
+    expectBoundedD1Request(unxqHistory[0]!.body)
+    const loadedUnxqBar = bars.get('UNXQ')
+    await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'UNXQ' && readback.bars.length === 1)).toBe(true)
+    expect(localReadbacks.find(readback => readback.symbol === 'UNXQ' && readback.bars.length === 1)?.bars[0]).toMatchObject({ ts: loadedUnxqBar?.ts, close: loadedUnxqBar?.close })
+    await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
+    await browserDiagnostics.expectNoCriticalIssues()
+  } finally {
+    xhbAcquireGate.resolve()
+    oihAcquireGate.resolve()
+    oihFailureGate.resolve()
+    igvAcquireGate.resolve()
+    unresolvedDiscoveryGate.resolve()
+  }
 })
