@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Local candidate is based on published 27ab608fcacb48e474ad663b93c58edfd344d040 plus one real-API seeded E2E case and owned records. Playwright collection lists seven tests; vue-tsc, scope self/full guards, workstream validation and diff check pass. New browser case is not yet executed; exact-source CI is pending publication. Full combined functional/strict-visual profile awaits Root's green ETF staging release and allocation.",
-  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation. This candidate adds no-page.route real API wiring evidence in preparation only: Workstation search/selection, Chart SearchBar selection, and controlled seeded SPY holding lineage to local chart readback. It is not genuine Provider/issuer proof. Exact-source CI and full combined functional/strict-visual qualification remain pending; all earlier accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged.",
+  "current_candidate_ci_status": "The local DashboardInstrumentSearch correction has five focused passing unit tests, vue-tsc and Vite build; it is awaiting coherent commit/publication. No fixture/browser or source request was run. Exact branch CI and the combined functional/strict-visual profile remain pending.",
+  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation. Exact green Provider staging eb74 is adopted by merge c1f5126. The Dashboard watchlist/widget picker uses canonical-only local search and identity lookup, with no source discovery or history acquisition; five focused tests and frontend type-check/build pass. A separate visible-chart gap remains: successful/partial automatic history writes must refresh only the matching mounted Workstation panel store, and the browser case must verify the automatic visible-bar transition without a second manual load click. Controlled seeded data is not genuine Provider/issuer proof. Exact-source CI and full combined functional/strict-visual qualification remain pending; earlier accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -198,7 +198,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
+  "head": "53354276b6598832f253890a14e8b2f888ea042b",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -350,7 +350,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "b6bad92d869e0188187d8d6bb5732ba3d33a294a30ae990b34e6a61512a8138a",
+  "plan_hash": "caaf06ba3f65d6b118552adeba08ae5f6b2ff4e90e4b8137eebba24bc7a98467",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -379,15 +379,15 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "remote": "origin",
-    "remote_tracking_sha": "a33c848d6820d30f0a47a797f8760d15dbd73131",
-    "status": "Exact staging adoption merge and owned records are being validated; one normal push follows checks, then exact branch CI is required.",
-    "current_pending_range": "Released eb74 merge plus this coherent TC-owned adoption record packet; no TC product source changes in the merge.",
+    "remote_tracking_sha": "53354276b6598832f253890a14e8b2f888ea042b",
+    "status": "Published adoption base is synchronized; local Dashboard picker correction is being validated for one coherent follow-up publication.",
+    "current_pending_range": "Canonical-only DashboardInstrumentSearch correction and exact owner records; no backend/provider/runtime changes.",
     "failure_category": null
   },
-  "remote": "a33c848d6820d30f0a47a797f8760d15dbd73131",
-  "remote_sha": "a33c848d6820d30f0a47a797f8760d15dbd73131",
-  "remote_synchronized": false,
-  "remote_tracking_sha": "a33c848d6820d30f0a47a797f8760d15dbd73131",
+  "remote": "53354276b6598832f253890a14e8b2f888ea042b",
+  "remote_sha": "53354276b6598832f253890a14e8b2f888ea042b",
+  "remote_synchronized": true,
+  "remote_tracking_sha": "53354276b6598832f253890a14e8b2f888ea042b",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -553,7 +553,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-03T16:22:00Z",
+  "updated_at": "2026-11-03T16:34:29Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

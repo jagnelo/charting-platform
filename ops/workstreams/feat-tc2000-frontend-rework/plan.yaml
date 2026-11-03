@@ -297,9 +297,14 @@ current_checkpoint_status: >-
   seeded browser preparation remain software evidence, not genuine source proof.
   This adoption has no new CI or full-profile result: exact feature CI and the
   combined functional/strict-visual profile are pending. Root will provide the
-  frozen ETF backend artifact after its authorized minimum PostgreSQL proof.
-  All nine original AC1-AC9 and official REF-HELP-V25 remain open; no target,
-  deployment, provider/issuer request, quota, or hold change is claimed.
+  frozen ETF backend artifact after the authorized minimum PostgreSQL proof.
+  The Dashboard watchlist/widget picker now uses canonical-only local search
+  and identity lookup, with no provider discovery or history acquisition;
+  five focused tests plus type-check/build pass. A separate visible-chart gap
+  remains: successful/partial automatic history writes must refresh only the
+  matching mounted Workstation panel store. All nine original AC1-AC9 and
+  official REF-HELP-V25 remain open; no target, deployment, source request,
+  quota, or hold change is claimed.
 ordinary_ticker_latest_update: >-
   The dedicated ETF view reads producer capability only after deliberate
   profile-card or picker selection and makes at most one existing admitted
@@ -311,8 +316,12 @@ ordinary_ticker_latest_update: >-
   reuse, no-snapshot/new-fund selection, held-data retention, late A-to-B
   failure isolation, and the three keyboard paths. Exact-source CI and combined
   functional/strict-visual profile remain pending. The released Provider staging
-  eb74 is now adopted; this source-only reconciliation does not claim a new
-  test/profile result. No live source request or fixture was run; all nine AC1-AC9
+  eb74 is now adopted. The Dashboard watchlist/widget picker is canonical-only;
+  five focused tests, vue-tsc and Vite build pass, with no source discovery or
+  bar acquisition from that picker. Next, refresh only the matching mounted
+  Workstation panel store after successful/partial automatic history persistence
+  and correct the browser case to verify the visible chart without a second
+  manual load click. No live source request or fixture was run; all nine AC1-AC9
   and REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
@@ -3090,6 +3099,20 @@ approved_provider_contract_adaptations:
     delta: Extend the retained-bar response expectation with released derived-lineage fields.
     rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
 approved_frontend_consumer_adaptations:
+  - path: frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+    accepted_blob: 6cf1e43892058d2516e7c95f039375702f66c57a
+    delta: >-
+      Keep the Dashboard's watchlist and widget symbol picker on canonical-only
+      local search and identity lookup. It does not expose source discovery or
+      acquire chart history; those require the dedicated ordinary chart action.
+    rationale: >-
+      This exact TC-owned user-flow adaptation prevents picker typeahead and
+      selection from reaching provider search in legacy mode. The historical
+      whole-frontend presentation source/blob pin remains recorded at f80995c3.
+      The exact consumer pin extends only that same presentation file and
+      confines executable drift to this one path. No backend route, provider policy, identity rule,
+      acquisition action, or other dashboard component is changed.
   - path: frontend/src/views/ETFHoldingsView.vue
     source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
     accepted_blob: b55828d962432fca3a391fce306df2b5862c3d8e

@@ -30,12 +30,17 @@ HEX64 = re.compile(r"[0-9a-f]{64}")
 PRESENTATION_ADAPTATION_KEYS = {"path", "source_sha", "accepted_blob", "delta"}
 PRESENTATION_SUFFIXES = {".vue", ".ts", ".css"}
 CONSUMER_ADAPTATION_PATHS = {
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
     "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
     "frontend/src/lib/etfHoldingDrilldown.ts",
     "frontend/src/views/ETFHoldingsView.vue",
 }
 CONSUMER_PRESENTATION_OVERLAP_PATHS = {
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
     "frontend/src/views/ETFHoldingsView.vue",
+}
+PRESENTATION_SOURCE_CONSUMER_ADAPTATION_PATHS = {
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
 }
 
 
@@ -165,6 +170,10 @@ def validate_presentation_adaptations(
     if len(exact_paths) != len(set(exact_paths)):
         raise ValueError("presentation handoff paths must be unique")
     paths: dict[str, str] = {}
+    consumer_paths = {
+        item.get("path") for item in plan.get("approved_frontend_consumer_adaptations", [])
+        if isinstance(item, dict)
+    }
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) != PRESENTATION_ADAPTATION_KEYS:
             raise ValueError("presentation adaptation entries must use the exact schema")
@@ -182,6 +191,14 @@ def validate_presentation_adaptations(
         source_entry = tree_entry(root, source, path)
         if source_entry is None or source_entry[1] != accepted_blob:
             raise ValueError(f"presentation accepted blob does not match its source: {path}")
+        if path in consumer_paths:
+            if path not in CONSUMER_PRESENTATION_OVERLAP_PATHS:
+                raise ValueError(f"consumer adaptation cannot replace this presentation pin: {path}")
+            # The exact consumer validator below owns current index/worktree
+            # bytes for this explicit overlap; keep this historical source/blob
+            # pin and let the consumer record verify the accepted delta.
+            paths[path] = f"human-authorized TC presentation adaptation from {source}: {delta}"
+            continue
         staged_entry = index_entry(root, path)
         target = root / path
         if staged_entry is None or not target.is_file() or target.is_symlink():
@@ -288,7 +305,7 @@ def approved_frozen_snapshots(
 def validate_frontend_consumer_adaptations(
     plan: dict[str, Any], *, root: Path = ROOT
 ) -> dict[str, str]:
-    """Allow the one explicitly approved Workstation consumer edit to its ETF picker."""
+    """Allow only the explicitly enumerated frontend consumer adaptations."""
 
     entries = plan.get("approved_frontend_consumer_adaptations", [])
     if not isinstance(entries, list):
@@ -296,6 +313,13 @@ def validate_frontend_consumer_adaptations(
     approved = approved_frozen_snapshots(plan, root=root)
     baseline = str(plan.get("scope_guard_baseline_sha", "")).strip()
     manifests = plan.get("frozen_upstream_import_manifests", [])
+    presentation_entries = {
+        item.get("path"): item for item in plan.get("approved_presentation_adaptations", [])
+        if isinstance(item, dict)
+    }
+    presentation_source = str(
+        plan.get("frontend_presentation_handoff", {}).get("source_sha", "")
+    )
     adaptations: dict[str, str] = {}
     expected_keys = {"path", "source_sha", "accepted_blob", "delta", "rationale"}
     for item in entries:
@@ -316,34 +340,46 @@ def validate_frontend_consumer_adaptations(
             path in presentation_paths and path not in CONSUMER_PRESENTATION_OVERLAP_PATHS
         ):
             raise ValueError(f"frontend consumer adaptation overlaps another adaptation: {path}")
-        if source not in approved or not HEX40.fullmatch(blob):
+        presentation_entry = presentation_entries.get(path)
+        is_presentation_consumer = path in PRESENTATION_SOURCE_CONSUMER_ADAPTATION_PATHS
+        if is_presentation_consumer:
+            if (
+                not isinstance(presentation_entry, dict)
+                or source != presentation_source
+                or blob != presentation_entry.get("accepted_blob")
+            ):
+                raise ValueError(f"presentation consumer adaptation must retain its exact presentation source pin: {path}")
+        elif source not in approved:
             raise ValueError(f"frontend consumer adaptation lacks an approved green source: {path}")
+        if not HEX40.fullmatch(blob):
+            raise ValueError(f"frontend consumer adaptation has a malformed accepted blob: {path}")
         if not delta or not rationale:
             raise ValueError(f"frontend consumer adaptation must state its delta and rationale: {path}")
-        if not has_import_adoption_provenance(root, baseline, source):
+        if not is_presentation_consumer and not has_import_adoption_provenance(root, baseline, source):
             raise ValueError(f"frontend consumer adaptation source is not adopted: {path}")
         if tree_entry(root, source, path) is None or tree_entry(root, source, path)[1] != blob:
             raise ValueError(f"frontend consumer adaptation accepted blob does not match source: {path}")
 
-        matching_sources: list[str] = []
-        for raw_reference in manifests:
-            reference = exact_repo_path(raw_reference, label="frozen manifest reference")
-            manifest_path = root / reference
-            manifest = yaml.safe_load(manifest_path.read_text())
-            if not isinstance(manifest, dict) or manifest.get("source_sha") != source:
-                continue
-            entries_in_manifest = manifest.get("paths")
-            if not isinstance(entries_in_manifest, list):
-                raise ValueError(f"frozen manifest path list is malformed: {reference}")
-            if any(
-                isinstance(entry, dict) and entry.get("path") == path
-                and entry.get("state") == "present"
-                and entry.get("blob") == blob
-                for entry in entries_in_manifest
-            ):
-                matching_sources.append(reference)
-        if len(matching_sources) != 1:
-            raise ValueError(f"frontend consumer adaptation must match one exact frozen import: {path}")
+        if not is_presentation_consumer:
+            matching_sources: list[str] = []
+            for raw_reference in manifests:
+                reference = exact_repo_path(raw_reference, label="frozen manifest reference")
+                manifest_path = root / reference
+                manifest = yaml.safe_load(manifest_path.read_text())
+                if not isinstance(manifest, dict) or manifest.get("source_sha") != source:
+                    continue
+                entries_in_manifest = manifest.get("paths")
+                if not isinstance(entries_in_manifest, list):
+                    raise ValueError(f"frozen manifest path list is malformed: {reference}")
+                if any(
+                    isinstance(entry, dict) and entry.get("path") == path
+                    and entry.get("state") == "present"
+                    and entry.get("blob") == blob
+                    for entry in entries_in_manifest
+                ):
+                    matching_sources.append(reference)
+            if len(matching_sources) != 1:
+                raise ValueError(f"frontend consumer adaptation must match one exact frozen import: {path}")
 
         staged_entry = index_entry(root, path)
         target = root / path
@@ -736,8 +772,22 @@ def self_test() -> int:
         and authorized(consumer_view_path, consumer_view_plan)[0]
         and not authorized("frontend/src/views/OtherETFView.vue", consumer_view_plan)[0]
     )
-    checks["only the approved ETF view may retain presentation and consumer pins"] = (
+    dashboard_search_path = "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
+    dashboard_search_plan = {
+        "excluded_paths": ["frontend/src/components/dashboard/"],
+        "approved_frontend_consumer_adaptations": [{"path": dashboard_search_path}],
+    }
+    checks["one exact dashboard picker consumer adaptation stays within its presentation path"] = (
+        dashboard_search_path in CONSUMER_ADAPTATION_PATHS
+        and dashboard_search_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and authorized(dashboard_search_path, dashboard_search_plan)[0]
+        and not authorized("frontend/src/components/dashboard/DashboardQuoteWidget.vue", dashboard_search_plan)[0]
+    )
+    checks["only exact listed presentation paths may overlap consumer pins"] = (
         consumer_view_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and dashboard_search_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and "frontend/src/components/dashboard/DashboardQuoteWidget.vue"
+        not in CONSUMER_PRESENTATION_OVERLAP_PATHS
         and "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
         not in CONSUMER_PRESENTATION_OVERLAP_PATHS
     )

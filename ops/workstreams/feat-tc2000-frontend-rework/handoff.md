@@ -25749,3 +25749,24 @@ functional/strict-visual profile remain pending. Root will provide the frozen
 ETF backend artifact after its authorized minimum PostgreSQL proof. All nine
 AC1–AC9, V25 work, operational holds and genuine Provider/issuer qualification
 remain open or Root-owned.
+
+## 2026-11-03 — Dashboard picker remains canonical/local-only
+
+The dashboard watchlist/widget ticker picker was a remaining entrypoint that
+called `/instruments/search` without `canonical_only`, allowing the backend's
+legacy default to invoke provider discovery during ordinary typeahead. It now
+uses canonical-only local search and canonical-only symbol/expression identity
+resolution. The picker edits a watchlist/widget symbol only; it does not
+acquire chart history. Five focused component tests passed, including exact
+request parameters and the no-POST unknown-result case; `npm run type-check`
+and `npm run build` passed. The exact source candidate and branch CI are pending
+publication/result. No fixture or external source request was made.
+
+Root also identified that automatic successful/partial history persistence can
+refresh the shell's global chart store while the visible Workstation chart
+reads a per-panel store. That bounded consumer gap is the next repair: refresh
+only the matching mounted panel's local bars under its symbol/timeframe/bar
+type/transform/generation scope, and correct the misleading browser case so it
+proves automatic visible bars without a second manual load click. The combined
+functional/strict-visual profile remains pending Root's allocation; all prior
+checkpoint history, nine roadmap criteria, references, and holds remain intact.
