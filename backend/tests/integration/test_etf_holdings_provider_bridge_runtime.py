@@ -3035,7 +3035,9 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         assert snapshot.source_url == workbook_url
         assert snapshot.composition_date == date(2026, 11, 2)
         assert snapshot.known_at is not None
-        assert snapshot.row_count == 1 and [row.symbol for row in snapshot.rows] == ["MSFT"]
+        assert snapshot.row_count == 1 and [row.reported_symbol for row in snapshot.rows] == [
+            "MSFT"
+        ]
         initial_legal = snapshot.extra_data["legal_metadata"]
         initial_identity = initial_legal["artifact_identity_validation"]
         assert initial_identity["status"] == "matched"
