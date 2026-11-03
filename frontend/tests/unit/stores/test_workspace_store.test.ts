@@ -635,6 +635,65 @@ describe('workspace store layout tabs', () => {
     expect(store.etfHoldings.SPY).toBeUndefined()
   })
 
+  it('clears the prior holdings context synchronously and ignores its late response', async () => {
+    const stale = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/OIH/holdings') return stale.promise
+      if (path === '/etf-holdings/IGV/holdings') return Promise.reject(Object.assign(new Error('not found'), { status: 404 }))
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    store.setConstituentETF('OIH')
+    const oldRequest = store.loadETFHoldings('OIH')
+
+    store.setConstituentETF(null)
+    expect(store.constituentETF).toBeNull()
+    expect(store.selectedIndustry).toBeNull()
+    await store.loadETFHoldings('IGV')
+    stale.resolve({ snapshot: { etf_symbol: 'OIH' }, holdings: [{ constituent_symbol: 'XLE' }], total: 1 })
+    await oldRequest
+
+    expect(store.constituentETF).toBeNull()
+    expect(store.etfHoldings.IGV).toBeNull()
+    expect(store.etfHoldings.OIH).toBeUndefined()
+  })
+
+  it('keeps the selected ETF identity while reporting an unavailable local holdings read', async () => {
+    apiGet.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }))
+    const store = useWorkspaceStore()
+    store.setConstituentETF('OIH')
+
+    await store.loadETFHoldings('OIH')
+
+    expect(store.etfHoldings.OIH).toBeNull()
+    expect(store.constituentETF).toBe('OIH')
+    expect(store.selectedIndustry).toBeNull()
+    expect(store.selectedIndustryProxy).toBeNull()
+  })
+
+  it('does not clear a newer holdings context when an older symbol returns unavailable', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/OIH/holdings') return Promise.reject(Object.assign(new Error('not found'), { status: 404 }))
+      if (path === '/etf-holdings/IGV/holdings') return Promise.resolve({
+        snapshot: { etf_symbol: 'IGV', composition_date: '2026-08-01', known_at: null, provenance: 'test', source_provider: 'test', completeness_status: 'complete' },
+        holdings: [],
+        total: 0,
+      })
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    store.setConstituentETF('OIH')
+    const oldRequest = store.loadETFHoldings('OIH')
+    store.setConstituentETF(null)
+    store.setConstituentETF('IGV')
+    const currentRequest = store.loadETFHoldings('IGV')
+    await Promise.all([oldRequest, currentRequest])
+
+    expect(store.constituentETF).toBe('IGV')
+    expect(store.etfHoldings.OIH).toBeUndefined()
+    expect(store.etfHoldings.IGV?.snapshot.etf_symbol).toBe('IGV')
+  })
+
   it('does not let a late technical snapshot overwrite the newer symbol', async () => {
     const stale = deferred<unknown>()
     apiGet.mockImplementation((path: string) => {

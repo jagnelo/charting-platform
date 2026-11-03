@@ -31,6 +31,13 @@ vi.mock('vue-router', () => ({
   }),
 }))
 
+vi.mock('@/lib/onDemandAcquisition', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/onDemandAcquisition')>()
+  return { ...actual, acquireSelectedHistory: vi.fn() }
+})
+
+import { acquireSelectedHistory } from '@/lib/onDemandAcquisition'
+
 async function flushPromises() {
   await Promise.resolve()
   await Promise.resolve()
@@ -41,11 +48,20 @@ describe('ChartView radar handoff', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.restoreAllMocks()
+    vi.mocked(acquireSelectedHistory).mockReset()
+    vi.mocked(acquireSelectedHistory).mockResolvedValue({
+      kind: 'already-covered',
+      coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
+    })
     replace.mockReset()
     push.mockReset()
     route.params.symbol = ''
     route.query = {}
     route.path = '/chart'
+    vi.mocked(acquireSelectedHistory).mockResolvedValue({
+      kind: 'already-covered',
+      coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
+    })
   })
 
   afterEach(() => vi.unstubAllGlobals())
@@ -164,6 +180,61 @@ describe('ChartView radar handoff', () => {
 
     expect(refreshLocalBars).toHaveBeenCalledOnce()
     expect(chartStore.bars).toEqual(cachedBars)
+    wrapper.unmount()
+  })
+
+  it('checks local coverage and starts the shared bounded history flow after an ordinary chart selection only', async () => {
+    const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart()
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+    expect(acquireSelectedHistory).not.toHaveBeenCalled()
+
+    const cachedBars = [{ ts: '2026-11-02T14:30:00Z', open: 100, high: 102, low: 99, close: 101, is_adjusted: true }]
+    chartStore.bars = cachedBars as typeof chartStore.bars
+    const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockResolvedValue()
+    vi.mocked(acquireSelectedHistory).mockResolvedValueOnce({
+      kind: 'acquired',
+      coverage: { status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-11-03T00:00:00Z' }] },
+      result: { status: 'complete', coverage: { status: 'ready', bar_count: 250, missing_slices: [] } } as never,
+    })
+    await (wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }).onSymbolSelect('QQQ')
+    await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
+      'QQQ',
+      'D1',
+      true,
+      expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
+      expect.any(Function),
+      expect.any(Function),
+    ))
+    await vi.waitFor(() => expect(refreshLocalBars).toHaveBeenCalledOnce())
+    expect(chartStore.bars).toEqual(cachedBars)
+    wrapper.unmount()
+  })
+
+  it('does not refresh a chart with a late history result after another symbol is selected', async () => {
+    const { chartStore, releasePresets, wrapper } = mountDeferredPresetsChart()
+    await flushPromises()
+    releasePresets()
+    await flushPromises()
+    let finishFirst!: (value: unknown) => void
+    vi.mocked(acquireSelectedHistory)
+      .mockReturnValueOnce(new Promise(resolve => { finishFirst = resolve }) as never)
+      .mockResolvedValueOnce({ kind: 'already-covered', coverage: { status: 'ready', bar_count: 1, missing_slices: [] } })
+    const refreshLocalBars = vi.spyOn(chartStore, 'refreshLocalBars').mockResolvedValue()
+    const vm = wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }
+
+    await vm.onSymbolSelect('QQQ')
+    await vm.onSymbolSelect('SPY')
+    finishFirst({
+      kind: 'acquired',
+      coverage: { status: 'missing', bar_count: 0, missing_slices: [] },
+      result: { status: 'complete', coverage: { status: 'ready', bar_count: 1, missing_slices: [] } },
+    })
+    await flushPromises()
+
+    expect(chartStore.symbol).toBe('SPY')
+    expect(refreshLocalBars).not.toHaveBeenCalled()
     wrapper.unmount()
   })
 

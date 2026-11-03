@@ -2705,7 +2705,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
       const sameETF = constituentETF.value === normalized
-      constituentETF.value = normalized
+      // Passive hydration may complete after the user has selected a different
+      // direct symbol. Only bind this result when the selection context is
+      // unset or still names this ETF; clearConstituentETF invalidates any
+      // older in-flight request at the selection boundary.
+      if (constituentETF.value == null || sameETF) constituentETF.value = normalized
       // Repeated concurrent hydration for the same ETF is expected (initial
       // shell load, linked-symbol watcher, and an explicit selection can all
       // request it). It must not erase an industry/proxy selection the user has
@@ -2880,9 +2884,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectedIndustryProxy.value = null
   }
 
-  function setConstituentETF(symbol: string) {
-    const normalized = symbol.trim().toUpperCase()
-    if (!normalized) return
+  function setConstituentETF(symbol: string | null) {
+    const normalized = symbol?.trim().toUpperCase() || null
+    if (normalized == null) {
+      // Invalidate pending holdings reads so an old ETF response cannot
+      // resurrect context after a direct symbol selection or a failed lookup.
+      beginAnalysisRequest('top-down:holdings')
+      constituentETF.value = null
+      clearIndustrySelection()
+      return
+    }
     constituentETF.value = normalized
     clearIndustrySelection()
   }

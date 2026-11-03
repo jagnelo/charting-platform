@@ -92,6 +92,8 @@
           :timeframe="activeTimeframe"
           @loaded="refreshActiveChartLocally"
         />
+        <p v-if="selectedHistoryProgress" class="chart-history-progress" role="status" aria-live="polite">{{ selectedHistoryProgress }}</p>
+        <p v-if="selectedHistoryError" class="chart-history-progress chart-history-progress--error" role="alert">{{ selectedHistoryError }}</p>
         <LayoutPicker />
         <div v-if="layoutStore.layout === '1' && chartStore.instrument && alertsStore.activeCountForInstrument(chartStore.instrument.id)" class="alert-badge">
           {{ alertsStore.activeCountForInstrument(chartStore.instrument.id) }}
@@ -241,6 +243,7 @@ import { usePresetsStore }  from '@/stores/presets'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useRadarStore } from '@/stores/radar'
 import { api } from '@/lib/api'
+import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
@@ -359,6 +362,8 @@ const comparisonTargets = ref<Array<{
 let comparisonSeq = 0
 let selectionGeneration = 0
 let lifecycleGeneration = 0
+const selectedHistoryProgress = ref('')
+const selectedHistoryError = ref('')
 
 function isCurrentLifecycle(generation: number) {
   return generation === lifecycleGeneration
@@ -511,24 +516,28 @@ async function loadComparisonBars() {
 }
 
 async function onSymbolSelect(symbol: string) {
-  return selectChartSymbol(symbol)
+  return selectChartSymbol(symbol, undefined, false, true)
 }
 
 async function onHoldingDrilldown(symbol: string, context: ETFHoldingDrilldownContext) {
   if (symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
     || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
-  return selectChartSymbol(symbol, context)
+  return selectChartSymbol(symbol, context, false, true)
 }
 
 async function selectChartSymbol(
   symbol: string,
   holdingContext?: ETFHoldingDrilldownContext,
   preserveHydratedHoldingContext = false,
+  acquireHistory = false,
 ) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   const selectionIndicatorEdit = chartStore.indicatorEditGeneration
   const isCurrentSelection = () => isCurrentLifecycle(generation) && selection === selectionGeneration
+  const selectedChartStore = activePanelStore.value
+  selectedHistoryProgress.value = ''
+  selectedHistoryError.value = ''
   if (chartStore.symbol !== symbol) {
     radarStore.clearChartDetections()
   }
@@ -547,6 +556,7 @@ async function selectChartSymbol(
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
     if (!isCurrentSelection()) return
+    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection)
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
@@ -573,6 +583,7 @@ async function selectChartSymbol(
       await pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
       if (!isCurrentSelection()) return
     }
+    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection)
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {
@@ -582,6 +593,61 @@ async function selectChartSymbol(
       if (!isCurrentSelection()) return
     }
     await syncRadarOverlays()
+  }
+}
+
+async function acquireSelectedChartHistory(
+  symbol: string,
+  selectedChartStore: typeof chartStore,
+  isCurrentSelection: () => boolean,
+) {
+  const timeframe = selectedChartStore.timeframe
+  const isCurrentChartScope = () => isCurrentSelection()
+    && selectedChartStore.symbol.trim().toUpperCase() === symbol.trim().toUpperCase()
+    && selectedChartStore.timeframe === timeframe
+    && (layoutStore.layout === '1' ? selectedChartStore === chartStore : activePanelStore.value === selectedChartStore)
+  const range = defaultHistoryRange(timeframe)
+  const stages: Record<SelectedHistoryStage, string> = {
+    coverage: `Checking local ${timeframe} history for ${symbol}…`,
+    identity: `Confirming ${symbol}…`,
+    history: `Loading missing ${timeframe} history for ${symbol}…`,
+  }
+  try {
+    const outcome = await acquireSelectedHistory(
+      symbol,
+      timeframe,
+      true,
+      { timeframe, adjusted: true, start: range.start, end: range.end },
+      stage => { if (isCurrentChartScope()) selectedHistoryProgress.value = stages[stage] },
+      isCurrentChartScope,
+    )
+    if (!isCurrentChartScope() || outcome.kind === 'superseded') return
+    if (outcome.kind === 'already-covered') {
+      selectedHistoryProgress.value = `Local ${timeframe} history is available for ${symbol}.`
+      return
+    }
+    if (outcome.kind === 'identity-unavailable') {
+      selectedHistoryProgress.value = outcome.status === 'held'
+        ? `History for ${symbol} is currently unavailable; saved chart data remains visible.`
+        : `The canonical identity for ${symbol} could not be confirmed; no history was requested.`
+      return
+    }
+    const result = outcome.result
+    selectedHistoryProgress.value = result.status === 'complete'
+      ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${symbol}.`
+      : result.status === 'partial'
+        ? `Some ${timeframe} history for ${symbol} loaded; the rest remains unavailable.`
+        : result.status === 'held'
+          ? `History for ${symbol} is currently unavailable; saved chart data remains visible.`
+          : result.status === 'no_data'
+            ? `No ${timeframe} history is available for ${symbol}; saved chart data remains visible.`
+            : `History for ${symbol} could not be loaded; saved chart data remains visible.`
+    if ((result.status === 'complete' || result.status === 'partial')
+      && isCurrentChartScope()) {
+      await selectedChartStore.refreshLocalBars()
+    }
+  } catch {
+    if (isCurrentChartScope()) selectedHistoryError.value = `History for ${symbol} could not be checked or loaded; saved chart data remains visible.`
   }
 }
 
@@ -763,6 +829,9 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.chart-history-progress { max-width: 280px; margin: 0; color: var(--tc-text-muted, #aab7c1); font-size: 11px; }
+.chart-history-progress--error { color: var(--tc-danger, #e58f8f); }
+
 .chart-view {
   display: flex;
   flex-direction: column;

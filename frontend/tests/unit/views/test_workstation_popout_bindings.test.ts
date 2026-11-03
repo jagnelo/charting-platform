@@ -59,6 +59,7 @@ const harness = vi.hoisted(() => {
     symbolForLinkGroup: vi.fn(() => 'XLK'),
     selectToolSymbol: vi.fn(),
     loadETFHoldings: vi.fn().mockResolvedValue(undefined),
+    setConstituentETF: vi.fn(),
     loadETFIndustries: vi.fn().mockResolvedValue(undefined),
     loadTechnical: vi.fn().mockResolvedValue(undefined),
     scheduleSnapshot: vi.fn(),
@@ -280,6 +281,44 @@ describe('WorkstationView pop-out bindings', () => {
       wrapper.unmount()
       wrapper.element.remove()
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: originalWidth })
+    }
+  })
+
+  it('discovers a ticker-shaped local miss after debounce without acquiring during typing', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'QQQ') return Promise.resolve([{ symbol: 'QQQ', name: 'Invesco QQQ Trust', type: 'ETF', exchange: 'NASDAQ', instrument_id: 3 }])
+      if (path === '/instruments/search') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    apiPost.mockResolvedValue({
+      request_id: 'controlled-discovery', status: 'complete',
+      candidates: [{ symbol: 'BWET', name: 'Controlled candidate', exchange: 'ARCX', type: 'ETF', provider: 'test-fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+      source_outcomes: [],
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true, 'router-link': NavigationLinkStub } },
+    })
+    try {
+      await flushPromises()
+      expect(apiPost).not.toHaveBeenCalled()
+
+      const input = wrapper.get('[aria-label="Active symbol"]')
+      await input.setValue('QQQ')
+      await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'QQQ', canonical_only: true }))
+      await vi.waitFor(() => expect(wrapper.get('.workstation__canonical-symbol-options').text()).toContain('QQQ'))
+      expect(apiPost).not.toHaveBeenCalled()
+
+      await input.setValue('BWET')
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({
+        query: 'BWET', types: [], limit: 10, request_id: expect.any(String),
+      })), { timeout: 1500 })
+      expect(apiPost).toHaveBeenCalledTimes(1)
+      expect(wrapper.text()).toContain('Select one to verify its identity')
+      expect(wrapper.text()).toContain('Use BWET')
+    } finally {
+      wrapper.unmount()
     }
   })
 
@@ -942,7 +981,7 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
   })
 
-  it('exposes an explicit loading state while canonical symbol search is pending', async () => {
+  it('exposes an accessible loading state while canonical symbol search is pending', async () => {
     routeState.path = '/'
     routeState.params = {}
     apiGet.mockImplementation(() => new Promise(() => undefined))
@@ -955,7 +994,7 @@ describe('WorkstationView pop-out bindings', () => {
     const listbox = wrapper.get('[role="listbox"]')
     expect(listbox.attributes('aria-busy')).toBe('true')
     expect(listbox.get('[role="status"]').text()).toContain('Searching canonical instruments')
-    expect(listbox.element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
+    expect(wrapper.find('.workstation__source-actions').exists()).toBe(false)
     expect(input.attributes('aria-busy')).toBe('true')
     wrapper.unmount()
   })
@@ -964,21 +1003,22 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.path = '/'
     routeState.params = {}
     apiGet.mockResolvedValue([])
+    apiPost.mockResolvedValue({ request_id: 'fixture', status: 'no_match', candidates: [], source_outcomes: [] })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
     const input = wrapper.get('input[aria-label="Active symbol"]')
     await input.setValue('zzzz')
-    await vi.waitFor(() => expect(wrapper.get('.workstation__symbol-results .workstation__symbol-search-message').text()).toContain('No canonical instruments found'))
+    await vi.waitFor(() => expect(wrapper.get('.workstation__symbol-results .workstation__symbol-search-message').text()).toContain('No matching ticker is available'))
     const listbox = wrapper.get('[role="listbox"]')
-    expect(listbox.text()).toContain('No canonical instruments found for “ZZZZ”')
+    expect(listbox.text()).toContain('No matching ticker is available for “ZZZZ”')
     expect(wrapper.findAll('[role="option"]')).toHaveLength(0)
-    expect(listbox.element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
+    expect(wrapper.find('.workstation__source-actions').exists()).toBe(false)
     expect(input.attributes('aria-expanded')).toBe('true')
     wrapper.unmount()
   })
 
-  it('keeps source discovery explicit and resolves the selected candidate before workstation selection', async () => {
+  it('automatically discovers a local miss and resolves the selected candidate before workstation selection', async () => {
     routeState.path = '/'
     routeState.params = {}
     apiGet.mockResolvedValue([])
@@ -1001,14 +1041,10 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(wrapper.find('.workstation__source-actions button').exists()).toBe(true))
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true }))
     expect(wrapper.get('[role="listbox"]').element.contains(wrapper.get('.workstation__source-actions').element)).toBe(false)
-    expect(apiPost).not.toHaveBeenCalled()
-
-    await wrapper.find('.workstation__source-actions button').trigger('click')
-    await vi.waitFor(() => expect(wrapper.find('.workstation__source-option').text()).toContain('Search free sources'))
     expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: expect.stringMatching(/^[0-9a-f-]{36}$/),
     })
-    const candidate = wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Resolve OIH'))
+    const candidate = wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Use OIH'))
     expect(candidate).toBeTruthy()
     await candidate!.trigger('click')
     await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'OIH', instrumentId: 43 })))
@@ -1027,6 +1063,11 @@ describe('WorkstationView pop-out bindings', () => {
     routeState.path = '/'
     routeState.params = {}
     apiGet.mockResolvedValue([])
+    apiPost.mockResolvedValueOnce({
+      request_id: 'fixture', status: 'complete',
+      candidates: [{ symbol: 'OIH', name: 'Oil services fund', exchange: 'ARCX', type: 'ETF', provider: 'test-fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+      source_outcomes: [],
+    })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })

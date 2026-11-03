@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({ api: { post: vi.fn() } }))
+vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 import { api } from '@/lib/api'
 import {
   acquireETFHoldings,
   acquireInstrumentHistory,
+  acquireSelectedHistory,
   defaultHistoryRange,
   discoverInstruments,
   HISTORY_ACQUISITION_MAX_REQUESTED_BARS,
@@ -147,6 +148,86 @@ describe('explicit acquisition API contracts', () => {
     })
     expect(api.post).toHaveBeenNthCalledWith(2, '/etf-holdings/OIH/acquire', {
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d', refresh: true,
+    })
+  })
+
+  it('checks selected-ticker coverage locally before any identity or history request', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'ready', bar_count: 20, missing_slices: [] })
+    const stages: string[] = []
+
+    const result = await acquireSelectedHistory('SPY', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+    }, stage => stages.push(stage))
+
+    expect(result.kind).toBe('already-covered')
+    expect(stages).toEqual(['coverage'])
+    expect(api.get).toHaveBeenCalledWith('/coverage/instruments/SPY/ohlcv', {
+      timeframe: 'D1', start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+      mode: 'historical', adjusted: true,
+    })
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('stops before history when selected-instrument identity is not resolved', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'held', status: 'held', instrument: null, source_outcomes: [] })
+    const stages: string[] = []
+
+    const result = await acquireSelectedHistory('BWET', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+    }, stage => stages.push(stage))
+
+    expect(result).toMatchObject({ kind: 'identity-unavailable', status: 'held' })
+    expect(stages).toEqual(['coverage', 'identity'])
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/instruments/acquire', {
+      symbol: 'BWET', request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
+    })
+  })
+
+  it('acquires only the selected canonical ticker and selected bounded interval', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ request_id: 'identity', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
+      .mockResolvedValueOnce({ request_id: 'history', status: 'partial', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-10-01T00:00:00Z', requested_end: '2026-10-20T00:00:00Z', coverage: { status: 'partial', bar_count: 3, missing_slices: [] }, bars: [], source_outcomes: [] })
+    const stages: string[] = []
+
+    const result = await acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+    }, stage => stages.push(stage))
+
+    expect(result.kind).toBe('acquired')
+    expect(stages).toEqual(['coverage', 'identity', 'history'])
+    expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/82/history-acquisitions', {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+      request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
+    })
+  })
+
+  it('does not advance a stale selection from local coverage into identity or history requests', async () => {
+    let resolveCoverage!: (value: unknown) => void
+    vi.mocked(api.get).mockReturnValueOnce(new Promise(resolve => { resolveCoverage = resolve }) as never)
+    let current = true
+    const pending = acquireSelectedHistory('OIH', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+    }, undefined, () => current)
+    current = false
+    resolveCoverage({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+
+    await expect(pending).resolves.toEqual({ kind: 'superseded' })
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('includes an optional selected canonical ID on explicit ETF preparation', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ outcome: 'acquired', refresh: true })
+    await acquireETFHoldings('IGV', true, 82)
+    expect(api.post).toHaveBeenCalledWith('/etf-holdings/IGV/acquire', {
+      request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d', refresh: true, instrument_id: 82,
     })
   })
 })

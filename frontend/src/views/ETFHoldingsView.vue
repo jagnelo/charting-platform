@@ -1031,8 +1031,25 @@ async function runHoldingsAction(refresh: boolean) {
       pendingFund.value = resolvedFund
     }
 
-    const result: ETFProfileAcquireResponse = await acquireETFHoldings(fund.symbol, refresh)
+    const result: ETFProfileAcquireResponse = await acquireETFHoldings(fund.symbol, refresh, resolvedFund.verifiedInstrumentId)
     if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== fund.symbol) return
+    if (result.symbol.trim().toUpperCase() !== fund.symbol.trim().toUpperCase()
+      || result.instrument_id !== resolvedFund.verifiedInstrumentId) {
+      holdingsActionError.value = `The holdings response did not match ${fund.symbol}; previously stored snapshots remain available.`
+      return
+    }
+    if (result.profile == null) {
+      holdingsActionMessage.value = result.outcome === 'unavailable'
+        ? (result.message?.trim() || `No holdings profile is currently available for ${fund.symbol}. Previously stored snapshots remain available.`)
+        : result.outcome === 'held'
+          ? (result.message?.trim() || `Holdings for ${fund.symbol} are currently held. Previously stored snapshots remain available.`)
+          : result.outcome === 'no_data'
+            ? `No stored holdings are available for ${fund.symbol}. Previously stored snapshots remain available.`
+            : result.outcome === 'failed'
+              ? `The holdings request for ${fund.symbol} failed. Previously stored snapshots remain available.`
+              : `The holdings request for ${fund.symbol} returned no profile. Previously stored snapshots remain available.`
+      return
+    }
     const returnedProfile = result.capability
       ? { ...result.profile, holdings_capability: result.capability }
       : result.profile

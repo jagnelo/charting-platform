@@ -147,7 +147,7 @@ describe('SearchBar', () => {
     expect(wrapper.text()).not.toContain('Apple Inc.')
   })
 
-  it('discovers only on explicit action, then resolves a candidate before emitting its canonical ID', async () => {
+  it('automatically discovers an unknown local ticker and resolves a candidate before emitting its canonical ID', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])
     vi.mocked(api.post)
@@ -171,13 +171,13 @@ describe('SearchBar', () => {
     expect(api.post).not.toHaveBeenCalled()
     expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'OIH', canonical_only: true })
 
-    await wrapper.get('button').trigger('click')
+    vi.advanceTimersByTime(300)
     await flushPromises()
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
     })
-    expect(wrapper.text()).toContain('Resolve OIH')
+    expect(wrapper.text()).toContain('Use OIH')
     await wrapper.find('.search-source-candidate').trigger('click')
     await flushPromises()
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
@@ -188,7 +188,7 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ instrument_id: 43 })
   })
 
-  it('opens a prefilled discovery-only query without local search and filters candidates to the requested equity scope', async () => {
+  it('automatically checks an explicitly opened discovery-only query without local search', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.post).mockResolvedValueOnce({
       request_id: 'r',
@@ -213,11 +213,10 @@ describe('SearchBar', () => {
 
     expect(wrapper.get('input').element.value).toBe('UNXQ')
     expect(wrapper.get('input').attributes('readonly')).toBeDefined()
-    expect(wrapper.text()).toContain('Search free sources for UNXQ')
     expect(api.get).not.toHaveBeenCalled()
     expect(api.post).not.toHaveBeenCalled()
 
-    await wrapper.get('button').trigger('click')
+    vi.advanceTimersByTime(300)
     await flushPromises()
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
@@ -225,6 +224,43 @@ describe('SearchBar', () => {
     })
     expect(wrapper.text()).toContain('Uncached Example Equity')
     expect(wrapper.text()).not.toContain('ETF-shaped collision')
+  })
+
+  it('keeps exact matches local and never discovers from picker-only selection', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF', instrument_id: 43 },
+    ])
+    const wrapper = mountSearchBar({
+      props: { allowSourceDiscovery: true, mode: 'picker' },
+      global: { stubs: { RouterLink: true } },
+    })
+    await wrapper.get('input').setValue('OIH')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(600)
+    await flushPromises()
+    expect(api.post).not.toHaveBeenCalled()
+    await wrapper.get('.result-item').trigger('click')
+    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('OIH')
+  })
+
+  it('lets keyboard Enter resolve the first discovered candidate after automatic lookup', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ status: 'complete', candidates: [{ symbol: 'C', name: 'Example C', exchange: 'XNYS', type: 'Equity', provider: 'fixture', instrument_id: null, identity_status: 'candidate' }], source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'resolved', instrument: { instrument_id: 31, symbol: 'C', identity_status: 'verified' }, source_outcomes: [] })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').setValue('C')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
+    expect(wrapper.text()).toContain('Use C')
+    await wrapper.get('input').trigger('keydown.enter')
+    await flushPromises()
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'C', instrument_id: 31, explicitlyResolved: true })
   })
 
   it('does not resolve or emit a candidate whose provider-verified symbol differs from the reported ticker', async () => {
@@ -242,7 +278,8 @@ describe('SearchBar', () => {
       props: { modelValue: 'UNXQ', allowSourceDiscovery: true, sourceDiscoveryOnly: true, readonly: true, openOnMount: true, requiredResolvedSymbol: 'UNXQ' },
       global: { stubs: { RouterLink: true } },
     })
-    await wrapper.get('button').trigger('click')
+    vi.advanceTimersByTime(300)
+    await flushPromises()
     await flushPromises()
     await wrapper.get('.search-source-candidate').trigger('click')
     await flushPromises()
@@ -266,7 +303,8 @@ describe('SearchBar', () => {
       props: { modelValue: 'UNXQ', allowSourceDiscovery: true, sourceDiscoveryOnly: true, readonly: true, openOnMount: true, requiredResolvedSymbol: 'UNXQ' },
       global: { stubs: { RouterLink: true } },
     })
-    await wrapper.get('button').trigger('click')
+    vi.advanceTimersByTime(300)
+    await flushPromises()
     await flushPromises()
     await wrapper.get('.search-source-candidate').trigger('click')
     await flushPromises()
@@ -287,7 +325,10 @@ describe('SearchBar', () => {
     await wrapper.find('input').setValue('OIH')
     vi.advanceTimersByTime(260)
     await flushPromises()
-    await wrapper.get('button').trigger('click')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
     await flushPromises()
     await wrapper.find('.search-source-candidate').trigger('click')
     await flushPromises()

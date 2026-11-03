@@ -1039,6 +1039,8 @@ describe('ETFHoldingsView', () => {
       })
       .mockResolvedValueOnce({
         request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
+        instrument_id: 12,
+        symbol: 'IWM',
         outcome: 'no_data',
         refresh: false,
         refresh_attempted: false,
@@ -1052,6 +1054,8 @@ describe('ETFHoldingsView', () => {
       })
       .mockResolvedValueOnce({
         request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
+        instrument_id: 12,
+        symbol: 'IWM',
         outcome: 'held',
         refresh: true,
         refresh_attempted: false,
@@ -1081,6 +1085,7 @@ describe('ETFHoldingsView', () => {
     expect(api.post).toHaveBeenNthCalledWith(2, '/etf-holdings/IWM/acquire', {
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
       refresh: false,
+      instrument_id: 12,
     })
     expect(wrapper.text()).toContain('No stored snapshot was returned')
 
@@ -1089,8 +1094,50 @@ describe('ETFHoldingsView', () => {
     expect(api.post).toHaveBeenNthCalledWith(3, '/etf-holdings/IWM/acquire', {
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
       refresh: true,
+      instrument_id: 12,
     })
     expect(wrapper.text()).toContain('Issuer access is unavailable for this fund right now.')
+    wrapper.unmount()
+  })
+
+  it('preserves a typed unavailable result when no ETF profile was returned', async () => {
+    const unresolvedProfile = {
+      ...profile,
+      id: 3,
+      instrument_id: 12,
+      symbol: 'IWM',
+      name: 'iShares Russell 2000 ETF',
+      latest_composition_date: null,
+      latest_snapshot_id: null,
+      resolved_count: 0,
+      unresolved_count: 0,
+    }
+    vi.mocked(api.get).mockResolvedValueOnce([unresolvedProfile]).mockResolvedValueOnce([])
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        request_id: 'identity', status: 'resolved',
+        instrument: { instrument_id: 12, symbol: 'IWM', identity_status: 'resolved' }, source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        request_id: 'holdings', instrument_id: 12, symbol: 'IWM', outcome: 'unavailable',
+        refresh: true, refresh_attempted: false, refresh_succeeded: false,
+        profile: null, snapshot: null, capability: null, provider_request_log_ids: [],
+        message: 'Issuer profile is not available for this selected fund.',
+      })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('IWM'))
+    await wrapper.get('[data-testid="etf-request-issuer"]').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenNthCalledWith(2, '/etf-holdings/IWM/acquire', expect.objectContaining({
+      refresh: true,
+      instrument_id: 12,
+    }))
+    expect(wrapper.text()).toContain('Issuer profile is not available for this selected fund.')
+    expect(wrapper.text()).not.toContain('Issuer refresh did not complete')
+    expect(wrapper.text()).not.toContain('undefined')
     wrapper.unmount()
   })
 
@@ -1141,7 +1188,7 @@ describe('ETFHoldingsView', () => {
         instrument: { instrument_id: 10, symbol: 'SPY', identity_status: 'verified' }, source_outcomes: [],
       })
       .mockResolvedValueOnce({
-        request_id: 'r', outcome: 'held', refresh: true, refresh_attempted: false, refresh_succeeded: false,
+        request_id: 'r', instrument_id: 10, symbol: 'SPY', outcome: 'held', refresh: true, refresh_attempted: false, refresh_succeeded: false,
         profile, snapshot: null, capability: profile.holdings_capability, provider_request_log_ids: [],
         message: 'Issuer refresh is paused; stored data remains readable.',
       })

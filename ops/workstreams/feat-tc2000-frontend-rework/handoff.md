@@ -25513,3 +25513,71 @@ TCO1-TCO6 checkpoint archives, all nine original AC1-AC9 criteria, official
 REF-HELP-V25, and the broader feature roadmap remain preserved and open.
 Genuine Provider/issuer evidence, target acceptance and deployment remain
 Root-owned; this checkpoint is not full feature completion.
+
+---
+
+# Ordinary ticker journey repair — 2026-11-03
+
+The active work is `ordinary-ticker-journey-repair-20261103` on the exact
+adopted green staging baseline `f8323af179922193f4dcf3c9f0a5d9001282455f`
+(staging CI `41397907218`, canonical receipt SHA256
+`506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188`). The
+previous TCO and F8Y checkpoints remain accepted historical scopes; neither
+accepts this new consumer source. The complete AC1–AC9 and official V25
+roadmap remains open.
+
+The Workstation selection flow now preserves ETF acquire identity from the
+top-level response and reports `unavailable` separately when `profile` is
+null. History, local metadata and selected-ETF holdings proceed as independent
+tasks under the current-selection generation. A stored holdings snapshot is
+reused instead of forcing a refresh on every selection. Direct selection
+clears/rebinds ETF context while intentional constituent drilldown retains its
+parent lineage. Unknown symbol detection accepts single-character ticker
+symbols.
+
+The shared SearchBar now waits for the debounced canonical local search; when
+source discovery is enabled, it automatically checks availability only if no
+exact local ticker exists. Candidate verification has ordinary button and
+keyboard Enter paths with progress and stale-query guards. Picker-only fields
+do not trigger history acquisition. ChartView deliberate symbol selection
+uses the same `acquireSelectedHistory` coverage → identity → bounded-history
+helper as Workstation after local chart hydration. A successful result causes
+a fresh local chart read; held/error outcomes retain current bars. Async chart
+refresh is guarded by selection, symbol, timeframe and active panel. Initial
+route hydration remains local and does not automatically request source data.
+
+Focused validation: seven frontend files passed, **199 tests**, one worker.
+`npm --prefix frontend run build` passed `vue-tsc` and Vite (539 modules;
+existing large Workstation chunk warning only). The first focused run exposed
+an incomplete test module mock and one stale Workstation progress-text
+expectation; both were corrected and the rerun passed. No browser or Compose
+fixture, source/issuer HTTP, provider credential, quota, target, staging,
+master, or deployment operation occurred. Exact-source branch CI and Root's
+combined full browser/strict-visual profile remain pending.
+
+Next: complete the full TC scope/import and workstream/hash checks, publish one
+coherent candidate, and let Root coordinate exact CI and the later combined
+profile. Preserve all previous failures, append-only records, domain ownership,
+operational holds and every roadmap item.
+
+## 2026-11-03 — shared ticker-search and Chart entrypoints
+
+The cross-surface follow-up now uses the same ticker-discovery scheduling and
+status helpers in the shared `SearchBar` when `allowSourceDiscovery` is enabled.
+Search stays canonical/local first; only an absent exact ticker schedules the
+bounded discovery check. Picker-only SearchBar consumers remain local-only and
+do not acquire history. ChartView uses the existing deliberate bounded history
+orchestrator after ordinary symbol selection and settled local hydration, with
+local readback after successful acquisition and selection-generation guards.
+Keyboard selection and expression handling remain in the existing component.
+
+Verification at adopted `f8323af179922193f4dcf3c9f0a5d9001282455f`: seven
+focused frontend suites passed 199 tests on one worker; `vue-tsc` and Vite
+production build passed (539 modules; existing Workstation chunk-size warning).
+TC scope self-test and full guard passed; the full guard verifies 883 immutable
+imports, 29 exact Provider adaptations and 112 exact presentation paths. Exact
+branch CI and the combined functional/strict-visual profile for this new
+candidate remain pending. No provider/issuer/SEC request, fixture, service,
+target, sibling, staging, master or deployment action occurred. The existing
+F8Y/TCO checkpoints, original AC1–AC9, official V25 remainder and all holds
+remain unchanged.
