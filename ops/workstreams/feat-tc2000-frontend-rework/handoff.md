@@ -25721,3 +25721,31 @@ profile remain pending; controlled seed data is not genuine issuer/provider
 qualification. Preserve the full AC1–AC9 roadmap and all checkpoint history.
 Next: publish this coherent change once, follow its exact CI, then wait for Root's
 green ETF staging adoption and combined-profile allocation.
+
+## 2026-11-03 — released Provider staging adoption
+
+Root released exact synchronized-green staging
+`eb74b439319ad32006a3d68fc7b6e98959148af7` (canonical receipt
+`released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json`,
+SHA256 `bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb`,
+CI `41653944273` attempt 1; all mandatory jobs including actual Exhaustive
+passed). The exact source was fetched from `origin/staging` and merged normally
+into the existing feature branch at `c1f512659e79cf6d62173cd4e6bf5fe527c79dc6`,
+with premerge TC head `a33c848d6820d30f0a47a797f8760d15dbd73131`, merge base
+`f8323af179922193f4dcf3c9f0a5d9001282455f`, and no conflicts. The merge delta
+is the eight Provider-owned paths from eb74; the frontend tree equals the
+premerge TC tree, and the backend tree equals eb74. No sibling source was
+copied and no Provider implementation was duplicated.
+
+The complete frozen-import manifest is superseded by the exact eb74 manifest;
+the former f832 manifest and all earlier receipt/history entries remain
+unchanged. The three approved ETF UI consumer adaptations retain their exact
+blobs and are now pinned to source eb74. This is baseline adoption only: no
+tests, builds, browser, fixture, source request or service operation ran in
+this context. The existing 81 focused Workstation/ETF tests and typecheck/build
+remain qualified to their recorded pre-adoption inputs; eb74's green staging
+gates qualify imported producer inputs only. Exact feature CI and the joint
+functional/strict-visual profile remain pending. Root will provide the frozen
+ETF backend artifact after its authorized minimum PostgreSQL proof. All nine
+AC1–AC9, V25 work, operational holds and genuine Provider/issuer qualification
+remain open or Root-owned.
