@@ -49,6 +49,37 @@ from app.services.etf_issuer_catalog import (
 )
 
 
+def _native_json_continuation_is_clear(payload: dict[str, Any]) -> bool:
+    """Reject JSON pages that explicitly advertise more holdings to retrieve."""
+
+    containers = [payload]
+    for key in ("pagination", "paging", "pageInfo", "page_info", "meta"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            containers.append(value)
+    for container in containers:
+        for key in ("hasMore", "has_more", "hasNext", "has_next"):
+            if container.get(key) is True:
+                return False
+        for key in ("next", "nextPage", "next_page", "nextCursor", "next_cursor", "nextLink"):
+            value = container.get(key)
+            if value not in (None, "", False, []):
+                return False
+        current = container.get("currentPage", container.get("page"))
+        total_pages = container.get("totalPages", container.get("total_pages"))
+        if current is not None or total_pages is not None:
+            if (
+                isinstance(current, bool)
+                or not isinstance(current, int)
+                or isinstance(total_pages, bool)
+                or not isinstance(total_pages, int)
+                or total_pages <= 0
+                or current != total_pages
+            ):
+                return False
+    return True
+
+
 class _HTTPXNamespace:
     """Keep HTTPX types while routing bound ETF adapter clients through Provider."""
 
@@ -4166,6 +4197,7 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         rows = self._parse_blackrock_holdings_payload(payload)
+        completeness = self._holdings_all_completeness(payload, rows=rows)
         native_witness = _native_holdings_parse_witness(
             self,
             response,
@@ -4188,6 +4220,7 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_public_json_api",
                 "source_format": "json",
                 "composition_date": self._composition_date_from_payload(payload),
+                "native_composition_completeness": completeness,
                 **({"native_holdings_response_witness": native_witness} if native_witness else {}),
                 **(
                     {
@@ -4326,6 +4359,74 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if row.symbol or row.name or row.cusip or row.isin:
                 rows.append(row)
         return rows
+
+    @classmethod
+    def _holdings_all_completeness(
+        cls, payload: dict[str, Any], *, rows: list[CanonicalHoldingRow]
+    ) -> dict[str, Any]:
+        """Validate BlackRock's explicit ``holdings.all`` container row vectors."""
+
+        data_points = cls._blackrock_holdings_data_points(payload)
+        ticker_values = cls._blackrock_values(data_points, "ticker")
+        issue_values = cls._blackrock_values(data_points, "issueName")
+        reported_rows = len(ticker_values)
+        aligned_core = reported_rows > 0 and len(issue_values) == reported_rows
+        aligned_columns = bool(data_points) and all(
+            len(value.get("value")) == reported_rows
+            for value in data_points.values()
+            if isinstance(value, dict) and isinstance(value.get("value"), list)
+        )
+        components = payload.get("componentsByNameMap")
+        holdings = components.get("holdings") if isinstance(components, dict) else None
+        containers = holdings.get("containersByNameMap") if isinstance(holdings, dict) else None
+        all_container = containers.get("all") if isinstance(containers, dict) else None
+        reported_totals = [
+            container[key]
+            for container in (payload, holdings, all_container)
+            if isinstance(container, dict)
+            for key in ("totalNumberOfHoldings", "totalHoldings", "totalRows")
+            if key in container
+        ]
+        total_present = bool(reported_totals)
+        reported_total = reported_totals[0] if reported_totals else None
+        total_valid = (
+            isinstance(reported_total, int)
+            and not isinstance(reported_total, bool)
+            and reported_total > 0
+            and all(value == reported_total for value in reported_totals)
+        )
+        total_matches = reported_total == reported_rows if total_valid else not total_present
+        continuation_clear = bool(
+            isinstance(all_container, dict)
+            and _native_json_continuation_is_clear(all_container)
+            and isinstance(holdings, dict)
+            and _native_json_continuation_is_clear(holdings)
+            and _native_json_continuation_is_clear(payload)
+        )
+        complete = bool(
+            isinstance(all_container, dict)
+            and aligned_core
+            and aligned_columns
+            and len(rows) == reported_rows
+            and total_matches
+            and continuation_clear
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "blackrock_holdings_all_container",
+            "reason": None
+            if complete
+            else "all-container row vectors are incomplete or misaligned",
+            "reported_rows": reported_rows,
+            "parsed_rows": len(rows),
+            "all_reported_rows_parsed": complete,
+            "core_columns_aligned": aligned_core,
+            "all_list_columns_aligned": aligned_columns,
+            "authoritative_total": reported_total if total_valid else None,
+            "authoritative_total_present": total_present,
+            "authoritative_total_matches": total_matches,
+            "continuation_clear": continuation_clear,
+        }
 
     @staticmethod
     def _blackrock_holdings_data_points(payload: dict[str, Any]) -> dict[str, Any]:
@@ -4588,6 +4689,12 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"SPDR workbook did not expose holdings for {normalized_symbol}.")
         workbook_rows = parse_xlsx_table(response.content)
+        completeness = self._workbook_completeness(
+            workbook_rows,
+            rows=rows,
+            fund_symbol=fund_symbol,
+            composition_date=composition_date,
+        )
         normalized_payload = {"source_format": "xlsx", "workbook_rows": workbook_rows}
         native_witness = _native_holdings_parse_witness(
             self,
@@ -4612,6 +4719,7 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "xlsx",
                 "route_resolution": "spdr_symbol_daily_holdings_workbook",
                 "snapshot_provenance": "spdr_native_daily_holdings_workbook",
+                "native_composition_completeness": completeness,
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
                 **({"native_holdings_response_witness": native_witness} if native_witness else {}),
             },
@@ -4708,6 +4816,67 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date, fund_symbol
+
+    @classmethod
+    def _workbook_completeness(
+        cls,
+        workbook_rows: list[list[Any]],
+        *,
+        rows: list[CanonicalHoldingRow],
+        fund_symbol: str | None,
+        composition_date: date | None,
+    ) -> dict[str, Any]:
+        """Account for every nonblank row in the fund-scoped holdings table."""
+
+        header_index: int | None = None
+        for index, row in enumerate(workbook_rows[:20]):
+            headers = {_clean(value) or "" for value in row}
+            if cls._REQUIRED_HEADERS.issubset(headers) or cls._COMPACT_HEADERS.issubset(headers):
+                header_index = index
+                break
+        reported_rows = 0
+        ignored_footer_rows = 0
+        malformed_rows = 0
+        if header_index is not None:
+            header = workbook_rows[header_index]
+            for raw_row in workbook_rows[header_index + 1 :]:
+                if not any(_clean(value) for value in raw_row):
+                    continue
+                raw = _row_dict(header, raw_row)
+                name = _clean(raw.get("Name"))
+                ticker = _clean(raw.get("Ticker"))
+                identifier = _clean(raw.get("Identifier"))
+                if len(name or "") > 300 and not ticker and not identifier:
+                    # The registered SPDR workbook schema appends legal copy
+                    # below the table; it is not a reported portfolio row.
+                    ignored_footer_rows += 1
+                    continue
+                reported_rows += 1
+                if len(raw_row) > len(header) or len(raw_row) < len(header):
+                    malformed_rows += 1
+        parsed_rows = len(rows)
+        complete = bool(
+            header_index is not None
+            and fund_symbol
+            and composition_date
+            and reported_rows > 0
+            and reported_rows == parsed_rows
+            and malformed_rows == 0
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "spdr_fund_scoped_daily_holdings_workbook",
+            "reason": None
+            if complete
+            else "workbook identity/date/header or table row accounting is incomplete",
+            "reported_rows": reported_rows,
+            "parsed_rows": parsed_rows,
+            "all_reported_rows_parsed": complete,
+            "fund_identity_present": bool(fund_symbol),
+            "provider_date_present": bool(composition_date),
+            "ignored_known_footer_rows": ignored_footer_rows,
+            "malformed_rows": malformed_rows,
+        }
 
     @staticmethod
     def _parse_as_of_date(value: str | None) -> date | None:
@@ -5239,6 +5408,49 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             f"{cusip}/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
         )
 
+    @classmethod
+    def _holdings_json_completeness(
+        cls, payload: Any, *, rows: list[CanonicalHoldingRow]
+    ) -> dict[str, Any]:
+        holdings = payload.get("holdings") if isinstance(payload, dict) else None
+        reported_total = payload.get("totalNumberOfHoldings") if isinstance(payload, dict) else None
+        valid_total = (
+            isinstance(reported_total, int)
+            and not isinstance(reported_total, bool)
+            and reported_total > 0
+        )
+        well_formed_rows = isinstance(holdings, list) and all(
+            isinstance(item, dict)
+            and any(
+                item.get(key) not in (None, "")
+                for key in ("ticker", "issuerName", "securityName", "cusip")
+            )
+            for item in holdings
+        )
+        complete = bool(
+            valid_total
+            and isinstance(holdings, list)
+            and reported_total == len(holdings) == len(rows)
+            and well_formed_rows
+            and isinstance(payload, dict)
+            and _native_json_continuation_is_clear(payload)
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "invesco_total_number_of_holdings",
+            "reason": None if complete else "holdings array total or continuation checks failed",
+            "reported_rows": reported_total if valid_total else None,
+            "response_rows": len(holdings) if isinstance(holdings, list) else None,
+            "parsed_rows": len(rows),
+            "all_reported_rows_parsed": complete,
+            "authoritative_total_matches": bool(
+                valid_total and isinstance(holdings, list) and reported_total == len(holdings)
+            ),
+            "continuation_clear": bool(
+                isinstance(payload, dict) and _native_json_continuation_is_clear(payload)
+            ),
+        }
+
     async def _resolve_cusip_with_evidence(
         self,
         client: httpx.AsyncClient,
@@ -5500,6 +5712,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        completeness = self._holdings_json_completeness(payload, rows=rows)
         raw_text = response.text
         native_witness = _native_holdings_parse_witness(
             self,
@@ -5530,6 +5743,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "total_number_of_holdings": (
                     payload.get("totalNumberOfHoldings") if isinstance(payload, dict) else None
                 ),
+                "native_composition_completeness": completeness,
                 "terms_note": self.config.terms_note,
                 **({"native_holdings_response_witness": native_witness} if native_witness else {}),
                 **({"issuer_product_catalog": catalog_evidence} if catalog_evidence else {}),
@@ -40950,6 +41164,9 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             normalized_payload=result.raw_text or "",
             parser_name="amplify:account-filtered-csv-v1",
         )
+        completeness = self._selected_account_csv_completeness(
+            result.raw_text or "", symbol=symbol, rows=rows
+        )
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_format": "csv",
@@ -40957,6 +41174,7 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             "source_access": self.config.source_access,
             "selected_account": symbol.strip().upper(),
             "selected_account_row_count": len(rows),
+            "native_composition_completeness": completeness,
             **({"native_holdings_response_witness": native_witness} if native_witness else {}),
             **(
                 {
@@ -40969,6 +41187,78 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             ),
         }
         return result
+
+    @classmethod
+    def _selected_account_csv_completeness(
+        cls, raw_csv: str, *, symbol: str, rows: list[CanonicalHoldingRow]
+    ) -> dict[str, Any]:
+        """Account for every row in Amplify's full multi-account CSV export."""
+
+        try:
+            table_rows = list(csv.reader(StringIO(raw_csv), strict=True))
+        except csv.Error:
+            table_rows = []
+            malformed_csv = True
+        else:
+            malformed_csv = False
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lower() for cell in row}
+                >= {"date", "account", "stockticker", "securityname"}
+            ),
+            None,
+        )
+        selected = symbol.strip().upper()
+        reported_rows = 0
+        malformed_rows = 0
+        missing_dates = 0
+        composition_dates: set[date] = set()
+        if header_index is not None:
+            header = table_rows[header_index]
+            for row in table_rows[header_index + 1 :]:
+                if not any(_clean(cell) for cell in row):
+                    continue
+                if len(row) != len(header):
+                    malformed_rows += 1
+                    continue
+                raw = _row_dict(header, row)
+                account = (_clean(_first(raw, ["account"])) or "").upper()
+                if account != selected:
+                    if not account:
+                        malformed_rows += 1
+                    continue
+                reported_rows += 1
+                parsed_date = cls._parse_amplify_date(_first(raw, ["date"]))
+                if parsed_date is None:
+                    missing_dates += 1
+                else:
+                    composition_dates.add(parsed_date)
+        complete = bool(
+            not malformed_csv
+            and header_index is not None
+            and reported_rows > 0
+            and reported_rows == len(rows)
+            and malformed_rows == 0
+            and missing_dates == 0
+            and len(composition_dates) == 1
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "amplify_full_multi_account_csv_selected_account",
+            "reason": None
+            if complete
+            else "CSV row accounting or selected-account date checks failed",
+            "account": selected,
+            "reported_rows": reported_rows,
+            "parsed_rows": len(rows),
+            "all_reported_rows_parsed": complete,
+            "malformed_rows": malformed_rows,
+            "missing_dates": missing_dates,
+            "composition_date_count": len(composition_dates),
+            "full_csv_parsed": not malformed_csv and header_index is not None,
+        }
 
     @staticmethod
     def _parse_amplify_csv(

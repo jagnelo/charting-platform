@@ -31741,3 +31741,189 @@ def test_north_square_q3_recheck_keeps_symbols_unavailable_without_complete_down
         assert audit.evidence_state == "non_executable_public_source"
         assert audit.investigated_at == date(2026, 10, 4)
         assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (audit.evidence_refs)
+
+
+@pytest.mark.asyncio
+async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatch):
+    """Native completeness comes from each issuer format, not profile aliases."""
+
+    # SPDR's fund-scoped daily workbook is complete only when every nonblank
+    # holdings-table row is represented by the parser.
+    spdr = get_holdings_adapter("spdr")
+    assert spdr is not None
+    spdr_symbol = "XES"
+    spdr_url = spdr._workbook_url(spdr_symbol)
+    spdr_workbook = _xlsx_workbook(
+        [
+            ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+            ["Ticker Symbol:", spdr_symbol],
+            ["Holdings:", "As of 02-Nov-2026"],
+            ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+            ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+        ]
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=spdr_workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=spdr_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    spdr_result = await spdr.fetch_latest(symbol=spdr_symbol)
+    spdr_completeness = spdr_result.legal_metadata["native_composition_completeness"]
+    assert spdr_completeness["status"] == "complete"
+    assert spdr_completeness["basis"] == "spdr_fund_scoped_daily_holdings_workbook"
+    assert spdr_completeness["reported_rows"] == spdr_completeness["parsed_rows"] == 1
+    malformed_spdr_rows = [
+        ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+        ["Ticker Symbol:", spdr_symbol],
+        ["Holdings:", "As of 02-Nov-2026"],
+        ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+        ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+        ["Unidentified security row", "", "", "", "", "", ""],
+    ]
+    assert (
+        spdr._workbook_completeness(
+            malformed_spdr_rows,
+            rows=spdr_result.rows,
+            fund_symbol=spdr_symbol,
+            composition_date=date(2026, 11, 2),
+        )["status"]
+        == "incomplete"
+    )
+
+    # Invesco's declared total is authoritative; one returned row cannot be
+    # treated as complete when the source says 105 holdings exist.
+    invesco = get_holdings_adapter("invesco")
+    assert invesco is not None
+    holdings_url = invesco._holdings_url("46090E103")
+    invesco_payload = {
+        "effectiveBusinessDate": "2026-11-02",
+        "totalNumberOfHoldings": 1,
+        "holdings": [
+            {
+                "ticker": "MSFT",
+                "issuerName": "Microsoft Corp",
+                "cusip": "594918104",
+                "securityTypeName": "Common Stock",
+            }
+        ],
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(invesco_payload), content_type="application/json", url=holdings_url
+        )
+    ]
+    invesco_result = await invesco.fetch_latest(symbol="QQQ", source_url=holdings_url)
+    invesco_completeness = invesco_result.legal_metadata["native_composition_completeness"]
+    assert invesco_completeness["status"] == "complete"
+    assert invesco_completeness["authoritative_total_matches"] is True
+    assert invesco_completeness["reported_rows"] == invesco_completeness["parsed_rows"] == 1
+    incomplete_invesco = {**invesco_payload, "totalNumberOfHoldings": 105}
+    incomplete_invesco_evidence = invesco._holdings_json_completeness(
+        incomplete_invesco, rows=invesco_result.rows
+    )
+    assert incomplete_invesco_evidence["status"] == "incomplete"
+    assert (
+        invesco._holdings_json_completeness(
+            {
+                key: value
+                for key, value in invesco_payload.items()
+                if key != "totalNumberOfHoldings"
+            },
+            rows=invesco_result.rows,
+        )["status"]
+        == "incomplete"
+    )
+    assert (
+        invesco._holdings_json_completeness(
+            {**invesco_payload, "hasMore": True}, rows=invesco_result.rows
+        )["status"]
+        == "incomplete"
+    )
+    from app.services.etf_holdings_refresh import _verified_native_composition_completeness
+
+    with pytest.raises(ValueError, match="composition completeness is not proven"):
+        _verified_native_composition_completeness(
+            profile=SimpleNamespace(instrument=SimpleNamespace(symbol="QQQ")),
+            adapter=invesco,
+            fetch_result=SimpleNamespace(
+                rows=invesco_result.rows,
+                raw_json=incomplete_invesco,
+                raw_text=json.dumps(incomplete_invesco),
+                legal_metadata={"native_composition_completeness": incomplete_invesco_evidence},
+            ),
+        )
+
+    # BlackRock's holdings.all vectors must align. The separate product
+    # catalog total is intentionally not used as a holdings row count.
+    ishares = get_holdings_adapter("ishares")
+    assert ishares is not None
+    ishares_payload = {
+        "componentsByNameMap": {
+            "holdings": {
+                "containersByNameMap": {
+                    "all": {
+                        "dataPointsByNameMap": {
+                            "asOfDate": {"value": 20261102},
+                            "ticker": {"value": ["MSFT"]},
+                            "issueName": {"value": ["MICROSOFT CORP"]},
+                            "holdingPercent": {"value": [6.5]},
+                            "unitsHeld": {"value": [100]},
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps(ishares_payload), content_type="application/json")
+    ]
+    ishares_result = await ishares.fetch_latest(symbol="IWM")
+    ishares_rows = ishares_result.rows
+    ishares_completeness = ishares_result.legal_metadata["native_composition_completeness"]
+    assert ishares_completeness["status"] == "complete"
+    assert ishares_completeness["basis"] == "blackrock_holdings_all_container"
+    assert ishares_completeness["reported_rows"] == ishares_completeness["parsed_rows"] == 1
+    truncated_ishares = json.loads(json.dumps(ishares_payload))
+    truncated_ishares["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"][
+        "dataPointsByNameMap"
+    ]["holdingPercent"]["value"] = []
+    assert (
+        ishares._holdings_all_completeness(truncated_ishares, rows=ishares_rows)["status"]
+        == "incomplete"
+    )
+
+    # Amplify's full export may contain many accounts, but every selected
+    # account row and date must be accounted for in the canonical result.
+    amplify = get_holdings_adapter("amplify")
+    assert amplify is not None
+    amplify_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "11/02/2026,BWET,MSFT,594918104,Microsoft Corp,100,1,100,1%,10000,100,1,",
+            "11/02/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,1,10,1%,1000,10,1,",
+        ]
+    )
+    FakeAsyncClient.queue = [FakeResponse(text=amplify_csv, content_type="text/csv")]
+    amplify_result = await amplify.fetch_latest(symbol="BWET")
+    amplify_completeness = amplify_result.legal_metadata["native_composition_completeness"]
+    assert amplify_completeness["status"] == "complete"
+    assert amplify_completeness["reported_rows"] == amplify_completeness["parsed_rows"] == 1
+    missing_date_csv = amplify_csv.replace("11/02/2026,BWET", ",BWET")
+    missing_date_rows, _ = amplify._parse_amplify_csv(missing_date_csv, symbol="BWET")
+    assert (
+        amplify._selected_account_csv_completeness(
+            missing_date_csv, symbol="BWET", rows=missing_date_rows
+        )["status"]
+        == "incomplete"
+    )
+    malformed_csv = amplify_csv.replace("11/02/2026,OTHER,NVDA", "11/02/2026,OTHER")
+    malformed_rows, _ = amplify._parse_amplify_csv(malformed_csv, symbol="BWET")
+    assert (
+        amplify._selected_account_csv_completeness(
+            malformed_csv, symbol="BWET", rows=malformed_rows
+        )["status"]
+        == "incomplete"
+    )

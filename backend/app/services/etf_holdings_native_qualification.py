@@ -725,6 +725,7 @@ async def _verify_qualification_snapshot(
     ):
         raise ETFHoldingsRouteHeldError("native qualification raw artifact integrity check failed")
     evidence = (artifact.legal_metadata or {}).get("native_initial_qualification_evidence")
+    completeness = evidence.get("composition_completeness") if isinstance(evidence, dict) else None
     snapshot_legal = (
         snapshot.extra_data.get("legal_metadata") if isinstance(snapshot.extra_data, dict) else None
     )
@@ -744,6 +745,16 @@ async def _verify_qualification_snapshot(
         != (snapshot.extra_data or {}).get("schema_fingerprint")
         or evidence.get("parser_version") != snapshot.parser_version
         or evidence.get("raw_payload_hash") != expected_hash
+        or snapshot.completeness_status != "complete"
+        or not isinstance(completeness, dict)
+        or completeness.get("status") != "complete"
+        or completeness.get("verified") is not True
+        or completeness.get("all_reported_rows_parsed") is not True
+        or completeness.get("reported_rows") != snapshot.row_count
+        or completeness.get("parsed_rows") != snapshot.row_count
+        or completeness.get("source_payload_hash") != expected_hash
+        or not isinstance(snapshot_legal, dict)
+        or snapshot_legal.get("native_composition_completeness_evidence") != completeness
         or artifact.fetched_at < job.started_at
     ):
         raise ETFHoldingsRouteHeldError(

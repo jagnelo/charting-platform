@@ -3035,10 +3035,17 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         assert snapshot.source_url == workbook_url
         assert snapshot.composition_date == date(2026, 11, 2)
         assert snapshot.known_at is not None
+        assert snapshot.completeness_status == "complete"
         assert snapshot.row_count == 1 and [row.reported_symbol for row in snapshot.rows] == [
             "MSFT"
         ]
         initial_legal = snapshot.extra_data["legal_metadata"]
+        completeness_evidence = initial_legal["native_composition_completeness_evidence"]
+        assert completeness_evidence["basis"] == "spdr_fund_scoped_daily_holdings_workbook"
+        assert completeness_evidence["status"] == "complete"
+        assert completeness_evidence["verified"] is True
+        assert completeness_evidence["reported_rows"] == snapshot.row_count
+        assert completeness_evidence["parsed_rows"] == snapshot.row_count
         initial_identity = initial_legal["artifact_identity_validation"]
         assert initial_identity["status"] == "matched"
         assert initial_identity["native_fund_identity_evidence"]["basis"] == (
@@ -3055,6 +3062,8 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         assert artifact.source_url == snapshot.source_url
         assert artifact.composition_date == snapshot.composition_date
         evidence = artifact.legal_metadata["native_initial_qualification_evidence"]
+        assert evidence["composition_completeness"] == completeness_evidence
+        assert completeness_evidence["source_payload_hash"] == artifact.content_hash
         witness = evidence["holdings_response_body_witness"]
         capture = witness["provider_capture"]
         assert capture["request_log_id"] == log.id
@@ -3122,9 +3131,16 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         await enabled.commit()
         assert refreshed.source_provider == "spdr"
         assert refreshed.composition_date == date(2026, 11, 2)
+        assert refreshed.completeness_status == "complete"
         assert refreshed.parser_version == snapshot.parser_version
         assert refreshed.extra_data["schema_fingerprint"] == qualified_schema
         refreshed_legal = refreshed.extra_data["legal_metadata"]
+        refreshed_completeness = refreshed_legal["native_composition_completeness_evidence"]
+        assert refreshed_completeness["status"] == "complete"
+        assert refreshed_completeness["verified"] is True
+        assert refreshed_completeness["basis"] == "spdr_fund_scoped_daily_holdings_workbook"
+        assert refreshed_completeness["reported_rows"] == refreshed.row_count
+        assert refreshed_completeness["parsed_rows"] == refreshed.row_count
         assert refreshed_legal["artifact_identity_validation"]["status"] == "matched"
         assert (
             refreshed_legal["artifact_identity_validation"]["native_fund_identity_evidence"][
@@ -3150,6 +3166,11 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
         )
         assert refreshed_capability.identity_verified
         assert refreshed_capability.usable_for_current_analysis
+        assert refreshed_capability.availability == "current"
+        assert refreshed_capability.completeness_status == "complete"
+        assert refreshed_capability.reason == (
+            "A complete holdings snapshot passed the latest adapter check."
+        )
 
     assert len(runner.calls) == 2
     assert runner.calls[1] == runner.calls[0]

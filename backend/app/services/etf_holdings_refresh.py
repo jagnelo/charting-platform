@@ -171,6 +171,15 @@ def _holdings_completeness_status(
 
     metadata = result_metadata or {}
     configured_aliases = aliases or {}
+    native_completeness = metadata.get("native_composition_completeness_evidence")
+    if isinstance(native_completeness, dict):
+        if (
+            native_completeness.get("status") == "complete"
+            and native_completeness.get("verified") is True
+            and native_completeness.get("all_reported_rows_parsed") is True
+        ):
+            return "complete"
+        return "incomplete"
     explicit = metadata.get("completeness_status") or configured_aliases.get(
         "holdings_completeness_status"
     )
@@ -186,6 +195,90 @@ def _holdings_completeness_status(
         .lower()
     )
     return _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY.get(source_quality, "unknown")
+
+
+_NATIVE_COMPOSITION_COMPLETENESS_BASES = {
+    "spdr": "spdr_fund_scoped_daily_holdings_workbook",
+    "invesco": "invesco_total_number_of_holdings",
+    "ishares": "blackrock_holdings_all_container",
+    "amplify": "amplify_full_multi_account_csv_selected_account",
+}
+
+
+def _verified_native_composition_completeness(
+    *, profile: ETFProfile, adapter: Any, fetch_result: Any
+) -> dict[str, Any]:
+    """Validate adapter row accounting before a native snapshot can be current."""
+
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    provider = str(getattr(adapter, "source_provider", "")).strip().lower()
+    expected_basis = _NATIVE_COMPOSITION_COMPLETENESS_BASES.get(provider)
+    evidence = metadata.get("native_composition_completeness")
+    rows = fetch_result.rows if isinstance(fetch_result.rows, list) else []
+    reported_rows = evidence.get("reported_rows") if isinstance(evidence, dict) else None
+    parsed_rows = evidence.get("parsed_rows") if isinstance(evidence, dict) else None
+    counts_match = (
+        isinstance(reported_rows, int)
+        and not isinstance(reported_rows, bool)
+        and reported_rows > 0
+        and isinstance(parsed_rows, int)
+        and not isinstance(parsed_rows, bool)
+        and parsed_rows == len(rows) == reported_rows
+    )
+    checks_pass = bool(
+        isinstance(evidence, dict)
+        and evidence.get("status") == "complete"
+        and evidence.get("basis") == expected_basis
+        and evidence.get("all_reported_rows_parsed") is True
+        and counts_match
+    )
+    if provider == "spdr":
+        checks_pass = checks_pass and bool(
+            evidence.get("fund_identity_present") is True
+            and evidence.get("provider_date_present") is True
+            and evidence.get("malformed_rows") == 0
+        )
+    elif provider == "invesco":
+        checks_pass = checks_pass and bool(
+            evidence.get("authoritative_total_matches") is True
+            and evidence.get("response_rows") == parsed_rows
+            and evidence.get("continuation_clear") is True
+        )
+    elif provider == "ishares":
+        checks_pass = checks_pass and bool(
+            evidence.get("core_columns_aligned") is True
+            and evidence.get("all_list_columns_aligned") is True
+            and evidence.get("authoritative_total_matches") is True
+            and evidence.get("continuation_clear") is True
+        )
+    elif provider == "amplify":
+        expected_symbol = (
+            profile.instrument.symbol.strip().upper() if profile.instrument is not None else ""
+        )
+        checks_pass = checks_pass and bool(
+            evidence.get("account") == expected_symbol
+            and evidence.get("full_csv_parsed") is True
+            and evidence.get("malformed_rows") == 0
+            and evidence.get("missing_dates") == 0
+            and evidence.get("composition_date_count") == 1
+        )
+    if not checks_pass:
+        observed = evidence.get("status") if isinstance(evidence, dict) else "missing"
+        reason = evidence.get("reason") if isinstance(evidence, dict) else None
+        raise ValueError(
+            "Native holdings composition completeness is not proven "
+            f"(provider={provider}, status={observed}, reason={reason or 'row accounting did not match'})."
+        )
+    payload = fetch_result.raw_json if fetch_result.raw_json is not None else fetch_result.raw_text
+    return {
+        **evidence,
+        "status": "complete",
+        "verified": True,
+        "all_reported_rows_parsed": True,
+        "reported_rows": reported_rows,
+        "parsed_rows": parsed_rows,
+        "source_payload_hash": _hash_payload(payload),
+    }
 
 
 _CANARY_HISTORY_KEY = "canary_history"
@@ -3297,10 +3390,16 @@ async def _refresh_adapter_route(
         result_metadata["composition_date_source_field"] = native_qualification_evidence[
             "composition_date_source_field"
         ]
+        result_metadata["native_composition_completeness_evidence"] = native_qualification_evidence[
+            "composition_completeness"
+        ]
     elif native_source_evidence is not None:
         result_metadata["composition_date"] = native_source_evidence["composition_date"]
         result_metadata["composition_date_source_field"] = native_source_evidence[
             "composition_date_source_field"
+        ]
+        result_metadata["native_composition_completeness_evidence"] = native_source_evidence[
+            "composition_completeness"
         ]
     if vaneck_initial_qualification_job_id is not None and (
         result_metadata.get("initial_qualification") is not True
@@ -3854,6 +3953,11 @@ def _native_adapter_fetch_evidence(
         ):
             raise ValueError("Native qualification requires its provider source identifier")
     source_format = str(metadata.get("source_format") or "csv").strip()
+    composition_completeness = _verified_native_composition_completeness(
+        profile=profile,
+        adapter=adapter,
+        fetch_result=fetch_result,
+    )
     parser_version = str(
         metadata.get("parser_version") or f"{adapter_key}-{source_format}-v1"
     ).strip()
@@ -3894,6 +3998,7 @@ def _native_adapter_fetch_evidence(
         "composition_date_source_field": (
             metadata.get("composition_date_source_field") or date_field
         ),
+        "composition_completeness": composition_completeness,
         "source_format": source_format,
         "parser_version": parser_version,
         "schema_fingerprint": schema_fingerprint,
