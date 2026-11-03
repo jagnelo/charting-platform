@@ -6,15 +6,15 @@
     },
     {
       "id": "OSA2",
-      "text": "Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity; it does not scan adapters, guess from ticker/name, or add a symbol-specific seed for an audited current route."
+      "text": "Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity. During explicit selected acquire only, a resolved canonical iShares fund name may nominate the registered catalog even when issuer_id is NULL; this is discovery evidence only, not issuer/product proof. The exact official row must match canonical ticker and full fund name before holdings retrieval. No adapter scan, guessed identity, or per-symbol seed is permitted."
     },
     {
       "id": "OSA3",
-      "text": "A selected canonical ETF with no exact audited/curated route and no trusted publisher product metadata returns typed unavailable with no guessed profile or source request; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for configured routes."
+      "text": "A selected canonical ETF with no exact audited/curated route or eligible catalog discovery hint returns typed unavailable/held with no guessed profile/request. Missing, conflicting, ambiguous, or mismatched official catalog identity is held before holdings retrieval. Provider policy, entitlement, quota, cost, health, and hold checks remain authoritative for every physical request."
     },
     {
       "id": "OSA4",
-      "text": "Deterministic no-network regressions cover BWET and BDRY current Amplify audits, exact adapter/provider binding, canonical-ID mismatch, and missing iShares/IGV product metadata; changed Python files pass Ruff."
+      "text": "Deterministic no-network regressions cover BWET/BDRY current audits and a production-shaped canonical iShares ETF with issuer_id NULL and no profile/static product seed. Canonical name is only a catalog hint; exact official ticker/full-name/product identity is required before holdings retrieval. Numeric and optional official slug links, conflicting slugs, observed 482-of-482 label without false completeness, raw/hash/cache/log lineage, and malformed/duplicate/foreign identity denials are covered. Changed Python files pass Ruff."
     },
     {
       "id": "OSA5",
@@ -25,27 +25,37 @@
     "authorization": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md",
     "baseline": "f8323af179922193f4dcf3c9f0a5d9001282455f",
     "name": "ordinary selected ETF acquisition route preparation",
-    "scope": "ETF-owned backend API/schema/service/adapter and deterministic unit tests only; Provider owns provider_runtime.py and generic qualification callable; TC owns frontend.",
+    "scope": "ETF-owned backend API/schema/service/adapter/model/migration and deterministic unit tests only; Provider owns provider_runtime.py and the generic qualification callable; TC owns frontend.",
     "source_paths": [
       "backend/app/routers/etf_holdings.py",
       "backend/app/schemas/etf_holdings.py",
       "backend/app/services/etf_holdings_adapters.py",
       "backend/app/services/etf_holdings_capability.py",
       "backend/app/services/etf_holdings_refresh.py",
+      "backend/app/services/etf_issuer_catalog.py",
+      "backend/app/models/etf_holdings.py",
+      "backend/app/models/__init__.py",
+      "backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py",
       "backend/tests/unit/services/test_etf_holdings_adapters.py",
-      "backend/tests/unit/services/test_etf_holdings_bootstrap.py"
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+      "backend/tests/unit/services/test_etf_issuer_catalog.py"
     ],
     "source_file_sha256": {
       "backend/app/routers/etf_holdings.py": "5ffaaaf7ba73982004097a28ae639d7ae541a36a664ed528298ae4095c2ff355",
       "backend/app/schemas/etf_holdings.py": "f447573dd06584fd42c51ef1762300e0623394e6ffe2ba4a65a8473d60ef4d8d",
-      "backend/app/services/etf_holdings_adapters.py": "fde88b665a3641879308269ed8765d8692ecf8e1d9537f41c359b26584e778de",
+      "backend/app/services/etf_holdings_adapters.py": "0bb9798472e5b7339c5256325bcbe660003db5743db5d7d22a858cbdccf42ca3",
       "backend/app/services/etf_holdings_capability.py": "17cf8ee0ca71d0952524cc25beaa1090053b1372759fc16418703df78d59524c",
-      "backend/app/services/etf_holdings_refresh.py": "5f9a2fab3e47792556566b59886a78c1ff8e9ba6c750ea67f3a0b2a98f2c5807",
-      "backend/tests/unit/services/test_etf_holdings_adapters.py": "6f6309d6bb5d7a63b14104f05e2ede750729808d037cd774b4bfff078c91991f",
-      "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "018746afa66c86be4827ad94e03b9cb2cb720149bb05f61c94b6d4a8966b8ad0"
+      "backend/app/services/etf_holdings_refresh.py": "1df98fa1486b8e16536e4b64e467fed96aedf123099ef0c55a50bc5fcb844e7f",
+      "backend/app/services/etf_issuer_catalog.py": "0572489026d6b5bfc48dbaaf60dc5790e8beb58302ae4c89940032a93405ea80",
+      "backend/app/models/etf_holdings.py": "79d98ef98934d1edc54aa3dc16eb3a3a55856fcada52808913c8ef557efafd05",
+      "backend/app/models/__init__.py": "bdbb4e041d4d7d5e0e0e2d5b567dfefb41f6882e0f67738aff0274d8328a64f6",
+      "backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py": "a01e16976d47c64509dc097fe3b9e5f009e318b1f970e3b32607f9f937f4c533",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py": "6b3fd7e293c05e5fac1b2c29cc3ced6380f40b97c8ba78777f000df3bf87acec",
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "a6d70d1a764ed12d6217af8cd768cc07fcc61a1ab2417fd1f75e0a3c82020492",
+      "backend/tests/unit/services/test_etf_issuer_catalog.py": "a23968d7acd97d48b40e1a36b0ec15ab8b366606cc52ff74e0ec487f988deee0"
     },
-    "state": "Selected-acquire route-preparation and focused tests are implemented and locally green; this is not an accepted checkpoint or full-route completion. Generic issuer product catalog resolution and the initial-qualification executor remain pending.",
-    "provider_callable": "pending exact implementation in synchronized green staging; no branch import or Provider file edit",
+    "state": "Selected-acquire routing and reusable iShares catalog metadata resolution are implemented and focused locally green. The generic sealed initial-qualification executor and full qualification remain pending; no live source call is claimed.",
+    "provider_callable": "Provider callable requires data_source_id; implementation must be adopted only through synchronized green staging. No Provider branch import or file edit.",
     "live_source_or_target_operation": false
   },
   "active_follow_up": {
@@ -53,19 +63,19 @@
     "baseline_head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
     "completed": [
       "Preserved the exact green staging ancestry and existing feature claim/history.",
-      "Added optional canonical instrument_id binding to the existing POST acquire request while preserving callers that omit it.",
-      "Generalized route preparation from exact current symbol-audit evidence to a matching registered native adapter/source_provider, without a BWET-only route seed or adapter scan.",
-      "Added typed unavailable/no-profile/no-request behavior and focused deterministic no-network regressions for BWET, BDRY, mismatched canonical IDs and missing iShares/IGV product metadata.",
-      "Focused bootstrap tests passed 37/37; targeted selected-acquire/catalog tests passed 3/3; changed-file Ruff and diff-check passed."
+      "Added backward-compatible optional canonical instrument_id binding to selected-fund acquire and typed unavailable/no-profile/no-request behavior.",
+      "Generalized native route preparation from exact current symbol-audit evidence without a BWET-only route seed or adapter scan.",
+      "Added deterministic no-network route tests for BWET, BDRY, canonical-ID mismatch, and production-shaped IGV with issuer_id NULL and no profile/static product ID.",
+      "Added a reusable official iShares catalog parser/cache with exact raw/hash/retrieval and admitted-log lineage, numeric/slug URL identity checks, and fail-closed ambiguity/partial-content handling.",
+      "Affected ETF adapter/bootstrap/catalog modules passed 743/743; Ruff check/format, Alembic head, workstream validation, narrative regression, and diff checks passed."
     ],
     "pending": [
-      "Resolve exact verified issuer product metadata through a reusable issuer catalog path; IGV239771 is evidence of a gap, not a hardcoded value.",
-      "Adopt only Provider generic qualification implementation after Root publishes it through synchronized green staging.",
-      "Implement the separate ETF admin executor using locked durable source/review/account/profile rows and the sealed callable; retain raw/date/schema/fund evidence and recheck review before passed.",
-      "Complete required local profile and exact-source CI; genuine publisher and target proof remain Root-owned."
+      "Adopt Provider generic qualification only after its data_source_id-capable callable is released in synchronized green staging.",
+      "Implement and test the separate ETF admin executor from locked durable review/source/account/profile records; preserve one-shot admission, raw/date/schema/fund proof, and review recheck.",
+      "Complete the combined source-matched local profile and exact-source CI; genuine publisher qualification and target proof remain Root-owned."
     ],
     "prior_checkpoint_archive": "previously_accepted_unxq_calendar_checkpoint_2026_10_31",
-    "status": "focused route-preparation slice locally green; wider ordinary ticker goal remains in progress",
+    "status": "focused null-issuer catalog route preparation locally green; Provider qualification and combined profile remain pending",
     "validation_tier": "full_integration",
     "provider_http_used": false
   },
@@ -112,51 +122,37 @@
   },
   "continuation_goal": {
     "created_at_epoch": 1793705535,
-    "updated_at_epoch": 1793706671,
+    "updated_at_epoch": 1793709230,
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "status": "active",
     "token_budget": null,
     "objective": "Implement the ordinary selected-ETF acquisition contract from an exact canonical fund identity through a trustworthy native issuer route and the shared Provider admission path. Then implement a separate generic, sealed admin initial-qualification executor after Provider's callable is published in released green staging. Preserve all AC1-AC14 and all source/account/target holds; no live source calls are part of this offline slice.",
     "accounting_note": "This is the same unbudgeted ordinary ticker-selection goal in the original thread. Prior completed goal accounting and accepted checkpoints remain archived unchanged."
   },
-  "current_blocker_latest": "The focused selected-acquire slice is locally green but not accepted or fully qualified. Reusable trusted issuer-product metadata and Provider generic initial qualification remain pending; wait for Root to release synchronized green Provider staging before ETF executor work. No source HTTP, target, policy, quota, ledger, or deployment operation occurred. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, prior accepted archives and holds.",
+  "current_blocker_latest": "Provider has published bind_native_etf_initial_qualification with required data_source_id on its Producer source, but it is not yet released through synchronized green staging. Until then no ETF qualification executor or source HTTP is authorized. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
   "current_checkpoint_objective": "Implement the ordinary selected-ETF acquisition contract from an exact canonical fund identity through a trustworthy native issuer route and the shared Provider admission path. Then implement a separate generic, sealed admin initial-qualification executor after Provider's callable is published in released green staging. Preserve all AC1-AC14 and all source/account/target holds; no live source calls are part of this offline slice.",
-  "current_local_delta": "Backend-only selected ETF acquire contract: optional canonical instrument_id binding; exact current symbol-audit-to-registered-adapter route binding; typed unavailable response with profile=null and no source request when exact issuer metadata is absent. Tests: bootstrap 37/37; targeted selected-acquire/catalog 3/3 (701 deselected); changed-file Ruff and diff-check passed. No full profile, DB fixture, build, source HTTP, or current-candidate CI yet.",
+  "current_local_delta": "ETF selected-acquire route preparation supports a canonical iShares name as a catalog hint when the real canonical instrument has issuer_id NULL; the official catalog must match exact ticker and full fund name before holdings retrieval. Catalog raw/cache/log provenance, numeric and optional official slug links, conflicting identity denial, and partial-content safeguards are covered. Affected ETF adapter/bootstrap/catalog modules passed 743/743; Ruff check/format, Alembic head e6f7a8b9c012, branch validation46 records, narrative1/1 and diff check passed. No DB fixture, source HTTP, target, quota, policy, or ledger operation occurred. Provider's data_source_id-capable qualification callable and the combined profile remain pending green staging and Root review.",
   "dirty_paths": [
     "backend/app/routers/etf_holdings.py",
     "backend/app/schemas/etf_holdings.py",
     "backend/app/services/etf_holdings_adapters.py",
     "backend/app/services/etf_holdings_capability.py",
     "backend/app/services/etf_holdings_refresh.py",
+    "backend/app/services/etf_issuer_catalog.py",
+    "backend/app/models/etf_holdings.py",
+    "backend/app/models/__init__.py",
+    "backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py",
     "backend/tests/unit/services/test_etf_holdings_adapters.py",
     "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+    "backend/tests/unit/services/test_etf_issuer_catalog.py",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
     "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 463900089,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
-      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
-    ],
-    "testcontainer_sessions": [
-      "36c07de8-5e13-4d50-91d9-b1686e19e6ee"
-    ],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 463900089,
-    "volume_count": 2,
-    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -171,7 +167,7 @@
     "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Implement the ordinary selected-ETF acquisition contract from an exact canonical fund identity through a trustworthy native issuer route and the shared Provider admission path. Then implement a separate generic, sealed admin initial-qualification executor after Provider's callable is published in released green staging. Preserve all AC1-AC14 and all source/account/target holds; no live source calls are part of this offline slice.",
+  "goal_objective": "Implement the ordinary selected-ETF acquisition contract from an exact canonical fund identity through a trustworthy native issuer route and the shared Provider admission path. Then implement a separate generic, sealed admin initial-qualification executor after Provider's callable is published in released green staging. Preserve all AC1-AC14 and all source/account/target holds; no live source calls are part of this offline slice. Acceptance criteria: OSA1: The authenticated selected-fund acquire accepts an optional positive canonical instrument_id, binds it to the exact unique active/resolved/non-synthetic fund matching the path symbol, and stops a mismatching identity before profile work; callers omitting the field remain compatible.; OSA2: Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity; for a canonical active iShares issuer it may instead use the registered iShares catalog route without a per-symbol product seed. It does not scan adapters or guess from ticker/name.; OSA3: A selected canonical ETF with no exact audited/curated route, trusted canonical publisher identity, or exact catalog product row returns typed unavailable/held with no guessed product identity; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for every physical request.; OSA4: Deterministic no-network regressions cover BWET and BDRY current Amplify audits, exact adapter/provider binding, canonical-ID mismatch, and unseeded iShares catalog resolution for IGV/IGM. Catalog tests require exact ticker/name/numeric product links, same-origin validation, raw/hash/encoding/cache and admitted-log lineage, reject duplicate/conflicting/malformed/foreign identities, and never infer absence from partial content. Changed Python files pass Ruff.; OSA5: After Provider publishes and Root releases the generic sealed native qualification callable through synchronized green staging, ETF implements a separate bounded admin executor from locked durable review/source/account/profile state. A probe is marked passed only after one-shot native transport yields persisted raw, dated, schema-valid, exact-fund evidence and the current review is rechecked. Full qualification and actual production proof remain separately gated.. Required local profile: full_stack_browser; stop at ready_for_human_review.",
   "goal_recorded_at": "2026-11-03T11:32:15Z",
   "goal_request": {
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
@@ -179,7 +175,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
+  "head": "0dba8561e604988eaecd2948bb74d7c8ccc0e61c",
   "historical_integration_checkpoint_erf_2026_10_26": {
     "acceptance_criteria": [
       {
@@ -428,7 +424,7 @@
   "integration_capture": "exact branch HEAD",
   "integration_checkpoint": {
     "id": "etf-ordinary-selected-acquisition-route-preparation-20261103",
-    "goal": "Implement the explicit selected-canonical-fund acquire contract and route preparation without guessing issuer identity; continue with reusable verified product metadata and Provider's generic sealed initial qualification only after exact green staging is released.",
+    "goal": "Implement explicit selected-canonical-fund acquisition using verified native issuer routes/catalog identity and the shared Provider admission path; then implement the separate admin initial-qualification executor only after Provider releases its sealed callable in green staging.",
     "planning_authorization": "Human-activated scope is recorded at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md. Exact green staging f8323af179922193f4dcf3c9f0a5d9001282455f is adopted in this ETF branch (CI41397907218, terminal green). Provider owns the qualification callable; TC owns frontend.",
     "status": "implementation_in_progress",
     "acceptance_authorization": "pending_review",
@@ -440,15 +436,15 @@
       },
       {
         "id": "OSA2",
-        "text": "Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity; it does not scan adapters, guess from ticker/name, or add a symbol-specific seed for an audited current route."
+        "text": "Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity. During explicit selected acquire only, a resolved canonical iShares fund name may nominate the registered catalog even when issuer_id is NULL; this is discovery evidence only, not issuer/product proof. The exact official row must match canonical ticker and full fund name before holdings retrieval. No adapter scan, guessed identity, or per-symbol seed is permitted."
       },
       {
         "id": "OSA3",
-        "text": "A selected canonical ETF with no exact audited/curated route and no trusted publisher product metadata returns typed unavailable with no guessed profile or source request; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for configured routes."
+        "text": "A selected canonical ETF with no exact audited/curated route or eligible catalog discovery hint returns typed unavailable/held with no guessed profile/request. Missing, conflicting, ambiguous, or mismatched official catalog identity is held before holdings retrieval. Provider policy, entitlement, quota, cost, health, and hold checks remain authoritative for every physical request."
       },
       {
         "id": "OSA4",
-        "text": "Deterministic no-network regressions cover BWET and BDRY current Amplify audits, exact adapter/provider binding, canonical-ID mismatch, and missing iShares/IGV product metadata; changed Python files pass Ruff."
+        "text": "Deterministic no-network regressions cover BWET/BDRY current audits and a production-shaped canonical iShares ETF with issuer_id NULL and no profile/static product seed. Canonical name is only a catalog hint; exact official ticker/full-name/product identity is required before holdings retrieval. Numeric and optional official slug links, conflicting slugs, observed 482-of-482 label without false completeness, raw/hash/cache/log lineage, and malformed/duplicate/foreign identity denials are covered. Changed Python files pass Ruff."
       },
       {
         "id": "OSA5",
@@ -463,16 +459,16 @@
         "OSA4"
       ],
       "total": 5,
-      "current_phase": "Focused selected-acquire route-preparation is green. Reusable exact issuer product metadata and the ETF qualification executor remain pending Provider green-staging release.",
-      "current_blocker": "Provider's generic bind_native_etf_initial_qualification implementation is not yet published in synchronized green staging. Do not import its feature branch or perform source HTTP."
+      "current_phase": "The production-shaped null-issuer iShares catalog route and affected no-network tests are focused-green; Provider qualification remains pending.",
+      "current_blocker": "Provider has published the sealed bind_native_etf_initial_qualification callable, including required data_source_id, on its Producer source, but it is not yet released through synchronized green staging. Do not import its branch or perform source HTTP; Root owns host/cost review and provisioning."
     },
     "required_contracts": [
       "The existing POST /api/v1/etf-holdings/{symbol}/acquire remains the selected-fund action; optional positive instrument_id must match the existing canonical resolved fund for the path symbol.",
-      "No-profile route preparation is limited to exact curated metadata or the exact symbol's current audit mapped to a registered native adapter with matching source_provider identity.",
-      "BWET and BDRY use the existing Amplify current successor-audit evidence without adding a BWET-only product routing entry.",
-      "IGV and similar native products require trustworthy exact issuer-product metadata; no static IGV239771 hardcode, guessed identity, adapter scan, or speculative request is permitted.",
-      "Missing route metadata returns unavailable/profile=null/no request; every configured route still passes through shared Provider policy, entitlement, cost, quota, health and hold admission.",
-      "The next executor derives attempt/provider/profile/instrument/symbol/account/revision/fingerprint/deadline/budget from locked durable records, calls only the reviewed sealed provider_runtime contract, and passes a probe only after actual raw, dated, schema-valid exact-fund evidence is committed and current review is rechecked."
+      "No-profile route preparation uses exact curated metadata or the selected symbol's current audit mapped to a registered native adapter with matching source_provider identity.",
+      "BWET and BDRY use current Amplify successor-audit evidence without a BWET-only route seed.",
+      "For production-shaped canonical iShares ETFs with issuer_id NULL, canonical name is a catalog-discovery hint only. The official catalog must match exact ticker and full canonical name before product ID or holdings URL use; no symbol seed, guessed identity, or adapter scan.",
+      "Catalog raw bytes/hash/cache/log lineage and strict numeric-plus-optional-slug product paths are validated; conflicting/malformed/foreign identity and partial-content absence fail closed.",
+      "The next executor derives all attempt/review/account/source scope from locked durable records and uses only Provider callable released through green staging; no pass without actual persisted raw/date/schema/fund evidence and current-review recheck."
     ],
     "source_scope": [
       "backend/app/routers/etf_holdings.py",
@@ -488,20 +484,18 @@
       "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
     ],
     "validation": {
-      "focused_selected_acquire": "tests/unit/services/test_etf_holdings_bootstrap.py passed37/37. The focused selection `selected_acquire or holdings_adapter_catalog_and_inference_cover_known_routes` passed3/3 with701 unrelated cases deselected. Ruff passed for all seven changed Python files and git diff --check passed. No provider/issuer/SEC HTTP was used.",
+      "focused_selected_acquire": "From the backend project, the affected no-network modules passed 743/743: tests/unit/services/test_etf_issuer_catalog.py, test_etf_holdings_bootstrap.py, and test_etf_holdings_adapters.py. This includes the issuer_id=NULL IGV selection path, exact catalog-row identity before holdings fetch, numeric/official-slug paths, conflicting slug and mismatched identity rejection, and the 482-of-482 label without false completeness. Ruff check/format, Alembic head e6f7a8b9c012, branch-validate (46 records), the narrative regression (1/1), and git diff --check passed. No DB fixture, provider/issuer/SEC HTTP, target or policy/quota/ledger mutation occurred.",
       "exact_source_ci": "not_started_for_this_candidate",
-      "local_profile": "focused_unit_only; full backend/profile qualification remains pending",
-      "provider_initial_qualification": "unavailable_in_current_published_dependency; no fake probe or bypass was added"
+      "local_profile": "focused_no_network_unit_only; combined full profile remains pending",
+      "provider_initial_qualification": "Provider callable requires data_source_id and is not yet adopted from synchronized green staging; no fake probe or bypass was added."
     },
     "local_validation_profile": "full_stack_browser",
     "branch_validation_tier": "full_integration",
     "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted checkpoints, retained datasets and historical failures.",
     "remaining_gates": [
-      "Commit and Root review this focused selected-acquire component before expensive qualification.",
-      "Resolve exact verified issuer product metadata through a reusable catalog path; IGV239771 is a witness, not a code seed.",
-      "Wait for Provider's callable to be integrated into synchronized green staging, then adopt only that green source in this branch.",
-      "Implement and test the separate ETF admin initial-qualification executor with durable one-shot, admission, raw/schema/date/fund and review-recheck semantics.",
-      "Run the source-matched required local profile and exact branch CI; Root separately owns publisher qualification, target proof, integration and deployment."
+      "Provider must release its data_source_id-capable generic qualification callable through synchronized green staging; ETF will adopt only that green source.",
+      "Implement and deterministically validate the separate bounded ETF admin qualification executor; preserve all Provider admission and positive-evidence guards.",
+      "Run the combined source-matched local profile and exact-source CI; Root owns live publisher qualification, target proof, integration, and deployment."
     ],
     "closure_pending": true
   },
@@ -608,7 +602,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "next_action": "Finish the coherent focused component/record commit and report its exact contract/results to Root. Then, after Provider implementation reaches synchronized green staging and Root releases adoption, implement reusable trusted issuer-product metadata resolution and the separate sealed ETF qualification executor.",
-  "plan_hash": "e9d10c7f86f43208e0e9716e390e99ca674f13d9105c376bf00ac109015445af",
+  "plan_hash": "e49139cf140f76db44e34915833692c320823e48879a78a8f5b3a3e2cab236f1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -1264,8 +1258,8 @@
       "OSA4"
     ],
     "total": 5,
-    "current_phase": "The selected-acquire contract, exact-audit route preparation and focused tests are locally complete; the reusable verified issuer-product catalog and sealed qualification executor are still pending.",
-    "current_blocker": "Provider must publish the generic sealed initial-qualification callable through green staging. Until then, generic initial source qualification remains held; no source HTTP or policy/ledger\n  mutation is allowed here. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold."
+    "current_phase": "Selected-acquire route preparation and reusable issuer catalog are focused-green, including the production-shaped null-issuer route; Provider qualification and the combined profile remain pending.",
+    "current_blocker": "Provider has published bind_native_etf_initial_qualification with required data_source_id on its Producer source, but it is not yet released through synchronized green staging. Until then no ETF qualification executor or source HTTP is authorized. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold."
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -1302,10 +1296,10 @@
     "sibling_imports": "none",
     "staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6"
   },
-  "remote": "origin/feat/etf-holdings-constituents",
-  "remote_observation": "Local branch has exact green staging ancestry f8323af and current focused ETF changes are uncommitted; origin feature branch remains at c664065c. No push has occurred for this candidate.",
-  "remote_sha": "c664065c32c8b14e63017d6799da2dbe5d027941",
-  "remote_synchronized": false,
+  "remote": "0dba8561e604988eaecd2948bb74d7c8ccc0e61c",
+  "remote_observation": "Local HEAD and origin feature branch are both at 0dba8561e604988eaecd2948bb74d7c8ccc0e61c; the iShares catalog candidate is uncommitted. No source publication or CI run has occurred for this candidate.",
+  "remote_sha": "0dba8561e604988eaecd2948bb74d7c8ccc0e61c",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -2981,5 +2975,6 @@
     "resulting_head": "870d37dcc2b9715402ccfefce12a61020465ab35",
     "owner_source_or_records_changes_in_merge": "none; implementation began after merge",
     "master_or_deployment_claim": false
-  }
+  },
+  "plan_sha256": "e49139cf140f76db44e34915833692c320823e48879a78a8f5b3a3e2cab236f1"
 }

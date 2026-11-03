@@ -34,6 +34,16 @@ from app.services.etf_holdings_provider_bridge import (
     ProviderBackedHTTPXClient,
     require_bound_etf_holdings_adapter,
 )
+from app.services.etf_issuer_catalog import (
+    ISHARES_US_CATALOG_KEY,
+    ISHARES_US_CATALOG_MAX_REDIRECTS,
+    ISHARES_US_CATALOG_URL,
+    IssuerCatalogError,
+    catalog_product_matches_canonical_fund,
+    is_ishares_canonical_name_hint,
+    load_cached_ishares_catalog,
+    store_ishares_catalog_response,
+)
 
 
 class _HTTPXNamespace:
@@ -3317,6 +3327,8 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         return values
 
 
+# Static IDs remain for existing reviewed routes. New products are resolved
+# from the issuer's governed catalog; do not add ticker-specific IDs here.
 ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
     "EEM": "239637",
     "IVV": "239726",
@@ -3653,7 +3665,13 @@ for _vaneck_symbol, _vaneck_product_slug in {
     )
 
 
-def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
+def known_etf_route_metadata(
+    symbol: str,
+    *,
+    canonical_issuer: Any | None = None,
+    canonical_fund_name: str | None = None,
+    allow_catalog_route: bool = False,
+) -> dict[str, Any]:
     """Return exact curated or currently audited metadata for one ETF symbol.
 
     Current symbol audits are resolved directly to the same registered native
@@ -3685,11 +3703,50 @@ def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
     from app.services.etf_holdings_capability import current_symbol_route_audit
 
     audit = current_symbol_route_audit(normalized_symbol)
+    if audit is None:
+        # Catalog discovery is available only to explicit selected-fund
+        # acquisition. Canonical issuer identity or a canonical iShares name
+        # may nominate the exact catalog, but neither establishes product
+        # identity; the official catalog must match ticker and full fund name.
+        if not allow_catalog_route:
+            return {}
+        issuer_key = str(getattr(canonical_issuer, "domain_key", "") or "").strip().casefold()
+        issuer_provenance = getattr(canonical_issuer, "provenance", None)
+        trusted_issuer_hint = (
+            issuer_key in {"ishares", "blackrock"}
+            and getattr(canonical_issuer, "status", None) == "active"
+            and isinstance(issuer_provenance, dict)
+            and bool(issuer_provenance)
+        )
+        issuer_key_conflicts_with_catalog = bool(
+            issuer_key and issuer_key not in {"ishares", "blackrock"}
+        )
+        canonical_name_hint = (
+            not issuer_key_conflicts_with_catalog
+            and is_ishares_canonical_name_hint(canonical_fund_name)
+        )
+        if trusted_issuer_hint or canonical_name_hint:
+            adapter = get_holdings_adapter("ishares")
+            if adapter is not None and str(adapter.source_provider).strip().lower() == "ishares":
+                return {
+                    "issuer": "iShares" if trusted_issuer_hint else None,
+                    "provider_aliases": {
+                        "holdings_adapter": "ishares",
+                        "holdings_source_provider": "ishares",
+                        "issuer_product_catalog_key": ISHARES_US_CATALOG_KEY,
+                        "issuer_catalog_discovery_hint": (
+                            "trusted_canonical_issuer"
+                            if trusted_issuer_hint
+                            else "canonical_iShares_fund_name"
+                        ),
+                    },
+                }
+        return {}
+
     provider_identity = str(audit.provider_identity or "").strip().lower() if audit else ""
     adapter = get_holdings_adapter(provider_identity) if provider_identity else None
     if (
-        audit is None
-        or adapter is None
+        adapter is None
         or str(getattr(adapter, "source_provider", "")).strip().lower() != provider_identity
         or not audit.evidence_refs
     ):
@@ -3722,6 +3779,21 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         "dated_source_url_template",
         "ishares_dated_holdings_url_template",
     )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        if identifiers.get("issuer_product_catalog_key") == ISHARES_US_CATALOG_KEY:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.8500"),
+                status="ready",
+                reason=(
+                    "The selected-fund catalog route is a discovery hint only; the official "
+                    "row must match the canonical ticker and name before holdings retrieval."
+                ),
+                source_url=ISHARES_US_CATALOG_URL,
+                required_identifiers=["exact_catalog_ticker_and_product_id"],
+            )
+        return super().probe(symbol=symbol, name=name, identifiers=identifiers)
 
     def resolve_source_url(
         self,
@@ -3765,7 +3837,13 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        identifiers = dict(identifiers or {})
         if source_url:
+            if identifiers.get("issuer_product_catalog_key") == ISHARES_US_CATALOG_KEY:
+                raise ETFHoldingsRouteHeldError(
+                    "Catalog-discovered iShares routes cannot use a supplied holdings URL."
+                )
             return await super().fetch_latest(
                 symbol=symbol,
                 issuer_product_id=issuer_product_id,
@@ -3773,10 +3851,105 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 identifiers=identifiers,
             )
 
-        resolved_source_url = self.resolve_source_url(
+        normalized = self._normalized_identifiers(
             symbol=symbol,
             issuer_product_id=issuer_product_id,
-            identifiers=identifiers or {},
+            identifiers=identifiers,
+        )
+        catalog_route = identifiers.get("issuer_product_catalog_key") == ISHARES_US_CATALOG_KEY
+        # A catalog route must verify the selected canonical fund against the
+        # current official row even if a stale profile carries an old ID.
+        resolved_product_id = None if catalog_route else normalized.get("issuer_product_id")
+        catalog_metadata: dict[str, Any] | None = None
+        if not resolved_product_id:
+            if not catalog_route:
+                return await super().fetch_latest(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+            binding = require_bound_etf_holdings_adapter(self)
+            cached_catalog = await load_cached_ishares_catalog(
+                binding.db,
+                ticker=normalized_symbol,
+            )
+            cache_hit = cached_catalog is not None
+            if cached_catalog is not None:
+                catalog = cached_catalog.catalog
+                product = catalog.product_for(normalized_symbol)
+                if product is None and not catalog.complete:
+                    cached_catalog = None
+            if cached_catalog is None:
+                async with httpx.AsyncClient(
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    max_redirects=ISHARES_US_CATALOG_MAX_REDIRECTS,
+                ) as catalog_client:
+                    request_start = len(binding.request_log_ids)
+                    catalog_response = await catalog_client.get(
+                        ISHARES_US_CATALOG_URL,
+                        headers=_holdings_request_headers(accept="text/html,application/xhtml+xml"),
+                        follow_redirects=True,
+                        max_redirects=ISHARES_US_CATALOG_MAX_REDIRECTS,
+                    )
+                catalog_response.raise_for_status()
+                catalog_request_log_ids = binding.request_log_ids[request_start:]
+                catalog_request_urls = [
+                    binding.request_urls_by_log_id[request_log_id]
+                    for request_log_id in catalog_request_log_ids
+                    if request_log_id in binding.request_urls_by_log_id
+                ]
+                try:
+                    cached_catalog = await store_ishares_catalog_response(
+                        binding.db,
+                        response=catalog_response,
+                        ticker=normalized_symbol,
+                        request_log_ids=catalog_request_log_ids,
+                        request_urls=catalog_request_urls,
+                    )
+                except IssuerCatalogError:
+                    raise
+                catalog = cached_catalog.catalog
+                product = catalog.product_for(normalized_symbol)
+                cache_hit = False
+            if product is None:
+                raise ETFHoldingsRouteHeldError(
+                    "The current iShares catalog response contains no exact selected ticker row; "
+                    "absence is not inferred from partial catalog content."
+                )
+            if not catalog_product_matches_canonical_fund(
+                product=product,
+                ticker=normalized_symbol,
+                canonical_name=identifiers.get("canonical_fund_name"),
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "The official iShares catalog row does not exactly match the canonical "
+                    "fund ticker and name; no holdings product request was made."
+                )
+            resolved_product_id = product.product_id
+            catalog_metadata = {
+                "catalog_key": ISHARES_US_CATALOG_KEY,
+                "catalog_source_url": cached_catalog.source_url,
+                "catalog_final_url": cached_catalog.final_url,
+                "catalog_content_sha256": cached_catalog.content_sha256,
+                "catalog_retrieved_at": cached_catalog.retrieved_at.isoformat(),
+                "catalog_request_log_ids": list(cached_catalog.request_log_ids),
+                "catalog_cache_id": cached_catalog.cache_id,
+                "catalog_cache_hit": cache_hit,
+                "ticker": product.ticker,
+                "name": product.name,
+                "issuer_product_id": product.product_id,
+                "product_url": product.product_url,
+                "catalog_complete": catalog.complete,
+                "catalog_reported_total": catalog.reported_total,
+            }
+            identifiers["issuer_product_id"] = product.product_id
+            identifiers["issuer_product_url"] = product.product_url
+            identifiers["issuer_product_name"] = product.name
+
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=resolved_product_id,
+            identifiers=identifiers,
         )
         if not resolved_source_url:
             return await super().fetch_latest(
@@ -3806,7 +3979,7 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             raw_text=response.text,
             raw_json=payload,
             source_url=resolved_source_url,
-            source_identifier=symbol.strip().upper(),
+            source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
@@ -3815,6 +3988,14 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_public_json_api",
                 "source_format": "json",
                 "composition_date": self._composition_date_from_payload(payload),
+                **(
+                    {
+                        "issuer_product_id": resolved_product_id,
+                        "issuer_product_catalog": catalog_metadata,
+                    }
+                    if catalog_metadata is not None
+                    else {}
+                ),
             },
         )
 

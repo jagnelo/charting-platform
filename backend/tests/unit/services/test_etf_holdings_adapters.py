@@ -25177,11 +25177,75 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         )
         assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_refs"]
     assert known_etf_route_metadata("IGV") == {}
+    ishares_catalog_route = known_etf_route_metadata(
+        "IGV",
+        canonical_issuer=SimpleNamespace(
+            domain_key="ishares",
+            status="active",
+            provenance={"source": "trusted issuer directory", "identifier": "unit-test"},
+        ),
+        allow_catalog_route=True,
+    )
+    assert ishares_catalog_route["provider_aliases"] == {
+        "holdings_adapter": "ishares",
+        "holdings_source_provider": "ishares",
+        "issuer_product_catalog_key": "ishares_us_etf_products_v1",
+        "issuer_catalog_discovery_hint": "trusted_canonical_issuer",
+    }
+    assert (
+        known_etf_route_metadata(
+            "IGM",
+            canonical_issuer=SimpleNamespace(
+                domain_key="ishares",
+                status="inactive",
+                provenance={"source": "fixture"},
+            ),
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    assert (
+        known_etf_route_metadata(
+            "IGM",
+            canonical_issuer=SimpleNamespace(
+                domain_key="ishares",
+                status="active",
+                provenance={},
+            ),
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    assert known_etf_route_metadata(
+        "IGV",
+        canonical_fund_name="iShares Expanded Tech-Software Sector ETF",
+        allow_catalog_route=True,
+    )["provider_aliases"]["issuer_catalog_discovery_hint"] == ("canonical_iShares_fund_name")
+    assert (
+        known_etf_route_metadata(
+            "IGV",
+            canonical_issuer=SimpleNamespace(
+                domain_key="vanguard",
+                status="active",
+                provenance={"source": "canonical issuer"},
+            ),
+            canonical_fund_name="iShares Expanded Tech-Software Sector ETF",
+            allow_catalog_route=True,
+        )
+        == {}
+    )
     ishares = get_holdings_adapter("ishares")
     assert ishares is not None
     igv_probe = ishares.probe(symbol="IGV", name="iShares Expanded Tech ETF", identifiers={})
     assert igv_probe.status == "needs_issuer_route"
     assert "issuer_product_id" in igv_probe.required_identifiers
+    catalog_probe = ishares.probe(
+        symbol="IGV",
+        name="Canonical ETF name is not used to infer the catalog row",
+        identifiers={"issuer_product_catalog_key": "ishares_us_etf_products_v1"},
+    )
+    assert catalog_probe.status == "ready"
+    assert catalog_probe.source_url == "https://www.ishares.com/us/products/etf-investments"
     bflb = known_etf_route_metadata("BFLB")
     assert bflb == {
         "issuer": "BufferLABS",

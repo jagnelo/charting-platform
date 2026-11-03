@@ -1459,7 +1459,7 @@ async def _resolve_canonical_fund_instrument(
     statement = (
         select(Instrument)
         .join(Instrument.instrument_type)
-        .options(selectinload(Instrument.instrument_type))
+        .options(selectinload(Instrument.instrument_type), selectinload(Instrument.issuer))
         .where(func.upper(Instrument.symbol) == symbol)
         .limit(2)
     )
@@ -1509,7 +1509,12 @@ async def acquire_etf_holdings_profile(
     if instrument is None or (instrument_id is not None and instrument.id != instrument_id):
         return None
 
-    route_metadata = known_etf_route_metadata(normalized_symbol)
+    route_metadata = known_etf_route_metadata(
+        normalized_symbol,
+        canonical_issuer=getattr(instrument, "issuer", None),
+        canonical_fund_name=str(getattr(instrument, "name", "") or ""),
+        allow_catalog_route=True,
+    )
     route_aliases = route_metadata.get("provider_aliases") if route_metadata else None
     reviewed_adapter_key = (
         str(route_aliases.get("holdings_adapter") or "").strip().lower()
@@ -1550,7 +1555,10 @@ async def acquire_etf_holdings_profile(
         # canonical instrument attached so subsequent route metadata/probing
         # never triggers async lazy loading on this explicit acquire request.
         profile.instrument = instrument
-        curated_route_applied = _apply_known_route_metadata(profile)
+        curated_route_applied = _apply_known_route_metadata(
+            profile,
+            route_metadata=route_metadata,
+        )
         profile_created = True
         # The shared Provider bridge validates the committed profile identity
         # before issuing a request. Persist only this explicitly requested,
@@ -1590,11 +1598,12 @@ async def acquire_etf_holdings_profile(
     configured_adapter_key = str(profile.adapter_key or "").strip().lower()
     profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
     if not profile_created and reviewed_adapter_key:
-        curated_route_applied = _apply_known_route_metadata(profile)
-        configured_adapter_key = str(profile.adapter_key or "").strip().lower()
-        profile_adapter_key = (
-            str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
+        curated_route_applied = _apply_known_route_metadata(
+            profile,
+            route_metadata=route_metadata,
         )
+        configured_adapter_key = str(profile.adapter_key or "").strip().lower()
+        profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
     if (
         not reviewed_adapter_key
         or configured_adapter_key != reviewed_adapter_key
@@ -1644,9 +1653,7 @@ async def acquire_etf_holdings_profile(
     source_provider = str(getattr(adapter, "source_provider", "")).strip().lower() or None
     operation = "fetch_etf_holdings_latest"
     reviewed_source_provider = (
-        str(route_aliases.get("holdings_source_provider") or source_provider or "")
-        .strip()
-        .lower()
+        str(route_aliases.get("holdings_source_provider") or source_provider or "").strip().lower()
         if isinstance(route_aliases, dict)
         else source_provider or ""
     )
@@ -2454,7 +2461,11 @@ def _aliases(profile: ETFProfile) -> dict[str, Any]:
     return aliases if isinstance(aliases, dict) else {}
 
 
-def _apply_known_route_metadata(profile: ETFProfile) -> bool:
+def _apply_known_route_metadata(
+    profile: ETFProfile,
+    *,
+    route_metadata: dict[str, Any] | None = None,
+) -> bool:
     """Apply curated symbol-to-issuer routing to an existing ETF profile.
 
     A profile may have been created before a curated route was added, or may
@@ -2470,7 +2481,10 @@ def _apply_known_route_metadata(profile: ETFProfile) -> bool:
     if not symbol:
         return False
 
-    route_metadata = known_etf_route_metadata(symbol)
+    route_metadata = route_metadata or known_etf_route_metadata(
+        symbol,
+        canonical_issuer=getattr(instrument, "issuer", None),
+    )
     if not route_metadata:
         return False
 
@@ -2505,9 +2519,9 @@ def _apply_known_route_metadata(profile: ETFProfile) -> bool:
         explicit_adapter_impl = get_holdings_adapter(explicit_adapter) if explicit_adapter else None
         if explicit_adapter_impl is not None:
             aliases = _aliases(profile)
-            source_provider = str(
-                getattr(explicit_adapter_impl, "source_provider", "")
-            ).strip().lower()
+            source_provider = (
+                str(getattr(explicit_adapter_impl, "source_provider", "")).strip().lower()
+            )
             if source_provider:
                 # The adapter registry is the native route's publisher
                 # identity. Persist it beside the curated adapter key so the
@@ -3013,6 +3027,11 @@ async def _refresh_adapter_route(
 
     symbol = profile.instrument.symbol
     identifiers = _string_aliases(profile)
+    if identifiers.get("issuer_product_catalog_key") == "ishares_us_etf_products_v1":
+        # This value comes from the already-resolved canonical Instrument row,
+        # never a request field or profile alias. It is an identity check for
+        # the official catalog row, not a source/product identity by itself.
+        identifiers["canonical_fund_name"] = str(profile.instrument.name or "")
     issuer_product_id = _issuer_product_identifier(identifiers)
     probe = probe or adapter.probe(
         symbol=symbol, name=profile.instrument.name, identifiers=identifiers
