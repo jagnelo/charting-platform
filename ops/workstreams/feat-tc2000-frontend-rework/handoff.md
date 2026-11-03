@@ -25571,6 +25571,12 @@ orchestrator after ordinary symbol selection and settled local hydration, with
 local readback after successful acquisition and selection-generation guards.
 Keyboard selection and expression handling remain in the existing component.
 
+## 2026-11-03 — correction to published ordinary ticker candidate
+
+Exact branch CI41634743064 on published source `ecd9de13cd9ca2d862c8c2aff34c9fa616bbf00d` failed Frontend Unit: 1506 passed, 7 failed. The failures were stale ETF holding-resolution tests that expected a second discovery click and prior copy, plus a Workstation test expectation that omitted the existing explicit `false` constituent-lineage argument. The current local correction updates those test expectations only: automatic discovery follows the deliberate holding-row resolver action, explicit retry remains close/reopen, and the ordinary row-selection test captures the `false` lineage flag. Product source remains unchanged in this correction.
+
+Fresh focused evidence: nine frontend suites passed 239/239 with one Vitest worker; `npm --prefix frontend run build` passed vue-tsc and Vite (539 modules; existing Workstation chunk warning). The exact CI result belongs only to `ecd9de13`; corrected-source CI has not run. No browser fixture or provider/issuer/source request was made. The shared SearchBar already uses the same debounced ticker-discovery predicate, timer and status formatter as Workstation when `allowSourceDiscovery` is enabled; ordinary ChartView selection already invokes the bounded selected-history helper. Multi-chart panel search is a distinct remaining chart entrypoint to reconcile with those shared semantics and acquisition behavior, while picker-only SearchBar consumers must remain non-acquiring.
+
 Verification at adopted `f8323af179922193f4dcf3c9f0a5d9001282455f`: seven
 focused frontend suites passed 199 tests on one worker; `vue-tsc` and Vite
 production build passed (539 modules; existing Workstation chunk-size warning).

@@ -3993,9 +3993,9 @@ active_implementation:
       status: completed
     - id: OTJ4
       text: Shared SearchBar and ordinary Chart entrypoints use the shared discovery trigger and bounded history orchestration without acquisition from picker-only controls.
-      status: completed
+      status: in_progress
     - id: OTJ5
       text: Focused tests/typecheck/build/scope and exact-source CI pass; Root-coordinated full combined browser/profile gate remains pending.
       status: in_progress
-  validation: Seven focused frontend suites passed 199 tests with one Vitest worker; vue-tsc and Vite build passed (539 modules). Exact-source branch CI and combined browser profile remain pending.
-  next_action: Complete scope/workstream and append-only record checks, then publish one coherent candidate for Root review without claiming full acceptance.
+  validation: Nine focused frontend suites passed 239 tests with one Vitest worker; vue-tsc and Vite build passed (539 modules). Exact CI41634743064 for published ecd9de13 is red in Frontend Unit (1506 passed, 7 failed); six stale ETF resolution expectations and one Workstation event assertion are corrected in tests to match automatic discovery and the explicit false lineage flag. No corrected-source CI has run. Root-coordinated combined browser profile remains pending.
+  next_action: Publish the focused correction to the published candidate, then unify multi-chart panel selection with shared discovery and bounded acquisition before combined profile review; preserve the red ecd9de13 receipt.

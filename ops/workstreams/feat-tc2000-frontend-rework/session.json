@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The active ordinary-ticker-journey-repair-20261103 source changes are local and uncommitted. Focused frontend tests passed199/199 across seven suites and vue-tsc/Vite build passed. No exact-source branch CI or full combined browser profile has run for this delta. Prior F8Y/TCO accepted checkpoints and their exact evidence remain historical; all9 AC1-AC9 and official REF-HELP-V25 remain open.",
-  "current_checkpoint_status": "Current implementation is ordinary-ticker-journey-repair-20261103 on adopted synchronized-green staging f8323af179922193f4dcf3c9f0a5d9001282455f. OTJ1-OTJ4 have focused implementation coverage; OTJ5, exact-source CI, Root-coordinated full profile and review remain pending. Prior F8Y and TCO acceptance objects/archives are preserved and do not accept this new source.",
+  "current_candidate_ci_status": "Published source ecd9de13cd9ca2d862c8c2aff34c9fa616bbf00d has exact CI41634743064 Frontend Unit terminal failure: 1506 passed and 7 failed. The failures exposed stale ETF holding-resolution expectations that expected a second discovery click and prior copy, plus an assertion that omitted the explicit false constituent-lineage argument. The tests now reflect the existing automatic discovery and event contract without changing product source. Nine focused frontend suites pass239/239 with one worker and vue-tsc/Vite build passes; corrected-source exact CI and the Root-coordinated combined browser profile remain pending. Prior F8Y/TCO accepted checkpoints remain historical; all9 AC1-AC9 and official REF-HELP-V25 remain open.",
+  "current_checkpoint_status": "Current implementation is ordinary-ticker-journey-repair-20261103 on adopted synchronized-green staging f8323af179922193f4dcf3c9f0a5d9001282455f. OTJ1-OTJ3 have focused implementation coverage; OTJ4 remains in progress for shared SearchBar/multi-chart entrypoint coverage; OTJ5, corrected-source exact CI, Root-coordinated full profile and review remain pending. Prior F8Y and TCO acceptance objects/archives are preserved and do not accept this new source.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -341,7 +341,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "7129c31f8e1baa6d138b9373672bb06f5d7bc8c7c4e1a202ab94e40b4dcfe0f2",
+  "plan_hash": "8e07839048afdc1cab9a967fca0553e5b91a9164b0f865f05c1981730149358b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [

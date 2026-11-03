@@ -54,7 +54,7 @@ describe('ETFHoldingResolutionAction', () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20' })
   })
 
-  it('does nothing until the row action and source discovery are explicitly clicked, then emits exact resolved identity with holding lineage', async () => {
+  it('waits for the row action, then automatically discovers and explicitly resolves exact identity with holding lineage', async () => {
     vi.mocked(api.post)
       .mockResolvedValueOnce({
         request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
@@ -82,7 +82,9 @@ describe('ETFHoldingResolutionAction', () => {
     expect(api.get).not.toHaveBeenCalled()
     expect(api.post).not.toHaveBeenCalled()
 
-    await wrapper.get('button').trigger('click')
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
+      query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+    }))
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
     })
@@ -137,8 +139,9 @@ describe('ETFHoldingResolutionAction', () => {
       global: { stubs: { RouterLink: true } },
     })
     await wrapper.get('button').trigger('click')
-    await wrapper.get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('held'))
+    // A retry remains an explicit user action: close and reopen the resolver.
+    await wrapper.get('button').trigger('click')
     await wrapper.get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     await wrapper.get('.search-source-candidate').trigger('click')
@@ -158,22 +161,20 @@ describe('ETFHoldingResolutionAction', () => {
     })
 
     await wrapper.get('button').trigger('click')
-    await wrapper.get('button').trigger('click')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('No candidates were returned'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker listings were returned'))
     expect(wrapper.find('.search-source-candidate').exists()).toBe(false)
     expect(wrapper.emitted('resolved')).toBeUndefined()
   })
 
   it.each([
-    ['no match', { status: 'no_match', candidates: [], source_outcomes: [] }, 'No source candidates matched'],
-    ['unavailable', { status: 'unavailable', candidates: [], source_outcomes: [] }, 'unavailable'],
+    ['no match', { status: 'no_match', candidates: [], source_outcomes: [] }, 'No matching ticker listing was found'],
+    ['unavailable', { status: 'unavailable', candidates: [], source_outcomes: [] }, 'Ticker availability could not be checked right now'],
   ])('keeps %s discovery nonpositive', async (_label, response, expectedMessage) => {
     vi.mocked(api.post).mockResolvedValueOnce(response)
     const wrapper = mount(ETFHoldingResolutionAction, {
       props: { holding, snapshot, available: true },
       global: { stubs: { RouterLink: true } },
     })
-    await wrapper.get('button').trigger('click')
     await wrapper.get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text().toLowerCase()).toContain(expectedMessage.toLowerCase()))
     expect(wrapper.emitted('resolved')).toBeUndefined()
@@ -186,8 +187,7 @@ describe('ETFHoldingResolutionAction', () => {
       global: { stubs: { RouterLink: true } },
     })
     await wrapper.get('button').trigger('click')
-    await wrapper.get('button').trigger('click')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Free source discovery failed'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker availability could not be checked'))
     expect(wrapper.emitted('resolved')).toBeUndefined()
   })
 

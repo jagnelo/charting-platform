@@ -899,7 +899,7 @@ describe('WorkstationToolContent Tag Column parent mutation path', () => {
 
     await wrapper.get('.watchlist__row').trigger('click')
 
-    expect(wrapper.emitted('select')).toEqual([['SPY', 101]])
+    expect(wrapper.emitted('select')).toEqual([['SPY', 101, false]])
 
     wrapper.unmount()
     queryClient.clear()
