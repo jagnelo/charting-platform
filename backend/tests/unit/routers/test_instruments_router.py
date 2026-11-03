@@ -6,6 +6,7 @@ import pytest
 
 from app.config import settings
 from app.lib.time_utils import wire_datetime
+from app.models.asset_class import InstrumentType
 from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
@@ -33,6 +34,11 @@ from app.schemas.instrument import (
     InstrumentStatsOut,
 )
 from app.schemas.instrument_acquisition import InstrumentAcquireRequest, ProviderCandidateBinding
+from app.services.instrument_mastering import (
+    apply_profile_to_instrument,
+    instrument_type_for_quote_type,
+    store_profile_snapshot,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -256,6 +262,139 @@ class TestInstrumentAutoCreate:
 
 
 class TestExplicitAcquireCanonicalIdentity:
+    @pytest.mark.asyncio
+    async def test_cached_qualified_identity_reconciles_etv_without_provider_transport(
+        self, db, instrument_type, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        instrument = Instrument(
+            symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="resolved",
+            domain_key="figi:BBG000GENV001",
+            primary_identifier_type="figi",
+            primary_identifier_value="BBG000GENV001",
+        )
+        exchange = Exchange(mic="ARCX", name="NYSE Arca")
+        db.add_all([instrument, exchange])
+        db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                exchange_id=exchange.id,
+                ticker="GENV",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                source="massive",
+            )
+        )
+        db.flush()
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol="GENV",
+            canonical_symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            quote_type="ETV",
+            exchange="ARCX",
+            raw_payload={"ticker": "GENV", "type": "ETV"},
+            listings=[ListingRecord(provider_symbol="GENV", exchange_code="ARCX")],
+        )
+        retained_classification = await store_profile_snapshot(async_db, instrument, profile)
+        later_nonclassifying_profile = InstrumentProfile(
+            provider="yfinance",
+            symbol="GENV",
+            canonical_symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            quote_type=None,
+            raw_payload={"ticker": "GENV"},
+        )
+        await store_profile_snapshot(
+            async_db,
+            instrument,
+            later_nonclassifying_profile,
+            observed_at=datetime.now(UTC) + timedelta(seconds=1),
+        )
+
+        async def forbidden_transport(*_args, **_kwargs):
+            raise AssertionError("cached qualified acquisition must not call a provider")
+
+        monkeypatch.setattr(
+            "app.routers.instruments.search_provider_instruments_async", forbidden_transport
+        )
+        monkeypatch.setattr(
+            "app.routers.instruments.get_provider_profile_async", forbidden_transport
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol="GENV", request_id="cached-etv-reconcile"),
+            async_db,
+        )
+
+        db.refresh(instrument)
+        assert response.status == "resolved"
+        assert response.instrument.instrument_id == instrument.id
+        assert response.instrument.instrument_type == "Exchange Traded Vehicle"
+        assert instrument.symbol == "GENV"
+        assert instrument.domain_key == "figi:BBG000GENV001"
+        assert instrument.primary_identifier_type == "figi"
+        assert instrument.primary_identifier_value == "BBG000GENV001"
+        assert instrument.field_provenance["instrument_type"]["note"].startswith(
+            "provider_quote_type=ETV"
+        )
+        assert instrument.field_provenance["instrument_type"]["source"] == "massive"
+        assert instrument.field_provenance["instrument_type"]["observed_at"] == (
+            retained_classification.observed_at.replace(tzinfo=UTC).isoformat()
+        )
+        assert instrument.field_provenance["instrument_type"]["fetched_at"] == (
+            retained_classification.fetched_at.replace(tzinfo=UTC).isoformat()
+        )
+        assert instrument.field_provenance["instrument_type"]["reconciled_at"]
+
+    @pytest.mark.parametrize(
+        ("code", "expected"),
+        [
+            ("ETF", ("Equity", "ETF", "ETF")),
+            ("ETN", ("Exchange Traded Product", "ETN", "ETN")),
+            ("ETV", ("Exchange Traded Product", "Exchange Traded Vehicle", "ETV")),
+            (
+                "UNRECOGNIZED_PROVIDER_CODE",
+                ("Unclassified", "Unclassified", "UNRECOGNIZED_PROVIDER_CODE"),
+            ),
+        ],
+    )
+    def test_provider_quote_type_does_not_collapse_exchange_traded_categories(self, code, expected):
+        assert instrument_type_for_quote_type(code) == expected
+
+    @pytest.mark.asyncio
+    async def test_new_profile_persists_provider_etv_as_distinct_vehicle_type(self, db):
+        async_db = AsyncSessionAdapter(db)
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol="GENW",
+            canonical_symbol="GENW",
+            name="Generic Exchange Traded Vehicle",
+            quote_type="ETV",
+            exchange="ARCX",
+            listings=[ListingRecord(provider_symbol="GENW", exchange_code="ARCX")],
+            raw_payload={"ticker": "GENW", "type": "ETV"},
+        )
+
+        created = await apply_profile_to_instrument(
+            async_db, profile, allow_external_identifier=False
+        )
+        persisted_type = db.get(InstrumentType, created.instrument_type_id)
+
+        assert created.symbol == "GENW"
+        assert persisted_type.asset_class.name == "Exchange Traded Product"
+        assert persisted_type.name == "Exchange Traded Vehicle"
+        assert created.field_provenance["instrument_type"]["note"] == "provider_quote_type=ETV"
+
     @pytest.mark.asyncio
     @pytest.mark.parametrize("existing_scaffold", [False, True])
     async def test_promotes_scaffold_from_exact_authoritative_provider_profile(
