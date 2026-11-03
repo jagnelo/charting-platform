@@ -2,34 +2,18 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/services/provider_runtime.py (sealed native ETF qualification scope, publisher review fingerprint, and pre-hop disabled-policy predicate)",
-    "backend/tests/unit/services/test_provider_runtime.py (unrelated native publishers; exact source/adapter/scope/review/budget checks; paid and ordinary not_run denial)",
-    "backend/app/services/provider_runtime.py::execute_provider_call (each physical bridge hop consumes one bounded slot before resolution and transport)",
-    "backend/tests/unit/services/test_provider_runtime.py (multi-hop predicate/consume sequence plus expiry and review-revision drift rejection)",
-    "complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration under Root allocation, and exact-source branch CI"
+    "backend/app/services/instrument_mastering.py (shared ETF/ETN/ETV/unknown quote-type mapping)",
+    "backend/app/services/instrument_sync.py and backend/app/services/market_universe.py (shared taxonomy across discovery and universe reconciliation)",
+    "backend/app/routers/instruments.py::acquire_instrument (retained-profile reconciliation on already-qualified local selection without transport or identity changes)",
+    "backend/app/schemas/instrument_acquisition.py::QualifiedInstrumentIdentity (optional persisted instrument_type)",
+    "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/{test_instrument_sync_metadata.py,test_market_universe.py} (profile, cached selection, lineage, provenance, and no-transport regressions)",
+    "complete backend/DDL coverage and exact-source branch CI; no live source request or target change",
+    "Root-owned downstream consumer qualification, protected staging/master integration, deployment, and genuine-source checks remain separate gates"
   ],
   "commands": [
     {
-      "id": "focused-native-etf-qualification",
-      "command": "pytest backend/tests/unit/services/test_provider_runtime.py -k 'native_etf_initial or native_etf_bridge or ordinary_native_etf_route_stays_held_without_positive_probe'",
-      "covers": [
-        1,
-        2,
-        3,
-        4
-      ]
-    },
-    {
-      "id": "native-etf-postgresql-quota-ledger-integration",
-      "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_native_etf_initial_authority_rechecks_each_postgres_quota_hop -q",
-      "covers": [
-        5
-      ],
-      "scope_note": "One exact native disabled/not_run authority and two physical execute_provider_call hops against an isolated PostgreSQL schema and PostgreSQL-backed quota coordinator; telemetry is synthetic and no provider HTTP occurs."
-    },
-    {
-      "id": "full-backend-suite",
-      "command": "make test-backend-coverage",
+      "id": "focused-provider-type-taxonomy-units",
+      "command": "pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
       "covers": [
         1,
         2,
@@ -37,26 +21,43 @@
         4,
         5
       ],
-      "scope_note": "Canonical complete backend/DDL collector; exact current-source selection and coverage are immutable, zero retries."
+      "scope_note": "No-network mapping, cached-acquire/provenance, discovery/universe and optional response contract regressions."
+    },
+    {
+      "id": "cached-selected-acquire-postgres",
+      "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_cached_qualified_acquire_reconciles_retained_etv_type_without_transport -q",
+      "covers": [
+        3,
+        5
+      ],
+      "scope_note": "One exact isolated capped PostgreSQL API/ORM case; it was executed locally with a private schema and no provider calls."
+    },
+    {
+      "id": "complete-backend-coverage",
+      "command": "make test-backend-coverage",
+      "covers": [
+        6
+      ],
+      "scope_note": "Complete backend/DDL collector and coverage are mandatory on exact-source CI; no duplicate full local collector is launched for this bounded minimum profile."
     }
   ],
   "ci_covered_commands": {
-    "full-backend-suite": "Backend Tests"
+    "complete-backend-coverage": "Backend Tests"
   },
   "external_gates": [
     {
-      "id": "isolated-postgresql-native-authority-integration",
-      "covers": [
-        5
-      ],
-      "reason": "One source-bound PostgreSQL/quota-ledger integration under Root resource allocation; private test ledger only, no source HTTP or real-ledger access."
-    },
-    {
       "id": "exact-source-branch-ci",
       "covers": [
-        5
+        6
       ],
-      "reason": "Terminal required-job success on the exact coherent implementation source is required; no predecessor or staging receipt substitutes."
+      "reason": "The complete backend/DDL and branch-declared results must be terminal green on the exact coherent source tip."
+    },
+    {
+      "id": "root-combined-browser-and-release",
+      "covers": [
+        7
+      ],
+      "reason": "Root owns combined consumer browser qualification, protected staging/master integration, deployment, and genuine-source checks; none is claimed as performed in this Provider local profile."
     }
   ]
 }

@@ -56,6 +56,9 @@ from app.services.exchange_catalog import (
 )
 from app.services.exchange_sessions import is_session_complete, resolve_session_window
 from app.services.instrument_mastering import (
+    TYPE_MAP as _TYPE_MAP,
+)
+from app.services.instrument_mastering import (
     ensure_internal_identifier,
     register_identifier,
     register_provider_symbol,
@@ -130,15 +133,6 @@ _FINRA_OTC_QUERY_SOURCE_FILES = frozenset(
     }
 )
 _ACTIVE_STATUSES = {"active", "listed", "tradable", "live"}
-_TYPE_MAP: dict[str, tuple[str, str]] = {
-    "EQUITY": ("Equity", "Stock"),
-    "ETF": ("Equity", "ETF"),
-    "ETN": ("Equity", "ETN"),
-    "INDEX": ("Index", "Index"),
-    "FUTURE": ("Commodity", "Future"),
-    "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
-}
-
 _SECURITY_IDENTIFIER_FIELDS: tuple[tuple[str, InstrumentIdentifierType], ...] = (
     ("figi", InstrumentIdentifierType.FIGI),
     ("composite_figi", InstrumentIdentifierType.COMPOSITE_FIGI),
@@ -420,7 +414,7 @@ def _issuer_country_code(quote: dict[str, Any]) -> str | None:
 
 
 async def _instrument_type_id(db: AsyncSession, quote_type: str) -> int:
-    asset_class, type_name = _TYPE_MAP.get(quote_type, ("Equity", "Stock"))
+    asset_class, type_name = _TYPE_MAP.get(quote_type, ("Unclassified", "Unclassified"))
     from app.models.asset_class import AssetClass
 
     asset = (

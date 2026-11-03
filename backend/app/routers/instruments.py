@@ -63,6 +63,8 @@ from app.services.instrument_mastering import (
     build_profile_snapshot_payload,
     ensure_external_identifier,
     ingest_provider_profile,
+    reconcile_instrument_profile,
+    reconcile_instrument_type_from_profile,
 )
 from app.services.market_data import (
     _coverage_calendar,
@@ -211,9 +213,11 @@ async def _qualified_identity(
         )
         if binding.scalar_one_or_none() is None:
             return None
+    instrument_type = await db.get(InstrumentType, instrument.instrument_type_id)
     return QualifiedInstrumentIdentity(
         instrument_id=instrument.id,
         symbol=instrument.symbol,
+        instrument_type=instrument_type.name if instrument_type is not None else None,
         identity_status=instrument.identity_status,
         domain_key=instrument.domain_key,
         primary_identifier_type=instrument.primary_identifier_type,
@@ -357,6 +361,14 @@ async def acquire_instrument(
     symbol = body.symbol.strip().upper()
     existing = await _local_instrument_by_symbol(db, symbol)
     if existing is not None and body.provider_candidate is None:
+        # A previously resolved row may predate support for a provider's
+        # explicit security-type code. Reconcile from retained profile
+        # snapshots only; this path makes no additional provider request and
+        # leaves canonical identity and lineage untouched.
+        retained_profile = await reconcile_instrument_profile(db, existing)
+        if retained_profile is not None and retained_profile.quote_type:
+            await reconcile_instrument_type_from_profile(db, existing, retained_profile)
+            await db.commit()
         identity = await _qualified_identity(db, existing)
         if identity is not None:
             return InstrumentAcquireResponse(

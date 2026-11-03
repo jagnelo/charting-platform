@@ -95,6 +95,9 @@ class InstrumentAcquireRequest(BaseModel):
 class QualifiedInstrumentIdentity(BaseModel):
     instrument_id: int
     symbol: str
+    # Additive so existing acquire clients remain compatible while selected
+    # instruments expose the persisted, source-reconciled type.
+    instrument_type: str | None = None
     identity_status: str
     domain_key: str | None = None
     primary_identifier_type: str | None = None
