@@ -1,5 +1,42 @@
 # Current exact-source E2E assertion repairs — 2026-11-03
 
+## Current continuation — rendered-readout isolation and seven-flow selector audit
+
+Root's exact CI for published `8492d93f76f667e576001b3aa3a6888d2e65092d`
+is preserved red: run `41713081571`, E2E job `126196599553`, 197 passed, 2
+failed, and 110 configured skips. The report artifact is `13272320338`
+(SHA256 `460ffed3069a30bbe2d6300d8017c7a3b8102cad16f7617f52cfd4a384d710b3`)
+under `/tmp/tc-8492-report`. The Chart snapshot proves a real stale-readout
+defect: TCNEW was selected and its chart reported zero OHLCV bars, while the
+OHLC overlay still advertised a dated SPY candle. `UPlotChart` now clears its
+local OHLC state synchronously when instrument/timeframe/bar-type scope changes
+or the new series is empty. A mounted regression seeds the existing uPlot
+cursor hook with a SPY candle, switches to TCNEW/empty bars, and verifies that
+the old readout immediately disappears. The ordinary Chart browser case also
+captures the populated SPY readout after selecting Single panel and asserts no
+prior values remain with TCNEW's empty M1 series.
+
+The other two failures were stale query semantics, not product defects. The
+held TCNEW automatic result renders `History for TCNEW is currently
+unavailable; saved chart data remains visible.`; the enabled deliberate retry
+remains asserted. The ETF selector helper now scopes its SPY/RSP/QQQ choices to
+the named `Symbol search results` listbox, avoiding the distinct same-symbol
+Watchlist option without `.first()` or input clearing. The delayed XHB result
+assertion matches the actual `Holdings for XHB are not available` status.
+Review of all seven flows retained identity, bounded-history, holdings,
+lineage, request-count, race, no-match, and real-API companion assertions; no
+mock replaced the real API case and BrowserDiagnostics remain enabled.
+
+Focused validation: the mounted UPlotChart regression plus ChartView lifecycle
+suite passed 16/16; `vue-tsc --noEmit` passed; Vite production build passed
+(540 modules, existing large Workstation chunk advisory); Playwright collection
+listed all seven on-demand cases. No browser fixture/profile, source HTTP, or
+service operation ran. This is not browser acceptance: the corrections require
+exact-source CI, and full combined functional/strict-visual validation remains
+held until Root releases the canonical green Provider staging dependency and
+its corresponding profile allocation. The source repair remains in progress;
+the 4bc50 master red and prior exact-source CI failures are retained.
+
 Exact CI for source `e4c04872d20d1dd1e1b13b8c30d342c254f2a4ba` is preserved
 red: run `41705179855`, E2E job `126169528406`, 195 passed, 4 failed, and 110
 configured skips. Backend, Frontend Unit, and Branch-declared jobs passed;

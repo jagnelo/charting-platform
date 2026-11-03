@@ -271,6 +271,9 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
   await expect(page.locator('.symbol-info .sym')).toHaveText('SPY')
   await page.getByRole('button', { name: 'Single panel' }).click()
   await expect(page.locator('.tf-select')).toBeVisible()
+  const previousChartReadout = page.locator('.chart-root .ohlcv-info')
+  await expect(previousChartReadout).toBeVisible()
+  const previousOhlcText = await previousChartReadout.innerText()
   await page.locator('.tf-select').selectOption('M1')
   await expect(page.locator('.tf-select')).toHaveValue('M1')
   expect(discoveryRequests).toHaveLength(0)
@@ -331,13 +334,16 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
   // The controlled identity POST represents the backend's canonical upsert;
   // deliberate selection then performs the one bounded first-use history request.
   await expect(page.locator('.symbol-info .sym')).toHaveText('TCNEW')
+  await expect(page.locator('.chart-root .sr-only')).toContainText('M1 chart; no OHLCV bars loaded.')
+  await expect(page.locator('.chart-root .ohlcv-info')).toHaveCount(0)
+  expect(await page.locator('.chart-root').innerText()).not.toContain(previousOhlcText)
   const automaticHistory = await automaticHistoryReady
   expect(automaticHistory.status()).toBe(200)
   expect(await automaticHistory.json()).toMatchObject({ symbol: 'TCNEW', status: 'held' })
   const loadHistory = page.getByTestId('history-load-missing')
   await expect(loadHistory).toBeVisible()
   await expect(loadHistory).toBeEnabled() // a held result keeps the deliberate retry available
-  await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'History for TCNEW is currently unavailable; saved chart data remains visible.' })).toBeVisible()
 
   expect(instrumentRequests).toHaveLength(1)
   expect(instrumentRequests[0]).toMatchObject({ symbol: 'TCNEW' })
@@ -1924,7 +1930,8 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       })
       await symbolSearch.fill(symbol)
       expect(await (await localSearchReady).json()).toMatchObject([{ symbol, type: 'ETF', instrument_id: instruments[symbol].id }])
-      const option = page.getByRole('option', { name: new RegExp(`^${symbol}\\b`) })
+      const option = page.getByRole('listbox', { name: 'Symbol search results' })
+        .getByRole('option', { name: new RegExp(`^${symbol}\\b`) })
       await expect(option).toBeVisible()
       await option.click()
       await expect(symbolSearch).toHaveValue(symbol)
@@ -2019,7 +2026,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     oihFailureGate.resolve()
     igvAcquireGate.resolve()
     expect((await delayedOihFailureResponseReady).status()).toBe(503)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB:' })).toBeVisible()
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
     await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
 
     expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'XHB'])

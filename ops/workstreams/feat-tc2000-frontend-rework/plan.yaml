@@ -2442,9 +2442,12 @@ frontend_presentation_handoff:
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/views/WatchlistView.vue
   - frontend/src/views/WorkstationView.vue
-  allowed_delta: 'Presentation only: shared shell, navigation, typography, spacing, surface colors, controls,
-    tables, dialogs, status language and responsive layout. Preserve behavior, route targets, API/data
-    contracts, provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution.'
+  allowed_delta: 'Presentation: shared shell, navigation, typography, spacing, surface colors, controls,
+    tables, dialogs, status language and responsive layout. Preserve route targets, API/data contracts,
+    provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution. Exact
+    UPlotChart adaptation may clear its OHLC overlay when instrument/timeframe/bar-type scope changes or
+    the current series is empty, preventing prior-context values from being presented as current; it does
+    not alter selection, chart data, or acquisition behavior.'
   preserved_contracts:
   - all public/authenticated route URLs and redirects
   - Workstation and popout behavior
@@ -2495,7 +2498,7 @@ approved_presentation_adaptations:
 - path: frontend/src/components/chart/UPlotChart.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 4f79b1ab6e67c8a7b4032769794d97572bb3f82a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: TC presentation adaptation; also clear the OHLC readout on instrument/timeframe/bar-type scope change or empty series so values from a previous chart context cannot appear current; preserve chart selection, data and acquisition behavior
 - path: frontend/src/components/common/HoverTooltip.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: bcfc16aab3f217f14625e436902a223347269f2a
