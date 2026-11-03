@@ -34,13 +34,37 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 TYPE_MAP: dict[str, tuple[str, str]] = {
     "EQUITY": ("Equity", "Stock"),
     "ETF": ("Equity", "ETF"),
+    "ETN": ("Exchange Traded Product", "ETN"),
+    # Massive's ETV is an exchange-traded vehicle category, not proof that the
+    # instrument is specifically an ETF or an ETN.
+    "ETV": ("Exchange Traded Product", "Exchange Traded Vehicle"),
     "MUTUALFUND": ("Equity", "Mutual Fund"),
     "FUTURE": ("Commodity", "Future"),
     "OPTION": ("Derivative", "Option"),
     "CURRENCY": ("Currency", "Forex Pair"),
     "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
     "INDEX": ("Index", "Index"),
+    "UNCLASSIFIED": ("Unclassified", "Unclassified"),
 }
+
+
+def instrument_type_for_quote_type(
+    quote_type: str | None, *, missing_default: str = "EQUITY"
+) -> tuple[str, str, str]:
+    """Return the persisted taxonomy and normalized source type code.
+
+    Missing metadata retains the historical equity default. An explicit but
+    unsupported code is kept distinct as Unclassified rather than silently
+    being promoted to Stock.
+    """
+    raw_code = str(quote_type or "").strip().upper()
+    normalized_code = raw_code or missing_default
+    if normalized_code in {"CS", "COMMON_STOCK", "COMMON STOCK", "STOCK", "EQUITIES"}:
+        normalized_code = "EQUITY"
+    if normalized_code in TYPE_MAP:
+        asset_class, type_name = TYPE_MAP[normalized_code]
+        return asset_class, type_name, normalized_code
+    return "Unclassified", "Unclassified", normalized_code
 
 
 def _now_utc() -> datetime:
@@ -57,6 +81,7 @@ def _provenance_entry(
     quality_score: float | None = None,
     note: str | None = None,
     classification_system: str | None = None,
+    reconciled_at: datetime | None = None,
 ) -> dict[str, Any]:
     entry: dict[str, Any] = {
         "source": source,
@@ -73,6 +98,8 @@ def _provenance_entry(
         entry["note"] = note
     if classification_system:
         entry["classification_system"] = classification_system
+    if reconciled_at:
+        entry["reconciled_at"] = reconciled_at.isoformat()
     return entry
 
 
@@ -88,6 +115,7 @@ def _mark_field_provenance(
     quality_score: float | None = None,
     note: str | None = None,
     classification_system: str | None = None,
+    reconciled_at: datetime | None = None,
 ) -> None:
     provenance = dict(getattr(target, "field_provenance", None) or {})
     provenance[field_name] = _provenance_entry(
@@ -99,6 +127,7 @@ def _mark_field_provenance(
         quality_score=quality_score,
         note=note,
         classification_system=classification_system,
+        reconciled_at=reconciled_at,
     )
     setattr(target, "field_provenance", provenance)
 
@@ -111,6 +140,10 @@ def _normalize_currency_code(value: str | None) -> str | None:
     if _CURRENCY_CODE_RE.fullmatch(text):
         return text
     return None
+
+
+def _utc_ordering_value(value: datetime) -> datetime:
+    return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
 
 
 def build_profile_snapshot_payload(profile: InstrumentProfile) -> dict[str, Any]:
@@ -222,11 +255,24 @@ async def reconcile_instrument_profile(
             if value is None or value == "":
                 continue
             score = provider_scores.get(snapshot.payload.get("provider", ""), 0.0)
-            candidates.append((score, snapshot.observed_at, value))
+            candidates.append((score, _utc_ordering_value(snapshot.observed_at), value))
         if not candidates:
             return default
         candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
         return candidates[0][2]
+
+    classification_snapshot = max(
+        (
+            snapshot
+            for snapshot in snapshots
+            if _value_from_snapshot(snapshot.payload, "quote_type") not in (None, "")
+        ),
+        key=lambda snapshot: (
+            provider_scores.get(snapshot.payload.get("provider", ""), 0.0),
+            _utc_ordering_value(snapshot.observed_at),
+        ),
+        default=None,
+    )
 
     latest = snapshots[0].payload
     identifiers = []
@@ -300,7 +346,24 @@ async def reconcile_instrument_profile(
                 "previous_close",
                 "classification_system",
             ]
-        },
+        }
+        | (
+            {
+                "classification_evidence": {
+                    "provider": classification_snapshot.payload.get("provider") or "unknown",
+                    "quote_type": _value_from_snapshot(
+                        classification_snapshot.payload, "quote_type"
+                    ),
+                    "classification_system": _value_from_snapshot(
+                        classification_snapshot.payload, "classification_system"
+                    ),
+                    "observed_at": classification_snapshot.observed_at.isoformat(),
+                    "fetched_at": classification_snapshot.fetched_at.isoformat(),
+                }
+            }
+            if classification_snapshot is not None
+            else {}
+        ),
     )
 
 
@@ -799,8 +862,7 @@ async def apply_profile_to_instrument(
     instrument: Instrument | None = None,
     allow_external_identifier: bool = True,
 ) -> Instrument:
-    quote_type = (profile.quote_type or "EQUITY").upper()
-    asset_class_name, type_name = TYPE_MAP.get(quote_type, ("Equity", "Stock"))
+    asset_class_name, type_name, quote_type = instrument_type_for_quote_type(profile.quote_type)
     instrument_type_id = await ensure_instrument_type(db, asset_class_name, type_name)
     fetched_at = _now_utc()
     normalized_currency = _normalize_currency_code(profile.currency)
@@ -821,7 +883,11 @@ async def apply_profile_to_instrument(
         instrument.name = profile.name or instrument.name
         instrument.description = profile.description or instrument.description
         instrument.currency = normalized_currency or instrument.currency
-        instrument.instrument_type_id = instrument_type_id
+        # Incomplete profile refreshes must not erase a previously supported
+        # classification. Explicit unknown source codes are represented as
+        # Unclassified by instrument_type_for_quote_type().
+        if profile.quote_type:
+            instrument.instrument_type_id = instrument_type_id
         instrument.is_active = True
 
     if profile.canonical_symbol:
@@ -855,6 +921,37 @@ async def apply_profile_to_instrument(
             source=profile.provider,
             fetched_at=fetched_at,
             provider_symbol=profile.symbol,
+        )
+
+    if profile.quote_type:
+        classification_evidence = (profile.extra or {}).get("classification_evidence") or {}
+        classification_observed_at = _retained_profile_datetime(
+            classification_evidence.get("observed_at")
+        )
+        classification_fetched_at = _retained_profile_datetime(
+            classification_evidence.get("fetched_at")
+        )
+        classification_source = str(classification_evidence.get("provider") or profile.provider)
+        _mark_field_provenance(
+            instrument,
+            "instrument_type",
+            source=classification_source,
+            fetched_at=classification_fetched_at or fetched_at,
+            observed_at=classification_observed_at or fetched_at,
+            provider_symbol=profile.symbol,
+            classification_system=(
+                str(
+                    classification_evidence.get("classification_system")
+                    or (profile.extra or {}).get("classification_system")
+                    or ""
+                ).strip()
+                or f"{classification_source}.quote_type"
+            ),
+            note=(
+                f"provider_quote_type={quote_type}"
+                + ("; reconciled_from_retained_profile" if classification_evidence else "")
+            ),
+            reconciled_at=_now_utc() if classification_evidence else None,
         )
 
     for listing in profile.listings or []:
@@ -1013,3 +1110,53 @@ async def apply_profile_to_instrument(
             )
 
     return instrument
+
+
+async def reconcile_instrument_type_from_profile(
+    db: AsyncSession,
+    instrument: Instrument,
+    profile: InstrumentProfile,
+) -> bool:
+    """Reconcile only the type from retained profile evidence.
+
+    This deliberately leaves the instrument's canonical symbol, name,
+    identifiers, issuer, listings, and domain identity untouched. It is used
+    when a selected instrument is served from a fresh profile snapshot.
+    """
+    if not profile.quote_type:
+        return False
+    evidence = (profile.extra or {}).get("classification_evidence") or {}
+    observed_at = _retained_profile_datetime(evidence.get("observed_at"))
+    fetched_at = _retained_profile_datetime(evidence.get("fetched_at"))
+    source = str(evidence.get("provider") or "").strip()
+    if not source or observed_at is None or fetched_at is None:
+        return False
+    asset_class_name, type_name, quote_type = instrument_type_for_quote_type(profile.quote_type)
+    type_id = await ensure_instrument_type(db, asset_class_name, type_name)
+    changed = instrument.instrument_type_id != type_id
+    instrument.instrument_type_id = type_id
+    _mark_field_provenance(
+        instrument,
+        "instrument_type",
+        source=source,
+        fetched_at=fetched_at,
+        observed_at=observed_at,
+        provider_symbol=profile.symbol,
+        classification_system=(
+            str(evidence.get("classification_system") or "").strip() or f"{source}.quote_type"
+        ),
+        note=f"provider_quote_type={quote_type}; reconciled_from_retained_profile",
+        reconciled_at=_now_utc(),
+    )
+    return changed
+
+
+def _retained_profile_datetime(value: Any) -> datetime | None:
+    if isinstance(value, datetime):
+        return value
+    if not isinstance(value, str) or not value.strip():
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None

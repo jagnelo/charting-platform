@@ -34,6 +34,9 @@ from app.services.exchange_catalog import (
     upsert_instrument_listing,
 )
 from app.services.instrument_mastering import (
+    TYPE_MAP as _INSTRUMENT_TYPE_MAP,
+)
+from app.services.instrument_mastering import (
     ensure_external_identifier,
     ensure_internal_identifier,
     ingest_provider_profile,
@@ -51,21 +54,27 @@ from app.services.provider_runtime import execute_provider_call, resolve_provide
 
 logger = logging.getLogger(__name__)
 
+# Discovery's supported scope is intentionally narrower than profile
+# classification; share the taxonomy values without adding new scan families.
+_QUOTE_TYPE_TAXONOMY = {
+    code: _INSTRUMENT_TYPE_MAP[code]
+    for code in (
+        "EQUITY",
+        "ETF",
+        "ETN",
+        "ETV",
+        "MUTUALFUND",
+        "INDEX",
+        "CURRENCY",
+        "CRYPTOCURRENCY",
+        "FUTURE",
+        "UNCLASSIFIED",
+    )
+}
+
 # Caps concurrent outbound calls to external APIs platform-wide.
 _IDENTIFIER_SEMAPHORE = asyncio.Semaphore(settings.PROVIDER_MAX_CONCURRENCY)
 _METADATA_SEMAPHORE = asyncio.Semaphore(settings.PROVIDER_MAX_CONCURRENCY)
-
-# External quote-type → internal taxonomy normalization.
-_QUOTE_TYPE_TAXONOMY: dict[str, tuple[str, str]] = {
-    "EQUITY": ("Equity", "Stock"),
-    "ETF": ("Equity", "ETF"),
-    "MUTUALFUND": ("Equity", "Mutual Fund"),
-    "INDEX": ("Index", "Index"),
-    "CURRENCY": ("Currency", "Forex Pair"),
-    "CRYPTOCURRENCY": ("Cryptocurrency", "Crypto Spot"),
-    "FUTURE": ("Commodity", "Future"),
-}
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -117,7 +126,9 @@ def _seed_quote_type(row: dict, fallback: str) -> str:
     value = str(row.get("instrument_type") or "").strip().upper()
     if value in {"CS", "COMMON_STOCK", "COMMON STOCK", "STOCK", "EQUITIES"}:
         value = "EQUITY"
-    return value if value in _QUOTE_TYPE_TAXONOMY else fallback
+    if not value:
+        return fallback
+    return value if value in _QUOTE_TYPE_TAXONOMY else "UNCLASSIFIED"
 
 
 # ── Seed ──────────────────────────────────────────────────────────────────────

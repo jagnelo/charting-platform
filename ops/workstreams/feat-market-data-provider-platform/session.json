@@ -17,14 +17,14 @@
       "text": "Focused no-network tests exercise two unrelated native publisher identities, exact binding, mismatch/expiry/revision/fingerprint/account/budget and paid denials, and ordinary not_run rejection. Ruff/format/static/workstream checks pass; complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration and exact-source CI remain pending Root allocation and required before checkpoint acceptance. The combined consumer browser profile is owned by Root after integration and is not a Producer-only gate."
     }
   ],
-  "active_checkpoint_id": "provider-native-etf-initial-qualification-authority-20261103",
+  "active_checkpoint_id": "provider-generic-etv-taxonomy-reconciliation-20261103",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "Exact closing-tip CI remains pending; Root owns observation and protected integration. The original local full collector remains failed with unknown cause.",
+  "blocker": "Exact final-tip CI for the closing publication is pending and mandatory; Root owns observation and protected integration.",
   "branch": "feat/market-data-provider-platform",
-  "checkpoint_acceptance_decision": "Root accepted the bounded native ETF sealed-authority checkpoint under standing human delegation; exact closing-tip CI remains pending.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-diagnostic-disposition-checkpoint-review-20261103.json",
-  "checkpoint_acceptance_receipt_sha256": "d1bfd6c36b35b55df298a5d5e77cb08852f74e5a94161887736f4643643afcd0",
-  "checkpoint_authorization_state": "Root technical acceptance under the standing human delegation; bounded software checkpoint only.",
+  "checkpoint_acceptance_decision": "Root delegated technical acceptance issued for the bounded generic taxonomy implementation; final exact-tip CI remains a mandatory pending external gate.",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-taxonomy-bounded-software-acceptance-20261103.json",
+  "checkpoint_acceptance_receipt_sha256": "44c4b8a93c69cb2d20c08e26ca1ffc43871318f5e1cfbd72cc9cea1e401cce56",
+  "checkpoint_authorization_state": "Root accepted this bounded checkpoint under the existing human standing delegation for ready_for_integration; Root will integrate only after all required exact final-tip CI jobs are terminal green.",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -150,17 +150,56 @@
       "status": "ready_for_integration"
     },
     {
-      "checkpoint_id": "provider-native-etf-initial-qualification-authority-20261103",
       "acceptance_decision": "Root accepted under standing human delegation; delegated technical acceptance, not a direct human quote.",
       "acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-diagnostic-disposition-checkpoint-review-20261103.json",
       "acceptance_receipt_sha256": "d1bfd6c36b35b55df298a5d5e77cb08852f74e5a94161887736f4643643afcd0",
-      "implementation_source_sha": "3efc7a7ba451479387b3e387d6684df05df22c48",
+      "checkpoint_id": "provider-native-etf-initial-qualification-authority-20261103",
       "closing_tip_ci": "pending Root observation",
-      "local_full_collector": "failed exit139/SIGSEGV, unknown cause; not interrupted or green",
-      "diagnostic": "exact ordered shard120 25/25 passed; does not explain or erase original failure"
+      "diagnostic": "exact ordered shard120 25/25 passed; does not explain or erase original failure",
+      "implementation_source_sha": "3efc7a7ba451479387b3e387d6684df05df22c48",
+      "local_full_collector": "failed exit139/SIGSEGV, unknown cause; not interrupted or green"
+    },
+    {
+      "checkpoint_id": "provider-generic-etv-taxonomy-reconciliation-20261103",
+      "status": "in_progress",
+      "source_base_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
+      "local_profile": "docker_integration",
+      "focused_units": "84 passed",
+      "isolated_postgresql": "1 passed; exact owned fixture removed and full inventory restored",
+      "exact_source_ci": "pending coherent source publication",
+      "acceptance": "not yet issued"
+    },
+    {
+      "checkpoint_id": "provider-generic-etv-taxonomy-reconciliation-20261103",
+      "event": "exact_ci_branch_declared_manifest_id_failure_and_metadata_repair",
+      "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
+      "run_id": 41691823546,
+      "backend": "success: 5676 unit-like + 617 integration passed, 3 configured skips, 84% coverage",
+      "frontend": "success: 1495 passed",
+      "branch_declared": "failed before tests: workflow CI coverage alias full-backend-suite was absent from manifest",
+      "correction": "restore full-backend-suite command ID and matching ci_covered_commands key; backend command unchanged",
+      "new_exact_tip_ci": "pending after metadata-only commit"
+    },
+    {
+      "checkpoint_id": "provider-generic-etv-taxonomy-reconciliation-20261103",
+      "event": "root_accepted_bounded_software_checkpoint_closing_records_publication",
+      "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
+      "acceptance_decision": "Root delegated technical acceptance for ready_for_integration under existing human standing delegation; final exact-tip CI remains mandatory and pending.",
+      "acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-taxonomy-bounded-software-acceptance-20261103.json",
+      "acceptance_receipt_sha256": "44c4b8a93c69cb2d20c08e26ca1ffc43871318f5e1cfbd72cc9cea1e401cce56",
+      "integration_capture": "exact branch HEAD",
+      "manifest_repair": "restored full-backend-suite command ID and matching ci_covered_commands key; backend command/workflow unchanged",
+      "prior_ci": {
+        "run_id": 41691823546,
+        "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
+        "branch_declared_job": 126126311643,
+        "status": "failed before tests due undeclared full-backend-suite alias; preserved"
+      },
+      "new_exact_tip_ci": "pending; Root owns observation",
+      "roadmaps": "All 24 Provider and 14 ETF roadmap items remain intact and open as applicable"
     }
   ],
-  "checkpoint_status": "accepted_bounded_software_checkpoint",
+  "checkpoint_status": "ready_for_integration",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -177,24 +216,43 @@
     "source_sha": "exact branch HEAD (see integration_capture; no self-referential SHA stored)",
     "status": "pending; Root observes the exact closing-tip CI; the prior caac run 41376711568 remains overall failed solely for the corrected records mismatch."
   },
+  "closing_tip_ci_status": "Pending on the exact final records-publication tip; do not claim TAXONOMY-4 CI complete. Root will integrate only after all required jobs are terminal green.",
   "corrected_source_exact_ci": {
     "run_id": 41376711568,
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "Root accepted the docker_integration evidence: 10 focused no-network units passed, one isolated PostgreSQL/quota-ledger case passed, and the exact affected 25-node shard diagnostic passed. The separate canonical full local collector failed exit 139/SIGSEGV with unknown cause and remains failed; exact-source CI backend independently passed all 6,287 selected nodes with 3 configured skips, 84% coverage, and both DDL cases. Exact closing-tip CI remains pending.",
+  "current_checkpoint_local_profile": "Root accepted bounded implementation: 84 focused units and isolated PostgreSQL API/ORM 1/1 passed with zero provider calls and protected cleanup; exact CI backend/frontend job evidence is recorded, while its Branch-declared pretest failure remains preserved. Exact closing-tip CI is still mandatory and pending.",
   "current_exact_ci": {
-    "status": "pending exact source publication and hosted run; no current-source result is claimed."
+    "run_id": 41691823546,
+    "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
+    "backend_job": 126112115688,
+    "backend": "success: 5676 unit-like + 617 integration passed, 3 configured skips, 84% combined coverage",
+    "frontend_job": 126112116158,
+    "frontend": "success: 1495 passed",
+    "branch_declared_job": 126126311643,
+    "branch_declared": "failed before tests: CI coverage references undeclared command id(s): full-backend-suite; historical failure preserved",
+    "status": "overall failure; do not relabel green",
+    "corrected_manifest": "full-backend-suite command ID and matching ci_covered_commands key restored; command/workflow unchanged",
+    "new_closing_tip_ci": "pending; Root owns observation"
   },
-  "current_native_goal_created_at": 1793706426,
+  "current_native_goal_created_at": 1793727442,
   "current_native_goal_token_budget": null,
-  "current_source_base_sha": "7546e7690ababcbefeff2c3279ea8b3bae638f10",
+  "current_source_base_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
   "dirty_paths": [
-    "ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
-    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
-    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
-    "ops/workstreams/feat-market-data-provider-platform/session.json",
-    "ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
+    " M backend/app/routers/instruments.py",
+    " M backend/app/schemas/instrument_acquisition.py",
+    " M backend/app/services/instrument_mastering.py",
+    " M backend/app/services/instrument_sync.py",
+    " M backend/app/services/market_universe.py",
+    " M backend/tests/integration/api/test_on_demand_history_postgres.py",
+    " M backend/tests/unit/routers/test_instruments_router.py",
+    " M backend/tests/unit/services/test_instrument_sync_metadata.py",
+    " M ops/workstreams/feat-market-data-provider-platform/branch-tests.json",
+    " M ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    " M ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    " M ops/workstreams/feat-market-data-provider-platform/session.json",
+    " M ops/workstreams/feat-market-data-provider-platform/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -244,12 +302,12 @@
   "finished": false,
   "finished_at": null,
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/market-data-provider-platform: Implement only the Provider-owned sealed one-shot native ETF initial-qualification runtime authority. It must bind a durable attempt to one exact registered native publisher, DataSource, ETF profile/instrument/symbol, operation, reviewed entitlement revision/fingerprint, resolved account scope, expiry, and finite physical-hop budget. The disabled/not_run exception must remain scoped to that attempt; ordinary unqualified, paid, trial, unresolved-quota, and mismatched publisher cases stay held. Define the callable contract for ETF's executor, add no-network regressions, preserve all prior checkpoints and roadmaps, and stop before source HTTP, heavy profile execution, or deployment.. Acceptance criteria: NATIVE-ETF-QUAL-1: Provider exposes bind_native_etf_initial_qualification() and a non-consuming disabled-policy predicate for the ETF bridge. Authority is task-local/sealed and binds attempt ID, registered publisher/DataSource identity, ETF profile/instrument/symbol, exact operation, entitlement revision and canonical review fingerprint, resolved account scope, expiry, and bounded maximum physical requests; malformed or nested scopes are rejected.; NATIVE-ETF-QUAL-2: Only the exact disabled/not_run native ETF row matching current source identity, active publisher, capability/operation, profile/instrument/symbol, entitlement revision/fingerprint, and account scope can enter initial qualification. Mismatch, expiry, review drift, wrong adapter, exhausted request budget, or invalid source cannot authorize transport; ordinary calls without the scope still require positive live-probe evidence.; NATIVE-ETF-QUAL-3: Every physical ETF bridge hop consumes one slot before provider resolution and transport through execute_provider_call. Existing request-driven scope, free-only/terms, known operation cost, provider configuration/routing controls, and durable shared quota reservation/settlement remain mandatory; paid/trial and unknown/exhausted quotas remain denied.; NATIVE-ETF-QUAL-4: Focused no-network tests exercise two unrelated native publisher identities, exact binding, mismatch/expiry/revision/fingerprint/account/budget and paid denials, and ordinary not_run rejection. Ruff/format/static/workstream checks pass; complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration and exact-source CI remain pending Root allocation and required before checkpoint acceptance. The combined consumer browser profile is owned by Root after integration and is not a Producer-only gate.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
-  "goal_recorded_at": "2026-11-03T11:47:06+00:00",
+  "goal_objective": "Repair generic exchange-traded instrument classification and selected-instrument reconciliation. Keep ETF, ETN, and generic ETV distinct; do not infer ETF status from an ETV code, ticker, or plausible product name. Reconcile newly acquired profiles and already-resolved local instruments from retained provider profile evidence, without changing canonical identity, lineage, or adding provider requests. Return persisted type through a backward-compatible optional response field, add focused no-network regressions, and preserve prior checkpoints and the full Provider/ETF roadmaps. Acceptance criteria: TAXONOMY-1: Shared profile/discovery/universe mappings preserve ETF, ETN, and generic ETV as distinct types; ETV is Exchange Traded Vehicle under Exchange Traded Product, and explicit unsupported codes become Unclassified rather than Stock. Newly acquired profiles retain the original provider code and provenance. TAXONOMY-2: The early already-qualified POST /instruments/acquire branch reconciles type from retained profile evidence without search/profile transport, preserves canonical ID and all identity/listing lineage, and returns persisted instrument_type optionally. TAXONOMY-3: Cached reconciliation uses the exact selected quote-type snapshot's provider and original fetched_at/observed_at, adding a separate reconciliation time; missing/malformed evidence cannot create source provenance. Mixed-provider and no-transport regressions pass. TAXONOMY-4: Focused tests, isolated PostgreSQL API/ORM validation, workstream/static checks, complete backend/DDL coverage, and exact-source CI pass. No source HTTP, real quota/ledger/policy/hold mutation, target operation, staging/master integration, or deployment occurs in this Provider checkpoint.. Required local profile: docker_integration. Stop at ready_for_human_review; Root owns exact CI review, combined consumer browser qualification, protected integration, and deployment.",
+  "goal_recorded_at": "2026-11-03T18:08:44+00:00",
   "goal_request": {
-    "authorization": "Direct human activation in the original visible Provider session on 2026-11-03 after Root reviewed the generic native publisher qualification gap.",
-    "objective": "Implement the bounded Provider-owned sealed one-shot native ETF initial-qualification authority, preserving ordinary disabled/not_run admission holds and shared physical-hop quota guards; define the callable contract for ETF's executor, add focused no-network tests across unrelated native publishers and denial cases, and complete the focused source/workstream checkpoint without live provider, policy, quota, or deployment changes.",
-    "recorded_at": "2026-11-03T11:47:06+00:00"
+    "authorization": "Direct human activation in the original visible Provider session on 2026-11-03 for generic exchange-traded classification and cached selected-instrument reconciliation; preserve prior checkpoints/roadmaps and do not issue provider requests or mutate targets.",
+    "objective": "Repair generic exchange-traded instrument classification and selected-instrument reconciliation. Keep ETF, ETN, and generic ETV distinct; do not infer ETF status from an ETV code, ticker, or plausible product name. Reconcile newly acquired profiles and already-resolved local instruments from retained provider profile evidence, without changing canonical identity, lineage, or adding provider requests. Return persisted type through a backward-compatible optional response field, add focused no-network regressions, and preserve prior checkpoints and the full Provider/ETF roadmaps. Acceptance criteria: TAXONOMY-1: Shared profile/discovery/universe mappings preserve ETF, ETN, and generic ETV as distinct types; ETV is Exchange Traded Vehicle under Exchange Traded Product, and explicit unsupported codes become Unclassified rather than Stock. Newly acquired profiles retain the original provider code and provenance. TAXONOMY-2: The early already-qualified POST /instruments/acquire branch reconciles type from retained profile evidence without search/profile transport, preserves canonical ID and all identity/listing lineage, and returns persisted instrument_type optionally. TAXONOMY-3: Cached reconciliation uses the exact selected quote-type snapshot's provider and original fetched_at/observed_at, adding a separate reconciliation time; missing/malformed evidence cannot create source provenance. Mixed-provider and no-transport regressions pass. TAXONOMY-4: Focused tests, isolated PostgreSQL API/ORM validation, workstream/static checks, complete backend/DDL coverage, and exact-source CI pass. No source HTTP, real quota/ledger/policy/hold mutation, target operation, staging/master integration, or deployment occurs in this Provider checkpoint.. Required local profile: docker_integration. Stop at ready_for_human_review; Root owns exact CI review, combined consumer browser qualification, protected integration, and deployment.",
+    "recorded_at": "2026-11-03T18:08:44Z"
   },
   "goal_request_state": "active",
   "goal_state": "active",
@@ -275,7 +333,7 @@
   "integration_capture": "exact branch HEAD",
   "interrupted": false,
   "last_checkpoint": "2026-11-02T02:14:51.835172+00:00",
-  "last_human_progress_update": "2026-11-03T13:46:29.109124+00:00",
+  "last_human_progress_update": "2026-11-03T18:10:25.318885+00:00",
   "latest_degraded_staging_remediation_adoption": {
     "accepted": false,
     "merge_commit": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
@@ -340,7 +398,7 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "docker_integration",
-  "next_action": "Push the one coherent accepted records publication; Root observes all required closing-tip CI jobs before protected staging integration.",
+  "next_action": "Root observes exact closing-tip CI; protected integration remains gated until every required job is terminal green.",
   "parent_branch": "staging",
   "plan_hash": "88e28bf1628313de9d0348b3f46374e82404504761cdef2830e5cdb3ea589671",
   "planning_required": false,
@@ -681,16 +739,15 @@
   },
   "progress": {
     "completed": [
-      "NATIVE-ETF-QUAL-1",
-      "NATIVE-ETF-QUAL-2",
-      "NATIVE-ETF-QUAL-3",
-      "NATIVE-ETF-QUAL-4"
+      "TAXONOMY-1",
+      "TAXONOMY-2",
+      "TAXONOMY-3"
     ],
-    "current_blocker": "Exact closing-tip CI remains pending; Root owns observation and protected integration. The original local full collector remains failed with unknown cause.",
-    "current_phase": "native_etf_checkpoint_accepted_closing_tip_ci_pending",
-    "next_action": "Push the one coherent accepted records publication; Root observes all required closing-tip CI jobs before protected staging integration.",
+    "current_blocker": "Exact closing-tip CI is pending and mandatory; Root owns observation and protected integration.",
+    "current_phase": "ready_for_integration_closing_tip_CI_pending",
+    "next_action": "Root observes exact closing-tip CI; integrate only after all required final-tip jobs are terminal green.",
     "total": 4,
-    "updated_at": "2026-11-03T13:46:29.109104+00:00"
+    "updated_at": "2026-11-03T18:45:00+00:00"
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
   "remote": "3efc7a7ba451479387b3e387d6684df05df22c48",
@@ -1013,7 +1070,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
+  "validated_implementation_source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [
@@ -1025,5 +1082,53 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
   "worktree_id": "feat-market-data-provider-platform-c6e40c6608",
-  "closing_tip_ci_status": "pending_root_observation"
+  "previously_accepted_native_etf_authority_session_state": {
+    "status": "ready_for_integration",
+    "active_checkpoint_id": "provider-native-etf-initial-qualification-authority-20261103",
+    "checkpoint_status": "accepted_bounded_software_checkpoint",
+    "goal_objective": "Advance feat/market-data-provider-platform: Implement only the Provider-owned sealed one-shot native ETF initial-qualification runtime authority. It must bind a durable attempt to one exact registered native publisher, DataSource, ETF profile/instrument/symbol, operation, reviewed entitlement revision/fingerprint, resolved account scope, expiry, and finite physical-hop budget. The disabled/not_run exception must remain scoped to that attempt; ordinary unqualified, paid, trial, unresolved-quota, and mismatched publisher cases stay held. Define the callable contract for ETF's executor, add no-network regressions, preserve all prior checkpoints and roadmaps, and stop before source HTTP, heavy profile execution, or deployment.. Acceptance criteria: NATIVE-ETF-QUAL-1: Provider exposes bind_native_etf_initial_qualification() and a non-consuming disabled-policy predicate for the ETF bridge. Authority is task-local/sealed and binds attempt ID, registered publisher/DataSource identity, ETF profile/instrument/symbol, exact operation, entitlement revision and canonical review fingerprint, resolved account scope, expiry, and bounded maximum physical requests; malformed or nested scopes are rejected.; NATIVE-ETF-QUAL-2: Only the exact disabled/not_run native ETF row matching current source identity, active publisher, capability/operation, profile/instrument/symbol, entitlement revision/fingerprint, and account scope can enter initial qualification. Mismatch, expiry, review drift, wrong adapter, exhausted request budget, or invalid source cannot authorize transport; ordinary calls without the scope still require positive live-probe evidence.; NATIVE-ETF-QUAL-3: Every physical ETF bridge hop consumes one slot before provider resolution and transport through execute_provider_call. Existing request-driven scope, free-only/terms, known operation cost, provider configuration/routing controls, and durable shared quota reservation/settlement remain mandatory; paid/trial and unknown/exhausted quotas remain denied.; NATIVE-ETF-QUAL-4: Focused no-network tests exercise two unrelated native publisher identities, exact binding, mismatch/expiry/revision/fingerprint/account/budget and paid denials, and ordinary not_run rejection. Ruff/format/static/workstream checks pass; complete backend/DDL coverage, isolated PostgreSQL/quota-ledger authority integration and exact-source CI remain pending Root allocation and required before checkpoint acceptance. The combined consumer browser profile is owned by Root after integration and is not a Producer-only gate.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+    "goal_request": {
+      "authorization": "Direct human activation in the original visible Provider session on 2026-11-03 after Root reviewed the generic native publisher qualification gap.",
+      "objective": "Implement the bounded Provider-owned sealed one-shot native ETF initial-qualification authority, preserving ordinary disabled/not_run admission holds and shared physical-hop quota guards; define the callable contract for ETF's executor, add focused no-network tests across unrelated native publishers and denial cases, and complete the focused source/workstream checkpoint without live provider, policy, quota, or deployment changes.",
+      "recorded_at": "2026-11-03T11:47:06+00:00"
+    },
+    "goal_request_state": "active",
+    "current_native_goal_created_at": 1793706426,
+    "current_native_goal_token_budget": null,
+    "goal_state": "active",
+    "goal_recorded_at": "2026-11-03T11:47:06+00:00",
+    "current_source_base_sha": "7546e7690ababcbefeff2c3279ea8b3bae638f10",
+    "validated_implementation_source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
+    "closing_tip_ci_status": "pending_root_observation",
+    "checkpoint_acceptance_decision": "Root accepted the bounded native ETF sealed-authority checkpoint under standing human delegation; exact closing-tip CI remains pending.",
+    "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-diagnostic-disposition-checkpoint-review-20261103.json",
+    "checkpoint_acceptance_receipt_sha256": "d1bfd6c36b35b55df298a5d5e77cb08852f74e5a94161887736f4643643afcd0",
+    "current_checkpoint_local_profile": "Root accepted the docker_integration evidence: 10 focused no-network units passed, one isolated PostgreSQL/quota-ledger case passed, and the exact affected 25-node shard diagnostic passed. The separate canonical full local collector failed exit 139/SIGSEGV with unknown cause and remains failed; exact-source CI backend independently passed all 6,287 selected nodes with 3 configured skips, 84% coverage, and both DDL cases. Exact closing-tip CI remains pending.",
+    "blocker": "Exact closing-tip CI remains pending; Root owns observation and protected integration. The original local full collector remains failed with unknown cause.",
+    "next_action": "Push the one coherent accepted records publication; Root observes all required closing-tip CI jobs before protected staging integration.",
+    "progress": {
+      "completed": [
+        "TAXONOMY-1",
+        "TAXONOMY-2",
+        "TAXONOMY-3"
+      ],
+      "current_blocker": "Exact-source branch CI and Root-owned combined consumer/browser and protected release gates remain pending; no provider transport or production action occurred.",
+      "current_phase": "local_docker_integration_passed_exact_source_CI_pending",
+      "next_action": "Run canonical workstream and branch-test mapping checks, then publish one coherent source/workstream commit; Root owns exact CI review and downstream combined browser/integration.",
+      "total": 4,
+      "updated_at": "2026-11-03T18:10:25.318862+00:00"
+    },
+    "accepted_source_sha": "3efc7a7ba451479387b3e387d6684df05df22c48",
+    "root_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-provider-diagnostic-disposition-checkpoint-review-20261103.json",
+    "root_receipt_sha256": "d1bfd6c36b35b55df298a5d5e77cb08852f74e5a94161887736f4643643afcd0"
+  },
+  "validated_candidate_input_manifest": "/tmp/provider-etv-20261103-r4/prelaunch.json",
+  "validated_candidate_input_manifest_sha256": "e215f25a2b169811106e22b153c77fe89197b58fc9f1d398d1d552cf29c3ef98",
+  "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
+  "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
+  "previous_failure_attempts": [
+    "/tmp/provider-etv-20261103-r1/artifacts/attempt-receipt.json",
+    "/tmp/provider-etv-20261103-r2/artifacts/attempt-receipt.json",
+    "/tmp/provider-etv-20261103-r3/artifacts/attempt-receipt.json"
+  ]
 }
