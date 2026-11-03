@@ -25722,6 +25722,44 @@ qualification. Preserve the full AC1–AC9 roadmap and all checkpoint history.
 Next: publish this coherent change once, follow its exact CI, then wait for Root's
 green ETF staging adoption and combined-profile allocation.
 
+## 2026-11-03 — automatic first-use browser reconciliation and visible panel refresh
+
+The active ordinary-selection implementation now refreshes the actual mounted
+Workstation chart-panel stores after a successful or partial selected-history
+write. It dispatches only to panels still showing the selected symbol and
+timeframe; each panel snapshots and rechecks its own bar type, transform, and
+load scope before refreshing from local storage. Mounted regressions verify an
+initially empty matching chart receives persisted bars, a red/unrelated panel
+is unchanged, and a late A read cannot replace the same panel after it switches
+to B. The Workstation store mock used by the popout-binding suite now exports
+the helper seam.
+
+Controlled browser cases now place acquisition at the intended user action:
+ChartView's unknown-symbol case expects the single bounded history request
+after identity selection, and the no-snapshot ETF case expects one issuer
+acquisition after deliberate fund selection. The former retains its held state
+and enabled explicit retry; the latter retains separate explicit constituent
+history loading, exact fund/snapshot/known-at lineage, visible AMD name/weight,
+and a final chart screen-reader assertion for one locally read-back M1 bar. The
+main Workstation case now asserts one history request and one rendered M1 bar
+after its single ticker selection; it no longer manually invokes the old
+history action. Existing no-match, request-ID/bounds, lineage, stale-response,
+and BrowserDiagnostics assertions remain.
+
+Validation: the two affected mounted suites passed 66/66 with one Vitest
+worker; `npm run build` passed `vue-tsc` and Vite (540 modules; existing large
+Workstation chunk warning); Playwright collection passed for all seven cases in
+`on_demand_acquisition.spec.ts` using the line reporter. No browser case was
+executed, no fixture or service was launched, and no real provider/issuer
+request was made. Initial report generation failed only because the configured
+HTML reporter could not write its ignored report directory; rerunning collection
+with the non-writing line reporter passed. An early scope check also correctly
+rejected staged/worktree drift; staging the reviewed source made the exact guard
+pass. Full combined functional/strict-visual qualification and exact candidate
+CI remain pending Root's planned joint runtime. All AC1–AC9, prior accepted
+checkpoints, visual references, masks, tolerances, zero retries, and operational
+holds remain unchanged.
+
 ## 2026-11-03 — released Provider staging adoption
 
 Root released exact synchronized-green staging

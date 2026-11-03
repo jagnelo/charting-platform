@@ -298,11 +298,18 @@ current_checkpoint_status: >-
   This adoption has no new CI or full-profile result: exact feature CI and the
   combined functional/strict-visual profile are pending. Root will provide the
   frozen ETF backend artifact after the authorized minimum PostgreSQL proof.
-  The Dashboard watchlist/widget picker now uses canonical-only local search
-  and identity lookup, with no provider discovery or history acquisition;
-  five focused tests plus type-check/build pass. A separate visible-chart gap
-  remains: successful/partial automatic history writes must refresh only the
-  matching mounted Workstation panel store. All nine original AC1-AC9 and
+  The Dashboard watchlist/widget picker uses canonical-only local search and
+  identity lookup, with no provider discovery or history acquisition.
+  Successful/partial automatic history persistence now refreshes only mounted
+  Workstation chart panels whose symbol/timeframe still match; each panel does
+  a local-only read under its bar-type/transform and load-generation guards.
+  Controlled E2E cases exercise ChartView identity selection and first-use ETF
+  issuer acquisition without an extra action, while held retry and constituent
+  history controls remain separately asserted. The main Workstation browser
+  case checks one automatic bounded request and visible panel bars. Focused
+  tests, type-check, production build, and Playwright collection pass; browser
+  execution, exact feature CI, and the combined functional/strict-visual
+  profile remain pending Root allocation. All nine original AC1-AC9 and
   official REF-HELP-V25 remain open; no target, deployment, source request,
   quota, or hold change is claimed.
 ordinary_ticker_latest_update: >-
@@ -318,11 +325,17 @@ ordinary_ticker_latest_update: >-
   functional/strict-visual profile remain pending. The released Provider staging
   eb74 is now adopted. The Dashboard watchlist/widget picker is canonical-only;
   five focused tests, vue-tsc and Vite build pass, with no source discovery or
-  bar acquisition from that picker. Next, refresh only the matching mounted
-  Workstation panel store after successful/partial automatic history persistence
-  and correct the browser case to verify the visible chart without a second
-  manual load click. No live source request or fixture was run; all nine AC1-AC9
-  and REF-HELP-V25 remain open.
+  bar acquisition from that picker. Automatic successful/partial history
+  completion now refreshes matching mounted Workstation chart-panel stores and
+  their local data; regressions cover persisted-bar visibility, unrelated-panel
+  isolation, and late A-to-B fencing. The ChartView unknown-search and dedicated
+  ETF no-snapshot E2E cases now assert automatic first-use behavior without
+  removing held/manual retry or constituent-history coverage, and the main
+  Workstation case checks rendered bars after its one bounded request. Focused
+  tests, type-check, build, scope checks, and seven-case Playwright collection
+  pass. No browser run, fixture, live source request, or provider operation
+  occurred; exact feature CI and the combined profile remain pending Root. All
+  nine AC1-AC9 and REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -2822,7 +2835,7 @@ approved_presentation_adaptations:
 - path: frontend/src/components/workstation/WorkstationToolContent.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 9f079cdfb745e7d259c6e062b802b61e08a5a1bc
-  delta: TC workstation presentation adaptation with an explicit focused-chart bounded history action; preserve routes, local-only navigation, and no acquisition before user action
+  delta: TC workstation presentation adaptation with a bounded focused-chart history action and post-acquisition local refresh of only matching mounted chart panels; preserve routes, local-only reads, selection fencing, and no acquisition before user intent
 - path: frontend/src/router/index.ts
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: c32384da24c053776b94c22e55a5b38ad54a35bc

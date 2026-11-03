@@ -23,6 +23,11 @@ export interface ChartTransformParams {
   reversal?: number
 }
 
+export interface WorkstationPanelChartRefresh {
+  matches: (symbol: string, timeframe: Timeframe) => boolean
+  refresh: (symbol: string, timeframe: Timeframe, isCurrent: () => boolean) => Promise<void>
+}
+
 function basketIdFromSymbol(sym: string): number | null {
   const match = sym.trim().match(/^BASKET:(\d+)$/i)
   return match ? Number(match[1]) : null
@@ -544,6 +549,37 @@ function createChartStore(storeId: string) {
 
 // The singleton stores map lets us lazily create per-panel store definitions.
 const _storeMap = new Map<string, ReturnType<typeof createChartStore>>()
+const _mountedWorkstationPanelRefresh = new Map<string, WorkstationPanelChartRefresh>()
+
+/** Register one mounted Workstation chart component for post-acquisition local refreshes. */
+export function registerWorkstationPanelChartRefresh(
+  panelId: string,
+  registration: WorkstationPanelChartRefresh,
+): () => void {
+  _mountedWorkstationPanelRefresh.set(panelId, registration)
+  return () => {
+    if (_mountedWorkstationPanelRefresh.get(panelId) === registration) {
+      _mountedWorkstationPanelRefresh.delete(panelId)
+    }
+  }
+}
+
+/** Refresh only mounted chart panels that still display the acquired local scope. */
+export async function refreshMountedWorkstationChartPanels(
+  symbol: string,
+  timeframe: Timeframe,
+  isCurrent: () => boolean = () => true,
+): Promise<void> {
+  const normalizedSymbol = symbol.trim().toUpperCase()
+  if (!normalizedSymbol || !isCurrent()) return
+  const matching = [..._mountedWorkstationPanelRefresh.values()]
+    .filter(panel => isCurrent() && panel.matches(normalizedSymbol, timeframe))
+  await Promise.allSettled(matching.map(async panel => {
+    if (isCurrent() && panel.matches(normalizedSymbol, timeframe)) {
+      await panel.refresh(normalizedSymbol, timeframe, isCurrent)
+    }
+  }))
+}
 
 function _getStoreFor(id: string) {
   let store = _storeMap.get(id)

@@ -1016,7 +1016,7 @@ import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
 import ChartPlotLibrary from './ChartPlotLibrary.vue'
-import { usePanelStore } from '@/stores/chart'
+import { registerWorkstationPanelChartRefresh, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
@@ -2024,6 +2024,39 @@ const chartTransformParams = computed(() => {
   const number = (key: string) => typeof configuration[key] === 'number' && Number.isFinite(configuration[key]) ? configuration[key] as number : undefined
   return { brick_size: number('brick_size'), reversal_pct: number('reversal_pct'), box_size: number('box_size'), reversal: number('reversal') }
 })
+let unregisterWorkstationPanelRefresh: (() => void) | null = null
+onMounted(() => {
+  if (props.tool.tool_type !== 'chart' || props.tool.instance_key === 'ratio-chart') return
+  unregisterWorkstationPanelRefresh = registerWorkstationPanelChartRefresh(chartPanelId, {
+    matches: (symbol, timeframe) => !disposed
+      && activeSymbol.value.trim().toUpperCase() === symbol
+      && activeTimeframe.value === timeframe,
+    refresh: async (symbol, timeframe, isCurrent) => {
+      const barType = chartBarType.value
+      const transformParams = { ...chartTransformParams.value }
+      const transformKey = JSON.stringify(transformParams)
+      const isCurrentPanelScope = () => !disposed
+        && isCurrent()
+        && activeSymbol.value.trim().toUpperCase() === symbol
+        && activeTimeframe.value === timeframe
+        && chartBarType.value === barType
+        && JSON.stringify(chartTransformParams.value) === transformKey
+      if (!isCurrentPanelScope()) return
+      if (chartStore.symbol.trim().toUpperCase() !== symbol
+        || chartStore.timeframe !== timeframe
+        || chartStore.barType !== barType
+        || JSON.stringify(chartStore.transformParams) !== transformKey) {
+        await chartStore.loadBars(symbol, timeframe, barType, true, transformParams)
+      }
+      if (!isCurrentPanelScope()
+        || chartStore.symbol.trim().toUpperCase() !== symbol
+        || chartStore.timeframe !== timeframe
+        || chartStore.barType !== barType
+        || JSON.stringify(chartStore.transformParams) !== transformKey) return
+      await chartStore.refreshLocalBars()
+    },
+  })
+})
 const comparisonDraft = ref('')
 const comparisonTargets = ref<ComparisonTarget[]>([])
 let comparisonRequestSequence = 0
@@ -2397,6 +2430,8 @@ watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadP
 watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { deep: true, immediate: true })
 
 onBeforeUnmount(() => {
+  unregisterWorkstationPanelRefresh?.()
+  unregisterWorkstationPanelRefresh = null
   disposed = true
   if (pendingWatchlistConfigurationTimer !== null) clearTimeout(pendingWatchlistConfigurationTimer)
   pendingWatchlistConfigurationTimer = null

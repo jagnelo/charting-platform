@@ -300,7 +300,7 @@ import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
-import { useChartStore } from '@/stores/chart'
+import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
@@ -1293,6 +1293,11 @@ async function acquireSelectedTickerData(
           // technical reads; recheck this selection before starting either read.
           await Promise.all([
             chartStore.refreshLocalBars(),
+            refreshMountedWorkstationChartPanels(
+              symbol,
+              timeframe,
+              () => generation === symbolSelectionGeneration,
+            ),
             workspaceStore.loadTechnical(symbol),
           ])
         }

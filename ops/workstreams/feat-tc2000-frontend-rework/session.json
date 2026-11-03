@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The local DashboardInstrumentSearch correction has five focused passing unit tests, vue-tsc and Vite build; it is awaiting coherent commit/publication. No fixture/browser or source request was run. Exact branch CI and the combined functional/strict-visual profile remain pending.",
-  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation. Exact green Provider staging eb74 is adopted by merge c1f5126. The Dashboard watchlist/widget picker uses canonical-only local search and identity lookup, with no source discovery or history acquisition; five focused tests and frontend type-check/build pass. A separate visible-chart gap remains: successful/partial automatic history writes must refresh only the matching mounted Workstation panel store, and the browser case must verify the automatic visible-bar transition without a second manual load click. Controlled seeded data is not genuine Provider/issuer proof. Exact-source CI and full combined functional/strict-visual qualification remain pending; earlier accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged.",
+  "current_candidate_ci_status": "The current staged consumer repair adds scoped local refresh for matching mounted Workstation chart panels and updates ChartView, main Workstation, and dedicated ETF controlled E2E cases to verify automatic first-use boundaries while retaining held/manual retry behavior. Two mounted suites pass 66/66; npm run build passes vue-tsc and Vite (540 modules); Playwright collection lists all seven acquisition cases. No browser fixture, provider/issuer request, or service operation ran. Candidate CI and Root's combined functional/strict-visual profile remain pending.",
+  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation over adopted green Provider staging eb74. Successful/partial history writes refresh only mounted Workstation chart panels still matching the selected symbol/timeframe, under each panel's bar-type/transform/load-generation guards. Controlled E2E cases now cover automatic ChartView history after deliberate identity selection, automatic first-use issuer acquisition after deliberate ETF selection, and one-request Workstation acquisition with visible panel bars; held retry and constituent-history actions remain separately covered. Controlled fixture data is not genuine Provider/issuer proof. Exact candidate CI and the combined functional/strict-visual profile remain pending; prior accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -72,31 +72,16 @@
     "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
   },
   "dirty_paths": [
-    "frontend/src/components/chart/ChartPanel.vue",
-    "frontend/src/components/common/SearchBar.vue",
-    "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
-    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
     "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/etfHoldingDrilldown.ts",
-    "frontend/src/lib/onDemandAcquisition.ts",
-    "frontend/src/lib/workstation/etfReportedConstituents.ts",
-    "frontend/src/stores/workspace.ts",
-    "frontend/src/views/ChartView.vue",
+    "frontend/src/stores/chart.ts",
     "frontend/src/views/WorkstationView.vue",
     "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
-    "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
-    "frontend/tests/unit/components/test_search_bar.test.ts",
-    "frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts",
-    "frontend/tests/unit/lib/test_etf_reported_constituents.test.ts",
-    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
-    "frontend/tests/unit/stores/test_workspace_store.test.ts",
+    "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
     "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "scripts/validate-tc2000-scope.py"
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -319,7 +304,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the focused test and coherent records once for exact-source CI. After Root releases green ETF staging, adopt it and obtain the combined-profile slot; run unchanged full functional and strict visual suites with dense 10,000-row data seeded in backend and browser and record the observed browse count.",
+  "next_action": "Publish this coherent focused frontend candidate once and follow its exact-source CI. Then use Root's one combined profile for the real combined APIs and unchanged functional/104-case strict-visual suites, with the reviewed backend/frontend artifacts, one worker, zero retries, dense 10,000-row backend/browser seed and observed browse count. Do not treat controlled E2E fixtures as genuine source qualification.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -350,7 +335,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "caaf06ba3f65d6b118552adeba08ae5f6b2ff4e90e4b8137eebba24bc7a98467",
+  "plan_hash": "71813cebd09aa5426e42fb31c9862ea138b97979c534e7a52262b444de444418",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -370,11 +355,11 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "Exact feature CI and Root's combined functional/strict-visual profile are pending; Root will provide the frozen ETF backend artifact after the authorized minimum PostgreSQL proof.",
-    "current_phase": "Ordinary ticker journey remains in progress after adopting exact green Provider staging eb74; no full browser/profile or genuine source proof is claimed.",
-    "next_action": "Await Root's frozen ETF backend artifact after its minimum PostgreSQL proof, verify exact components and named batch conditions, then use the Root-allocated combined profile with one worker, zero retries, dense 10,000-row backend/browser seed and observed browse count.",
+    "current_blocker": "The focused panel-refresh and cross-surface E2E source changes are locally validated but have no exact candidate CI or browser execution yet; Root owns the single combined runtime profile and frozen ETF artifact review.",
+    "current_phase": "Ordinary ticker journey consumer work continues on adopted green Provider staging eb74. Automatic selected-history updates now reach only matching mounted Workstation chart panels; the main Workstation, ChartView, and no-snapshot ETF E2E cases assert intended first-use request boundaries, while controlled fixtures remain software-only.",
+    "next_action": "Publish one coherent candidate for exact-source CI, then await Root's combined-profile release. Run the unchanged real combined functional and strict visual suites with one worker, zero retries, dense 10,000-row backend/browser seed, and observed browse count; retain every assertion, reference, mask, and tolerance.",
     "total": 6,
-    "updated_at": "2026-11-03T16:22:00Z"
+    "updated_at": "2026-11-03T16:48:17Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -553,7 +538,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-03T16:34:29Z",
+  "updated_at": "2026-11-03T16:48:17Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

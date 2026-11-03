@@ -106,6 +106,7 @@ const harness = vi.hoisted(() => {
 const routeState = vi.hoisted(() => ({ path: '/popout/benchmark-list', params: { windowKey: 'benchmark-list' }, query: {} as Record<string, string> }))
 const apiGet = vi.hoisted(() => vi.fn().mockResolvedValue([]))
 const apiPost = vi.hoisted(() => vi.fn())
+const refreshMountedPanels = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
 const openableTools = vi.hoisted(() => [
   { tool_type: 'research_results', title: 'Study Results', instance_prefix: 'research-results', configuration: {} },
   { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
@@ -117,6 +118,7 @@ vi.mock('@/stores/workspace', () => ({
 }))
 vi.mock('@/stores/chart', () => ({
   useChartStore: () => harness.chart,
+  refreshMountedWorkstationChartPanels: refreshMountedPanels,
 }))
 vi.mock('@/stores/auth', () => ({ useAuthStore: () => ({ logout: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ reorderItems: vi.fn().mockResolvedValue(undefined) }) }))
@@ -204,6 +206,7 @@ const ToolStub = defineComponent({
 describe('WorkstationView pop-out bindings', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    refreshMountedPanels.mockReset().mockResolvedValue(undefined)
     harness.popoutWindow.configuration = {}
     harness.chartWindow.configuration = {}
     harness.ratioWindow.configuration = { expression: '=SPY/RSP', auto_ratio: true }

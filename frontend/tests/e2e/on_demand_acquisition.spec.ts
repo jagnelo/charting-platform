@@ -128,7 +128,7 @@ function missingCoverage(url: URL) {
   }
 }
 
-test('chart search discovers an unknown ticker automatically, then requires identity selection before bounded history', async ({ page, loggedIn, browserDiagnostics }) => {
+test('chart search discovers an unknown ticker automatically and deliberate identity selection starts bounded history', async ({ page, loggedIn, browserDiagnostics }) => {
   await page.goto('about:blank')
 
   const fixtureInstrumentId = 990010
@@ -295,6 +295,14 @@ test('chart search discovers an unknown ticker automatically, then requires iden
   expect(discoveryResponse.status()).toBe(200)
   expect(await discoveryResponse.json()).toMatchObject({ status: 'complete', candidates: [{ symbol: 'TCNEW', identity_status: 'unresolved' }] })
   expect(discoveryRequests).toHaveLength(1)
+  expect(historyRequests).toHaveLength(0)
+  await page.locator('.tf-select').selectOption('M1')
+  expect(historyRequests).toHaveLength(0)
+  const automaticHistoryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && /\/api\/v1\/instruments\/\d+\/history-acquisitions$/.test(url.pathname)
+  }, { timeout: 10_000 })
   const instrumentReadbackReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
@@ -315,15 +323,14 @@ test('chart search discovers an unknown ticker automatically, then requires iden
   })
 
   // The controlled identity POST represents the backend's canonical upsert;
-  // the awaited response above proves the user flow reads that persisted record.
-  await expect(page.getByTestId('history-load-missing')).toBeVisible()
-  await expect(page.getByTestId('history-load-missing')).toBeEnabled()
+  // deliberate selection then performs the one bounded first-use history request.
   await expect(page.locator('.symbol-info .sym')).toHaveText('TCNEW')
-
-  await page.locator('.tf-select').selectOption('M1')
+  const automaticHistory = await automaticHistoryReady
+  expect(automaticHistory.status()).toBe(200)
+  expect(await automaticHistory.json()).toMatchObject({ symbol: 'TCNEW', status: 'held' })
   const loadHistory = page.getByTestId('history-load-missing')
-  await expect(loadHistory).toBeEnabled()
-  await loadHistory.click()
+  await expect(loadHistory).toBeVisible()
+  await expect(loadHistory).toBeEnabled() // a held result keeps the deliberate retry available
   await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
 
   expect(instrumentRequests).toHaveLength(2)
@@ -802,6 +809,11 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     const url = new URL(response.url())
     return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
   }, { timeout: 10_000 })
+  const historyReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === `/api/v1/instruments/${fixtureInstrumentId}/history-acquisitions`
+  }, { timeout: 15_000 })
   await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const candidateResolve = await candidateResolveReady
   expect(candidateResolve.status()).toBe(200)
@@ -813,31 +825,23 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     provider_candidate: { provider: 'test-fixture', symbol: 'TCNEW', exchange: 'TEST' },
   })
   expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
-  expect(historyRequests).toHaveLength(0)
-
-  const chartWorkspace = page.getByRole('region', { name: 'Chart workspace' })
-  await chartWorkspace.click()
-  await expect(page.locator('.tool-window--active').getByRole('region', { name: 'Chart workspace' })).toBeVisible()
-  await expect(page.getByTestId('workstation-history-acquisition')).toBeVisible({ timeout: 15_000 })
-
-  const historyReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === `/api/v1/instruments/${fixtureInstrumentId}/history-acquisitions`
-  }, { timeout: 10_000 })
-  await page.getByTestId('workstation-history-acquisition').getByTestId('history-load-missing').click()
   const historyResponse = await historyReady
   expect(historyResponse.status()).toBe(200)
   expect(historyRequests).toHaveLength(1)
   expectBoundedM1Request(historyRequests[0]!)
-  expect(instrumentRequests).toHaveLength(2)
-  expect(instrumentRequests[1]).toMatchObject({ symbol: 'TCNEW' })
+  expect(instrumentRequests).toHaveLength(1)
+
+  const chartWorkspace = page.getByRole('region', { name: 'Chart workspace' })
+  await chartWorkspace.click()
+  await expect(page.locator('.tool-window--active').getByRole('region', { name: 'Chart workspace' })).toBeVisible()
 
   await expect.poll(() => localBarReadbacks.some(readback => readback.afterAcquisition && readback.rows.length === 1)).toBe(true)
   expect(localBarReadbacks.filter(readback => readback.afterAcquisition).every(readback => readback.symbol === 'TCNEW' && readback.timeframe === 'M1')).toBe(true)
   expect(localBarReadbacks.some(readback => readback.afterAcquisition && readback.rows[0]?.ts === acquiredBar?.ts)).toBe(true)
   await expect(page.getByTestId('workstation-history-acquisition')).toHaveCount(0)
-  await expect(page.locator('.tool-window--active .chart-root')).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+  const visibleChart = page.locator('.tool-window--active .chart-root')
+  await expect(visibleChart).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
+  await expect(visibleChart.locator('.sr-only')).toContainText('M1 chart; 1 bars')
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
   expect(historyRequests).toHaveLength(1)
@@ -1370,6 +1374,11 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
 
   const oihOption = page.getByRole('option', { name: /^OIH\b/ })
   await expect(oihOption).toBeVisible()
+  const firstUseIssuerReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
+  }, { timeout: 10_000 })
   await oihOption.click()
   expect(fixtureProfile.instrument_id).toBe(fixtureInstrumentId)
   expect(fixtureSnapshot.etf_instrument_id).toBe(fixtureInstrumentId)
@@ -1377,10 +1386,14 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(discoveryRequests).toHaveLength(0)
   expect(identityRequests).toHaveLength(0)
 
-  await expect(page.getByText('No stored snapshot is selected.')).toBeVisible()
-  expect(issuerRequests).toHaveLength(0)
-  const requestAcquisition = page.getByTestId('etf-request-issuer')
-  await requestAcquisition.click()
+  const firstUseIssuerResponse = await firstUseIssuerReady
+  expect(firstUseIssuerResponse.status()).toBe(200)
+  expect(await firstUseIssuerResponse.json()).toMatchObject({
+    symbol: 'OIH',
+    instrument_id: fixtureInstrumentId,
+    outcome: 'acquired',
+    refresh: true,
+  })
   await expect(page.getByRole('status').filter({ hasText: 'Issuer holdings request completed. Snapshot dates and current-analysis capability remain separate.' })).toBeVisible()
   expect(issuerRequests).toHaveLength(1)
   expect(issuerRequests[0]).toMatchObject({ refresh: true })
@@ -1390,6 +1403,8 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   await expect(page.getByText('Current holdings are not verified.')).toBeVisible()
   const holdingButton = page.locator('button.holding-row').filter({ hasText: 'AMD' })
   await expect(holdingButton).toBeVisible()
+  await expect(holdingButton).toContainText('Advanced Micro Devices (local fixture identity)')
+  await expect(holdingButton).toContainText('1.00%')
 
   const initialChartCoverageReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -1452,6 +1467,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(localReadbackCount).toBeGreaterThan(0)
   expect(readbackBars).toHaveLength(1)
   expect(readbackBars[0]).toMatchObject({ ts: acquiredFixtureBar!.ts, close: acquiredFixtureBar!.close })
+  await expect(page.locator('.chart-root').first()).toContainText('M1 chart; 1 bars; adjusted; provider-observed lineage.')
   await expect(historicalContext).toBeVisible()
   await browserDiagnostics.expectNoCriticalIssues()
 })
