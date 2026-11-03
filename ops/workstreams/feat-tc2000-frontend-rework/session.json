@@ -19,7 +19,7 @@
   ],
   "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
   "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
-  "adoption_source_base_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
+  "adoption_source_base_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
   "branch": "feat/tc2000-frontend-rework",
   "claim": {
     "branch": "feat/tc2000-frontend-rework",
@@ -39,14 +39,14 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published base fa3b951969e20732c604c041f694d75c3dee62f9 exact CI 41690443834 was still in progress at the last live observation (Frontend Unit Tests green; Backend Tests running). This local source delta adds raw ETV to the dedicated ETF discovery type filter, retains Index ETF holdings eligibility, and keeps ETN excluded. Three focused frontend suites pass 54/54 and vue-tsc passes. No app image or full browser profile is authorized until the corrected Provider classification enters green staging, TC adopts that exact release, and Root supplies a new artifact binding. The frozen 4ec9a9e21b64ba35708698044041d81649a2b93b full functional profile remains red at 187 passed/16 failed/2 configured skips; strict visual was not run.",
-  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation. Deliberate selection shares one confirmed identity/type result between bounded history and ETF holdings work; ETF, Index ETF, and persisted Exchange Traded Vehicle are eligible, ETN is not, and older response shapes use a local exact-ID type fallback. The dedicated ETF picker sends both raw provider ETV and persisted Exchange Traded Vehicle discovery types, while requiring deliberate canonical selection and preserving its confirmed-ID/unavailable guards. Constituent performance columns remain visible before compact reported type/identity columns. The old frozen full functional profile is preserved red and its visual phase was not run. New Provider classification must first enter green staging, then TC will adopt that exact release and wait for Root's new immutable app artifact before full combined functional/strict-visual qualification. Prior accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged; no genuine source proof or release acceptance is claimed.",
+  "current_candidate_ci_status": "Published predecessor c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55 exact CI41722035105 is preserved red only at the unchanged global function-coverage gate: 154 files/1552 tests passed, 69.44% below70%. The mounted UPlot lifecycle test was expanded; complete local frontend suite now passes154/1552 with 2582/3671 functions (70.3351%). Exact green Provider staging4d4a278b1b086745b22aab05d3d960539ad02c97 (CI41706834463) was adopted at merge d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5 with no conflicts. Seven affected frontend unit files pass71/71, vue-tsc and seven-case Playwright collection pass; scope/workstream checks pass. Exact CI for the reconciled/published tip and the joint local functional/strict-visual profile remain pending.",
+  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Exact Root-released green Provider staging4d4a278b1b086745b22aab05d3d960539ad02c97 is merged into this same branch; imported backend tree equals that release and TC frontend src is unchanged. The received classification remains ETV/Exchange Traded Vehicle distinct from ETN; consumer adaptations are pinned to exact4d blobs. All seven ordinary acquisition browser flows and prior failure evidence remain intact; no post-adoption browser/profile run or genuine source request is claimed. Prior accepted TCO/F8Y checkpoints, all nine original roadmap criteria, AC1-AC9 and official V25 remain open.",
   "current_exact_ci": {
-    "conclusion": "success",
-    "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
-    "run_id": 40752914676,
-    "scope": "Exact F8Y implementation source; E2E196 passed/110 configured skips and required branch jobs succeeded; Exhaustive skipped by feature-branch policy.",
-    "status": "success"
+    "head_sha": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
+    "run_id": 41722035105,
+    "conclusion": "failure",
+    "status": "failure",
+    "scope": "Preserved predecessor CI: 154 frontend files/1552 tests passed, but global function coverage69.44% failed unchanged70% threshold. Repaired coverage was then verified locally; exact reconciled-tip CI pending."
   },
   "current_software_checkpoint": {
     "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
@@ -72,8 +72,11 @@
     "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
   },
   "dirty_paths": [
-    "frontend/tests/unit/components/test_uplot_chart_context.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json",
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
   ],
   "docker": {
@@ -176,7 +179,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
+  "head": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -267,7 +270,7 @@
     "status": "ready_for_integration"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-11-03T14:43:29Z",
+  "last_checkpoint": "2026-11-03T22:22:05Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -276,24 +279,26 @@
     "run_id": 40752914676
   },
   "latest_staging_adoption": {
-    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json",
-    "checkpoint": "Ordinary ticker journey remains in progress; all nine original roadmap criteria and V25 remain open.",
-    "component_equivalence": "TC frontend tree equals premerge feature tree; backend tree equals exact staging eb74 tree.",
-    "full_profile": "Pending Root-frozen ETF backend artifact and combined functional/strict-visual allocation.",
-    "import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/eb74b439319ad32006a3d68fc7b6e98959148af7.yaml",
-    "import_manifest_sha256": "e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f",
-    "imported_path_count": 8,
-    "local_validation": "Adoption-only checks pending completion; no tests/build/runtime rerun claimed. Existing 81-test and build evidence stays bound to premerge source.",
-    "merge_base": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-    "merge_commit": "c1f512659e79cf6d62173cd4e6bf5fe527c79dc6",
-    "merge_result": "Exact origin/staging source merged normally with no conflicts; no sibling import or manual source copy.",
-    "premerge_feature_head": "a33c848d6820d30f0a47a797f8760d15dbd73131",
-    "publication": "One coherent owned adoption publication follows local validation; exact branch CI will be required.",
-    "receipt_sha256": "bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb",
+    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json",
+    "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+    "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+    "staging_ci_run": 41706834463,
     "staging_ci_attempt": 1,
-    "staging_ci_run": 41653944273,
-    "staging_ci_status": "terminal success for Backend, Frontend, Playwright, and actual Exhaustive; expected Branch-declared skip",
-    "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7"
+    "staging_ci_status": "terminal success for Backend, Frontend Unit, E2E, and actual Exhaustive; Branch-declared expected skip",
+    "premerge_feature_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
+    "merge_base": "eb74b439319ad32006a3d68fc7b6e98959148af7",
+    "merge_commit": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
+    "merge_result": "Exact Root-released staging merged without conflicts into the existing claimed TC worktree; no sibling source copy",
+    "manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml",
+    "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
+    "manifest_path_count": 885,
+    "new_exact_import_path": "backend/tests/unit/routers/test_instruments_router.py",
+    "backend_tree": "42bf806179e6b0852b589e309628590dd0813cdf",
+    "frontend_src_tree": "94b189aaf4289bd714fc1a86958814c9253f708b",
+    "focused_validation": "Seven affected frontend unit files71/71; vue-tsc passed; Playwright collection7/7; scope self-test/full guard and workstream validation passed. Full local frontend tests154/1552, functions2582/3671=70.3351% on pre-adoption frontend inputs.",
+    "publication": "Pending one coherent ownership/session/import reconciliation commit and push; exact final-tip branch CI required",
+    "profile": "No post-adoption app build or browser runtime yet; one bounded frontend artifact build authorized after clean freeze; Root must verify joint component inputs before full combined profile",
+    "checkpoint": "Ordinary ticker journey remains in progress; controlled fixtures are not genuine source proof; preserve all9 roadmap criteria, AC1-AC9, V25 and operational holds"
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
@@ -328,7 +333,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "bb119a95e233eff8d25c450b5e310ec6f9c9ec41e8c1a71bb5cb7efb9d3b072e",
+  "plan_hash": "8f9b7b5dbd7dedc627d1153e3a0edf2157088654f7e8cc68f562f63f8d822e0f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -363,11 +368,11 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "The focused panel-refresh and cross-surface E2E source changes are locally validated but have no exact candidate CI or browser execution yet; Root owns the single combined runtime profile and frozen ETF artifact review.",
-    "current_phase": "Ordinary ticker journey consumer work continues on adopted green Provider staging eb74. Automatic selected-history updates now reach only matching mounted Workstation chart panels; the main Workstation, ChartView, and no-snapshot ETF E2E cases assert intended first-use request boundaries, while controlled fixtures remain software-only.",
-    "next_action": "Publish one coherent candidate for exact-source CI, then await Root's combined-profile release. Run the unchanged real combined functional and strict visual suites with one worker, zero retries, dense 10,000-row backend/browser seed, and observed browse count; retain every assertion, reference, mask, and tolerance.",
+    "current_blocker": "The ordinary-journey source now includes exact green Provider staging4d. Exact CI for the reconciled publication and Root review of the current frontend artifact plus ETF backend artifact are required before the single combined functional/strict-visual profile.",
+    "current_phase": "Adopted Root-released Provider4d without conflicts. TC consumer/source frontend tree is unchanged by the merge; the current UPlot coverage repair is test-only and the imported backend tree matches4d. All prior roadmap/checkpoint history and held operational boundaries remain.",
+    "next_action": "Validate and publish the coherent current reconciliation once, inspect its exact branch CI, then build the one bounded current-source frontend artifact and wait for Root verification of the ETF backend/current combined profile inputs.",
     "total": 6,
-    "updated_at": "2026-11-03T16:48:17Z"
+    "updated_at": "2026-11-03T22:22:05Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -379,8 +384,8 @@
   },
   "remote": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
   "remote_sha": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
-  "remote_synchronized": true,
-  "remote_tracking_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
+  "remote_synchronized": false,
+  "remote_tracking_sha": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -505,6 +510,18 @@
       "scope_result": "Exact released staging ancestry and import bytes; no conflicts; frontend tree unchanged; backend equals staging.",
       "staging_ci_run": 41653944273,
       "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7"
+    },
+    {
+      "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+      "staging_ci_run": 41706834463,
+      "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+      "premerge_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
+      "merge_commit": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
+      "backend_tree": "42bf806179e6b0852b589e309628590dd0813cdf",
+      "frontend_src_tree": "94b189aaf4289bd714fc1a86958814c9253f708b",
+      "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
+      "local_checks": "7 focused frontend files71/71, vue-tsc, E2E collection7/7, scope/workstream pass",
+      "result": "exact green staging adopted; exact TC final CI and combined profile remain pending"
     }
   ],
   "state": "in_progress",

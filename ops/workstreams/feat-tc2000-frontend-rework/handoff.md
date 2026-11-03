@@ -25953,7 +25953,9 @@ tests and measured 2,582 / 3,671 functions (70.3351%), above the existing
 browser fixture, provider/source request, runtime resource, visual reference,
 mask, tolerance, threshold, or retry policy changed. New exact-source CI and
 the eventual full combined functional/strict-visual profile remain pending;
-Provider staging run `41706834463` has not been released green for adoption.
+Provider staging run `41706834463` is now released green for adoption; the
+coverage note below was appended after that release but initially stated the
+old pending status, which this handoff corrects.
 This is a coverage repair checkpoint, not whole-topic acceptance. The exact
 Provider source `4d4a278b1b086745b22aab05d3d960539ad02c97` was released green
 by Root during this continuation (canonical receipt SHA256
@@ -25961,3 +25963,32 @@ by Root during this continuation (canonical receipt SHA256
 pending-status phrase in the appended coverage record is superseded by the
 subsequent adoption record. Adoption is now proceeding through this same
 worktree after the coverage repair boundary.
+
+## 2026-11-03 — Adopt exact green Provider staging 4d4a278b
+
+Root released synchronized-green staging `4d4a278b1b086745b22aab05d3d960539ad02c97`,
+CI `41706834463` attempt 1, with Backend, Frontend Unit, E2E and Exhaustive
+green. The canonical receipt is copied byte-for-byte at
+`released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json`
+(SHA256 `c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7`).
+The supported reconcile completed, and an exact fetch confirmed the same SHA
+at `origin/staging`. The premerge TC head was
+`218b1dafe095486547e0fdb0a23bda6ef8053ec4`; merge commit is
+`d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5`, with no conflicts or sibling
+source copy. The Provider backend subtree matches the released source exactly
+(`42bf806179e6b0852b589e309628590dd0813cdf`). TC frontend source subtree is
+unchanged (`94b189aaf4289bd714fc1a86958814c9253f708b` before and after the
+merge). One incoming Provider router test file overlapped a formerly
+TC-owned path; that exact path is now excluded from TC writes and pinned in the
+complete 4d import manifest. All previous manifests and receipt history remain.
+
+After adoption, seven affected frontend unit files passed 71/71,
+`vue-tsc --noEmit` passed, and Playwright collection lists all seven ordinary
+acquisition cases. The final local frontend coverage run before adoption
+passed 154 files / 1,552 tests and 2,582/3,671 function coverage (70.3351%),
+above the unchanged 70% threshold. No new full browser profile, build,
+provider/issuer source call, target action or service operation occurred after
+the merge. Exact branch CI for the reconciled source and the Root-coordinated
+frontend artifact plus joint functional/strict-visual profile remain pending.
+The ordinary ticker journey is still in progress; AC1-AC9, official V25,
+genuine source proof, production acceptance and deployment remain open.

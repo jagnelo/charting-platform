@@ -1937,6 +1937,7 @@ excluded_paths:
   - backend/tests/unit/services/test_etf_holdings_visibility.py
   - backend/tests/unit/services/test_etf_holdings_edgar.py
   - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/routers/test_instruments_router.py
   - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
   - backend/tests/unit/services/test_etf_holdings_resolution.py
   - backend/tests/unit/routers/test_coverage_router.py
@@ -2079,9 +2080,10 @@ dependencies:
   - "feat/strategy-lab-v2: accepted Strategy SLICP is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve its inspector and Research-results navigation alongside TC-owned Python/DSL/Study/Strategy behavior and immutable Study/CodeVersion identity."
   - "feat/etf-holdings-constituents: accepted ETF FQ1-F8 checkpoint source abdca6e6ec2b383f678995029149bbb748596af4 was adopted from green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502; the accepted retained-IWM correction was adopted from 15b5c22f0e689c973ee82d152d4bbad6125bf993; fresh-AsyncSession eager reparse response serialization and deterministic same-date knowledge-time/id ordering were adopted from exact green staging 6d0a85da34ba276bca69c82a932a0602e783d7a1. Preserve ETF acquisition/admission, historical/PIT/current-unavailable distinctions, lineage, freshness, and unknown-state checks; no acquisition is replayed. Root-owned target correction and UI acceptance remain pending."
   - "The prior 6d0 adoption did not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
+  - "Root-released synchronized-green Provider staging 4d4a278b1b086745b22aab05d3d960539ad02c97 adds truthful ETV/Exchange Traded Vehicle reconciliation and selected instrument-type response. TC consumes the returned identity/type before issuer holdings eligibility; ETF and Index ETF remain eligible, ETN remains excluded. No Provider source implementation was copied into this branch."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/eb74b439319ad32006a3d68fc7b6e98959148af7.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml
 frontend_presentation_handoff:
   human_authorization: The goal was for, on merge/reconciliation between the all the ongoing features,
     the tc2000 one (the main, visual makeover feature) would take over, look & feel wise, and ensure the
@@ -3138,7 +3140,7 @@ approved_frontend_consumer_adaptations:
       confines executable drift to this one path. No backend route, provider policy, identity rule,
       acquisition action, or other dashboard component is changed.
   - path: frontend/src/views/ETFHoldingsView.vue
-    source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+    source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
     accepted_blob: b55828d962432fca3a391fce306df2b5862c3d8e
     delta: >-
       On deliberate canonical ETF or Exchange Traded Vehicle profile-card or picker
@@ -3157,7 +3159,7 @@ approved_frontend_consumer_adaptations:
       A confirmed ETV candidate uses its resolved canonical ID; unavailable issuer outcomes
       remain visible and do not claim a stored profile.
   - path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
-    source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+    source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
     accepted_blob: 9c899304ac51f9fa1de652c5d9a655800414ae4f
     delta: >-
       TC's ordinary selected-holding workflow starts the existing canonical picker immediately and
@@ -3169,7 +3171,7 @@ approved_frontend_consumer_adaptations:
       This is not presentation-only authority. It changes no ETF API, identity/admission policy,
       holdings data, or source behavior; every other frontend/src/components/etf path remains excluded.
   - path: frontend/src/lib/etfHoldingDrilldown.ts
-    source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+    source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
     accepted_blob: 5b40ea8f143c1477d3eece2bc44ef668368f1f19
     delta: >-
       TC-owned ordinary constituent flow validates reported equity eligibility and preserves the exact
@@ -3232,6 +3234,9 @@ approved_frozen_upstream_snapshots:
 - source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
   receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json
   receipt_sha256: bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb
+- source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json
+  receipt_sha256: c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -4099,24 +4104,42 @@ latest_staging_adoption:
     local_validation: Current ordinary ticker journey changes were separately tested; staging evidence was reused only for
       unchanged imported source bytes and did not qualify the TC consumer delta or full joint profile.
     checkpoint: Prior TCO and F8Y accepted checkpoints remained historical and bounded; the ordinary ticker-selection repair was active.
-  canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json
-  receipt_sha256: bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb
-  staging_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
-  staging_ci_run: 41653944273
+  prior_eb74_adoption:
+    canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json
+    receipt_sha256: bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb
+    staging_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+    staging_ci_run: 41653944273
+    staging_ci_attempt: 1
+    staging_ci_status: terminal success for Backend, Frontend, E2E and actual Exhaustive; expected Branch-declared skip.
+    premerge_feature_head: a33c848d6820d30f0a47a797f8760d15dbd73131
+    merge_base: f8323af179922193f4dcf3c9f0a5d9001282455f
+    merge_commit: c1f512659e79cf6d62173cd4e6bf5fe527c79dc6
+    merge_result: Exact released staging merged with no conflicts; no sibling branch or manual source copy.
+    imported_paths: 8
+    import_manifest: ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/eb74b439319ad32006a3d68fc7b6e98959148af7.yaml
+    import_manifest_sha256: e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f
+    receipt_reconciliation: Canonical receipt bytes copied and digest-pinned; historical manifest retained.
+    component_proof: TC frontend tree remained byte-identical to its premerge source; Provider producer code arrived through staging.
+    local_validation: Historical adoption checks only; no separate runtime profile was claimed.
+    checkpoint: Ordinary ticker journey remained in progress; AC1-AC9 and official REF-HELP-V25 remained open.
+  canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json
+  receipt_sha256: c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7
+  staging_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+  staging_ci_run: 41706834463
   staging_ci_attempt: 1
-  staging_ci_status: terminal success for all mandatory jobs including actual Exhaustive; Branch-declared expected skip.
-  premerge_feature_head: a33c848d6820d30f0a47a797f8760d15dbd73131
-  merge_base: f8323af179922193f4dcf3c9f0a5d9001282455f
-  merge_commit: c1f512659e79cf6d62173cd4e6bf5fe527c79dc6
-  merge_result: Exact released staging merged with no conflicts; second parent is the released eb74 source. No sibling branch merge or manual source copy.
-  imported_paths: 8
-  import_manifest: ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/eb74b439319ad32006a3d68fc7b6e98959148af7.yaml
-  import_manifest_sha256: e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f
-  receipt_reconciliation: Exact canonical receipt bytes copied and digest-pinned; prior snapshots and history retained.
-  component_proof: TC frontend tree is byte-identical to premerge source a33c848d6820d30f0a47a797f8760d15dbd73131. Provider backend implementation is imported only through accepted staging; no producer code was duplicated.
-  local_validation: Adoption-only scope/workstream/session/hash checks are required. No new product test or runtime result is claimed; exact feature CI and combined functional/strict-visual profile remain pending.
-  checkpoint: Ordinary ticker journey remains in progress. Controlled fixtures are software wiring evidence, not genuine source proof. Full AC1-AC9 and official REF-HELP-V25 remain open; Root owns the ETF PostgreSQL proof/artifact and later combined profile, acceptance, integration, promotion and deployment.
-  next_action: Complete adoption checks and publish this coherent branch context. Then wait for Root's frozen ETF backend artifact and joint-profile allocation; do not launch a fixture or make source requests here.
+  staging_ci_status: terminal success for Backend, Frontend Unit, E2E, and actual Exhaustive; Branch-declared expected skip.
+  premerge_feature_head: 218b1dafe095486547e0fdb0a23bda6ef8053ec4
+  merge_base: eb74b439319ad32006a3d68fc7b6e98959148af7
+  merge_commit: d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5
+  merge_result: Exact Root-released staging4d merged without conflicts into this same TC worktree; no sibling checkout or code copy.
+  imported_paths: 1 newly frozen Provider test path; prior exact imported path set retained.
+  import_manifest: ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml
+  import_manifest_sha256: e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057
+  receipt_reconciliation: Canonical receipt copied byte-for-byte and digest-verified; prior receipts/manifests remain historical.
+  component_proof: Provider changes were imported only through exact released staging. TC frontend/test production inputs are unchanged by 4d.
+  local_validation: After exact4d adoption, seven affected frontend unit files passed71/71, vue-tsc passed, Playwright collection listed all seven ordinary acquisition flows, TC scope self-test/full guard passed, and workstream validation passed. The full local frontend suite passed before adoption (154 files/1552 tests; function coverage70.3351%). No new application/browser runtime profile is claimed.
+  checkpoint: Ordinary ticker journey remains in progress and unaccepted. Controlled fixtures are not genuine source proof. AC1-AC9, official REF-HELP-V25, genuine source proof and deployment remain open.
+  next_action: Publish one coherent exact-source adoption and obtain its own required branch CI. After the clean source freeze, build one bounded source-specific frontend artifact; Root must verify component equivalence and the ETF backend artifact before releasing the single joint functional/strict-visual profile.
 
 active_implementation:
   id: ordinary-ticker-journey-repair-20261103
