@@ -19,7 +19,7 @@
   ],
   "active_checkpoint_id": "provider-generic-etv-taxonomy-reconciliation-20261103",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "Exact-source branch CI is pending coherent source publication; Root-owned combined consumer/browser and protected release gates remain pending. No provider or production operation occurred.",
+  "blocker": "The branch-test manifest ID mismatch caused Branch-declared to fail before tests on run 41691823546; corrected metadata requires a new exact-tip CI. Root owns CI review and downstream consumer/protected release gates.",
   "branch": "feat/market-data-provider-platform",
   "checkpoint_acceptance_decision": "No Root/human acceptance has been issued for this active taxonomy repair; implementation checkpoint remains in progress.",
   "checkpoint_acceptance_receipt": null,
@@ -168,6 +168,17 @@
       "isolated_postgresql": "1 passed; exact owned fixture removed and full inventory restored",
       "exact_source_ci": "pending coherent source publication",
       "acceptance": "not yet issued"
+    },
+    {
+      "checkpoint_id": "provider-generic-etv-taxonomy-reconciliation-20261103",
+      "event": "exact_ci_branch_declared_manifest_id_failure_and_metadata_repair",
+      "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
+      "run_id": 41691823546,
+      "backend": "success: 5676 unit-like + 617 integration passed, 3 configured skips, 84% coverage",
+      "frontend": "success: 1495 passed",
+      "branch_declared": "failed before tests: workflow CI coverage alias full-backend-suite was absent from manifest",
+      "correction": "restore full-backend-suite command ID and matching ci_covered_commands key; backend command unchanged",
+      "new_exact_tip_ci": "pending after metadata-only commit"
     }
   ],
   "checkpoint_status": "in_progress",
@@ -187,7 +198,7 @@
     "source_sha": "exact branch HEAD (see integration_capture; no self-referential SHA stored)",
     "status": "pending; Root observes the exact closing-tip CI; the prior caac run 41376711568 remains overall failed solely for the corrected records mismatch."
   },
-  "closing_tip_ci_status": "not dispatched; exact-source CI begins after the coherent source/workstream commit and is mandatory.",
+  "closing_tip_ci_status": "Current implementation run 41691823546 is not overall green due Branch-declared pretest manifest-ID mismatch; metadata-only correction restores the established ID. New exact-tip CI is required after this repair.",
   "corrected_source_exact_ci": {
     "run_id": 41376711568,
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
@@ -195,7 +206,9 @@
   },
   "current_checkpoint_local_profile": "Focused affected units passed 84/84; isolated PostgreSQL selected-acquire API/ORM case passed 1/1, exit 0, with no provider calls and exact owned-resource cleanup. Three earlier test-harness failures and one pre-test fixture-port setup failure are preserved; final corrected attempt passed. Complete backend/DDL exact-source CI and Root combined browser remain pending.",
   "current_exact_ci": {
-    "status": "pending exact source publication and hosted run; no current-source result is claimed."
+    "run_id": 41691823546,
+    "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
+    "status": "Backend passed (5676 unit-like + 617 integration, 3 configured skips, 84% coverage); Frontend Unit passed 1495/1495; Branch-declared job 126126311643 failed before tests because workflow expects full-backend-suite but manifest had complete-backend-coverage. E2E was in progress at last observation. The command-ID-only manifest repair is prepared for a new exact-tip CI."
   },
   "current_native_goal_created_at": 1793727442,
   "current_native_goal_token_budget": null,
@@ -359,7 +372,7 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "docker_integration",
-  "next_action": "Publish the coherent source/workstream checkpoint with integration_capture set to exact branch HEAD; Root owns exact closing-tip CI review and downstream combined consumer qualification, protected integration, and deployment.",
+  "next_action": "Validate and publish the one metadata-only full-backend-suite command-ID correction; Root observes exact-tip CI and downstream release gates.",
   "parent_branch": "staging",
   "plan_hash": "88e28bf1628313de9d0348b3f46374e82404504761cdef2830e5cdb3ea589671",
   "planning_required": false,
@@ -704,11 +717,11 @@
       "TAXONOMY-2",
       "TAXONOMY-3"
     ],
-    "current_blocker": "Exact-source branch CI and Root-owned combined consumer/browser and protected release gates remain pending; no provider transport or production action occurred.",
-    "current_phase": "local_docker_integration_passed_exact_source_CI_pending",
-    "next_action": "Publish one coherent source/workstream checkpoint now that canonical validation passed; exact-source CI remains mandatory and Root owns downstream consumer/release gates.",
+    "current_blocker": "The branch-test manifest ID mismatch caused Branch-declared to fail before tests on run 41691823546; corrected metadata requires a new exact-tip CI. Root owns CI review and downstream consumer/protected release gates.",
+    "current_phase": "manifest_id_corrected_exact_tip_CI_pending",
+    "next_action": "Validate and publish the one metadata-only full-backend-suite command-ID correction; Root observes exact-tip CI and downstream release gates.",
     "total": 4,
-    "updated_at": "2026-11-03T18:15:00+00:00"
+    "updated_at": "2026-11-03T18:42:00+00:00"
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
   "remote": "3efc7a7ba451479387b3e387d6684df05df22c48",
@@ -1031,7 +1044,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: take over the stale Provider writer claim after the local Codex owner route returned no-client-found. Continue the existing Provider integration checkpoint toward conditional acceptance; preserve all prior evidence, full roadmap, provider/quota/trial holds, retained datasets, and do not stop or clean services."
     }
   ],
-  "validated_implementation_source_sha": null,
+  "validated_implementation_source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform",
   "workstream_files": [

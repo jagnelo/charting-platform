@@ -33,7 +33,7 @@
       "scope_note": "One exact isolated capped PostgreSQL API/ORM case; it was executed locally with a private schema and no provider calls."
     },
     {
-      "id": "complete-backend-coverage",
+      "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
         6
@@ -42,7 +42,7 @@
     }
   ],
   "ci_covered_commands": {
-    "complete-backend-coverage": "Backend Tests"
+    "full-backend-suite": "Backend Tests"
   },
   "external_gates": [
     {

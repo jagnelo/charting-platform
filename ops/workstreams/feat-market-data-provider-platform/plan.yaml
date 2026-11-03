@@ -14144,6 +14144,11 @@ current_gate_checkpoint: >-
   implemented. The focused 84-unit suite and one isolated PostgreSQL regression passed. The PostgreSQL
   run preserved canonical identity/listing, returned Exchange Traded Vehicle, retained original provider
   observed/fetched times, recorded reconciliation separately, and made zero provider calls. Prior
-  PostgreSQL setup/assertion failures remain preserved as harness failures. Exact-source CI and Root's
-  combined consumer browser profile remain pending.
-validated_implementation_source_sha: pending_coherent_source_commit
+  PostgreSQL setup/assertion failures remain preserved as harness failures. Exact CI run 41691823546 on
+  144580d0cd1a72fb9ff2793f377deba2e87b43fd passed Backend (5676 unit-like and 617 integration passed,
+  three configured skips, 84% coverage) and Frontend (1495 passed). Branch-declared failed before tests
+  because CI expects command ID full-backend-suite while the manifest used complete-backend-coverage;
+  this metadata-only repair restores the established ID and coverage mapping. E2E was still running at
+  last observation. A new exact-tip CI remains required; Root owns downstream consumer and protected
+  release gates.
+validated_implementation_source_sha: 144580d0cd1a72fb9ff2793f377deba2e87b43fd
