@@ -35,7 +35,9 @@ beforeEach(() => {
 describe('explicit acquisition API contracts', () => {
   it('admits issuer holdings only for confirmed ETF vehicle types and keeps ETN distinct', () => {
     expect(isEligibleETFHoldingsInstrumentType('ETF')).toBe(true)
+    expect(isEligibleETFHoldingsInstrumentType('Index ETF')).toBe(true)
     expect(isEligibleETFHoldingsInstrumentType(' Exchange Traded Vehicle ')).toBe(true)
+    expect(isEligibleETFHoldingsInstrumentType('ETV')).toBe(false)
     expect(isEligibleETFHoldingsInstrumentType('ETN')).toBe(false)
     expect(isEligibleETFHoldingsInstrumentType('Stock')).toBe(false)
     expect(isEligibleETFHoldingsInstrumentType(null)).toBe(false)

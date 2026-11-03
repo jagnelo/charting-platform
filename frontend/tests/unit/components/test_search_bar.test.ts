@@ -188,6 +188,56 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ instrument_id: 43 })
   })
 
+  it('sends raw ETV in a dedicated fund search and allows a resolved provider ETV candidate to be selected', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        request_id: 'discover-etv', status: 'complete',
+        candidates: [{
+          symbol: 'EVOL', name: 'Example Exchange Traded Vehicle', exchange: 'XNYS',
+          type: 'ETV', provider: 'free-source', instrument_id: null,
+          identity_status: 'provider_candidate',
+        }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        request_id: 'resolve-etv', status: 'resolved',
+        instrument: {
+          instrument_id: 991, symbol: 'EVOL', identity_status: 'resolved',
+          instrument_type: 'Exchange Traded Vehicle',
+        },
+        source_outcomes: [],
+      })
+
+    const resultTypes = ['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle']
+    const wrapper = mountSearchBar({
+      props: { resultTypes, allowExpressions: false, allowSourceDiscovery: true },
+      global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    })
+    await wrapper.find('input').setValue('EVOL')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
+
+    expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({
+      query: 'EVOL', types: ['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'], limit: 10,
+    }))
+    expect(wrapper.text()).toContain('Use EVOL')
+    await wrapper.find('.search-source-candidate').trigger('click')
+    await flushPromises()
+
+    expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
+      symbol: 'EVOL', provider_candidate: { provider: 'free-source', symbol: 'EVOL', exchange: 'XNYS' },
+    }))
+    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('EVOL')
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({
+      type: 'ETV', instrument_id: 991, identity_status: 'resolved', explicitlyResolved: true,
+    })
+  })
+
   it('automatically checks an explicitly opened discovery-only query without local search', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.post).mockResolvedValueOnce({

@@ -3140,9 +3140,10 @@ approved_frontend_consumer_adaptations:
     delta: >-
       On deliberate canonical ETF or Exchange Traded Vehicle profile-card or picker
       selection, reuse the existing producer-qualified capability and acquire APIs to
-      load or refresh only that selected fund's holdings. Include the exact
-      "Exchange Traded Vehicle" result type in the existing picker scope; do not admit
-      ETNs or infer issuer eligibility from a ticker or stale local type. Keep
+      load or refresh only that selected fund's holdings. Include both the provider's
+      raw "ETV" discovery type and the persisted "Exchange Traded Vehicle" type in
+      the existing picker scope; preserve Index ETF eligibility and do not admit ETNs
+      or infer issuer eligibility from a ticker or stale local type. Keep
       mount/list selection and browsing interactions read-only.
     rationale: >-
       Root's 2026-11-03 ordinary-journey approval explicitly extends this exact imported

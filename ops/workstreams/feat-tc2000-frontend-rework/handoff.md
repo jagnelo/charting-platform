@@ -25818,3 +25818,19 @@ type/transform/generation scope, and correct the misleading browser case so it
 proves automatic visible bars without a second manual load click. The combined
 functional/strict-visual profile remains pending Root's allocation; all prior
 checkpoint history, nine roadmap criteria, references, and holds remain intact.
+
+## 2026-11-03 — Raw ETV discovery in the dedicated ETF picker
+
+Root review found that the ETF picker sent only the persisted long-form type,
+while Provider discovery filters the raw `ETV` candidate before returning it.
+The picker now sends both `ETV` and `Exchange Traded Vehicle`; the SearchBar
+regression verifies the exact request type list, accepts a raw `ETV` candidate,
+and emits it only after canonical identity resolution. The shared holdings-type
+guard also retains `Index ETF` and excludes both raw `ETV` as an unconfirmed
+canonical type and `ETN`. The existing source-pinned ETF consumer allowance was
+updated narrowly; confirmed-ID and unavailable-outcome behavior is unchanged.
+Focused tests passed 54/54 and `vue-tsc --noEmit` passed. Scope/workstream
+validation and the coherent source publication are pending. No app image,
+browser profile, external source request, or service operation ran. The exact
+Provider staging/adoption and Root's new artifact binding remain prerequisites
+for the final combined profile.

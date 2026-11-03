@@ -993,7 +993,7 @@ describe('ETFHoldingsView', () => {
     const picker = wrapper.findComponent({ name: 'SearchBar' })
     expect(picker.exists()).toBe(true)
     expect(picker.props('placeholder')).toBe('Search ETF instrument')
-    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund', 'Exchange Traded Vehicle'])
+    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'])
     expect(picker.props('allowExpressions')).toBe(false)
 
     await picker.vm.$emit('update:modelValue', 'QQQ')
@@ -1042,7 +1042,7 @@ describe('ETFHoldingsView', () => {
 
     const wrapper = mount(ETFHoldingsView)
     const picker = wrapper.findComponent({ name: 'SearchBar' })
-    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund', 'Exchange Traded Vehicle'])
+    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'])
     expect(picker.props('resultTypes')).not.toContain('ETN')
 
     await picker.vm.$emit('select', 'EVOL', {
