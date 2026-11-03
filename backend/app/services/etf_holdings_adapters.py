@@ -3654,7 +3654,12 @@ for _vaneck_symbol, _vaneck_product_slug in {
 
 
 def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
-    """Return provider-specific route metadata we can safely seed by ticker."""
+    """Return exact curated or currently audited metadata for one ETF symbol.
+
+    Current symbol audits are resolved directly to the same registered native
+    adapter identity; the function never scans adapters or treats a candidate
+    name match as source evidence.
+    """
 
     normalized_symbol = symbol.strip().upper()
     known_metadata = KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.get(normalized_symbol)
@@ -3672,7 +3677,37 @@ def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
                 "issuer_product_id": ishares_product_id,
             },
         }
-    return {}
+    # Resolve a no-profile selection from the existing exact symbol audit
+    # ledger. This lets audited current successor routes (for example BWET and
+    # BDRY) use the native adapter without adding a second per-symbol routing
+    # table. Product IDs and per-operation admission are still checked by the
+    # adapter and shared Provider bridge respectively.
+    from app.services.etf_holdings_capability import current_symbol_route_audit
+
+    audit = current_symbol_route_audit(normalized_symbol)
+    provider_identity = str(audit.provider_identity or "").strip().lower() if audit else ""
+    adapter = get_holdings_adapter(provider_identity) if provider_identity else None
+    if (
+        audit is None
+        or adapter is None
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != provider_identity
+        or not audit.evidence_refs
+    ):
+        return {}
+    return {
+        "issuer": None,
+        "provider_aliases": {
+            "holdings_adapter": str(getattr(adapter, "adapter_key", "")).strip().lower(),
+            "holdings_source_provider": provider_identity,
+            "holdings_route_evidence": {
+                "evidence_state": audit.evidence_state,
+                "investigated_at": audit.investigated_at.isoformat()
+                if audit.investigated_at
+                else None,
+                "evidence_refs": list(audit.evidence_refs),
+            },
+        },
+    }
 
 
 class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):

@@ -118,7 +118,7 @@ class ETFHoldingsBootstrapResult:
 
 @dataclass(slots=True)
 class ETFHoldingsAcquireResult:
-    profile: ETFProfile
+    profile: ETFProfile | None
     outcome: str
     refresh: bool
     refresh_attempted: bool
@@ -129,6 +129,8 @@ class ETFHoldingsAcquireResult:
     source_operation: str | None
     provider_request_log_ids: list[int]
     message: str | None = None
+    instrument_id: int | None = None
+    symbol: str | None = None
 
 
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
@@ -1491,6 +1493,7 @@ async def acquire_etf_holdings_profile(
     symbol: str,
     request_id: str,
     refresh: bool,
+    instrument_id: int | None = None,
 ) -> ETFHoldingsAcquireResult | None:
     """Acquire only the selected ETF's configured issuer route through Provider.
 
@@ -1503,12 +1506,12 @@ async def acquire_etf_holdings_profile(
 
     normalized_symbol = str(symbol or "").strip().upper()
     instrument = await _resolve_canonical_fund_instrument(db, normalized_symbol)
-    if instrument is None:
+    if instrument is None or (instrument_id is not None and instrument.id != instrument_id):
         return None
 
     route_metadata = known_etf_route_metadata(normalized_symbol)
     route_aliases = route_metadata.get("provider_aliases") if route_metadata else None
-    curated_adapter_key = (
+    reviewed_adapter_key = (
         str(route_aliases.get("holdings_adapter") or "").strip().lower()
         if isinstance(route_aliases, dict)
         else ""
@@ -1517,8 +1520,31 @@ async def acquire_etf_holdings_profile(
     profile_created = False
     curated_route_applied = False
     if profile is None:
-        if not refresh or not curated_adapter_key:
+        if not refresh:
             return None
+        if not reviewed_adapter_key:
+            # A deliberate user selection is still useful when this fund has
+            # no audited issuer route: return a typed unavailable result for
+            # the exact canonical instrument rather than a 404 or another
+            # fund's cached snapshot. Do not create a speculative profile.
+            return ETFHoldingsAcquireResult(
+                profile=None,
+                outcome="unavailable",
+                refresh=True,
+                refresh_attempted=False,
+                refresh_succeeded=False,
+                snapshot=None,
+                snapshot_id=None,
+                source_provider=None,
+                source_operation=None,
+                provider_request_log_ids=[],
+                message=(
+                    "No exact audited issuer route or fund-specific product identifier is "
+                    "available for this selection; no profile or source request was created."
+                ),
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+            )
         profile = await ensure_etf_profile(db, instrument)
         # The new row was created by foreign key only. Keep the already-loaded
         # canonical instrument attached so subsequent route metadata/probing
@@ -1563,14 +1589,16 @@ async def acquire_etf_holdings_profile(
 
     configured_adapter_key = str(profile.adapter_key or "").strip().lower()
     profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
-    reviewed_adapter_key = curated_adapter_key or profile_adapter_key
-    if not profile_created and curated_adapter_key:
+    if not profile_created and reviewed_adapter_key:
         curated_route_applied = _apply_known_route_metadata(profile)
         configured_adapter_key = str(profile.adapter_key or "").strip().lower()
+        profile_adapter_key = (
+            str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
+        )
     if (
         not reviewed_adapter_key
         or configured_adapter_key != reviewed_adapter_key
-        or (not curated_adapter_key and profile_adapter_key != configured_adapter_key)
+        or (profile_adapter_key and profile_adapter_key != configured_adapter_key)
     ):
         return ETFHoldingsAcquireResult(
             profile=profile,
@@ -1583,7 +1611,10 @@ async def acquire_etf_holdings_profile(
             source_provider=None,
             source_operation=None,
             provider_request_log_ids=[],
-            message="No committed issuer-only holdings route is configured; no request was made.",
+            message=(
+                "No exact current or curated issuer route matches this canonical ETF; "
+                "no source request was made."
+            ),
         )
     if curated_route_applied and not profile_created:
         # Explicit refresh may repair an older profile with current curated
@@ -1612,7 +1643,19 @@ async def acquire_etf_holdings_profile(
 
     source_provider = str(getattr(adapter, "source_provider", "")).strip().lower() or None
     operation = "fetch_etf_holdings_latest"
-    if getattr(adapter, "supports_issuer_only_acquire", False) is not True:
+    reviewed_source_provider = (
+        str(route_aliases.get("holdings_source_provider") or source_provider or "")
+        .strip()
+        .lower()
+        if isinstance(route_aliases, dict)
+        else source_provider or ""
+    )
+    if (
+        not source_provider
+        or not reviewed_source_provider
+        or source_provider != reviewed_source_provider
+        or _aliases(profile).get("holdings_source_provider") != reviewed_source_provider
+    ):
         return ETFHoldingsAcquireResult(
             profile=profile,
             outcome="held",
@@ -1624,7 +1667,10 @@ async def acquire_etf_holdings_profile(
             source_provider=source_provider,
             source_operation=operation,
             provider_request_log_ids=[],
-            message="The selected adapter is not proven issuer-only; no request was made.",
+            message=(
+                "The selected native adapter does not match the audited publisher identity; "
+                "no request was made."
+            ),
         )
 
     if source_provider == "vaneck" and not _first_alias(_string_aliases(profile), "product_slug"):
@@ -2456,7 +2502,22 @@ def _apply_known_route_metadata(profile: ETFProfile) -> bool:
         )
 
         explicit_adapter = str(seeded_aliases.get("holdings_adapter") or "").strip().lower()
-        if explicit_adapter and get_holdings_adapter(explicit_adapter) is not None:
+        explicit_adapter_impl = get_holdings_adapter(explicit_adapter) if explicit_adapter else None
+        if explicit_adapter_impl is not None:
+            aliases = _aliases(profile)
+            source_provider = str(
+                getattr(explicit_adapter_impl, "source_provider", "")
+            ).strip().lower()
+            if source_provider:
+                # The adapter registry is the native route's publisher
+                # identity. Persist it beside the curated adapter key so the
+                # shared Provider bridge can verify the exact same identity;
+                # this does not create or enable a Provider source/policy.
+                profile.provider_aliases = {
+                    **aliases,
+                    "holdings_source_provider": aliases.get("holdings_source_provider")
+                    or source_provider,
+                }
             profile.adapter_key = explicit_adapter
             profile.adapter_status = "candidate"
             profile.adapter_confidence = Decimal("0.9000")

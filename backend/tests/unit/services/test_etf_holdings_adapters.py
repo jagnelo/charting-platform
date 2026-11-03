@@ -25168,6 +25168,20 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
+    for symbol in ("BWET", "BDRY"):
+        metadata = known_etf_route_metadata(symbol)
+        assert metadata["provider_aliases"]["holdings_adapter"] == "amplify"
+        assert metadata["provider_aliases"]["holdings_source_provider"] == "amplify"
+        assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_state"] == (
+            "successor_issuer_route"
+        )
+        assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_refs"]
+    assert known_etf_route_metadata("IGV") == {}
+    ishares = get_holdings_adapter("ishares")
+    assert ishares is not None
+    igv_probe = ishares.probe(symbol="IGV", name="iShares Expanded Tech ETF", identifiers={})
+    assert igv_probe.status == "needs_issuer_route"
+    assert "issuer_product_id" in igv_probe.required_identifiers
     bflb = known_etf_route_metadata("BFLB")
     assert bflb == {
         "issuer": "BufferLABS",

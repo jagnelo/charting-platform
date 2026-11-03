@@ -13,6 +13,7 @@ from app.models.instrument_identity import InstrumentIdentifier, InstrumentIdent
 from app.services.etf_holdings import ensure_lightweight_etf_instrument
 from app.services.etf_holdings_refresh import (
     ETFHoldingsBootstrapResult,
+    ETFHoldingsRouteHeldError,
     _apply_known_route_metadata,
     _bootstrap_from_sec_filings,
     _issuer_product_identifier,
@@ -1115,7 +1116,11 @@ async def test_acquire_refresh_creates_only_profile_for_existing_canonical_fund(
     monkeypatch.setattr("app.services.etf_holdings_refresh._record_success", record_success)
 
     result = await acquire_etf_holdings_profile(
-        db, symbol="OIH", request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d", refresh=True
+        db,
+        symbol="OIH",
+        instrument_id=instrument.id,
+        request_id="7f8e2a8d-a1a1-44a3-a900-b08c7d297a3d",
+        refresh=True,
     )
 
     assert result is not None
@@ -1180,6 +1185,211 @@ async def test_acquire_rejects_unknown_fund_without_creating_profile(monkeypatch
     )
 
     assert result is None
+
+
+@pytest.mark.asyncio
+async def test_selected_acquire_returns_precise_unavailable_for_unmapped_canonical_etf(
+    monkeypatch,
+):
+    from app.schemas.etf_holdings import ETFProfileAcquireOut, ETFProfileAcquireRequest
+
+    instrument = _canonical_fund_instrument()
+    instrument.symbol = "IGV"
+
+    async def no_profile(_db, _instrument_id):
+        return None
+
+    async def profile_creation_must_not_run(*_args, **_kwargs):
+        raise AssertionError("an unaudited ticker must not create a guessed adapter profile")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument", no_profile
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.known_etf_route_metadata", lambda _symbol: {}
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile", profile_creation_must_not_run
+    )
+
+    result = await acquire_etf_holdings_profile(
+        FakeBootstrapDB(),
+        symbol="IGV",
+        instrument_id=instrument.id,
+        request_id="f30d76c2-f0da-4d90-b713-52c7d0e2f847",
+        refresh=True,
+    )
+
+    assert result is not None
+    assert result.outcome == "unavailable"
+    assert result.profile is None
+    assert result.instrument_id == instrument.id
+    assert result.symbol == "IGV"
+    assert result.refresh_attempted is False
+    assert result.provider_request_log_ids == []
+    assert "fund-specific product identifier" in result.message
+
+    request = ETFProfileAcquireRequest(
+        request_id="f30d76c2-f0da-4d90-b713-52c7d0e2f847",
+        instrument_id=instrument.id,
+        refresh=True,
+    )
+    response = ETFProfileAcquireOut(
+        request_id=request.request_id,
+        outcome=result.outcome,
+        instrument_id=result.instrument_id,
+        symbol=result.symbol,
+        refresh=request.refresh,
+        refresh_attempted=result.refresh_attempted,
+        refresh_succeeded=result.refresh_succeeded,
+        profile=None,
+        snapshot=None,
+        provider_request_log_ids=result.provider_request_log_ids,
+        message=result.message,
+    )
+    assert response.instrument_id == instrument.id
+    assert response.symbol == "IGV"
+    assert response.profile is None
+    assert response.outcome == "unavailable"
+
+
+@pytest.mark.asyncio
+async def test_selected_acquire_rejects_instrument_id_that_does_not_match_path_symbol(
+    monkeypatch,
+):
+    instrument = _canonical_fund_instrument()
+
+    async def profile_lookup_must_not_run(*_args, **_kwargs):
+        raise AssertionError("mismatched selected identity must stop before profile lookup")
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        profile_lookup_must_not_run,
+    )
+
+    result = await acquire_etf_holdings_profile(
+        FakeBootstrapDB(),
+        symbol=instrument.symbol,
+        instrument_id=instrument.id + 1,
+        request_id="f30d76c2-f0da-4d90-b713-52c7d0e2f847",
+        refresh=True,
+    )
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("symbol", ["BWET", "BDRY"])
+async def test_new_amplify_audit_profile_binds_native_route_then_holds_without_provider_source(
+    monkeypatch, symbol
+):
+    db = FakeBootstrapDB()
+    instrument = _canonical_fund_instrument()
+    instrument.symbol = symbol
+    instrument.name = f"{symbol} audited Amplify ETF"
+    profile = SimpleNamespace(
+        id=99,
+        instrument_id=instrument.id,
+        instrument=None,
+        adapter_key=None,
+        adapter_status="unresolved",
+        adapter_confidence=None,
+        provider_aliases={},
+        issuer=None,
+        sponsor=None,
+        fund_family=None,
+        product_url=None,
+        sec_cik=None,
+        sec_series_id=None,
+        sec_class_id=None,
+    )
+    profile_reads = 0
+
+    async def profile_for_instrument(_db, _instrument_id):
+        nonlocal profile_reads
+        profile_reads += 1
+        return None if profile_reads == 1 else profile
+
+    async def ensure_profile(_db, supplied_instrument):
+        assert supplied_instrument is instrument
+        return profile
+
+    async def latest_snapshot(_db, _instrument_id, **_kwargs):
+        return None
+
+    class FakeAmplifyAdapter:
+        adapter_key = "amplify"
+        source_provider = "amplify"
+        supports_issuer_only_acquire = True
+
+        def probe(self, **kwargs):
+            assert kwargs["symbol"] == symbol
+            return SimpleNamespace(status="ready", reason=None, confidence=0.9)
+
+    binder_calls = _install_explicit_etf_acquisition_binder(monkeypatch)
+
+    async def provider_bridge_held(_db, _profile, **_kwargs):
+        raise ETFHoldingsRouteHeldError(
+            "ETF publisher has no shared Provider source record"
+        )
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._resolve_canonical_fund_instrument",
+        lambda *_args: _async_value(instrument),
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_etf_profile_for_instrument",
+        profile_for_instrument,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.ensure_etf_profile", ensure_profile
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_latest_snapshot", latest_snapshot
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh.get_holdings_adapter",
+        lambda key: FakeAmplifyAdapter() if key == "amplify" else None,
+    )
+    monkeypatch.setattr(
+        "app.services.etf_holdings_refresh._refresh_adapter_route", provider_bridge_held
+    )
+
+    result = await acquire_etf_holdings_profile(
+        db,
+        symbol=symbol,
+        instrument_id=instrument.id,
+        request_id="f30d76c2-f0da-4d90-b713-52c7d0e2f847",
+        refresh=True,
+    )
+
+    assert result is not None
+    assert result.outcome == "held"
+    assert result.profile is profile
+    assert profile.instrument is instrument
+    assert profile.adapter_key == "amplify"
+    assert profile.provider_aliases["holdings_source_provider"] == "amplify"
+    assert result.refresh_attempted is True
+    assert result.refresh_succeeded is False
+    assert result.snapshot is None
+    assert result.provider_request_log_ids == []
+    assert "no shared Provider source record" in result.message
+    assert binder_calls == [
+        {
+            "request_id": "f30d76c2-f0da-4d90-b713-52c7d0e2f847",
+            "instrument_id": instrument.id,
+            "symbol": symbol,
+            "issuer_provider_name": "amplify",
+        }
+    ]
 
 
 @pytest.mark.asyncio
@@ -1282,6 +1492,7 @@ async def test_acquire_failure_or_cancellation_restores_provider_scope(monkeypat
         adapter_key="vaneck",
         provider_aliases={
             "holdings_adapter": "vaneck",
+            "holdings_source_provider": "vaneck",
             "product_slug": "oil-services-etf-oih",
         },
         issuer="VanEck",

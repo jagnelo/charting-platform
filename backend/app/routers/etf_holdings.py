@@ -556,23 +556,26 @@ async def acquire_holdings_profile(
         symbol=symbol,
         request_id=str(body.request_id),
         refresh=body.refresh,
+        instrument_id=body.instrument_id,
     )
     if result is None:
         raise HTTPException(status_code=404, detail="ETF holdings profile was not found")
     await db.commit()
-    profile = await profile_to_out(db, result.profile)
+    profile = await profile_to_out(db, result.profile) if result.profile is not None else None
     snapshot = result.snapshot
     if snapshot is None and result.snapshot_id is not None:
         snapshot = await get_snapshot_by_id(db, result.snapshot_id, include_holdings=True)
     return ETFProfileAcquireOut(
         request_id=body.request_id,
         outcome=result.outcome,
+        instrument_id=(result.instrument_id or (profile.instrument_id if profile else None)),
+        symbol=(result.symbol or (profile.symbol if profile else None)),
         refresh=body.refresh,
         refresh_attempted=result.refresh_attempted,
         refresh_succeeded=result.refresh_succeeded,
         profile=profile,
         snapshot=snapshot,
-        capability=profile.holdings_capability,
+        capability=profile.holdings_capability if profile else None,
         source_provider=result.source_provider,
         source_operation=result.source_operation,
         provider_request_log_ids=result.provider_request_log_ids,
