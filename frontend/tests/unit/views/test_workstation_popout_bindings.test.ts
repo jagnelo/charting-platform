@@ -1089,6 +1089,90 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('runs canonical search for a DOM input event when the route-hydrated ticker value is unchanged', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([{ symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 1 }])
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    expect((input.element as HTMLInputElement).value).toBe('SPY')
+    expect(input.attributes('aria-expanded')).toBe('false')
+
+    // The user can deliberately re-edit/paste the same ticker after route
+    // hydration. A ref watcher alone would not run because the value is equal.
+    await input.trigger('input')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'SPY', canonical_only: true }))
+    await vi.waitFor(() => expect(wrapper.findAll('[role="option"]').some(option => option.text().includes('SPY'))).toBe(true))
+    expect(input.attributes('aria-expanded')).toBe('true')
+    expect(apiPost).not.toHaveBeenCalled()
+    wrapper.unmount()
+  })
+
+  it('starts local search and discovery on a one-shot edit while the hydrated search is closed', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockImplementation(async (path, params) => {
+      if (path !== '/instruments/search') return []
+      if (params?.q === 'SPY') return [{ symbol: 'SPY', name: 'SPDR S&P 500 ETF Trust', exchange: 'ARCX', type: 'ETF', instrument_id: 1 }]
+      return []
+    })
+    apiPost.mockResolvedValue({ request_id: 'nvda-1', status: 'no_match', candidates: [], source_outcomes: [] })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    expect(input.attributes('aria-expanded')).toBe('false')
+    expect(apiPost).not.toHaveBeenCalled()
+
+    // Model a single paste/fill input event while the closed picker has a
+    // route-hydrated value. The DOM event must start the normal local-search
+    // then discovery debounce without requiring focus/open/second keystroke.
+    ;(input.element as HTMLInputElement).value = 'NVDA'
+    await input.trigger('input')
+
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true }))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NVDA' })))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker is available for “NVDA”'))
+    expect(apiPost).toHaveBeenCalledTimes(1)
+    expect(input.attributes('aria-expanded')).toBe('true')
+    wrapper.unmount()
+  })
+
+  it('starts the latest Workstation discovery while an older query is pending and ignores its stale candidate', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([])
+    let finishOldDiscovery!: (value: unknown) => void
+    const oldDiscovery = new Promise(resolve => { finishOldDiscovery = resolve })
+    apiPost
+      .mockReturnValueOnce(oldDiscovery as ReturnType<typeof apiPost>)
+      .mockResolvedValueOnce({ request_id: 'bw-2', status: 'no_match', candidates: [], source_outcomes: [] })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('TCNEW')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1))
+    await input.setValue('BWET')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
+    expect(apiPost).toHaveBeenNthCalledWith(2, '/instruments/discover', expect.objectContaining({ query: 'BWET' }))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker is available for “BWET”'))
+
+    finishOldDiscovery({
+      request_id: 'tc-1', status: 'complete',
+      candidates: [{ symbol: 'TCNEW', name: 'Stale candidate', exchange: 'TEST', type: 'Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+      source_outcomes: [],
+    })
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('Use TCNEW')
+    expect(wrapper.find('.workstation__source-option').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('renders an explicit no-result state without creating a selectable row', async () => {
     routeState.path = '/'
     routeState.params = {}

@@ -388,6 +388,7 @@ const workspaceOptionIndex = ref(0)
 const keyboardHelpOpen = ref(false)
 const recentSymbolsOpen = ref(false)
 let historyNavigationTarget: string | null = null
+let suppressSymbolDraftWatch: string | null = null
 const workspaceFileInput = ref<HTMLInputElement | null>(null)
 // Golden Layout virtual roots capture their tool object when created. Advance
 // this token only after an import/reset replaces the complete workspace object
@@ -504,6 +505,16 @@ function handleSymbolInput() {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   symbolSearchEnabled.value = true
+  const inputValue = symbolInput.value?.value ?? symbolDraft.value
+  if (symbolDraft.value !== inputValue) symbolDraft.value = inputValue
+  // Schedule from the actual DOM event as well as the ref watcher. This also
+  // handles a deliberate edit/paste of an already hydrated ticker, where the
+  // input event fires but Vue sees no ref-value change.
+  suppressSymbolDraftWatch = inputValue
+  scheduleSymbolSearch(inputValue)
+  queueMicrotask(() => {
+    if (suppressSymbolDraftWatch === inputValue) suppressSymbolDraftWatch = null
+  })
   if (symbolDraft.value.trim()) {
     searchLoading.value = true
     searchSettled.value = false
@@ -1463,6 +1474,7 @@ function scheduleSymbolSearch(value: string) {
   if (discoveryTimer) clearTimeout(discoveryTimer)
   const requestId = ++searchRequest
   sourceDiscoveryLoading.value = false
+  sourceResolving.value = false
   sourceDiscoverySettled.value = false
   sourceCandidates.value = []
   const query = value.trim()
@@ -1575,7 +1587,7 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
       sourceDiscoveryError.value = 'Ticker confirmation failed. No chart was opened.'
     }
   } finally {
-    sourceResolving.value = false
+    if (requestGeneration === searchRequest) sourceResolving.value = false
   }
 }
 
@@ -2733,7 +2745,13 @@ watch(activeSymbol, symbol => {
     workspaceStore.loadTechnical(symbol),
   ])
 })
-watch(symbolDraft, scheduleSymbolSearch)
+watch(symbolDraft, value => {
+  if (suppressSymbolDraftWatch === value) {
+    suppressSymbolDraftWatch = null
+    return
+  }
+  scheduleSymbolSearch(value)
+})
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
   if (timeframe === chartStore.timeframe) return
   void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)

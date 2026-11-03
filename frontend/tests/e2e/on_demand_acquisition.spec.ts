@@ -264,10 +264,15 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
   })
 
   const sourceActionCountBeforeChartMount = discoveryRequests.length + instrumentRequests.length + historyRequests.length
-  await page.goto('/legacy/chart')
+  await page.goto('/legacy/chart/SPY')
   expect(discoveryRequests.length + instrumentRequests.length + historyRequests.length).toBe(sourceActionCountBeforeChartMount)
   const search = page.getByPlaceholder('Symbol…')
   await expect(search).toBeVisible()
+  await expect(page.locator('.symbol-info .sym')).toHaveText('SPY')
+  await page.getByRole('button', { name: 'Single panel' }).click()
+  await expect(page.locator('.tf-select')).toBeVisible()
+  await page.locator('.tf-select').selectOption('M1')
+  await expect(page.locator('.tf-select')).toHaveValue('M1')
   expect(discoveryRequests).toHaveLength(0)
   expect(instrumentRequests).toHaveLength(0)
   expect(historyRequests).toHaveLength(0)
@@ -296,8 +301,6 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
   expect(discoveryResponse.status()).toBe(200)
   expect(await discoveryResponse.json()).toMatchObject({ status: 'complete', candidates: [{ symbol: 'TCNEW', identity_status: 'unresolved' }] })
   expect(discoveryRequests).toHaveLength(1)
-  expect(historyRequests).toHaveLength(0)
-  await page.locator('.tf-select').selectOption('M1')
   expect(historyRequests).toHaveLength(0)
   const automaticHistoryReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -894,7 +897,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     const symbol = body.symbol.trim().toUpperCase()
     const instrumentId = ids[symbol]
     expect(instrumentId, `identity fixture must use the local canonical ${symbol} ID`).toBeGreaterThan(0)
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId, 'Common Stock') })
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId, symbol === 'AMD' ? 'Common Stock' : 'ETF') })
   })
 
   await page.route('**/api/v1/instruments/discover**', async route => {
@@ -927,6 +930,18 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
       message: 'Deterministic test-fixture hold; the stored snapshot remains available.',
     } satisfies ETFProfileAcquireResponse
     await route.fulfill({ status: 200, json: response })
+  })
+
+  // The stored IWM snapshot is marked stale in this controlled fixture, so an
+  // explicit profile selection should confirm identity once and then attempt
+  // the governed refresh while retaining that snapshot.
+  await page.route('**/api/v1/etf-holdings/IWM/capability', async route => {
+    await route.fulfill({ status: 200, json: {
+      availability: 'unknown', source_tier: 'none', identity_verified: true,
+      usable_for_current_analysis: false, displayable_last_known: true,
+      consecutive_failures: 0, reason: 'Controlled fixture requires a governed refresh.',
+      symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+    } satisfies ETFHoldingsCapability })
   })
 
   await page.route('**/api/v1/coverage/instruments/AMD/ohlcv*', async route => {
@@ -976,6 +991,15 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/etf-holdings/IWM/holdings'
   })
+  const iwmIdentityResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
+  }, { timeout: 10_000 })
+  const firstIwmIssuerResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IWM/acquire'
+  }, { timeout: 10_000 })
   await page.locator('.profile-card').filter({ hasText: 'IWM' }).first().click()
   const originalPage = await (await holdingsReady).json() as ETFHoldingsPage
   const amdRow = originalPage.holdings.find(row => (row.constituent_symbol || row.reported_symbol) === 'AMD' && row.is_resolved)
@@ -996,16 +1020,13 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const originalRowCount = await rowLocator.count()
   expect(originalRowCount).toBeGreaterThan(0)
 
-  const iwmIdentityResponseReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
-  }, { timeout: 10_000 })
-  await page.getByTestId('etf-request-issuer').click()
+  // The first deliberate stale-profile selection above is itself the approved
+  // refresh intent; identity is confirmed once before its issuer request.
   const iwmIdentityResponse = await iwmIdentityResponseReady
   expect(iwmIdentityResponse.status()).toBe(200)
   expect(await iwmIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'IWM', identity_status: 'resolved' } })
-  await expect(page.getByRole('status').filter({ hasText: 'Issuer refresh did not complete.' })).toBeVisible()
+  expect((await firstIwmIssuerResponseReady).status()).toBe(200)
+  await expect(page.getByRole('status').filter({ hasText: 'The holdings update did not complete.' })).toBeVisible()
   expect(identityRequests).toHaveLength(1)
   expect(identityRequests[0]).toMatchObject({ symbol: 'IWM' })
   expect(issuerRequests).toHaveLength(1)
@@ -1014,6 +1035,16 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expect(await snapshotPanel.locator('.panel-title-row > .panel-meta').innerText()).toBe(originalEligibility)
   await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', String(knownAt))
   await expect(rowLocator).toHaveCount(originalRowCount)
+
+  const manualRetryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/IWM/acquire'
+  }, { timeout: 10_000 })
+  await page.getByTestId('etf-request-issuer').click()
+  expect((await manualRetryReady).status()).toBe(200)
+  expect(identityRequests).toHaveLength(1) // the already confirmed ID is reused on retry
+  expect(issuerRequests).toHaveLength(2)
+  expect(issuerRequests[1]).toMatchObject({ refresh: true, instrument_id: iwmInstrumentId })
 
   const initialChartCoverageReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -1083,6 +1114,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   const issuerRequests: IssuerRequest[] = []
   const historyRequests: HistoryRequestBody[] = []
   let amdInstrumentId = 0
+  let iwmInstrumentId = 0
   let acquiredCoverage: {
     status: 'partial'
     covered_start: string
@@ -1212,7 +1244,9 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     const body = route.request().postDataJSON() as InstrumentRequestBody
     identityRequests.push(body)
     const symbol = body.symbol.trim().toUpperCase()
-    const id = symbol === 'OIH' ? fixtureInstrumentId : symbol === 'AMD' ? amdInstrumentId : 0
+    const id = symbol === 'OIH' ? fixtureInstrumentId
+      : symbol === 'AMD' ? amdInstrumentId
+        : symbol === 'IWM' ? iwmInstrumentId : 0
     expect(id, `identity fixture must use the local canonical ${symbol} ID`).toBeGreaterThan(0)
     await route.fulfill({ status: 200, json: resolvedIdentity(body, id, symbol === 'AMD' ? 'Common Stock' : 'ETF') })
   })
@@ -1315,6 +1349,14 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     successfulHistoryResponseReceived = true
     await route.fulfill({ status: 200, json: response })
   })
+  await page.route('**/api/v1/etf-holdings/IWM/capability', async route => {
+    await route.fulfill({ status: 200, json: {
+      availability: 'current', source_tier: 'issuer_native', identity_verified: true,
+      usable_for_current_analysis: true, displayable_last_known: true,
+      consecutive_failures: 0, reason: 'Current controlled fixture cache.',
+      symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+    } satisfies ETFHoldingsCapability })
+  })
   await page.route('**/api/v1/ohlcv/local/AMD/M1*', async route => {
     if (!successfulHistoryResponseReceived) return route.continue()
     localReadbackCount += 1
@@ -1326,6 +1368,19 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   await expect(search).toBeVisible()
   expect(identityRequests).toHaveLength(0)
   expect(discoveryRequests).toHaveLength(0)
+  expect(issuerRequests).toHaveLength(0)
+
+  const iwmSearchReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET' && url.pathname === '/api/v1/instruments/search'
+      && url.searchParams.get('q')?.toUpperCase() === 'IWM'
+  })
+  await search.fill('IWM')
+  const iwmSearchResults = await (await iwmSearchReady).json() as Array<{ symbol: string; instrument_id?: number | null }>
+  iwmInstrumentId = Number(iwmSearchResults.find(result => result.symbol === 'IWM')?.instrument_id ?? 0)
+  expect(iwmInstrumentId, 'IWM identity uses its actual local canonical ID').toBeGreaterThan(0)
+  await search.fill('')
+  expect(identityRequests).toHaveLength(0)
   expect(issuerRequests).toHaveLength(0)
 
   // ETF search is intentionally scoped to ETF/Fund identities, so obtain the
@@ -1375,17 +1430,25 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
 
   const oihOption = page.getByRole('option', { name: /^OIH\b/ })
   await expect(oihOption).toBeVisible()
+  const oihIdentityReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST' && url.pathname.replace(/\/+$/, '') === '/api/v1/instruments/acquire'
+  }, { timeout: 10_000 })
   const firstUseIssuerReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'POST'
       && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
   }, { timeout: 10_000 })
   await oihOption.click()
+  const oihIdentityResponse = await oihIdentityReady
+  expect(oihIdentityResponse.status()).toBe(200)
+  expect(await oihIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'OIH', instrument_id: fixtureInstrumentId } })
   expect(fixtureProfile.instrument_id).toBe(fixtureInstrumentId)
   expect(fixtureSnapshot.etf_instrument_id).toBe(fixtureInstrumentId)
   expect(fixtureHolding.constituent_instrument_id).toBe(amdInstrumentId)
   expect(discoveryRequests).toHaveLength(0)
-  expect(identityRequests).toHaveLength(0)
+  expect(identityRequests).toHaveLength(1)
+  expect(identityRequests[0]).toMatchObject({ symbol: 'OIH' })
 
   const firstUseIssuerResponse = await firstUseIssuerReady
   expect(firstUseIssuerResponse.status()).toBe(200)
@@ -2106,29 +2169,30 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   const workstationSearch = page.getByRole('combobox', { name: 'Active symbol' })
   expect(sourceActionRequests).toHaveLength(0)
   const workstationSearchActionCount = sourceActionRequests.length
-  const workstationSearchResponse = waitForSearch('NVDA')
-  await workstationSearch.fill('NVDA')
+  const workstationSearchResponse = waitForSearch('AMD')
+  await workstationSearch.fill('AMD')
   expect((await workstationSearchResponse).ok()).toBe(true)
   const workstationResults = page.getByRole('listbox', { name: 'Symbol search results' })
-  await expect(workstationResults.getByRole('option', { name: /NVDA/ }).first()).toBeVisible()
+  await expect(workstationResults.getByRole('option', { name: /AMD/ }).first()).toBeVisible()
   expect(sourceActionRequests).toHaveLength(workstationSearchActionCount)
-  const workstationBarsResponse = waitForBars('NVDA')
-  await workstationResults.getByRole('option', { name: /NVDA/ }).first().click()
-  await expect(workstationSearch).toHaveValue('NVDA')
+  const workstationBarsResponse = waitForBars('AMD')
+  await workstationResults.getByRole('option', { name: /AMD/ }).first().click()
+  await expect(workstationSearch).toHaveValue('AMD')
   const workstationBars = await workstationBarsResponse
   expect(await workstationBars.json()).not.toHaveLength(0)
 
   await page.goto('/legacy/chart')
   const chartSearch = page.getByRole('combobox', { name: 'Symbol…' })
   const chartSearchActionCount = sourceActionRequests.length
-  const chartSearchResponse = waitForSearch('AMD')
-  await chartSearch.fill('AMD')
+  await chartSearch.fill('')
+  const chartSearchResponse = waitForSearch('NVDA')
+  await chartSearch.fill('NVDA')
   expect((await chartSearchResponse).ok()).toBe(true)
   const chartResults = page.getByRole('listbox', { name: 'Symbol search results' })
-  await expect(chartResults.getByRole('option', { name: /AMD/ }).first()).toBeVisible()
+  await expect(chartResults.getByRole('option', { name: /NVDA/ }).first()).toBeVisible()
   expect(sourceActionRequests).toHaveLength(chartSearchActionCount)
-  const chartBarsResponse = waitForBars('AMD')
-  await chartResults.getByRole('option', { name: /AMD/ }).first().click()
+  const chartBarsResponse = waitForBars('NVDA')
+  await chartResults.getByRole('option', { name: /NVDA/ }).first().click()
   const chartBars = await chartBarsResponse
   expect(await chartBars.json()).not.toHaveLength(0)
 

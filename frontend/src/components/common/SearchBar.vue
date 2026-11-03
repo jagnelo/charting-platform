@@ -255,6 +255,11 @@ async function onInput() {
   if (debounceTimer) clearTimeout(debounceTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
   discoveryScheduled.value = false
+  // A superseded lookup may still be awaiting its response. Let the newest
+  // input start its own bounded lookup; generation checks keep the old result
+  // from updating this query.
+  discoveryLoading.value = false
+  resolvingCandidate.value = false
   if (props.readonly) { results.value = []; return }
   if (query.value.length < 1) { results.value = []; return }
   // Don't hit search API for expressions
@@ -374,7 +379,7 @@ async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
       discoveryError.value = 'Ticker identity verification failed. No chart was opened.'
     }
   } finally {
-    resolvingCandidate.value = false
+    if (generation === searchGeneration) resolvingCandidate.value = false
   }
 }
 

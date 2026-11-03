@@ -147,6 +147,74 @@ describe('SearchBar', () => {
     expect(wrapper.text()).not.toContain('Apple Inc.')
   })
 
+  it('keeps Index ETF eligible while excluding ETN from a dedicated fund search', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'EVOL', name: 'Example vehicle', exchange: 'XNYS', type: 'ETV' },
+      { symbol: 'INDEX', name: 'Broad market index fund', exchange: 'XNYS', type: 'Index ETF' },
+      { symbol: 'NOTE', name: 'Example exchange traded note', exchange: 'XNYS', type: 'ETN' },
+    ])
+    const wrapper = mountSearchBar({
+      props: { resultTypes: ['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'], allowExpressions: false },
+      global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    })
+
+    await wrapper.find('input').setValue('EVOL')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await nextTick()
+
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', {
+      q: 'EVOL', canonical_only: true, types: 'ETF,Fund,ETV,Exchange Traded Vehicle',
+    })
+    expect(wrapper.text()).toContain('Example vehicle')
+    expect(wrapper.text()).toContain('Broad market index fund')
+    expect(wrapper.text()).not.toContain('Example exchange traded note')
+  })
+
+  it('starts discovery for a new query while an older discovery is pending and ignores the stale candidate', async () => {
+    vi.stubGlobal('crypto', { randomUUID: vi.fn()
+      .mockReturnValueOnce('11111111-1111-4111-8111-111111111111')
+      .mockReturnValueOnce('22222222-2222-4222-8222-222222222222') })
+    vi.mocked(api.get).mockResolvedValue([])
+    let finishOldDiscovery!: (value: unknown) => void
+    const oldDiscovery = new Promise(resolve => { finishOldDiscovery = resolve })
+    vi.mocked(api.post)
+      .mockReturnValueOnce(oldDiscovery as ReturnType<typeof api.post>)
+      .mockResolvedValueOnce({ request_id: 'new-query', status: 'no_match', candidates: [], source_outcomes: [] })
+
+    const wrapper = mountSearchBar({
+      props: { allowSourceDiscovery: true },
+      global: { stubs: { RouterLink: { template: '<a><slot /></a>' } } },
+    })
+    const input = wrapper.find('input')
+    await input.setValue('TCNEW')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(1)
+
+    await input.setValue('BWET')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(api.post).toHaveBeenLastCalledWith('/instruments/discover', expect.objectContaining({ query: 'BWET' }))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker listing was found.'))
+    finishOldDiscovery({
+      request_id: 'old-query', status: 'complete',
+      candidates: [{ symbol: 'TCNEW', name: 'Stale candidate', exchange: 'TEST', type: 'Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+      source_outcomes: [],
+    })
+    await flushPromises()
+    await nextTick()
+    expect(wrapper.text()).not.toContain('Use TCNEW')
+    expect(wrapper.find('.search-source-candidate').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('automatically discovers an unknown local ticker and resolves a candidate before emitting its canonical ID', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])
@@ -194,11 +262,18 @@ describe('SearchBar', () => {
     vi.mocked(api.post)
       .mockResolvedValueOnce({
         request_id: 'discover-etv', status: 'complete',
-        candidates: [{
-          symbol: 'EVOL', name: 'Example Exchange Traded Vehicle', exchange: 'XNYS',
-          type: 'ETV', provider: 'free-source', instrument_id: null,
-          identity_status: 'provider_candidate',
-        }],
+        candidates: [
+          {
+            symbol: 'EVOL', name: 'Example Exchange Traded Vehicle', exchange: 'XNYS',
+            type: 'ETV', provider: 'free-source', instrument_id: null,
+            identity_status: 'provider_candidate',
+          },
+          {
+            symbol: 'NOTE', name: 'Example exchange traded note', exchange: 'XNYS',
+            type: 'ETN', provider: 'free-source', instrument_id: null,
+            identity_status: 'provider_candidate',
+          },
+        ],
         source_outcomes: [],
       })
       .mockResolvedValueOnce({
@@ -218,6 +293,9 @@ describe('SearchBar', () => {
     await wrapper.find('input').setValue('EVOL')
     vi.advanceTimersByTime(260)
     await flushPromises()
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', {
+      q: 'EVOL', canonical_only: true, types: 'ETF,Fund,ETV,Exchange Traded Vehicle',
+    })
     vi.advanceTimersByTime(300)
     await flushPromises()
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
@@ -226,6 +304,7 @@ describe('SearchBar', () => {
       query: 'EVOL', types: ['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'], limit: 10,
     }))
     expect(wrapper.text()).toContain('Use EVOL')
+    expect(wrapper.text()).not.toContain('Use NOTE')
     await wrapper.find('.search-source-candidate').trigger('click')
     await flushPromises()
 

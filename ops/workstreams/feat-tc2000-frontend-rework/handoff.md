@@ -25834,3 +25834,29 @@ validation and the coherent source publication are pending. No app image,
 browser profile, external source request, or service operation ran. The exact
 Provider staging/adoption and Root's new artifact binding remain prerequisites
 for the final combined profile.
+
+## 2026-11-03 — One-shot Workstation search lifecycle repair
+
+Root's exact CI41691585218 report is preserved at its tested predecessor
+5ad7fb9c5bd37d94e12bb372aeaa08795bddb4de (193 passed, 110 configured skips,
+6 failed). Its XHB, BWET and NVDA traces show a one-shot input while the search
+picker was closed, no matching `/instruments/search` request, and the UI stuck
+on its searching state. Workstation now schedules the existing local-search /
+debounced-discovery flow directly from the DOM input event and suppresses only
+the duplicate ref-watcher scheduling for that same edit; query generations
+still fence stale results. SearchBar also clears stale in-flight presentation
+flags for a newer query without allowing an older completion to overwrite it.
+
+The E2E regressions retain direct single-fill paths for BWET after TCNEW and
+the seeded real-API Workstation selection; neither clears the input first.
+The IWM held-refresh case observes the first selected-profile refresh once,
+then separately verifies that a manual retry reuses the confirmed instrument
+ID. The Workstation unit regression reproduces a closed, route-hydrated search,
+dispatches one native input event, and verifies local lookup, exactly one
+discovery request, and terminal no-match. The related Workstation/SearchBar/
+ETF/acquisition unit suites pass 122/122, `vue-tsc --noEmit` and Vite build
+pass, Playwright collects all seven acquisition cases, and the exact TC scope,
+workstream and diff checks pass. No browser fixture was run; the native browser
+single-fill proof, exact candidate CI, and corrected-Provider combined profile
+remain pending. Existing CI failures and F8y/V25/full-roadmap evidence remain
+unchanged.
