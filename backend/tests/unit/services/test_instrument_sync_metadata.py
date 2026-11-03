@@ -48,7 +48,9 @@ def test_listing_evidence_does_not_create_empty_lifecycle_claims():
     [
         ({"instrument_type": "ETF"}, "EQUITY", "ETF"),
         ({"instrument_type": "Common Stock"}, "ETF", "EQUITY"),
-        ({"instrument_type": "unrecognized provider label"}, "EQUITY", "EQUITY"),
+        ({"instrument_type": "unrecognized provider label"}, "EQUITY", "UNCLASSIFIED"),
+        ({"instrument_type": "ETV"}, "EQUITY", "ETV"),
+        ({"instrument_type": "ETN"}, "EQUITY", "ETN"),
         ({}, "CRYPTOCURRENCY", "CRYPTOCURRENCY"),
     ],
 )

@@ -11,6 +11,7 @@ import pytest
 import pytest_asyncio
 from sqlalchemy import Table, select, text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.orm import selectinload
 
 import app.models  # noqa: F401 - register mapped tables and foreign-key targets
 from app.config import settings
@@ -473,7 +474,18 @@ async def test_explicit_acquire_commits_authoritative_identity_for_provisional_o
     assert response.instrument.identity_status == "resolved"
     assert response.instrument.domain_key == "composite-figi:BBG000D02J82"
     async with session_factory() as verify_db:
-        persisted = await verify_db.get(Instrument, 1)
+        persisted = (
+            await verify_db.execute(
+                select(Instrument)
+                .options(
+                    selectinload(Instrument.instrument_type).selectinload(
+                        InstrumentType.asset_class
+                    ),
+                    selectinload(Instrument.listings),
+                )
+                .where(Instrument.id == 1)
+            )
+        ).scalar_one_or_none()
         assert persisted is not None
         assert persisted.identity_status == "resolved"
         assert persisted.domain_key == "composite-figi:BBG000D02J82"
@@ -490,3 +502,140 @@ async def test_explicit_acquire_commits_authoritative_identity_for_provisional_o
             )
         ).scalar_one()
         assert identifier.is_primary is True
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_cached_qualified_acquire_reconciles_retained_etv_type_without_transport(
+    on_demand_history_database, monkeypatch
+):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+    from app.models.listing import InstrumentListing
+    from app.providers.base import InstrumentProfile, ListingRecord
+    from app.routers import instruments as instruments_router
+    from app.services import instrument_mastering
+    from app.services.instrument_mastering import store_profile_snapshot
+
+    session_factory = on_demand_history_database
+    observed_at = datetime(2026, 11, 2, 14, 0, tzinfo=UTC)
+    fetched_at = datetime(2026, 11, 2, 13, 59, tzinfo=UTC)
+    async with session_factory.begin() as setup_db:
+        equity = AssetClass(name="Equity", description="fixture")
+        setup_db.add(equity)
+        await setup_db.flush()
+        stock_type = InstrumentType(asset_class_id=equity.id, name="Stock", description="fixture")
+        setup_db.add_all(
+            [
+                stock_type,
+                Exchange(id=1, mic="ARCX", name="NYSE Arca", country_code="US"),
+                DataSource(
+                    id=1,
+                    name="massive",
+                    is_active=True,
+                    config={},
+                    supported_capabilities=["instrument_metadata"],
+                ),
+            ]
+        )
+        await setup_db.flush()
+        instrument = Instrument(
+            id=1,
+            instrument_type_id=stock_type.id,
+            symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            identity_status="resolved",
+            domain_key="figi:BBG000GENV001",
+            primary_identifier_type="figi",
+            primary_identifier_value="BBG000GENV001",
+            is_active=True,
+            is_synthetic=False,
+        )
+        setup_db.add(instrument)
+        await setup_db.flush()
+        setup_db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                exchange_id=1,
+                ticker="GENV",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                source="massive",
+            )
+        )
+
+    async with session_factory() as setup_db:
+        instrument = await setup_db.get(Instrument, 1)
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol="GENV",
+            canonical_symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            quote_type="ETV",
+            exchange="ARCX",
+            listings=[ListingRecord(provider_symbol="GENV", exchange_code="ARCX")],
+            raw_payload={"ticker": "GENV", "type": "ETV"},
+        )
+        retained = await store_profile_snapshot(
+            setup_db,
+            instrument,
+            profile,
+            observed_at=observed_at,
+            fetched_at=fetched_at,
+        )
+        await setup_db.commit()
+
+    async def forbidden_provider_call(*_args, **_kwargs):
+        raise AssertionError("cached qualified acquire must not invoke provider search/profile")
+
+    async def no_provider_resolution(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(
+        instruments_router, "search_provider_instruments_async", forbidden_provider_call
+    )
+    monkeypatch.setattr(instruments_router, "get_provider_profile_async", forbidden_provider_call)
+    monkeypatch.setattr(instrument_mastering, "resolve_provider_chain", no_provider_resolution)
+
+    async with session_factory() as request_db:
+        response = await instruments_router.acquire_instrument(
+            InstrumentAcquireRequest(symbol="GENV", request_id="pg-cached-etv-reconcile"),
+            request_db,
+            current_user=None,
+        )
+
+    assert response.status == "resolved"
+    assert response.instrument is not None
+    assert response.instrument.instrument_id == 1
+    assert response.instrument.instrument_type == "Exchange Traded Vehicle"
+    assert response.instrument.primary_listing_mic == "ARCX"
+    async with session_factory() as verify_db:
+        persisted = await verify_db.get(Instrument, 1)
+        assert persisted is not None
+        persisted_type = await verify_db.get(InstrumentType, persisted.instrument_type_id)
+        assert persisted_type is not None
+        assert persisted_type.name == "Exchange Traded Vehicle"
+        asset_class = await verify_db.get(AssetClass, persisted_type.asset_class_id)
+        assert asset_class is not None
+        assert asset_class.name == "Exchange Traded Product"
+        assert persisted.symbol == "GENV"
+        assert persisted.domain_key == "figi:BBG000GENV001"
+        assert persisted.primary_identifier_type == "figi"
+        assert persisted.primary_identifier_value == "BBG000GENV001"
+        persisted_listings = (
+            await verify_db.scalars(
+                select(InstrumentListing).where(InstrumentListing.instrument_id == persisted.id)
+            )
+        ).all()
+        assert len(persisted_listings) == 1
+        assert persisted_listings[0].ticker == "GENV"
+        assert persisted_listings[0].source == "massive"
+        provenance = persisted.field_provenance["instrument_type"]
+        assert provenance["source"] == "massive"
+        assert provenance["fetched_at"] == fetched_at.isoformat()
+        assert provenance["observed_at"] == observed_at.isoformat()
+        assert provenance["reconciled_at"]
+        assert retained.payload["quote_type"] == "ETV"
