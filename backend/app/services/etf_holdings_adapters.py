@@ -28,10 +28,13 @@ import requests as _requests
 
 from app.config import settings
 from app.services.etf_holdings_provider_bridge import (
+    ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION,
     VANECK_OIH_CANONICAL_DOWNLOAD_URL,
     VANECK_OIH_INITIAL_REQUEST_URL,
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
+    _canonical_request_url,
+    etf_holdings_request_is_bound,
     require_bound_etf_holdings_adapter,
 )
 from app.services.etf_issuer_catalog import (
@@ -147,6 +150,111 @@ class HoldingsFetchResult:
     source_url: str | None = None
     source_identifier: str | None = None
     legal_metadata: dict[str, Any] | None = None
+
+
+def _native_holdings_parse_witness(
+    adapter: Any,
+    response: Any,
+    *,
+    parser_input: bytes | str,
+    normalized_payload: Any,
+    parser_name: str,
+    parsed_json: Any | None = None,
+) -> dict[str, Any] | None:
+    """Bind the native adapter's parser input to its captured Provider body."""
+
+    if not etf_holdings_request_is_bound():
+        return None
+    binding = require_bound_etf_holdings_adapter(adapter)
+    if binding.native_initial_qualification_job_id is None:
+        return None
+    if response is None or not isinstance(getattr(response, "extensions", None), dict):
+        raise ETFHoldingsRouteHeldError(
+            "Native qualification adapter did not receive a captured HTTP response"
+        )
+    capture = response.extensions.get(ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION)
+    if not isinstance(capture, dict) or capture not in binding.response_body_witnesses:
+        raise ETFHoldingsRouteHeldError(
+            "Native qualification parser input has no admitted Provider body capture"
+        )
+    body = bytes(getattr(response, "content", b"") or b"")
+    input_bytes = parser_input if isinstance(parser_input, bytes) else parser_input.encode("utf-8")
+    response_url = str(getattr(response, "url", "") or "")
+    if (
+        input_bytes != body
+        or capture.get("response_body_sha256") != hashlib.sha256(body).hexdigest()
+        or capture.get("response_body_bytes") != len(body)
+        or capture.get("request_log_id") not in binding.request_urls_by_log_id
+        or _canonical_request_url(response_url)
+        != _canonical_request_url(binding.request_urls_by_log_id[capture["request_log_id"]])
+        or capture.get("provider") != str(getattr(adapter, "source_provider", "")).strip().lower()
+        or capture.get("operation") != binding.operation
+        or capture.get("profile_id") != binding.profile_id
+        or capture.get("instrument_id") != binding.instrument_id
+        or capture.get("provider_symbol") != binding.provider_symbol.strip().upper()
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Native holdings parser input does not match its captured Provider response body"
+        )
+    if parsed_json is not None:
+        try:
+            decoded_body = json.loads(body)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ETFHoldingsRouteHeldError(
+                "Native JSON parser input is not the captured response body"
+            ) from exc
+        if decoded_body != parsed_json:
+            raise ETFHoldingsRouteHeldError(
+                "Native JSON parser output differs from the captured response body"
+            )
+    payload_text = json.dumps(
+        normalized_payload, sort_keys=True, separators=(",", ":"), default=str
+    )
+    return {
+        "provider_capture": dict(capture),
+        "parser": parser_name,
+        "parser_input_sha256": hashlib.sha256(input_bytes).hexdigest(),
+        "parser_input_bytes": len(input_bytes),
+        "normalized_payload_sha256": hashlib.sha256(payload_text.encode("utf-8")).hexdigest(),
+        "normalized_payload_kind": "json" if isinstance(normalized_payload, dict) else "text",
+    }
+
+
+def _native_holdings_parse_witness_from_capture(
+    adapter: Any,
+    capture: Any,
+    *,
+    parser_input: bytes | str,
+    normalized_payload: Any,
+    parser_name: str,
+) -> dict[str, Any] | None:
+    """Bind a second format-specific parse of the already checked raw text."""
+
+    if not etf_holdings_request_is_bound():
+        return None
+    binding = require_bound_etf_holdings_adapter(adapter)
+    if binding.native_initial_qualification_job_id is None:
+        return None
+    if not isinstance(capture, dict) or capture not in binding.response_body_witnesses:
+        raise ETFHoldingsRouteHeldError("Native parser has no admitted response-body witness")
+    input_bytes = parser_input if isinstance(parser_input, bytes) else parser_input.encode("utf-8")
+    if hashlib.sha256(input_bytes).hexdigest() != capture.get("response_body_sha256") or len(
+        input_bytes
+    ) != capture.get("response_body_bytes"):
+        raise ETFHoldingsRouteHeldError(
+            "Native format-specific parser input differs from the captured response body"
+        )
+    payload_text = json.dumps(
+        normalized_payload, sort_keys=True, separators=(",", ":"), default=str
+    )
+    return {
+        "provider_capture": dict(capture),
+        "parser": parser_name,
+        "parser_input_sha256": hashlib.sha256(input_bytes).hexdigest(),
+        "parser_input_bytes": len(input_bytes),
+        "normalized_payload_sha256": hashlib.sha256(payload_text.encode("utf-8")).hexdigest(),
+        "normalized_payload_kind": "json" if isinstance(normalized_payload, dict) else "text",
+    }
 
 
 class ETFHoldingsAdapter(Protocol):
@@ -2545,6 +2653,7 @@ class PublicCsvHoldingsAdapter:
     ) -> HoldingsFetchResult:
         if not source_url:
             raise ValueError(f"{self.adapter_key} needs a configured source_url for {symbol}.")
+        response = None
         if source_url.lower().startswith("data:"):
             content_type, raw_content, response_text = _parse_data_url(source_url)
         else:
@@ -2606,31 +2715,46 @@ class PublicCsvHoldingsAdapter:
             raw_text = response_text
             if not rows and self.adapter_key == "ishares":
                 rows = _parse_ishares_inline_top_holdings(response_text)
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=(
+                raw_content if source_format in {"zip", "xlsx", "xls"} else response_text
+            ),
+            normalized_payload=raw_json if raw_json is not None else raw_text,
+            parser_name=f"{self.adapter_key}:{source_format}:v1",
+        )
+        metadata = {
+            "source_access": "configured_public_csv_url",
+            "adapter_key": self.adapter_key,
+            "source_format": source_format,
+            **(
+                {
+                    key: value
+                    for key, value in (raw_json or {}).items()
+                    if key
+                    in {
+                        "selected_archive_file",
+                        "selected_archive_file_format",
+                        "archive_files",
+                    }
+                }
+                if source_format == "zip"
+                else {}
+            ),
+            **({"native_holdings_response_witness": native_witness} if native_witness else {}),
+        }
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_text,
             raw_json=raw_json,
-            source_url=source_url,
+            source_url=(
+                str(response.url)
+                if native_witness is not None and response is not None
+                else source_url
+            ),
             source_identifier=issuer_product_id,
-            legal_metadata={
-                "source_access": "configured_public_csv_url",
-                "adapter_key": self.adapter_key,
-                "source_format": source_format,
-                **(
-                    {
-                        key: value
-                        for key, value in (raw_json or {}).items()
-                        if key
-                        in {
-                            "selected_archive_file",
-                            "selected_archive_file_format",
-                            "archive_files",
-                        }
-                    }
-                    if source_format == "zip"
-                    else {}
-                ),
-            },
+            legal_metadata=metadata,
         )
 
     async def fetch_for_date(
@@ -3672,11 +3796,14 @@ def known_etf_route_metadata(
     canonical_fund_name: str | None = None,
     allow_catalog_route: bool = False,
 ) -> dict[str, Any]:
-    """Return exact curated or currently audited metadata for one ETF symbol.
+    """Return exact curated/current routes or an explicit selected-fund hint.
 
     Current symbol audits are resolved directly to the same registered native
     adapter identity; the function never scans adapters or treats a candidate
-    name match as source evidence.
+    name match as source evidence. Only the deliberate selected-fund acquire
+    path may enable core-publisher nomination from canonical issuer/name hints;
+    each selected native adapter must independently prove the fund before data
+    can be accepted.
     """
 
     normalized_symbol = symbol.strip().upper()
@@ -3704,44 +3831,12 @@ def known_etf_route_metadata(
 
     audit = current_symbol_route_audit(normalized_symbol)
     if audit is None:
-        # Catalog discovery is available only to explicit selected-fund
-        # acquisition. Canonical issuer identity or a canonical iShares name
-        # may nominate the exact catalog, but neither establishes product
-        # identity; the official catalog must match ticker and full fund name.
         if not allow_catalog_route:
             return {}
-        issuer_key = str(getattr(canonical_issuer, "domain_key", "") or "").strip().casefold()
-        issuer_provenance = getattr(canonical_issuer, "provenance", None)
-        trusted_issuer_hint = (
-            issuer_key in {"ishares", "blackrock"}
-            and getattr(canonical_issuer, "status", None) == "active"
-            and isinstance(issuer_provenance, dict)
-            and bool(issuer_provenance)
+        return _selected_fund_native_adapter_hint(
+            canonical_issuer=canonical_issuer,
+            canonical_fund_name=canonical_fund_name,
         )
-        issuer_key_conflicts_with_catalog = bool(
-            issuer_key and issuer_key not in {"ishares", "blackrock"}
-        )
-        canonical_name_hint = (
-            not issuer_key_conflicts_with_catalog
-            and is_ishares_canonical_name_hint(canonical_fund_name)
-        )
-        if trusted_issuer_hint or canonical_name_hint:
-            adapter = get_holdings_adapter("ishares")
-            if adapter is not None and str(adapter.source_provider).strip().lower() == "ishares":
-                return {
-                    "issuer": "iShares" if trusted_issuer_hint else None,
-                    "provider_aliases": {
-                        "holdings_adapter": "ishares",
-                        "holdings_source_provider": "ishares",
-                        "issuer_product_catalog_key": ISHARES_US_CATALOG_KEY,
-                        "issuer_catalog_discovery_hint": (
-                            "trusted_canonical_issuer"
-                            if trusted_issuer_hint
-                            else "canonical_iShares_fund_name"
-                        ),
-                    },
-                }
-        return {}
 
     provider_identity = str(audit.provider_identity or "").strip().lower() if audit else ""
     adapter = get_holdings_adapter(provider_identity) if provider_identity else None
@@ -3764,6 +3859,103 @@ def known_etf_route_metadata(
                 "evidence_refs": list(audit.evidence_refs),
             },
         },
+    }
+
+
+_CORE_NATIVE_ISSUER_KEYS = {
+    "ishares": "ishares",
+    "blackrock": "ishares",
+    "spdr": "spdr",
+    "statestreet": "spdr",
+    "statestreetglobaladvisors": "spdr",
+    "ssga": "spdr",
+    "invesco": "invesco",
+    "amplify": "amplify",
+    "amplifyetfs": "amplify",
+}
+
+
+def _canonical_fund_name_native_issuer_hint(name: str | None) -> str | None:
+    words = re.findall(r"[a-z0-9]+", str(name or "").casefold())
+    word_set = set(words)
+    matches: set[str] = set()
+    if is_ishares_canonical_name_hint(name) or "blackrock" in word_set:
+        matches.add("ishares")
+    if "spdr" in word_set or {"state", "street"} <= word_set:
+        matches.add("spdr")
+    if "invesco" in word_set:
+        matches.add("invesco")
+    if "amplify" in word_set:
+        matches.add("amplify")
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
+def _selected_fund_native_adapter_hint(
+    *, canonical_issuer: Any | None, canonical_fund_name: str | None
+) -> dict[str, Any]:
+    """Nominate one registered core native adapter from trusted issuer metadata.
+
+    This is deliberately available only to explicit selected-fund acquisition.
+    The issuer/name is a route hint, never fund/product proof; each adapter must
+    validate the exact selected fund in its response before persistence.
+    """
+
+    raw_issuer_key = str(getattr(canonical_issuer, "domain_key", "") or "").strip().casefold()
+    issuer_key = re.sub(r"[^a-z0-9]+", "", raw_issuer_key)
+    name_hint = _canonical_fund_name_native_issuer_hint(canonical_fund_name)
+    issuer_provider = _CORE_NATIVE_ISSUER_KEYS.get(issuer_key)
+    provenance = getattr(canonical_issuer, "provenance", None)
+    trusted_issuer = bool(
+        issuer_provider
+        and getattr(canonical_issuer, "status", None) == "active"
+        and isinstance(provenance, dict)
+        and provenance
+    )
+    if raw_issuer_key and not trusted_issuer:
+        # An explicit but stale/unknown issuer row cannot be overridden by a
+        # name substring. The selected canonical identity remains unavailable.
+        return {}
+    if trusted_issuer and name_hint and issuer_provider != name_hint:
+        return {}
+    provider = issuer_provider if trusted_issuer else name_hint
+    if provider is None:
+        return {}
+    adapter = get_holdings_adapter(provider)
+    if (
+        adapter is None
+        or str(getattr(adapter, "adapter_key", "")).strip().lower() != provider
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != provider
+    ):
+        return {}
+    hint_basis = "trusted_canonical_issuer" if trusted_issuer else "canonical_fund_name"
+    aliases = {
+        "holdings_adapter": provider,
+        "holdings_source_provider": provider,
+    }
+    if provider == "ishares":
+        aliases.update(
+            {
+                "issuer_product_catalog_key": ISHARES_US_CATALOG_KEY,
+                "issuer_catalog_discovery_hint": (
+                    "trusted_canonical_issuer" if trusted_issuer else "canonical_iShares_fund_name"
+                ),
+            }
+        )
+    else:
+        aliases["native_adapter_discovery_hint"] = hint_basis
+    issuer_labels = {
+        "ishares": "iShares",
+        "spdr": "State Street Global Advisors",
+        "invesco": "Invesco",
+        "amplify": "Amplify",
+    }
+    return {
+        "issuer": (
+            str(getattr(canonical_issuer, "display_name", "") or issuer_labels[provider]).strip()
+            if trusted_issuer
+            else None
+        ),
+        "provider_aliases": aliases,
     }
 
 
@@ -3974,11 +4166,19 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         rows = self._parse_blackrock_holdings_payload(payload)
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=bytes(response.content),
+            normalized_payload=payload,
+            parser_name="ishares:holdings-json-v1",
+            parsed_json=payload,
+        )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
             raw_json=payload,
-            source_url=resolved_source_url,
+            source_url=(str(response.url) if native_witness is not None else resolved_source_url),
             source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
@@ -3988,6 +4188,7 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_public_json_api",
                 "source_format": "json",
                 "composition_date": self._composition_date_from_payload(payload),
+                **({"native_holdings_response_witness": native_witness} if native_witness else {}),
                 **(
                     {
                         "issuer_product_id": resolved_product_id,
@@ -4387,10 +4588,18 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"SPDR workbook did not expose holdings for {normalized_symbol}.")
         workbook_rows = parse_xlsx_table(response.content)
+        normalized_payload = {"source_format": "xlsx", "workbook_rows": workbook_rows}
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=bytes(response.content),
+            normalized_payload=normalized_payload,
+            parser_name="spdr:xlsx-workbook-v1",
+        )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
-            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            raw_json=normalized_payload,
             # httpx supplies ``response.url`` in production; keeping the
             # requested URL when a lightweight transport/fake omits it makes
             # the adapter deterministic without losing provenance.
@@ -4404,6 +4613,7 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "spdr_symbol_daily_holdings_workbook",
                 "snapshot_provenance": "spdr_native_daily_holdings_workbook",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+                **({"native_holdings_response_witness": native_witness} if native_witness else {}),
             },
         )
 
@@ -5029,13 +5239,19 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             f"{cusip}/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
         )
 
-    async def _resolve_cusip(self, client: httpx.AsyncClient, symbol: str) -> str | None:
+    async def _resolve_cusip_with_evidence(
+        self,
+        client: httpx.AsyncClient,
+        symbol: str,
+        *,
+        force_catalog: bool = False,
+    ) -> tuple[str | None, dict[str, Any] | None]:
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
-            return None
+            return None, None
         cached = self._cusip_cache.get(normalized_symbol)
-        if cached:
-            return cached
+        if cached and not force_catalog:
+            return cached, None
         response = await client.get(
             self._PRODUCT_CATALOG_URL,
             headers=_invesco_holdings_request_headers(),
@@ -5044,15 +5260,40 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         docs = payload.get("response", {}).get("docs", []) if isinstance(payload, dict) else []
-        for document in docs if isinstance(docs, list) else []:
-            if not isinstance(document, dict):
-                continue
-            ticker = _clean(document.get("ticker"))
-            cusip = _clean(document.get("cusip"))
-            if ticker and cusip and ticker.upper() == normalized_symbol:
-                self._cusip_cache[normalized_symbol] = cusip
-                return cusip
-        return None
+        matches = (
+            [
+                document
+                for document in docs
+                if isinstance(document, dict)
+                and (_clean(document.get("ticker")) or "").upper() == normalized_symbol
+            ]
+            if isinstance(docs, list)
+            else []
+        )
+        if len(matches) != 1:
+            return None, None
+        document = matches[0]
+        ticker = (_clean(document.get("ticker")) or "").upper()
+        cusip = _clean(document.get("cusip"))
+        account_name = _clean(document.get("accountName"))
+        if not cusip or (force_catalog and not account_name):
+            return None, None
+        self._cusip_cache[normalized_symbol] = cusip
+        body = bytes(response.content)
+        return cusip, {
+            "request_url": self._PRODUCT_CATALOG_URL,
+            "response_body_base64": base64.b64encode(body).decode("ascii"),
+            "response_sha256": hashlib.sha256(body).hexdigest(),
+            "matched_product": {
+                "ticker": ticker,
+                "cusip": cusip,
+                "account_name": account_name,
+            },
+        }
+
+    async def _resolve_cusip(self, client: httpx.AsyncClient, symbol: str) -> str | None:
+        cusip, _evidence = await self._resolve_cusip_with_evidence(client, symbol)
+        return cusip
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -5145,6 +5386,11 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
         identifiers = identifiers or {}
+        try:
+            binding = require_bound_etf_holdings_adapter(self)
+            native_qualification = binding.native_initial_qualification_scope is not None
+        except ETFHoldingsRouteHeldError:
+            native_qualification = False
         explicit_source_url = source_url or _identifier(identifiers, *self.source_url_aliases)
         cusip = _identifier(identifiers, "cusip")
         # Older persisted route metadata used the ticker form, which Invesco's
@@ -5161,6 +5407,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             not explicit_source_url
             and not cusip
             and _identifier(identifiers, *self.product_page_aliases)
+            and not native_qualification
         ):
             return await super().fetch_latest(
                 symbol=symbol,
@@ -5168,11 +5415,26 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 identifiers=identifiers,
             )
         route_resolution = "issuer_profile_metadata"
+        catalog_evidence: dict[str, Any] | None = None
         try:
             async with httpx.AsyncClient(
                 timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
             ) as client:
-                if explicit_source_url:
+                if native_qualification:
+                    # A warm symbol→CUSIP cache or caller URL is not source
+                    # evidence for the one-shot qualification. Resolve the
+                    # exact ticker row from this attempt's catalog response.
+                    catalog_cusip, catalog_evidence = await self._resolve_cusip_with_evidence(
+                        client, symbol, force_catalog=True
+                    )
+                    if not catalog_cusip or (cusip and cusip != catalog_cusip):
+                        raise ValueError(
+                            f"Invesco product catalog does not uniquely identify {symbol}."
+                        )
+                    cusip = catalog_cusip
+                    resolved_source_url = self._holdings_url(cusip)
+                    route_resolution = "issuer_public_json_catalog_cusip"
+                elif explicit_source_url:
                     resolved_source_url = explicit_source_url
                 else:
                     if not cusip:
@@ -5189,7 +5451,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             response.raise_for_status()
             payload = response.json()
         except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
-            if self.config.supports_sec_filing_fallback:
+            if self.config.supports_sec_filing_fallback and not native_qualification:
                 sec_result = await self._fetch_latest_sec_filing_holdings(
                     symbol=symbol,
                     issuer_product_id=issuer_product_id,
@@ -5232,11 +5494,20 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        raw_text = response.text
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=bytes(response.content),
+            normalized_payload=payload,
+            parser_name="invesco:holdings-json-v1",
+            parsed_json=payload,
+        )
         return HoldingsFetchResult(
             rows=rows,
-            raw_text=response.text,
+            raw_text=raw_text,
             raw_json=payload,
-            source_url=resolved_source_url,
+            source_url=(str(response.url) if native_witness is not None else resolved_source_url),
             source_identifier=cusip or issuer_product_id or symbol.strip().upper(),
             legal_metadata={
                 "source_access": self.config.source_access,
@@ -5254,6 +5525,8 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     payload.get("totalNumberOfHoldings") if isinstance(payload, dict) else None
                 ),
                 "terms_note": self.config.terms_note,
+                **({"native_holdings_response_witness": native_witness} if native_witness else {}),
+                **({"issuer_product_catalog": catalog_evidence} if catalog_evidence else {}),
             },
         )
 
@@ -39699,7 +39972,7 @@ class ThemesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         for index, row in enumerate(table_rows[header_index + 1 :], start=1):
             raw = _row_dict(header, row)
             account = (_clean(_first(raw, ["account"])) or "").upper()
-            if account and account != requested_symbol:
+            if account != requested_symbol:
                 continue
             row_date = ThemesHoldingsAdapter._parse_themes_date(_first(raw, ["date"]))
             if composition_date is None:
@@ -40663,15 +40936,27 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         rows, composition_date = self._parse_amplify_csv(result.raw_text or "", symbol=symbol)
         result.rows = rows
+        prior_witness = (result.legal_metadata or {}).get("native_holdings_response_witness")
+        native_witness = _native_holdings_parse_witness_from_capture(
+            self,
+            prior_witness.get("provider_capture") if isinstance(prior_witness, dict) else None,
+            parser_input=result.raw_text or "",
+            normalized_payload=result.raw_text or "",
+            parser_name="amplify:account-filtered-csv-v1",
+        )
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_format": "csv",
             "route_resolution": "issuer_multi_account_holdings_csv",
             "source_access": self.config.source_access,
+            "selected_account": symbol.strip().upper(),
+            "selected_account_row_count": len(rows),
+            **({"native_holdings_response_witness": native_witness} if native_witness else {}),
             **(
                 {
                     "composition_date": composition_date.isoformat(),
                     "as_of_date": composition_date.isoformat(),
+                    "composition_date_source_field": "selected_account_rows.date",
                 }
                 if composition_date is not None
                 else {}
@@ -40704,15 +40989,20 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         header = table_rows[header_index]
         requested_symbol = symbol.strip().upper()
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        selected_account_row_count = 0
+        selected_account_has_missing_date = False
         for index, row in enumerate(table_rows[header_index + 1 :], start=1):
             raw = _row_dict(header, row)
             account = (_clean(_first(raw, ["account"])) or "").upper()
             if account and account != requested_symbol:
                 continue
+            selected_account_row_count += 1
             row_date = AmplifyHoldingsAdapter._parse_amplify_date(_first(raw, ["date"]))
-            if composition_date is None:
-                composition_date = row_date
+            if row_date is None:
+                selected_account_has_missing_date = True
+            else:
+                composition_dates.add(row_date)
             raw_symbol = _clean(_first(raw, ["stockticker"]))
             symbol_value, exchange = AmplifyHoldingsAdapter._split_symbol(raw_symbol)
             name = _clean(_first(raw, ["securityname"]))
@@ -40750,6 +41040,13 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        composition_date = (
+            next(iter(composition_dates))
+            if selected_account_row_count > 0
+            and not selected_account_has_missing_date
+            and len(composition_dates) == 1
+            else None
+        )
         return rows, composition_date
 
     @staticmethod

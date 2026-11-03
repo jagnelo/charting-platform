@@ -1949,13 +1949,13 @@ acceptance_criteria: &etf_ordinary_selected_acquire_criteria
   - id: OSA1
     text: The authenticated selected-fund acquire accepts an optional positive canonical instrument_id, binds it to the exact unique active/resolved/non-synthetic fund matching the path symbol, and stops a mismatching identity before profile work; callers omitting the field remain compatible.
   - id: OSA2
-    text: Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity. During explicit selected acquire only, a resolved canonical fund name with the iShares brand may nominate the registered iShares catalog as a discovery hint even when Instrument.issuer_id is NULL; that hint is not issuer or product proof. Before constructing the holdings URL, an exact official catalog row must match both canonical ticker and full canonical fund name. No adapter scan, guessed identity, or per-symbol seed is permitted.
+    text: Route preparation uses exact curated metadata or current symbol-scoped audit evidence bound to the same registered adapter/source_provider. During explicit selected acquire only, a trusted canonical issuer or unambiguous canonical fund-brand hint may nominate one of the registered core iShares, SPDR, Invesco or Amplify adapters, including canonical funds with issuer_id NULL. A hint never proves product identity; the adapter must independently verify the selected fund from its native evidence. No adapter scan, guessed identity, or per-symbol route seed is permitted.
   - id: OSA3
-    text: A selected canonical ETF with no exact audited/curated route or eligible catalog discovery hint returns typed unavailable with no guessed profile/request. A catalog hint with missing, conflicting, ambiguous, or mismatched official ticker/name evidence is held before holdings retrieval; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for every physical request.
+    text: A selected canonical ETF with no exact audited/curated route or eligible core-publisher hint returns typed unavailable with no guessed profile/request. Ambiguous or conflicting issuer/name hints and missing/mismatched native fund evidence remain held without a positive snapshot; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for every physical request.
   - id: OSA4
-    text: Deterministic no-network service regressions cover production-shaped canonical resolved iShares ETFs with issuer_id NULL and no profile/static product seed; canonical name is only a discovery hint and exact official ticker/name must validate before holdings retrieval. Catalog tests cover numeric and optional slug paths (including the actual IGV239771 official slug), conflicting same-product slugs, the observed Showing 482 of 482 total funds label without fake completeness, exact raw/hash/encoding/cache and admitted-log lineage, and duplicate/conflicting/malformed/foreign identity rejection. Existing BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff.
+    text: Deterministic no-network regressions cover unseeded canonical-name and trusted-issuer nomination for iShares/SPDR/Invesco/Amplify, including real-shape XES and PXJ without product seeds, plus fictitious positives and ambiguous/foreign-brand denials. Adapter results validate SPDR workbook fund ticker, Invesco exact catalog ticker/CUSIP and holdings response, exact iShares catalog/product/body lineage, and Amplify selected-account rows against the retained full CSV. Captured physical response-body hashes bind to parser input, retained artifact, exact request log/scope and URL; catalog-only, missing/swapped body, wrong log/scope, foreign fund and missing date/schema evidence remain nonpositive. Existing iShares slug/catalog, BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff and format.
   - id: OSA5
-    text: After Provider publishes and Root releases the generic sealed native qualification callable through synchronized green staging, ETF implements a separate bounded admin executor from locked durable review/source/account/profile state. A probe is marked passed only after one-shot native transport yields persisted raw, dated, schema-valid, exact-fund evidence and the current review is rechecked. Full qualification and actual production proof remain separately gated.
+    text: ETF implements the bounded admin qualification executor offline against the declared Provider callable contract, deriving authority from locked durable review/source/account/profile rows and preserving one-shot, admission, current-review and exact evidence guards. Real callable integration and engine-backed qualification wait for Provider's synchronized green staging release; a probe is marked passed only after the actual shared transport yields a persisted raw, dated, schema-valid exact-fund snapshot and current review is rechecked. No mocked authority substitutes for this dependency or for later Root-owned production proof.
 branch_tests:
   - "uv run --project backend pytest tests/integration/test_etf_holdings_provider_bridge_runtime.py::test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent -q --no-cov -p no:cacheprovider"
   - "uv run --project backend pytest tests/integration/api/test_etf_holdings.py::test_available_dates_breaks_same_knowledge_time_ties_by_snapshot_id -q --no-cov -p no:cacheprovider"
@@ -2478,9 +2478,10 @@ previously_accepted_unxq_calendar_integration_checkpoint_2026_10_31:
 integration_checkpoint:
   id: etf-ordinary-selected-acquisition-route-preparation-20261103
   goal: >-
-    Implement the explicit selected-canonical-fund acquire contract and route preparation without
-    guessing issuer identity; continue with reusable verified product metadata and Provider's
-    generic sealed initial qualification only after exact green staging is released.
+    Implement the explicit selected-canonical-fund acquire contract, generic core-publisher route
+    nomination and native response-body evidence without guessing issuer identity. Prepare the
+    bounded admin executor offline against the declared Provider contract; adopt and integrate the
+    real callable only after its exact synchronized green staging release.
   planning_authorization: >-
     Human-activated scope is recorded at
     /home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md.
@@ -2494,27 +2495,31 @@ integration_checkpoint:
     completed: [OSA1, OSA2, OSA3, OSA4]
     total: 5
     current_phase: >-
-      The null-issuer canonical-name catalog discovery correction and exact official-row checks are
-      implemented with focused no-network tests. Provider's separate qualification callable remains
-      pending synchronized green staging.
+      The selected-fund route hints, four native adapter evidence paths, and body-to-parser/log
+      witness checks pass focused no-network tests. The offline executor implementation is in this
+      candidate; real Provider callable integration and engine-backed verification remain pending.
     current_blocker: >-
       Provider's generic bind_native_etf_initial_qualification callable, including required
-      data_source_id, remains on its Producer source under full gates and has not been adopted by
-      ETF through synchronized green staging. Do not import its branch or perform source HTTP. Root
-      must review/provision iShares hosts and physical-request costs before any governed live route.
+      data_source_id, is not yet adopted through synchronized green staging. The offline executor
+      may be prepared, but exact callable integration and engine-backed contract tests wait for the
+      released green source. No provider HTTP or target/policy/ledger mutation is authorized here.
+      Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.
   required_contracts:
     - The existing POST /api/v1/etf-holdings/{symbol}/acquire remains the selected-fund action; optional positive instrument_id must match the existing canonical resolved fund for the path symbol.
     - No-profile route preparation is limited to exact curated metadata or the exact symbol's current audit mapped to a registered native adapter with matching source_provider identity.
     - BWET and BDRY use the existing Amplify current successor-audit evidence without adding a BWET-only product routing entry.
-    - During explicit selected acquire, an exact iShares brand in a resolved canonical fund name may nominate the registered official catalog when issuer_id is NULL; this is only a bounded catalog-discovery hint, not a trusted issuer/product binding. The official catalog row must exactly match the canonical ticker and full fund name before product ID/holdings URL use; conflicting issuer metadata, stale profile IDs, mismatched names, ambiguous links, and partial-content absence remain held. No static IGV239771, guessed identity, adapter scan, or non-selected catalog request is permitted.
+    - During explicit selected acquire, a trusted canonical issuer or an unambiguous canonical fund-brand hint may nominate only its exact registered iShares, SPDR, Invesco or Amplify adapter, including when issuer_id is NULL. The hint is not issuer/product/source proof; no per-symbol entry such as XES/PXJ is added. Existing native proof remains authoritative: iShares exact official catalog row, SPDR workbook fund ticker, Invesco exact catalog ticker/CUSIP, and Amplify selected account rows.
+    - Native initial qualification must bind the actual captured holdings response body to the adapter parser input, retained normalized artifact/hash, exact physical request URL and settled Provider request log/scope. Binary wire bytes have a separate exact base64/hash/size witness. Missing, swapped, catalog-only, wrong-log/scope, conflicting-fund, stale-date, or schema-mismatched evidence cannot persist a positive snapshot or passed probe.
     - Catalog content is cached with exact body bytes/base64, SHA256, encoding, same-origin source/final URLs, retrieval time, and admitted Provider request-log lineage. Duplicate/conflicting/foreign/malformed rows fail closed; partial content may prove a present exact row but never an absent ticker.
     - Catalog fetch and every redirect are physical requests inside the same selected fund's admitted logical fetch_etf_holdings_latest operation, with the normal host allowlist, scope, quota, cost, and hold gates.
     - Missing route metadata returns unavailable/profile=null/no request; every configured route still passes through shared Provider policy, entitlement, cost, quota, health and hold admission.
-    - The next executor derives attempt/provider/profile/instrument/symbol/account/revision/fingerprint/deadline/budget from locked durable records, calls only the reviewed sealed provider_runtime contract, and passes a probe only after actual raw, dated, schema-valid exact-fund evidence is committed and current review is rechecked.
+    - The offline executor derives attempt/provider/profile/instrument/symbol/account/revision/fingerprint/deadline/budget from locked durable records and calls only the declared sealed provider_runtime contract. Real callable/engine integration waits for exact green staging; a probe passes only after actual raw, dated, schema-valid exact-fund evidence is committed and current review is rechecked.
   source_scope:
     - backend/app/routers/etf_holdings.py
     - backend/app/schemas/etf_holdings.py
     - backend/app/services/etf_holdings_adapters.py
+    - backend/app/services/etf_holdings_native_qualification.py
+    - backend/app/services/etf_holdings_provider_bridge.py
     - backend/app/services/etf_holdings_capability.py
     - backend/app/services/etf_holdings_refresh.py
     - backend/app/services/etf_issuer_catalog.py
@@ -2522,6 +2527,9 @@ integration_checkpoint:
     - backend/app/models/__init__.py
     - backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py
     - backend/tests/unit/services/test_etf_holdings_adapters.py
+    - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+    - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+    - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
     - backend/tests/unit/services/test_etf_holdings_bootstrap.py
     - backend/tests/unit/services/test_etf_issuer_catalog.py
     - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
@@ -2542,17 +2550,29 @@ integration_checkpoint:
       fake completeness. All affected catalog/bootstrap/adapter tests passed 743/743. Ruff check and
       format, Alembic head e6f7a8b9c012, and git diff --check passed. No source HTTP or DB fixture
       was used.
+    focused_native_routing_and_body_evidence: >-
+      The focused offline source slice passed 939 tests with one contract-dependent skip. It includes
+      migration compatibility, native qualification, Provider bridge, EDGAR,
+      VanEck, adapter, refresh, and issuer-catalog modules. Unseeded core route tests cover XES/SPDR,
+      PXJ/Invesco, fictitious SPDR/Invesco/Amplify names, trusted issuer hints, non-selected holds,
+      ambiguous/foreign-brand mismatches, and no product-ID fabrication. Actual-format adapter cases
+      bind SPDR workbook ticker, Invesco catalog CUSIP/holdings JSON, iShares catalog/holdings JSON,
+      and Amplify selected-account CSV to exact captured body/parser/artifact hashes and request
+      scope. An invalid-UTF8/NUL workbook transport case proves exact base64 wire-byte retention.
+      Root's shared Strategy migration-head assertion passed with the additive catalog migration.
+      Ruff check/format and git diff checks pass. The one skip is the test that requires the Producer
+      callable not yet present in synchronized staging; no source HTTP, target, policy, quota or
+      ledger operation occurred.
     exact_source_ci: not_started_for_this_candidate
     local_profile: focused_unit_only; full backend/profile qualification remains pending
-    provider_initial_qualification: unavailable_in_current_published_dependency; no fake probe or bypass was added
+    provider_initial_qualification: offline executor and evidence guards implemented; real shared callable/engine integration pending exact green staging adoption, no fake probe or bypass
   local_validation_profile: full_stack_browser
   branch_validation_tier: full_integration
   full_roadmap_status: AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted checkpoints, retained datasets and historical failures.
   remaining_gates:
-    - Commit and Root review this focused selected-acquire plus iShares-catalog component before expensive qualification.
-    - Wait for Provider's callable to be integrated into synchronized green staging, then adopt only that green source in this branch.
-    - Implement and test the separate ETF admin initial-qualification executor with durable one-shot, admission, raw/schema/date/fund and review-recheck semantics.
-    - Run the source-matched required local profile and exact branch CI; Root separately owns publisher qualification, target proof, integration and deployment.
+    - Publish the coherent focused ETF candidate and complete its exact-source branch CI; no local Docker/profile run is part of this preparation.
+    - Adopt only the Provider callable released through synchronized green staging, then execute the engine-backed shared-contract tests without copying Producer source.
+    - Complete the combined source-matched local qualification after the dependency is adopted; Root separately owns any publisher HTTP, target proof, integration and deployment.
   closure_pending: true
 status: "in_progress"
 previously_accepted_erf_progress:
@@ -3996,7 +4016,7 @@ latest_sec_first_use_candidate:
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
-next_action: "Hand off the frozen, validated UCF1-UCF4 checkpoint for Root review and acceptance. Root owns integration, promotion, deployment and genuine source/account proof."
+next_action: "Complete exact-source CI for the focused ETF candidate. When Root releases the Provider callable through synchronized green staging, adopt that green source and run the engine-backed contract tests; no provider HTTP or target/policy/ledger operation is part of this preparation."
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress

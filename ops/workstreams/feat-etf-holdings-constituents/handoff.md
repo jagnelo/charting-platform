@@ -18030,3 +18030,34 @@ This candidate is `ready_for_human_review`; checkpoint acceptance remains pendin
 Root accepted `etf-unresolved-calendar-side-read-fixture-20261031` under the existing human standing checkpoint delegation. Receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json` (SHA256 `ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827`). Tested implementation remains `802ef5b1e6a4246cc27f29da90950984878df947`; exact implementation CI `41186532340` is green. The source-matched local profile passed functional `201 passed / 2 configured skips` across all five acquisition cases and strict visual `104 passed` across four projects, with zero retries. Frontend unit validation passed `1495`; backend evidence accounts for `5614` unit and `597` integration cases with `84%` combined coverage. Exact-owned cleanup preserved the protected inventory (`29` containers, `32` images, `10` networks, `51` volumes); the private 10000-row smoke passed.
 
 This is a bounded test-fixture checkpoint only: no runtime, migration, provider-policy, paid-source, ledger or production change is claimed. The final four-record publication has a distinct exact-tip CI, pending after push. `integration_capture: exact branch HEAD`. The full AC1-AC14 roadmap remains open, including genuine OIH holdings/returned-uncached-constituent acquisition, source/account and target/deployment proof; Root owns those gates and all integration/promotion/deployment. Preserve 15 Tier-0 and 156 Tier-1, all holds, accepted archives and historical failures.
+
+
+## Ordinary selected-ETF acquisition and native qualification — active preparation — 2026-11-03
+
+The current OSA candidate extends selected-fund route nomination without ticker-specific route
+seeds. During explicit selected acquire only, a trusted canonical issuer or an unambiguous
+canonical fund-brand hint can nominate one exact registered iShares, SPDR, Invesco or Amplify
+adapter. XES and PXJ are offline witnesses to the unseeded SPDR and Invesco paths; neither is added
+to the curated product map. These hints do not prove issuer/product/source identity. The native
+adapter still must verify the fund from its own data: SPDR workbook fund ticker and fund-scoped URL,
+Invesco exact catalog ticker/CUSIP plus holdings response, iShares exact catalog/product/holdings
+lineage, or Amplify selected-account rows from its retained full CSV. Ambiguous, foreign-brand,
+conflicting or unsupported routes remain unavailable/held through the existing Provider gates.
+
+Native initial-qualification evidence now links the captured physical holdings body to the exact
+adapter parser input, normalized retained artifact hash, request URL, settled Provider log and
+sealed account/review scope. Binary wire bytes have their own base64/hash/size proof, distinct from
+the normalized parsed artifact; an iShares/Invesco catalog hop cannot stand in for the holdings
+body. Missing/swapped body hashes, wrong log/scope, catalog-only evidence, foreign fund identity,
+missing date or schema mismatch stay nonpositive. The offline executor derives its authority from
+current durable rows and targets the declared Provider callable; no Provider source was imported
+from its branch and the live callable/engine contract remains pending exact green staging adoption.
+
+Focused offline validation passed 939 tests with 1 contract-dependent skip (940 collected) across
+migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh
+and issuer-catalog suites. The skipped test explicitly requires the Producer callable not yet in
+synchronized staging. Ruff check/format and diff checks pass. No source HTTP, Docker, database
+fixture, policy/quota/ledger/target mutation, or full local profile was run. The focused candidate is
+not accepted or ready for integration. Next: publish this coherent candidate, complete its exact
+source CI, then adopt the Producer only after Root releases its synchronized green staging source
+and run the engine-backed contract tests. Full qualification and all AC1-AC14 remain open.

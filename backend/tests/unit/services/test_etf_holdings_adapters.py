@@ -8998,6 +8998,7 @@ async def test_bondbloxx_httpx_403_stops_without_legacy_retry(monkeypatch):
 async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     adapter = get_holdings_adapter("invesco")
     assert adapter is not None
+    monkeypatch.setattr(adapter, "_cusip_cache", {})
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -25315,6 +25316,143 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
     assert all("idType=ticker" not in url for url in invesco_entry["url_templates"])
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_name", "provider"),
+    [
+        (
+            "XES",
+            "State Street SPDR S&P Oil & Gas Equipment & Services ETF",
+            "spdr",
+        ),
+        ("QZXE", "State Street Example Sector SPDR ETF", "spdr"),
+        ("PXJ", "Invesco Oil & Gas Services ETF", "invesco"),
+        ("QZXI", "Invesco Example Allocation ETF", "invesco"),
+        ("QZXA", "Amplify Example Market ETF", "amplify"),
+    ],
+)
+def test_unseeded_selected_fund_brand_only_nominates_registered_core_adapter(
+    symbol, canonical_name, provider
+):
+    from app.services.etf_holdings_capability import current_symbol_route_audit
+
+    assert current_symbol_route_audit(symbol) is None
+    assert known_etf_route_metadata(symbol, canonical_fund_name=canonical_name) == {}
+    metadata = known_etf_route_metadata(
+        symbol,
+        canonical_fund_name=canonical_name,
+        allow_catalog_route=True,
+    )
+
+    assert metadata["issuer"] is None
+    aliases = metadata["provider_aliases"]
+    assert aliases["holdings_adapter"] == provider
+    assert aliases["holdings_source_provider"] == provider
+    assert aliases["native_adapter_discovery_hint"] == "canonical_fund_name"
+    assert not any(
+        key in aliases
+        for key in ("issuer_product_id", "cusip", "holdings_url", "holdings_route_evidence")
+    )
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_name", "issuer"),
+    [
+        (
+            "QZXE",
+            "Invesco Example Fund ETF",
+            SimpleNamespace(
+                domain_key="spdr",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        (
+            "QZXI",
+            "State Street Example ETF",
+            SimpleNamespace(
+                domain_key="invesco",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        (
+            "QZXA",
+            "Invesco Example Market ETF",
+            SimpleNamespace(
+                domain_key="amplify",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        ("QZXA", "Amplify and Invesco Example ETF", None),
+        (
+            "QZXE",
+            "State Street Example Sector SPDR ETF",
+            SimpleNamespace(
+                domain_key="spdr",
+                status="inactive",
+                provenance={"source": "stale issuer row"},
+            ),
+        ),
+        (
+            "QZXE",
+            "State Street Example Sector SPDR ETF",
+            SimpleNamespace(
+                domain_key="unrelated_manager",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+    ],
+)
+def test_unseeded_core_route_hint_rejects_foreign_or_ambiguous_brand(
+    symbol, canonical_name, issuer
+):
+    assert (
+        known_etf_route_metadata(
+            symbol,
+            canonical_issuer=issuer,
+            canonical_fund_name=canonical_name,
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+
+
+@pytest.mark.parametrize(
+    ("provider", "canonical_name"),
+    [
+        ("spdr", "State Street Example Sector ETF"),
+        ("invesco", "Invesco Example Allocation ETF"),
+        ("amplify", "Amplify Example Market ETF"),
+    ],
+)
+def test_unseeded_trusted_core_issuer_only_nominates_exact_registered_adapter(
+    provider, canonical_name
+):
+    metadata = known_etf_route_metadata(
+        "QZXN",
+        canonical_issuer=SimpleNamespace(
+            domain_key=provider,
+            display_name=f"Canonical {provider}",
+            status="active",
+            provenance={"source": "canonical issuer directory"},
+        ),
+        canonical_fund_name=canonical_name,
+        allow_catalog_route=True,
+    )
+
+    assert metadata["issuer"] == f"Canonical {provider}"
+    aliases = metadata["provider_aliases"]
+    assert aliases["holdings_adapter"] == provider
+    assert aliases["holdings_source_provider"] == provider
+    assert aliases["native_adapter_discovery_hint"] == "trusted_canonical_issuer"
+    assert not any(
+        key in aliases
+        for key in ("issuer_product_id", "cusip", "holdings_url", "holdings_route_evidence")
+    )
 
 
 @pytest.mark.parametrize(

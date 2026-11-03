@@ -11,13 +11,14 @@ import asyncio
 import contextvars
 import hashlib
 import inspect
+import re
 import threading
 import time
 import zlib
 from collections.abc import Callable
 from contextlib import contextmanager
-from dataclasses import dataclass
-from datetime import UTC, datetime
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from typing import Any, TypeVar
 from urllib.parse import unquote, urljoin, urlsplit
@@ -40,7 +41,11 @@ from app.models.provider_runtime import (
     ProviderPolicy,
     ProviderRequestLog,
 )
-from app.providers.telemetry import observe_binary_response_payload, observe_response
+from app.providers.telemetry import (
+    observe_binary_response_payload,
+    observe_response,
+    observe_sanitized_payload,
+)
 from app.services.provider_quota_coordinator import account_scope_for_provider
 from app.services.provider_recurring_costs import provider_recurring_cost_status
 from app.services.provider_runtime import (
@@ -55,6 +60,8 @@ from app.services.provider_runtime import (
 T = TypeVar("T")
 
 _ETF_OPERATIONS = frozenset({"fetch_etf_holdings_latest", "fetch_etf_holdings_for_date"})
+ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION = "etf_native_response_body_witness"
+ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND = "etf_native_response_body_witness"
 _ETF_SEC_OPERATIONS = frozenset(
     {
         "fetch_etf_holdings_sec_submissions",
@@ -72,6 +79,8 @@ ETF_SEC_MAX_SUBMISSIONS_BYTES = 2 * 1024 * 1024
 ETF_SEC_MAX_ARCHIVE_PAGE_BYTES = 2 * 1024 * 1024
 ETF_SEC_MAX_FILING_BYTES = 16 * 1024 * 1024
 ETF_SEC_MAX_AGGREGATE_DECODED_BYTES = 20 * 1024 * 1024
+ETF_NATIVE_INITIAL_QUALIFICATION_DEADLINE_SECONDS = 120
+ETF_NATIVE_INITIAL_QUALIFICATION_MAX_PHYSICAL_REQUESTS = 3
 _ETF_SEC_RESPONSE_LIMIT_MARKER = "etf_sec_response_limit_error"
 VANECK_OIH_INITIAL_REQUEST_URL = (
     "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/" "downloads/holdings/?cken=true"
@@ -169,11 +178,14 @@ class ETFHoldingsRequestBinding:
     sec_request: bool
     request_log_ids: list[int]
     request_urls_by_log_id: dict[int, str]
+    response_body_witnesses: list[dict[str, Any]] = field(default_factory=list)
     sec_budget: Any | None = None
     initial_qualification_authority: _ETFInitialQualificationAuthority | None = None
     vaneck_initial_qualification_budget: Any | None = None
     vaneck_initial_qualification_job_id: int | None = None
     vaneck_initial_qualification_authority: Any | None = None
+    native_initial_qualification_job_id: int | None = None
+    native_initial_qualification_scope: dict[str, Any] | None = None
 
 
 @dataclass(slots=True)
@@ -245,6 +257,8 @@ def bind_etf_holdings_request_context(
     vaneck_initial_qualification_budget: ETFVaneckInitialQualificationBudget | None = None,
     vaneck_initial_qualification_job_id: int | None = None,
     vaneck_initial_qualification_authority: Any | None = None,
+    native_initial_qualification_job_id: int | None = None,
+    native_initial_qualification_scope: dict[str, Any] | None = None,
 ):
     """Bind the caller-loop DB session and exact ETF operation during one fetch."""
 
@@ -288,6 +302,74 @@ def bind_etf_holdings_request_context(
         raise ETFHoldingsRouteHeldError(
             "VanEck initial qualification context does not match its exact OIH job"
         )
+    if (native_initial_qualification_job_id is None) != (
+        native_initial_qualification_scope is None
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Native initial qualification context requires its exact committed scope"
+        )
+    if native_initial_qualification_job_id is not None:
+        scope = native_initial_qualification_scope
+        if (
+            isinstance(native_initial_qualification_job_id, bool)
+            or native_initial_qualification_job_id <= 0
+            or not isinstance(scope, dict)
+            or scope.get("attempt_id") != native_initial_qualification_job_id
+            or scope.get("provider") != str(getattr(adapter, "source_provider", "")).strip().lower()
+            or scope.get("operation") != operation
+            or scope.get("profile_id") != profile_id
+            or scope.get("instrument_id") != instrument_id
+            or scope.get("provider_symbol") != str(provider_symbol).strip().upper()
+            or scope.get("capability") != ProviderCapability.ETF_HOLDINGS.value
+            or scope.get("data_source_id") is None
+            or isinstance(scope.get("data_source_id"), bool)
+            or not isinstance(scope.get("data_source_id"), int)
+            or scope["data_source_id"] <= 0
+            or not isinstance(scope.get("account_scope"), str)
+            or not scope["account_scope"].strip()
+            or scope["account_scope"].strip().upper() in {"*", "ALL", "ANY"}
+            or not isinstance(scope.get("provider_review_fingerprint"), str)
+            or not re.fullmatch(r"[0-9a-f]{64}", scope["provider_review_fingerprint"])
+            or not isinstance(scope.get("review_revision"), int)
+            or isinstance(scope.get("review_revision"), bool)
+            or scope["review_revision"] <= 0
+            or not isinstance(scope.get("max_physical_requests"), int)
+            or isinstance(scope.get("max_physical_requests"), bool)
+            or not 1
+            <= scope["max_physical_requests"]
+            <= ETF_NATIVE_INITIAL_QUALIFICATION_MAX_PHYSICAL_REQUESTS
+            or not isinstance(scope.get("expires_at"), str)
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "Native initial qualification context does not match its exact committed scope"
+            )
+        try:
+            expiry = datetime.fromisoformat(scope["expires_at"])
+        except ValueError as exc:
+            raise ETFHoldingsRouteHeldError(
+                "Native initial qualification context has an invalid deadline"
+            ) from exc
+        now = datetime.now(UTC)
+        if (
+            expiry.tzinfo is None
+            or expiry.astimezone(UTC) <= now
+            or expiry.astimezone(UTC)
+            > now + timedelta(seconds=ETF_NATIVE_INITIAL_QUALIFICATION_DEADLINE_SECONDS)
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "Native initial qualification context deadline is outside its bound"
+            )
+        if (
+            vaneck_initial_qualification_job_id is not None
+            or vaneck_initial_qualification_authority is not None
+            or vaneck_initial_qualification_budget is not None
+            or str(getattr(adapter, "source_provider", "")).strip().lower()
+            in {"edgar", "sec", "vaneck"}
+            or operation != "fetch_etf_holdings_latest"
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "Native initial qualification cannot overlap SEC or VanEck special contexts"
+            )
     binding = ETFHoldingsRequestBinding(
         db=db,
         adapter=adapter,
@@ -301,6 +383,8 @@ def bind_etf_holdings_request_context(
         vaneck_initial_qualification_budget=vaneck_initial_qualification_budget,
         vaneck_initial_qualification_job_id=vaneck_initial_qualification_job_id,
         vaneck_initial_qualification_authority=vaneck_initial_qualification_authority,
+        native_initial_qualification_job_id=native_initial_qualification_job_id,
+        native_initial_qualification_scope=native_initial_qualification_scope,
     )
     token = _REQUEST_BINDING.set(binding)
     try:
@@ -506,6 +590,23 @@ class ProviderBackedHTTPXClient:
                 single_attempt=attempt,
             )
             response = result.result
+            if binding.native_initial_qualification_job_id is not None:
+                witness = response.extensions.get(ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION)
+                expected_log_payload = (
+                    {"kind": ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND, "witness": witness}
+                    if isinstance(witness, dict)
+                    else None
+                )
+                if (
+                    not isinstance(witness, dict)
+                    or witness.get("request_log_id") != result.request_log_id
+                    or expected_log_payload not in result.response_payloads
+                    or witness.get("request_log_id") not in binding.request_urls_by_log_id
+                ):
+                    raise ETFHoldingsRouteHeldError(
+                        "Native response body witness is not attached to its settled Provider log"
+                    )
+                binding.response_body_witnesses.append(witness)
             if vaneck_budget is not None:
                 vaneck_budget.ensure_before_deadline()
             if sec_budget is not None and response.status_code in {403, 429}:
@@ -1170,6 +1271,83 @@ async def _vaneck_initial_job_scope_matches(
     )
 
 
+async def _native_initial_job_scope_matches(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    operation: str,
+    account_scope: str,
+    source: DataSource,
+    policy: ProviderPolicy,
+    entitlement: ProviderEntitlement,
+    adapter: Any,
+) -> bool:
+    """Require the exact ETF job plus Provider's task-local sealed scope."""
+
+    binding = _REQUEST_BINDING.get()
+    if (
+        binding is None
+        or binding.native_initial_qualification_job_id is None
+        or not isinstance(binding.native_initial_qualification_scope, dict)
+        or binding.native_initial_qualification_scope.get("provider") != provider_name
+        or binding.native_initial_qualification_scope.get("profile_id") != profile_id
+        or binding.native_initial_qualification_scope.get("instrument_id") != instrument_id
+        or binding.native_initial_qualification_scope.get("provider_symbol")
+        != provider_symbol.strip().upper()
+        or binding.native_initial_qualification_scope.get("operation") != operation
+        or binding.native_initial_qualification_scope.get("data_source_id") != source.id
+        or binding.native_initial_qualification_scope.get("account_scope") != account_scope
+        or policy.is_enabled
+        or str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run"
+    ):
+        return False
+
+    scope = binding.native_initial_qualification_scope
+    job = await db.get(ETFHoldingsBackfillJob, binding.native_initial_qualification_job_id)
+    if (
+        job is None
+        or job.id != binding.native_initial_qualification_job_id
+        or job.job_type != "native_etf_initial_qualification"
+        or job.source_provider != provider_name
+        or job.etf_profile_id != profile_id
+        or job.status != "running"
+        or (job.extra_data or {}).get("qualification_scope") != scope
+    ):
+        return False
+    try:
+        expiry = datetime.fromisoformat(str(scope.get("expires_at")))
+    except ValueError:
+        return False
+    if expiry.tzinfo is None or expiry.astimezone(UTC) <= datetime.now(UTC):
+        return False
+
+    # Import the exact Producer predicate. If green Provider code has not been
+    # adopted in this worktree yet, disabled-policy calls remain held.
+    try:
+        from app.services.provider_runtime import (  # noqa: PLC0415
+            native_etf_initial_qualification_allows_disabled_policy,
+        )
+    except ImportError:
+        return False
+    return bool(
+        native_etf_initial_qualification_allows_disabled_policy(
+            provider_name=provider_name,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation=operation,
+            profile_id=profile_id,
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+            source=source,
+            policy=policy,
+            entitlement=entitlement,
+            adapter=adapter,
+        )
+    )
+
+
 async def _review_attempt_context(
     db: AsyncSession,
     *,
@@ -1181,6 +1359,7 @@ async def _review_attempt_context(
     operation: str,
     request_url: str,
     sec_request: bool = False,
+    adapter: Any | None = None,
 ) -> tuple[DataSource, ProviderPolicy, str]:
     if sec_request:
         if operation not in _ETF_SEC_OPERATIONS:
@@ -1291,6 +1470,14 @@ async def _review_attempt_context(
         request_binding is not None
         and request_binding.vaneck_initial_qualification_job_id is not None
     )
+    has_native_qualification_job = bool(
+        request_binding is not None
+        and request_binding.native_initial_qualification_job_id is not None
+    )
+    if has_vaneck_qualification_job and has_native_qualification_job:
+        raise ETFHoldingsRouteHeldError(
+            "ETF request cannot combine native and VanEck qualification contexts"
+        )
     if has_vaneck_qualification_job:
         if not await _vaneck_initial_job_scope_matches(
             db,
@@ -1306,6 +1493,27 @@ async def _review_attempt_context(
         ):
             raise ETFHoldingsRouteHeldError(
                 "VanEck initial qualification context is missing or does not match its committed job."
+            )
+    elif has_native_qualification_job:
+        if (
+            sec_request
+            or adapter is None
+            or not await _native_initial_job_scope_matches(
+                db,
+                provider_name=provider_name,
+                profile_id=profile_id,
+                instrument_id=instrument_id,
+                provider_symbol=provider_symbol,
+                operation=operation,
+                account_scope=account_scope,
+                source=data_source,
+                policy=policy,
+                entitlement=entitlement,
+                adapter=adapter,
+            )
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "Native ETF initial qualification context is missing or does not match its committed job."
             )
     elif not policy.is_enabled:
         raise ETFHoldingsRouteHeldError("ETF publisher capability is not explicitly enabled")
@@ -1418,6 +1626,7 @@ async def execute_etf_holdings_request_attempt(
         single_attempt.url if isinstance(single_attempt, LoopLocalHTTPXAttempt) else request_url
     )
     attempt_log_ids: list[int] = []
+    qualification_log_link_attempted = False
 
     def retain_request_log_id(request_log_id: int) -> None:
         attempt_log_ids.append(request_log_id)
@@ -1428,16 +1637,24 @@ async def execute_etf_holdings_request_attempt(
                 binding.sec_budget.record_request_log_id(request_log_id)
 
     async def retain_qualification_log_ids(runtime_db: AsyncSession) -> None:
+        nonlocal qualification_log_link_attempted
         authority = binding.initial_qualification_authority if binding is not None else None
         vaneck_job_id = binding.vaneck_initial_qualification_job_id if binding is not None else None
-        if not attempt_log_ids or (authority is None and vaneck_job_id is None):
+        native_job_id = binding.native_initial_qualification_job_id if binding is not None else None
+        if not attempt_log_ids or (
+            authority is None and vaneck_job_id is None and native_job_id is None
+        ):
             return
-        if authority is not None and vaneck_job_id is not None:
+        qualification_log_link_attempted = True
+        if sum(value is not None for value in (authority, vaneck_job_id, native_job_id)) > 1:
             raise ETFHoldingsRouteHeldError(
-                "A Provider attempt cannot link SEC and VanEck qualification jobs together"
+                "A Provider attempt cannot link multiple ETF qualification contexts"
             )
         if vaneck_job_id is not None:
             await retain_vaneck_qualification_log_ids(runtime_db)
+            return
+        if native_job_id is not None:
+            await retain_native_qualification_log_ids(runtime_db)
             return
 
         job = await runtime_db.get(ETFHoldingsBackfillJob, authority.attempt_id)
@@ -1456,6 +1673,89 @@ async def execute_etf_holdings_request_attempt(
             if request_log_id not in request_log_ids:
                 request_log_ids.append(request_log_id)
         extra_data["provider_request_log_ids"] = request_log_ids
+        job.extra_data = extra_data
+        await runtime_db.flush()
+
+    async def retain_native_qualification_log_ids(runtime_db: AsyncSession) -> None:
+        if binding is None or binding.native_initial_qualification_job_id is None:
+            return
+        job_id = binding.native_initial_qualification_job_id
+        scope = binding.native_initial_qualification_scope
+        job = (
+            await runtime_db.execute(
+                select(ETFHoldingsBackfillJob)
+                .where(ETFHoldingsBackfillJob.id == job_id)
+                .with_for_update()
+            )
+        ).scalar_one_or_none()
+        if (
+            not isinstance(scope, dict)
+            or job is None
+            or job.id != job_id
+            or job.job_type != "native_etf_initial_qualification"
+            or job.source_provider != provider_name
+            or job.etf_profile_id != binding.profile_id
+            or job.status != "running"
+            or (job.extra_data or {}).get("qualification_scope") != scope
+        ):
+            raise ETFHoldingsRouteHeldError(
+                "Native ETF qualification attempt is missing or no longer active"
+            )
+        extra_data = dict(job.extra_data or {})
+        prior_ids = extra_data.get("provider_request_log_ids", [])
+        if (
+            not isinstance(prior_ids, list)
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value <= 0
+                for value in prior_ids
+            )
+            or len(prior_ids) != len(set(prior_ids))
+        ):
+            raise ETFHoldingsRouteHeldError("Native ETF qualification request lineage is malformed")
+        if set(prior_ids).intersection(attempt_log_ids):
+            raise ETFHoldingsRouteHeldError(
+                "Native ETF qualification request log was linked more than once"
+            )
+        logs = list(
+            (
+                await runtime_db.scalars(
+                    select(ProviderRequestLog).where(ProviderRequestLog.id.in_(attempt_log_ids))
+                )
+            ).all()
+        )
+        source = await runtime_db.get(DataSource, int(scope["data_source_id"]))
+        by_id = {row.id: row for row in logs}
+        if source is None or len(by_id) != len(attempt_log_ids):
+            raise ETFHoldingsRouteHeldError(
+                "Native ETF qualification request log evidence is incomplete"
+            )
+        for request_log_id in attempt_log_ids:
+            row = by_id.get(request_log_id)
+            if (
+                row is None
+                or row.data_source_id != source.id
+                or row.capability != ProviderCapability.ETF_HOLDINGS
+                or row.operation != binding.operation
+                or row.instrument_id != binding.instrument_id
+                or (row.provider_symbol or "").strip().upper()
+                != binding.provider_symbol.strip().upper()
+                or row.http_requests != 1
+                or row.completed_at is None
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "Native ETF qualification request log is outside its committed scope"
+                )
+        extra_data["provider_request_log_ids"] = [*prior_ids, *attempt_log_ids]
+        prior_urls = extra_data.get("request_urls", [])
+        urls_by_id = (
+            dict(zip(prior_ids, prior_urls, strict=False)) if isinstance(prior_urls, list) else {}
+        )
+        for request_log_id in attempt_log_ids:
+            urls_by_id[request_log_id] = binding.request_urls_by_log_id.get(request_log_id)
+        extra_data["request_urls"] = [
+            urls_by_id.get(request_log_id)
+            for request_log_id in extra_data["provider_request_log_ids"]
+        ]
         job.extra_data = extra_data
         await runtime_db.flush()
 
@@ -1539,6 +1839,7 @@ async def execute_etf_holdings_request_attempt(
                 operation=operation,
                 request_url=physical_request_url,
                 sec_request=sec_request,
+                adapter=adapter,
             )
             authority = binding.initial_qualification_authority if binding is not None else None
             if authority is not None:
@@ -1612,6 +1913,16 @@ async def execute_etf_holdings_request_attempt(
                         # attempt so the failed-job finalizer can retain it as
                         # explicitly nonpositive evidence.
                         await runtime_db.commit()
+                    elif (
+                        binding is not None
+                        and binding.native_initial_qualification_job_id is not None
+                        and qualification_log_link_attempted
+                    ):
+                        # Do not repeat a native success-link predicate after
+                        # it rejected the current linkage. Preserve the
+                        # Provider log transaction as nonpositive evidence;
+                        # the durable qualification job remains failed.
+                        await runtime_db.commit()
                     else:
                         # Preserve the prior SEC and ordinary-request
                         # exception behavior: their existing audit linker is
@@ -1672,19 +1983,68 @@ def _observe_httpx_attempt_response(
     telemetry envelope instead.
     """
 
+    binding = _REQUEST_BINDING.get()
+    native_qualification = bool(
+        binding is not None and binding.native_initial_qualification_job_id is not None
+    )
     if not preserve_binary_payload:
-        observe_response(response)
+        body = _read_httpx_response_body(response, required=native_qualification)
+        if native_qualification and body is not None and _is_binary_http_body(response, body):
+            observe_response(response, capture_response_payload=False)
+            observe_binary_response_payload(
+                "etf_native_response_body",
+                body,
+                complete=True,
+            )
+        else:
+            observe_response(response)
+        if native_qualification:
+            _capture_native_response_body_witness(response, body=body)
         return
 
-    try:
-        body = bytes(response.content or b"")
-    except httpx.ResponseNotRead:
+    body = _read_httpx_response_body(response, required=native_qualification)
+    if body is None:
         observe_response(response)
         return
     if not body:
         observe_response(response)
         return
 
+    is_binary = _is_binary_http_body(response, body)
+    if not is_binary:
+        observe_response(response)
+        if native_qualification:
+            _capture_native_response_body_witness(response, body=body)
+        return
+    if max_response_bytes is not None and len(body) > max_response_bytes:
+        # The bounded transport should have rejected this before returning.
+        # Fail closed rather than persisting an over-limit response as evidence.
+        raise ETFHoldingsRouteHeldError(
+            "VanEck response exceeded its reviewed binary-evidence byte limit."
+        )
+
+    observe_response(response, capture_response_payload=False)
+    observe_binary_response_payload(
+        "vaneck_initial_response_body",
+        body,
+        complete=True,
+    )
+    if native_qualification:
+        _capture_native_response_body_witness(response, body=body)
+
+
+def _read_httpx_response_body(response: httpx.Response, *, required: bool) -> bytes | None:
+    try:
+        return bytes(response.content or b"")
+    except httpx.ResponseNotRead as exc:
+        if required:
+            raise ETFHoldingsRouteHeldError(
+                "Native qualification response body was not captured before parsing"
+            ) from exc
+        return None
+
+
+def _is_binary_http_body(response: httpx.Response, body: bytes) -> bool:
     content_type = str(response.headers.get("content-type", "")).strip().lower()
     binary_content_type = any(
         marker in content_type
@@ -1703,23 +2063,64 @@ def _observe_httpx_attempt_response(
         valid_utf8 = True
     except UnicodeDecodeError:
         valid_utf8 = False
-    is_binary = binary_content_type or binary_signature or has_nul or not valid_utf8
-    if not is_binary:
-        observe_response(response)
-        return
-    if max_response_bytes is not None and len(body) > max_response_bytes:
-        # The bounded transport should have rejected this before returning.
-        # Fail closed rather than persisting an over-limit response as evidence.
-        raise ETFHoldingsRouteHeldError(
-            "VanEck response exceeded its reviewed binary-evidence byte limit."
-        )
+    return binary_content_type or binary_signature or has_nul or not valid_utf8
 
-    observe_response(response, capture_response_payload=False)
-    observe_binary_response_payload(
-        "vaneck_initial_response_body",
-        body,
-        complete=True,
-    )
+
+def _capture_native_response_body_witness(
+    response: httpx.Response,
+    *,
+    body: bytes | None,
+) -> dict[str, Any] | None:
+    """Bind one captured body hash to the current native Provider attempt."""
+
+    binding = _REQUEST_BINDING.get()
+    if binding is None or binding.native_initial_qualification_job_id is None:
+        return None
+    scope = binding.native_initial_qualification_scope
+    if not isinstance(scope, dict) or body is None:
+        raise ETFHoldingsRouteHeldError(
+            "Native qualification response is missing its committed scope or captured body"
+        )
+    if not binding.request_log_ids:
+        raise ETFHoldingsRouteHeldError(
+            "Native response body was observed before its Provider request log was bound"
+        )
+    request_log_id = binding.request_log_ids[-1]
+    bound_url = binding.request_urls_by_log_id.get(request_log_id)
+    response_url = str(getattr(response, "url", "") or "")
+    if (
+        not bound_url
+        or not response_url
+        or _canonical_request_url(bound_url) != _canonical_request_url(response_url)
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Native response body URL does not match its bound physical Provider request"
+        )
+    witness = {
+        "request_log_id": request_log_id,
+        "physical_request_url_sha256": hashlib.sha256(
+            _canonical_request_url(bound_url).encode("utf-8")
+        ).hexdigest(),
+        "response_body_sha256": hashlib.sha256(body).hexdigest(),
+        "response_body_bytes": len(body),
+        "content_type": str(response.headers.get("content-type", "")).strip().lower(),
+        "binary_body": _is_binary_http_body(response, body),
+        "status_code": response.status_code,
+        "attempt_id": scope["attempt_id"],
+        "provider": scope["provider"],
+        "data_source_id": scope["data_source_id"],
+        "capability": scope["capability"],
+        "operation": scope["operation"],
+        "profile_id": scope["profile_id"],
+        "instrument_id": scope["instrument_id"],
+        "provider_symbol": scope["provider_symbol"],
+        "account_scope": scope["account_scope"],
+        "review_revision": scope["review_revision"],
+        "provider_review_fingerprint": scope["provider_review_fingerprint"],
+    }
+    response.extensions[ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION] = witness
+    observe_sanitized_payload({"kind": ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND, "witness": witness})
+    return witness
 
 
 def _sync_provider_invoke(

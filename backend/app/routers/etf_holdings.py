@@ -126,6 +126,7 @@ from app.services.etf_holdings_edgar import (
     list_sec_nport_backfill_jobs,
     qualify_sec_nport_fund,
 )
+from app.services.etf_holdings_native_qualification import qualify_native_etf_fund
 from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
@@ -1360,6 +1361,40 @@ async def qualify_initial_vaneck_oih_for_etf(
     try:
         return await qualify_vaneck_oih_fund(
             db,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/native-initial-qualification",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def qualify_initial_native_etf_fund(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Run one admin-only qualification for an existing reviewed native ETF route."""
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol or normalized_symbol in {"*", "ALL", "ANY"}:
+        raise HTTPException(status_code=422, detail="A single committed ETF symbol is required")
+    profile = (
+        await db.execute(
+            select(ETFProfile)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .options(selectinload(ETFProfile.instrument))
+            .where(func.upper(Instrument.symbol) == normalized_symbol)
+        )
+    ).scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Committed ETF profile not found")
+    try:
+        return await qualify_native_etf_fund(
+            db,
+            profile_id=profile.id,
             requested_by_user_id=current_user.id,
         )
     except ETFHoldingsRouteHeldError as exc:
