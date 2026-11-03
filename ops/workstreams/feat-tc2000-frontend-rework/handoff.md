@@ -1,3 +1,39 @@
+# Current exact-source E2E assertion repairs — 2026-11-03
+
+Exact CI for source `e4c04872d20d1dd1e1b13b8c30d342c254f2a4ba` is preserved
+red: run `41705179855`, E2E job `126169528406`, 195 passed, 4 failed, and 110
+configured skips. Backend, Frontend Unit, and Branch-declared jobs passed;
+Exhaustive Integration Gate was policy-skipped. The Playwright artifact is
+`13268470450` (SHA256
+`3ffbc6a91845cf9bbea298105b5d86e5b170f30fc1019af3915402ec16a6b9a3`); its
+downloaded report and numbered browser traces are retained under `/tmp/tc-e4c048-report`
+and `/tmp/tc-e4c048-traces` for this repair.
+
+All four failures were mismatched E2E queries against rendered behavior, not
+evidence to change acquisition logic: Chart's discovered candidate is an
+accessible `option`, while the test requested a `button`; the no-snapshot OIH
+view correctly renders the controlled snapshot, lineage, row, and
+`Current holdings are not verified.` state rather than an unimplemented
+generic completion banner; Workstation reports `Holdings for XHB are not
+available` without a colon after the symbol; and the real seeded NVDA row is a
+visible accessible button, but adjacent symbol/type DOM spans concatenate as
+`NVDAequity`, defeating the old `\bNVDA\b` text filter. The test now uses the
+observed accessible candidate/row roles, asserts the actual stored-versus-
+current state and row, and matches the literal XHB status. Source behavior,
+request flows, lineage assertions, real API calls, BrowserDiagnostics, and
+timeouts are unchanged. The real-API companion remains unmocked.
+
+Only `frontend/tests/e2e/on_demand_acquisition.spec.ts` and the owned
+handoff/append-only validation record were changed for this repair. Local Playwright discovery collected all seven
+cases after the edit. No browser fixture, source request, build, or service
+operation ran. The corrected test file still needs exact-source CI and the
+Root-released Provider staging dependency before the later combined local
+functional/strict-visual qualification; no acceptance is claimed from the
+195 predecessor passes. Preserve the four failures and the other historical
+red receipts.
+
+---
+
 # Ordinary ticker selection — confirmed ETP classification continuation — 2026-11-03
 
 The current implementation candidate is based on published `4ec9a9e21b64ba35708698044041d81649a2b93b`. It adds one shared canonical identity resolution for deliberate Workstation selection and reuses that result for missing-history and ETF-holdings work. Holdings eligibility comes from the confirmed response type (`ETF` or exact `Exchange Traded Vehicle`); older responses fall back to a local lookup constrained to the exact confirmed ID. `ETN` and other types remain ineligible. The dedicated ETF picker now includes the exact ETV classification in its existing result scope, so a genuinely classified vehicle can be deliberately found and selected while ETN remains excluded. Its unavailable issuer response stays visible and uses the confirmed instrument ID.

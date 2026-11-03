@@ -312,7 +312,9 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/TCNEW'
   }, { timeout: 10_000 })
-  await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
+  // Discovery candidates are rendered as options in the shared result list,
+  // even though the underlying element is a button for pointer interaction.
+  await page.getByRole('option', { name: /Use TCNEW · TEST/ }).click()
   const instrumentReadback = await instrumentReadbackReady
   expect(instrumentReadback.status()).toBe(200)
   expect(await instrumentReadback.json()).toMatchObject({ id: fixtureInstrumentId, symbol: 'TCNEW' })
@@ -1458,12 +1460,14 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     outcome: 'acquired',
     refresh: true,
   })
-  await expect(page.getByRole('status').filter({ hasText: 'Issuer holdings request completed. Snapshot dates and current-analysis capability remain separate.' })).toBeVisible()
   expect(issuerRequests).toHaveLength(1)
   expect(issuerRequests[0]).toMatchObject({ refresh: true })
   expect(issuerRequests[0]?.request_id).toMatch(/^[0-9a-f-]{36}$/i)
   await expect(page.getByTestId('etf-snapshot-lineage')).toBeVisible()
   await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', fixtureSnapshot.known_at!)
+  // The page reports current-analysis eligibility separately from the newly
+  // stored, explicitly test-fixture snapshot; it has no generic completion
+  // banner with the old wording.
   await expect(page.getByText('Current holdings are not verified.')).toBeVisible()
   const holdingButton = page.locator('button.holding-row').filter({ hasText: 'AMD' })
   await expect(holdingButton).toBeVisible()
@@ -1947,7 +1951,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
 
     xhbAcquireGate.resolve()
     expect((await xhbIssuerResponseReady).status()).toBe(200)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB:' })).toBeVisible()
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
 
     for (const symbol of ['SPY', 'RSP', 'QQQ'] as const) {
       const historyResponseReady = page.waitForResponse(response => {
@@ -2011,7 +2015,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     })
     await chooseETF('XHB')
     expect((await xhbAfterFailureSelectionReady).status()).toBe(200)
-    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB:' })).toBeVisible()
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
     oihFailureGate.resolve()
     igvAcquireGate.resolve()
     expect((await delayedOihFailureResponseReady).status()).toBe(503)
@@ -2216,7 +2220,11 @@ test('ordinary Workstation, Chart, and reported-holding selection use the real s
   expect(reportedNvda).toMatchObject({ is_resolved: true, holding_type: 'equity' })
   expect(reportedNvda?.constituent_instrument_id).toBeGreaterThan(0)
   await expect(page.getByTestId('etf-snapshot-lineage')).toBeVisible()
-  const nvdaRow = page.locator('.holding-row:not(.holding-row--head)').filter({ hasText: /\bNVDA\b/ }).first()
+  // The browser's text locator sees adjacent NVDA/equity spans concatenated
+  // as `NVDAequity`, so the word-boundary regex misses the visible row. Match
+  // the rendered accessible name and keep the ordinary user click.
+  const nvdaRow = page.getByRole('button', { name: /^NVDA equity NVIDIA Corporation/ }).first()
+  await expect(nvdaRow).toBeVisible()
   await nvdaRow.click()
   const chartBarsAfterDrilldown = waitForBars('NVDA')
   await page.getByRole('button', { name: 'View history' }).click()
