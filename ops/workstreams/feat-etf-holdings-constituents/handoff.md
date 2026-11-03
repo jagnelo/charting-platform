@@ -18061,3 +18061,15 @@ fixture, policy/quota/ledger/target mutation, or full local profile was run. The
 not accepted or ready for integration. Next: publish this coherent candidate, complete its exact
 source CI, then adopt the Producer only after Root releases its synchronized green staging source
 and run the engine-backed contract tests. Full qualification and all AC1-AC14 remain open.
+
+
+## Ordinary native adapter identity/date correction — focused offline green — 2026-11-03
+
+Root review found the earlier four format-normalization cases reused the sealed initial-qualification request context, so they did not demonstrate ordinary adapter behavior. Each case now performs a separate registered-adapter fetch under the ordinary `bind_etf_holdings_request_context` with no qualification job or scope, verifies ordinary request URL lineage, and then checks exact native fund identity, provider-reported composition date/source field, persisted identity validation, schema continuity, and current/cache eligibility. The foreign-fund/account and missing-reported-date negatives also exercise ordinary bindings.
+
+The ordinary Invesco path now requires its exact current catalog row whenever there is no explicitly configured product page, even if a CUSIP or process-local cache hint exists. A separate ordinary test supplies both a warm QQQ→CUSIP cache entry and caller CUSIP hint and verifies catalog then holdings requests, exact catalog identity, raw catalog hash, and the provider-reported business date. The refresh path does not need a special marker.
+
+Focused command from `backend`: `uv run --project . pytest tests/unit/services/test_etf_holdings_native_qualification.py tests/unit/services/test_etf_holdings_refresh.py -q`; result `77 passed, 1 skipped`. Ruff check/format and `git diff --check` pass. The pending PostgreSQL executor-to-ordinary test was not executed; no fixture, database, source HTTP, policy/quota/ledger, target, or deployment operation occurred. Provider callable adoption through green staging and the isolated engine-backed contract test remain pending.
+
+
+Final ordinary-mode compatibility check (2026-11-03): the full adapter unit module passed681/681 after retaining legacy unbound adapter fallback while enforcing fresh catalog evidence on actual bound ordinary Invesco refresh. The combined native-qualification/refresh/workstream-narrative run passed78 with1 existing skip. Ruff check/format and `git diff --check` pass. The PostgreSQL executor-to-ordinary test remains unexecuted pending its separate release.

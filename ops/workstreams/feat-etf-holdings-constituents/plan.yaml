@@ -2595,9 +2595,12 @@ progress:
   completed: [OSA1, OSA2, OSA3, OSA4]
   total: 5
   current_phase: >-
-    The selected-acquire contract, exact-audit route preparation and focused tests are locally
-    complete; the reusable verified issuer-product catalog and sealed qualification executor are
-    still pending.
+    Selected-fund route preparation and catalog evidence remain focused-green. Separate no-network
+    ordinary bindings prove actual SPDR, Invesco, iShares and Amplify fetch identity/date paths with
+    no qualification job/scope, including Invesco catalog revalidation with a warm CUSIP hint. The
+    native/refresh/narrative selection passed78 with1 existing skip and the full adapter module
+    passed681/681. The sealed executor's real Provider callable and engine-backed persistence test
+    remain pending green staging and Root fixture release.
   current_blocker: >-
     Provider must publish the generic sealed initial-qualification callable through green staging.
     Until then, generic initial source qualification remains held; no source HTTP or policy/ledger

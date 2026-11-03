@@ -13,6 +13,7 @@ import copy
 import gzip
 import hashlib
 import json
+import re
 import threading
 import time
 import zipfile
@@ -2853,6 +2854,352 @@ async def test_vaneck_initial_qualification_uses_disabled_policy_and_durably_lin
         with pytest.raises(ETFHoldingsRouteHeldError, match=replay_reason):
             await qualify_vaneck_oih_fund(replay_session, requested_by_user_id=admin_id)
     assert runner.calls == [("GET", VANECK_OIH_INITIAL_URL)]
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_schema(
+    provider_db, monkeypatch
+):
+    """The generic native executor crosses Producer, adapter, PG and quota-ledger boundaries."""
+
+    from app.models.etf_holdings import ETFHoldingsBackfillJob
+    from app.services.etf_holdings_native_qualification import qualify_native_etf_fund
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+
+    from tests.unit.services.test_etf_holdings_adapters import _xlsx_workbook
+
+    symbol = "XES"
+    fund_name = "State Street SPDR S&P Oil & Gas Equipment & Services ETF"
+    workbook_url = (
+        "https://www.ssga.com/us/en/intermediary/etfs/library-content/"
+        "products/fund-data/etfs/us/holdings-daily-us-en-xes.xlsx"
+    )
+    workbook = _xlsx_workbook(
+        [
+            ["Fund Name:", fund_name],
+            ["Ticker Symbol:", symbol],
+            ["Holdings:", "As of 02-Nov-2026"],
+            ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+            ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+        ]
+    )
+
+    class SpdrWorkbookTransport:
+        def __init__(self):
+            self.calls = []
+
+        def factory(self):
+            return httpx.MockTransport(self.handle)
+
+        def handle(self, request):
+            self.calls.append((request.method, str(request.url)))
+            assert request.method == "GET"
+            assert str(request.url) == workbook_url
+            return httpx.Response(
+                200,
+                content=workbook,
+                headers={
+                    "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                },
+                request=request,
+            )
+
+    runner = SpdrWorkbookTransport()
+    _use_mocktransport(monkeypatch, runner)
+    suffix = uuid4().hex[:10]
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=4,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=["www.ssga.com"],
+                provider_name_override="spdr",
+                instrument_symbol_override=symbol,
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            instrument.name = fund_name
+            instrument.identity_status = "resolved"
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                issuer="State Street",
+                adapter_key="spdr",
+                adapter_status="ready",
+                provider_aliases={
+                    "holdings_adapter": "spdr",
+                    "holdings_source_provider": "spdr",
+                    "expected_fund_symbol": symbol,
+                },
+            )
+            case.policy.is_enabled = False
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert entitlement is not None
+            entitlement.live_probe_status = "not_run"
+            entitlement.revision = 7
+            admin = User(
+                username=f"native-fqc-{suffix.lower()}",
+                email=f"native-fqc-{suffix.lower()}@example.test",
+                hashed_password="synthetic-test-only",
+                is_active=True,
+                is_admin=True,
+            )
+            setup.add_all([profile, admin])
+            await setup.flush()
+            profile_id = profile.id
+            admin_id = admin.id
+
+    # A disabled ordinary route remains held before transport.
+    async with provider_db() as ordinary:
+        ordinary_profile = await _load_profile(ordinary, profile_id)
+        with pytest.raises(ETFHoldingsRouteHeldError, match="not explicitly enabled"):
+            await refresh._refresh_adapter_route(ordinary, ordinary_profile)
+    assert runner.calls == []
+
+    async with provider_db() as request_session:
+        completed = await qualify_native_etf_fund(
+            request_session,
+            profile_id=profile_id,
+            requested_by_user_id=admin_id,
+        )
+    assert completed.status == "completed"
+    assert completed.job_type == "native_etf_initial_qualification"
+    assert runner.calls == [("GET", workbook_url)]
+
+    async with provider_db() as reopened:
+        job = await reopened.get(ETFHoldingsBackfillJob, completed.id)
+        profile = await _load_profile(reopened, profile_id)
+        assert job is not None and job.status == "completed"
+        assert job.etf_profile_id == profile_id and job.source_provider == "spdr"
+        assert job.extra_data["qualification_outcome"]["status"] == "passed"
+        qualification_scope = job.extra_data["qualification_scope"]
+        assert qualification_scope["provider"] == "spdr"
+        assert qualification_scope["data_source_id"] == case.source_id
+        assert qualification_scope["profile_id"] == profile_id
+        assert qualification_scope["instrument_id"] == case.instrument_id
+        assert qualification_scope["provider_symbol"] == symbol
+        assert qualification_scope["account_scope"] == case.account_scope
+        assert qualification_scope["review_revision"] == 7
+        assert re.fullmatch(r"[0-9a-f]{64}", qualification_scope["provider_review_fingerprint"])
+
+        logs = list(
+            (
+                await reopened.scalars(
+                    select(ProviderRequestLog)
+                    .where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == "fetch_etf_holdings_latest",
+                    )
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert len(logs) == 1
+        log = await _assert_one_settled_attempt(reopened, case, expected_success=True)
+        assert log.id == job.extra_data["qualification_request_log_ids"][0]
+        assert log.instrument_id == profile.instrument_id
+        assert log.provider_symbol == symbol
+        assert log.response_bytes == len(workbook)
+        assert log.response_payloads is not None
+
+        snapshot = await reopened.scalar(
+            select(ETFHoldingsSnapshot)
+            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .where(ETFHoldingsSnapshot.id == job.extra_data["qualification_snapshot_id"])
+        )
+        assert snapshot is not None
+        assert snapshot.source_provider == "spdr"
+        internal_source_id = await reopened.scalar(
+            select(DataSource.id).where(DataSource.name == ETF_HOLDINGS_INTERNAL_PROVIDER)
+        )
+        assert snapshot.data_source_id == internal_source_id
+        assert snapshot.source_url == workbook_url
+        assert snapshot.composition_date == date(2026, 11, 2)
+        assert snapshot.known_at is not None
+        assert snapshot.row_count == 1 and [row.symbol for row in snapshot.rows] == ["MSFT"]
+        initial_legal = snapshot.extra_data["legal_metadata"]
+        initial_identity = initial_legal["artifact_identity_validation"]
+        assert initial_identity["status"] == "matched"
+        assert initial_identity["native_fund_identity_evidence"]["basis"] == (
+            "spdr_fund_workbook_preamble"
+        )
+        assert initial_legal["composition_date"] == "2026-11-02"
+        assert initial_legal["composition_date_source_field"] == "composition_date"
+        assert initial_legal["timing_provenance"]["composition_date"] == (
+            "provider_reported:composition_date"
+        )
+
+        artifact = await reopened.get(ETFHoldingsRawArtifact, snapshot.source_artifact_id)
+        assert artifact is not None
+        assert artifact.source_url == snapshot.source_url
+        assert artifact.composition_date == snapshot.composition_date
+        evidence = artifact.legal_metadata["native_initial_qualification_evidence"]
+        witness = evidence["holdings_response_body_witness"]
+        capture = witness["provider_capture"]
+        assert capture["request_log_id"] == log.id
+        assert capture["response_body_sha256"] == hashlib.sha256(workbook).hexdigest()
+        assert witness["parser_input_sha256"] == hashlib.sha256(workbook).hexdigest()
+        assert evidence["composition_date"] == "2026-11-02"
+        assert evidence["schema_fingerprint"] == snapshot.extra_data["schema_fingerprint"]
+        assert artifact.content_hash == evidence["raw_payload_hash"]
+        assert evidence["fund_identity"] == {
+            "basis": "spdr_fund_workbook_preamble",
+            "symbol": symbol,
+            "source_url": workbook_url,
+            "matched": [{"type": "artifact_symbol", "value": symbol}],
+        }
+        persisted_witnesses = [
+            item["witness"]
+            for item in log.response_payloads
+            if item.get("kind") == bridge.ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND
+        ]
+        assert persisted_witnesses == [capture]
+        binary_payloads = [
+            item for item in log.response_payloads if item.get("kind") == "etf_native_response_body"
+        ]
+        assert len(binary_payloads) == 1
+        assert base64.b64decode(binary_payloads[0]["body_base64"], validate=True) == workbook
+
+        policy = await reopened.get(ProviderPolicy, case.policy.id)
+        entitlement = await reopened.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == case.source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        state = await reopened.scalar(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile_id,
+                ETFHoldingsAdapterState.adapter_key == "spdr",
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "passed"
+        assert entitlement.revision == 8
+        assert state is not None and state.status == "success"
+        qualified_schema = state.extra_data["schema_fingerprint"]
+        assert qualified_schema == snapshot.extra_data["schema_fingerprint"]
+
+    # The durable successful attempt latches replay before another HTTP request.
+    async with provider_db() as replay:
+        with pytest.raises(ETFHoldingsRouteHeldError):
+            await qualify_native_etf_fund(
+                replay,
+                profile_id=profile_id,
+                requested_by_user_id=admin_id,
+            )
+    assert len(runner.calls) == 1
+
+    # A separately enabled ordinary route uses the same adapter and schema path.
+    async with provider_db() as enabled:
+        policy = await enabled.get(ProviderPolicy, case.policy.id)
+        assert policy is not None
+        policy.is_enabled = True
+        await enabled.commit()
+        profile = await _load_profile(enabled, profile_id)
+        refreshed = await refresh._refresh_adapter_route(enabled, profile)
+        await enabled.commit()
+        assert refreshed.source_provider == "spdr"
+        assert refreshed.composition_date == date(2026, 11, 2)
+        assert refreshed.parser_version == snapshot.parser_version
+        assert refreshed.extra_data["schema_fingerprint"] == qualified_schema
+        refreshed_legal = refreshed.extra_data["legal_metadata"]
+        assert refreshed_legal["artifact_identity_validation"]["status"] == "matched"
+        assert (
+            refreshed_legal["artifact_identity_validation"]["native_fund_identity_evidence"][
+                "basis"
+            ]
+            == "spdr_fund_workbook_preamble"
+        )
+        assert refreshed_legal["composition_date"] == "2026-11-02"
+        assert refreshed_legal["composition_date_source_field"] == "composition_date"
+        assert refreshed_legal["timing_provenance"]["composition_date"] == (
+            "provider_reported:composition_date"
+        )
+        refreshed_capability = evaluate_capability(
+            profile,
+            refreshed,
+            await enabled.scalar(
+                select(ETFHoldingsAdapterState).where(
+                    ETFHoldingsAdapterState.etf_profile_id == profile_id,
+                    ETFHoldingsAdapterState.adapter_key == "spdr",
+                )
+            ),
+            now=datetime.now(UTC),
+        )
+        assert refreshed_capability.identity_verified
+        assert refreshed_capability.usable_for_current_analysis
+
+    assert len(runner.calls) == 2
+    assert runner.calls[1] == runner.calls[0]
+    async with provider_db() as final:
+        logs = list(
+            (
+                await final.scalars(
+                    select(ProviderRequestLog)
+                    .where(
+                        ProviderRequestLog.data_source_id == case.source_id,
+                        ProviderRequestLog.operation == "fetch_etf_holdings_latest",
+                    )
+                    .order_by(ProviderRequestLog.id)
+                )
+            ).all()
+        )
+        assert len(logs) == 2
+        assert all(log.success and log.http_requests == 1 for log in logs)
+        assert logs[0].id == completed.extra_data["qualification_request_log_ids"][0]
+        assert all(log.instrument_id == case.instrument_id for log in logs)
+        assert all(log.provider_symbol == symbol for log in logs)
+        assert any(
+            isinstance(item, dict)
+            and item.get("kind") == bridge.ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND
+            for item in (logs[0].response_payloads or [])
+        )
+        assert not any(
+            isinstance(item, dict)
+            and item.get("kind") == bridge.ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND
+            for item in (logs[1].response_payloads or [])
+        )
+        state = await final.scalar(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile_id,
+                ETFHoldingsAdapterState.adapter_key == "spdr",
+            )
+        )
+        assert state is not None and state.extra_data["schema_fingerprint"] == qualified_schema
+
+    quota_engine = quota_coordinator._engine_for(quota_coordinator._engine_url())
+    with quota_engine.connect() as connection:
+        reservations = (
+            connection.execute(
+                select(quota_coordinator._reservations)
+                .where(
+                    quota_coordinator._reservations.c.provider_name == case.provider_name,
+                    quota_coordinator._reservations.c.operation == "fetch_etf_holdings_latest",
+                )
+                .order_by(quota_coordinator._reservations.c.created_at)
+            )
+            .mappings()
+            .all()
+        )
+    assert len(reservations) == 2
+    assert all(row["account_scope"] == case.account_scope for row in reservations)
+    assert all(row["state"] == "settled" and row["settled_at"] is not None for row in reservations)
+    assert all(row["reserved_units"] == 1 for row in reservations)
 
 
 @pytest.mark.integration

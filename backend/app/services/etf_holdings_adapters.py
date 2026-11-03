@@ -5386,11 +5386,17 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
         identifiers = identifiers or {}
+        ordinary_bound = False
         try:
             binding = require_bound_etf_holdings_adapter(self)
             native_qualification = binding.native_initial_qualification_scope is not None
+            ordinary_bound = not native_qualification
         except ETFHoldingsRouteHeldError:
             native_qualification = False
+        has_custom_product_page = bool(_identifier(identifiers, *self.product_page_aliases))
+        require_catalog_identity = native_qualification or (
+            ordinary_bound and not has_custom_product_page
+        )
         explicit_source_url = source_url or _identifier(identifiers, *self.source_url_aliases)
         cusip = _identifier(identifiers, "cusip")
         # Older persisted route metadata used the ticker form, which Invesco's
@@ -5407,7 +5413,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             not explicit_source_url
             and not cusip
             and _identifier(identifiers, *self.product_page_aliases)
-            and not native_qualification
+            and not require_catalog_identity
         ):
             return await super().fetch_latest(
                 symbol=symbol,
@@ -5420,10 +5426,10 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             async with httpx.AsyncClient(
                 timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
             ) as client:
-                if native_qualification:
+                if require_catalog_identity:
                     # A warm symbol→CUSIP cache or caller URL is not source
-                    # evidence for the one-shot qualification. Resolve the
-                    # exact ticker row from this attempt's catalog response.
+                    # evidence for an identity-bound fetch. Resolve the exact
+                    # ticker row from this operation's catalog response.
                     catalog_cusip, catalog_evidence = await self._resolve_cusip_with_evidence(
                         client, symbol, force_catalog=True
                     )

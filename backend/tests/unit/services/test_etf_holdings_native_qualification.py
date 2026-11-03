@@ -30,7 +30,12 @@ from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     bind_etf_holdings_request_context,
 )
-from app.services.etf_holdings_refresh import _native_initial_qualification_fetch_evidence
+from app.services.etf_holdings_refresh import (
+    _native_adapter_fetch_evidence,
+    _native_artifact_identity_validation,
+    _native_initial_qualification_fetch_evidence,
+    _validate_artifact_identity,
+)
 from app.services.etf_issuer_catalog import (
     ISHARES_US_CATALOG_KEY,
     ISHARES_US_CATALOG_URL,
@@ -552,12 +557,13 @@ class _OfflineAdapterClient:
         from app.services import etf_holdings_provider_bridge as bridge
 
         binding = bridge._REQUEST_BINDING.get()
-        if binding is not None and binding.native_initial_qualification_job_id is not None:
+        if binding is not None:
             type(self).last_binding = binding
             if type(self).on_get is None:
                 request_id = len(binding.request_log_ids) + 1
                 binding.request_log_ids.append(request_id)
                 binding.request_urls_by_log_id[request_id] = url
+        if binding is not None and binding.native_initial_qualification_job_id is not None:
             witness = bridge._capture_native_response_body_witness(
                 response,
                 body=bytes(response.content),
@@ -605,6 +611,17 @@ def _native_adapter_request_context(profile: ETFProfile, adapter):
     )
 
 
+def _ordinary_adapter_request_context(profile: ETFProfile, adapter):
+    return bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=profile.id,
+        instrument_id=profile.instrument_id,
+        provider_symbol=profile.instrument.symbol,
+        operation="fetch_etf_holdings_latest",
+    )
+
+
 def _xlsx_for_native_spdr(symbol: str, name: str) -> bytes:
     from tests.unit.services.test_etf_holdings_adapters import _xlsx_workbook
 
@@ -629,7 +646,7 @@ def _ishares_offline_catalog() -> str:
     </tbody></table></body></html>"""
 
 
-async def _fetch_native_adapter_result(monkeypatch, provider: str):
+async def _fetch_native_adapter_result(monkeypatch, provider: str, *, ordinary=False):
     _OfflineAdapterClient.responses = []
     _OfflineAdapterClient.requested = []
     _OfflineAdapterClient.on_get = None
@@ -640,6 +657,9 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str):
     assert adapter is not None
     if hasattr(adapter, "_cusip_cache"):
         monkeypatch.setattr(adapter, "_cusip_cache", {})
+    request_context = (
+        _ordinary_adapter_request_context if ordinary else _native_adapter_request_context
+    )
     profile = None
 
     if provider == "spdr":
@@ -653,7 +673,7 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str):
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
         ]
-        with _native_adapter_request_context(profile, adapter):
+        with request_context(profile, adapter):
             result = await adapter.fetch_latest(symbol=symbol)
     elif provider == "invesco":
         symbol, name = "QQQ", "Invesco QQQ Trust"
@@ -692,12 +712,15 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str):
             ),
         ]
         adapter._cusip_cache["QQQ"] = "46090E103"  # qualification must still read the catalog.
-        with _native_adapter_request_context(profile, adapter):
-            result = await adapter.fetch_latest(
-                symbol=symbol,
-                source_url="https://invalid.example/legacy-route",
-                identifiers={"cusip": "46090E103"},
-            )
+        with request_context(profile, adapter):
+            if ordinary:
+                result = await adapter.fetch_latest(symbol=symbol)
+            else:
+                result = await adapter.fetch_latest(
+                    symbol=symbol,
+                    source_url="https://invalid.example/legacy-route",
+                    identifiers={"cusip": "46090E103"},
+                )
         assert _OfflineAdapterClient.requested == [adapter._PRODUCT_CATALOG_URL, holdings_url]
     elif provider == "ishares":
         symbol, name = "IGV", "iShares Expanded Tech-Software Sector ETF"
@@ -761,7 +784,7 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str):
                 content_type="application/json",
             ),
         ]
-        with _native_adapter_request_context(profile, adapter) as binding:
+        with request_context(profile, adapter) as binding:
             result = await adapter.fetch_latest(
                 symbol=symbol,
                 identifiers={
@@ -782,7 +805,7 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str):
             _OfflineAdapterResponse(body=raw_csv.encode(), url=source_url, content_type="text/csv")
         ]
         profile = _native_adapter_profile(adapter, symbol, name)
-        with _native_adapter_request_context(profile, adapter):
+        with request_context(profile, adapter):
             result = await adapter.fetch_latest(symbol=symbol, source_url=source_url)
     else:
         raise AssertionError(provider)
@@ -806,23 +829,122 @@ async def test_native_qualification_accepts_actual_offline_adapter_result_and_ke
     monkeypatch, provider, expected_basis, expected_date_field
 ):
     profile, adapter, result = await _fetch_native_adapter_result(monkeypatch, provider)
+    initial_binding = _OfflineAdapterClient.last_binding
+    assert initial_binding.native_initial_qualification_job_id == 44
+    assert initial_binding.native_initial_qualification_scope is not None
 
     evidence = _native_initial_qualification_fetch_evidence(
         profile,
         adapter,
         result,
-        request_binding=_OfflineAdapterClient.last_binding,
+        request_binding=initial_binding,
+    )
+    initial_captured_responses = list(_OfflineAdapterClient.captured_responses)
+
+    ordinary_profile, ordinary_adapter, ordinary_result = await _fetch_native_adapter_result(
+        monkeypatch, provider, ordinary=True
+    )
+    ordinary_binding = _OfflineAdapterClient.last_binding
+    assert ordinary_binding.native_initial_qualification_job_id is None
+    assert ordinary_binding.native_initial_qualification_scope is None
+    assert ordinary_binding.request_log_ids
+    assert [
+        ordinary_binding.request_urls_by_log_id[request_id]
+        for request_id in ordinary_binding.request_log_ids
+    ] == _OfflineAdapterClient.requested
+    ordinary_evidence = _native_adapter_fetch_evidence(
+        ordinary_profile,
+        ordinary_adapter,
+        ordinary_result,
+        request_binding=ordinary_binding,
+        require_body_witness=False,
     )
 
     assert evidence["fund_identity"]["basis"] == expected_basis
+    assert {
+        key: value
+        for key, value in ordinary_evidence["fund_identity"].items()
+        if key != "retrieved_at"
+    } == {key: value for key, value in evidence["fund_identity"].items() if key != "retrieved_at"}
     assert evidence["composition_date"] == "2026-11-02"
+    assert ordinary_evidence["composition_date"] == "2026-11-02"
     assert evidence["composition_date_source_field"] == expected_date_field
+    assert ordinary_evidence["composition_date_source_field"] == expected_date_field
+    if provider in {"invesco", "ishares"}:
+        catalog_url = ordinary_evidence["fund_identity"].get(
+            "catalog_request_url", ordinary_evidence["fund_identity"].get("source_url")
+        )
+        assert catalog_url in (
+            ordinary_binding.request_urls_by_log_id[request_id]
+            for request_id in ordinary_binding.request_log_ids
+        )
+    initial_identity_validation = _native_artifact_identity_validation(
+        profile,
+        _validate_artifact_identity(profile, result.raw_text),
+        evidence,
+    )
+    assert initial_identity_validation["status"] == "matched"
+    assert initial_identity_validation["native_fund_identity_evidence"] == evidence["fund_identity"]
+    identity_validation = _native_artifact_identity_validation(
+        ordinary_profile,
+        _validate_artifact_identity(ordinary_profile, ordinary_result.raw_text),
+        ordinary_evidence,
+    )
+    assert identity_validation["status"] == "matched"
+    assert (
+        identity_validation["native_fund_identity_evidence"] == ordinary_evidence["fund_identity"]
+    )
+    # This is the same identity/date metadata consumed by capability evaluation
+    # after snapshot/state persistence. Neutralize only the static symbol audit;
+    # the test is asserting that a fresh, complete native snapshot with these
+    # persisted fields is current/cache-eligible.
+    from app.services import etf_holdings_capability as capability_module
+
+    monkeypatch.setattr(
+        capability_module,
+        "symbol_audit_for_profile",
+        lambda _profile: SimpleNamespace(tier=None, outcome="current", evidence_state="test"),
+    )
+    from app.services.etf_holdings_capability import CURRENT, evaluate_capability
+
+    persisted_validation = identity_validation
+    snapshot = SimpleNamespace(
+        composition_date=date.fromisoformat(ordinary_evidence["composition_date"]),
+        as_of_date=None,
+        known_at=datetime(2026, 11, 2, 12, tzinfo=UTC),
+        published_at=datetime(2026, 11, 2, 12, tzinfo=UTC),
+        provenance="issuer_self_snapshotted_holdings",
+        source_provider=provider,
+        completeness_status="complete",
+        row_count=len(result.rows),
+        resolved_count=len(result.rows),
+        unresolved_count=0,
+        extra_data={"artifact_identity_validation": persisted_validation},
+        source_url=result.source_url,
+    )
+    state = SimpleNamespace(
+        status="success",
+        last_checked_at=datetime(2026, 11, 3, 12, tzinfo=UTC),
+        last_success_at=datetime(2026, 11, 3, 12, tzinfo=UTC),
+        last_failure_at=None,
+        failure_reason=None,
+        extra_data={"expected_cadence": "weekly"},
+    )
+    capability = evaluate_capability(
+        profile,
+        snapshot,
+        state,
+        now=datetime(2026, 11, 3, 12, tzinfo=UTC),
+    )
+    assert capability.identity_verified is True
+    assert capability.availability == CURRENT
+    assert capability.usable_for_current_analysis is True
     assert evidence["schema_fingerprint"] == _schema_fingerprint_for_adapter_result(result)
     body_witness = evidence["holdings_response_body_witness"]
     provider_capture = body_witness["provider_capture"]
-    captured_url, captured_body, actual_capture = _OfflineAdapterClient.captured_responses[-1]
+    captured_url, captured_body, actual_capture = initial_captured_responses[-1]
     assert provider_capture == actual_capture
-    assert provider_capture["request_log_id"] in _OfflineAdapterClient.last_binding.request_log_ids
+    assert provider_capture["request_log_id"] in initial_binding.request_log_ids
     assert hashlib.sha256(captured_body).hexdigest() == provider_capture["response_body_sha256"]
     assert provider_capture["response_body_bytes"] == len(captured_body)
     assert captured_url == result.source_url
@@ -830,6 +952,7 @@ async def test_native_qualification_accepts_actual_offline_adapter_result_and_ke
     assert body_witness["normalized_payload_sha256"] == evidence["raw_payload_hash"]
     if provider == "spdr":
         assert evidence["raw_payload_hash"] != provider_capture["response_body_sha256"]
+    assert "holdings_response_body_witness" not in ordinary_evidence
     if provider == "spdr":
         assert result.source_identifier is None
         assert evidence["source_identifier"] is None
@@ -903,11 +1026,120 @@ async def test_native_qualification_accepts_actual_offline_adapter_result_and_ke
 
     await _ensure_schema_fingerprint_is_stable(
         _ExistingStateDB(),
-        profile,
+        ordinary_profile,
         parser_version=evidence["parser_version"],
-        raw_payload_text=result.raw_text,
-        raw_payload_json=result.raw_json,
+        raw_payload_text=ordinary_result.raw_text,
+        raw_payload_json=ordinary_result.raw_json,
     )
+
+
+@pytest.mark.asyncio
+async def test_invesco_ordinary_fetch_revalidates_catalog_with_warm_cusip_hint(monkeypatch):
+    _OfflineAdapterClient.responses = []
+    _OfflineAdapterClient.requested = []
+    _OfflineAdapterClient.on_get = None
+    _OfflineAdapterClient.last_binding = None
+    _OfflineAdapterClient.captured_responses = []
+    monkeypatch.setattr(adapters_module.httpx, "AsyncClient", _OfflineAdapterClient)
+    adapter = get_holdings_adapter("invesco")
+    assert adapter is not None
+    adapter._cusip_cache = {"QQQ": "46090E103"}
+    profile = _native_adapter_profile(adapter, "QQQ", "Invesco QQQ Trust")
+    ordinary_binding = None
+
+    def record_binding():
+        nonlocal ordinary_binding
+        from app.services import etf_holdings_provider_bridge as bridge
+
+        ordinary_binding = bridge._REQUEST_BINDING.get()
+
+    _OfflineAdapterClient.on_get = lambda _url: record_binding()
+    catalog_payload = {
+        "response": {
+            "docs": [
+                {
+                    "ticker": "QQQ",
+                    "cusip": "46090E103",
+                    "accountName": "Invesco QQQ Trust",
+                }
+            ]
+        }
+    }
+    holdings_payload = {
+        "effectiveBusinessDate": "2026-11-02",
+        "effectiveDate": "2026-11-03",
+        "holdings": [{"ticker": "NVDA", "issuerName": "NVIDIA Corp"}],
+    }
+    holdings_url = adapter._holdings_url("46090E103")
+    _OfflineAdapterClient.responses = [
+        _OfflineAdapterResponse(
+            body=json.dumps(catalog_payload).encode(),
+            url=adapter._PRODUCT_CATALOG_URL,
+            content_type="application/json",
+        ),
+        _OfflineAdapterResponse(
+            body=json.dumps(holdings_payload).encode(),
+            url=holdings_url,
+            content_type="application/json",
+        ),
+    ]
+    with bind_etf_holdings_request_context(
+        db=object(),
+        adapter=adapter,
+        profile_id=profile.id,
+        instrument_id=profile.instrument_id,
+        provider_symbol="QQQ",
+        operation="fetch_etf_holdings_latest",
+    ):
+        result = await adapter.fetch_latest(
+            symbol="QQQ",
+            identifiers={
+                "cusip": "46090E103",
+            },
+        )
+
+    assert ordinary_binding is not None
+    assert ordinary_binding.native_initial_qualification_job_id is None
+    assert ordinary_binding.native_initial_qualification_scope is None
+    assert _OfflineAdapterClient.requested == [adapter._PRODUCT_CATALOG_URL, holdings_url]
+    catalog = result.legal_metadata["issuer_product_catalog"]
+    assert catalog["matched_product"] == {
+        "ticker": "QQQ",
+        "cusip": "46090E103",
+        "account_name": "Invesco QQQ Trust",
+    }
+    assert (
+        hashlib.sha256(base64.b64decode(catalog["response_body_base64"], validate=True)).hexdigest()
+        == catalog["response_sha256"]
+    )
+    assert result.legal_metadata["effective_business_date"] == "2026-11-02"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["spdr", "invesco", "ishares", "amplify"])
+async def test_ordinary_native_identity_rejects_foreign_fund_or_account(monkeypatch, provider):
+    profile, adapter, result = await _fetch_native_adapter_result(
+        monkeypatch, provider, ordinary=True
+    )
+    if provider == "spdr":
+        result.raw_text = result.raw_text.replace("Ticker Symbol:,XES", "Ticker Symbol:,OTHER")
+    elif provider == "invesco":
+        # NVDA occurs in the holdings, but the catalog proves the selected fund is QQQ.
+        profile.instrument.symbol = "NVDA"
+        profile.instrument.name = "NVIDIA Corp"
+    elif provider == "ishares":
+        result.legal_metadata["issuer_product_catalog"]["ticker"] = "OTHER"
+    else:
+        result.legal_metadata["selected_account"] = "OTHER"
+
+    with pytest.raises(ValueError, match="conflicts with the selected fund|does not prove"):
+        _native_adapter_fetch_evidence(
+            profile,
+            adapter,
+            result,
+            request_binding=_OfflineAdapterClient.last_binding,
+            require_body_witness=False,
+        )
 
 
 @pytest.mark.asyncio
@@ -1190,11 +1422,35 @@ async def test_native_adapter_results_reject_missing_reported_date_and_non_spdr_
     monkeypatch, provider
 ):
     profile, adapter, result = await _fetch_native_adapter_result(monkeypatch, provider)
+    ordinary_profile, ordinary_adapter, ordinary_result = await _fetch_native_adapter_result(
+        monkeypatch, provider, ordinary=True
+    )
+    ordinary_binding = _OfflineAdapterClient.last_binding
+    assert ordinary_binding.native_initial_qualification_job_id is None
+    assert ordinary_binding.native_initial_qualification_scope is None
     metadata = result.legal_metadata
     for field in ("composition_date", "effective_business_date", "effective_date", "as_of_date"):
         metadata.pop(field, None)
+    ordinary_metadata = ordinary_result.legal_metadata
+    for field in ("composition_date", "effective_business_date", "effective_date", "as_of_date"):
+        ordinary_metadata.pop(field, None)
+    if provider == "amplify":
+        # Amplify's reported composition date is the date on the selected
+        # account rows themselves, not a separate metadata field.
+        result.raw_text = result.raw_text.replace("11/02/2026,BWET,", "not-a-date,BWET,")
+        ordinary_result.raw_text = ordinary_result.raw_text.replace(
+            "11/02/2026,BWET,", "not-a-date,BWET,"
+        )
     with pytest.raises(ValueError, match="provider-reported composition date"):
         _native_initial_qualification_fetch_evidence(profile, adapter, result)
+    with pytest.raises(ValueError, match="provider-reported composition date"):
+        _native_adapter_fetch_evidence(
+            ordinary_profile,
+            ordinary_adapter,
+            ordinary_result,
+            request_binding=ordinary_binding,
+            require_body_witness=False,
+        )
 
     profile, adapter, result = await _fetch_native_adapter_result(monkeypatch, provider)
     result.source_identifier = None
