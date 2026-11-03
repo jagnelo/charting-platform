@@ -22,25 +22,35 @@
     }
   ],
   "active_changeset": {
+    "adopted_provider_and_test_sha256": {
+      "backend/app/routers/instruments.py": "f3ac240c75188be1fb99575ea4b722b7ce0d8032d563e136f2b1b3e6e0101715",
+      "backend/app/services/instrument_mastering.py": "42f5b85163a4e46cc36ab1890e803ba11d665dd37466f36c8a26218dce26046c",
+      "backend/app/services/instrument_sync.py": "0e0448047389ce199701034550a8c7a1fef88e2386ae9e698f7872d82ed76ab1",
+      "backend/app/services/market_universe.py": "d77c96e6f9ddcfb1593b77816e5d305035a3cebcd376a1d4aac953ae1627c058",
+      "backend/tests/integration/api/test_etf_holdings.py": "bf7c40a96981887914330a60c5ad78fe12ecdfe6ce72d881fff029ebfdd1357d",
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "3abce36836546db158fe358cddd9f11c3f1ebf5942020b20c3b88d0cc2dc5510",
+      "backend/tests/unit/routers/test_instruments_router.py": "d557ed33a009d637eda2f75c1ae43516af63cc65a04e579c16d28a98189aa635",
+      "backend/tests/unit/services/test_instrument_sync_metadata.py": "41fd316a2bb53f6c08c9413b5abe245d8a9f61ae210d98cb30ed718e9ed8ef5f"
+    },
     "authorization": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md",
     "baseline": "f8323af179922193f4dcf3c9f0a5d9001282455f",
     "live_source_or_target_operation": false,
     "name": "ordinary selected ETF acquisition route preparation",
-    "provider_callable": "Provider callable requires data_source_id; implementation must be adopted only through synchronized green staging. No Provider branch import or file edit.",
+    "provider_callable": "Provider callable and ETV taxonomy adopted only through exact green stage4d4a278b1b086745b22aab05d3d960539ad02c97; the post-adoption PG path verifies shared persistence with MockTransport, not live source success.",
     "scope": "ETF-owned backend API/schema/service/adapter/model/migration and deterministic unit tests only; Provider owns provider_runtime.py and the generic qualification callable; TC owns frontend.",
     "source_file_sha256": {
       "backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py": "a01e16976d47c64509dc097fe3b9e5f009e318b1f970e3b32607f9f937f4c533",
       "backend/app/models/__init__.py": "bdbb4e041d4d7d5e0e0e2d5b567dfefb41f6882e0f67738aff0274d8328a64f6",
       "backend/app/models/etf_holdings.py": "79d98ef98934d1edc54aa3dc16eb3a3a55856fcada52808913c8ef557efafd05",
-      "backend/app/routers/etf_holdings.py": "5ffaaaf7ba73982004097a28ae639d7ae541a36a664ed528298ae4095c2ff355",
+      "backend/app/routers/etf_holdings.py": "a8dd0a1dc9a1a9db7c1c694b5108443761a5a7e0ef73a98063accef87d06ea73",
       "backend/app/schemas/etf_holdings.py": "f447573dd06584fd42c51ef1762300e0623394e6ffe2ba4a65a8473d60ef4d8d",
-      "backend/app/services/etf_holdings_adapters.py": "0bb9798472e5b7339c5256325bcbe660003db5743db5d7d22a858cbdccf42ca3",
+      "backend/app/services/etf_holdings_adapters.py": "337bb2d452141a53662f1322b6a1bf0e666d1f7bf1f8cdf4d1573aad552069ba",
       "backend/app/services/etf_holdings_capability.py": "17cf8ee0ca71d0952524cc25beaa1090053b1372759fc16418703df78d59524c",
-      "backend/app/services/etf_holdings_refresh.py": "1df98fa1486b8e16536e4b64e467fed96aedf123099ef0c55a50bc5fcb844e7f",
+      "backend/app/services/etf_holdings_refresh.py": "ad9cf4f7821babedd6bd479a63e51e124cf7e38e5e98f5226bf812648d0a3a2a",
       "backend/app/services/etf_issuer_catalog.py": "0572489026d6b5bfc48dbaaf60dc5790e8beb58302ae4c89940032a93405ea80",
-      "backend/tests/unit/services/test_etf_holdings_adapters.py": "6b3fd7e293c05e5fac1b2c29cc3ced6380f40b97c8ba78777f000df3bf87acec",
-      "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "a6d70d1a764ed12d6217af8cd768cc07fcc61a1ab2417fd1f75e0a3c82020492",
-      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "742a75c9494234359eb15e940a45b0147677a8b331adac1da1f462b0a31f1585",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py": "320e3255a5d850eb1b3342f703333e47454a2f7bb171115f36ecaa6663df36d4",
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "1ef3f50fb31871c4f0922bbf31c7a06ecb036976bbf45b9fafcf7df342a7c261",
       "backend/tests/unit/services/test_etf_issuer_catalog.py": "0ba10187c894bf9e51c755b66e4d1040efce8bffb0b09a2ca5d0c6a3aac79cbb"
     },
     "source_paths": [
@@ -58,7 +68,7 @@
       "backend/tests/unit/services/test_etf_issuer_catalog.py",
       "backend/tests/unit/services/test_etf_holdings_native_qualification.py"
     ],
-    "state": "Selected-acquire routing and reusable iShares catalog metadata resolution are implemented and focused locally green. The generic sealed initial-qualification executor and full qualification remain pending; no live source call is claimed."
+    "state": "Provider callable adopted through released green staging; selected acquire/native evidence and focused tests pass; exact current branch CI and artifact/profile remain pending."
   },
   "active_follow_up": {
     "baseline_head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
@@ -70,7 +80,7 @@
     ],
     "candidate_source_sha256": {
       "backend/app/services/etf_holdings_refresh.py": "ad9cf4f7821babedd6bd479a63e51e124cf7e38e5e98f5226bf812648d0a3a2a",
-      "backend/tests/integration/api/test_etf_holdings.py": "62212e1653b2ea7041d00f7def8b1fd3b74cc22136c9cae6aabd031aa93fe1a8",
+      "backend/tests/integration/api/test_etf_holdings.py": "bf7c40a96981887914330a60c5ad78fe12ecdfe6ce72d881fff029ebfdd1357d",
       "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
       "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "1ef3f50fb31871c4f0922bbf31c7a06ecb036976bbf45b9fafcf7df342a7c261"
     },
@@ -83,18 +93,21 @@
       "Affected ETF adapter/bootstrap/catalog modules passed 743/743; Ruff check/format, Alembic head, workstream validation, narrative regression, and diff checks passed.",
       "Restored legacy SPDR/Invesco/iShares product-page route compatibility while keeping their completeness unknown; corrected direct-native SPDR/iShares fixtures with actual body dates and canonical fund names.",
       "Accepted only the exact Exchange Traded Vehicle / Exchange Traded Product type pair; kept ETN excluded and proved a route-less ETV returns unavailable before profile/source work. Existing source-derived cash/futures/derivative position labels remain unchanged.",
-      "Bounded seven-node PG/Testcontainers compatibility attempt003 passed 7/7 with automatic cleanup and protected inventory equality; attempt002 red and attempt001 pre-test setup refusal remain preserved."
+      "Bounded seven-node PG/Testcontainers compatibility attempt003 passed 7/7 with automatic cleanup and protected inventory equality; attempt002 red and attempt001 pre-test setup refusal remain preserved.",
+      "Adopted exact green Provider stage4d4a278b1b086745b22aab05d3d960539ad02c97 by normal same-branch merge; no sibling import.",
+      "Post-adoption isolated PG passed the ETV/ETN/wrong-class cases and native SPDR qualification-to-ordinary continuity (4/4, zero skips/failures).",
+      "Focused native qualification/catalog/refresh and Provider instrument unit tests passed152/152; Ruff check and format passed."
     ],
     "id": "etf-ordinary-selected-acquisition-route-preparation-20261103",
     "pending": [
-      "Publish the corrected coherent source and obtain its own exact-source branch CI; prior CI41679135322 remains red historical evidence.",
-      "Adopt the new Provider classification/retained-instrument-type response only after its exact synchronized green staging release, at a clean boundary; do not import sibling files.",
-      "After adoption, run the engine-backed shared contract and wait for Root fresh artifact/profile binding before broader qualification. No old artifact/profile authority is reused.",
-      "Generic sealed qualification, genuine source proof, and full AC1-AC14 completion remain open; Root owns later live/source and deployment gates."
+      "Publish coherent current source/records and obtain exact-source full_integration CI; preserve all prior red/setup evidence.",
+      "Build/export one immutable backend/worker artifact from the frozen current backend tree with exact context/image/digest/labels/platform provenance.",
+      "Root/TC review component equivalence and own the single combined functional/104 strict-visual profile. No ETF-owned browser fixture or publisher HTTP.",
+      "Genuine publisher qualification, protected integration/deployment and full AC1-AC14 remain open."
     ],
     "prior_checkpoint_archive": "previously_accepted_unxq_calendar_checkpoint_2026_10_31",
     "provider_http_used": false,
-    "status": "focused legacy-route and ETV eligibility correction complete; coherent publication and exact-source CI pending",
+    "status": "post-adoption focused validation passed; current source publication, exact CI, backend artifact and Root/TC combined profile pending",
     "validation_tier": "full_integration"
   },
   "active_goal": {
@@ -157,11 +170,13 @@
     "updated_at_epoch": 1793716359
   },
   "current_blocker_latest": "Exact source CI41679135322 on 5ba7dc66035a272f23ffcdb03c2f705f7a6dacb0 remains preserved red for five ETF refresh compatibility tests. The legacy/native evidence correction and ETV/ETP route gate are now focused-green; this candidate still needs one coherent publication and its own CI. The new Provider type/classification response must first enter exact green staging and then be adopted at a clean boundary. Root must provide fresh artifact/profile pins after adoption. No source HTTP or target/policy/quota/ledger mutation is authorized; preserve 15 Tier-0 and 156 Tier-1 and every hold.",
-  "current_checkpoint_objective": "Implement selected-canonical-fund acquisition with generic hint-only nomination across the four registered core native publishers, exact native fund/body/date/schema evidence, and an offline admin executor against the declared Provider contract. Admit Exchange Traded Vehicle only when its exact instrument type belongs to Exchange Traded Product and an exact issuer-backed route/native fund proof succeeds; preserve ETN as distinct and excluded. Real callable/engine integration waits for exact synchronized green staging; preserve all AC1-AC14 and all source/account/target holds.",
-  "current_local_delta": "Ordinary selected-fund refresh obtains current Invesco catalog identity evidence rather than treating a warm CUSIP/cache as proof. Offline tests fetch each actual SPDR/Invesco/iShares/Amplify adapter under a normal binding with qualification job and scope absent, then validate identity, ordinary request URLs, reported composition date, persisted identity fields and current capability eligibility. Native/refresh/narrative tests pass78 with1 existing skip; the complete adapter module passes681/681. Ruff/format pass. The isolated engine-backed Producer callable test remains unexecuted pending green staging and Root fixture release; no source HTTP, DB fixture, policy/quota/ledger mutation, target operation or deployment occurred.",
+  "current_checkpoint_objective": "Implement ordinary selected-canonical-fund acquisition, exact native evidence and generic admin qualification executor using the Provider callable adopted only from green stage4d4a278b; preserve ETV/ETP versus ETN and all source/account/target holds.",
+  "current_local_delta": "Post-adoption source2bc627c412838eeac70ece0ae4f0bcc5ff1552dc passed four isolated PG cases: BWET ETV/ETP held/no-network acquire, ETN denial, wrong-class ETV denial, and native SPDR qualification through persisted raw/date/fund/schema evidence into ordinary refresh. Focused native/catalog/refresh/Provider instrument units passed152/152; Ruff check/format passed. Attempt002 is a pre-test inventory-helper failure; attempt003's exact transient Ryuk self-cleaned and final inventory equality was independently verified. No live source HTTP or production/ledger/policy action.",
   "dirty_paths": [
-    "backend/tests/integration/api/test_etf_holdings.py",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json"
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
     "available": false,
@@ -188,7 +203,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "7cf4952935392719023e24fd9dc7f658823aef18",
+  "head": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -849,29 +864,34 @@
     "sha": "802ef5b1e6a4246cc27f29da90950984878df947"
   },
   "latest_staging_baseline_adoption": {
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261102T111449Z-f8323af17992.json",
-    "canonical_receipt_sha256": "506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188",
-    "exact_ci_run": 41397907218,
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
+    "canonical_receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+    "exact_ci_run": 41706834463,
+    "master_or_deployment_claim": false,
     "master_or_deployment_claimed": false,
     "merge_conflicts": [],
-    "product_delta_imported": "Provider staging ancestry only; ETF changes started afterward",
-    "release_state": "exact synchronized-green staging adopted by fast-forward",
-    "released_staging_sha": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-    "resulting_head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vj6s-f832-canonical-green-staging-root-review-20261102.json",
-    "source_commit_before_merge": "c664065c32c8b14e63017d6799da2dbe5d027941"
+    "pre_adoption_feature_sha": "26def097c1e64f3bcfcbf38349470dd80dbbd1cc",
+    "product_delta_imported": "Provider ETV/Exchange Traded Product classification and selected-instrument type adopted from exact green staging",
+    "release_state": "exact synchronized-green staging normally merged into the assigned ETF branch",
+    "released_staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+    "resulting_head": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
+    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-green4d-provider-taxonomy-adoption-release-20261103.json",
+    "root_release_review_sha256": "3ab50f1aed1a2fa2feee2916c66566a6319fc807e3bacf6da3268f48863fa1b2",
+    "source_changes_after_merge": "Provider ETV taxonomy contract adopted through green staging; no sibling imports",
+    "source_commit_before_merge": "26def097c1e64f3bcfcbf38349470dd80dbbd1cc"
   },
   "latest_staging_reconciliation": {
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261102T111449Z-f8323af17992.json",
-    "canonical_receipt_sha256": "506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188",
-    "exact_ci_run": 41397907218,
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
+    "canonical_receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+    "exact_ci_run": 41706834463,
     "master_or_deployment_claim": false,
     "merge_conflicts": [],
-    "pre_adoption_feature_sha": "c664065c32c8b14e63017d6799da2dbe5d027941",
-    "released_staging_sha": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-    "resulting_head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
-    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/provider-vj6s-f832-canonical-green-staging-root-review-20261102.json",
-    "source_changes_after_merge": "ETF-owned selected-acquire route preparation only"
+    "pre_adoption_feature_sha": "26def097c1e64f3bcfcbf38349470dd80dbbd1cc",
+    "released_staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+    "resulting_head": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
+    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-green4d-provider-taxonomy-adoption-release-20261103.json",
+    "root_release_review_sha256": "3ab50f1aed1a2fa2feee2916c66566a6319fc807e3bacf6da3268f48863fa1b2",
+    "source_changes_after_merge": "Provider ETV taxonomy contract adopted through green staging; no sibling imports"
   },
   "local_profile_execution": {
     "cleanup": {
@@ -908,9 +928,9 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Publish the coherent corrected candidate and let exact-source branch CI run. Then adopt only the new Provider type/classification contract from synchronized green staging at a clean boundary; run the engine-backed tests and wait for Root fresh artifact/profile binding before broader qualification. No source HTTP, target/policy/quota/ledger operation, image build, or browser profile under the old Provider dependency.",
-  "plan_hash": "77c0809843937a5a9fb02641e5e3ba128aaf08657267d5dd2607127ba8d0e98a",
-  "plan_sha256": "77c0809843937a5a9fb02641e5e3ba128aaf08657267d5dd2607127ba8d0e98a",
+  "next_action": "Run workstream/narrative guards, publish the coherent source and records once, obtain exact-source CI, and build/export the frozen backend/worker artifact under the released bounded recipe. Hand exact provenance to Root/TC; no provider HTTP or ETF-owned browser profile.",
+  "plan_hash": "141d4a6857a245c0c9f72fe9ff47ebb35aecae12b38ac38a4fbe60f0ce4d78d8",
+  "plan_sha256": "141d4a6857a245c0c9f72fe9ff47ebb35aecae12b38ac38a4fbe60f0ce4d78d8",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -2766,10 +2786,11 @@
       "OSA1",
       "OSA2",
       "OSA3",
-      "OSA4"
+      "OSA4",
+      "OSA5"
     ],
-    "current_blocker": "The exact-source CI on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is preserved red (run 41665410601; one IGV success-fixture failure, 5,764 passed/2 skipped). Its incomplete 482-row fixture and read-only DB-double gaps are corrected locally; 114 focused cases pass with one existing Producer-contract skip. Publish this corrected candidate for a new exact-source CI. Provider callable adoption and the engine-backed test still await synchronized green staging and Root fixture release. No provider HTTP or target/policy/ledger mutation is authorized. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
-    "current_phase": "Ordinary adapter paths for SPDR, Invesco, iShares and Amplify are exercised with ordinary bindings and no qualification job/scope. Direct Invesco coverage proves catalog evidence survives a warm CUSIP cache and caller CUSIP hint; catalog and holdings request lineage, fund identity and effective business date are checked. The prior exact CI red remains historical; the corrected focused native/catalog/refresh modules pass 114 with one existing dependency-contract skip. Engine-backed Provider integration remains pending its separate staging/fixture release.",
+    "current_blocker": "Publish coherent current source/records and obtain exact-source CI, then build/export the frozen backend/worker artifact. Root/TC own component-equivalence review and the combined functional/104-visual profile. No issuer HTTP, production/ledger/policy mutation or ETF app/browser fixture is released. Preserve 15 Tier-0 and 156 Tier-1, all AC1-AC14, history and holds.",
+    "current_phase": "After exact green stage4d adoption, isolated PG passed ETV/ETN/wrong-class plus native SPDR qualification-to-ordinary continuity (4/4); focused native/catalog/refresh/Provider instrument units passed152/152; Ruff check/format passed.",
     "total": 5
   },
   "provider_release": {
@@ -2807,10 +2828,30 @@
     "sibling_imports": "none",
     "staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6"
   },
+  "provider_taxonomy_staging_adoption_20261103": {
+    "attempt": 1,
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
+    "canonical_receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+    "exact_ci_run": 41706834463,
+    "local_merge_commit": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
+    "master_or_deployment_claimed": false,
+    "merge_conflicts": [],
+    "merge_parents": [
+      "26def097c1e64f3bcfcbf38349470dd80dbbd1cc",
+      "4d4a278b1b086745b22aab05d3d960539ad02c97"
+    ],
+    "pre_adoption_local_commit": "26def097c1e64f3bcfcbf38349470dd80dbbd1cc",
+    "released_staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+    "root_release_record": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-green4d-provider-taxonomy-adoption-release-20261103.json",
+    "root_release_record_sha256": "3ab50f1aed1a2fa2feee2916c66566a6319fc807e3bacf6da3268f48863fa1b2",
+    "source_import": "normal same-branch merge; no sibling file copy",
+    "state": "terminal_green_all_required_jobs",
+    "supported_reconcile": "make staging-reconcile exited0; synchronized; marker absent"
+  },
   "remote": "7cf4952935392719023e24fd9dc7f658823aef18",
-  "remote_observation": "Local HEAD and origin feature branch are both at 0dba8561e604988eaecd2948bb74d7c8ccc0e61c; the iShares catalog candidate is uncommitted. No source publication or CI run has occurred for this candidate.",
+  "remote_observation": "Local source includes the prepared ETV test and exact green Provider merge; coherent current publication is pending. origin feature remains7cf4952935392719023e24fd9dc7f658823aef18.",
   "remote_sha": "7cf4952935392719023e24fd9dc7f658823aef18",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",

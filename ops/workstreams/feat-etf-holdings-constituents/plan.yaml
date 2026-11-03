@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_merge_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
-latest_staging_parent_sha: 7546e7690ababcbefeff2c3279ea8b3bae638f10
+latest_staging_merge_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+latest_staging_parent_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
 staging_adoption_a6558c497831_2026_10_31:
   released_staging_sha: a6558c4978311d7a21c3b29d3d8fd2f043610efb
   canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261031T070709Z-a6558c497831.json
@@ -30,6 +30,19 @@ staging_adoption_f8323af17992_2026_11_02:
   adoption: adopted exact green staging ancestry in the assigned ETF branch before implementation
   conflict_disposition: no source conflict; Provider staging is an ancestry dependency only
   source_implementation_claimed: false
+  deployment_or_target_claimed: false
+staging_adoption_4d4a278b1b08_2026_11_03:
+  released_staging_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+  canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json
+  canonical_receipt_sha256: c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7
+  exact_staging_ci: 41706834463
+  state: terminal_green_all_required_jobs
+  supported_reconcile: make staging-reconcile exited 0; synchronized; marker absent
+  pre_adoption_local_commit: 26def097c1e64f3bcfcbf38349470dd80dbbd1cc
+  local_merge_commit: 2bc627c412838eeac70ece0ae4f0bcc5ff1552dc
+  merge_parents: [26def097c1e64f3bcfcbf38349470dd80dbbd1cc, 4d4a278b1b086745b22aab05d3d960539ad02c97]
+  merge_conflicts: []
+  adoption: normal same-branch merge; no sibling source import
   deployment_or_target_claimed: false
 historical_staging_merge_before_cb_2026_10_30:
   latest_staging_merge_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
@@ -2495,24 +2508,26 @@ integration_checkpoint:
     Human-activated scope is recorded at
     /home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md.
     Exact green staging f8323af179922193f4dcf3c9f0a5d9001282455f is adopted in this ETF branch
-    (CI41397907218, terminal green). Provider owns the qualification callable; TC owns frontend.
+    (CI41397907218, terminal green). Provider callable/ETV taxonomy is now adopted only through
+    released green staging 4d4a278b1b086745b22aab05d3d960539ad02c97 (CI41706834463); Provider owns
+    runtime, ETF owns the qualification executor, and TC owns frontend.
   status: implementation_in_progress
   acceptance_authorization: pending_review
   source_baseline: f8323af179922193f4dcf3c9f0a5d9001282455f
   acceptance_criteria: *etf_ordinary_selected_acquire_criteria
   progress:
-    completed: [OSA1, OSA2, OSA3, OSA4]
+    completed: [OSA1, OSA2, OSA3, OSA4, OSA5]
     total: 5
     current_phase: >-
-      The selected-fund route hints, four native adapter evidence paths, and body-to-parser/log
-      witness checks pass focused no-network tests. The offline executor implementation is in this
-      candidate; real Provider callable integration and engine-backed verification remain pending.
+      After exact green staging 4d4a278b1b086745b22aab05d3d960539ad02c97 was adopted, the isolated
+      PostgreSQL slice passed four cases: ETV/ETP BWET, ETN denial, wrong-class ETV denial, and native
+      SPDR qualification through persisted native evidence into ordinary refresh. Focused native,
+      catalog, refresh and Provider instrument unit cases passed 152/152; Ruff check/format passed.
     current_blocker: >-
-      Provider's generic bind_native_etf_initial_qualification callable, including required
-      data_source_id, is not yet adopted through synchronized green staging. The offline executor
-      may be prepared, but exact callable integration and engine-backed contract tests wait for the
-      released green source. No provider HTTP or target/policy/ledger mutation is authorized here.
-      Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.
+      Publish the coherent source/record candidate and obtain exact-source branch CI, then build/export
+      the immutable current backend/worker artifact. Root/TC own component-equivalence review and the
+      combined functional/104-visual profile. No publisher HTTP, production/ledger/policy mutation or
+      app/browser fixture is released to ETF. Preserve 15 Tier-0 and 156 Tier-1 and every hold.
   required_contracts:
     - The existing POST /api/v1/etf-holdings/{symbol}/acquire remains the selected-fund action; optional positive instrument_id must match the existing canonical resolved fund for the path symbol.
     - No-profile route preparation is limited to exact curated metadata or the exact symbol's current audit mapped to a registered native adapter with matching source_provider identity.
@@ -2523,7 +2538,7 @@ integration_checkpoint:
     - Catalog content is cached with exact body bytes/base64, SHA256, encoding, same-origin source/final URLs, retrieval time, and admitted Provider request-log lineage. Duplicate/conflicting/foreign/malformed rows fail closed; partial content may prove a present exact row but never an absent ticker.
     - Catalog fetch and every redirect are physical requests inside the same selected fund's admitted logical fetch_etf_holdings_latest operation, with the normal host allowlist, scope, quota, cost, and hold gates.
     - Missing route metadata returns unavailable/profile=null/no request; every configured route still passes through shared Provider policy, entitlement, cost, quota, health and hold admission.
-    - The offline executor derives attempt/provider/profile/instrument/symbol/account/revision/fingerprint/deadline/budget from locked durable records and calls only the declared sealed provider_runtime contract. Real callable/engine integration waits for exact green staging; a probe passes only after actual raw, dated, schema-valid exact-fund evidence is committed and current review is rechecked.
+    - The offline executor derives attempt/provider/profile/instrument/symbol/account/revision/fingerprint/deadline/budget from locked durable records and calls only the declared sealed provider_runtime contract. After exact green staging adoption, the PostgreSQL regression exercises the real callable/engine persistence path with MockTransport. A probe passes only after raw, dated, schema-valid exact-fund evidence is committed and current review is rechecked; live publisher proof remains Root-owned.
   source_scope:
     - backend/app/routers/etf_holdings.py
     - backend/app/schemas/etf_holdings.py
@@ -2585,30 +2600,31 @@ integration_checkpoint:
       on the same bounded seven-node PG slice; attempt003 passed all seven cases on the corrected
       pre-ETV source. Setup refusal attempt001 remains preserved with zero tests started.
     exact_source_ci: >-
-      Prior source5ba7 CI41679135322 remains red historical evidence. The corrected candidate has
-      not yet been published; its own exact-source branch CI is required and must be observed
-      without replaying the prior run.
+      Prior source5ba7 CI41679135322 remains red historical evidence. Current merged source
+      2bc627c412838eeac70ece0ae4f0bcc5ff1552dc is not yet published and requires its own exact-source
+      branch CI. Prior CI41689499891 and Provider staging CI41706834463 apply only to their exact sources.
     local_profile: >-
-      The bounded seven-node PostgreSQL/Testcontainers compatibility run passed 7/7 in attempt003
-      on source5ba7 before the later ETV-only resolver/test addition. Attempt002 (5/7) is preserved
-      as a genuine red from symbol-only test canonical names; attempt001 is a pre-test launcher
-      refusal. The final ETV resolver contract is covered by focused unit tests, not claimed as
-      PostgreSQL-tested. Full backend/profile qualification remains pending the new Provider type
-      dependency entering green staging and Root's fresh artifact/profile binding.
+      The preserved pre-ETV seven-node PG attempt003 passed 7/7 on source5ba7. After 4d adoption,
+      current isolated PG attempt003 passed the three ETV/ETN/wrong-class cases and native SPDR
+      qualification-to-ordinary continuity (4/4). Its immediate inventory showed the exact generated
+      Ryuk sidecar transiently; it self-cleaned without manual removal, and a fresh comparison restored
+      the original 29-container/27-image/10-network/51-volume inventory. Attempt002 is preserved as a
+      pre-test inventory-helper failure; attempt001 remains a pre-test launcher refusal. Full
+      backend/artifact and combined TC runtime qualification remain pending.
     focused_candidate_validation: >-
       After the ETV change, 66 focused native-qualification/bootstrap tests passed, 12 route/type
       selection tests passed, and 4 Amplify adapter-focused tests passed. Ruff format/check and
       git diff --check passed. ETV is accepted only for the exact Exchange Traded Vehicle type
       under Exchange Traded Product; ETN is rejected and an ETV without an exact issuer route is
       unavailable before profile/source work. Existing source position labels remain unchanged.
-    provider_initial_qualification: offline executor and evidence guards implemented; real shared callable/engine integration pending exact green staging adoption, no fake probe or bypass
+    provider_initial_qualification: offline executor and evidence guards implemented; actual shared callable/engine persistence and ordinary SPDR continuity pass the released no-network PG regression; no live publisher request or production proof
   local_validation_profile: full_stack_browser
   branch_validation_tier: full_integration
   full_roadmap_status: AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted checkpoints, retained datasets and historical failures.
   remaining_gates:
-    - Publish the coherent focused ETF candidate and complete its exact-source branch CI; preserve the prior red CI and PostgreSQL-attempt history.
-    - Adopt the new Provider classification/retained-type contract only from exact green staging at a clean boundary, then execute the engine-backed shared-contract tests without copying Producer source.
-    - Receive Root's fresh artifact/profile binding only after that Provider adoption; do not reuse the old artifact/profile release. Root separately owns any publisher HTTP, target proof, integration and deployment.
+    - Publish this coherent source/record candidate and pass its exact-source full_integration branch CI.
+    - Build/export the frozen current backend/worker artifact and provide exact source/context/image provenance.
+    - Root/TC review component equivalence and own the single combined functional plus 104 strict-visual profile; live publisher/production proof and AC1-AC14 remain open.
   closure_pending: true
 status: "in_progress"
 previously_accepted_erf_progress:
@@ -2628,23 +2644,17 @@ previously_accepted_unxq_calendar_progress_2026_10_31:
   total: 4
   current_phase: UCF1-UCF4 accepted under delegated authority; AC1-AC14 remain open
 progress:
-  completed: [OSA1, OSA2, OSA3, OSA4]
+  completed: [OSA1, OSA2, OSA3, OSA4, OSA5]
   total: 5
   current_phase: >-
-    The five prior exact-branch integration failures are corrected with truthful native versus
-    legacy product-page evidence; attempt003 passed the exact seven-node isolated PG slice 7/7.
-    The final ETV/ETP acceptance and ETN denial are covered by focused unit tests, with an explicit
-    route-less ETV unavailable check. Amplify parser type assertions, Ruff, format, and diff checks
-    pass. A new coherent source commit and exact branch CI are next; no old Provider artifact or
-    browser profile is reused for the changed dependency.
+    Green Provider stage 4d4a278b1b086745b22aab05d3d960539ad02c97 was normally adopted in local
+    merge 2bc627c412838eeac70ece0ae4f0bcc5ff1552dc. Post-adoption PG passed four cases and the
+    focused native/catalog/refresh/Provider unit slice passed 152/152; Ruff check/format passed.
   current_blocker: >-
-    The final Provider classification/retained-instrument-type response is not yet released from
-    synchronized green staging. The ETV rule remains inert unless the exact ETP-classified ETV
-    identity and exact issuer-backed route/native evidence are present; ETN remains excluded. After
-    candidate publication and exact CI, adopt only that Provider staging source at a clean boundary,
-    then await Root's new artifact/profile binding before broader qualification. No source HTTP or
-    target/policy/quota/ledger mutation is authorized here. Preserve 15 Tier-0 and 156 Tier-1 and
-    every existing hold.
+    Publish the coherent current source/records, obtain exact-source CI, and build/export the frozen
+    backend/worker artifact. Root/TC own component-equivalence review and the combined functional/
+    104-visual profile. No issuer HTTP, production/ledger/policy mutation or ETF app/browser fixture
+    is released. Preserve 15 Tier-0 and 156 Tier-1, all AC1-AC14, history and holds.
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
