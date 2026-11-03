@@ -1008,6 +1008,131 @@ async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
         )
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("symbol", "asset_class_name", "instrument_type_name", "eligible"),
+    [
+        ("BWET", "Exchange Traded Product", "Exchange Traded Vehicle", True),
+        ("XETN", "Exchange Traded Product", "ETN", False),
+        ("XWRG", "Equity", "Exchange Traded Vehicle", False),
+    ],
+)
+async def test_selected_fund_acquire_resolves_exchange_traded_product_type_in_postgres(
+    selected_fund_acquire_database,
+    monkeypatch,
+    symbol,
+    asset_class_name,
+    instrument_type_name,
+    eligible,
+):
+    """The production ORM type path admits ETV/ETP, but not ETN or a wrong class."""
+    from uuid import uuid4
+
+    from fastapi import HTTPException
+    from sqlalchemy import select, text
+    from sqlalchemy.orm import selectinload
+
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+    from app.routers.etf_holdings import acquire_holdings_profile
+    from app.schemas.etf_holdings import ETFProfileAcquireRequest
+    from app.services import etf_holdings_refresh
+
+    session_factory = selected_fund_acquire_database
+    # Keep the committed seed session checked out so the request must use a
+    # second PostgreSQL connection, not merely a new identity map on the same
+    # connection.
+    async with session_factory() as seed_db:
+        async with seed_db.begin():
+            asset_class = AssetClass(name=asset_class_name, description=asset_class_name)
+            seed_db.add(asset_class)
+            await seed_db.flush()
+            instrument_type = InstrumentType(
+                asset_class_id=asset_class.id,
+                name=instrument_type_name,
+                description=instrument_type_name,
+            )
+            seed_db.add(instrument_type)
+            await seed_db.flush()
+            instrument = Instrument(
+                instrument_type_id=instrument_type.id,
+                symbol=symbol,
+                name=(
+                    "Breakwave Tanker Shipping ETF"
+                    if symbol == "BWET"
+                    else f"Test {instrument_type_name}"
+                ),
+                is_active=True,
+                identity_status="resolved",
+                is_synthetic=False,
+            )
+            seed_db.add(instrument)
+            await seed_db.flush()
+            instrument_id = instrument.id
+        seed_pid = await seed_db.scalar(text("SELECT pg_backend_pid()"))
+
+        # The selected acquire path must resolve its type/asset-class
+        # relationship from a fresh request session, not the ORM object
+        # retained by the seed step. Disable the staged Provider binder so this
+        # PostgreSQL regression is deterministic and cannot make an external
+        # source request. Native body identity/witness validation remains
+        # covered by the existing adapter tests.
+        monkeypatch.setattr(etf_holdings_refresh, "_explicit_etf_acquisition_binder", lambda: None)
+        request_id = str(uuid4())
+        async with session_factory() as request_db:
+            request_pid = await request_db.scalar(text("SELECT pg_backend_pid()"))
+            assert request_pid != seed_pid
+            request = ETFProfileAcquireRequest(
+                request_id=request_id,
+                refresh=True,
+                instrument_id=instrument_id,
+            )
+            if not eligible:
+                with pytest.raises(HTTPException) as denied:
+                    await acquire_holdings_profile(
+                        symbol=symbol,
+                        body=request,
+                        db=request_db,
+                        current_user=None,
+                    )
+                assert denied.value.status_code == 404
+                return
+
+            response = await acquire_holdings_profile(
+                symbol=symbol,
+                body=request,
+                db=request_db,
+                current_user=None,
+            )
+            payload = response.model_dump(mode="json")
+            assert payload["outcome"] == "held"
+            assert payload["instrument_id"] == instrument_id
+            assert payload["symbol"] == symbol
+            assert payload["refresh_attempted"] is False
+            assert payload["provider_request_log_ids"] == []
+            assert payload["profile"]["name"] == "Breakwave Tanker Shipping ETF"
+            assert payload["profile"]["adapter_key"] == "amplify"
+            aliases = payload["profile"]["provider_aliases"]
+            assert aliases["holdings_source_provider"] == "amplify"
+            assert aliases["holdings_route_evidence"]["evidence_state"] == (
+                "successor_issuer_route"
+            )
+
+    # Independently confirm the persisted row still has the intended exact
+    # relational type after request-session commit/serialization.
+    async with session_factory() as verification_db:
+        persisted = await verification_db.scalar(
+            select(Instrument)
+            .options(
+                selectinload(Instrument.instrument_type).selectinload(InstrumentType.asset_class)
+            )
+            .where(Instrument.id == instrument_id)
+        )
+        assert persisted is not None
+        assert persisted.instrument_type.name == instrument_type_name
+        assert persisted.instrument_type.asset_class.name == asset_class_name
+
+
 def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(client, auth_headers, monkeypatch):
     async def fake_bootstrap_from_sec_filings(db, profile):
         return None

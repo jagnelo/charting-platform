@@ -6,7 +6,7 @@
     },
     {
       "id": "OSA2",
-      "text": "Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity. During explicit selected acquire only, a resolved canonical fund name with the iShares brand may nominate the registered iShares catalog as a discovery hint even when Instrument.issuer_id is NULL; that hint is not issuer or product proof. Before constructing the holdings URL, an exact official catalog row must match both canonical ticker and full canonical fund name. No adapter scan, guessed identity, or per-symbol seed is permitted."
+      "text": "Route preparation uses exact curated metadata or current symbol-scoped audit evidence bound to the same registered adapter/source_provider. During explicit selected acquire only, a trusted canonical issuer or unambiguous canonical fund-brand hint may nominate one of the registered core iShares, SPDR, Invesco or Amplify adapters, including canonical funds with issuer_id NULL. A hint never proves product identity; the adapter must independently verify the selected fund from its native evidence. No adapter scan, guessed identity, or per-symbol route seed is permitted."
     },
     {
       "id": "OSA3",
@@ -14,11 +14,11 @@
     },
     {
       "id": "OSA4",
-      "text": "Deterministic no-network service regressions cover production-shaped canonical resolved iShares ETFs with issuer_id NULL and no profile/static product seed; canonical name is only a discovery hint and exact official ticker/name must validate before holdings retrieval. Catalog tests cover numeric and optional slug paths (including the actual IGV239771 official slug), conflicting same-product slugs, the observed Showing 482 of 482 total funds label without fake completeness, exact raw/hash/encoding/cache and admitted-log lineage, and duplicate/conflicting/malformed/foreign identity rejection. Existing BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff."
+      "text": "Deterministic no-network regressions cover unseeded canonical-name and trusted-issuer nomination for iShares/SPDR/Invesco/Amplify, including real-shape XES and PXJ without product seeds, plus fictitious positives and ambiguous/foreign-brand denials. Adapter results validate SPDR workbook fund ticker, Invesco exact catalog ticker/CUSIP and holdings response, exact iShares catalog/product/body lineage, and Amplify selected-account rows against the retained full CSV. Captured physical response-body hashes bind to parser input, retained artifact, exact request log/scope and URL; catalog-only, missing/swapped body, wrong log/scope, foreign fund and missing date/schema evidence remain nonpositive. Existing iShares slug/catalog, BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff and format."
     },
     {
       "id": "OSA5",
-      "text": "After Provider publishes and Root releases the generic sealed native qualification callable through synchronized green staging, ETF implements a separate bounded admin executor from locked durable review/source/account/profile state. A probe is marked passed only after one-shot native transport yields persisted raw, dated, schema-valid, exact-fund evidence and the current review is rechecked. Full qualification and actual production proof remain separately gated."
+      "text": "ETF implements the bounded admin qualification executor offline against the declared Provider callable contract, deriving authority from locked durable review/source/account/profile rows and preserving one-shot, admission, current-review and exact evidence guards. Real callable integration and engine-backed qualification wait for Provider's synchronized green staging release; a probe is marked passed only after the actual shared transport yields a persisted raw, dated, schema-valid exact-fund snapshot and current review is rechecked. No mocked authority substitutes for this dependency or for later Root-owned production proof."
     }
   ],
   "active_changeset": {
@@ -40,8 +40,8 @@
       "backend/app/services/etf_issuer_catalog.py": "0572489026d6b5bfc48dbaaf60dc5790e8beb58302ae4c89940032a93405ea80",
       "backend/tests/unit/services/test_etf_holdings_adapters.py": "6b3fd7e293c05e5fac1b2c29cc3ced6380f40b97c8ba78777f000df3bf87acec",
       "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "a6d70d1a764ed12d6217af8cd768cc07fcc61a1ab2417fd1f75e0a3c82020492",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py": "0ba10187c894bf9e51c755b66e4d1040efce8bffb0b09a2ca5d0c6a3aac79cbb",
-      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "742a75c9494234359eb15e940a45b0147677a8b331adac1da1f462b0a31f1585"
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "742a75c9494234359eb15e940a45b0147677a8b331adac1da1f462b0a31f1585",
+      "backend/tests/unit/services/test_etf_issuer_catalog.py": "0ba10187c894bf9e51c755b66e4d1040efce8bffb0b09a2ca5d0c6a3aac79cbb"
     },
     "source_paths": [
       "backend/app/routers/etf_holdings.py",
@@ -62,6 +62,18 @@
   },
   "active_follow_up": {
     "baseline_head": "f8323af179922193f4dcf3c9f0a5d9001282455f",
+    "candidate_source_paths": [
+      "backend/app/services/etf_holdings_refresh.py",
+      "backend/tests/integration/api/test_etf_holdings.py",
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py"
+    ],
+    "candidate_source_sha256": {
+      "backend/app/services/etf_holdings_refresh.py": "ad9cf4f7821babedd6bd479a63e51e124cf7e38e5e98f5226bf812648d0a3a2a",
+      "backend/tests/integration/api/test_etf_holdings.py": "62212e1653b2ea7041d00f7def8b1fd3b74cc22136c9cae6aabd031aa93fe1a8",
+      "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "1ef3f50fb31871c4f0922bbf31c7a06ecb036976bbf45b9fafcf7df342a7c261"
+    },
     "completed": [
       "Preserved the exact green staging ancestry and existing feature claim/history.",
       "Added backward-compatible optional canonical instrument_id binding to selected-fund acquire and typed unavailable/no-profile/no-request behavior.",
@@ -83,19 +95,7 @@
     "prior_checkpoint_archive": "previously_accepted_unxq_calendar_checkpoint_2026_10_31",
     "provider_http_used": false,
     "status": "focused legacy-route and ETV eligibility correction complete; coherent publication and exact-source CI pending",
-    "validation_tier": "full_integration",
-    "candidate_source_paths": [
-      "backend/app/services/etf_holdings_refresh.py",
-      "backend/tests/integration/api/test_etf_holdings.py",
-      "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
-      "backend/tests/unit/services/test_etf_holdings_native_qualification.py"
-    ],
-    "candidate_source_sha256": {
-      "backend/app/services/etf_holdings_refresh.py": "ad9cf4f7821babedd6bd479a63e51e124cf7e38e5e98f5226bf812648d0a3a2a",
-      "backend/tests/integration/api/test_etf_holdings.py": "62212e1653b2ea7041d00f7def8b1fd3b74cc22136c9cae6aabd031aa93fe1a8",
-      "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
-      "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "1ef3f50fb31871c4f0922bbf31c7a06ecb036976bbf45b9fafcf7df342a7c261"
-    }
+    "validation_tier": "full_integration"
   },
   "active_goal": {
     "completed_goal_history_preserved": true,
@@ -124,7 +124,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -160,37 +160,12 @@
   "current_checkpoint_objective": "Implement selected-canonical-fund acquisition with generic hint-only nomination across the four registered core native publishers, exact native fund/body/date/schema evidence, and an offline admin executor against the declared Provider contract. Admit Exchange Traded Vehicle only when its exact instrument type belongs to Exchange Traded Product and an exact issuer-backed route/native fund proof succeeds; preserve ETN as distinct and excluded. Real callable/engine integration waits for exact synchronized green staging; preserve all AC1-AC14 and all source/account/target holds.",
   "current_local_delta": "Ordinary selected-fund refresh obtains current Invesco catalog identity evidence rather than treating a warm CUSIP/cache as proof. Offline tests fetch each actual SPDR/Invesco/iShares/Amplify adapter under a normal binding with qualification job and scope absent, then validate identity, ordinary request URLs, reported composition date, persisted identity fields and current capability eligibility. Native/refresh/narrative tests pass78 with1 existing skip; the complete adapter module passes681/681. Ruff/format pass. The isolated engine-backed Producer callable test remains unexecuted pending green staging and Root fixture release; no source HTTP, DB fixture, policy/quota/ledger mutation, target operation or deployment occurred.",
   "dirty_paths": [
-    "backend/app/services/etf_holdings_refresh.py",
     "backend/tests/integration/api/test_etf_holdings.py",
-    "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
-    "backend/tests/unit/services/test_etf_holdings_native_qualification.py",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
+    "ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 463900089,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
-      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
-    ],
-    "testcontainer_sessions": [
-      "36c07de8-5e13-4d50-91d9-b1686e19e6ee"
-    ],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 463900089,
-    "volume_count": 2,
-    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -205,7 +180,7 @@
     "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/etf-holdings-constituents: Implement the ordinary selected-ETF acquisition contract from an exact canonical fund identity through a trustworthy native issuer route and the shared Provider admission path. Then implement a separate generic, sealed admin initial-qualification executor after Provider's callable is published in released green staging. Preserve all AC1-AC14 and all source/account/target holds; no live source calls are part of this offline slice.. Acceptance criteria: OSA1: The authenticated selected-fund acquire accepts an optional positive canonical instrument_id, binds it to the exact unique active/resolved/non-synthetic fund matching the path symbol, and stops a mismatching identity before profile work; callers omitting the field remain compatible.; OSA2: Route preparation uses an exact existing curated route or current symbol-scoped audit evidence bound to the same registered native adapter/source_provider identity. During explicit selected acquire only, a resolved canonical fund name with the iShares brand may nominate the registered iShares catalog as a discovery hint even when Instrument.issuer_id is NULL; that hint is not issuer or product proof. Before constructing the holdings URL, an exact official catalog row must match both canonical ticker and full canonical fund name. No adapter scan, guessed identity, or per-symbol seed is permitted.; OSA3: A selected canonical ETF with no exact audited/curated route or eligible catalog discovery hint returns typed unavailable with no guessed profile/request. A catalog hint with missing, conflicting, ambiguous, or mismatched official ticker/name evidence is held before holdings retrieval; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for every physical request.; OSA4: Deterministic no-network service regressions cover production-shaped canonical resolved iShares ETFs with issuer_id NULL and no profile/static product seed; canonical name is only a discovery hint and exact official ticker/name must validate before holdings retrieval. Catalog tests cover numeric and optional slug paths (including the actual IGV239771 official slug), conflicting same-product slugs, the observed Showing 482 of 482 total funds label without fake completeness, exact raw/hash/encoding/cache and admitted-log lineage, and duplicate/conflicting/malformed/foreign identity rejection. Existing BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff.; OSA5: After Provider publishes and Root releases the generic sealed native qualification callable through synchronized green staging, ETF implements a separate bounded admin executor from locked durable review/source/account/profile state. A probe is marked passed only after one-shot native transport yields persisted raw, dated, schema-valid, exact-fund evidence and the current review is rechecked. Full qualification and actual production proof remain separately gated.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Advance feat/etf-holdings-constituents: Implement the ordinary selected-ETF acquisition contract from an exact canonical fund identity through a trustworthy native issuer route and the shared Provider admission path. Then implement a separate generic, sealed admin initial-qualification executor after Provider's callable is published in released green staging. Preserve all AC1-AC14 and all source/account/target holds; no live source calls are part of this offline slice.. Acceptance criteria: OSA1: The authenticated selected-fund acquire accepts an optional positive canonical instrument_id, binds it to the exact unique active/resolved/non-synthetic fund matching the path symbol, and stops a mismatching identity before profile work; callers omitting the field remain compatible.; OSA2: Route preparation uses exact curated metadata or current symbol-scoped audit evidence bound to the same registered adapter/source_provider. During explicit selected acquire only, a trusted canonical issuer or unambiguous canonical fund-brand hint may nominate one of the registered core iShares, SPDR, Invesco or Amplify adapters, including canonical funds with issuer_id NULL. A hint never proves product identity; the adapter must independently verify the selected fund from its native evidence. No adapter scan, guessed identity, or per-symbol route seed is permitted.; OSA3: A selected canonical ETF, or an exact Exchange Traded Vehicle instrument under the Exchange Traded Product asset class, with no exact audited/curated issuer route returns typed unavailable with no guessed profile/request. ETN remains a distinct instrument type and is not treated as ETF/ETV. An ETV type alone never authorizes holdings: the exact registered issuer-backed adapter/source route and native fund evidence must still match. Catalog hints with missing, conflicting, ambiguous, or mismatched official ticker/name evidence are held before holdings retrieval; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for every physical request. Source-reported position types, including derivatives and cash, are preserved rather than inferred from the fund type.; OSA4: Deterministic no-network regressions cover unseeded canonical-name and trusted-issuer nomination for iShares/SPDR/Invesco/Amplify, including real-shape XES and PXJ without product seeds, plus fictitious positives and ambiguous/foreign-brand denials. Adapter results validate SPDR workbook fund ticker, Invesco exact catalog ticker/CUSIP and holdings response, exact iShares catalog/product/body lineage, and Amplify selected-account rows against the retained full CSV. Captured physical response-body hashes bind to parser input, retained artifact, exact request log/scope and URL; catalog-only, missing/swapped body, wrong log/scope, foreign fund and missing date/schema evidence remain nonpositive. Existing iShares slug/catalog, BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff and format.; OSA5: ETF implements the bounded admin qualification executor offline against the declared Provider callable contract, deriving authority from locked durable review/source/account/profile rows and preserving one-shot, admission, current-review and exact evidence guards. Real callable integration and engine-backed qualification wait for Provider's synchronized green staging release; a probe is marked passed only after the actual shared transport yields a persisted raw, dated, schema-valid exact-fund snapshot and current review is rechecked. No mocked authority substitutes for this dependency or for later Root-owned production proof.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
   "goal_recorded_at": "2026-11-03T11:32:15Z",
   "goal_request": {
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
@@ -213,7 +188,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "5ba7dc66035a272f23ffcdb03c2f705f7a6dacb0",
+  "head": "7cf4952935392719023e24fd9dc7f658823aef18",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -431,7 +406,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -817,18 +792,18 @@
     "status": "implementation_in_progress",
     "validation": {
       "exact_source_ci": "Run 41665410601 on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is terminal red: Backend Tests 5764 passed, 2 skipped, 1 failed in test_selected_acquire_from_null_issuer_igv_requires_official_catalog_identity. Preserve this result; corrected fixture/tests are locally green and require a new exact-source run after publication.",
+      "focused_native_routing_and_body_evidence": "Focused offline source slice passed 939 tests with one contract-dependent skip (940 collected): migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh, and issuer-catalog modules. Tests cover unseeded XES/SPDR and PXJ/Invesco plus fictitious SPDR/Invesco/Amplify nominations, trusted issuer hints, default non-selected holds, ambiguous/foreign-brand mismatches, and no product-ID fabrication. Actual-format offline adapter cases bind SPDR workbook ticker, Invesco catalog CUSIP/holdings JSON, iShares exact catalog/holdings JSON, and Amplify selected-account CSV to captured-body/parser/artifact hashes and request scope. Invalid-UTF8/NUL workbook transport proves exact base64 wire retention. Shared Strategy migration compatibility passes with its additive catalog head. Ruff check/format and diff checks pass. The sole skip is the exact Producer callable contract test, absent from synchronized staging; no provider HTTP, target, policy, quota, ledger, Docker or full profile ran.",
       "focused_selected_acquire": "From the backend project, the affected no-network modules passed 743/743: tests/unit/services/test_etf_issuer_catalog.py, test_etf_holdings_bootstrap.py, and test_etf_holdings_adapters.py. This includes the issuer_id=NULL IGV selection path, exact catalog-row identity before holdings fetch, numeric/official-slug paths, conflicting slug and mismatched identity rejection, and the 482-of-482 label without false completeness. Ruff check/format, Alembic head e6f7a8b9c012, branch-validate (46 records), the narrative regression (1/1), and git diff --check passed. No DB fixture, provider/issuer/SEC HTTP, target or policy/quota/ledger mutation occurred.",
       "local_profile": "focused_offline_unit_slice_only; no Docker or local full profile launched; combined engine/provider qualification remains pending",
-      "provider_initial_qualification": "offline executor/body-evidence implementation present; actual Provider callable/engine integration is held until exact green staging adoption; no fake probe or bypass",
-      "focused_native_routing_and_body_evidence": "Focused offline source slice passed 939 tests with one contract-dependent skip (940 collected): migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh, and issuer-catalog modules. Tests cover unseeded XES/SPDR and PXJ/Invesco plus fictitious SPDR/Invesco/Amplify nominations, trusted issuer hints, default non-selected holds, ambiguous/foreign-brand mismatches, and no product-ID fabrication. Actual-format offline adapter cases bind SPDR workbook ticker, Invesco catalog CUSIP/holdings JSON, iShares exact catalog/holdings JSON, and Amplify selected-account CSV to captured-body/parser/artifact hashes and request scope. Invalid-UTF8/NUL workbook transport proves exact base64 wire retention. Shared Strategy migration compatibility passes with its additive catalog head. Ruff check/format and diff checks pass. The sole skip is the exact Producer callable contract test, absent from synchronized staging; no provider HTTP, target, policy, quota, ledger, Docker or full profile ran.",
       "ordinary_mode_ci_followup": {
-        "failed_run": 41665410601,
+        "cause_and_correction": "The published IGV success fixture asserted a complete 482/482 catalog with one row; parser rejection was correct. The success fixture now uses an internally complete controlled 2/2 catalog, and a separate regression asserts that a partial body with the observed 482/482 label remains incomplete. The fixture uses the adapter YYYYMMDD date and supplies read-only cache/source/request-log facts required by the ordinary verifier. A direct ordinary Invesco warm-cache plus caller-CUSIP regression runs _native_adapter_fetch_evidence and asserts identity/date evidence with qualification job/scope absent.",
         "failed_job": 126019268196,
+        "failed_run": 41665410601,
         "local_command": "From backend, UV_CACHE_DIR=/tmp/etf-ordinary-native-fix-uv rtk proxy uv run --project backend pytest -q tests/unit/services/test_etf_holdings_native_qualification.py tests/unit/services/test_etf_issuer_catalog.py tests/unit/services/test_etf_holdings_refresh.py",
         "local_result": "115 passed, 1 existing Producer-contract skip; branch-validate accepted46 records; narrative regression1/1; Ruff and diff checks passed.",
-        "cause_and_correction": "The published IGV success fixture asserted a complete 482/482 catalog with one row; parser rejection was correct. The success fixture now uses an internally complete controlled 2/2 catalog, and a separate regression asserts that a partial body with the observed 482/482 label remains incomplete. The fixture uses the adapter YYYYMMDD date and supplies read-only cache/source/request-log facts required by the ordinary verifier. A direct ordinary Invesco warm-cache plus caller-CUSIP regression runs _native_adapter_fetch_evidence and asserts identity/date evidence with qualification job/scope absent.",
         "next": "Publish corrected candidate; exact-source CI remains required."
-      }
+      },
+      "provider_initial_qualification": "offline executor/body-evidence implementation present; actual Provider callable/engine integration is held until exact green staging adoption; no fake probe or bypass"
     }
   },
   "interrupted_local_profile_execution": {
@@ -1187,6 +1162,7 @@
     "bb0f68af-76ab-45c0-83f1-52d805be699f",
     "87f0e599-289e-4ab5-b335-f75e455963f5"
   ],
+  "previous_source_candidate_publication_2026_10_31": "Implementation source 802ef5b1e6a4246cc27f29da90950984878df947 is published and exact implementation CI41186532340 is green. The final review-record update preserves tested product/test bytes and does not self-reference its own publication SHA; integration_capture: exact branch HEAD.",
   "previous_staging_baseline_adoption_20261023": {
     "conflicts": [],
     "exact_actions_run": 39962134726,
@@ -1659,7 +1635,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -2831,9 +2807,9 @@
     "sibling_imports": "none",
     "staging_sha": "6bff091d7d43de0731284dfabcafa09514d226a6"
   },
-  "remote": "8b995c9c2a4cb8bbbdc48d014a48c284bda49cbe",
+  "remote": "7cf4952935392719023e24fd9dc7f658823aef18",
   "remote_observation": "Local HEAD and origin feature branch are both at 0dba8561e604988eaecd2948bb74d7c8ccc0e61c; the iShares catalog candidate is uncommitted. No source publication or CI run has occurred for this candidate.",
-  "remote_sha": "5ba7dc66035a272f23ffcdb03c2f705f7a6dacb0",
+  "remote_sha": "7cf4952935392719023e24fd9dc7f658823aef18",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
@@ -3020,6 +2996,5 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
-  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
-  "previous_source_candidate_publication_2026_10_31": "Implementation source 802ef5b1e6a4246cc27f29da90950984878df947 is published and exact implementation CI41186532340 is green. The final review-record update preserves tested product/test bytes and does not self-reference its own publication SHA; integration_capture: exact branch HEAD."
+  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
 }
