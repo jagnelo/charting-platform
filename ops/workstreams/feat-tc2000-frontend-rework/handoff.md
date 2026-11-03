@@ -25643,3 +25643,29 @@ adaptations), workstream validator, and diff check passed. Exact-source CI and
 Root-coordinated combined functional/strict-visual profile remain pending. No
 provider/issuer/SEC request, fixture, Docker service, data, quota, or hold was
 changed; controlled responses are software evidence only.
+
+## 2026-11-03 — late holdings readback selection fence
+
+The published ordinary-selection implementation already consults the
+producer-owned capability endpoint for every deliberate ETF selection. Only
+`availability=current`, verified identity, and current-analysis usability
+qualify for zero-refresh local reuse. Stale capability and an unreadable
+capability response each take one governed refresh; held/error outcomes keep
+the saved last-known snapshot labelled. No client-side age/weekday policy was
+added. Therefore the reported unconditional `stored?.snapshot` refresh skip is
+not present in published source; actual freshness remains the producer's
+decision.
+
+A concrete late-continuation gap was closed: after a successful selected-fund
+refresh, local holdings/industry readback can overlap a new ticker selection.
+The completion now rechecks the selection generation before publishing its
+status, so a delayed A readback cannot replace B's current status. Regression
+coverage exercises stale and unavailable capability refreshes, same-fund
+readback, current-cache reuse without source POST, held/error preservation, and
+an A-to-B switch while A's successful refresh readback is pending. The focused
+Workstation binding file passes 62/62 with one worker; `npm run type-check`
+passes. Exact CI41648956324 is still running on the prior published source
+3aef1a149c2c65e9eb9fbc0564a07c2ba994131e and does not qualify this local
+follow-up. This follow-up remains unaccepted pending its exact-source CI and
+Root's combined full functional/strict-visual profile. No external source,
+fixture, service, data, quota, or hold operation was performed.

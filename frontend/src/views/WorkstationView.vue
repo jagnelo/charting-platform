@@ -1394,6 +1394,7 @@ async function acquireSelectedTickerData(
       }
       if (holdings.profile) {
         await Promise.all([workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)])
+        if (generation !== symbolSelectionGeneration) return
         selectionHoldingsMessage.value = holdings.outcome === 'acquired'
           ? `Holdings for ${symbol} are available from the selected ticker.`
           : holdings.outcome === 'no_data'

@@ -1274,7 +1274,7 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
-  it('refreshes a stale ETF snapshot once and reads back the updated same-fund snapshot', async () => {
+  it.each(['stale', 'unknown'] as const)('refreshes a saved ETF once when capability is %s and reads back the same fund', async capabilityState => {
     routeState.path = '/'
     routeState.params = {}
     const oldSnapshot = { id: 811, etf_symbol: 'STALE' }
@@ -1292,6 +1292,9 @@ describe('WorkstationView pop-out bindings', () => {
         return [{ symbol: 'STALE', name: 'Stale fixture ETF', type: 'ETF', exchange: 'ARCX', instrument_id: 82 }]
       }
       if (path === '/coverage/instruments/STALE/ohlcv') return { status: 'ready', bar_count: 20, missing_slices: [] }
+      if (path === '/etf-holdings/STALE/capability' && capabilityState === 'unknown') {
+        throw new Error('The capability view is unavailable in this controlled case.')
+      }
       if (path === '/etf-holdings/STALE/capability') return {
         availability: 'stale', source_tier: 'issuer_native', identity_verified: true,
         usable_for_current_analysis: false, displayable_last_known: true,
@@ -1321,6 +1324,93 @@ describe('WorkstationView pop-out bindings', () => {
       expect(apiPost).toHaveBeenCalledTimes(1)
       expect(localHoldingsReads).toBe(2)
       expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' ')).toContain('Holdings for STALE are available from the selected ticker.')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('does not let a late ETF refresh readback replace the newly selected fund status', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const savedA = { id: 831, etf_symbol: 'FRESH' }
+    const updatedA = { id: 832, etf_symbol: 'FRESH' }
+    const currentB = { id: 833, etf_symbol: 'NEXT' }
+    harness.workspace.etfHoldings = {
+      FRESH: { snapshot: savedA },
+      NEXT: { snapshot: currentB },
+    }
+    let aReadCount = 0
+    let finishAReadback!: () => void
+    harness.workspace.loadETFHoldings = vi.fn((symbol: string) => {
+      if (symbol === 'FRESH') {
+        aReadCount += 1
+        if (aReadCount === 2) {
+          return new Promise(resolve => {
+            finishAReadback = () => resolve({ snapshot: updatedA })
+          })
+        }
+        return Promise.resolve({ snapshot: savedA })
+      }
+      return Promise.resolve({ snapshot: currentB })
+    })
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      const symbol = String(params?.q ?? '').toUpperCase()
+      if (path === '/instruments/search' && ['FRESH', 'NEXT'].includes(symbol)) {
+        return [{ symbol, name: `${symbol} fixture ETF`, type: 'ETF', exchange: 'ARCX', instrument_id: symbol === 'FRESH' ? 91 : 92 }]
+      }
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 20, missing_slices: [] }
+      if (path === '/etf-holdings/FRESH/capability') return {
+        availability: 'stale', source_tier: 'issuer_native', identity_verified: true,
+        usable_for_current_analysis: false, displayable_last_known: true,
+        consecutive_failures: 0, reason: 'The controlled snapshot needs refresh.',
+        symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+      }
+      if (path === '/etf-holdings/NEXT/capability') return {
+        availability: 'current', source_tier: 'issuer_native', identity_verified: true,
+        usable_for_current_analysis: true, displayable_last_known: true,
+        consecutive_failures: 0, reason: 'The controlled cache is current.',
+        symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+      }
+      return []
+    })
+    let finishARefresh!: (value: unknown) => void
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/FRESH/acquire') return new Promise(resolve => { finishARefresh = resolve })
+      return Promise.resolve({})
+    })
+    harness.workspace.setConstituentETF = vi.fn((symbol: string | null) => { harness.workspace.constituentETF = symbol })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('FRESH')
+      await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
+      await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/etf-holdings/FRESH/acquire', expect.objectContaining({
+        refresh: true, instrument_id: 91,
+      })))
+      finishARefresh({
+        request_id: 'refresh-fresh', instrument_id: 91, symbol: 'FRESH', outcome: 'acquired',
+        refresh: true, refresh_attempted: true, refresh_succeeded: true,
+        profile: { symbol: 'FRESH', instrument_id: 91 }, snapshot: updatedA, provider_request_log_ids: [],
+      })
+      await vi.waitFor(() => expect(aReadCount).toBe(2))
+
+      await input.setValue('NEXT')
+      await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
+      await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
+      await vi.waitFor(() => expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' '))
+        .toContain('Current holdings for NEXT are available locally.'))
+      expect(harness.workspace.constituentETF).toBe('NEXT')
+
+      finishAReadback()
+      await flushPromises()
+      expect(harness.workspace.constituentETF).toBe('NEXT')
+      expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' '))
+        .toContain('Current holdings for NEXT are available locally.')
+      expect(apiPost).toHaveBeenCalledTimes(1)
     } finally {
       wrapper.unmount()
     }
