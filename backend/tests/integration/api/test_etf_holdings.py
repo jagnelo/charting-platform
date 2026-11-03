@@ -1971,13 +1971,14 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
 
 
 def test_admin_can_refresh_spdr_provider_xlsx_route(
-    client, admin_headers, auth_headers, monkeypatch
+    client, db, admin_headers, auth_headers, monkeypatch
 ):
     composition_date = datetime.now(UTC).date()
     raw_workbook = _xlsx_workbook(
         [
             ["Fund Ticker", "XLY"],
             ["Fund Name", "Consumer Discretionary Select Sector SPDR Fund"],
+            ["Holdings", f"As of {composition_date.strftime('%d-%b-%Y')}"],
             [],
             ["Ticker", "Name", "Weight (%)", "Shares", "Market Value", "Currency"],
             ["AMZN", "Amazon.com Inc.", "18.5%", "20", "4500", "USD"],
@@ -2020,13 +2021,19 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
         "/api/v1/etf-holdings/XLY/profile",
         json={
             "issuer": "State Street",
-            "provider_aliases": {
-                "holdings_composition_date": composition_date.isoformat(),
-            },
+            "provider_aliases": {},
         },
         headers=admin_headers,
     )
     assert profile.status_code == 200
+    # The native workbook verifies both its fund ticker and descriptive name;
+    # seed the canonical security-master name rather than the lightweight
+    # symbol-only placeholder created by this endpoint fixture.
+    from app.models.instrument import Instrument
+
+    instrument = db.query(Instrument).filter(Instrument.symbol == "XLY").one()
+    instrument.name = "Consumer Discretionary Select Sector SPDR Fund"
+    db.flush()
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
@@ -2044,7 +2051,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
     assert body["holdings"][0]["weight"] == "0.18500000"
     assert body["extra_data"]["legal_metadata"]["source_format"] == "xlsx"
     validation = body["extra_data"]["legal_metadata"]["artifact_identity_validation"]
-    assert validation["status"] == "matched_inferred"
+    assert validation["status"] == "matched"
     assert validation["matched"][0]["value"] == "XLY"
 
 
@@ -2131,6 +2138,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     assert body["holdings"][0]["reported_symbol"] == "AAPL"
     legal_metadata = body["extra_data"]["legal_metadata"]
     assert legal_metadata["source_format"] == "zip"
+    assert body["completeness_status"] == "unknown"
     assert legal_metadata["selected_archive_file"] == "daily-holdings.csv"
     assert legal_metadata["selected_archive_file_format"] == "csv"
     validation = legal_metadata["artifact_identity_validation"]
@@ -2747,7 +2755,7 @@ def test_admin_can_probe_ready_ishares_product_id_route(client, admin_headers):
 
 
 def test_admin_can_refresh_ishares_product_id_route(
-    client, admin_headers, auth_headers, monkeypatch
+    client, db, admin_headers, auth_headers, monkeypatch
 ):
     composition_date = datetime.now(UTC).date()
     payload = {
@@ -2832,6 +2840,13 @@ def test_admin_can_refresh_ishares_product_id_route(
         headers=admin_headers,
     )
     assert profile.status_code == 200
+    # The direct product response has fundTicker/fundName identity evidence;
+    # model the canonical descriptive fund record used by ordinary requests.
+    from app.models.instrument import Instrument
+
+    instrument = db.query(Instrument).filter(Instrument.symbol == "IVV").one()
+    instrument.name = "iShares Core S&P 500 ETF"
+    db.flush()
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
@@ -2857,6 +2872,7 @@ def test_admin_can_refresh_ishares_product_id_route(
     validation = body["extra_data"]["legal_metadata"]["artifact_identity_validation"]
     assert validation["status"] == "matched"
     assert validation["matched"][0]["value"] == "IVV"
+    assert validation["native_fund_identity_evidence"]["basis"] == "ishares_holdings_response"
 
 
 def test_admin_can_refresh_issuer_holdings_for_specific_date(
@@ -3365,6 +3381,7 @@ def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     assert body["source_provider"] == "invesco"
     assert body["source_url"] == holdings_url
     assert body["row_count"] == 2
+    assert body["completeness_status"] == "unknown"
     legal_metadata = body["extra_data"]["legal_metadata"]
     assert legal_metadata["route_resolution"] == "issuer_product_page_discovery"
     assert legal_metadata["artifact_identity_validation"]["status"] == "matched"
@@ -3455,6 +3472,7 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
     assert body["source_provider"] == "spdr"
     assert body["source_url"] == holdings_url
     assert body["row_count"] == 2
+    assert body["completeness_status"] == "unknown"
     assert (
         body["extra_data"]["legal_metadata"]["route_resolution"] == "issuer_product_page_discovery"
     )

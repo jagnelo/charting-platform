@@ -921,6 +921,35 @@ def _canonical_fund_instrument(**overrides):
             1,
             True,
         ),
+        (
+            _canonical_fund_instrument(
+                instrument_type=SimpleNamespace(
+                    name="Exchange Traded Vehicle",
+                    asset_class=SimpleNamespace(name="Exchange Traded Product"),
+                )
+            ),
+            1,
+            True,
+        ),
+        (
+            _canonical_fund_instrument(
+                instrument_type=SimpleNamespace(
+                    name="Exchange Traded Vehicle",
+                    asset_class=SimpleNamespace(name="Equity"),
+                )
+            ),
+            1,
+            False,
+        ),
+        (
+            _canonical_fund_instrument(
+                instrument_type=SimpleNamespace(
+                    name="ETN", asset_class=SimpleNamespace(name="Exchange Traded Product")
+                )
+            ),
+            1,
+            False,
+        ),
         (_canonical_fund_instrument(identity_status="provisional"), 1, False),
         (
             _canonical_fund_instrument(
@@ -1190,13 +1219,25 @@ async def test_acquire_rejects_unknown_fund_without_creating_profile(monkeypatch
 
 
 @pytest.mark.asyncio
-async def test_selected_acquire_returns_precise_unavailable_for_unmapped_canonical_etf(
-    monkeypatch,
+@pytest.mark.parametrize(
+    "instrument_type",
+    [
+        SimpleNamespace(name="ETF", asset_class=SimpleNamespace(name="Equity")),
+        SimpleNamespace(
+            name="Exchange Traded Vehicle",
+            asset_class=SimpleNamespace(name="Exchange Traded Product"),
+        ),
+    ],
+    ids=["etf", "exchange-traded-vehicle"],
+)
+async def test_selected_acquire_returns_unavailable_without_exact_route(
+    monkeypatch, instrument_type
 ):
     from app.schemas.etf_holdings import ETFProfileAcquireOut, ETFProfileAcquireRequest
 
     instrument = _canonical_fund_instrument()
     instrument.symbol = "IGV"
+    instrument.instrument_type = instrument_type
 
     async def no_profile(_db, _instrument_id):
         return None

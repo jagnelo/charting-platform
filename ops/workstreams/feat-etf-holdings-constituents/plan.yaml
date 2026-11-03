@@ -1951,7 +1951,16 @@ acceptance_criteria: &etf_ordinary_selected_acquire_criteria
   - id: OSA2
     text: Route preparation uses exact curated metadata or current symbol-scoped audit evidence bound to the same registered adapter/source_provider. During explicit selected acquire only, a trusted canonical issuer or unambiguous canonical fund-brand hint may nominate one of the registered core iShares, SPDR, Invesco or Amplify adapters, including canonical funds with issuer_id NULL. A hint never proves product identity; the adapter must independently verify the selected fund from its native evidence. No adapter scan, guessed identity, or per-symbol route seed is permitted.
   - id: OSA3
-    text: A selected canonical ETF with no exact audited/curated route or eligible core-publisher hint returns typed unavailable with no guessed profile/request. Ambiguous or conflicting issuer/name hints and missing/mismatched native fund evidence remain held without a positive snapshot; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative for every physical request.
+    text: >-
+      A selected canonical ETF, or an exact Exchange Traded Vehicle instrument under the Exchange
+      Traded Product asset class, with no exact audited/curated issuer route returns typed unavailable
+      with no guessed profile/request. ETN remains a distinct instrument type and is not treated as
+      ETF/ETV. An ETV type alone never authorizes holdings: the exact registered issuer-backed
+      adapter/source route and native fund evidence must still match. Catalog hints with missing,
+      conflicting, ambiguous, or mismatched official ticker/name evidence are held before holdings
+      retrieval; Provider policy, entitlement, quota, cost, health and hold checks remain authoritative
+      for every physical request. Source-reported position types, including derivatives and cash, are
+      preserved rather than inferred from the fund type.
   - id: OSA4
     text: Deterministic no-network regressions cover unseeded canonical-name and trusted-issuer nomination for iShares/SPDR/Invesco/Amplify, including real-shape XES and PXJ without product seeds, plus fictitious positives and ambiguous/foreign-brand denials. Adapter results validate SPDR workbook fund ticker, Invesco exact catalog ticker/CUSIP and holdings response, exact iShares catalog/product/body lineage, and Amplify selected-account rows against the retained full CSV. Captured physical response-body hashes bind to parser input, retained artifact, exact request log/scope and URL; catalog-only, missing/swapped body, wrong log/scope, foreign fund and missing date/schema evidence remain nonpositive. Existing iShares slug/catalog, BWET/BDRY, canonical-ID and Provider-scope assertions remain. Changed Python files pass Ruff and format.
   - id: OSA5
@@ -2509,6 +2518,7 @@ integration_checkpoint:
     - No-profile route preparation is limited to exact curated metadata or the exact symbol's current audit mapped to a registered native adapter with matching source_provider identity.
     - BWET and BDRY use the existing Amplify current successor-audit evidence without adding a BWET-only product routing entry.
     - During explicit selected acquire, a trusted canonical issuer or an unambiguous canonical fund-brand hint may nominate only its exact registered iShares, SPDR, Invesco or Amplify adapter, including when issuer_id is NULL. The hint is not issuer/product/source proof; no per-symbol entry such as XES/PXJ is added. Existing native proof remains authoritative: iShares exact official catalog row, SPDR workbook fund ticker, Invesco exact catalog ticker/CUSIP, and Amplify selected account rows.
+    - A canonical instrument is eligible as an Exchange Traded Vehicle only when its exact instrument type is "Exchange Traded Vehicle" and asset class is "Exchange Traded Product". ETN remains distinct and excluded. ETV admission still requires an exact audited/curated issuer-backed route, source-provider match, and native exact-fund evidence; no symbol exception or ETV-to-ETF relabeling is allowed. Holdings row types remain the adapter's source-derived values, including cash, futures, derivatives, and fixed income.
     - Native initial qualification must bind the actual captured holdings response body to the adapter parser input, retained normalized artifact/hash, exact physical request URL and settled Provider request log/scope. Binary wire bytes have a separate exact base64/hash/size witness. Missing, swapped, catalog-only, wrong-log/scope, conflicting-fund, stale-date, or schema-mismatched evidence cannot persist a positive snapshot or passed probe.
     - Catalog content is cached with exact body bytes/base64, SHA256, encoding, same-origin source/final URLs, retrieval time, and admitted Provider request-log lineage. Duplicate/conflicting/foreign/malformed rows fail closed; partial content may prove a present exact row but never an absent ticker.
     - Catalog fetch and every redirect are physical requests inside the same selected fund's admitted logical fetch_etf_holdings_latest operation, with the normal host allowlist, scope, quota, cost, and hold gates.
@@ -2532,6 +2542,7 @@ integration_checkpoint:
     - backend/app/strategy_lab_v2/tests/test_migration_compatibility.py
     - backend/tests/unit/services/test_etf_holdings_bootstrap.py
     - backend/tests/unit/services/test_etf_issuer_catalog.py
+    - backend/tests/integration/api/test_etf_holdings.py
     - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
     - ops/workstreams/feat-etf-holdings-constituents/handoff.md
     - ops/workstreams/feat-etf-holdings-constituents/session.json
@@ -2563,16 +2574,41 @@ integration_checkpoint:
       Ruff check/format and git diff checks pass. The one skip is the test that requires the Producer
       callable not yet present in synchronized staging; no source HTTP, target, policy, quota or
       ledger operation occurred.
-    exact_source_ci: not_started_for_this_candidate
-    local_profile: focused_unit_only; full backend/profile qualification remains pending
+    focused_legacy_route_compatibility: >-
+      Root's exact-source CI41679135322 is preserved red on source5ba7dc66035a272f23ffcdb03c2f705f7a6dacb0:
+      five ETF holdings integration tests failed with zero refreshes after the new native-evidence
+      verifier was applied to legacy product-page routes. The correction keeps strict native
+      evidence for direct native formats and restores the legacy page-discovery path without
+      promoting its alias date or inferred row count to complete; its snapshot remains unknown.
+      The SPDR workbook fixture now carries its actual body date, and the direct SPDR/iShares
+      fixtures use canonical descriptive fund names. Attempt002 is preserved as 5 passed/2 failed
+      on the same bounded seven-node PG slice; attempt003 passed all seven cases on the corrected
+      pre-ETV source. Setup refusal attempt001 remains preserved with zero tests started.
+    exact_source_ci: >-
+      Prior source5ba7 CI41679135322 remains red historical evidence. The corrected candidate has
+      not yet been published; its own exact-source branch CI is required and must be observed
+      without replaying the prior run.
+    local_profile: >-
+      The bounded seven-node PostgreSQL/Testcontainers compatibility run passed 7/7 in attempt003
+      on source5ba7 before the later ETV-only resolver/test addition. Attempt002 (5/7) is preserved
+      as a genuine red from symbol-only test canonical names; attempt001 is a pre-test launcher
+      refusal. The final ETV resolver contract is covered by focused unit tests, not claimed as
+      PostgreSQL-tested. Full backend/profile qualification remains pending the new Provider type
+      dependency entering green staging and Root's fresh artifact/profile binding.
+    focused_candidate_validation: >-
+      After the ETV change, 66 focused native-qualification/bootstrap tests passed, 12 route/type
+      selection tests passed, and 4 Amplify adapter-focused tests passed. Ruff format/check and
+      git diff --check passed. ETV is accepted only for the exact Exchange Traded Vehicle type
+      under Exchange Traded Product; ETN is rejected and an ETV without an exact issuer route is
+      unavailable before profile/source work. Existing source position labels remain unchanged.
     provider_initial_qualification: offline executor and evidence guards implemented; real shared callable/engine integration pending exact green staging adoption, no fake probe or bypass
   local_validation_profile: full_stack_browser
   branch_validation_tier: full_integration
   full_roadmap_status: AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted checkpoints, retained datasets and historical failures.
   remaining_gates:
-    - Publish the coherent focused ETF candidate and complete its exact-source branch CI; no local Docker/profile run is part of this preparation.
-    - Adopt only the Provider callable released through synchronized green staging, then execute the engine-backed shared-contract tests without copying Producer source.
-    - Complete the combined source-matched local qualification after the dependency is adopted; Root separately owns any publisher HTTP, target proof, integration and deployment.
+    - Publish the coherent focused ETF candidate and complete its exact-source branch CI; preserve the prior red CI and PostgreSQL-attempt history.
+    - Adopt the new Provider classification/retained-type contract only from exact green staging at a clean boundary, then execute the engine-backed shared-contract tests without copying Producer source.
+    - Receive Root's fresh artifact/profile binding only after that Provider adoption; do not reuse the old artifact/profile release. Root separately owns any publisher HTTP, target proof, integration and deployment.
   closure_pending: true
 status: "in_progress"
 previously_accepted_erf_progress:
@@ -2595,16 +2631,20 @@ progress:
   completed: [OSA1, OSA2, OSA3, OSA4]
   total: 5
   current_phase: >-
-    Selected-fund route preparation and catalog evidence remain focused-green. Separate no-network
-    ordinary bindings prove actual SPDR, Invesco, iShares and Amplify fetch identity/date paths with
-    no qualification job/scope, including Invesco catalog revalidation with a warm CUSIP hint. The
-    native/refresh/narrative selection passed78 with1 existing skip and the full adapter module
-    passed681/681. The sealed executor's real Provider callable and engine-backed persistence test
-    remain pending green staging and Root fixture release.
+    The five prior exact-branch integration failures are corrected with truthful native versus
+    legacy product-page evidence; attempt003 passed the exact seven-node isolated PG slice 7/7.
+    The final ETV/ETP acceptance and ETN denial are covered by focused unit tests, with an explicit
+    route-less ETV unavailable check. Amplify parser type assertions, Ruff, format, and diff checks
+    pass. A new coherent source commit and exact branch CI are next; no old Provider artifact or
+    browser profile is reused for the changed dependency.
   current_blocker: >-
-    Provider must publish the generic sealed initial-qualification callable through green staging.
-    Until then, generic initial source qualification remains held; no source HTTP or policy/ledger
-      mutation is allowed here. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.
+    The final Provider classification/retained-instrument-type response is not yet released from
+    synchronized green staging. The ETV rule remains inert unless the exact ETP-classified ETV
+    identity and exact issuer-backed route/native evidence are present; ETN remains excluded. After
+    candidate publication and exact CI, adopt only that Provider staging source at a clean boundary,
+    then await Root's new artifact/profile binding before broader qualification. No source HTTP or
+    target/policy/quota/ledger mutation is authorized here. Preserve 15 Tier-0 and 156 Tier-1 and
+    every existing hold.
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2850,7 +2890,11 @@ backend_runner_timeout_remediation:
     issuer, SEC, target, quota, production, staging, sibling or deployment
     operation is authorized by this runner-only repair.
 
-current_blocker: "No implementation, local-profile or exact implementation-source CI gate remains for this bounded checkpoint. Await Root review/acceptance; preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history."
+current_blocker: >-
+  The preceding exact-source CI remains red as historical evidence, and the corrected candidate needs
+  its own published CI. The final Provider classification/retained-instrument-type source is still
+  awaiting green staging; adopt it only at a clean boundary, then use only Root's fresh artifact and
+  profile binding. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -4019,7 +4063,7 @@ latest_sec_first_use_candidate:
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
-next_action: "Publish the corrected ordinary-mode catalog/test-fixture candidate with this focused validation evidence, then require exact-source branch CI. After Root releases the Provider callable through synchronized green staging, adopt that green source and run the engine-backed contract tests; no provider HTTP or target/policy/ledger operation is authorized here."
+next_action: "Publish the coherent corrected ordinary-mode candidate with its focused and bounded PostgreSQL evidence, then require exact-source branch CI. After the new Provider classification/retained-type change reaches synchronized green staging, adopt that exact source at a clean boundary and run the engine-backed contract tests. Wait for Root's new artifact/profile binding before any broader profile; no provider HTTP or target/policy/ledger operation is authorized here."
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress

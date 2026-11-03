@@ -724,6 +724,10 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str, *, ordinary=F
                         "all": {
                             "dataPointsByNameMap": {
                                 "asOfDate": {"value": "20261102"},
+                                "fundTicker": {"value": ["IGV"]},
+                                "fundName": {
+                                    "value": ["iShares Expanded Tech-Software Sector ETF"]
+                                },
                                 "ticker": {"value": ["MSFT"]},
                                 "issueName": {"value": ["Microsoft Corp"]},
                                 "holdingPercent": {"value": [6.5]},
@@ -1023,6 +1027,49 @@ async def test_native_qualification_accepts_actual_offline_adapter_result_and_ke
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("mutation", [None, "foreign_ticker", "foreign_name", "missing_ticker"])
+async def test_ishares_direct_holdings_body_proves_exact_fund_without_catalog(
+    monkeypatch, mutation
+):
+    profile, adapter, result = await _fetch_native_adapter_result(
+        monkeypatch, "ishares", ordinary=True
+    )
+    binding = _OfflineAdapterClient.last_binding
+    assert binding.native_initial_qualification_job_id is None
+    assert binding.native_initial_qualification_scope is None
+    result.legal_metadata.pop("issuer_product_catalog", None)
+    points = adapter._blackrock_holdings_data_points(result.raw_json)
+    if mutation == "foreign_ticker":
+        points["fundTicker"]["value"] = ["XLK"]
+    elif mutation == "foreign_name":
+        points["fundName"]["value"] = ["iShares U.S. Technology ETF"]
+    elif mutation == "missing_ticker":
+        points.pop("fundTicker")
+
+    if mutation is not None:
+        with pytest.raises(ValueError, match="does not prove|conflicts with the selected iShares"):
+            _native_adapter_fetch_evidence(
+                profile,
+                adapter,
+                result,
+                request_binding=binding,
+                require_body_witness=False,
+            )
+        return
+
+    evidence = _native_adapter_fetch_evidence(
+        profile,
+        adapter,
+        result,
+        request_binding=binding,
+        require_body_witness=False,
+    )
+    assert evidence["fund_identity"]["basis"] == "ishares_holdings_response"
+    assert evidence["fund_identity"]["fund_tickers"] == ["IGV"]
+    assert evidence["composition_date"] == "2026-11-02"
+
+
+@pytest.mark.asyncio
 async def test_invesco_ordinary_fetch_revalidates_catalog_with_warm_cusip_hint(monkeypatch):
     _OfflineAdapterClient.responses = []
     _OfflineAdapterClient.requested = []
@@ -1138,11 +1185,15 @@ async def test_ordinary_native_identity_rejects_foreign_fund_or_account(monkeypa
         profile.instrument.symbol = "NVDA"
         profile.instrument.name = "NVIDIA Corp"
     elif provider == "ishares":
-        result.legal_metadata["issuer_product_catalog"]["ticker"] = "OTHER"
+        result.legal_metadata.pop("issuer_product_catalog", None)
+        adapter._blackrock_holdings_data_points(result.raw_json)["fundTicker"]["value"] = ["OTHER"]
     else:
         result.legal_metadata["selected_account"] = "OTHER"
 
-    with pytest.raises(ValueError, match="conflicts with the selected fund|does not prove"):
+    with pytest.raises(
+        ValueError,
+        match="conflicts with the selected fund|conflicts with the selected iShares|does not prove",
+    ):
         _native_adapter_fetch_evidence(
             profile,
             adapter,

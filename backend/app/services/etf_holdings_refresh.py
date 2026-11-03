@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.models.asset_class import InstrumentType
 from app.models.data_source import DataSource
 from app.models.etf_holdings import (
     ETFHolding,
@@ -1558,7 +1559,10 @@ async def _resolve_canonical_fund_instrument(
     statement = (
         select(Instrument)
         .join(Instrument.instrument_type)
-        .options(selectinload(Instrument.instrument_type), selectinload(Instrument.issuer))
+        .options(
+            selectinload(Instrument.instrument_type).selectinload(InstrumentType.asset_class),
+            selectinload(Instrument.issuer),
+        )
         .where(func.upper(Instrument.symbol) == symbol)
         .limit(2)
     )
@@ -1566,12 +1570,21 @@ async def _resolve_canonical_fund_instrument(
     if len(matches) != 1:
         return None
     instrument = matches[0]
+    instrument_type = instrument.instrument_type
+    type_name = str(getattr(instrument_type, "name", "")).strip().casefold()
+    asset_class = getattr(instrument_type, "asset_class", None)
+    asset_class_name = str(getattr(asset_class, "name", "")).strip().casefold()
+    supported_fund_type = type_name in {
+        "etf",
+        "index etf",
+        "mutual fund",
+        "closed-end fund",
+    } or (type_name == "exchange traded vehicle" and asset_class_name == "exchange traded product")
     if (
         not instrument.is_active
         or instrument.is_synthetic
         or instrument.identity_status != "resolved"
-        or instrument.instrument_type.name.strip().casefold()
-        not in {"etf", "index etf", "mutual fund", "closed-end fund"}
+        or not supported_fund_type
     ):
         return None
     return instrument
@@ -3293,14 +3306,26 @@ async def _refresh_adapter_route(
                 .strip()
                 .lower()
             )
-            if result_provider == str(
-                getattr(adapter, "source_provider", "")
-            ).strip().lower() and result_provider in {
-                "spdr",
-                "invesco",
-                "ishares",
-                "amplify",
-            }:
+            route_resolution = (
+                str((fetch_result.legal_metadata or {}).get("route_resolution") or "")
+                .strip()
+                .lower()
+            )
+            if (
+                result_provider == str(getattr(adapter, "source_provider", "")).strip().lower()
+                and result_provider
+                in {
+                    "spdr",
+                    "invesco",
+                    "ishares",
+                    "amplify",
+                }
+                and route_resolution != "issuer_product_page_discovery"
+            ):
+                # Native adapter responses carry their own dated/completeness
+                # contract. Product-page discovery is the older explicit
+                # issuer-file route: keep its parser/identity behavior, but do
+                # not promote alias dates or inferred row counts to native proof.
                 native_source_evidence = _native_adapter_fetch_evidence(
                     profile,
                     adapter,
@@ -3866,6 +3891,15 @@ def _native_adapter_fetch_evidence(
                 "matched": raw_identity.get("matched"),
                 "artifact_identity": raw_identity.get("artifact_identity"),
             }
+    if provider_name == "ishares":
+        body_identity = _native_ishares_holdings_identity(
+            profile=profile,
+            adapter=adapter,
+            raw_json=raw_json,
+            source_url=source_url,
+        )
+    else:
+        body_identity = None
     if provider_name == "ishares" and identity_evidence is None:
         from app.services.etf_holdings_native_qualification import (  # noqa: PLC0415
             _issuer_catalog_identity_claim,
@@ -3875,6 +3909,8 @@ def _native_adapter_fetch_evidence(
             profile,
             metadata.get("issuer_product_catalog"),
         )
+        if identity_evidence is None:
+            identity_evidence = body_identity
     fund_identity = metadata.get("fund_identity")
     if (
         identity_evidence is None
@@ -4056,6 +4092,7 @@ def _native_artifact_identity_validation(
             "spdr_fund_workbook_preamble",
             "invesco_product_catalog",
             "issuer_product_catalog",
+            "ishares_holdings_response",
             "amplify_selected_account_csv",
         }
         or native_evidence.get("instrument_id") != instrument.id
@@ -4069,6 +4106,50 @@ def _native_artifact_identity_validation(
         "expected": _artifact_identity_expectations(profile),
         "artifact_identity": prior_validation.get("artifact_identity", []),
         "native_fund_identity_evidence": identity,
+    }
+
+
+def _native_ishares_holdings_identity(
+    *, profile: ETFProfile, adapter: Any, raw_json: Any, source_url: str
+) -> dict[str, Any] | None:
+    """Prove iShares fund identity from the actual holdings response arrays."""
+
+    instrument = profile.instrument
+    if instrument is None or not isinstance(raw_json, dict):
+        return None
+    data_points_reader = getattr(adapter, "_blackrock_holdings_data_points", None)
+    values_reader = getattr(adapter, "_blackrock_values", None)
+    if not callable(data_points_reader) or not callable(values_reader):
+        return None
+    data_points = data_points_reader(raw_json)
+    tickers = [str(value).strip().upper() for value in values_reader(data_points, "fundTicker")]
+    names = [str(value).strip() for value in values_reader(data_points, "fundName")]
+    expected_symbol = instrument.symbol.strip().upper()
+    expected_name = _normalize_identity_text(str(instrument.name or ""))
+    normalized_names = {_normalize_identity_text(value) for value in names if value}
+    supplied_tickers = [ticker for ticker in tickers if ticker]
+    supplied_names = [name for name in normalized_names if name]
+    if any(ticker != expected_symbol for ticker in supplied_tickers) or (
+        supplied_names and (not expected_name or supplied_names != [expected_name])
+    ):
+        raise ValueError(
+            "Native qualification raw body conflicts with the selected iShares fund identity"
+        )
+    if (
+        not source_url
+        or not expected_symbol
+        or not supplied_names
+        or not supplied_tickers
+        or len(supplied_names) != 1
+    ):
+        return None
+    return {
+        "basis": "ishares_holdings_response",
+        "instrument_id": instrument.id,
+        "symbol": expected_symbol,
+        "fund_tickers": tickers,
+        "fund_names": names,
+        "source_url": source_url,
     }
 
 
