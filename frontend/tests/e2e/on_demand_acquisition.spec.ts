@@ -56,7 +56,7 @@ const fixtureOutcome = {
   status: 'used' as const,
 }
 
-function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number): InstrumentAcquireResponse {
+function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number, instrumentType = 'ETF'): InstrumentAcquireResponse {
   return {
     request_id: request.request_id,
     status: 'resolved',
@@ -64,6 +64,7 @@ function resolvedIdentity(request: InstrumentRequestBody, instrumentId: number):
       instrument_id: instrumentId,
       symbol: request.symbol,
       identity_status: 'resolved',
+      instrument_type: instrumentType,
     },
     source_outcomes: [fixtureOutcome],
   } satisfies InstrumentAcquireResponse
@@ -262,9 +263,9 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
     await route.fulfill({ status: 200, json: heldHistory(body, requestedId, 'TCNEW') })
   })
 
-  const sourceActionCountBeforeChartMount = sourceActionRequests.length
+  const sourceActionCountBeforeChartMount = discoveryRequests.length + instrumentRequests.length + historyRequests.length
   await page.goto('/legacy/chart')
-  expect(sourceActionRequests).toHaveLength(sourceActionCountBeforeChartMount)
+  expect(discoveryRequests.length + instrumentRequests.length + historyRequests.length).toBe(sourceActionCountBeforeChartMount)
   const search = page.getByPlaceholder('Symbol…')
   await expect(search).toBeVisible()
   expect(discoveryRequests).toHaveLength(0)
@@ -333,8 +334,8 @@ test('chart search discovers an unknown ticker automatically and deliberate iden
   await expect(loadHistory).toBeEnabled() // a held result keeps the deliberate retry available
   await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
 
-  expect(instrumentRequests).toHaveLength(2)
-  expect(instrumentRequests[1]).toMatchObject({ symbol: 'TCNEW' })
+  expect(instrumentRequests).toHaveLength(1)
+  expect(instrumentRequests[0]).toMatchObject({ symbol: 'TCNEW' })
   expect(historyRequests).toHaveLength(1)
   expectBoundedM1Request(historyRequests[0]!)
   await expect(page.getByTestId('history-load-missing')).toBeEnabled()
@@ -468,7 +469,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
       expect(resolved, 'history identity check follows explicit row candidate resolution').toBe(true)
       expect(body.symbol).toBe(symbol)
     }
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId) })
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId, 'Common Stock') })
   })
   await page.route('**/api/v1/instruments/UNXQ', async route => {
     if (!resolved) {
@@ -548,7 +549,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect((await discoveryResponseReady).status()).toBe(200)
   expect(discoveryRequests).toHaveLength(1)
   expect(identityRequests).toHaveLength(0)
-  await page.getByRole('button', { name: /Use UNXQ · XNYS/ }).click()
+  await page.getByRole('option', { name: /Use UNXQ · XNYS/ }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/)
   expect(identityRequests).toHaveLength(1)
   expect(historyRequests).toHaveLength(0)
@@ -727,7 +728,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     instrumentRequests.push(body)
     expect(body.symbol).toBe('TCNEW')
     canonicalInstrumentResolved = true
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, fixtureInstrumentId) })
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, fixtureInstrumentId, 'Common Stock') })
   })
   await page.route('**/api/v1/coverage/instruments/TCNEW/ohlcv**', async route => {
     await route.fulfill({ status: 200, json: missingCoverage(new URL(route.request().url())) })
@@ -893,7 +894,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     const symbol = body.symbol.trim().toUpperCase()
     const instrumentId = ids[symbol]
     expect(instrumentId, `identity fixture must use the local canonical ${symbol} ID`).toBeGreaterThan(0)
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId) })
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instrumentId, 'Common Stock') })
   })
 
   await page.route('**/api/v1/instruments/discover**', async route => {
@@ -1213,7 +1214,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     const symbol = body.symbol.trim().toUpperCase()
     const id = symbol === 'OIH' ? fixtureInstrumentId : symbol === 'AMD' ? amdInstrumentId : 0
     expect(id, `identity fixture must use the local canonical ${symbol} ID`).toBeGreaterThan(0)
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, id) })
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, id, symbol === 'AMD' ? 'Common Stock' : 'ETF') })
   })
 
   await page.route('**/api/v1/etf-holdings/OIH/acquire**', async route => {
@@ -1654,7 +1655,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     if (symbol === 'UNXQ') expect(body.provider_candidate).toMatchObject({ provider: 'test-fixture', symbol: 'UNXQ', exchange: 'TEST' })
     else expect(body.provider_candidate).toBeUndefined()
     identityRequests.push(body)
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, instruments[symbol].id) })
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instruments[symbol].id, symbol === 'UNXQ' ? 'Common Stock' : 'ETF') })
   })
   await page.route('**/api/v1/instruments/discover', async route => {
     const body = route.request().postDataJSON() as DiscoveryRequest

@@ -13,6 +13,7 @@ import {
   HISTORY_TIMEFRAME_SECONDS,
   historyRangeFitsBarBudget,
   historyRangeIsAllowed,
+  isEligibleETFHoldingsInstrumentType,
   isCurrentETFHoldingsCapability,
   makeAcquisitionRequestId,
   requestedHistoryBarSlots,
@@ -32,6 +33,14 @@ beforeEach(() => {
 })
 
 describe('explicit acquisition API contracts', () => {
+  it('admits issuer holdings only for confirmed ETF vehicle types and keeps ETN distinct', () => {
+    expect(isEligibleETFHoldingsInstrumentType('ETF')).toBe(true)
+    expect(isEligibleETFHoldingsInstrumentType(' Exchange Traded Vehicle ')).toBe(true)
+    expect(isEligibleETFHoldingsInstrumentType('ETN')).toBe(false)
+    expect(isEligibleETFHoldingsInstrumentType('Stock')).toBe(false)
+    expect(isEligibleETFHoldingsInstrumentType(null)).toBe(false)
+  })
+
   it('reads the selected ETF capability without turning the read into acquisition', async () => {
     const capability = {
       availability: 'current', source_tier: 'issuer_native', identity_verified: true,
@@ -233,6 +242,24 @@ describe('explicit acquisition API contracts', () => {
       start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
     })
+  })
+
+  it('reuses an identity promise supplied by the deliberate selection instead of resolving twice', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'history', status: 'partial', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-10-01T00:00:00Z', requested_end: '2026-10-20T00:00:00Z', coverage: { status: 'partial', bar_count: 3, missing_slices: [] }, bars: [], source_outcomes: [] })
+    const selectedIdentity = Promise.resolve({
+      request_id: 'selection-identity', status: 'resolved' as const,
+      instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [],
+    })
+
+    const result = await acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+    }, undefined, () => true, selectedIdentity)
+
+    expect(result.kind).toBe('acquired')
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/instruments/82/history-acquisitions', expect.any(Object))
   })
 
   it('does not advance a stale selection from local coverage into identity or history requests', async () => {

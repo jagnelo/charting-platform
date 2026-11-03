@@ -15,7 +15,7 @@
           placeholder="Search ETF instrument"
           mode="picker"
           fluid
-          :result-types="['ETF', 'Fund']"
+          :result-types="['ETF', 'Fund', 'Exchange Traded Vehicle']"
           :allow-expressions="false"
           :show-recent="false"
           :show-screener-link="false"

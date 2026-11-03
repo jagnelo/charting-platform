@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The current staged consumer repair adds scoped local refresh for matching mounted Workstation chart panels and updates ChartView, main Workstation, and dedicated ETF controlled E2E cases to verify automatic first-use boundaries while retaining held/manual retry behavior. Two mounted suites pass 66/66; npm run build passes vue-tsc and Vite (540 modules); Playwright collection lists all seven acquisition cases. No browser fixture, provider/issuer request, or service operation ran. Candidate CI and Root's combined functional/strict-visual profile remain pending.",
-  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation over adopted green Provider staging eb74. Successful/partial history writes refresh only mounted Workstation chart panels still matching the selected symbol/timeframe, under each panel's bar-type/transform/load-generation guards. Controlled E2E cases now cover automatic ChartView history after deliberate identity selection, automatic first-use issuer acquisition after deliberate ETF selection, and one-request Workstation acquisition with visible panel bars; held retry and constituent-history actions remain separately covered. Controlled fixture data is not genuine Provider/issuer proof. Exact candidate CI and the combined functional/strict-visual profile remain pending; prior accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged.",
+  "current_candidate_ci_status": "Candidate is based on 4ec9a9e21b64ba35708698044041d81649a2b93b. Three focused frontend suites passed 102/102 with one fork; vue-tsc and Vite build passed (540 modules; existing large Workstation chunk warning); Playwright collection listed 197 tests across flows.spec.ts and on_demand_acquisition.spec.ts. One root-invoked Vitest command failed before collection by scanning archived .ai/runtime copies; the package-root rerun passed. The frozen old-image functional profile remains red at187 passed/16 failed/2 configured skips and strict visual was not run. Exact candidate CI is not yet claimed. No new image or browser profile is authorized before the revised Provider contract enters green staging and Root supplies a new artifact binding.",
+  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation. Deliberate selection shares one confirmed identity/type result between bounded history and ETF holdings work; exact ETF and Exchange Traded Vehicle types are eligible, ETN is not, and older response shapes use a local exact-ID type fallback. The dedicated ETF picker now includes Exchange Traded Vehicle while preserving source-pinned ownership and its confirmed-ID/unavailable guards. Constituent performance columns remain visible before compact reported type/identity columns. The old frozen full functional profile is preserved red and its visual phase was not run. New Provider classification must first enter green staging, then TC will adopt that exact release and wait for Root's new immutable app artifact before full combined functional/strict-visual qualification. Prior accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged; no genuine source proof or release acceptance is claimed.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -183,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "53354276b6598832f253890a14e8b2f888ea042b",
+  "head": "4ec9a9e21b64ba35708698044041d81649a2b93b",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -335,7 +335,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "71813cebd09aa5426e42fb31c9862ea138b97979c534e7a52262b444de444418",
+  "plan_hash": "409596d68579080053b8893cb2029afa327a58417b8d25eefc9ae7fb5d6591b1",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -364,15 +364,15 @@
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
     "remote": "origin",
-    "remote_tracking_sha": "53354276b6598832f253890a14e8b2f888ea042b",
-    "status": "Published adoption base is synchronized; local Dashboard picker correction is being validated for one coherent follow-up publication.",
-    "current_pending_range": "Canonical-only DashboardInstrumentSearch correction and exact owner records; no backend/provider/runtime changes.",
+    "remote_tracking_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
+    "status": "This candidate adds the ordinary ticker selection fixes and owned evidence in one coherent source-and-records publication. Its exact CI result is separate; the corrected Provider classification must enter green staging before a new application image or full browser profile.",
+    "current_pending_range": "Exact branch CI; adoption of Root-released corrected Provider staging; Root's new immutable frontend/backend artifact binding and combined functional/strict-visual qualification.",
     "failure_category": null
   },
-  "remote": "53354276b6598832f253890a14e8b2f888ea042b",
-  "remote_sha": "53354276b6598832f253890a14e8b2f888ea042b",
+  "remote": "4ec9a9e21b64ba35708698044041d81649a2b93b",
+  "remote_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
   "remote_synchronized": true,
-  "remote_tracking_sha": "53354276b6598832f253890a14e8b2f888ea042b",
+  "remote_tracking_sha": "4ec9a9e21b64ba35708698044041d81649a2b93b",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

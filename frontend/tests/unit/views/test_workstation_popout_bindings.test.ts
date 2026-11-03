@@ -653,7 +653,8 @@ describe('WorkstationView pop-out bindings', () => {
     expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/XLK/ohlcv', expect.objectContaining({
       timeframe: 'D1', mode: 'historical', adjusted: true,
     }))
-    expect(apiPost).not.toHaveBeenCalled()
+    expect(apiPost).toHaveBeenCalledTimes(1)
+    expect(apiPost).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'XLK' }))
     const oldestEntryEvent = new KeyboardEvent('keydown', { key: 'Backspace', bubbles: true, cancelable: true })
     wrapper.find('.workstation').element.dispatchEvent(oldestEntryEvent)
     expect(oldestEntryEvent.defaultPrevented).toBe(true)
@@ -712,7 +713,8 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY/ohlcv', expect.objectContaining({
       timeframe: 'D1', mode: 'historical', adjusted: true,
     })))
-    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(apiPost).toHaveBeenCalledTimes(3)
+    expect(apiPost).toHaveBeenNthCalledWith(3, '/instruments/acquire', expect.objectContaining({ symbol: 'SPY' }))
     wrapper.unmount()
   })
 
@@ -1118,7 +1120,7 @@ describe('WorkstationView pop-out bindings', () => {
       })
       .mockResolvedValueOnce({
         request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d', status: 'resolved',
-        instrument: { instrument_id: 43, symbol: 'OIH', identity_status: 'verified' }, source_outcomes: [],
+        instrument: { instrument_id: 43, symbol: 'OIH', identity_status: 'resolved', instrument_type: 'ETF' }, source_outcomes: [],
       })
       .mockResolvedValueOnce({
         request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d', instrument_id: 43, symbol: 'OIH',
@@ -1294,7 +1296,7 @@ describe('WorkstationView pop-out bindings', () => {
     }
   })
 
-  it('reuses a stored ETF snapshot only when the server capability qualifies it as current', async () => {
+  it('reconciles a stale local type before reusing a current ETF cache with already-covered history', async () => {
     routeState.path = '/'
     routeState.params = {}
     const oldSnapshot = { id: 801, etf_symbol: 'CURR' }
@@ -1306,7 +1308,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
       if (path === '/instruments/search' && params?.q === 'CURR') {
-        return [{ symbol: 'CURR', name: 'Current fixture ETF', type: 'ETF', exchange: 'ARCX', instrument_id: 81 }]
+        return [{ symbol: 'CURR', name: 'Misclassified local fixture', type: 'Stock', exchange: 'ARCX', instrument_id: 81, identity_status: 'provisional' }]
       }
       if (path === '/coverage/instruments/CURR/ohlcv') return { status: 'ready', bar_count: 20, missing_slices: [] }
       if (path === '/etf-holdings/CURR/capability') return {
@@ -1317,6 +1319,8 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return []
     })
+    apiPost.mockResolvedValue({ request_id: 'identity-curr', status: 'resolved', instrument: { instrument_id: 81, symbol: 'CURR', identity_status: 'resolved', instrument_type: 'Exchange Traded Vehicle' }, source_outcomes: [] })
+    harness.workspace.setConstituentETF = vi.fn((symbol: string | null) => { harness.workspace.constituentETF = symbol })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
@@ -1328,9 +1332,11 @@ describe('WorkstationView pop-out bindings', () => {
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
       await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/etf-holdings/CURR/capability'))
       await vi.waitFor(() => expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' ')).toContain('Current holdings for CURR are available locally.'))
-      expect(apiPost).not.toHaveBeenCalled()
+      expect(apiPost).toHaveBeenCalledTimes(1)
+      expect(apiPost).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'CURR' }))
       expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('CURR')
       expect(harness.workspace.etfHoldings.CURR?.snapshot).toBe(currentSnapshot)
+      expect(harness.workspace.constituentETF).toBe('CURR')
     } finally {
       wrapper.unmount()
     }
@@ -1351,7 +1357,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
       if (path === '/instruments/search' && params?.q === 'STALE') {
-        return [{ symbol: 'STALE', name: 'Stale fixture ETF', type: 'ETF', exchange: 'ARCX', instrument_id: 82 }]
+        return [{ symbol: 'STALE', name: 'Stale fixture ETF', type: 'ETF', exchange: 'ARCX', instrument_id: 82, identity_status: 'resolved' }]
       }
       if (path === '/coverage/instruments/STALE/ohlcv') return { status: 'ready', bar_count: 20, missing_slices: [] }
       if (path === '/etf-holdings/STALE/capability' && capabilityState === 'unknown') {
@@ -1365,12 +1371,14 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return []
     })
-    apiPost.mockResolvedValue({
-      request_id: 'refresh-stale', instrument_id: 82, symbol: 'STALE', outcome: 'acquired',
-      refresh: true, refresh_attempted: true, refresh_succeeded: true,
-      profile: { symbol: 'STALE', instrument_id: 82 }, snapshot: updatedSnapshot,
-      provider_request_log_ids: [],
-    })
+    apiPost.mockImplementation(async (path: string) => path === '/instruments/acquire'
+      ? { request_id: 'identity-stale', status: 'resolved', instrument: { instrument_id: 82, symbol: 'STALE', identity_status: 'resolved' }, source_outcomes: [] }
+      : {
+        request_id: 'refresh-stale', instrument_id: 82, symbol: 'STALE', outcome: 'acquired',
+        refresh: true, refresh_attempted: true, refresh_succeeded: true,
+        profile: { symbol: 'STALE', instrument_id: 82 }, snapshot: updatedSnapshot,
+        provider_request_log_ids: [],
+      })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
@@ -1383,7 +1391,7 @@ describe('WorkstationView pop-out bindings', () => {
         refresh: true, instrument_id: 82, request_id: expect.any(String),
       })))
       await vi.waitFor(() => expect(harness.workspace.etfHoldings.STALE?.snapshot).toBe(updatedSnapshot))
-      expect(apiPost).toHaveBeenCalledTimes(1)
+      expect(apiPost).toHaveBeenCalledTimes(2)
       expect(localHoldingsReads).toBe(2)
       expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' ')).toContain('Holdings for STALE are available from the selected ticker.')
     } finally {
@@ -1436,8 +1444,16 @@ describe('WorkstationView pop-out bindings', () => {
       return []
     })
     let finishARefresh!: (value: unknown) => void
-    apiPost.mockImplementation((path: string) => {
+    apiPost.mockImplementation((path: string, body: Record<string, any>) => {
       if (path === '/etf-holdings/FRESH/acquire') return new Promise(resolve => { finishARefresh = resolve })
+      if (path === '/instruments/acquire') {
+        const symbol = String(body.symbol)
+        return Promise.resolve({
+          request_id: `identity-${symbol}`, status: 'resolved',
+          instrument: { instrument_id: symbol === 'FRESH' ? 91 : 92, symbol, identity_status: 'resolved', instrument_type: 'Exchange Traded Vehicle' },
+          source_outcomes: [],
+        })
+      }
       return Promise.resolve({})
     })
     harness.workspace.setConstituentETF = vi.fn((symbol: string | null) => { harness.workspace.constituentETF = symbol })
@@ -1472,7 +1488,8 @@ describe('WorkstationView pop-out bindings', () => {
       expect(harness.workspace.constituentETF).toBe('NEXT')
       expect(wrapper.findAll('.workstation__selection-acquisition').map(element => element.text()).join(' '))
         .toContain('Current holdings for NEXT are available locally.')
-      expect(apiPost).toHaveBeenCalledTimes(1)
+      expect(apiPost).toHaveBeenCalledTimes(3)
+      expect(apiPost.mock.calls.filter(([path]) => path === '/etf-holdings/FRESH/acquire')).toHaveLength(1)
     } finally {
       wrapper.unmount()
     }
@@ -1499,11 +1516,13 @@ describe('WorkstationView pop-out bindings', () => {
       }
       return []
     })
-    apiPost.mockResolvedValue({
-      request_id: `refresh-${outcome}`, instrument_id: 83, symbol: 'SAVED', outcome,
-      refresh: true, refresh_attempted: true, refresh_succeeded: false,
-      profile: response.profile, provider_request_log_ids: [],
-    })
+    apiPost.mockImplementation(async (path: string) => path === '/instruments/acquire'
+      ? { request_id: 'identity-saved', status: 'resolved', instrument: { instrument_id: 83, symbol: 'SAVED', identity_status: 'resolved', instrument_type: 'ETF' }, source_outcomes: [] }
+      : {
+        request_id: `refresh-${outcome}`, instrument_id: 83, symbol: 'SAVED', outcome,
+        refresh: true, refresh_attempted: true, refresh_succeeded: false,
+        profile: response.profile, provider_request_log_ids: [],
+      })
     const wrapper = mount(WorkstationView, {
       global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
     })
@@ -1512,7 +1531,7 @@ describe('WorkstationView pop-out bindings', () => {
       await input.setValue('SAVED')
       await vi.waitFor(() => expect(wrapper.find('.workstation__canonical-symbol-options [role="option"]').exists()).toBe(true))
       await wrapper.get('.workstation__canonical-symbol-options [role="option"]').trigger('mousedown')
-      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(1))
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledTimes(2))
       const status = outcome === 'held'
         ? 'Last-known holdings for SAVED remain visible. A current update is unavailable.'
         : 'Holdings for SAVED could not be updated; last-known holdings remain visible.'

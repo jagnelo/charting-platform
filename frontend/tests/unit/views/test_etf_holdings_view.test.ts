@@ -993,7 +993,7 @@ describe('ETFHoldingsView', () => {
     const picker = wrapper.findComponent({ name: 'SearchBar' })
     expect(picker.exists()).toBe(true)
     expect(picker.props('placeholder')).toBe('Search ETF instrument')
-    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund'])
+    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund', 'Exchange Traded Vehicle'])
     expect(picker.props('allowExpressions')).toBe(false)
 
     await picker.vm.$emit('update:modelValue', 'QQQ')
@@ -1013,6 +1013,53 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('QQQ')
     expect(wrapper.text()).toContain('SPY')
     expect(wrapper.findAll('button.profile-card')).toHaveLength(2)
+    wrapper.unmount()
+  })
+
+  it('discovers and deliberately selects a confirmed Exchange Traded Vehicle without admitting ETNs', async () => {
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === '/etf-holdings') return []
+      return []
+    })
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.post).mockImplementation(async (path: string, body: Record<string, unknown>) => {
+      if (path !== '/etf-holdings/EVOL/acquire') throw new Error(`Unexpected request: ${path}`)
+      return {
+        request_id: body.request_id,
+        instrument_id: 991,
+        symbol: 'EVOL',
+        outcome: 'unavailable',
+        refresh: true,
+        refresh_attempted: false,
+        refresh_succeeded: false,
+        profile: null,
+        snapshot: null,
+        capability: null,
+        provider_request_log_ids: [],
+        message: 'No issuer holdings source is currently available for EVOL.',
+      }
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    const picker = wrapper.findComponent({ name: 'SearchBar' })
+    expect(picker.props('resultTypes')).toEqual(['ETF', 'Fund', 'Exchange Traded Vehicle'])
+    expect(picker.props('resultTypes')).not.toContain('ETN')
+
+    await picker.vm.$emit('select', 'EVOL', {
+      symbol: 'EVOL',
+      name: 'Example Exchange Traded Vehicle',
+      exchange: 'XNYS',
+      type: 'Exchange Traded Vehicle',
+      instrument_id: 991,
+      identity_status: 'resolved',
+      explicitlyResolved: true,
+    })
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/EVOL/acquire', {
+      request_id: expect.any(String), refresh: true, instrument_id: 991,
+    }))
+    expect(api.post).not.toHaveBeenCalledWith('/instruments/acquire', expect.anything())
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No issuer holdings source is currently available for EVOL.'))
+    expect(wrapper.text()).toContain('EVOL')
     wrapper.unmount()
   })
 

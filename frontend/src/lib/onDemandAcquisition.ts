@@ -42,6 +42,7 @@ export interface InstrumentAcquireResponse {
     instrument_id: number
     symbol: string
     identity_status: string
+    instrument_type?: string | null
     domain_key?: string | null
     primary_identifier_type?: string | null
     primary_identifier_value?: string | null
@@ -191,6 +192,7 @@ export async function acquireSelectedHistory(
   range: HistoryAcquisitionRequest,
   onStage?: (stage: SelectedHistoryStage) => void,
   isCurrent: () => boolean = () => true,
+  selectedIdentity?: Promise<InstrumentAcquireResponse>,
 ): Promise<SelectedHistoryOutcome> {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) throw new TypeError('A selected ticker is required for history acquisition.')
@@ -208,7 +210,7 @@ export async function acquireSelectedHistory(
   }
 
   onStage?.('identity')
-  const identity = await resolveExistingInstrument(normalized)
+  const identity = await (selectedIdentity ?? resolveExistingInstrument(normalized))
   if (!isCurrent()) return { kind: 'superseded' }
   if (identity.status !== 'resolved' || !identity.instrument
     || identity.instrument.symbol.trim().toUpperCase() !== normalized
@@ -324,4 +326,10 @@ export function isCurrentETFHoldingsCapability(capability: ETFHoldingsCapability
   return capability?.availability === 'current'
     && capability.identity_verified === true
     && capability.usable_for_current_analysis === true
+}
+
+/** Holdings eligibility follows the confirmed canonical type, not a search hint. */
+export function isEligibleETFHoldingsInstrumentType(instrumentType: string | null | undefined): boolean {
+  const normalized = instrumentType?.trim().toLowerCase()
+  return normalized === 'etf' || normalized === 'exchange traded vehicle'
 }

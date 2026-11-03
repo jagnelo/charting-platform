@@ -323,7 +323,9 @@ ordinary_ticker_latest_update: >-
   reuse, no-snapshot/new-fund selection, held-data retention, late A-to-B
   failure isolation, and the three keyboard paths. Exact-source CI and combined
   functional/strict-visual profile remain pending. The released Provider staging
-  eb74 is now adopted. The Dashboard watchlist/widget picker is canonical-only;
+  eb74 is the adopted baseline, but it predates the revised retained-type response;
+  the new Provider green stage must still be adopted before full-profile binding.
+  The Dashboard watchlist/widget picker is canonical-only;
   five focused tests, vue-tsc and Vite build pass, with no source discovery or
   bar acquisition from that picker. Automatic successful/partial history
   completion now refreshes matching mounted Workstation chart-panel stores and
@@ -332,10 +334,16 @@ ordinary_ticker_latest_update: >-
   ETF no-snapshot E2E cases now assert automatic first-use behavior without
   removing held/manual retry or constituent-history coverage, and the main
   Workstation case checks rendered bars after its one bounded request. Focused
-  tests, type-check, build, scope checks, and seven-case Playwright collection
-  pass. No browser run, fixture, live source request, or provider operation
-  occurred; exact feature CI and the combined profile remain pending Root. All
-  nine AC1-AC9 and REF-HELP-V25 remain open.
+  tests, type-check, and build pass; Playwright collection lists 197 tests across
+  the two relevant E2E files. The frozen full functional run remains red and its
+  strict-visual phase was not run on obsolete components. No new browser run,
+  fixture, live source request, or provider operation occurred; exact feature CI
+  and the combined profile remain pending Root. The
+  shared ETF picker includes the exact producer classification "Exchange Traded Vehicle"
+  alongside ETF/Fund, so a deliberately discovered and identity-resolved ETV can
+  reach issuer holdings acquisition without admitting ETNs. Focused coverage
+  verifies the confirmed-ID request and typed unavailable outcome. All nine
+  AC1-AC9 and REF-HELP-V25 remain open.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -3130,15 +3138,20 @@ approved_frontend_consumer_adaptations:
     source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
     accepted_blob: b55828d962432fca3a391fce306df2b5862c3d8e
     delta: >-
-      On deliberate canonical ETF profile-card or picker selection, reuse the existing
-      producer-qualified capability and acquire APIs to load or refresh only that selected
-      fund's holdings. Keep mount/list selection and browsing interactions read-only.
+      On deliberate canonical ETF or Exchange Traded Vehicle profile-card or picker
+      selection, reuse the existing producer-qualified capability and acquire APIs to
+      load or refresh only that selected fund's holdings. Include the exact
+      "Exchange Traded Vehicle" result type in the existing picker scope; do not admit
+      ETNs or infer issuer eligibility from a ticker or stale local type. Keep
+      mount/list selection and browsing interactions read-only.
     rationale: >-
       Root's 2026-11-03 ordinary-journey approval explicitly extends this exact imported
       consumer path beyond its existing presentation and optional-instrument-ID guards.
       It changes no backend route, provider policy, identity/admission decision, persisted
       data, ETF source implementation, or other imported path. Current/stale semantics
       remain server-owned; stale or unknown selection outcomes preserve labelled snapshots.
+      A confirmed ETV candidate uses its resolved canonical ID; unavailable issuer outcomes
+      remain visible and do not claim a stored profile.
   - path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
     source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
     accepted_blob: 9c899304ac51f9fa1de652c5d9a655800414ae4f
@@ -4125,23 +4138,30 @@ active_implementation:
       text: After complete or partial selected history persists, reload local chart and technical/details data for the still-current visible symbol without a second action; late prior-symbol completion cannot repaint the new selection.
       status: completed
   validation: >-
-    Before adoption, the two directly affected frontend unit suites passed 81/81
-    with one Vitest fork (63 Workstation binding tests and 18 ETF Holdings view
-    tests), and Vue type-check/Vite build passed (540 modules; existing large
-    Workstation chunk warning). The no-page.route seeded browser companion remains
-    preparation evidence, not genuine source proof. This adoption imports exact
-    green Provider staging eb74 (CI41653944273); no product tests or runtime
-    gates were rerun here. TC frontend tree is byte-identical to pre-adoption
-    source a33c848d6820d30f0a47a797f8760d15dbd73131. Exact feature CI and the
-    combined functional/strict-visual profile remain pending; Root will provide
-    the ETF backend artifact after its authorized minimum PostgreSQL proof. No
-    browser, fixture, build, provider/issuer HTTP, or service operation occurred.
+    On the current source candidate based on 4ec9a9e21b64ba35708698044041d81649a2b93b,
+    three focused suites passed 102/102 with one Vitest fork (63 Workstation
+    bindings, 19 dedicated ETF Holdings, and 20 acquisition-helper tests). Vue
+    type-check and Vite production build passed (540 modules; existing large
+    Workstation chunk warning). Playwright collection lists 197 tests across the
+    two relevant E2E files; collection only, no browser execution. An initial
+    Vitest invocation from repository root failed before collection because it
+    discovered archived .ai/runtime copies; the package-root rerun passed. The
+    frozen 4ec9 full functional profile remains red at 187 passed/16 failed/2
+    configured skips; strict visual was not run on obsolete components. Its
+    failures and cleanup receipts remain preserved and do not qualify this
+    candidate. Exact candidate CI is pending coherent publication. Provider's
+    revised retained-type classification must first enter green staging; TC will
+    adopt that exact release at a clean boundary before Root binds a new
+    application artifact and allocates the complete functional/strict-visual
+    profile. No app image was built, no browser or source request ran, and no provider/issuer HTTP
+    or service operation occurred for this candidate.
   next_action: >-
-    Wait for Root's frozen ETF backend artifact after the authorized minimum
-    PostgreSQL proof. Verify exact backend/frontend component inputs and the
-    named compatible-batch conditions, then use Root's allocated single combined
-    functional/strict-visual profile. Preserve one worker, zero retries, dense
-    10,000-row seeding in backend and browser with observed browse count, and all
-    existing assertions, visual references, masks, and tolerances. After those
-    gates, continue the branch-owned ordinary-selection gaps under the existing
-    roadmap and Root's release boundary; Root owns acceptance and integration.
+    Publish this coherent source/workstream candidate and observe its exact-source
+    branch CI. Do not build an application image or launch a full browser profile
+    against the old Provider dependency. After Root releases the new exact green
+    Provider staging source, adopt only that source normally at a clean boundary,
+    reconcile its classification contract, then wait for Root's new immutable
+    component binding. The corrected combined profile remains one worker, zero
+    retries, dense 10,000-row seeding in backend and browser with observed browse
+    count, and all existing assertions, visual references, masks, and tolerances.
+    Root owns profile allocation, acceptance, integration, and deployment.

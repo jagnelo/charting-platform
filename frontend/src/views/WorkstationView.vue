@@ -305,11 +305,11 @@ import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { acquireETFHoldings, acquireSelectedHistory, defaultHistoryRange, isCurrentETFHoldingsCapability, readETFHoldingsCapability, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { acquireETFHoldings, acquireSelectedHistory, defaultHistoryRange, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
-import { discoverInstruments, resolveDiscoveredInstrument, type InstrumentDiscoveryCandidate } from '@/lib/onDemandAcquisition'
+import { discoverInstruments, resolveDiscoveredInstrument, type InstrumentAcquireResponse, type InstrumentDiscoveryCandidate } from '@/lib/onDemandAcquisition'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
@@ -1096,6 +1096,7 @@ async function selectSymbol(
   preserveETFContext = false,
   instrumentType = '',
   acquisitionIntent = false,
+  confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   const requested = raw.trim()
   if (!requested) return
@@ -1216,7 +1217,7 @@ async function selectSymbol(
   try {
     const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, canonicalInstrumentId, instrumentType, generation, localDataReady)
+      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1239,14 +1240,21 @@ async function selectSymbol(
 
 async function acquireSelectedTickerData(
   symbol: string,
-  instrumentId: number | null,
-  knownType: string,
   generation: number,
   localDataReady: Promise<void>,
+  confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   const timeframe = chartStore.timeframe
   const range = defaultHistoryRange(timeframe)
   const request = { timeframe, adjusted: true, start: range.start, end: range.end }
+  // Deliberate selection owns one identity/type reconciliation even when the
+  // chart is already cached. The backend returns locally for an already
+  // qualified identity; provisional or stale identity is governed there.
+  // History and issuer work share this result, so neither can race or resolve
+  // the selected symbol twice.
+  const identityPromise = confirmedIdentity
+    ? Promise.resolve(confirmedIdentity)
+    : resolveExistingInstrument(symbol)
   const updateStage = (stage: SelectedHistoryStage) => {
     if (generation !== symbolSelectionGeneration) return
     selectionHistoryMessage.value = stage === 'coverage'
@@ -1264,6 +1272,7 @@ async function acquireSelectedTickerData(
         request,
         updateStage,
         () => generation === symbolSelectionGeneration,
+        identityPromise,
       )
       if (generation !== symbolSelectionGeneration || outcome.kind === 'superseded') return
       if (outcome.kind === 'already-covered') {
@@ -1311,22 +1320,39 @@ async function acquireSelectedTickerData(
 
   const holdingsTask = (async () => {
     try {
-      let resolvedType = knownType
-      let resolvedInstrumentId = instrumentId
-      if (!resolvedType || resolvedInstrumentId == null) {
-        const localOptions = await queryClient.fetchQuery<Array<{ symbol: string; type: string; instrument_id?: number | null }>>({
-          queryKey: ['workstation', 'instrument-search', symbol.toUpperCase()],
+      const identity = await identityPromise
+      if (generation !== symbolSelectionGeneration) return
+      const resolvedInstrumentId = identity.instrument?.instrument_id
+      if (identity.status !== 'resolved' || !identity.instrument
+        || identity.instrument.symbol.trim().toUpperCase() !== symbol.toUpperCase()
+        || !Number.isSafeInteger(resolvedInstrumentId) || Number(resolvedInstrumentId) <= 0) {
+        selectionHoldingsMessage.value = identity.status === 'held'
+          ? `Holdings for ${symbol} are unavailable until its identity can be confirmed.`
+          : `The ticker identity for ${symbol} could not be confirmed; no holdings request was made.`
+        return
+      }
+
+      let resolvedType = identity.instrument.instrument_type?.trim() ?? ''
+      if (!resolvedType) {
+        // Older compatible responses omit classification. Read only the exact
+        // resolved local ID; never infer type from a stale autocomplete hint.
+        const localOptions = await queryClient.fetchQuery<Array<{
+          symbol: string
+          type: string
+          instrument_id?: number | null
+        }>>({
+          queryKey: ['workstation', 'instrument-search', symbol.toUpperCase(), Number(resolvedInstrumentId)],
           queryFn: () => api.get('/instruments/search', { q: symbol, canonical_only: true }),
-          staleTime: 30_000,
+          staleTime: 0,
         })
         if (generation !== symbolSelectionGeneration) return
-        const localMatch = localOptions.find(option => option.symbol.trim().toUpperCase() === symbol.toUpperCase())
-        resolvedType ||= localMatch?.type ?? ''
-        if (resolvedInstrumentId == null && Number.isSafeInteger(localMatch?.instrument_id)) {
-          resolvedInstrumentId = Number(localMatch?.instrument_id)
-        }
+        resolvedType = localOptions.find(option => option.symbol.trim().toUpperCase() === symbol.toUpperCase()
+          && option.instrument_id === Number(resolvedInstrumentId))?.type ?? ''
       }
-      if (!resolvedType.trim().toLowerCase().includes('etf')) return
+      if (!isEligibleETFHoldingsInstrumentType(resolvedType)) {
+        if (workspaceStore.constituentETF === symbol.toUpperCase()) workspaceStore.setConstituentETF(null)
+        return
+      }
       if (generation !== symbolSelectionGeneration) return
       // Recent-symbol and free-form Go selections can know the canonical ID
       // before their local instrument type is available. The direct selection
@@ -1335,11 +1361,6 @@ async function acquireSelectedTickerData(
       if (workspaceStore.constituentETF !== symbol.toUpperCase()) {
         workspaceStore.setConstituentETF(symbol)
       }
-      if (!Number.isSafeInteger(resolvedInstrumentId) || Number(resolvedInstrumentId) <= 0) {
-        selectionHoldingsMessage.value = `Holdings for ${symbol} cannot be checked until its canonical ticker is confirmed.`
-        return
-      }
-
       await localDataReady
       if (generation !== symbolSelectionGeneration) return
       const stored = workspaceStore.etfHoldings[symbol.toUpperCase()]
@@ -1548,7 +1569,7 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
               : 'This ticker listing is not available.'
       return
     }
-    selectSearchResult(result.instrument.symbol, result.instrument.instrument_id, candidate.type)
+    selectSearchResult(result.instrument.symbol, result.instrument.instrument_id, candidate.type, result)
   } catch {
     if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
       sourceDiscoveryError.value = 'Ticker confirmation failed. No chart was opened.'
@@ -1558,13 +1579,18 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
   }
 }
 
-function selectSearchResult(symbol: string, instrumentId?: number | null, instrumentType = '') {
+function selectSearchResult(
+  symbol: string,
+  instrumentId?: number | null,
+  instrumentType = '',
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   // Close before changing the draft. The input remains focused while an option
   // is selected with the mouse, so relying on blur leaves the listbox mounted
   // above the workstation and can intercept the next tool click.
   closeSymbolSearch()
   symbolDraft.value = symbol
-  void selectSymbol(symbol, undefined, false, instrumentId, true, false, instrumentType, true)
+  void selectSymbol(symbol, undefined, false, instrumentId, true, false, instrumentType, true, confirmedIdentity)
 }
 
 function goToSymbolDraft() {
