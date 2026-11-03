@@ -25669,3 +25669,29 @@ passes. Exact CI41648956324 is still running on the prior published source
 follow-up. This follow-up remains unaccepted pending its exact-source CI and
 Root's combined full functional/strict-visual profile. No external source,
 fixture, service, data, quota, or hold operation was performed.
+
+## 2026-11-03 — seeded real-API ordinary selection companion
+
+Added one no-`page.route` Playwright case to
+`frontend/tests/e2e/on_demand_acquisition.spec.ts`. Using the repository's
+authenticated logged-in fixture, it exercises Workstation search and ordinary
+selection for NVDA, Chart SearchBar selection for AMD, and an API-backed seeded
+SPY holding drilldown for NVDA. It observes passive search/holdings/local-bar
+reads, asserts no discovery/acquisition POST while typing, and checks the
+snapshot's ID, composition date, `known_at`, provenance and selected instrument
+lineage through actual local chart readback. BrowserDiagnostics remains enabled.
+The fixture is controlled `E2E_SEED_MARKET_DATA`; this is real application API
+wiring evidence, not genuine issuer/provider acquisition evidence.
+
+Focused verification for this test context: `npm run type-check` passed;
+Playwright `--list --reporter=list` collected all seven tests in the file;
+scope self-tests/full guard and the workstream validator passed; `git diff
+--check` passed. The test has not been browser-executed, and no build, fixture,
+browser, source request or service operation was started here. Exact-source CI
+is pending publication. The combined profile remains pending green ETF staging
+release and Root's slot. The next profile must seed the controlled dense 10,000
+instrument universe in both backend and browser, retain the performance test's
+observed `total >= 10000` and exactly-10,000-ID browse assertions, then run the
+unchanged full functional suite and 104-case/four-project strict visual suite
+with one worker, zero retries and existing oracles unchanged. All original
+roadmap criteria and operational holds remain open.

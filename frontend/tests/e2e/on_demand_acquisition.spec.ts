@@ -262,7 +262,9 @@ test('chart search discovers an unknown ticker automatically, then requires iden
     await route.fulfill({ status: 200, json: heldHistory(body, requestedId, 'TCNEW') })
   })
 
+  const sourceActionCountBeforeChartMount = sourceActionRequests.length
   await page.goto('/legacy/chart')
+  expect(sourceActionRequests).toHaveLength(sourceActionCountBeforeChartMount)
   const search = page.getByPlaceholder('Symbol…')
   await expect(search).toBeVisible()
   expect(discoveryRequests).toHaveLength(0)
@@ -2051,4 +2053,99 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     igvAcquireGate.resolve()
     unresolvedDiscoveryGate.resolve()
   }
+})
+
+test('ordinary Workstation, Chart, and reported-holding selection use the real seeded application APIs', async ({ page, loggedIn, browserDiagnostics }) => {
+  // Unlike the controlled-response cases above, this path installs no
+  // page.route handlers. The isolated backend's E2E_SEED_MARKET_DATA fixture
+  // supplies explicitly labelled local bars and ETF rows; it does not prove
+  // genuine issuer/provider acquisition.
+  const sourceActionRequests: string[] = []
+  page.on('request', request => {
+    const url = new URL(request.url())
+    if (request.method() === 'POST' && (
+      url.pathname === '/api/v1/instruments/discover'
+      || url.pathname === '/api/v1/instruments/acquire'
+      || /\/api\/v1\/instruments\/\d+\/history-acquisitions$/.test(url.pathname)
+      || /\/api\/v1\/etf-holdings\/[^/]+\/acquire$/.test(url.pathname)
+    )) sourceActionRequests.push(`${request.method()} ${url.pathname}`)
+  })
+
+  const waitForSearch = (symbol: string) => page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/v1/instruments/search'
+      && url.searchParams.get('q')?.toUpperCase() === symbol
+  })
+  const waitForBars = (symbol: string) => page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && new RegExp(`/api/v1/ohlcv/(?:local/)?${symbol}/D1$`).test(url.pathname)
+      && response.status() === 200
+  })
+
+  await page.goto('/chart')
+  await expect(page.locator('.workstation')).toBeVisible()
+  const workstationSearch = page.getByRole('combobox', { name: 'Active symbol' })
+  expect(sourceActionRequests).toHaveLength(0)
+  const workstationSearchActionCount = sourceActionRequests.length
+  const workstationSearchResponse = waitForSearch('NVDA')
+  await workstationSearch.fill('NVDA')
+  expect((await workstationSearchResponse).ok()).toBe(true)
+  const workstationResults = page.getByRole('listbox', { name: 'Symbol search results' })
+  await expect(workstationResults.getByRole('option', { name: /NVDA/ }).first()).toBeVisible()
+  expect(sourceActionRequests).toHaveLength(workstationSearchActionCount)
+  const workstationBarsResponse = waitForBars('NVDA')
+  await workstationResults.getByRole('option', { name: /NVDA/ }).first().click()
+  await expect(workstationSearch).toHaveValue('NVDA')
+  const workstationBars = await workstationBarsResponse
+  expect(await workstationBars.json()).not.toHaveLength(0)
+
+  await page.goto('/legacy/chart')
+  const chartSearch = page.getByRole('combobox', { name: 'Symbol…' })
+  const chartSearchActionCount = sourceActionRequests.length
+  const chartSearchResponse = waitForSearch('AMD')
+  await chartSearch.fill('AMD')
+  expect((await chartSearchResponse).ok()).toBe(true)
+  const chartResults = page.getByRole('listbox', { name: 'Symbol search results' })
+  await expect(chartResults.getByRole('option', { name: /AMD/ }).first()).toBeVisible()
+  expect(sourceActionRequests).toHaveLength(chartSearchActionCount)
+  const chartBarsResponse = waitForBars('AMD')
+  await chartResults.getByRole('option', { name: /AMD/ }).first().click()
+  const chartBars = await chartBarsResponse
+  expect(await chartBars.json()).not.toHaveLength(0)
+
+  await page.getByRole('link', { name: 'ETF Holdings' }).click()
+  const spyProfile = page.locator('.profile-card').filter({ hasText: /\bSPY\b/ }).first()
+  await expect(spyProfile).toBeVisible()
+  const spyHoldingsResponse = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/v1/etf-holdings/SPY/holdings'
+  })
+  await spyProfile.click()
+  const spyHoldingsResult = await spyHoldingsResponse
+  expect(spyHoldingsResult.ok()).toBe(true)
+  const spyPage = await spyHoldingsResult.json() as {
+    snapshot: { id: number; composition_date: string; known_at: string; provenance: string }
+    holdings: Array<{ id: number; constituent_instrument_id: number | null; constituent_symbol: string | null; is_resolved: boolean; holding_type: string }>
+  }
+  expect(spyPage.snapshot.provenance).toBe('controlled_fixture')
+  const reportedNvda = spyPage.holdings.find(row => row.constituent_symbol === 'NVDA')
+  expect(reportedNvda).toMatchObject({ is_resolved: true, holding_type: 'equity' })
+  expect(reportedNvda?.constituent_instrument_id).toBeGreaterThan(0)
+  await expect(page.getByTestId('etf-snapshot-lineage')).toBeVisible()
+  const nvdaRow = page.locator('.holding-row:not(.holding-row--head)').filter({ hasText: /\bNVDA\b/ }).first()
+  await nvdaRow.click()
+  const chartBarsAfterDrilldown = waitForBars('NVDA')
+  await page.getByRole('button', { name: 'View history' }).click()
+  await page.waitForURL(url => url.pathname === '/legacy/chart/NVDA')
+  const holdingChartUrl = new URL(page.url())
+  expect(holdingChartUrl.searchParams.get('holding_snapshot_id')).toBe(String(spyPage.snapshot.id))
+  expect(holdingChartUrl.searchParams.get('holding_composition_date')).toBe(spyPage.snapshot.composition_date)
+  expect(holdingChartUrl.searchParams.get('holding_known_at')).toBe(spyPage.snapshot.known_at)
+  expect(holdingChartUrl.searchParams.get('holding_provenance')).toBe(spyPage.snapshot.provenance)
+  expect(holdingChartUrl.searchParams.get('holding_instrument_id')).toBe(String(reportedNvda!.constituent_instrument_id))
+  expect(await (await chartBarsAfterDrilldown).json()).not.toHaveLength(0)
+  await browserDiagnostics.expectNoCriticalIssues()
 })

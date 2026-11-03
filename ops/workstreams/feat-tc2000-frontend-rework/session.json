@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published source 3aef1a149c2c65e9eb9fbc0564a07c2ba994131e exact CI41648956324 remains in progress; Frontend Unit is green and Backend integration is running. The local follow-up preserves producer-authoritative ETF freshness: current/verified/analysis-usable capability reuses cache, stale or unreadable capability refreshes once, and held/error keeps last-known data. Added a stale A-to-B readback continuation fence; Workstation unit file passed 62/62 and vue-tsc passed. New-source exact CI and Root combined functional/strict-visual profile remain pending.",
-  "current_checkpoint_status": "The ordinary-ticker-journey-repair-20261103 implementation covers Workstation, shared SearchBar, Chart entrypoints, direct ETF selection, producer-qualified ETF cache freshness, reported constituent rows, and stale-selection/local-derived-data refresh guards. Root's exact functional consumer approval for ETFHoldingResolutionAction.vue is recorded in plan.yaml and enforced as one source-pinned path exception. Prior F8Y and TCO acceptance objects/archives remain historical and do not accept this candidate; exact-source CI and the Root-coordinated full functional/strict-visual profile remain pending.",
+  "current_candidate_ci_status": "Local candidate is based on published 27ab608fcacb48e474ad663b93c58edfd344d040 plus one real-API seeded E2E case and owned records. Playwright collection lists seven tests; vue-tsc, scope self/full guards, workstream validation and diff check pass. New browser case is not yet executed; exact-source CI is pending publication. Full combined functional/strict-visual profile awaits Root's green ETF staging release and allocation.",
+  "current_checkpoint_status": "Ordinary ticker journey remains an unaccepted active implementation. This candidate adds no-page.route real API wiring evidence in preparation only: Workstation search/selection, Chart SearchBar selection, and controlled seeded SPY holding lineage to local chart readback. It is not genuine Provider/issuer proof. Exact-source CI and full combined functional/strict-visual qualification remain pending; all earlier accepted F8Y/TCO checkpoints and all nine roadmap criteria remain unchanged.",
   "current_exact_ci": {
     "conclusion": "success",
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -289,7 +289,7 @@
     "status": "ready_for_integration"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-10-28T20:10:07Z",
+  "last_checkpoint": "2026-11-03T14:43:29Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -314,7 +314,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Wait for CI41648956324 to finish on its recorded SHA, then publish the coherent follow-up for exact-source CI. Keep Root combined functional/strict-visual qualification pending allocation.",
+  "next_action": "Publish the focused test and coherent records once for exact-source CI. After Root releases green ETF staging, adopt it and obtain the combined-profile slot; run unchanged full functional and strict visual suites with dense 10,000-row data seeded in backend and browser and record the observed browse count.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -345,7 +345,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "eda0a03ffbd082a94be41cd624c0f7cd8245b2d04af9a1ce55267d30b1b522d2",
+  "plan_hash": "0e132ff664d7e69ea1203dc4a195204bdf4c02ad29b4464ef38aa283096fb35b",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -363,11 +363,11 @@
       "OTJ2",
       "OTJ6"
     ],
-    "current_blocker": "Exact CI41648956324 is running on the prior published SHA. The local follow-up needs its own exact-source CI and Root-coordinated full combined browser profile; no fixture is allocated.",
-    "current_phase": "Ordinary ticker-selection repair remains active. Producer capability controls holdings cache reuse; a late selected-fund readback is fenced from replacing a newer selection status.",
-    "next_action": "Wait for CI41648956324 to finish on its recorded SHA, then publish the coherent follow-up for exact-source CI. Keep Root combined functional/strict-visual qualification pending allocation.",
+    "current_blocker": "This candidate's exact-source CI is pending publication. The combined full functional/strict-visual profile awaits actual green ETF staging adoption and Root's slot; staging eb74 CI41653944273 is still live and must not be adopted yet.",
+    "current_phase": "Ordinary ticker journey implementation remains active; a no-page.route seeded real-API companion now covers Workstation, Chart and ETF holding-to-chart lineage/readback in addition to the six controlled-response cases.",
+    "next_action": "Publish the focused test and coherent records once for exact-source CI. After Root releases green ETF staging, adopt it and obtain the combined-profile slot; run unchanged full functional and strict visual suites with dense 10,000-row data seeded in backend and browser and record the observed browse count.",
     "total": 6,
-    "updated_at": "2026-11-03T14:13:48Z"
+    "updated_at": "2026-11-03T14:43:29Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -534,7 +534,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-03T14:13:48Z",
+  "updated_at": "2026-11-03T14:43:29Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
