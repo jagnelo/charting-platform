@@ -917,7 +917,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "in_progress",
+  "status": "ready_for_integration",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",

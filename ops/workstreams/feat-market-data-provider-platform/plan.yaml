@@ -1,6 +1,6 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: in_progress
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -14134,6 +14134,7 @@ closure_summary: >-
   overall failed because Branch-declared rejected that alias before tests; Backend and Frontend passed.
   Exact final-tip CI remains mandatory and pending; TAXONOMY-4 exact-CI completion is not claimed. Root
   owns final CI observation and protected integration. All prior failures and the full roadmap remain.
+  integration_capture: exact branch HEAD.
 integration_checkpoint_authorization: >-
   Root delegated technical acceptance authorizes this bounded checkpoint as ready_for_integration under
   the standing human delegation. Root owns exact final-tip CI review and will integrate only after all
