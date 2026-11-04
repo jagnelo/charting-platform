@@ -3,20 +3,20 @@
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
     "backend/app/services/provider_runtime.py::resolve_provider_chain (exact ETF issuer route and Massive-only US-listed ETV PRICE_HISTORY/fetch_ohlcv route; no generic registry widening)",
-    "backend/tests/unit/services/test_provider_runtime.py plus backend/tests/integration/api/test_on_demand_history_postgres.py (registered resolver cases and real PostgreSQL ETV listing-admission positive/negative checks)",
+    "backend/tests/unit/services/test_provider_runtime.py and backend/tests/unit/services/test_provider_explicit_acquisition.py plus backend/tests/integration/api/test_on_demand_history_postgres.py (registered resolver, disabled-policy context, and real PostgreSQL listing-admission checks)",
     "Previously accepted selected-acquire taxonomy/schema continuity remains a compatibility gate; no source request or identity mutation",
     "Complete backend/DDL coverage and exact-source branch CI remain required for this Provider checkpoint; no live provider request or target change"
   ],
   "commands": [
     {
       "id": "focused-provider-type-taxonomy-units",
-      "command": "pytest backend/tests/unit/services/test_provider_runtime.py backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
+      "command": "pytest backend/tests/unit/services/test_provider_runtime.py backend/tests/unit/services/test_provider_explicit_acquisition.py backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
       "covers": [
         1,
         2,
         3
       ],
-      "scope_note": "Resolver-bound ETF/ETV issuer-adapter routing, explicit scope, retained taxonomy compatibility, and no-transport unit regressions."
+      "scope_note": "Resolver-bound ETF/ETV issuer-adapter routing, exact disabled-policy initial-qualification context, explicit acquisition entitlement and hold regressions, and no-transport compatibility checks."
     },
     {
       "id": "cached-selected-acquire-postgres",
@@ -72,5 +72,29 @@
       ],
       "reason": "Root owns combined consumer browser qualification, protected staging/master integration, deployment, and genuine-source checks; none is claimed as performed in this Provider local profile."
     }
-  ]
+  ],
+  "fixture_correction_local_proof": {
+    "unit_module": {
+      "command": "pytest backend/tests/unit/services/test_provider_explicit_acquisition.py -q",
+      "selected": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "issuer_route_hold_selection": {
+      "command": "pytest backend/tests/unit/services/test_provider_runtime.py -k 'etf_holdings_resolver_admits_only_matching_etf_and_etv_types or ordinary_native_etf_route_stays_held_without_positive_probe' -q",
+      "selected": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0,
+      "exit_code": 0
+    },
+    "predecessor_exact_ci": {
+      "run_id": 41784665584,
+      "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
+      "status": "failure preserved; fixture correction only"
+    },
+    "next_exact_tip_ci": "pending; Root owns observation"
+  }
 }

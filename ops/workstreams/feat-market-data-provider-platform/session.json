@@ -240,7 +240,7 @@
     "source_sha": "exact branch HEAD (see integration_capture; no self-referential SHA stored)",
     "status": "pending; Root observes the exact closing-tip CI; the prior caac run 41376711568 remains overall failed solely for the corrected records mismatch."
   },
-  "closing_tip_ci_status": "pending; Root owns exact closing-tip CI observation and protected integration",
+  "closing_tip_ci_status": "run 41784665584 failed on the noncanonical explicit-acquisition mock tuple; fixture-only correction is published in the next tip and exact-tip CI is pending.",
   "corrected_source_exact_ci": {
     "run_id": 41376711568,
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
@@ -248,9 +248,13 @@
   },
   "current_checkpoint_local_profile": "docker_integration: 126/126 current provider_runtime unit cases, 23/23 focused resolver cases, and 1/1 isolated PostgreSQL listing-admission resolver case passed. Root accepted the PostgreSQL test delta/cleanup. Ruff and formatting passed; exact-environment branch manifest, workstream and closure checks passed. No source HTTP, real ledger access or full local backend replay.",
   "current_exact_ci": {
-    "source_sha": "pending coherent publication",
-    "status": "exact closing-tip CI pending; no current-tip hosted result claimed",
-    "backend_ddl": "mandatory on exact closing tip; Root owns observation",
+    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
+    "status": "failed; preserved, test fixture only",
+    "run_id": 41784665584,
+    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584",
+    "backend_job_id": 126423952265,
+    "backend": "5697 passed, 1 failed, 1 skipped; 79% coverage; failure was the mock tuple described in fixture_correction_predecessor_ci",
+    "next_exact_tip_ci": "pending; Root owns observation and protected integration",
     "prior_exact_ci": {
       "run_id": 41691823546,
       "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
@@ -410,7 +414,7 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "docker_integration",
-  "next_action": "Freeze this coherent source/checkpoint publication; Root observes exact closing-tip backend/DDL/branch CI and owns integration.",
+  "next_action": "Freeze the fixture-only correction and records; Root observes exact-tip backend/DDL/branch CI and owns integration.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
@@ -805,8 +809,8 @@
       "ETV-ROUTE-3"
     ],
     "total": 6,
-    "current_phase": "exact_closing_tip_backend_ddl_and_branch_ci_pending",
-    "current_blocker": "The exact closing-tip backend/DDL and branch CI must be terminal green before Root integrates; Root owns observation and protected integration.",
+    "current_phase": "fixture_mock_corrected_waiting_for_new_exact_tip_ci",
+    "current_blocker": "The prior exact-tip CI failed only because the test mock used a noncanonical/reversed taxonomy tuple; the fixture correction passed focused local tests. New exact-tip backend/DDL and branch CI are mandatory and pending.",
     "next_action": "Freeze tracked inputs and hand the exact publication tip to Root for closing-tip CI observation.",
     "updated_at": "2026-11-04T06:13:38.941086+00:00"
   },
@@ -1148,11 +1152,12 @@
   "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-routing-software-checkpoint-acceptance-20261104.json",
   "root_acceptance_receipt_sha256": "b0f9374ea4fd2521bb0e0ecfd6cfbe60cba87a1f7fceb82dedcb1257adae0127",
   "checkpoint_acceptance_status": "accepted_bounded_software_checkpoint; exact-source CI pending",
-  "current_gate_checkpoint": "Root's conditional source acceptance was met on the pinned runtime/unit hashes by 126/126 module tests and static checks. Root accepted the added PostgreSQL resolver/listing test: 1/1 passed in 9.87s on the pinned three-file source, with exact owned fixture cleanup and protected inventory reviewed. Exact closing-tip backend/DDL and branch CI remain mandatory and pending.",
+  "current_gate_checkpoint": "Root's conditional source acceptance was met on the pinned runtime/unit hashes by 126/126 module tests and static checks. Root accepted the added PostgreSQL resolver/listing test: 1/1 passed in 9.87s on the pinned three-file source, with exact owned fixture cleanup and protected inventory reviewed. Exact closing-tip backend/DDL and branch CI remain mandatory and pending. The first exact closing-tip CI run 41784665584 is retained as red for the mock tuple mismatch in the disabled-policy explicit-acquisition test; the mock now matches the actual (AssetClass.name, InstrumentType.name) query as (Equity, ETF). The full explicit-acquisition module passed 14/14 and the affected issuer-route/hold selection passed 12/12. No runtime admission, quota, entitlement or negative assertion changed; a new exact-tip CI is pending.",
   "current_source_hashes": {
     "backend/app/services/provider_runtime.py": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
     "backend/tests/unit/services/test_provider_runtime.py": "df41e5ddc674730bc69b9e6c1b02a49de7572eca739368713c7baffae7b8bc10",
-    "backend/tests/integration/api/test_on_demand_history_postgres.py": "357af6a81c7ddff8049abb7e538473cc5ddab590ad60a7e24126f007e22bd91b"
+    "backend/tests/integration/api/test_on_demand_history_postgres.py": "357af6a81c7ddff8049abb7e538473cc5ddab590ad60a7e24126f007e22bd91b",
+    "backend/tests/unit/services/test_provider_explicit_acquisition.py": "9014d522463e2076203b307367f94d53842354bea81465915ea13e047d5a18cb"
   },
   "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
   "current_postgres_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
@@ -1175,5 +1180,24 @@
     "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
     "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
     "cleanup": "exact owned PG container and internal network removed; no volume created; Root-attributed TC attempt15 container untouched"
+  },
+  "fixture_correction_predecessor_ci": {
+    "run_id": 41784665584,
+    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
+    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584",
+    "backend_job_id": 126423952265,
+    "status": "failure",
+    "passed": 5697,
+    "failed": 1,
+    "skipped": 1,
+    "coverage_percent": 79,
+    "failed_test": "tests/unit/services/test_provider_explicit_acquisition.py::test_vaneck_qualification_can_resolve_disabled_policy_only_in_exact_context",
+    "cause": "FakeDB.one_or_none returned (etf, exchange_traded_fund) although the selected query is (AssetClass.name, InstrumentType.name); the strict issuer gate correctly denied it.",
+    "correction": "Only the mock tuple changed to canonical (Equity, ETF); runtime and policy/quota/entitlement assertions unchanged.",
+    "local_followup": {
+      "explicit_acquisition_module": "14 passed, 0 failed/skipped",
+      "issuer_route_hold_selection": "12 passed, 0 failed/skipped"
+    },
+    "next_exact_tip_ci": "pending; Root owns observation"
   }
 }
