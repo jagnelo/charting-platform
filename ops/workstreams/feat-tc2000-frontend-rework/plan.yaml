@@ -61,7 +61,7 @@ human_intent_authorization: >-
   Keep branch history; reconcile file and semantic overlaps after upstream work
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
-human_closure_authorization: >-
+archived_prior_accepted_f8y_20261028_human_closure_authorization: >-
   Existing standing human authority is recorded in
   /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md:
   the human directed, “I, the human in charge, explicitly authorize any and all
@@ -72,7 +72,7 @@ human_closure_authorization: >-
   Root accepted only checkpoint tc-f8y-tag-columns-repair-20261028 on 2026-10-28;
   receipt .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json
   (SHA256 9d181c30c7bc78137cfc6baea2a5ea1d6988ebb080956ef1d973e549c62cbb4a).
-closure_summary: >-
+archived_prior_accepted_f8y_20261028_closure_summary: >-
   integration_capture: exact branch HEAD. Root accepted this bounded F8Y
   Tag Column persistence/readiness checkpoint under the existing standing
   delegation; validated implementation source is
@@ -95,6 +95,36 @@ closure_summary: >-
   official REF-HELP-V25, broader product work, genuine Provider/issuer proof,
   target acceptance, and deployment remain open or Root-owned; this is not full
   feature-roadmap completion.
+human_closure_authorization: >-
+  Under the existing standing human delegation, Root accepted the bounded
+  ordinary-journey b8 software/artifact checkpoint. Receipt:
+  /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-b8-focused-software-checkpoint-root-acceptance-20261104.json
+  (SHA256 73afa6044cfd6944d6b7a8a7da87fce771953b9f79dc958a66725f96fde8010c).
+  This records Root's delegated checkpoint acceptance; no new human quote is
+  claimed and the complete roadmap is not accepted.
+closure_summary: >-
+  integration_capture: exact branch HEAD. Root accepted only the bounded b8
+  software/artifact checkpoint at source
+  b8c973f7139d2395f9c158a3dfacd0748318092c, frontend tree
+  4321b4a6ae403e1fd5867aeddda03463ed62af34 and immutable frontend image
+  sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71.
+  The exact immutable snapshot verified all 1,949 tracked blobs. The focused
+  current-source browser checks passed12/12 with zero retries: seven ordinary
+  acquisition journeys, F8e.1 drilldown, and the default holdings/industries
+  visual check across four projects. Startup/authentication and authenticated
+  dense browse total10,000 passed; Root reviewed frontend replacement and
+  protected-resource preservation. The full205-test functional profile is
+  running on the same fixture with accepted backend/worker image
+  sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65;
+  strict104 visuals across four projects remain pending functional completion.
+  Exact closing-tip CI is pending publication. These gates are required before
+  protected integration; no merge or deployment is authorized here. The current
+  fixture must be cleaned only after terminal evidence and an exact owned-resource
+  review. Controlled/seeded browser evidence is not genuine Provider or issuer
+  proof. AC1-AC9, official REF-HELP-V25, broader product work, protected staging
+  and master gates, private deployment, and genuine Provider/issuer validation
+  remain open or Root-owned. Prior accepted TCO/F8Y checkpoints and all failed
+  attempt19 evidence remain preserved; this is not full feature-roadmap closure.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -286,13 +316,13 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
 current_blocker: >-
-  Attempt19 exposed two frontend acceptance gaps on source8a1552db: a fresh plain /chart mount leaves ETF context empty because the absent route symbol is treated as an existing parent context, and the narrow F8e.1 viewport virtualizes 6M outside the current header DOM. The reviewed three-path repair restores passive local holdings/industry hydration only when no parent ETF is bound and checks all seven periods through ordinary horizontal scrolling. Focused Workstation tests68/68, two late-response store tests, vue-tsc and scoped guards pass. Publish and build one source-specific frontend artifact; Root review and focused runtime verification remain pending.
+  Root accepted the bounded b8 software/artifact checkpoint after exact-source immutable-snapshot focused checks passed. The full 205-test functional profile is running on that same b8 snapshot and 6c6 frontend/52fa backend fixture; the 104-case strict visual matrix remains pending until functional completion. Exact closing-tip CI is pending this records publication. Protected integration, deployment and genuine Source evidence remain Root-owned.
 
 current_checkpoint_status: >-
-  The ordinary ticker journey remains active and unaccepted; accepted F8Y/TCO checkpoints and all nine roadmap criteria remain preserved. Adoption source8a1552db is green in CI41822286349, and c476/52fa were used for attempt19. Attempt19 is retained as 202 functional passes,1 failure,2 configured skips and 66 strict visuals passed/38 failed; it is diagnostic evidence, not current-source acceptance. The new focused repair is not yet browser-qualified. No references, tolerances or backend source changed.
+  Root accepted the bounded b8 software/artifact checkpoint at source b8c973f7139d2395f9c158a3dfacd0748318092c, frontend tree4321b4a6ae403e1fd5867aeddda03463ed62af34 and immutable frontend image sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71. All 1,949 immutable source blobs were verified; the seven ordinary flows, F8e.1 drilldown, and default holdings/industries visual check across four projects passed at zero retries. The full functional profile is now running; strict visuals, exact closing-tip CI, protected integration, deployment and genuine Source evidence remain pending. Attempt19 red results remain preserved; no oracle or reference changed.
 
 ordinary_ticker_latest_update: >-
-  Root reviewed a three-path frontend correction for attempt19: plain /chart now performs passive local holdings/industry hydration when no actual parent ETF is bound, preserving an existing parent context; F8e.1 checks 1D,1W,1M,3M,6M,YTD,1Y by ordinary horizontal scrolling through the virtualized header. Focused Workstation tests passed68/68, late-response store cases2/2 and vue-tsc passed. Attempt19's 202/1/2 functional result and 66/38 strict-visual result remain preserved as red predecessor evidence. Scope/workstream guards are green. This candidate still needs one source-specific frontend artifact and Root-reviewed replacement, followed by default hydration and holding-drilldown runtime checks; no browser success is claimed for the new source.
+  The b8 frontend/artifact checkpoint is Root-accepted. Against the immutable b8 snapshot and reviewed 6c6/52fa fixture, all seven on-demand journeys passed (55.0s), F8e.1 drilldown passed, and the default holdings/industries visual check passed in all four display projects. Candidate geometry was fully inside the selection pane and tool, with a normal center hit. The complete 205-test functional suite is running now; after it passes, run the unchanged 104 strict visuals across all four projects at one worker/zero retries. Preserve attempt19 red evidence and all nine roadmap criteria. Exact closing-tip CI, protected integration/deployment and genuine Source evidence remain pending Root.
 
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
@@ -3326,14 +3356,14 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   correction or closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and private-target/deployment
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: in_progress
+status: ready_for_integration
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: Focused repair for attempt19 is implemented in WorkstationView.vue, the mounted Workstation tests and F8e.1's ordinary horizontal-column checks. Workstation tests68/68 and two late-response store tests passed; vue-tsc --noEmit passed. Prior attempt19 red evidence remains preserved.
-  current_blocker: Build and publish one source-specific frontend artifact from this reviewed source, then obtain Root's replacement review and verify fresh /chart hydration plus unresolved-holding drilldown. Exact current-source CI and full functional/104 strict visuals remain pending; preserve attempt19's 202/1/2 functional and 66/38 visual results as predecessor evidence.
-  next_action: Run normal workstream/scope/diff checks on the coherent source and current records, publish once for exact CI, and build one frontend image with the retained capped shared builder. Send Root the immutable artifact and replacement proposal; do not mutate the existing fixture before review.
-  updated_at: '2026-11-04T14:19:57Z'
+  current_phase: Root-accepted b8 software/artifact checkpoint; all12 focused browser results pass on the exact immutable snapshot and reviewed 6c6/52fa fixture. The full 205-test functional profile is running at one worker and zero retries; strict visuals follow only after functional completion.
+  current_blocker: No focused-check blocker. Full functional completion and the unchanged 104-case strict visual matrix remain required; exact closing-tip CI is pending this records publication. Protected integration, deployment and genuine Source evidence remain Root-owned.
+  next_action: Finish the current full functional run, preserve its exact receipt, then run all104 strict visual cases across four projects on the same fixture at one worker/zero retries. Do not change sources, assertions, references, masks, tolerances or fixture services. Root owns closing-tip CI observation and later protected integration/deployment.
+  updated_at: '2026-11-04T14:57:00Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -4135,7 +4165,8 @@ latest_staging_adoption:
 active_implementation:
   id: ordinary-ticker-journey-repair-20261103
   status: in_progress
-  accepted_checkpoint: tc-on-demand-workstation-consumer-20261027 remains accepted historical software scope; it does not accept this generalized repair.
+  accepted_checkpoint: Root accepted the bounded b8 software/artifact checkpoint under the standing delegation; this does not accept the full ordinary-journey roadmap, full current profile, deployment or genuine Source evidence. The accepted tc-on-demand-workstation-consumer-20261027 checkpoint remains historical and unchanged.
+  integration_capture: exact branch HEAD
   criteria:
     - id: OTJ1
       text: Local search stays read-only; debounce shared ticker discovery only when enabled search lacks an exact local canonical match, including one-character tickers.
@@ -4156,7 +4187,7 @@ active_implementation:
       text: After complete or partial selected history persists, reload local chart and technical/details data for the still-current visible symbol without a second action; late prior-symbol completion cannot repaint the new selection.
       status: completed
   validation: >-
-    Root-reviewed exact 5519 formal ordinary profile passed 7/7 in 54.6 seconds at one worker/zero retries, and exact CI41784665635 was green. The pre-adoption evidence is retained and source-scoped. The current adoption merge is records/import reconciliation only: backend tree equals released staging 4de1365cec4bc5897c2a76d16a0004853d747f9c, frontend tree equals accepted 5519, and Root approved reuse of c476 built at a6c02704. No frontend build or unit/coverage rerun was performed. The adopted tip still requires exact branch CI. The complete current-source functional and 104-case strict-visual profile remains pending Root's accepted ETF backend artifact and paired runtime release.
+    Root accepted the bounded b8 software/artifact checkpoint at source b8c973f7139d2395f9c158a3dfacd0748318092c. Immutable-snapshot focused checks passed: seven ordinary acquisition flows, F8e.1 drilldown, and the default holdings/industries visual in all four projects, all zero retries. The current full 205-test functional profile is running against frontend6c6 and backend/worker52fa; strict104 visuals are pending. The exact records-closing-tip CI is pending publication. This does not close the full checkpoint or roadmap; protected integration, deployment and genuine Provider/issuer proof remain Root-owned. Attempt19 red evidence and all historical records remain preserved.
 
   latest_targeted_profile_disposition:
     base_source: bf71482deae91558ab030202673711b11b477e62
@@ -4201,11 +4232,8 @@ active_implementation:
     snapshot_manifest_sha256: aa117eae079f34ab0810ca0fb9c022f4769d25717184d9cff473f45cc1f3f976
     log_sha256: ba5d0eae8b81a03d7d4373a5fa236236c5696f1afed0d1c12b971cafffa98f6e
   next_action: >-
-    Complete the current 4de frozen-import/session record reconciliation, then run
-    the normal scope/workstream/hash/diff checks and publish one adoption commit
-    for exact-source CI. Do not rebuild c476 or run tests solely for records.
-    Keep the existing isolated fixture intact; await Root's accepted corrected
-    ETF backend artifact and exact pair release, then run the seven ordinary
-    flows before the unchanged complete functional and 104 strict-visual profile
-    at one worker/zero retries. Root owns profile acceptance, integration and
-    deployment.
+    Finish the already running full functional suite, then run all104 strict
+    visual cases on the same fixture at one worker/zero retries with existing
+    references, masks and tolerances. Root observes the exact closing-tip CI.
+    Do not mutate the application sources or fixture; Root owns protected
+    integration, deployment and genuine Source evidence.

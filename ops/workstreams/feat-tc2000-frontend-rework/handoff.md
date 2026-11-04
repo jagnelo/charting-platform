@@ -26276,3 +26276,10 @@ continues to reject the existing identity, report the exact error to Root.
 ## 2026-11-04 — Attempt19 ordinary-flow correction
 
 The exact 8a1552db profile is retained as predecessor evidence: functional202 passed,1 failed,2 configured skips; strict visual66 passed and38 failed. The focused repair is limited to `WorkstationView.vue`, its mounted unit test, and F8e.1's virtualized-column test setup. A fresh plain `/chart` now allows passive local holdings/industry reads when no parent ETF is bound while preserving a real parent context. The column test scrolls ordinarily to verify each of 1D,1W,1M,3M,6M,YTD,1Y. Workstation tests passed68/68, two late-response store cases passed, and `vue-tsc --noEmit` passed. No new-source browser pass is claimed. The one source-specific frontend artifact and Root-reviewed replacement are next; the accepted52fa backend and existing fixture remain untouched until review.
+
+
+## 2026-11-04 — b8 software/artifact checkpoint and full profile
+
+Root accepted the bounded software/artifact checkpoint at `b8c973f7139d2395f9c158a3dfacd0748318092c`; the original roadmap and accepted archives remain intact. The immutable snapshot verified 1,949 tracked blobs. Focused browser checks passed 12/12 at zero retries: seven ordinary acquisition journeys, F8e.1 drilldown, and the default holdings/industries visual check in all four projects. The source-matched frontend image is `sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71`; backend/worker remain the Root-accepted 52fa image.
+
+The complete 205-test functional profile is running on the same fixture, one worker and zero retries. If it passes, run the unchanged 104 strict visual cases across all four projects. Exact closing-tip CI is pending publication. Protected integration, deployment, and genuine Provider/issuer evidence remain Root-owned and pending; no full-profile result is claimed in this handoff. Attempt19 red results remain preserved. No source, image, fixture service, reference, mask, tolerance, provider or ledger state changed.

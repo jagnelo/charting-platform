@@ -39,13 +39,13 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact adoption-source CI41822286349 is terminal green. This three-path frontend repair is not yet published; its exact-source CI remains pending. Attempt19 is preserved as red predecessor evidence, and the new source requires a source-specific frontend artifact plus Root-reviewed runtime replacement.",
-  "current_checkpoint_status": "The ordinary ticker journey remains active and unaccepted; accepted F8Y/TCO checkpoints and all nine roadmap criteria remain preserved. Adoption source8a1552db is green in CI41822286349, and c476/52fa were used for attempt19. Attempt19 is retained as 202 functional passes,1 failure,2 configured skips and 66 strict visuals passed/38 failed; it is diagnostic evidence, not current-source acceptance. The new focused repair is not yet browser-qualified. No references, tolerances or backend source changed.",
+  "current_candidate_ci_status": "The bounded b8 software/artifact checkpoint is Root-accepted. Exact closing-tip CI is pending publication; the immutable b8 full functional profile is running and the 104 strict visual matrix follows only if functional passes. No full-profile acceptance is claimed yet.",
+  "current_checkpoint_status": "Root accepted the bounded b8 software/artifact scope at b8c973f7139d2395f9c158a3dfacd0748318092c with frontend tree4321b4a6ae403e1fd5867aeddda03463ed62af34 and immutable image sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71. All1,949 immutable blobs and12 focused browser results passed on the current fixture at zero retries. Full functional is running; 104 strict visuals, exact closing-tip CI, protected integration/deployment and genuine Source evidence remain pending Root. Attempt19 failures, accepted historical checkpoints and all nine roadmap criteria remain preserved.",
   "current_exact_ci": {
     "conclusion": null,
     "head_sha": null,
     "run_id": null,
-    "scope": "Exact-source CI for the coherent 4de adoption publication; Root observes this run.",
+    "scope": "Exact records-only b8 software/artifact checkpoint closing tip; Root observes this run while the immutable full profile continues.",
     "status": "pending_publication"
   },
   "current_software_checkpoint": {
@@ -337,7 +337,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "6aee7952429a195dbc575e2ca531520160b52ff30049803e59fd6de7143881ca",
+  "plan_hash": "1354b63479a8ba03dcbad94e4d7406ed7fc78460de18ba96b8c1eff895b33344",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
