@@ -1,4 +1,5 @@
 import { test, expect } from './helpers'
+import type { Frame, Request } from '@playwright/test'
 import type {
   ETFHolding,
   ETFHoldingsDate,
@@ -597,13 +598,27 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
 
   const readsBeforeReload = localReadCount
   const calendarReadsBeforeReload = calendarReads.length
-  const calendarResponseAfterReloadReady = page.waitForRequest(request => {
+  const mainFrame = page.mainFrame()
+  let mainDocumentEpoch = 0
+  const requestDocumentEpoch = new WeakMap<Request, number>()
+  const recordMainFrameNavigation = (frame: Frame) => {
+    if (frame === mainFrame) mainDocumentEpoch += 1
+  }
+  const recordMainFrameRequest = (request: Request) => {
+    if (request.frame() === mainFrame) requestDocumentEpoch.set(request, mainDocumentEpoch)
+  }
+  page.on('framenavigated', recordMainFrameNavigation)
+  page.on('request', recordMainFrameRequest)
+  const documentEpochBeforeReload = mainDocumentEpoch
+  const calendarResponseAfterReloadReady = page.waitForResponse(response => {
+    const request = response.request()
     const url = new URL(request.url())
-    return request.method() === 'GET'
+    return request.frame() === mainFrame
+      && (requestDocumentEpoch.get(request) ?? 0) > documentEpochBeforeReload
+      && request.method() === 'GET'
       && url.pathname === `/api/v1/calendar/instruments/${symbol}/calendar`
-  }).then(async request => {
-    const response = await request.response()
-    if (!response) throw new Error('Expected the post-reload calendar request to receive a response.')
+  }).then(async response => {
+    const request = response.request()
     return {
       method: request.method(),
       pathname: new URL(request.url()).pathname,
@@ -613,6 +628,8 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   })
   await page.reload()
   const calendarResponseAfterReload = await calendarResponseAfterReloadReady
+  page.off('framenavigated', recordMainFrameNavigation)
+  page.off('request', recordMainFrameRequest)
   expect(calendarResponseAfterReload.method).toBe('GET')
   expect(calendarResponseAfterReload.pathname).toBe(`/api/v1/calendar/instruments/${symbol}/calendar`)
   expect(calendarResponseAfterReload.status).toBe(200)

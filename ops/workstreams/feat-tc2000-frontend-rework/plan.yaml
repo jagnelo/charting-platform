@@ -286,16 +286,14 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
 current_blocker: >-
-  The Root-reviewed a6 image is now served by the existing owned dev fixture.
-  Attempt14 ran all seven ordinary cases at one worker/zero retries: five passed,
-  two failed at stale test assertions (an empty identity-detail-read array and an
-  extra OIH request not caused by a selection in this sequence). Correct those
-  assertions while retaining canonical-only lookup, candidate-ID history,
-  completed-selection counts, BWET context, geometry, lineage and late-response
-  checks; publish one test-only correction and obtain exact CI. Root then verifies
-  bundled-input identity before the fresh corrected seven-case run. The full
-  functional/strict-visual profile remains held for corrected Provider/ETF
-  backend components.
+  Attempt15 on exact f92480a passed six of seven ordinary cases; the only failure
+  was an old-document calendar response body invalidated during reload. The
+  test-only correction now binds the exact calendar response to the new main-frame
+  document epoch. Root-authorized development-only attempt16 passed the corrected
+  reload case 1/1 on an immutable f924 archive plus the hashed E2E patch; it is not
+  formal seven-case qualification. Publish the correction and records once with
+  normal checks; Root then releases a fresh seven-case snapshot. Full functional/
+  strict visuals remain held for corrected Provider/ETF backend inputs.
 current_checkpoint_status: >-
   The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes
   with their original evidence and archives. Current active implementation is
@@ -350,6 +348,23 @@ current_checkpoint_status: >-
   for the corrected test tip and Root's byte-equivalence review remain pending.
   No product source changed after the reviewed a6 image; no app/production source
   requests or sibling/service changes were made.
+  The exact f92480a snapshot attempt15 then passed 6/7 ordinary cases in 56.2
+  seconds, one worker/zero retries/no OOM. The remaining UNXQ lineage case failed
+  only because its pre-reload request waiter could resolve to an old-document
+  calendar response whose body was invalidated at navigation. Its test-only
+  correction records main-frame document epochs and accepts only the exact GET
+  response issued from the reloaded document, reading the actual response body
+  before any later navigation. Candidate identity/history, lineage, local
+  readback, reload and calendar assertions remain intact. Fresh seven-case
+  execution and exact-tip CI remain pending; c476 is the reviewed unchanged
+  production image.
+  Root-authorized attempt16 then passed the previously failing UNXQ reload case
+  1/1 in 6.9 seconds, one worker/zero retries/no OOM, using an immutable exact
+  f924 base archive plus only the hashed E2E patch. Its document-epoch response
+  filter returned the actual new-document GET response and the method/path/status/
+  empty-body, lineage, local readback and no-extra-acquisition assertions passed.
+  This development probe is not formal seven-case qualification; a fresh formal
+  run on the corrected published snapshot remains required.
 ordinary_ticker_latest_update: >-
   The dedicated ETF view reads producer capability only after deliberate
   profile-card or picker selection and makes at most one existing admitted
@@ -363,6 +378,14 @@ ordinary_ticker_latest_update: >-
   functional/strict-visual profile remain pending. Provider staging 4d4a278b is
   adopted and green; the full profile still awaits Root's release of the corrected
   Provider/ETF backend component pair.
+  On exact f92480a, attempt15 ran all seven ordinary cases on a fresh 1,947-blob
+  snapshot against c476; six passed and the unresolved-holding reload case failed
+  with a Playwright response-body protocol error. The old waiter could match a
+  pre-navigation request; the corrected test associates requests with the new
+  main-frame document epoch, then checks actual response method/path/status/body.
+  The exact snapshot's archive, manifest, container, command and log are preserved
+  under attempt15. This test-only source correction has seven-case discovery and
+  diff checks; exact-source CI and Root's fresh seven-case release remain pending.
   The Dashboard watchlist/widget picker is canonical-only;
   five focused tests, vue-tsc and Vite build pass, with no source discovery or
   bar acquisition from that picker. Automatic successful/partial history
@@ -427,6 +450,15 @@ ordinary_ticker_latest_update: >-
   frontend artifact; Root must review/release replacement before rerunning the
   seven cases. The old 15c2 CI and c7 attempt05/attempt06 failures remain
   preserved and are not current-source acceptance.
+  Attempt15 on exact f92480a then passed six of seven ordinary cases in 56.2
+  seconds, one worker/zero retries/no OOM. The remaining UNXQ reload assertion
+  raced an old-document calendar response. Root-authorized development-only
+  attempt16 on an immutable f924 archive plus the explicitly hashed E2E-only patch
+  passed that case 1/1 in 6.9 seconds; the request was tied to the new main-frame
+  document epoch and its actual response method/path/status/body were asserted.
+  This is not formal seven-case qualification. Exact-tip CI and a fresh seven-case
+  run on the corrected published snapshot remain pending; production build inputs
+  are unchanged and the reviewed c476 image remains reusable.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -3460,10 +3492,10 @@ status: in_progress
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: Published a6 frontend image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046 was Root-reviewed, installed only in the owned dev fixture, and verified byte-for-byte served. Startup/auth smoke passed with dense browse total 10,000. Attempt14 ran seven ordinary cases with five pass/two stale test expectation failures in 53.7 seconds, one worker/zero retries/no OOM. The three-line test-only correction preserves the canonical-only identity lookup, exact returned-ID history request, and selections actually performed. The candidate geometry/BWET context assertions passed before the final request-array checks.
-  current_blocker: The attempt14 test correction needs normal scope/workstream validation, one coherent publication, exact-source CI, and Root bundled-input equivalence review before a fresh source-pinned seven-case run. Full functional and 104 strict visuals remain held until corrected Provider/ETF backend inputs are released.
-  next_action: Validate and publish the E2E-only assertion correction once. Root confirms production frontend inputs remain byte-identical to a6; then run all seven ordinary cases on the existing c476 frontend, with no image rebuild. If green, hand the result to Root; do not start the combined full profile before corrected Provider/ETF backend release.
-  updated_at: '2026-11-04T05:39:00Z'
+  current_phase: Attempt15 on exact f924 passed six of seven ordinary cases on reviewed c476 in 56.2 seconds at one worker/zero retries/no OOM. The sole failure was a calendar response-body protocol error across reload. Root-authorized development-only attempt16 used immutable f924 plus the hashed E2E-only patch and passed the corrected UNXQ reload case 1/1 in 6.9 seconds. Existing fixture images, served assets and provider-disabled/free-only configuration were unchanged.
+  current_blocker: Publish the test/document-epoch correction with current attempt15/16 evidence after discovery, diff, workstream/scope and plan/session hash checks. Exact-tip CI and Root's fresh seven-case release remain required. Full functional and 104 strict visuals remain held for the corrected Provider/ETF backend pair.
+  next_action: Run the scoped validators and append-only record checks, publish one coherent test-only correction, then let Root review the exact tip and release all seven ordinary cases on a fresh immutable snapshot with c476. If green, return the result to Root; do not start the held full profile.
+  updated_at: '2026-11-04T06:11:46Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in

@@ -39,14 +39,14 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published a6c02704 has a Root-reviewed immutable frontend image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046, verified live only in the owned development fixture. Startup/auth smoke passed with dense browse total 10000. Exact a6 CI41779033687 has Frontend Unit success and Backend Tests in progress. Attempt14 ran all seven ordinary cases on a fresh exact-source snapshot; 5 passed and 2 failed only at stale assertions. A test-only correction now asserts the actual canonical-only lookup and correct selected-symbol request sequence; publication/CI and Root bundled-input equivalence review are pending. Full functional/strict visuals remain held for corrected Provider/ETF backend components.",
-  "current_checkpoint_status": "Ordinary ticker journey remains in progress and unaccepted. The source-bound a6 frontend was Root-reviewed, installed only into the owned dev fixture, and its served index/five assets matched the artifact. Startup/auth and the observed 10000-row browse smoke passed. Attempt14 ran all seven ordinary cases at one worker/zero retries: five passed; two stale test assertions failed. The correction preserves canonical-only identity lookup, exact candidate-ID history, actual selection request counts, BWET context, geometry, lineage and stale-response checks. Exact corrected-source CI and a fresh seven-case run after Root confirms bundled-input equivalence remain pending. The full functional/strict-visual profile is held for corrected Provider/ETF backend components. Historical F8Y/TCO acceptance, all nine roadmap criteria, V25 and operational holds remain unchanged.",
+  "current_candidate_ci_status": "Published test-only source f92480ae0aed6734d43a00049a2b83c9215be3ef has not yet produced an exact CI result in the connected status lookup. Its fresh attempt15 snapshot passed 6/7 ordinary cases at one worker/zero retries/no OOM; the sole failure was an old-document calendar response body invalidated during reload. Root-authorized development-only attempt16 passed the patched reload case 1/1 using the exact f924 archive plus the hashed E2E-only patch. This does not count as formal qualification; publish the correction, obtain exact-tip CI, and run all seven after Root release. Full functional/strict visuals remain held for corrected Provider/ETF backend inputs.",
+  "current_checkpoint_status": "Ordinary ticker journey remains in progress and unaccepted. Root reviewed the immutable c476 frontend and its served assets remain byte-identical in the owned fixture. Attempt15 used a fresh exact f924 snapshot and passed six of seven ordinary cases; the sole test failure was the UNXQ calendar response-body protocol error across reload. Root-authorized development-only attempt16 passed that case 1/1 on an immutable f924 base plus the hashed E2E-only patch. The test-only correction preserves actual method/path/status/body, lineage, loaded local bars and no-extra-acquisition checks while associating the response with the new main-frame document epoch. Fresh formal seven-case execution and exact-source CI remain pending. The full functional/strict-visual profile is held for corrected Provider/ETF backend inputs. Historical F8Y/TCO acceptance, all nine roadmap criteria, V25 and operational holds remain unchanged.",
   "current_exact_ci": {
     "conclusion": null,
-    "head_sha": "a6c02704f368480a81da017ace34cdf06a82e02f",
-    "run_id": 41779033687,
-    "scope": "Exact published a6 CI: Frontend Unit succeeded and Backend Tests were in progress at the latest read. The forthcoming test-only correction is not included in this run and requires its own exact-source CI.",
-    "status": "in_progress"
+    "head_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
+    "run_id": null,
+    "scope": "Exact f924 CI was not returned by the connected workflow/status lookup; Root owns the hosted CI observation. The test-only document-epoch correction requires its own exact-source CI.",
+    "status": "pending"
   },
   "current_software_checkpoint": {
     "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
@@ -306,7 +306,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Complete narrow scope/workstream checks and plan/session hash, publish one coherent current candidate for exact CI, then build one capped source-bound frontend artifact for Root review. After release run the seven ordinary cases first. Keep full functional and 104 strict visuals held until corrected Provider/ETF backend components are released.",
+  "next_action": "Publish the current test/document-epoch correction with updated attempt15/16 evidence after normal scope/workstream/hash checks. Obtain exact-source CI and Root release for a fresh seven-case snapshot on c476; keep the full functional and 104 strict visuals held until corrected Provider/ETF backend components are released.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -337,7 +337,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "e88f355dc43153b97f211988eca784dfefb7dffecbec628262b767cb674c8372",
+  "plan_hash": "f21cad022cb6308dea4c6caa9158a4eb942b3a0c6c01c1aea4a243d2fdd372cb",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -371,24 +371,24 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "Attempt14 on published a6 passed 5/7 ordinary cases. Two stale test expectations are corrected in the worktree; run normal scope/workstream validation, publish once and obtain exact CI, then have Root confirm bundled-input equivalence before the fresh seven-case run. Full functional/strict visuals remain held for corrected Provider/ETF backend components.",
-    "current_phase": "Root-reviewed a6 frontend image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046 is running only in the owned development fixture. Served assets and startup/auth smoke passed, with browse total 10000. Attempt14 ran seven ordinary tests and finished 5 passed/2 stale test expectation failures (53.7 seconds, one worker, zero retries, no OOM). The test-only correction retains canonical-only lookup and actual selected-symbol request expectations; its fresh-browser execution awaits publication, exact CI and Root bundled-input equivalence review. No combined full profile is claimed.",
-    "next_action": "Run workstream/scope/hash checks and publish the E2E-only assertion correction once. Root verifies bundled production inputs are identical to a6, then rerun the seven ordinary flows on retained image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046 without rebuilding. If green, hand off to Root; full functional/104 strict visuals wait for corrected Provider/ETF backend release.",
+    "current_blocker": "Attempt15 on exact f924 passed six of seven ordinary cases; the remaining reload failure is corrected in the E2E file, and Root-authorized attempt16 development probe passed 1/1. Complete current records/hash/scope validation and publish once; exact-tip CI observation and Root's fresh formal seven-case release remain pending. Full functional/strict visuals remain held for corrected Provider/ETF backend components.",
+    "current_phase": "The existing c476/777 fixture served the reviewed frontend assets and passed health checks. Attempt15 ran seven ordinary cases at one worker/zero retries: six passed, one failed with a stale old-document calendar response body. The document-epoch E2E fix passed isolated attempt16 1/1 in 6.9 seconds using an immutable f924 archive plus the exact hashed E2E patch, no overlay, zero retries and no OOM. Formal seven-case and exact-source CI remain pending.",
+    "next_action": "Complete scope/workstream/plan-hash and append-only record checks, publish this test-only correction once, then obtain Root's exact-tip CI observation and fresh seven-case release on c476. If all seven pass, hand the receipt to Root; full functional/104 strict visuals wait for corrected Provider/ETF backend release.",
     "total": 6,
-    "updated_at": "2026-11-04T05:53:45Z"
+    "updated_at": "2026-11-04T06:11:46Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "Publish the three-line E2E expectation correction with one coherent workstream update, obtain exact-source CI, and have Root confirm bundled frontend inputs remain byte-identical to a6 before rerunning seven ordinary cases on retained image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046. Full functional/104 strict visuals remain held for corrected Provider/ETF backend.",
+    "current_pending_range": "Publish the E2E document-epoch correction with updated attempt15/16 evidence and exact-source CI; Root then releases all seven ordinary cases on a fresh immutable snapshot using retained image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046. Full functional/104 strict visuals remain held for corrected Provider/ETF backend.",
     "failure_category": null,
     "remote": "origin",
-    "remote_tracking_sha": "a6c02704f368480a81da017ace34cdf06a82e02f",
-    "status": "Published a6 is clean and synchronized; its artifact was Root-reviewed and its exact image now serves the existing owned fixture. Attempt14 startup/auth smoke passed with dense browse total 10000; seven ordinary cases finished 5/7 with two stale assertion failures. Only frontend/tests/e2e/on_demand_acquisition.spec.ts has an unpublished test-only correction. No product image rebuild is needed unless Root finds bundled production inputs changed. Provider4d remains adopted/green and the corrected Provider/ETF backend full profile remains pending."
+    "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
+    "status": "Published f924 is clean and synchronized. Its test-only correction of the two attempt14 assertions was run in attempt15: six of seven ordinary cases passed; the remaining old-document calendar response-body race was corrected and passed the focused attempt16 development probe. The current document-epoch patch changes only the E2E test; production frontend/build inputs and the reviewed c476 image are unchanged. Current records and normal guards precede publication; Root releases the fresh formal seven-case run. The combined full profile remains held for corrected Provider/ETF backend."
   },
-  "remote": "15c2c449eb0519e495fb51fc67d602cc131af996",
-  "remote_sha": "a6c02704f368480a81da017ace34cdf06a82e02f",
+  "remote": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
+  "remote_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
   "remote_synchronized": true,
-  "remote_tracking_sha": "a6c02704f368480a81da017ace34cdf06a82e02f",
+  "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -566,7 +566,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T05:53:45Z",
+  "updated_at": "2026-11-04T06:11:46Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

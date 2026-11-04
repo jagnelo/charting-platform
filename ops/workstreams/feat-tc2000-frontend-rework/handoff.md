@@ -26188,3 +26188,45 @@ CI. Root verifies the bundled frontend inputs before a fresh seven-case run on
 c476. Full functional and 104 strict-visual qualification remains held until
 the corrected Provider/ETF backend pair is released. Historical failures and
 all nine roadmap criteria remain preserved/open.
+
+## Ordinary ticker continuation — f924 attempt15 reload-response correction — 2026-11-04
+
+Root released one fresh seven-case run on exact f92480a using the existing
+reviewed c476 frontend/backend777 fixture. The fresh 1,947-blob snapshot was
+verified with an empty nested node_modules mountpoint. Existing fixture health,
+immutable frontend image, served index and all five JS/CSS assets were checked;
+the 10,000-row seed and provider-disabled/free-only configuration remained in
+place. The run used one worker and zero retries, exited 1 without OOM, and
+completed six passes with one failure.
+
+The failure was in the unresolved UNXQ holding reload test: its pre-reload
+waitForRequest could match a calendar request from the outgoing document, whose
+body became unavailable after navigation. The correction associates main-frame
+requests with document epochs and waits for the exact calendar response issued
+by the reloaded document, then reads and asserts the actual response method,
+path, status and body. The historical URL lineage, local bars readback, no-extra
+acquisition count and calendar read assertions remain. All existing product
+files and image inputs are unchanged; no source HTTP or service mutation
+occurred.
+
+The corrected E2E file collects seven tests and passes diff-check. Attempt15's
+snapshot manifest, browser command/container, log and failure context remain
+preserved. Publish one coherent test/records correction and obtain exact-tip CI;
+Root then releases a fresh seven-case snapshot on c476. The full functional and
+104 strict-visual profile remains held for corrected Provider/ETF backend inputs.
+
+Root then released one development-only probe of the previously failing reload
+case. Attempt16 used an immutable f924 archive with only the explicitly hashed
+`frontend/tests/e2e/on_demand_acquisition.spec.ts` patch (patch SHA256
+`9ccf7a4ef2bf21620101cc0202c364a3dba12f043955e29ef2f671fbf2b875e7`); it did
+not use CSS injection, product-source patching, or a new fixture/image. The case
+passed 1/1 in 6.9 seconds at one worker/zero retries with no OOM. Snapshot tree
+is `5c720e67d9993f2bf11642bf96613eae8fbbb129`; archive SHA256 is
+`122403270c074e734d0f8d2de872cc6a619733ac7334739c0136e7b14f28ea20`; manifest
+SHA256 is `6c7206901b04452e7b9c5c81cef1f3f092d104e1419018ce07b1ac4cb558d0f4`.
+Browser container `e0d49a35e6fbfd065f868d16c6e3cd9037209bbb138012a9a2d4f8ffd352a47c`
+exited 0 without OOM. Its log SHA256 is
+`2e66de5609e5824c03c406d21002cd1223966d37d90e8021dd9b9a23984a1a37`.
+This isolated development proof is not the formal seven-case profile. The
+corrected source and records still require normal scope/workstream checks,
+publication, exact-source CI, and Root's fresh seven-case release on c476.
