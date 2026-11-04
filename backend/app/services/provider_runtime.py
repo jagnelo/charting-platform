@@ -34,7 +34,9 @@ from app.config import (
 )
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderCapacityEvent,
@@ -111,6 +113,63 @@ NATIVE_ETF_INITIAL_QUALIFICATION_MAX_DURATION = timedelta(minutes=10)
 EXPLICIT_ETF_HOLDINGS_OPERATION = frozenset(
     {(ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest")}
 )
+
+_ETF_HOLDINGS_INSTRUMENT_ROUTING_PAIRS = frozenset(
+    {
+        ("equity", "etf"),
+        ("equity", "exchange_traded_fund"),
+        ("exchange_traded_product", "exchange_traded_vehicle"),
+    }
+)
+_ETV_PRICE_HISTORY_INSTRUMENT_ROUTING = ("exchange_traded_product", "exchange_traded_vehicle")
+_ETV_PRICE_HISTORY_PROVIDER = "massive"
+
+
+def _etf_holdings_instrument_routing_allowed(
+    instrument_routing: tuple[str, str] | None,
+) -> bool:
+    """Require a recognized ETF/ETV type under its matching asset class."""
+
+    if instrument_routing is None:
+        # Preserve existing scoped qualification flows that have not yet
+        # resolved a local instrument taxonomy row.
+        return True
+    normalized_pair = tuple(
+        str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+        for value in instrument_routing
+    )
+    return normalized_pair in _ETF_HOLDINGS_INSTRUMENT_ROUTING_PAIRS
+
+
+def _massive_us_etv_history_route_allowed(
+    *,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str | None,
+    instrument_routing: tuple[str, str] | None,
+    has_active_primary_usd_us_listing: bool,
+) -> bool:
+    """Admit only Massive US-listed ETV custom-bar history.
+
+    Massive documents US stock/ETF bar coverage. Keep ETV as its own stored
+    taxonomy and limit this bridge to the exact ETP/ETV pair, a primary active
+    USD listing on a US exchange, and the stock custom-bars operation. Other
+    providers and capabilities continue to use the ordinary registry map.
+    """
+
+    if instrument_routing is None or operation is None:
+        return False
+    normalized_pair = tuple(
+        str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+        for value in instrument_routing
+    )
+    return (
+        provider_name.strip().lower() == _ETV_PRICE_HISTORY_PROVIDER
+        and capability == ProviderCapability.PRICE_HISTORY
+        and _operation_family(operation) == "fetch_ohlcv"
+        and normalized_pair == _ETV_PRICE_HISTORY_INSTRUMENT_ROUTING
+        and has_active_primary_usd_us_listing
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -3318,6 +3377,7 @@ async def resolve_provider_chain(
         await get_provider_binding_ids(db, instrument_id) if instrument_id is not None else set()
     )
     instrument_routing: tuple[str, str] | None = None
+    has_active_primary_usd_us_listing = False
     if instrument_id is not None:
         instrument_routing = (
             await db.execute(
@@ -3327,6 +3387,34 @@ async def resolve_provider_chain(
                 .where(Instrument.id == instrument_id)
             )
         ).one_or_none()
+        if instrument_routing is not None:
+            normalized_routing = tuple(
+                str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+                for value in instrument_routing
+            )
+            if (
+                normalized_routing == _ETV_PRICE_HISTORY_INSTRUMENT_ROUTING
+                and capability == ProviderCapability.PRICE_HISTORY
+                and _operation_family(operation or "") == "fetch_ohlcv"
+            ):
+                has_active_primary_usd_us_listing = (
+                    await db.execute(
+                        select(InstrumentListing.id)
+                        .join(Exchange, Exchange.id == InstrumentListing.exchange_id)
+                        .join(Instrument, Instrument.id == InstrumentListing.instrument_id)
+                        .where(
+                            InstrumentListing.instrument_id == instrument_id,
+                            InstrumentListing.is_active.is_(True),
+                            InstrumentListing.is_primary.is_(True),
+                            InstrumentListing.currency.is_not(None),
+                            InstrumentListing.currency.ilike("USD"),
+                            Instrument.currency.ilike("USD"),
+                            Exchange.country_code.is_not(None),
+                            Exchange.country_code.ilike("US"),
+                        )
+                        .limit(1)
+                    )
+                ).first() is not None
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
@@ -3497,23 +3585,33 @@ async def resolve_provider_chain(
                 continue
             if capability.value not in list_provider_capabilities(data_source.name):
                 continue
-        if uses_etf_adapter and instrument_routing is not None:
-            instrument_kinds = {
-                str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
-                for value in instrument_routing
-            }
-            if not instrument_kinds.intersection({"etf", "exchange_traded_fund"}):
+        if uses_etf_adapter:
+            if not _etf_holdings_instrument_routing_allowed(instrument_routing):
                 continue
-        elif instrument_routing is not None and not provider_supports_instrument(
-            data_source.name,
-            asset_class=instrument_routing[0],
-            instrument_type=instrument_routing[1],
-        ):
-            # Method-level compatibility (for example ``fetch_ohlcv``) does
-            # not imply that the provider understands this instrument.  Keep
-            # routing class-aware so equity symbols cannot fall through to a
-            # crypto-only exchange adapter.
-            continue
+        elif instrument_routing is not None:
+            normalized_instrument_type = (
+                str(instrument_routing[1] or "").strip().lower().replace("-", "_").replace(" ", "_")
+            )
+            if normalized_instrument_type == "exchange_traded_vehicle":
+                instrument_supported = _massive_us_etv_history_route_allowed(
+                    provider_name=data_source.name,
+                    capability=capability,
+                    operation=operation,
+                    instrument_routing=instrument_routing,
+                    has_active_primary_usd_us_listing=has_active_primary_usd_us_listing,
+                )
+            else:
+                instrument_supported = provider_supports_instrument(
+                    data_source.name,
+                    asset_class=instrument_routing[0],
+                    instrument_type=instrument_routing[1],
+                )
+            if not instrument_supported:
+                # Method-level compatibility (for example ``fetch_ohlcv``) does
+                # not imply that the provider understands this instrument.  Keep
+                # routing class-aware so equity symbols cannot fall through to a
+                # crypto-only exchange adapter.
+                continue
         allowed_environments = {
             str(value).strip().lower() for value in entitlement.enabled_environments
         }
