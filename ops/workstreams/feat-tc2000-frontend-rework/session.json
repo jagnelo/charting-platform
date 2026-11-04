@@ -39,14 +39,14 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The c7 source-bound image profile exposed a real factory resolver clipping issue (attempt05: six passed, one failed). The width-only correction is locally checked and pending one coherent source publication, exact-source CI, and a new frontend artifact; no result from the corrected-source browser profile is claimed.",
-  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d and ETF565211/backend777 are adopted/qualified. The c7 frontend startup smoke passed with observed dense browse total 10,000; its seven-case run was 6 passed/1 failed because the factory resolver was clipped outside its tool. Current width-constrained layout and full bounds/ordinary-hit regression pass focused tests, frontend build, and complete coverage. The c7 image predates this correction; exact-source CI, a new frontend artifact, and corrected browser profile remain pending. Prior accepted F8Y/TCO checkpoints, all nine roadmap criteria, V25, and operational holds remain unchanged.",
+  "current_candidate_ci_status": "The current dirty candidate includes the measured resolver layout, generic confirmed ETF/ETV handling and a BWET context-switch assertion. Attempt13 passed one CSS-overlay geometry case on published 6e7/image9382 (15.8s, zero retries), not current-source qualification. Focused 86-unit evidence, current Vue/Vite build and seven-case E2E discovery are recorded. The latest BWET context assertion has not run in a browser. Exact candidate CI and a source-bound frontend artifact remain pending; full functional/strict visuals await corrected Provider/ETF backend components.",
+  "current_checkpoint_status": "Ordinary ticker journey remains in progress and unaccepted. Attempt13 verified resolver containment, ordinary center hit, zero parent horizontal overflow and independent table scrolling using a CSS overlay on the retained 6e7 image. Current source uses exact confirmed ETF/ETV classification and adds a populated IGV-to-BWET visible-context assertion. Focused 86 tests, Vue/Vite production build and seven-case discovery are recorded; the newest E2E context assertion, exact-source CI and fresh image remain pending. The full functional/strict-visual profile is held for corrected Provider/ETF backend components. Historical F8Y/TCO acceptance, all nine roadmap criteria, V25 and operational holds remain unchanged.",
   "current_exact_ci": {
+    "conclusion": "failure",
     "head_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
     "run_id": 41762739430,
-    "conclusion": "failure",
-    "status": "failure",
-    "scope": "Preserved exact 15c2 CI: 198 passed, 1 failed, 110 configured skips; only the old Use UNXQ button-role locator failed. The source correction uses the actual listbox option and fixes its measured clipped tool layout; this new candidate has no exact CI result yet."
+    "scope": "Preserved exact 15c2 CI: 198 passed, 1 failed, 110 configured skips; only the old Use UNXQ button-role locator failed. The source correction uses the actual listbox option and fixes its measured clipped tool layout; this new candidate has no exact CI result yet.",
+    "status": "failure"
   },
   "current_software_checkpoint": {
     "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
@@ -72,14 +72,16 @@
     "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
   },
   "dirty_paths": [
-    "frontend/tests/e2e/helpers.ts",
+    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
+    "frontend/src/components/workstation/WorkstationToolContent.vue",
+    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/views/WorkstationView.vue",
     "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
+    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "scripts/validate-tc2000-scope.py"
+    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "docker": {
     "available": false,
@@ -181,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "bf71482deae91558ab030202673711b11b477e62",
+  "head": "6e7f95dcde467a12187742ec2b02c6f491c7ca9f",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -248,7 +250,7 @@
     },
     "recorded_at": "2026-10-27T22:28:35Z"
   },
-  "implementation_sha": "bf71482deae91558ab030202673711b11b477e62",
+  "implementation_sha": "6e7f95dcde467a12187742ec2b02c6f491c7ca9f",
   "integration_checkpoint": {
     "acceptance": "Root accepted bounded F8Y checkpoint under existing standing human delegation on 2026-10-28; see .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json. This is not full-roadmap acceptance.",
     "archive_of_prior_checkpoint": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
@@ -281,30 +283,30 @@
     "run_id": 40752914676
   },
   "latest_staging_adoption": {
+    "backend_tree": "42bf806179e6b0852b589e309628590dd0813cdf",
     "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json",
-    "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
-    "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
-    "staging_ci_run": 41706834463,
-    "staging_ci_attempt": 1,
-    "staging_ci_status": "terminal success for Backend, Frontend Unit, E2E, and actual Exhaustive; Branch-declared expected skip",
-    "premerge_feature_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
+    "checkpoint": "Ordinary ticker journey remains in progress; controlled fixtures are not genuine source proof; preserve all9 roadmap criteria, AC1-AC9, V25 and operational holds",
+    "focused_validation": "Seven affected frontend unit files71/71; vue-tsc passed; Playwright collection7/7; scope self-test/full guard and workstream validation passed. Full local frontend tests154/1552, functions2582/3671=70.3351% on pre-adoption frontend inputs.",
+    "frontend_src_tree": "94b189aaf4289bd714fc1a86958814c9253f708b",
+    "manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml",
+    "manifest_path_count": 885,
+    "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
     "merge_base": "eb74b439319ad32006a3d68fc7b6e98959148af7",
     "merge_commit": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
     "merge_result": "Exact Root-released staging merged without conflicts into the existing claimed TC worktree; no sibling source copy",
-    "manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml",
-    "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
-    "manifest_path_count": 885,
     "new_exact_import_path": "backend/tests/unit/routers/test_instruments_router.py",
-    "backend_tree": "42bf806179e6b0852b589e309628590dd0813cdf",
-    "frontend_src_tree": "94b189aaf4289bd714fc1a86958814c9253f708b",
-    "focused_validation": "Seven affected frontend unit files71/71; vue-tsc passed; Playwright collection7/7; scope self-test/full guard and workstream validation passed. Full local frontend tests154/1552, functions2582/3671=70.3351% on pre-adoption frontend inputs.",
-    "publication": "Pending one coherent ownership/session/import reconciliation commit and push; exact final-tip branch CI required",
+    "premerge_feature_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
     "profile": "No post-adoption app build or browser runtime yet; one bounded frontend artifact build authorized after clean freeze; Root must verify joint component inputs before full combined profile",
-    "checkpoint": "Ordinary ticker journey remains in progress; controlled fixtures are not genuine source proof; preserve all9 roadmap criteria, AC1-AC9, V25 and operational holds"
+    "publication": "Pending one coherent ownership/session/import reconciliation commit and push; exact final-tip branch CI required",
+    "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+    "staging_ci_attempt": 1,
+    "staging_ci_run": 41706834463,
+    "staging_ci_status": "terminal success for Backend, Frontend Unit, E2E, and actual Exhaustive; Branch-declared expected skip",
+    "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97"
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish this coherent test/helper/records correction once and follow exact-source CI. Root will verify bundled application-input equivalence and release the corrected profile using retained frontend bb320 and ETF backend777 without rebuilding. Run the seven on-demand cases first, then the unchanged full functional and 104 strict-visual gates at one worker and zero retries.",
+  "next_action": "Complete narrow scope/workstream checks and plan/session hash, publish one coherent current candidate for exact CI, then build one capped source-bound frontend artifact for Root review. After release run the seven ordinary cases first. Keep full functional and 104 strict visuals held until corrected Provider/ETF backend components are released.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -335,7 +337,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "6d38570e0e5b377aeb4d9c3ca2c60875298c9c54b5ae49d4e3a656a7df0dfb17",
+  "plan_hash": "8005eb36a47d10bd44985ef14908704bb59845a928327b31a81122d8007bc570",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -366,15 +368,14 @@
     "completed": [
       "OTJ1",
       "OTJ2",
-      "OTJ3",
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "Exact 15c2 CI41762739430 is preserved red on its stale Use UNXQ button locator. The current product/layout and E2E correction is pending one coherent publication, exact-source CI, and a new Root-reviewed frontend artifact; the existing ETF777 backend and owned fixture are retained.",
-    "current_phase": "The default/factory reported-holding candidate was present in the accessibility tree but clipped below and left of its Workstation tool. Attempt04 measured the failed hit target; the current layout keeps the resolver inside bounded grid rows and the browser regression checks bounds and center hit before ordinary selection. Focused units (45/45), vue-tsc, seven-case discovery, and one-worker full coverage (70.2497% functions) pass. No current-image browser pass is claimed.",
-    "next_action": "Complete staged scope/workstream checks, publish this coherent correction once and follow exact-source CI, build the capped source-bound frontend artifact, then after Root image review replace only the owned dev frontend and run seven ordinary cases first; continue full functional and strict visuals only if they pass.",
+    "current_blocker": "Current candidate publication/exact CI and source-bound frontend image review remain pending. The full functional/strict-visual profile is held until corrected Provider/ETF backend components are released; no source HTTP or production activity is authorized.",
+    "current_phase": "Attempt13 CSS-overlay development probe passed the resolver geometry case on published 6e7: candidate fully within the panel/tool, ordinary center hit successful, parent width constrained with zero horizontal scroll, and table scrolling contained in its own viewport. Current dirty source applies those measured rules and adds generic confirmed-ETV handling plus a populated IGV-to-BWET context regression. Focused 86-unit evidence, current Vue/Vite build and seven-case discovery are recorded; the newest E2E context assertion still awaits a source-bound image. No current-source full profile is claimed.",
+    "next_action": "Complete narrow scope/workstream checks and plan/session hash, publish one coherent candidate and obtain exact CI, then build one capped source-bound frontend image for Root review. After release run the seven ordinary cases first; hold full functional/104 strict visuals for corrected Provider/ETF backend components.",
     "total": 6,
-    "updated_at": "2026-11-04T03:40:19Z"
+    "updated_at": "2026-11-04T05:21:51Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -385,9 +386,9 @@
     "status": "Focused Workstation/ETF units, frontend type-check, seven-case discovery, full coverage and scope self-tests pass. The first full scope guard correctly requires staging the imported path adaptation before equality validation; full scope/workstream checks and exact candidate CI remain pending. Provider4d is adopted and green. This is a product layout change and requires one new frontend artifact; ETF777/backend is unchanged."
   },
   "remote": "15c2c449eb0519e495fb51fc67d602cc131af996",
-  "remote_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
+  "remote_sha": "6e7f95dcde467a12187742ec2b02c6f491c7ca9f",
   "remote_synchronized": true,
-  "remote_tracking_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
+  "remote_tracking_sha": "6e7f95dcde467a12187742ec2b02c6f491c7ca9f",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -514,16 +515,16 @@
       "staging_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7"
     },
     {
-      "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
-      "staging_ci_run": 41706834463,
-      "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
-      "premerge_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
-      "merge_commit": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
       "backend_tree": "42bf806179e6b0852b589e309628590dd0813cdf",
       "frontend_src_tree": "94b189aaf4289bd714fc1a86958814c9253f708b",
-      "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
       "local_checks": "7 focused frontend files71/71, vue-tsc, E2E collection7/7, scope/workstream pass",
-      "result": "exact green staging adopted; exact TC final CI and combined profile remain pending"
+      "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
+      "merge_commit": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
+      "premerge_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
+      "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
+      "result": "exact green staging adopted; exact TC final CI and combined profile remain pending",
+      "staging_ci_run": 41706834463,
+      "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97"
     }
   ],
   "state": "in_progress",
@@ -565,7 +566,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T04:17:00Z",
+  "updated_at": "2026-11-04T05:21:51Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

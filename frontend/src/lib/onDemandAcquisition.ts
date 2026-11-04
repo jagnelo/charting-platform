@@ -330,8 +330,9 @@ export function isCurrentETFHoldingsCapability(capability: ETFHoldingsCapability
 
 /** Holdings eligibility follows the confirmed canonical type, not a search hint. */
 export function isEligibleETFHoldingsInstrumentType(instrumentType: string | null | undefined): boolean {
-  const normalized = instrumentType?.trim().toLowerCase()
+  const normalized = instrumentType?.trim().replace(/\s+/g, ' ').toLowerCase()
   return normalized === 'etf'
     || normalized === 'index etf'
+    || normalized === 'etv'
     || normalized === 'exchange traded vehicle'
 }

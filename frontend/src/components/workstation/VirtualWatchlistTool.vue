@@ -1859,7 +1859,7 @@ function onCtrlWheel(event: WheelEvent) {
 </script>
 
 <style scoped>
-.watchlist { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 23px auto minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
+.watchlist { position: relative; display: grid; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; grid-template-columns: minmax(0, 1fr); grid-template-rows: 23px auto minmax(0, 1fr); color: #c7d0d8; background: #11161b; font: 11px/1.2 "Segoe UI", Arial, sans-serif; }
 .watchlist--plot-drop-active { outline: 1px solid #69a9d2; outline-offset: -1px; }
 .watchlist__plot-drop-hint { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #69a9d2; background: #193040eF; color: #dcecf6; text-align: center; pointer-events: none; }
 .watchlist__drop-error { position: absolute; z-index: 4; inset: 3px 3px auto; margin: 0; padding: 4px 6px; border: 1px solid #9e5b5b; background: #3a1d1d; color: #f1b0b0; pointer-events: none; }
@@ -1912,7 +1912,7 @@ function onCtrlWheel(event: WheelEvent) {
 .watchlist__column-resize-handle:focus-visible { outline: 1px solid #6eb6dc; outline-offset: -1px; }
 .watchlist__header small { color: #78b9e4; }
 .watchlist__header em { display: block; overflow: hidden; color: #718c9f; font: 8px "Segoe UI", Arial, sans-serif; font-style: normal; text-transform: none; text-overflow: ellipsis; white-space: nowrap; }
-.watchlist__scroll { min-height: 0; overflow: auto; outline: none; }
+.watchlist__scroll { width: 100%; min-width: 0; max-width: 100%; min-height: 0; overflow: auto; outline: none; }
 .watchlist__row { position: absolute; left: 0; align-items: center; border: 0; border-bottom: 1px solid #20282f; background: transparent; color: inherit; text-align: left; cursor: pointer; }
 .watchlist__row[draggable="true"] { cursor: grab; }
 .watchlist__row[draggable="true"]:active { cursor: grabbing; }

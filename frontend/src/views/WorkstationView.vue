@@ -1123,7 +1123,8 @@ async function selectSymbol(
       (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
         .map(member => member.instrument.symbol.trim().toUpperCase()),
     )
-    const selectedETF = sectorSymbols.has(requestedSymbol) || instrumentType.trim().toLowerCase().includes('etf')
+    const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+    const selectedETF = sectorSymbols.has(requestedSymbol) || isEligibleETFHoldingsInstrumentType(selectedType)
     workspaceStore.setConstituentETF(null)
     if (selectedETF) workspaceStore.setConstituentETF(requestedSymbol)
   } else preserveDrilldownSymbol.value = requested.toUpperCase()
@@ -1207,7 +1208,8 @@ async function selectSymbol(
     (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   )
-  const isETF = sectorSymbols.has(symbol) || instrumentType.trim().toLowerCase().includes('etf')
+  const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+  const isETF = sectorSymbols.has(symbol) || isEligibleETFHoldingsInstrumentType(selectedType)
   if (!preserveETFContext) {
     if (isETF) workspaceStore.setConstituentETF(symbol)
     else if (workspaceStore.constituentETF !== null) workspaceStore.setConstituentETF(null)

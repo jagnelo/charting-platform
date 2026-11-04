@@ -26146,3 +26146,12 @@ checks, publish once, build one bounded source-specific frontend artifact, and
 wait for Root review/release before replacement and another seven-case run.
 The full functional and strict-visual suites remain required after those cases
 pass. AC1–AC9, genuine issuer/source proof, and deployment remain open.
+
+
+## Ordinary ticker continuation — measured resolver and generic ETV context — 2026-11-04
+
+The CSS overlay probe attempt13 passed the actual ordinary candidate geometry on the retained 6e7 frontend: the candidate was fully inside the resolver panel and tool body, the ordinary center hit landed on it, the parent had no horizontal overflow, and the table retained its own horizontal scroll. The immutable snapshot, overlay and log hashes and numeric bounds are in the latest validation row. Attempt12's marker mismatch stopped before browser launch and remains preserved.
+
+The source changes now apply the measured layout and use confirmed canonical ETF/ETV classification without ticker exceptions; ETN and generic ETP remain excluded. The controlled BWET regression begins with a local Stock hint, checks the confirmed Exchange Traded Vehicle response and exact-ID requests, then selects BWET from populated IGV context and requires the Constituents listbox to remain visible while the old reported row disappears. All seven ordinary E2E cases still collect. The focused 86-unit result is recorded, and the current Vue/Vite production build passes (540 modules; existing large Workstation chunk advisory). The latest E2E context assertion has not yet run in a browser.
+
+Next: complete the narrow scope/workstream checks, publish one coherent candidate and obtain exact-source CI, then build one source-bound frontend image for Root review. Reuse the owned development fixture only after image review for the seven ordinary cases. The full functional and 104 strict-visual profile remains held until corrected Provider/ETF backend components are released. No provider/source HTTP or sibling, staging, target, or production operation occurred.

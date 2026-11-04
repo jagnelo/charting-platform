@@ -285,7 +285,16 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   has the identical application tree and passed its full required CI40656688915. This feature-branch adoption records
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
-current_blocker: The released c7 frontend profile exposed a remaining factory-constituent resolver clipping defect after six of seven ordinary flows passed. A bounded grid-width correction and actual candidate-bounds/center-hit assertion are implemented and locally checked. Publish this source once, obtain exact CI, build one source-bound frontend artifact, then have Root release replacement and rerun the seven flows before the unchanged full functional/strict-visual profile. Provider4d and ETF777 are already adopted/qualified; genuine issuer/source and deployment proof remain pending and Root-owned.
+current_blocker: >-
+  Attempt13 measured the CSS overlay on the retained 6e7 frontend: the ordinary
+  resolver option was fully inside its panel and tool body, its center hit the
+  option, and the parent tool had no horizontal overflow. This one-case
+  development probe is not current-source qualification. The pending source
+  includes the measured layout rules plus generic confirmed-ETV eligibility and
+  a controlled BWET context regression. Finish narrow scope/workstream checks,
+  publish once, build one source-bound frontend image, and obtain Root review
+  before replacing the owned frontend. The full functional/strict-visual profile
+  remains held for the corrected Provider/ETF backend.
 current_checkpoint_status: >-
   The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes
   with their original evidence and archives. Current active implementation is
@@ -316,7 +325,18 @@ current_checkpoint_status: >-
   execution, exact feature CI, and the combined functional/strict-visual
   profile remain pending Root allocation. All nine original AC1-AC9 and
   official REF-HELP-V25 remain open; no target, deployment, source request,
-  quota, or hold change is claimed.
+  quota, or hold change is claimed. Attempt13 is a separate fast CSS-only
+  development probe on the existing owned fixture/image, not qualification of
+  the current source. It proves the measured resolver candidate fits its
+  selection panel and tool, its ordinary center hit succeeds, parent
+  scrollWidth equals clientWidth=278 at scrollLeft=0, and the table keeps its
+  own horizontal scroll. The corrected source also consumes confirmed ETF/ETV
+  type generically and excludes ETN/other ETP; the controlled BWET regression
+  now requires visible context to move from populated IGV rows to BWET and
+  remove the prior row. Exact source CI, a new source-bound frontend artifact,
+  and Root-reviewed ordinary-flow execution remain pending. The full
+  functional/strict-visual profile remains held for corrected Provider/ETF
+  backend components.
 ordinary_ticker_latest_update: >-
   The dedicated ETF view reads producer capability only after deliberate
   profile-card or picker selection and makes at most one existing admitted
@@ -327,9 +347,9 @@ ordinary_ticker_latest_update: >-
   selectSymbol remains cache-only by default. Focused tests cover current-cache
   reuse, no-snapshot/new-fund selection, held-data retention, late A-to-B
   failure isolation, and the three keyboard paths. Exact-source CI and combined
-  functional/strict-visual profile remain pending. The released Provider staging
-  eb74 is the adopted baseline, but it predates the revised retained-type response;
-  the new Provider green stage must still be adopted before full-profile binding.
+  functional/strict-visual profile remain pending. Provider staging 4d4a278b is
+  adopted and green; the full profile still awaits Root's release of the corrected
+  Provider/ETF backend component pair.
   The Dashboard watchlist/widget picker is canonical-only;
   five focused tests, vue-tsc and Vite build pass, with no source discovery or
   bar acquisition from that picker. Automatic successful/partial history
@@ -349,6 +369,25 @@ ordinary_ticker_latest_update: >-
   reach issuer holdings acquisition without admitting ETNs. Focused coverage
   verifies the confirmed-ID request and typed unavailable outcome. All nine
   AC1-AC9 and REF-HELP-V25 remain open.
+
+  Attempt13 is the released fast CSS-only development probe on the existing
+  owned fixture and immutable 6e7 frontend image. Its fresh Git snapshot is
+  rooted at 6e7f95dcde467a12187742ec2b02c6f491c7ca9f (tree
+  d7857534efe61ecfe5f3375c1a8bd36eb43c1415; 1,947 verified blobs); it applies
+  only the current E2E test patch plus a hashed CSS overlay. The resolver case
+  passed 1/1 in 15.8 seconds, one worker, zero retries, no OOM. Measured candidate
+  bounds were x=8..272/y=587..629; tool body x=1..279/y=427..698; selection
+  panel x=1..279/y=472..641.5. The candidate was fully inside both, center hit
+  succeeded, parent scrollLeft was 0, parent scrollWidth equaled clientWidth
+  (278), and the table retained its own horizontal scroll (1290px content in a
+  278px viewport). Overlay SHA256 is
+  1d198f33577d71ee446bfbcbf8d36acd52441a579026acc588900de58977c395; snapshot
+  manifest SHA256 is aa117eae079f34ab0810ca0fb9c022f4769d25717184d9cff473f45cc1f3f976;
+  log SHA256 is ba5d0eae8b81a03d7d4373a5fa236236c5696f1afed0d1c12b971cafffa98f6e.
+  An earlier attempt12 preparation stopped before browser launch because its
+  diagnostic insertion marker no longer matched the test; that setup failure
+  is retained and attempt13 used a fresh snapshot. No source HTTP or
+  application-service mutation occurred.
 
   Follow-up source review found that the default/factory reported-holding
   resolver was mounted after a full-height Watchlist and clipped by the tool
@@ -4253,6 +4292,28 @@ active_implementation:
     5 exact consumer adaptations); workstream validation, plan/session hash and
     staged diff checks passed. Exact-source CI and Root's bundled-input equivalence
     review remain pending; the corrected joint profile has not been run.
+    The latest product delta adds canonical ETF/ETV eligibility using the exact
+    confirmed response type, retaining ETF and Index ETF while excluding ETN,
+    arbitrary ETP and Stock. Its controlled BWET fixture begins with a local
+    Stock hint, then asserts the returned Exchange Traded Vehicle identity and
+    exact-ID D1 history/issuer requests. It also verifies the visible
+    Constituents context changes from populated IGV rows to BWET and removes
+    the old IGV row. Unit coverage includes normalized ETV forms and negative
+    ETN/ETP/Stock forms. Focused Workstation/on-demand tests passed 86/86,
+    vue-tsc passed, and Playwright collected all seven ordinary cases. The
+    browser regression was tightened after the CSS probe; this newest assertion
+    has not yet run in a browser. The current Vue/Vite production build passes
+    (540 modules; existing large Workstation chunk advisory).
+    Attempt13 separately measured the exact CSS overlay on published 6e7/image
+    9382: 1 resolver case passed in 15.8 seconds, one worker, zero retries, no
+    OOM. Candidate bounds x=8..272/y=587..629 were fully within selection panel
+    x=1..279/y=472..641.5 and tool body x=1..279/y=427..698; center hit passed,
+    parent scrollLeft=0 and scrollWidth=clientWidth=278, while the table kept
+    its own 1290px horizontal content in a 278px viewport. This overlay probe
+    is development evidence, not current-source qualification. Exact-source
+    CI and a source-bound image/profile remain pending; the final full
+    functional/strict-visual profile waits for corrected Provider/ETF backend
+    components.
     The subsequent development attempt02 exposed one genuine default/factory
     Constituents selection defect and two fixture issues. The factory row used
     generic ticker selection instead of snapshot/row-aware holding selection,
@@ -4307,13 +4368,21 @@ active_implementation:
       floor. Coverage report is /tmp/tc-ordinary-final-coverage-20261104-attempt005/lcov.info.
     next: Publish this source once and build one source-bound frontend artifact. Root review/release is required before replacing the owned frontend and rerunning seven ordinary cases; full functional and 104-case strict visual profile follow only if those pass.
     preserved_probe: attempt06 measured resolver width 419-431px against a 278px tool body with parent scrollLeft 103; its changed-input diagnostic run remains a failed probe, not qualification.
+  latest_measured_resolver_probe:
+    published_base: 6e7f95dcde467a12187742ec2b02c6f491c7ca9f
+    attempt: attempt13
+    result: 1 passed in 15.8 seconds; one worker, zero retries, no OOM; CSS overlay only, not source qualification.
+    geometry: Candidate fully inside resolver panel and tool body; center hit succeeded; parent scrollLeft=0 and scrollWidth=clientWidth=278; table scroll remains inside its own 278px viewport (1290px content).
+    css_overlay_sha256: 1d198f33577d71ee446bfbcbf8d36acd52441a579026acc588900de58977c395
+    snapshot_manifest_sha256: aa117eae079f34ab0810ca0fb9c022f4769d25717184d9cff473f45cc1f3f976
+    log_sha256: ba5d0eae8b81a03d7d4373a5fa236236c5696f1afed0d1c12b971cafffa98f6e
   next_action: >-
-    Finish current scope/workstream/hash checks, publish one coherent product and
-    test candidate, and obtain its exact-source CI. Build one capped source-bound
-    frontend artifact with the existing recipe; Root reviews it before replacing
-    only the owned dev frontend in the same fixture. Then run the seven ordinary
-    acquisition cases first and, if green, the unchanged full functional suite
-    plus all 104 strict visual cases with one worker, zero retries, dense 10,000-row
-    seeding in backend and browser, observed browse count, strict diagnostics,
+    Finish current scope/workstream/hash checks and publish one coherent product,
+    test and records candidate; obtain its exact-source CI and build one capped
+    source-bound frontend artifact. Root reviews the image before replacing only
+    the owned dev frontend, then the seven ordinary flows run first. The full
+    functional and 104 strict-visual profile remains held until corrected
+    Provider/ETF backend components are released. Keep one worker, zero retries,
+    dense 10,000-row seeding and observed browse count, strict diagnostics,
     references, masks and tolerances. Root owns profile acceptance, integration
     and deployment.

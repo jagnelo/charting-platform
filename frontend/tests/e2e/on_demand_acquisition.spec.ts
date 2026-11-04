@@ -847,9 +847,14 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     symbol: 'TCNEW',
     provider_candidate: { provider: 'test-fixture', symbol: 'TCNEW', exchange: 'TEST' },
   })
-  expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
+  // Candidate resolution itself returns the trusted canonical identity. The
+  // chart consumes that exact response instead of issuing a redundant lookup.
+  expect(await candidateResolve.json()).toMatchObject({
+    instrument: { instrument_id: fixtureInstrumentId, symbol: 'TCNEW', identity_status: 'resolved' },
+  })
   const historyResponse = await historyReady
   expect(historyResponse.status()).toBe(200)
+  expect(canonicalInstrumentLookups).toEqual([])
   expect(historyRequests).toHaveLength(1)
   expectBoundedM1Request(historyRequests[0]!)
   expect(instrumentRequests).toHaveLength(1)
@@ -1643,6 +1648,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     IGV: { id: 991003, name: 'Controlled Software ETF' },
     RSP: { id: 991004, name: 'Controlled Equal Weight ETF' },
     QQQ: { id: 991005, name: 'Controlled Nasdaq 100 ETF' },
+    BWET: { id: 991007, name: 'Controlled Exchange Traded Vehicle' },
     UNXQ: { id: 991006, name: 'Unlisted Example Software Corp' },
   } as const
   type FixtureSymbol = keyof typeof instruments
@@ -1794,12 +1800,12 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       symbol,
       name: instruments[symbol].name,
       exchange: 'TEST',
-      type: symbol === 'UNXQ' ? 'Equity' : 'ETF',
+      type: symbol === 'BWET' ? 'Stock' : symbol === 'UNXQ' ? 'Equity' : 'ETF',
       instrument_id: instruments[symbol].id,
       identity_status: 'resolved',
     }] })
   })
-  await page.route(url => /^\/api\/v1\/instruments\/(?:XHB|OIH|IGV|UNXQ)$/.test(new URL(url).pathname), async route => {
+  await page.route(url => /^\/api\/v1\/instruments\/(?:XHB|OIH|IGV|BWET|UNXQ)$/.test(new URL(url).pathname), async route => {
     const symbol = new URL(route.request().url()).pathname.split('/').at(-1) as FixtureSymbol
     if (route.request().method() !== 'GET') return route.continue()
     await route.fulfill({ status: 200, json: {
@@ -1817,7 +1823,12 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     if (symbol === 'UNXQ') expect(body.provider_candidate).toMatchObject({ provider: 'test-fixture', symbol: 'UNXQ', exchange: 'TEST' })
     else expect(body.provider_candidate).toBeUndefined()
     identityRequests.push(body)
-    await route.fulfill({ status: 200, json: resolvedIdentity(body, instruments[symbol].id, symbol === 'UNXQ' ? 'Common Stock' : 'ETF') })
+    const instrumentType = symbol === 'UNXQ'
+      ? 'Common Stock'
+      : symbol === 'BWET'
+        ? 'Exchange Traded Vehicle'
+        : 'ETF'
+    await route.fulfill({ status: 200, json: resolvedIdentity(body, instruments[symbol].id, instrumentType) })
   })
   await page.route('**/api/v1/instruments/discover', async route => {
     const body = route.request().postDataJSON() as DiscoveryRequest
@@ -2026,7 +2037,11 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
         })
       await symbolSearch.fill(symbol)
       if (localSearchReady) {
-        expect(await (await localSearchReady).json()).toMatchObject([{ symbol, type: 'ETF', instrument_id: instruments[symbol].id }])
+        expect(await (await localSearchReady).json()).toMatchObject([{
+          symbol,
+          type: symbol === 'BWET' ? 'Stock' : 'ETF',
+          instrument_id: instruments[symbol].id,
+        }])
         locallySearchedSymbols.add(symbol)
       }
       const option = page.getByRole('listbox', { name: 'Symbol search results' })
@@ -2109,6 +2124,51 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(holdingsReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihReadsBeforeSwitch)
     expect(industryReads.filter(symbol => symbol === 'OIH')).toHaveLength(oihIndustryReadsBeforeLateResponse)
 
+    // A locally misclassified Stock hint must not preserve the prior IGV
+    // constituents after canonical identity confirms this selected ticker as ETV.
+    const igvContextGroup = page.getByRole('group', { name: 'Constituents' })
+    const igvContextWidget = igvContextGroup.getByRole('listbox', { name: 'Constituents symbols' })
+    const priorIgvHolding = igvContextWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
+    await expect(igvContextGroup).toContainText('IGV')
+    await expect(priorIgvHolding).toBeVisible()
+    const bwetIdentityResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/instruments/acquire'
+        && (response.request().postDataJSON() as InstrumentRequestBody).symbol === 'BWET'
+    })
+    const bwetHistoryResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST'
+        && url.pathname === `/api/v1/instruments/${instruments.BWET.id}/history-acquisitions`
+    })
+    const bwetIssuerResponseReady = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/BWET/acquire'
+    })
+    await chooseETF('BWET')
+    expect(await (await bwetIdentityResponseReady).json()).toMatchObject({
+      status: 'resolved',
+      instrument: {
+        instrument_id: instruments.BWET.id,
+        symbol: 'BWET',
+        identity_status: 'resolved',
+        instrument_type: 'Exchange Traded Vehicle',
+      },
+    })
+    expect((await bwetHistoryResponseReady).status()).toBe(200)
+    expect((await bwetIssuerResponseReady).status()).toBe(200)
+    expect(identityRequests.filter(request => request.symbol === 'BWET')).toHaveLength(1)
+    expect(issuerRequests.filter(request => request.symbol === 'BWET').map(request => request.body)).toEqual([
+      expect.objectContaining({ refresh: true, instrument_id: instruments.BWET.id }),
+    ])
+    expect(historyRequests.filter(request => request.symbol === 'BWET').map(request => request.body.timeframe)).toEqual(['D1'])
+    expect(capabilityReads).toContain('BWET')
+    await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'BWET' && readback.bars.length === 1)).toBe(true)
+    await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for BWET are not available' })).toBeVisible()
+    await expect(igvContextGroup).toContainText('BWET')
+    await expect(igvContextWidget).toBeVisible()
+    await expect(priorIgvHolding).toHaveCount(0)
+
     const delayedOihFailureResponseReady = page.waitForResponse(response => {
       const url = new URL(response.url())
       return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/OIH/acquire'
@@ -2136,8 +2196,8 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
     await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
 
-    expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'XHB'])
-    expect(historyRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'XHB'])
+    expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'BWET', 'OIH', 'XHB'])
+    expect(historyRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'BWET', 'OIH', 'XHB'])
     expect(discoveryRequests).toHaveLength(0)
     expect(historyRequests.every(request => request.body.timeframe === 'D1' && request.body.adjusted)).toBe(true)
     const requestIds = historyRequests.map(request => request.body.request_id)
@@ -2161,12 +2221,12 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const reportedHolding = igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
     await expect(reportedHolding).toBeVisible()
     await expect(reportedHolding).toContainText('12.50%')
-    await expect(reportedHolding).toContainText('security · equity')
+    await expect(reportedHolding).toHaveAccessibleName(/Reported type: security · equity/)
     await expect(reportedHolding).toHaveAccessibleName(/Identity: Equity identity not resolved\./)
     const futureHolding = igvWidget.getByRole('option', { name: /FUTURE-A Controlled futures position/ })
     const cashHolding = igvWidget.getByRole('option', { name: /— Cash and equivalents/ })
-    await expect(futureHolding).toContainText('derivative · future')
-    await expect(cashHolding).toContainText('cash · cash')
+    await expect(futureHolding).toHaveAccessibleName(/Reported type: derivative · future/)
+    await expect(cashHolding).toHaveAccessibleName(/Reported type: cash · cash/)
     const identityRequestsBeforeNonEquities = identityRequests.length
     const historyRequestsBeforeNonEquities = historyRequests.length
     await expect(symbolSearch).toHaveValue('IGV')
@@ -2232,18 +2292,26 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       const rect = element.getBoundingClientRect()
       const body = element.closest('.tool-window__body')
       const bodyRect = body?.getBoundingClientRect()
+      const selection = element.closest('[data-testid="reported-holding-selection"]') as HTMLElement | null
+      const selectionRect = selection?.getBoundingClientRect()
       const x = rect.left + rect.width / 2
       const y = rect.top + rect.height / 2
       const hit = document.elementFromPoint(x, y)
       const withinBody = Boolean(bodyRect && x >= bodyRect.left && x <= bodyRect.right && y >= bodyRect.top && y <= bodyRect.bottom)
       const fullyWithinBody = Boolean(bodyRect && rect.left >= bodyRect.left && rect.right <= bodyRect.right
         && rect.top >= bodyRect.top && rect.bottom <= bodyRect.bottom)
+      const fullyWithinSelection = Boolean(selectionRect && rect.left >= selectionRect.left && rect.right <= selectionRect.right
+        && rect.top >= selectionRect.top && rect.bottom <= selectionRect.bottom)
       return {
         candidate: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
         toolBody: bodyRect ? { left: bodyRect.left, top: bodyRect.top, right: bodyRect.right, bottom: bodyRect.bottom } : null,
         centerInsideToolBody: withinBody,
         fullyWithinToolBody: fullyWithinBody,
+        selectionPanel: selectionRect ? { left: selectionRect.left, top: selectionRect.top, right: selectionRect.right, bottom: selectionRect.bottom } : null,
+        fullyWithinSelectionPanel: fullyWithinSelection,
         toolBodyScrollLeft: (body as HTMLElement | null)?.scrollLeft ?? null,
+        toolBodyClientWidth: (body as HTMLElement | null)?.clientWidth ?? null,
+        toolBodyScrollWidth: (body as HTMLElement | null)?.scrollWidth ?? null,
         centerHitCandidate: Boolean(hit && (hit === element || element.contains(hit))),
         hitElement: hit ? `${hit.tagName.toLowerCase()}.${String(hit.className || '').toString().replace(/\s+/g, '.')}` : null,
       }
@@ -2251,7 +2319,9 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     console.log(`[reported-holding-candidate-geometry] ${JSON.stringify(candidateGeometry)}`)
     expect(candidateGeometry.centerInsideToolBody).toBe(true)
     expect(candidateGeometry.fullyWithinToolBody).toBe(true)
+    expect(candidateGeometry.fullyWithinSelectionPanel).toBe(true)
     expect(candidateGeometry.toolBodyScrollLeft).toBe(0)
+    expect(candidateGeometry.toolBodyScrollWidth).toBe(candidateGeometry.toolBodyClientWidth)
     expect(candidateGeometry.centerHitCandidate).toBe(true)
     await candidate.click()
     expect((await identityResponseReady).status()).toBe(200)
