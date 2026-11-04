@@ -26271,3 +26271,8 @@ command was not executed through that helper. A prior `git fetch origin staging`
 did return exact `FETCH_HEAD=4de1365cec4bc5897c2a76d16a0004853d747f9c`. No keys, agents or Git configuration
 were changed. Push will use only the same approved connection route; if it
 continues to reject the existing identity, report the exact error to Root.
+
+
+## 2026-11-04 — Attempt19 ordinary-flow correction
+
+The exact 8a1552db profile is retained as predecessor evidence: functional202 passed,1 failed,2 configured skips; strict visual66 passed and38 failed. The focused repair is limited to `WorkstationView.vue`, its mounted unit test, and F8e.1's virtualized-column test setup. A fresh plain `/chart` now allows passive local holdings/industry reads when no parent ETF is bound while preserving a real parent context. The column test scrolls ordinarily to verify each of 1D,1W,1M,3M,6M,YTD,1Y. Workstation tests passed68/68, two late-response store cases passed, and `vue-tsc --noEmit` passed. No new-source browser pass is claimed. The one source-specific frontend artifact and Root-reviewed replacement are next; the accepted52fa backend and existing fixture remain untouched until review.

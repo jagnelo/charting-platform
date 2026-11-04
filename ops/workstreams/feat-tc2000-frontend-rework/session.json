@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact pre-adoption 5519 CI41784665635 is green; staging 4de1365cec4bc5897c2a76d16a0004853d747f9c is adopted in local merge 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b. Exact feature CI for the adoption publication is pending Root observation.",
-  "current_checkpoint_status": "Ordinary ticker journey remains active and unaccepted. Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c was merged at 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b; frontend tree 826df26696c4beefb96b63066220e5859beb36c3 remains identical to accepted 5519 and Root approved reusing the source-a6 c476 image. The exact 5519 CI and formal seven-case pass remain pre-adoption evidence. The new adoption tip still needs exact branch CI; the combined functional and 104 strict-visual profile waits for Root's accepted corrected ETF backend artifact and paired release. All failure evidence, accepted historical checkpoints and AC1-AC9 remain preserved.",
+  "current_candidate_ci_status": "Exact adoption-source CI41822286349 is terminal green. This three-path frontend repair is not yet published; its exact-source CI remains pending. Attempt19 is preserved as red predecessor evidence, and the new source requires a source-specific frontend artifact plus Root-reviewed runtime replacement.",
+  "current_checkpoint_status": "The ordinary ticker journey remains active and unaccepted; accepted F8Y/TCO checkpoints and all nine roadmap criteria remain preserved. Adoption source8a1552db is green in CI41822286349, and c476/52fa were used for attempt19. Attempt19 is retained as 202 functional passes,1 failure,2 configured skips and 66 strict visuals passed/38 failed; it is diagnostic evidence, not current-source acceptance. The new focused repair is not yet browser-qualified. No references, tolerances or backend source changed.",
   "current_exact_ci": {
     "conclusion": null,
     "head_sha": null,
@@ -306,7 +306,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the current test/document-epoch correction with updated attempt15/16 evidence after normal scope/workstream/hash checks. Obtain exact-source CI and Root release for a fresh seven-case snapshot on c476; keep the full functional and 104 strict visuals held until corrected Provider/ETF backend components are released.",
+  "next_action": "Run normal workstream/scope/diff checks on the coherent source and current records, publish once for exact CI, and build one frontend image with the retained capped shared builder. Send Root the immutable artifact and replacement proposal; do not mutate the existing fixture before review.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -337,7 +337,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "d5c7f38adbc05c4b8021a62b333688a27d1c47dfa285ba6d3a76ff1a64da7773",
+  "plan_hash": "6aee7952429a195dbc575e2ca531520160b52ff30049803e59fd6de7143881ca",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -371,15 +371,15 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "Exact-source branch CI for the adoption publication is pending; the full functional/104 strict-visual profile waits for Root's accepted corrected ETF backend artifact and paired runtime release.",
-    "current_phase": "Adopted synchronized green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c at 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b; backend and frontend tree equivalence checked, c476 retained, and the frozen-import receipt/manifest is being reconciled.",
-    "next_action": "Finish the manifest and current session/workstream records, run scope/workstream/hash/diff checks, publish once for exact CI, then await Root's corrected ETF backend pair before the combined profile.",
+    "current_blocker": "Build and publish one source-specific frontend artifact from this reviewed source, then obtain Root's replacement review and verify fresh /chart hydration plus unresolved-holding drilldown. Exact current-source CI and full functional/104 strict visuals remain pending; preserve attempt19's 202/1/2 functional and 66/38 visual results as predecessor evidence.",
+    "current_phase": "Focused repair for attempt19 is implemented in WorkstationView.vue, the mounted Workstation tests and F8e.1's ordinary horizontal-column checks. Workstation tests68/68 and two late-response store tests passed; vue-tsc --noEmit passed. Prior attempt19 red evidence remains preserved.",
+    "next_action": "Run normal workstream/scope/diff checks on the coherent source and current records, publish once for exact CI, and build one frontend image with the retained capped shared builder. Send Root the immutable artifact and replacement proposal; do not mutate the existing fixture before review.",
     "total": 6,
-    "updated_at": "2026-11-04T11:30:32Z"
+    "updated_at": "2026-11-04T14:19:57Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "Publish the E2E document-epoch correction with updated attempt15/16 evidence and exact-source CI; Root then releases all seven ordinary cases on a fresh immutable snapshot using retained image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046. Full functional/104 strict visuals remain held for corrected Provider/ETF backend.",
+    "current_pending_range": "Publish the reviewed three-path plain-chart hydration and virtualized-column test correction, obtain exact-source CI, then build one source-bound frontend artifact with the retained capped shared builder and request Root review before replacing the existing fixture frontend.",
     "failure_category": null,
     "remote": "origin",
     "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
@@ -566,7 +566,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T06:11:46Z",
+  "updated_at": "2026-11-04T14:19:57Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

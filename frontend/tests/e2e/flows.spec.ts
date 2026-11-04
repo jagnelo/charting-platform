@@ -3649,8 +3649,7 @@ test.describe('TC2000 workstation', () => {
 
     const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
     await expect(constituents).toBeVisible({ timeout: 15_000 })
-    await expect(constituents.locator('.watchlist__header')).toContainText(/1D.*1W.*1M.*3M.*6M/)
-    for (const target of ['YTD', '1Y']) {
+    for (const target of ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y']) {
       await expect.poll(async () => {
         const scroll = constituents.locator('.watchlist__scroll')
         const bounds = await scroll.evaluate(element => ({ max: element.scrollWidth - element.clientWidth }))
@@ -3662,7 +3661,7 @@ test.describe('TC2000 workstation', () => {
           if ((await constituents.locator('.watchlist__header').innerText()).includes(target)) return true
         }
         return false
-      }, { timeout: 10_000, message: `constituent columns should expose ${target}` }).toBe(true)
+      }, { timeout: 10_000, message: `constituent columns should expose ${target} through the horizontal viewport` }).toBe(true)
     }
     await constituents.locator('.watchlist__scroll').evaluate(element => {
       element.scrollTo({ left: 0, behavior: 'instant' })

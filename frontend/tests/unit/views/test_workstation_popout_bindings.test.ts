@@ -1682,6 +1682,44 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('passively hydrates the fresh plain-chart ETF context without acquiring source data', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace.constituentETF = null
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.loadETFHoldings).toHaveBeenCalledWith('SPY'))
+      expect(harness.workspace.loadETFIndustries).toHaveBeenCalledWith('SPY')
+      expect(apiPost).not.toHaveBeenCalled()
+      expect(harness.workspace.setConstituentETF).toHaveBeenCalledWith(null)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps a real parent ETF bound during a plain-chart restore', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    harness.workspace.constituentETF = 'XLK'
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('SPY', 'D1', 'candles', true))
+      expect(harness.workspace.constituentETF).toBe('XLK')
+      expect(harness.workspace.loadETFHoldings).not.toHaveBeenCalledWith('SPY')
+      expect(harness.workspace.loadETFIndustries).not.toHaveBeenCalledWith('SPY')
+      expect(harness.workspace.setConstituentETF).not.toHaveBeenCalled()
+      expect(apiPost).not.toHaveBeenCalled()
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('closes autocomplete for Escape and the explicit Go action while the input stays focused', async () => {
     routeState.path = '/'
     routeState.params = {}

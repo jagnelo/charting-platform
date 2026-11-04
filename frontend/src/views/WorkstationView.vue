@@ -2880,7 +2880,13 @@ onMounted(async () => {
       // usable even when metadata/search is temporarily unavailable. The
       // navigation fallback keeps the visible symbol deterministic while the
       // chart and technical tools report their honest freshness/error state.
-      await selectSymbol(requested, undefined, true, undefined, true, explicitRouteSymbol == null)
+      // A plain /chart restore preserves a parent fund only when one is
+      // actually bound. On a fresh workstation there is no parent context yet;
+      // let the normal local holdings/industry reads hydrate the active ETF.
+      // These are cache reads only because route hydration does not set an
+      // acquisition intent.
+      const preserveParentETFContext = explicitRouteSymbol == null && workspaceStore.constituentETF != null
+      await selectSymbol(requested, undefined, true, undefined, true, preserveParentETFContext)
       if (!componentMounted) return
     }
   }
