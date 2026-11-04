@@ -286,15 +286,16 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
 current_blocker: >-
-  Attempt13 measured the CSS overlay on the retained 6e7 frontend: the ordinary
-  resolver option was fully inside its panel and tool body, its center hit the
-  option, and the parent tool had no horizontal overflow. This one-case
-  development probe is not current-source qualification. The pending source
-  includes the measured layout rules plus generic confirmed-ETV eligibility and
-  a controlled BWET context regression. Finish narrow scope/workstream checks,
-  publish once, build one source-bound frontend image, and obtain Root review
-  before replacing the owned frontend. The full functional/strict-visual profile
-  remains held for the corrected Provider/ETF backend.
+  The Root-reviewed a6 image is now served by the existing owned dev fixture.
+  Attempt14 ran all seven ordinary cases at one worker/zero retries: five passed,
+  two failed at stale test assertions (an empty identity-detail-read array and an
+  extra OIH request not caused by a selection in this sequence). Correct those
+  assertions while retaining canonical-only lookup, candidate-ID history,
+  completed-selection counts, BWET context, geometry, lineage and late-response
+  checks; publish one test-only correction and obtain exact CI. Root then verifies
+  bundled-input identity before the fresh corrected seven-case run. The full
+  functional/strict-visual profile remains held for corrected Provider/ETF
+  backend components.
 current_checkpoint_status: >-
   The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes
   with their original evidence and archives. Current active implementation is
@@ -337,6 +338,18 @@ current_checkpoint_status: >-
   and Root-reviewed ordinary-flow execution remain pending. The full
   functional/strict-visual profile remains held for corrected Provider/ETF
   backend components.
+  The exact a6 source-bound frontend image is reviewed and retained; the existing
+  fixture now serves its index and five referenced assets byte-for-byte. Startup
+  and auth smoke passed with observed dense browse total 10,000. Attempt14 on a
+  fresh 1,947-blob a6 snapshot completed 5/7 ordinary cases in 53.7 seconds,
+  one worker, zero retries, no OOM. The two failures are test expectation issues:
+  normal canonical-only/detail reads were wrongly required to be absent, and the
+  issuer/history sequence expected an OIH selection that does not occur. A
+  three-line test-only correction now asserts the canonical-only lookup after
+  history completion and matches requests to actual selected symbols. Exact CI
+  for the corrected test tip and Root's byte-equivalence review remain pending.
+  No product source changed after the reviewed a6 image; no app/production source
+  requests or sibling/service changes were made.
 ordinary_ticker_latest_update: >-
   The dedicated ETF view reads producer capability only after deliberate
   profile-card or picker selection and makes at most one existing admitted
@@ -3447,10 +3460,10 @@ status: in_progress
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: The c7 frontend smoke passed with observed browse total 10,000. Its seven ordinary cases completed 6 passed/1 failed; the remaining failure measured a clipped factory holding resolver. A width-only grid correction and actual bounds/center-hit assertion are implemented; all nine roadmap criteria and REF-HELP-V25 remain open.
-  current_blocker: The existing c7 image predates the width correction. Complete scope/workstream checks, publish the corrected source once, build its bounded frontend image, and obtain Root's release before replacing the owned frontend and rerunning seven ordinary cases.
-  next_action: Publish the corrected width-constrained constituent resolver and geometry regression after final checks, build one capped source-bound frontend artifact, and await Root image review/replacement release; then run the seven ordinary cases first and, if green, the unchanged full functional and 104 strict-visual profile.
-  updated_at: '2026-11-04T04:15:52Z'
+  current_phase: Published a6 frontend image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046 was Root-reviewed, installed only in the owned dev fixture, and verified byte-for-byte served. Startup/auth smoke passed with dense browse total 10,000. Attempt14 ran seven ordinary cases with five pass/two stale test expectation failures in 53.7 seconds, one worker/zero retries/no OOM. The three-line test-only correction preserves the canonical-only identity lookup, exact returned-ID history request, and selections actually performed. The candidate geometry/BWET context assertions passed before the final request-array checks.
+  current_blocker: The attempt14 test correction needs normal scope/workstream validation, one coherent publication, exact-source CI, and Root bundled-input equivalence review before a fresh source-pinned seven-case run. Full functional and 104 strict visuals remain held until corrected Provider/ETF backend inputs are released.
+  next_action: Validate and publish the E2E-only assertion correction once. Root confirms production frontend inputs remain byte-identical to a6; then run all seven ordinary cases on the existing c476 frontend, with no image rebuild. If green, hand the result to Root; do not start the combined full profile before corrected Provider/ETF backend release.
+  updated_at: '2026-11-04T05:39:00Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -4386,3 +4399,19 @@ active_implementation:
     dense 10,000-row seeding and observed browse count, strict diagnostics,
     references, masks and tolerances. Root owns profile acceptance, integration
     and deployment.
+
+    Attempt14 on the exact a6 snapshot and Root-reviewed frontend image c4764c67
+    completed all seven ordinary cases in 53.7 seconds, one worker, zero retries,
+    no OOM: five passed, two failed only at stale assertions. For TCNEW, identity
+    resolution returned the fixture canonical ID and the history POST used that
+    exact ID; the canonical-only GET was observed after history completion along
+    with normal chart detail reads, so the old empty-array assertion was invalid.
+    For the mixed ETF sequence, the extra expected OIH issuer/history entry had no
+    corresponding deliberate selection. The corrected test expects the actual
+    selected sequence and preserves completed history/issuer request counts,
+    candidate geometry, BWET context, lineage and late-response assertions. Only
+    frontend/tests/e2e/on_demand_acquisition.spec.ts changed; its production
+    frontend source/build inputs remain byte-identical to a6 and no image rebuild
+    is needed. Exact-source CI and Root's bundled-input equivalence review precede
+    a fresh immutable seven-case run on c476; full functional/strict visuals remain
+    held for corrected Provider/ETF backend components.

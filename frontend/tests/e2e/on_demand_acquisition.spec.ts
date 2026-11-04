@@ -854,7 +854,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   })
   const historyResponse = await historyReady
   expect(historyResponse.status()).toBe(200)
-  expect(canonicalInstrumentLookups).toEqual([])
+  expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
   expect(historyRequests).toHaveLength(1)
   expectBoundedM1Request(historyRequests[0]!)
   expect(instrumentRequests).toHaveLength(1)
@@ -2196,8 +2196,8 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'Holdings for XHB are not available' })).toBeVisible()
     await expect(page.locator('.workstation__selection-acquisition--error')).toHaveCount(0)
 
-    expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'BWET', 'OIH', 'XHB'])
-    expect(historyRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'OIH', 'BWET', 'OIH', 'XHB'])
+    expect(issuerRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'BWET', 'OIH', 'XHB'])
+    expect(historyRequests.map(request => request.symbol)).toEqual(['XHB', 'SPY', 'RSP', 'QQQ', 'OIH', 'IGV', 'BWET', 'OIH', 'XHB'])
     expect(discoveryRequests).toHaveLength(0)
     expect(historyRequests.every(request => request.body.timeframe === 'D1' && request.body.adjusted)).toBe(true)
     const requestIds = historyRequests.map(request => request.body.request_id)

@@ -26155,3 +26155,36 @@ The CSS overlay probe attempt13 passed the actual ordinary candidate geometry on
 The source changes now apply the measured layout and use confirmed canonical ETF/ETV classification without ticker exceptions; ETN and generic ETP remain excluded. The controlled BWET regression begins with a local Stock hint, checks the confirmed Exchange Traded Vehicle response and exact-ID requests, then selects BWET from populated IGV context and requires the Constituents listbox to remain visible while the old reported row disappears. All seven ordinary E2E cases still collect. The focused 86-unit result is recorded, and the current Vue/Vite production build passes (540 modules; existing large Workstation chunk advisory). The latest E2E context assertion has not yet run in a browser.
 
 Next: complete the narrow scope/workstream checks, publish one coherent candidate and obtain exact-source CI, then build one source-bound frontend image for Root review. Reuse the owned development fixture only after image review for the seven ordinary cases. The full functional and 104 strict-visual profile remains held until corrected Provider/ETF backend components are released. No provider/source HTTP or sibling, staging, target, or production operation occurred.
+
+## Ordinary ticker continuation — a6 attempt14 assertion correction — 2026-11-04
+
+Root-reviewed source a6c02704f368480a81da017ace34cdf06a82e02f is clean and
+synchronized. Its retained frontend image c4764c677f1909ea13d5ed7292d9c72a18fc2c8da00f0c58bb4b9abf2e1ea046
+was installed only in the existing owned dev fixture. The replacement guard
+confirmed that only the frontend container changed; backend/worker777, research,
+PG/Redis, relay and deny proxy remained intact. Served index and five referenced
+assets matched the image. Startup/auth smoke passed and the authenticated dense
+browse endpoint returned total 10,000.
+
+Attempt14 used a fresh immutable a6 Git snapshot (1,947 tracked files), one
+worker, zero retries and no OOM. The seven ordinary cases completed 5 passed,
+2 failed in 53.7 seconds. In the TCNEW flow, the candidate identity response and
+history request carried the exact fixture canonical ID; canonical-only and
+normal chart instrument reads were observed after the history response, so the
+old empty-array assertion was too broad. In the mixed ETF flow, the expected
+issuer/history array had an OIH entry without a corresponding user selection.
+The test-only correction now requires a canonicalOnly=true lookup after history
+completion and matches request arrays to the actual selection sequence. It keeps
+the exact candidate-ID history route, request counts, BWET visible context and
+old-row removal, geometry/center-hit, lineage and late-response assertions.
+
+Only frontend/tests/e2e/on_demand_acquisition.spec.ts is changed beyond a6;
+production/frontend build inputs remain unchanged, so the reviewed c476 image
+is reusable after Root confirms byte identity. No image rebuild, backend change,
+provider/issuer source request, or extra fixture is needed. Collection remains
+seven cases. Next: update the owned append-only records, run normal scope and
+workstream/hash checks, publish this test-only correction once, and obtain exact
+CI. Root verifies the bundled frontend inputs before a fresh seven-case run on
+c476. Full functional and 104 strict-visual qualification remains held until
+the corrected Provider/ETF backend pair is released. Historical failures and
+all nine roadmap criteria remain preserved/open.
