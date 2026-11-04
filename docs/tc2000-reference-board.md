@@ -1,5 +1,22 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-11-04 — Reviewed ordinary-journey local reference successor
+
+Under Root's exact review authorization
+`ordinary-journey-TC-reviewed-local-reference-update-root-authorization-20261104.json`
+(SHA256 `6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78`),
+34 Linux local product-state PNGs were copied byte-for-byte from the reviewed
+b8 attempt20 captures. This records the now-populated default holdings and
+industries, percentage-formatted weights, current reported-row layout, and
+reviewed control rendering; it does not assert exact Version 25 parity. The
+chart 404 capture now explicitly waits for shared `Unavailable` freshness and
+idle `Refresh`, retaining its 404, chart-error, no-canvas, holdings, industry,
+and related data assertions. The 0.5% visual threshold, 1px policy, masks,
+skips, and functional assertions are unchanged. All external V25 gaps remain
+`required_missing`; these successor images remain local interim baselines only.
+The fresh 104-case strict-visual profile and exact closing-tip CI are still
+required before Root reviews the bounded checkpoint for integration.
+
 ## 2026-08-19 — Four display-scale product-state oracles now agree
 
 The remaining three seeded visual projects were refreshed after the same canonical-pane hydration

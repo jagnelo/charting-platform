@@ -26283,3 +26283,10 @@ The exact 8a1552db profile is retained as predecessor evidence: functional202 pa
 Root accepted the bounded software/artifact checkpoint at `b8c973f7139d2395f9c158a3dfacd0748318092c`; the original roadmap and accepted archives remain intact. The immutable snapshot verified 1,949 tracked blobs. Focused browser checks passed 12/12 at zero retries: seven ordinary acquisition journeys, F8e.1 drilldown, and the default holdings/industries visual check in all four projects. The source-matched frontend image is `sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71`; backend/worker remain the Root-accepted 52fa image.
 
 The complete 205-test functional profile is running on the same fixture, one worker and zero retries. If it passes, run the unchanged 104 strict visual cases across all four projects. Exact closing-tip CI is pending publication. Protected integration, deployment, and genuine Provider/issuer evidence remain Root-owned and pending; no full-profile result is claimed in this handoff. Attempt19 red results remain preserved. No source, image, fixture service, reference, mask, tolerance, provider or ledger state changed.
+
+
+## 2026-11-04 — Authorized local reference successor and closing profile
+
+Root authorized exactly 34 local Linux PNG successors under `ordinary-journey-TC-reviewed-local-reference-update-root-authorization-20261104.json` (SHA256 `6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78`). The copied bytes come from reviewed attempt20 captures; the 404 visual case now waits for terminal shared Unavailable freshness and idle Refresh while keeping its existing chart 404/error/no-canvas and data checks. Masks, thresholds, skips, product source, and fixture are unchanged.
+
+Attempt20 functional was 203 passed, 2 configured skips, 0 failed at zero retries. Its predecessor strict visual run was 70/104 with 34 failures; those results remain preserved and are not accepted as a pass. A fresh immutable-tip 104 strict visual run and exact closing-tip CI remain required. No official REF-HELP-V25 parity, protected deployment, or genuine Provider/issuer evidence is claimed.

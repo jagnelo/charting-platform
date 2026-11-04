@@ -630,6 +630,12 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       await expect(page.locator('.chart-tool .tool-state--error')).toContainText(/Request failed|unavailable|observations/i)
       await expect(page.locator('.chart-tool canvas')).toHaveCount(0)
     }
+    // Bind the capture to the terminal shared workstation state as well as the
+    // chart's 404. This prevents an early current/busy shell from becoming the
+    // screenshot even when the chart-local error has already rendered.
+    await expect(page.locator('.workstation__footer .workstation__data-state'))
+      .toHaveAttribute('aria-label', 'Market data freshness: Unavailable')
+    await expect(page.locator('.workstation__refresh')).toHaveText('Refresh')
     await expect(page).toHaveScreenshot('chart-provider-error-gap.png', {
       animations: 'disabled',
       caret: 'hide',

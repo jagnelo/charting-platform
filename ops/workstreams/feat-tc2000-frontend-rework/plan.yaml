@@ -96,35 +96,9 @@ archived_prior_accepted_f8y_20261028_closure_summary: >-
   target acceptance, and deployment remain open or Root-owned; this is not full
   feature-roadmap completion.
 human_closure_authorization: >-
-  Under the existing standing human delegation, Root accepted the bounded
-  ordinary-journey b8 software/artifact checkpoint. Receipt:
-  /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-b8-focused-software-checkpoint-root-acceptance-20261104.json
-  (SHA256 73afa6044cfd6944d6b7a8a7da87fce771953b9f79dc958a66725f96fde8010c).
-  This records Root's delegated checkpoint acceptance; no new human quote is
-  claimed and the complete roadmap is not accepted.
+  Under the existing standing human delegation, Root accepted the bounded b8 software/artifact checkpoint (receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-b8-focused-software-checkpoint-root-acceptance-20261104.json, SHA256 73afa6044cfd6944d6b7a8a7da87fce771953b9f79dc958a66725f96fde8010c) and separately authorized exactly the reviewed 34-image local reference successor under /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-reviewed-local-reference-update-root-authorization-20261104.json (SHA256 6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78). The authorization covers only those local Linux captures and the deterministic 404 terminal-state readiness assertion; it does not claim official V25 parity or waive fresh visual, exact-CI, protected-integration, deployment, or genuine-source gates.
 closure_summary: >-
-  integration_capture: exact branch HEAD. Root accepted only the bounded b8
-  software/artifact checkpoint at source
-  b8c973f7139d2395f9c158a3dfacd0748318092c, frontend tree
-  4321b4a6ae403e1fd5867aeddda03463ed62af34 and immutable frontend image
-  sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71.
-  The exact immutable snapshot verified all 1,949 tracked blobs. The focused
-  current-source browser checks passed12/12 with zero retries: seven ordinary
-  acquisition journeys, F8e.1 drilldown, and the default holdings/industries
-  visual check across four projects. Startup/authentication and authenticated
-  dense browse total10,000 passed; Root reviewed frontend replacement and
-  protected-resource preservation. The full205-test functional profile is
-  running on the same fixture with accepted backend/worker image
-  sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65;
-  strict104 visuals across four projects remain pending functional completion.
-  Exact closing-tip CI is pending publication. These gates are required before
-  protected integration; no merge or deployment is authorized here. The current
-  fixture must be cleaned only after terminal evidence and an exact owned-resource
-  review. Controlled/seeded browser evidence is not genuine Provider or issuer
-  proof. AC1-AC9, official REF-HELP-V25, broader product work, protected staging
-  and master gates, private deployment, and genuine Provider/issuer validation
-  remain open or Root-owned. Prior accepted TCO/F8Y checkpoints and all failed
-  attempt19 evidence remain preserved; this is not full feature-roadmap closure.
+  integration_capture: exact branch HEAD. Root accepted the bounded b8 software/artifact checkpoint (receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-b8-focused-software-checkpoint-root-acceptance-20261104.json, SHA256 73afa6044cfd6944d6b7a8a7da87fce771953b9f79dc958a66725f96fde8010c) at source b8c973f7139d2395f9c158a3dfacd0748318092c, frontend tree 4321b4a6ae403e1fd5867aeddda03463ed62af34, immutable frontend image sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71. Its immutable snapshot verified 1,949 tracked blobs; focused browser checks passed12/12, authenticated dense browse returned10,000, and full functional passed203 with2 configured skips at zero retries. The initial104-case strict visual run passed70 and failed34; predecessor results remain preserved. Under Root's exact reference authorization (receipt SHA256 6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78),34 reviewed local Linux PNG captures were copied byte-for-byte, and the404 capture now waits for shared Unavailable freshness and idle Refresh while retaining its chart error/404/no-canvas and data assertions. No mask, threshold, skip, product source, fixture, or backend changed. This bounded software/reference successor is ready for integration review, but fresh strict visual validation on the immutable closing-tip snapshot and exact closing-tip CI remain pending. Official REF-HELP-V25 and all nine broader roadmap criteria remain open; protected integration, deployment, and genuine Provider/issuer proof remain Root-owned and pending.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -316,14 +290,11 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
 current_blocker: >-
-  Root accepted the bounded b8 software/artifact checkpoint after exact-source immutable-snapshot focused checks passed. The full 205-test functional profile is running on that same b8 snapshot and 6c6 frontend/52fa backend fixture; the 104-case strict visual matrix remains pending until functional completion. Exact closing-tip CI is pending this records publication. Protected integration, deployment and genuine Source evidence remain Root-owned.
-
+  No implementation blocker. Root authorized the exact 34 local PNG successors and terminal 404 readiness assertion; approved capture bytes and concise local provenance are recorded. The fresh exact-tip 104-case strict visual run and exact closing-tip CI remain pending, as do Root-owned protected integration, deployment, and genuine-source evidence.
 current_checkpoint_status: >-
-  Root accepted the bounded b8 software/artifact checkpoint at source b8c973f7139d2395f9c158a3dfacd0748318092c, frontend tree4321b4a6ae403e1fd5867aeddda03463ed62af34 and immutable frontend image sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71. All 1,949 immutable source blobs were verified; the seven ordinary flows, F8e.1 drilldown, and default holdings/industries visual check across four projects passed at zero retries. The full functional profile is now running; strict visuals, exact closing-tip CI, protected integration, deployment and genuine Source evidence remain pending. Attempt19 red results remain preserved; no oracle or reference changed.
-
+  The bounded b8 software/artifact checkpoint is Root-accepted. Its full functional run passed 203 with 2 configured skips at zero retries. The authorized local reference successor is prepared: exactly 34 PNGs copied from reviewed attempt20 captures, with the 404 capture bound to terminal shared Unavailable/idle Refresh state. The predecessor strict visual result remains 70/104 with 34 failures; it is not treated as a pass. A fresh 104-case strict visual run on the immutable closing-tip source and exact closing-tip CI are required. No official V25 parity, deployment, or genuine-source acceptance is claimed.
 ordinary_ticker_latest_update: >-
-  The b8 frontend/artifact checkpoint is Root-accepted. Against the immutable b8 snapshot and reviewed 6c6/52fa fixture, all seven on-demand journeys passed (55.0s), F8e.1 drilldown passed, and the default holdings/industries visual check passed in all four display projects. Candidate geometry was fully inside the selection pane and tool, with a normal center hit. The complete 205-test functional suite is running now; after it passes, run the unchanged 104 strict visuals across all four projects at one worker/zero retries. Preserve attempt19 red evidence and all nine roadmap criteria. Exact closing-tip CI, protected integration/deployment and genuine Source evidence remain pending Root.
-
+  Root authorized the exact reviewed local reference successor. The 34 PNG files are byte-for-byte copies from reviewed attempt20 captures; the visual test now waits for shared Market data freshness=Unavailable and idle Refresh before the existing chart 404/error/no-canvas capture. Attempt20 functional passed 203 with 2 configured skips; strict visual was 70/104, with 34 predecessor failures retained. No product/runtime/backend, masks, threshold, skips, or functional assertions changed. Next: publish this single coherent bounded software/reference close and run the fresh immutable-tip 104 strict visual profile across four projects at one worker/zero retries; exact closing-tip CI, protected integration, deployment, and genuine Source proof remain Root-owned and pending.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -3360,10 +3331,13 @@ status: ready_for_integration
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: Root-accepted b8 software/artifact checkpoint; all12 focused browser results pass on the exact immutable snapshot and reviewed 6c6/52fa fixture. The full 205-test functional profile is running at one worker and zero retries; strict visuals follow only after functional completion.
-  current_blocker: No focused-check blocker. Full functional completion and the unchanged 104-case strict visual matrix remain required; exact closing-tip CI is pending this records publication. Protected integration, deployment and genuine Source evidence remain Root-owned.
-  next_action: Finish the current full functional run, preserve its exact receipt, then run all104 strict visual cases across four projects on the same fixture at one worker/zero retries. Do not change sources, assertions, references, masks, tolerances or fixture services. Root owns closing-tip CI observation and later protected integration/deployment.
-  updated_at: '2026-11-04T14:57:00Z'
+  current_phase: >-
+    Bounded b8 software/artifact checkpoint accepted; the exact Root-authorized 34-image local reference successor and deterministic 404 terminal-state readiness are prepared. Fresh immutable-tip 104 strict visuals and exact closing-tip CI are pending.
+  current_blocker: >-
+    No source blocker. Attempt20 strict visuals were 70/104; the 34 reviewed local capture changes are authorized and applied without mask/tolerance/skip changes. Fresh strict visuals and exact closing-tip CI remain required; deployment and genuine-source checks remain Root-owned.
+  next_action: >-
+    Run one fresh immutable closing-tip strict visual matrix: 104 cases, all four projects, one worker, zero retries, unchanged oracles. Preserve exact results, publish no follow-up metadata commit, and let Root observe exact-tip CI and review integration readiness. Keep protected deployment and genuine-source gates pending.
+  updated_at: '2026-11-04T15:56:33Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
