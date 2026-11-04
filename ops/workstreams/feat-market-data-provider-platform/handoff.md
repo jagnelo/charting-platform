@@ -32917,3 +32917,12 @@ Checkpoint status is `ready_for_integration`; `integration_capture` is the exact
 - Only that mock tuple changed to `('Equity', 'ETF')`; runtime behavior and all disabled-policy, exact-context, entitlement, quota and negative assertions are unchanged. The complete explicit-acquisition unit module passed 14/14, and the affected issuer-route/hold selection passed 12/12. Ruff check/format and `git diff --check` passed.
 - The failed CI run is not relabeled green or retried. A new exact-tip backend/DDL and branch CI is mandatory and pending; Root owns its observation and protected integration. Existing PostgreSQL execution and acceptance receipts remain frozen at their recorded hashes.
 - All prior accepted checkpoints, failure history, and 24 Provider/14 ETF roadmaps remain preserved. No source HTTP, fixture, provider policy/quota operation, production or protected-branch change occurred.
+
+
+## 2026-11-04 — canonical bridge integration fixtures corrected
+
+- Root accepted this test-only reconciliation in `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json` (SHA-256 `b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea`). The two positive fixture factories now reuse canonical `Equity/ETF` and `Equity/Stock` rows; Provider runtime and assertions are unchanged.
+- Exact d5 CI `41786842390` remains red and preserved: all 58 integration failures came from the previous suffixed, noncanonical fixture asset classes. Predecessor CI `41784665584` remains separately preserved.
+- The complete bridge module passed `108/108`, zero skips/errors/failures, in 1103.87s on private capped PostgreSQL/Redis; the explicit-acquisition unit module passed `14/14`; Ruff and formatting passed. R1 (wrong cwd, zero cases), R2 (asyncpg URL passed to sync setup), and R3 (256 MiB PGDATA tmpfs filled; 19 passed before setup errors) remain recorded as setup diagnostics.
+- Cleanup removed only the exact owned PG/Redis containers, named private PG volume, and internal network. All original 42 container IDs, 33 image IDs, 13 network IDs, and 57 volume names match the saved baseline. No provider HTTP or real-ledger access occurred.
+- One coherent closing publication is ready with `integration_capture: exact branch HEAD`. New exact-tip backend/DDL and branch CI is mandatory and pending; Root owns observation and protected integration. Full Provider/ETF roadmaps remain open.

@@ -237,16 +237,16 @@
   },
   "closing_commit_ci": {
     "run_id": null,
-    "source_sha": "exact branch HEAD (see integration_capture; no self-referential SHA stored)",
-    "status": "pending; Root observes the exact closing-tip CI; the prior caac run 41376711568 remains overall failed solely for the corrected records mismatch."
+    "source_sha": "exact branch HEAD (captured by integration_capture; no self-reference)",
+    "status": "pending; Root observes the exact corrected tip; no CI result is claimed"
   },
-  "closing_tip_ci_status": "run 41784665584 failed on the noncanonical explicit-acquisition mock tuple; fixture-only correction is published in the next tip and exact-tip CI is pending.",
+  "closing_tip_ci_status": "Exact closing-tip CI for the canonical fixture correction is mandatory and pending; predecessor reds 41784665584 and 41786842390 remain separately preserved. Root owns exact-tip observation and protected integration.",
   "corrected_source_exact_ci": {
     "run_id": 41376711568,
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "docker_integration: 126/126 current provider_runtime unit cases, 23/23 focused resolver cases, and 1/1 isolated PostgreSQL listing-admission resolver case passed. Root accepted the PostgreSQL test delta/cleanup. Ruff and formatting passed; exact-environment branch manifest, workstream and closure checks passed. No source HTTP, real ledger access or full local backend replay.",
+  "current_checkpoint_local_profile": "docker_integration: accepted exact source proof remains 126/126 provider_runtime cases, 23/23 focused resolver cases, and the prior real PostgreSQL listing-admission case 1/1. The complete 108-case ETF bridge integration module passed 108/108 (zero failures/errors/skips, 1103.87s) on capped private PostgreSQL/Redis after changing only its two positive fixture factories to canonical Equity/ETF and Equity/Stock rows. The explicit-acquisition unit module passed 14/14. Ruff/format and workstream/manifest/closure checks pass. No provider HTTP, real ledger, full backend collector, image/build, or browser run occurred.",
   "current_exact_ci": {
     "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
     "status": "failed; preserved, test fixture only",
@@ -414,11 +414,11 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "docker_integration",
-  "next_action": "Freeze the fixture-only correction and records; Root observes exact-tip backend/DDL/branch CI and owns integration.",
+  "next_action": "Freeze this one coherent fixture-only correction publication; Root observes its exact closing-tip CI and owns protected integration.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
-  "plan_hash": "74f955d624a26b85cafaf03a1ba379e9584a96e3be70448bbcfb8fbf58be59f5",
+  "plan_hash": "56e1a50d52cd1559034f9a2b2710b2ab2f2e8c46e3f1c3e10151e1345580369b",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -437,7 +437,10 @@
   "previous_failure_attempts": [
     "/tmp/provider-etv-20261103-r1/artifacts/attempt-receipt.json",
     "/tmp/provider-etv-20261103-r2/artifacts/attempt-receipt.json",
-    "/tmp/provider-etv-20261103-r3/artifacts/attempt-receipt.json"
+    "/tmp/provider-etv-20261103-r3/artifacts/attempt-receipt.json",
+    "/tmp/provider-etf-bridge-runtime-20261104/integration-r1.log (zero-test cwd setup failure)",
+    "/tmp/provider-etf-bridge-runtime-20261104/integration-r2-setup-failure.json",
+    "/tmp/provider-etf-bridge-runtime-20261104/integration-r3-failure.json"
   ],
   "previous_session_ids": [
     "3761b3fd-d526-4630-a0e4-47d630f3d50c",
@@ -1152,12 +1155,13 @@
   "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-routing-software-checkpoint-acceptance-20261104.json",
   "root_acceptance_receipt_sha256": "b0f9374ea4fd2521bb0e0ecfd6cfbe60cba87a1f7fceb82dedcb1257adae0127",
   "checkpoint_acceptance_status": "accepted_bounded_software_checkpoint; exact-source CI pending",
-  "current_gate_checkpoint": "Root's conditional source acceptance was met on the pinned runtime/unit hashes by 126/126 module tests and static checks. Root accepted the added PostgreSQL resolver/listing test: 1/1 passed in 9.87s on the pinned three-file source, with exact owned fixture cleanup and protected inventory reviewed. Exact closing-tip backend/DDL and branch CI remain mandatory and pending. The first exact closing-tip CI run 41784665584 is retained as red for the mock tuple mismatch in the disabled-policy explicit-acquisition test; the mock now matches the actual (AssetClass.name, InstrumentType.name) query as (Equity, ETF). The full explicit-acquisition module passed 14/14 and the affected issuer-route/hold selection passed 12/12. No runtime admission, quota, entitlement or negative assertion changed; a new exact-tip CI is pending.",
+  "current_gate_checkpoint": "Root accepted the canonical bridge fixture reconciliation under the bounded checkpoint receipt. Exact d5 CI 41786842390 remains red and preserved: Backend job 126430820691 had 58 failed, 560 passed, 2 skipped, all failures in the bridge integration module because positive fixtures used suffixed noncanonical AssetClass values rejected by correct runtime admission. The corrected full module passed 108/108 on PostgreSQL/Redis with only canonical fixture changes; explicit-acquisition units passed 14/14. R1/R2/R3 setup attempts are separately preserved. Exact CI for the new coherent tip remains mandatory and pending; Root owns observation and integration. No runtime, policy, quota, provider, target, real-ledger, sibling, staging or production change occurred.",
   "current_source_hashes": {
     "backend/app/services/provider_runtime.py": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
     "backend/tests/unit/services/test_provider_runtime.py": "df41e5ddc674730bc69b9e6c1b02a49de7572eca739368713c7baffae7b8bc10",
     "backend/tests/integration/api/test_on_demand_history_postgres.py": "357af6a81c7ddff8049abb7e538473cc5ddab590ad60a7e24126f007e22bd91b",
-    "backend/tests/unit/services/test_provider_explicit_acquisition.py": "9014d522463e2076203b307367f94d53842354bea81465915ea13e047d5a18cb"
+    "backend/tests/unit/services/test_provider_explicit_acquisition.py": "9014d522463e2076203b307367f94d53842354bea81465915ea13e047d5a18cb",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "81808e74138816a6a59b255b6621349f2bf732757c10970f58309af588b0e29c"
   },
   "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
   "current_postgres_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
@@ -1199,5 +1203,18 @@
       "issuer_route_hold_selection": "12 passed, 0 failed/skipped"
     },
     "next_exact_tip_ci": "pending; Root owns observation"
-  }
+  },
+  "fixture_correction_current_exact_ci": {
+    "run_id": 41786842390,
+    "source_sha": "d5d4c31e6816bfb6e14f3233ee909c178903a164",
+    "backend_job_id": 126430820691,
+    "status": "failed; preserved, fixture-only correction follows",
+    "backend": "58 failed, 560 passed, 2 skipped in 1168.07s; all failures in bridge integration positive factories with noncanonical suffixed AssetClass values"
+  },
+  "canonical_bridge_root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
+  "canonical_bridge_root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
+  "canonical_bridge_local_result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
+  "canonical_bridge_local_result_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
+  "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
+  "canonical_bridge_cleanup_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb"
 }

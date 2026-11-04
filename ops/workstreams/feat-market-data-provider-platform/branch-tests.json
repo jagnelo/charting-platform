@@ -3,7 +3,7 @@
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
     "backend/app/services/provider_runtime.py::resolve_provider_chain (exact ETF issuer route and Massive-only US-listed ETV PRICE_HISTORY/fetch_ohlcv route; no generic registry widening)",
-    "backend/tests/unit/services/test_provider_runtime.py and backend/tests/unit/services/test_provider_explicit_acquisition.py plus backend/tests/integration/api/test_on_demand_history_postgres.py (registered resolver, disabled-policy context, and real PostgreSQL listing-admission checks)",
+    "backend/tests/unit/services/test_provider_runtime.py and backend/tests/unit/services/test_provider_explicit_acquisition.py plus backend/tests/integration/api/test_on_demand_history_postgres.py and backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (registered resolver, canonical taxonomy fixtures, and complete real PostgreSQL/Redis bridge compatibility checks)",
     "Previously accepted selected-acquire taxonomy/schema continuity remains a compatibility gate; no source request or identity mutation",
     "Complete backend/DDL coverage and exact-source branch CI remain required for this Provider checkpoint; no live provider request or target change"
   ],
@@ -52,6 +52,33 @@
       "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
       "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
       "cleanup_summary": "The exact owned PG container and internal network were removed; no Docker volume was created. Root matched the one additional exited container to authorized TC attempt15 and it was preserved."
+    },
+    {
+      "id": "canonical-bridge-runtime-postgres-module",
+      "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py -q",
+      "covers": [
+        1,
+        2,
+        3
+      ],
+      "scope_note": "Complete provider bridge integration module on only the owned PostgreSQL/Redis fixtures; canonical Equity/ETF and Equity/Stock positive fixtures match persisted taxonomy. All transports are mocked; no provider HTTP.",
+      "selected": 108,
+      "passed": 108,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 1103.87,
+      "source_test_sha256": "81808e74138816a6a59b255b6621349f2bf732757c10970f58309af588b0e29c",
+      "runtime_sha256_unchanged": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
+      "prelaunch_manifest": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-prelaunch.json",
+      "prelaunch_manifest_sha256": "e060a8946c76adaf5c4b8ad21d21aa214c012439d61318e09c2907ab1f761a25",
+      "result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
+      "result_receipt_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
+      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
+      "root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
+      "cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
+      "cleanup_receipt_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb"
     }
   ],
   "ci_covered_commands": {
@@ -93,8 +120,53 @@
     "predecessor_exact_ci": {
       "run_id": 41784665584,
       "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
-      "status": "failure preserved; fixture correction only"
+      "status": "failure preserved; explicit-acquisition fake tuple fixture corrected separately; not relabeled green"
     },
-    "next_exact_tip_ci": "pending; Root owns observation"
+    "next_exact_tip_ci": "pending; Root owns observation",
+    "canonical_bridge_module": {
+      "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py -q",
+      "selected": 108,
+      "passed": 108,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 1103.87,
+      "source_test_sha256": "81808e74138816a6a59b255b6621349f2bf732757c10970f58309af588b0e29c",
+      "runtime_sha256_unchanged": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
+      "prelaunch_manifest": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-prelaunch.json",
+      "prelaunch_manifest_sha256": "e060a8946c76adaf5c4b8ad21d21aa214c012439d61318e09c2907ab1f761a25",
+      "result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
+      "result_receipt_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
+      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
+      "root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
+      "cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
+      "cleanup_receipt_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb",
+      "setup_attempts": [
+        {
+          "attempt": "R1",
+          "result": "exit4, zero tests; wrong cwd; preserved log /tmp/provider-etf-bridge-runtime-20261104/integration-r1.log"
+        },
+        {
+          "attempt": "R2",
+          "result": "108 setup errors before test bodies; synchronous db_engine received asyncpg URL; /tmp/provider-etf-bridge-runtime-20261104/integration-r2-setup-failure.json"
+        },
+        {
+          "attempt": "R3",
+          "result": "19 passed and 60 setup errors before scoped diagnostic interrupt; 256 MiB PGDATA tmpfs filled, DiskFullError, no OOM; /tmp/provider-etf-bridge-runtime-20261104/integration-r3-failure.json"
+        },
+        {
+          "attempt": "R4",
+          "result": "108 passed, zero failures/errors/skips; sync psycopg2 and asyncpg connectivity verified; disk-backed exact owned volume; Root accepted."
+        }
+      ]
+    },
+    "d5_bridge_fixture_failure_ci": {
+      "run_id": 41786842390,
+      "source_sha": "d5d4c31e6816bfb6e14f3233ee909c178903a164",
+      "backend_job_id": 126430820691,
+      "status": "failure preserved; all 58 integration failures were caused by two positive factories using suffixed noncanonical AssetClass names rejected by correct runtime admission",
+      "integration_counts": "560 passed, 58 failed, 2 skipped; 1168.07 seconds"
+    }
   }
 }
