@@ -7,6 +7,7 @@ import { api } from '@/lib/api'
 import {
   createETFHoldingDrilldownContext,
   holdingDrilldownRouteQuery,
+  isCurrentETFHoldingSelection,
   isEligibleUnresolvedEquityHolding,
 } from '@/lib/etfHoldingDrilldown'
 import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
@@ -54,7 +55,7 @@ describe('ETFHoldingResolutionAction', () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20' })
   })
 
-  it('does nothing until the row action and source discovery are explicitly clicked, then emits exact resolved identity with holding lineage', async () => {
+  it('waits for the row action, then automatically discovers and explicitly resolves exact identity with holding lineage', async () => {
     vi.mocked(api.post)
       .mockResolvedValueOnce({
         request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
@@ -77,12 +78,16 @@ describe('ETFHoldingResolutionAction', () => {
     expect(api.get).not.toHaveBeenCalled()
     expect(api.post).not.toHaveBeenCalled()
     await wrapper.get('button').trigger('click')
+    expect(wrapper.text()).toContain('Confirm the reported ticker UNXQ against an exact listing before opening its chart.')
+    expect(wrapper.text()).not.toContain('Search free sources')
     expect(wrapper.get('input').element.value).toBe('UNXQ')
     expect(wrapper.get('input').attributes('readonly')).toBeDefined()
     expect(api.get).not.toHaveBeenCalled()
     expect(api.post).not.toHaveBeenCalled()
 
-    await wrapper.get('button').trigger('click')
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
+      query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+    }))
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
     })
@@ -93,7 +98,7 @@ describe('ETFHoldingResolutionAction', () => {
       provider_candidate: { provider: 'free-source', symbol: 'UNXQ', exchange: 'XNYS' },
       request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
     })
-    expect(wrapper.emitted('resolved')?.[0]).toMatchObject([
+    expect(wrapper.emitted('resolved')?.[0]?.slice(0, 2)).toMatchObject([
       'UNXQ',
       {
         instrumentId: 987654,
@@ -109,6 +114,11 @@ describe('ETFHoldingResolutionAction', () => {
         reportedName: 'Unlisted Example Corp',
       },
     ])
+    expect(wrapper.emitted('resolved')?.[0]?.[2]).toMatchObject({
+      request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+      status: 'resolved',
+      instrument: { instrument_id: 987654, symbol: 'UNXQ', identity_status: 'verified' },
+    })
     expect(holding.is_resolved).toBe(false)
     expect(holding.constituent_instrument_id).toBeNull()
 
@@ -126,6 +136,21 @@ describe('ETFHoldingResolutionAction', () => {
     })
   })
 
+  it('starts the same bounded resolver when a selected reported row opens the widget flow', async () => {
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20', status: 'no_match', candidates: [], source_outcomes: [] })
+    const wrapper = mount(ETFHoldingResolutionAction, {
+      props: { holding, snapshot, available: true, startImmediately: true },
+      global: { stubs: { RouterLink: true } },
+    })
+
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/discover', {
+      query: 'UNXQ', types: ['Equity', 'Stock', 'CS'], limit: 10, request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+    }))
+    expect(wrapper.find('button').text()).toBe('Cancel')
+    expect(wrapper.text()).toContain('The saved fund snapshot will not be changed.')
+    expect(wrapper.emitted('resolved')).toBeUndefined()
+  })
+
   it('keeps held, conflict, no-match, and non-exact identity results nonpositive', async () => {
     vi.mocked(api.post)
       .mockResolvedValueOnce({ status: 'held', candidates: [], source_outcomes: [] })
@@ -137,8 +162,9 @@ describe('ETFHoldingResolutionAction', () => {
       global: { stubs: { RouterLink: true } },
     })
     await wrapper.get('button').trigger('click')
-    await wrapper.get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('held'))
+    // A retry remains an explicit user action: close and reopen the resolver.
+    await wrapper.get('button').trigger('click')
     await wrapper.get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     await wrapper.get('.search-source-candidate').trigger('click')
@@ -158,22 +184,20 @@ describe('ETFHoldingResolutionAction', () => {
     })
 
     await wrapper.get('button').trigger('click')
-    await wrapper.get('button').trigger('click')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('No candidates were returned'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('No matching ticker listings were returned'))
     expect(wrapper.find('.search-source-candidate').exists()).toBe(false)
     expect(wrapper.emitted('resolved')).toBeUndefined()
   })
 
   it.each([
-    ['no match', { status: 'no_match', candidates: [], source_outcomes: [] }, 'No source candidates matched'],
-    ['unavailable', { status: 'unavailable', candidates: [], source_outcomes: [] }, 'unavailable'],
+    ['no match', { status: 'no_match', candidates: [], source_outcomes: [] }, 'No matching ticker listing was found'],
+    ['unavailable', { status: 'unavailable', candidates: [], source_outcomes: [] }, 'Ticker availability could not be checked right now'],
   ])('keeps %s discovery nonpositive', async (_label, response, expectedMessage) => {
     vi.mocked(api.post).mockResolvedValueOnce(response)
     const wrapper = mount(ETFHoldingResolutionAction, {
       props: { holding, snapshot, available: true },
       global: { stubs: { RouterLink: true } },
     })
-    await wrapper.get('button').trigger('click')
     await wrapper.get('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text().toLowerCase()).toContain(expectedMessage.toLowerCase()))
     expect(wrapper.emitted('resolved')).toBeUndefined()
@@ -186,8 +210,7 @@ describe('ETFHoldingResolutionAction', () => {
       global: { stubs: { RouterLink: true } },
     })
     await wrapper.get('button').trigger('click')
-    await wrapper.get('button').trigger('click')
-    await vi.waitFor(() => expect(wrapper.text()).toContain('Free source discovery failed'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker availability could not be checked'))
     expect(wrapper.emitted('resolved')).toBeUndefined()
   })
 
@@ -218,5 +241,14 @@ describe('ETFHoldingResolutionAction', () => {
   it('checks row eligibility independently of a reported ticker being a canonical identity', () => {
     expect(isEligibleUnresolvedEquityHolding(holding)).toBe(true)
     expect(isEligibleUnresolvedEquityHolding({ ...holding, reported_symbol: 'HOLDING-32' })).toBe(false)
+    expect(isEligibleUnresolvedEquityHolding({ ...holding, reported_symbol: null, constituent_symbol: 'UNXQ' })).toBe(false)
+  })
+
+  it('rejects a resolver completion after selected fund or snapshot changes', () => {
+    const context = createETFHoldingDrilldownContext(snapshot, holding, 987654, 'UNXQ')
+    expect(isCurrentETFHoldingSelection(context, 'IGV', snapshot, holding)).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'IGV', { ...snapshot, id: 8 }, holding)).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'IGV', snapshot, { ...holding, id: 33 })).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'OIH', snapshot, holding)).toBe(true)
   })
 })

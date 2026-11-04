@@ -3,8 +3,8 @@ branch: feat/tc2000-frontend-rework
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-latest_staging_parent_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
-latest_staging_merge_sha: 4bc50a9de9eb2453c75eda047d01466309a3a3da
+latest_staging_parent_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+latest_staging_merge_sha: 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b
 dependency_authorization: 'Prior context adoption 2026-10-28T10:17:43Z: Root released exact synchronized-green
   staging e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2; canonical receipt ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2.json
   (SHA256 ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da), staging CI40656688915 terminal success
@@ -61,7 +61,7 @@ human_intent_authorization: >-
   Keep branch history; reconcile file and semantic overlaps after upstream work
   reaches staging, then consume staging through the prescribed workflow.
 human_reopen_authorization: "On 2026-09-04 the human explicitly authorized reopening implementation after the review-gate stall and authorized committing the staged TC2000 reference-universe slice."
-human_closure_authorization: >-
+archived_prior_accepted_f8y_20261028_human_closure_authorization: >-
   Existing standing human authority is recorded in
   /home/m920q/charting-platform/.ai/staging-attempts/human-standing-integration-authorization-20261020.md:
   the human directed, “I, the human in charge, explicitly authorize any and all
@@ -72,7 +72,7 @@ human_closure_authorization: >-
   Root accepted only checkpoint tc-f8y-tag-columns-repair-20261028 on 2026-10-28;
   receipt .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json
   (SHA256 9d181c30c7bc78137cfc6baea2a5ea1d6988ebb080956ef1d973e549c62cbb4a).
-closure_summary: >-
+archived_prior_accepted_f8y_20261028_closure_summary: >-
   integration_capture: exact branch HEAD. Root accepted this bounded F8Y
   Tag Column persistence/readiness checkpoint under the existing standing
   delegation; validated implementation source is
@@ -95,6 +95,10 @@ closure_summary: >-
   official REF-HELP-V25, broader product work, genuine Provider/issuer proof,
   target acceptance, and deployment remain open or Root-owned; this is not full
   feature-roadmap completion.
+human_closure_authorization: >-
+  Under the existing standing human delegation, Root accepted the bounded b8 software/artifact checkpoint (receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-b8-focused-software-checkpoint-root-acceptance-20261104.json, SHA256 73afa6044cfd6944d6b7a8a7da87fce771953b9f79dc958a66725f96fde8010c). Root authorized the first 34 local PNG successors under ordinary-journey-TC-reviewed-local-reference-update-root-authorization-20261104.json (SHA256 6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78) and separately authorized exactly one terminal 404 PNG under ordinary-journey-TC-feb-single-terminal-reference-root-authorization-20261104.json (SHA256 21b5d80ceba5061421b1c5ca1b17e7e14bfe6478b9f4f8001ae00518f3112e27). No official V25 parity or gate waiver is claimed.
+closure_summary: >-
+  integration_capture: exact branch HEAD. Root accepted the bounded b8 software/artifact checkpoint (receipt SHA256 73afa6044cfd6944d6b7a8a7da87fce771953b9f79dc958a66725f96fde8010c) at source b8c973f7139d2395f9c158a3dfacd0748318092c, frontend tree 4321b4a6ae403e1fd5867aeddda03463ed62af34, immutable frontend image sha256:6c6af60caf6e64dae1406cbaabdb20229dadccda980cb21fcd3f8c5049540c71. The immutable snapshot verified 1,949 tracked blobs; focused checks passed 12/12, authenticated dense browse returned 10,000, and full functional passed 203 with 2 configured skips at zero retries. First strict visuals were 70/104; the next attempt was 103/104 with one screenshot mismatch, both predecessor results preserved. Root authorized exactly 35 local Linux PNG successors through the two scoped receipts (the first 34 plus one terminal 404 image); exact captures were copied byte-for-byte. The 404 capture waits for shared Unavailable freshness and idle Refresh while retaining its chart 404/error/no-canvas and data assertions. No masks, thresholds, skips, product source, fixture, or backend changed. Fresh 104-case strict visual validation on this new immutable closing-tip snapshot and exact closing-tip CI remain pending. Official REF-HELP-V25 and all nine broader roadmap criteria remain open; protected integration, deployment, and genuine Provider/issuer proof remain Root-owned and pending.
 validation_tier: full_integration
 human_validation_authorization: "The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging baseline; all application/workstation changes use the complete integration gate."
 human_interim_help_reference_authorization: >-
@@ -285,17 +289,12 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   has the identical application tree and passed its full required CI40656688915. This feature-branch adoption records
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
-current_blocker: F8Y1/F8Y2 focused proof passed, but the full source-matched functional and strict-visual
-  matrices and exact repair-tip CI remain pending. Preserve first-attempt master red CI40735299702 and
-  the pre-test runner setup failure. No provider/issuer/SEC requests, target mutations, application source
-  changes or hold changes occurred.
-current_checkpoint_status: 'Current bounded checkpoint: tc-f8y-tag-columns-repair-20261028 is in progress
-  with criteria F8Y1-F8Y4; focused tests/browser passed, while full functional, strict visual and exact
-  repair-source CI remain pending. The accepted TCO1-TCO6 checkpoint, literal human standing delegation,
-  Root acceptance, closure summary, exact CI/local evidence and completed dispositions are preserved as
-  historical objects in ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-20261027.json.
-  Green staging4bc50 remains the adopted baseline, not acceptance of this repair. All nine original AC1-AC9
-  and official REF-HELP-V25 remain open.'
+current_blocker: >-
+  No implementation blocker. Root has authorized exactly 35 local reference images across two scoped receipts; the additional terminal 404 capture was copied byte-for-byte. The prior fresh matrix was 103/104 with one screenshot difference after the new terminal-state readiness check. The exact-tip 104-case rerun and final exact-source CI are pending; protected integration, deployment, and genuine-source evidence remain Root-owned.
+current_checkpoint_status: >-
+  Root accepted the bounded b8 software/artifact checkpoint. Functional remains 203 passed/2 configured skips/0 failed at zero retries, attributed to b8. Strict visual attempt20 was 70/104; the feb0d8 immutable-source matrix was 103/104 with one provider-error screenshot difference after asserting terminal Unavailable/idle Refresh. Root authorized exactly 35 local PNG successors across the 34-image receipt and one-file receipt; the additional image is copied. A fresh 104-case strict visual run and exact closing-tip CI are required. No official V25 parity, deployment, or genuine-source acceptance is claimed.
+ordinary_ticker_latest_update: >-
+  Root authorized exactly 35 reviewed local reference successors across two narrowly scoped receipts. The additional file is only chart-provider-error-gap-visual-1080p-100-linux.png, copied byte-for-byte from the reviewed terminal capture. The preceding full visual attempt was 103/104 with that one stable screenshot mismatch; the shared Unavailable/idle Refresh, correct 16.67% weights, and populated six holdings/two industries are visible in the approved actual. No app/runtime/backend, mask, threshold, skip, or functional assertion changed. Next: publish this single coherent one-PNG and records update, then run a fresh immutable-source 104-case/four-project strict visual matrix at one worker/zero retries alongside exact-tip CI. Root owns subsequent integration, deployment, and genuine-source evidence.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -715,8 +714,14 @@ active_changeset_context:
   owned_paths:
   - frontend/tests/e2e/flows.spec.ts
   - frontend/tests/unit/components/test_virtual_watchlist_tool.test.ts
-  next_action: Publish the coherent candidate, then complete the full local functional and strict-visual
-    profile and exact-source CI.
+  next_action: >-
+    Await Root's frozen ETF backend artifact following its minimum PostgreSQL
+    proof. Verify exact component inputs and the named compatible-batch conditions;
+    use Root's allocated single combined functional/strict-visual profile only
+    after release. Preserve one worker, zero retries, dense 10,000-row seeding in
+    backend and browser with observed browse count, all existing assertions and
+    visual references/masks/tolerances. Keep source and operational holds intact;
+    Root owns acceptance and forward integration/deployment.
 upstream_release_preparation:
   prepared_at: 2026-10-19T20:54:35Z
   map: ops/workstreams/feat-tc2000-frontend-rework/post-release-reconciliation-map.md
@@ -1755,6 +1760,7 @@ owned_paths:
   - frontend/src/views/WorkstationView.vue
   - frontend/src/components/chart/HistoryAcquisitionControl.vue
   - frontend/src/lib/onDemandAcquisition.ts
+  - frontend/src/lib/workstationSymbolSearch.ts
   - frontend/tests/e2e/on_demand_acquisition.spec.ts
   - frontend/src/views/StudyLabView.vue
   - frontend/src/views/StrategyLabView.vue
@@ -1882,6 +1888,7 @@ excluded_paths:
   - backend/tests/unit/services/test_etf_holdings_visibility.py
   - backend/tests/unit/services/test_etf_holdings_edgar.py
   - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/routers/test_instruments_router.py
   - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
   - backend/tests/unit/services/test_etf_holdings_resolution.py
   - backend/tests/unit/routers/test_coverage_router.py
@@ -2024,9 +2031,10 @@ dependencies:
   - "feat/strategy-lab-v2: accepted Strategy SLICP is present in accepted green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502 and adopted by this branch. Preserve its inspector and Research-results navigation alongside TC-owned Python/DSL/Study/Strategy behavior and immutable Study/CodeVersion identity."
   - "feat/etf-holdings-constituents: accepted ETF FQ1-F8 checkpoint source abdca6e6ec2b383f678995029149bbb748596af4 was adopted from green staging 3ff96af855a49d42b1dee10cecb43bc6690f4502; the accepted retained-IWM correction was adopted from 15b5c22f0e689c973ee82d152d4bbad6125bf993; fresh-AsyncSession eager reparse response serialization and deterministic same-date knowledge-time/id ordering were adopted from exact green staging 6d0a85da34ba276bca69c82a932a0602e783d7a1. Preserve ETF acquisition/admission, historical/PIT/current-unavailable distinctions, lineage, freshness, and unknown-state checks; no acquisition is replayed. Root-owned target correction and UI acceptance remain pending."
   - "The prior 6d0 adoption did not complete TCP3 or the broader checkpoint. Keep TC consumer qualification, F8y latency, the fresh full local profile, official V25 parity, and remaining roadmap gates open. Do not modify sibling worktrees or duplicate provider/ETF ingestion, routing, credentials, or refresh workers."
+  - "Root-released synchronized-green Provider staging 4d4a278b1b086745b22aab05d3d960539ad02c97 adds truthful ETV/Exchange Traded Vehicle reconciliation and selected instrument-type response. TC consumes the returned identity/type before issuer holdings eligibility; ETF and Index ETF remain eligible, ETN remains excluded. No Provider source implementation was copied into this branch."
 scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
 frozen_upstream_import_manifests:
-  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4bc50a9de9eb2453c75eda047d01466309a3a3da.yaml
+  - ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4de1365cec4bc5897c2a76d16a0004853d747f9c.yaml
 frontend_presentation_handoff:
   human_authorization: The goal was for, on merge/reconciliation between the all the ongoing features,
     the tc2000 one (the main, visual makeover feature) would take over, look & feel wise, and ensure the
@@ -2387,9 +2395,15 @@ frontend_presentation_handoff:
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/views/WatchlistView.vue
   - frontend/src/views/WorkstationView.vue
-  allowed_delta: 'Presentation only: shared shell, navigation, typography, spacing, surface colors, controls,
-    tables, dialogs, status language and responsive layout. Preserve behavior, route targets, API/data
-    contracts, provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution.'
+  allowed_delta: >-
+    Presentation: shared shell, navigation, typography, spacing, surface colors, controls,
+    tables, dialogs, status language and responsive layout. Preserve route targets, API/data contracts,
+    provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution. Exact
+    UPlotChart adaptation may clear its OHLC overlay when instrument/timeframe/bar-type scope changes or
+    the current series is empty, preventing prior-context values from being presented as current; it does
+    not alter selection, chart data, or acquisition behavior. Separately, Root authorized the exact
+    ChartPanel consumer handoff to carry SearchBar's actual confirmed canonical identity response through
+    the existing selected-history helper; this adds no identity authority or acquisition policy.
   preserved_contracts:
   - all public/authenticated route URLs and redirects
   - Workstation and popout behavior
@@ -2412,7 +2426,11 @@ approved_presentation_adaptations:
 - path: frontend/src/components/chart/ChartPanel.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 4f4568a23ac7fccc888f5c46a3eb665a3556fa7f
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: >-
+    TC shell/theme/navigation presentation adaptation; additionally carry only SearchBar's
+    actual confirmed identity response through the existing selected-history helper, as
+    explicitly authorized by Root for this ordinary ticker selection flow. Preserve all
+    routes, local-identity resolution, Synthetic exclusion, and acquisition policy.
 - path: frontend/src/components/chart/DrawingToolbar.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: f5489eb8e7a22e6b21b218cb80e2bb5b9271a485
@@ -2440,7 +2458,7 @@ approved_presentation_adaptations:
 - path: frontend/src/components/chart/UPlotChart.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 4f79b1ab6e67c8a7b4032769794d97572bb3f82a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: TC presentation adaptation; also clear the OHLC readout on instrument/timeframe/bar-type scope change or empty series so values from a previous chart context cannot appear current; preserve chart selection, data and acquisition behavior
 - path: frontend/src/components/common/HoverTooltip.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: bcfc16aab3f217f14625e436902a223347269f2a
@@ -2548,7 +2566,10 @@ approved_presentation_adaptations:
 - path: frontend/src/components/etf/ETFHoldingsPanel.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: fce872445d8a6e8b2687658ac326a6d04f79a139
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: >-
+    TC presentation adaptation; additionally forward only the actual resolved holding identity
+    with its existing exact snapshot/row context to the chart consumer. Preserve current-analysis
+    eligibility, stale-context rejection, reporting and lineage semantics; add no identity authority.
 - path: frontend/src/components/options/OptionsChainPanel.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: f9c42ca3aafe4f4a0f759b1f99497b791747fdbc
@@ -2788,7 +2809,7 @@ approved_presentation_adaptations:
 - path: frontend/src/components/workstation/WorkstationToolContent.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 9f079cdfb745e7d259c6e062b802b61e08a5a1bc
-  delta: TC workstation presentation adaptation with an explicit focused-chart bounded history action; preserve routes, local-only navigation, and no acquisition before user action
+  delta: TC workstation presentation adaptation with a bounded focused-chart history action and post-acquisition local refresh of only matching mounted chart panels; preserve routes, local-only reads, selection fencing, and no acquisition before user intent
 - path: frontend/src/router/index.ts
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: c32384da24c053776b94c22e55a5b38ad54a35bc
@@ -3064,6 +3085,89 @@ approved_provider_contract_adaptations:
     accepted_blob: 43a54455835ddb60ecc0116649df7172e2a43965
     delta: Extend the retained-bar response expectation with released derived-lineage fields.
     rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
+approved_frontend_consumer_adaptations:
+  - path: frontend/src/components/dashboard/DashboardInstrumentSearch.vue
+    source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
+    accepted_blob: 6cf1e43892058d2516e7c95f039375702f66c57a
+    delta: >-
+      Keep the Dashboard's watchlist and widget symbol picker on canonical-only
+      local search and identity lookup. It does not expose source discovery or
+      acquire chart history; those require the dedicated ordinary chart action.
+    rationale: >-
+      This exact TC-owned user-flow adaptation prevents picker typeahead and
+      selection from reaching provider search in legacy mode. The historical
+      whole-frontend presentation source/blob pin remains recorded at f80995c3.
+      The exact consumer pin extends only that same presentation file and
+      confines executable drift to this one path. No backend route, provider policy, identity rule,
+      acquisition action, or other dashboard component is changed.
+  - path: frontend/src/views/ETFHoldingsView.vue
+    source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+    accepted_blob: b55828d962432fca3a391fce306df2b5862c3d8e
+    delta: >-
+      On deliberate canonical ETF or Exchange Traded Vehicle profile-card or picker
+      selection, reuse the existing producer-qualified capability and acquire APIs to
+      load or refresh only that selected fund's holdings. Include both the provider's
+      raw "ETV" discovery type and the persisted "Exchange Traded Vehicle" type in
+      the existing picker scope; preserve Index ETF eligibility and do not admit ETNs
+      or infer issuer eligibility from a ticker or stale local type. Keep
+      mount/list selection and browsing interactions read-only.
+    rationale: >-
+      Root's 2026-11-03 ordinary-journey approval explicitly extends this exact imported
+      consumer path beyond its existing presentation and optional-instrument-ID guards.
+      It changes no backend route, provider policy, identity/admission decision, persisted
+      data, ETF source implementation, or other imported path. Current/stale semantics
+      remain server-owned; stale or unknown selection outcomes preserve labelled snapshots.
+      A confirmed ETV candidate uses its resolved canonical ID; unavailable issuer outcomes
+      remain visible and do not claim a stored profile. Holding chart navigation carries
+      the exact snapshot/row lineage, selected-history intent and confirmed identity through
+      a one-shot router handoff; the live selected profile, snapshot and row membership are
+      rechecked before navigation. URL-only hydration remains passive.
+  - path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
+    source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+    accepted_blob: 9c899304ac51f9fa1de652c5d9a655800414ae4f
+    delta: >-
+      TC's ordinary selected-holding workflow starts the existing canonical picker immediately and
+      replaces producer-implementation wording with user-facing selection language.
+    rationale: >-
+      Root's 2026-11-03 review explicitly authorized functional consumer adaptation of this
+      exact imported UI seam for the human-activated ordinary ticker journey, including generic
+      user-facing copy and immediate activation of the existing picker after a deliberate row click.
+      This is not presentation-only authority. It changes no ETF API, identity/admission policy,
+      holdings data, or source behavior; every other frontend/src/components/etf path remains excluded.
+  - path: frontend/tests/unit/components/test_etf_holdings_panel.test.ts
+    source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+    accepted_blob: dc828a740c647834c3cf7028bc952c2c263cdfee
+    delta: >-
+      Update only the existing selected-row resolver event fixture with its actual resolved
+      UNXQ response and assert that same response is emitted with the existing symbol/context.
+      All prior event, context, and selection expectations remain.
+    rationale: >-
+      Root's exact 2026-11-04 approval authorizes this one frozen imported test path because the
+      consumer event now carries actual confirmation to avoid resolving the same gesture twice.
+      The frozen manifest remains intact; every other imported test path stays byte-pinned.
+  - path: frontend/src/lib/etfHoldingDrilldown.ts
+    source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+    accepted_blob: 5b40ea8f143c1477d3eece2bc44ef668368f1f19
+    delta: >-
+      TC-owned ordinary constituent flow validates reported equity eligibility and preserves the exact
+      parent instrument, snapshot, holding row, source and known-at lineage through chart navigation.
+    rationale: >-
+      This source-only UI consumer helper adds no ETF identity decision, persisted data mutation, backend
+      policy, source call, automatic constituent fan-out, or current-analysis eligibility override.
+  - path: frontend/tests/e2e/helpers.ts
+    source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+    accepted_blob: 0acf9b94424a8cecafe59d3c7a447cdd0554e4d7
+    delta: >-
+      Add one explicitly armed controlled-API-fault attribution in the existing
+      BrowserDiagnostics class. A single 503 is expected only when its observed
+      POST URL and request_id match the armed values, and at most one resource
+      console entry is attributed only when msg.location().url matches that URL.
+      Unarmed, mismatched, duplicate, and unrelated 503 diagnostics remain fatal.
+    rationale: >-
+      Root's exact 2026-11-04 disposition authorizes this minimal adaptation of
+      the imported helper for the existing delayed OIH failure test. The frozen
+      import remains pinned to its exact green 4d source/blob; no global 503
+      allow-list or suppression of unrelated browser diagnostics is introduced.
 approved_frozen_upstream_snapshots:
 - source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
   receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
@@ -3113,6 +3217,18 @@ approved_frozen_upstream_snapshots:
 - source_sha: 4bc50a9de9eb2453c75eda047d01466309a3a3da
   receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4bc50a9de9eb2453c75eda047d01466309a3a3da.json
   receipt_sha256: 0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d
+- source_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f8323af179922193f4dcf3c9f0a5d9001282455f.json
+  receipt_sha256: 506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188
+- source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json
+  receipt_sha256: bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb
+- source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json
+  receipt_sha256: c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7
+- source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4de1365cec4bc5897c2a76d16a0004853d747f9c.json
+  receipt_sha256: ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea
 frozen_upstream_import_policy:
   purpose: >-
     Admit coordinator-approved foreign files only as immutable bytes from an
@@ -3213,16 +3329,18 @@ deployment_impact: No deployment or target mutation is claimed. Real Provider/is
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
 status: ready_for_integration
 progress:
-  completed:
-  - F8Y1
-  - F8Y2
-  - F8Y3
-  - F8Y4
+  completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: Root accepted the bounded F8Y Tag Column checkpoint at implementation source9473062c7aeab1c9f21d2564c1041bbda0a78dc6 after reviewing its exact CI, full local functional/strict-visual results and protected-resource cleanup. This records-only closing commit preserves that acceptance and the full roadmap.
-  current_blocker: Exact branch CI for this records-only closing tip must reach terminal success before Root-supported integration. The original master red and all setup/first-attempt failures remain historical evidence.
-  next_action: Publish this one coherent records-only close, verify clean origin synchronization, and give Root the exact closing-tip SHA; Root owns its exact CI and supported integration.
-  updated_at: '2026-10-28T20:10:00Z'
+  current_phase: >-
+    The b8 software/artifact checkpoint remains Root-accepted. Exactly 35 authorized local PNG successors are recorded. The first feb0d8 strict visual matrix was 103/104 with one terminal 404 screenshot mismatch; fresh immutable-tip 104-case strict visuals and exact final CI are pending.
+    Bounded b8 software/artifact checkpoint accepted; the exact Root-authorized 34-image local reference successor and deterministic 404 terminal-state readiness are prepared. Fresh immutable-tip 104 strict visuals and exact closing-tip CI are pending.
+  current_blocker: >-
+    No product blocker. One exact Root-authorized terminal 404 screenshot was added after the 103/104 matrix; all other103 visuals passed. Fresh104 strict visuals and exact closing-tip CI are pending. Protected integration, deployment, and genuine-source checks remain Root-owned.
+    No source blocker. Attempt20 strict visuals were 70/104; the 34 reviewed local capture changes are authorized and applied without mask/tolerance/skip changes. Fresh strict visuals and exact closing-tip CI remain required; deployment and genuine-source checks remain Root-owned.
+  next_action: >-
+    Publish this one coherent additional-PNG and records update. Then run fresh immutable-tip strict visuals:104 cases, all4 projects, one worker, zero retries; preserve all evidence. Root observes exact closing-tip CI and owns later integration/deployment and genuine-source gates.
+    Run one fresh immutable closing-tip strict visual matrix: 104 cases, all four projects, one worker, zero retries, unchanged oracles. Preserve exact results, publish no follow-up metadata commit, and let Root observe exact-tip CI and review integration readiness. Keep protected deployment and genuine-source gates pending.
+  updated_at: '2026-11-04T16:24:18Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -3967,22 +4085,132 @@ on_demand_acquisition_consumer_implementation_20261027:
       normal source-matched full UI profile is allocated; then execute this spec
       within that accepted profile and record its exact-source outcome.
 latest_staging_adoption:
-  canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2.json
-  receipt_sha256: ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da
-  staging_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
-  staging_ci_run: 40656688915
-  independent_master_ci_run: 40670024330
-  independent_master_ci_status: running at adoption; no master-green or production-upgrade claim
-  premerge_feature_head: addd41731b2be9b740b3c4bab624118ba2371029
-  merge_base: addd41731b2be9b740b3c4bab624118ba2371029
-  feature_tree: 424122f716d92389d6ffccddfb913977124b19b3
-  staging_tree: 424122f716d92389d6ffccddfb913977124b19b3
-  merge_result: Fast-forward adoption to exact e3 staging source; no conflict and no application/product blob changes.
-  import_reconciliation: Existing 173745 frozen-upstream import manifest retained; imported product blobs are identical
-    at e3, so no duplicate manifest or source re-import is needed.
-  local_validation: No new local tests/builds/fixtures. Reuse only the exact e3 staging receipt, with TC product/component
-    tree proven identical to accepted ff564 source.
-  checkpoint: Previously accepted tc-on-demand-workstation-consumer-20261027 remains bounded software acceptance
-    only; genuine OIH/provider/issuer and deployment proof remain Root-owned.
-  next_action: Root observes this feature branch exact CI and owns first usable on-demand deployment; no new TC
-    product work until Root releases it.
+  prior_e3_adoption: >-
+    Earlier adopted e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2; its detailed receipt and tree-equality record remain in
+    the dated handoff and append-only validation history. The later f832 staging adoption supersedes that baseline.
+  prior_f832_adoption:
+    canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f8323af179922193f4dcf3c9f0a5d9001282455f.json
+    receipt_sha256: 506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188
+    staging_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+    staging_ci_run: 41397907218
+    staging_ci_status: terminal green per canonical receipt; no new claim beyond that receipt
+    premerge_feature_head: 7e6eeb44d04e4df839466277e51070ef107a65e4
+    merge_base: 7e6eeb44d04e4df839466277e51070ef107a65e4
+    merge_result: Exact f832 staging source was adopted in this feature ancestry; no sibling branch merge or product cherry-pick.
+    import_reconciliation: Replaced the stale 4bc50 frozen-import snapshot with the complete exact-f832 manifest. The manifest pins
+      every non-TC-owned changed path since the fixed scope baseline; TC-owned and separately approved adaptations remain distinct.
+    local_validation: Current ordinary ticker journey changes were separately tested; staging evidence was reused only for
+      unchanged imported source bytes and did not qualify the TC consumer delta or full joint profile.
+    checkpoint: Prior TCO and F8Y accepted checkpoints remained historical and bounded; the ordinary ticker-selection repair was active.
+  prior_eb74_adoption:
+    canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json
+    receipt_sha256: bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb
+    staging_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+    staging_ci_run: 41653944273
+    staging_ci_attempt: 1
+    staging_ci_status: terminal success for Backend, Frontend, E2E and actual Exhaustive; expected Branch-declared skip.
+    premerge_feature_head: a33c848d6820d30f0a47a797f8760d15dbd73131
+    merge_base: f8323af179922193f4dcf3c9f0a5d9001282455f
+    merge_commit: c1f512659e79cf6d62173cd4e6bf5fe527c79dc6
+    merge_result: Exact released staging merged with no conflicts; no sibling branch or manual source copy.
+    imported_paths: 8
+    import_manifest: ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/eb74b439319ad32006a3d68fc7b6e98959148af7.yaml
+    import_manifest_sha256: e86beaca5e4d124bcfd7f37a4074b79ae1eb98aba4294b9d840b0e2601c9af5f
+    receipt_reconciliation: Canonical receipt bytes copied and digest-pinned; historical manifest retained.
+    component_proof: TC frontend tree remained byte-identical to its premerge source; Provider producer code arrived through staging.
+    local_validation: Historical adoption checks only; no separate runtime profile was claimed.
+    checkpoint: Ordinary ticker journey remained in progress; AC1-AC9 and official REF-HELP-V25 remained open.
+  canonical_receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4de1365cec4bc5897c2a76d16a0004853d747f9c.json
+  receipt_sha256: ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea
+  staging_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
+  staging_ci_run: 41805745211
+  staging_ci_attempt: 1
+  staging_ci_status: terminal success for Backend, Frontend Unit, E2E and Exhaustive; configured Branch-declared skip.
+  premerge_feature_head: 5519c6af21757f036c956119dacfae1bd5d2b85b
+  merge_base: 4d4a278b1b086745b22aab05d3d960539ad02c97
+  merge_commit: 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b
+  merge_result: Exact Root-released staging4de merged cleanly into the original TC worktree; no source conflicts or sibling copy.
+  imported_paths: 885 complete frozen-import paths, refreshed from the prior 4d manifest with ten changed staging paths and no unlisted changes.
+  import_manifest: ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4de1365cec4bc5897c2a76d16a0004853d747f9c.yaml
+  import_manifest_sha256: da82f1f96768b05b8f0c464b2a7a1707060e899b9a45981f1cbc1c28a0d88148
+  receipt_reconciliation: Canonical 4de receipt copied byte-for-byte and digest-pinned; all prior manifests and receipts remain preserved.
+  component_proof: Frontend tree 826df26696c4beefb96b63066220e5859beb36c3 exactly matches accepted 5519; backend tree c37137f2a92335831a249c176e0c77fccff01733 exactly matches released 4de. Provider source a56d97899 is consumed only through staging. The retained c476 frontend stays truthfully attributed to a6c02704; Root verified frontend production/build inputs remain identical, so no rebuild was made.
+  local_validation: The accepted pre-adoption 5519 source CI41784665635 and formal attempt17 (7/7, 54.6s, one worker, zero retries) are preserved. No tests were rerun for this records/import-only adoption. A new exact branch CI is pending; the combined functional/strict-visual profile waits for Root's accepted ETF backend artifact and paired release.
+  checkpoint: Ordinary ticker journey remains active and unaccepted. AC1-AC9, V25, genuine Provider/issuer evidence and deployment remain open or Root-owned.
+  next_action: Validate the reconciled import/workstream/hash/diff records, publish one coherent adoption commit, and let Root observe its exact CI. Keep c476; after Root pairs the corrected ETF backend and releases the profile, run all seven ordinary journeys, full functional and 104 strict visual cases with one worker/zero retries and unchanged oracles.
+
+active_implementation:
+  id: ordinary-ticker-journey-repair-20261103
+  status: in_progress
+  accepted_checkpoint: Root accepted the bounded b8 software/artifact checkpoint under the standing delegation; this does not accept the full ordinary-journey roadmap, full current profile, deployment or genuine Source evidence. The accepted tc-on-demand-workstation-consumer-20261027 checkpoint remains historical and unchanged.
+  integration_capture: exact branch HEAD
+  criteria:
+    - id: OTJ1
+      text: Local search stays read-only; debounce shared ticker discovery only when enabled search lacks an exact local canonical match, including one-character tickers.
+      status: completed
+    - id: OTJ2
+      text: Canonical selection starts bounded history independently of metadata and ETF holdings, retains cached data, refreshes local derived technicals after successful persisted history, and rejects stale selection completions.
+      status: completed
+    - id: OTJ3
+      text: Direct ETF selection clears or rebinds holdings context immediately; intentional constituent drilldown retains parent lineage; every reported holding remains visible with type and identity state even when unresolved; only eligible selected equities enter canonical acquisition, and null/unavailable outcomes remain typed. On deliberate ETF selection, reuse holdings only when the backend capability qualifies them as current, identity-verified, and usable for current analysis; otherwise make at most one governed refresh while retaining and labelling last-known data on held/error.
+      status: in_progress
+    - id: OTJ4
+      text: Shared SearchBar and ordinary Chart entrypoints use the shared discovery trigger and bounded history orchestration without acquisition from picker-only controls.
+      status: completed
+    - id: OTJ5
+      text: Focused tests/typecheck/build/scope and exact-source CI pass; Root-coordinated full combined browser/profile gate remains pending.
+      status: in_progress
+    - id: OTJ6
+      text: After complete or partial selected history persists, reload local chart and technical/details data for the still-current visible symbol without a second action; late prior-symbol completion cannot repaint the new selection.
+      status: completed
+  validation: >-
+    Root accepted the bounded b8 software/artifact checkpoint at source b8c973f7139d2395f9c158a3dfacd0748318092c. Immutable-snapshot focused checks passed: seven ordinary acquisition flows, F8e.1 drilldown, and the default holdings/industries visual in all four projects, all zero retries. The current full 205-test functional profile is running against frontend6c6 and backend/worker52fa; strict104 visuals are pending. The exact records-closing-tip CI is pending publication. This does not close the full checkpoint or roadmap; protected integration, deployment and genuine Provider/issuer proof remain Root-owned. Attempt19 red evidence and all historical records remain preserved.
+
+  latest_targeted_profile_disposition:
+    base_source: bf71482deae91558ab030202673711b11b477e62
+    exact_hosted_ci: 41747382975
+    hosted_result: 196 passed, 3 failed, 110 configured skips; preserve as red evidence.
+    prior_owned_seven_case_result: 4 passed, 3 failed; preserve exact artifacts and cleanup receipt.
+    causes_and_corrections:
+      - IWM and no-snapshot first-use assertions now separate automatic D1 from deliberate M1, bind each phase to the exact AMD canonical ID, request bounds and unique request IDs, and retain the successful M1 local readback and lineage checks.
+      - The IGV test now uses the rendered Constituents group/listbox and retains selected-fund, reported-row, weight, type and unresolved-identity assertions.
+      - The deliberate delayed OIH 503 remains tested. BrowserDiagnostics narrowly attributes only one armed exact POST URL/request_id/503 and at most its matching resource-console entry; unarmed, mismatched and excess 503 responses remain fatal.
+      - The IWM fixture now returns the same unknown capability from its selected profile, capability endpoint and held response while retaining the real seeded profile, IDs, snapshot and rows; the unchanged eligibility assertion waits for that baseline.
+    focused_checks: >-
+      The diagnostics helper unit tests pass 7/7, vue-tsc passes, and Playwright lists all seven acquisition cases. The scope-validator self-tests pass including exact helper source pin and unlisted-neighbor rejection. No browser was relaunched, no application image was rebuilt, and no product/source data was changed.
+    next: >-
+      Publish this test/helper/record-only correction once and obtain its exact-source CI. Root will verify bundled application-input equivalence and release the corrected profile using the retained bb320 frontend and ETF777 backend; do not rebuild either component. Run the seven ordinary acquisition cases first, then the unchanged full functional and 104 strict-visual suites at one worker/zero retries.
+  latest_development_product_correction:
+    base_source: fe8569182452c1e88fbafa12ef261efc835a9476
+    prior_attempt02: 4 passed, 3 failed, 56.5 seconds, zero retries; all three findings retained.
+    product_cause: Default/factory Watchlist emitted ETF-reported rows through generic ticker selection; dedicated constituent handling alone was snapshot/row-aware.
+    product_correction: Factory rows with ETF holding row keys use existing snapshot validation, resolution, non-chartable state and lineage-preserving drilldown; stale reported rows fail closed.
+    fixture_corrections: Exact normalized IWM holdings-list pathname; IWM unknown capability consistent in list and held response; reload calendar request body is eagerly read from the armed post-reload request.
+    checks: 16 focused component/view tests passed; vue-tsc passed; seven E2E cases discovered; complete frontend coverage passed 2,588/3,684 functions (70.25%), 65,657/81,624 lines, 13,713/18,653 branches; scope self-tests/full guard passed; workstream and plan/session hash passed; staged diff check passed.
+    lcov: /tmp/tc-ordinary-factory-dispatch-coverage-20261104-attempt001/lcov.info
+    runtime: Existing dev fixture remains on the older bb320 frontend; no new browser validation of the product fix is claimed. New source-bound frontend image required; backend777 and researchbf789 remain unchanged.
+  latest_factory_resolver_width_correction:
+    base_image: sha256:b08077d2603388757d469f7aa631d53cf6ae9db574fad6601594d814014b252b
+    runtime: The reviewed c7 image replaced only the owned frontend. Root verified semantic preservation of the other 44 containers and all image, volume, and network identities; the only initial guard mismatch was Mounts array ordering. Served index and JavaScript matched the reviewed image. Startup/auth smoke passed with observed dense browse total 10,000.
+    prior_seven_case_run: attempt05 completed 6 passed/1 failed in 54.7 seconds, one worker, zero retries, no OOM. Candidate visibility failed because the resolution content extended outside the factory tool body and its center hit the parent.
+    correction: Constrain constituent tool/grid and Watchlist to minmax(0,1fr) width, bound the selection panel, preserve independent table/panel scrolling, and verify the candidate is fully inside the tool body with zero parent horizontal scroll and an ordinary center hit.
+    checks: >-
+      54 focused tests passed; vue-tsc/Vite production build passed; full frontend
+      coverage passed 2,588/3,684 functions (70.2497%) against the unchanged 70%
+      floor. Coverage report is /tmp/tc-ordinary-final-coverage-20261104-attempt005/lcov.info.
+    next: Publish this source once and build one source-bound frontend artifact. Root review/release is required before replacing the owned frontend and rerunning seven ordinary cases; full functional and 104-case strict visual profile follow only if those pass.
+    preserved_probe: attempt06 measured resolver width 419-431px against a 278px tool body with parent scrollLeft 103; its changed-input diagnostic run remains a failed probe, not qualification.
+  latest_measured_resolver_probe:
+    published_base: 6e7f95dcde467a12187742ec2b02c6f491c7ca9f
+    attempt: attempt13
+    result: 1 passed in 15.8 seconds; one worker, zero retries, no OOM; CSS overlay only, not source qualification.
+    geometry: Candidate fully inside resolver panel and tool body; center hit succeeded; parent scrollLeft=0 and scrollWidth=clientWidth=278; table scroll remains inside its own 278px viewport (1290px content).
+    css_overlay_sha256: 1d198f33577d71ee446bfbcbf8d36acd52441a579026acc588900de58977c395
+    snapshot_manifest_sha256: aa117eae079f34ab0810ca0fb9c022f4769d25717184d9cff473f45cc1f3f976
+    log_sha256: ba5d0eae8b81a03d7d4373a5fa236236c5696f1afed0d1c12b971cafffa98f6e
+  next_action: >-
+    Finish the already running full functional suite, then run all104 strict
+    visual cases on the same fixture at one worker/zero retries with existing
+    references, masks and tolerances. Root observes the exact closing-tip CI.
+    Do not mutate the application sources or fixture; Root owns protected
+    integration, deployment and genuine Source evidence.

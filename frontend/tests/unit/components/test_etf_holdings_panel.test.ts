@@ -162,9 +162,15 @@ describe('ETFHoldingsPanel', () => {
       reportedSymbol: 'UNXQ',
       reportedName: 'Uncached Example Equity',
       holdingType: 'equity',
+    }, {
+      request_id: 'resolved-unxq',
+      status: 'resolved',
+      instrument: { instrument_id: 987654, symbol: 'UNXQ', identity_status: 'verified' },
+      source_outcomes: [],
     })
     expect(wrapper.emitted('openHolding')?.[0]?.[0]).toBe('UNXQ')
     expect(wrapper.emitted('openHolding')?.[0]?.[1]).toMatchObject({ instrumentId: 987654, snapshotId: 1 })
+    expect(wrapper.emitted('openHolding')?.[0]?.[2]).toMatchObject({ status: 'resolved', instrument: { instrument_id: 987654, symbol: 'UNXQ' } })
   })
 
   it('stays hidden when holdings are unavailable', async () => {

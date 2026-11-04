@@ -4,7 +4,7 @@
       Resolve reported holding {{ reportedSymbol }}
     </button>
     <div v-else class="holding-resolution-picker">
-      <p>Search free sources for the reported ticker {{ reportedSymbol }}, then explicitly resolve a matching candidate.</p>
+      <p>Confirm the reported ticker {{ reportedSymbol }} against an exact listing before opening its chart. The saved fund snapshot will not be changed.</p>
       <SearchBar
         :key="`${holding.id}:${reportedSymbol}`"
         :model-value="reportedSymbol"
@@ -32,9 +32,11 @@ import { computed, ref } from 'vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import {
   createETFHoldingDrilldownContext,
+  isConfirmedETFHoldingIdentity,
   isEligibleUnresolvedEquityHolding,
   type ETFHoldingDrilldownContext,
 } from '@/lib/etfHoldingDrilldown'
+import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
 import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
 
 interface ResolvedSearchResult {
@@ -47,35 +49,49 @@ const props = defineProps<{
   holding: ETFHolding
   snapshot: ETFHoldingsSnapshot
   available: boolean
+  startImmediately?: boolean
 }>()
 const emit = defineEmits<{
-  resolved: [symbol: string, context: ETFHoldingDrilldownContext]
+  resolved: [symbol: string, context: ETFHoldingDrilldownContext, confirmedIdentity: InstrumentAcquireResponse]
 }>()
 
-const active = ref(false)
+const active = ref(Boolean(props.startImmediately))
 const message = ref('')
 const isError = ref(false)
 const reportedSymbol = computed(() => String(props.holding.reported_symbol || '').trim())
 const eligible = computed(() => isEligibleUnresolvedEquityHolding(props.holding))
 
-function onCandidateResolved(symbol: string, result?: ResolvedSearchResult) {
+function onCandidateResolved(
+  symbol: string,
+  result?: ResolvedSearchResult,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   const canonical = symbol.trim()
   const expected = reportedSymbol.value
   const instrumentId = result?.instrument_id
   if (!result?.explicitlyResolved || !Number.isSafeInteger(instrumentId) || Number(instrumentId) <= 0
     || !['resolved', 'verified'].includes(String(result?.identity_status || '').trim().toLowerCase())
-    || canonical.toUpperCase() !== expected.toUpperCase()) {
+    || canonical.toUpperCase() !== expected.toUpperCase()
+    || !confirmedIdentity?.instrument
+    || confirmedIdentity.instrument.instrument_id !== instrumentId
+    || confirmedIdentity.instrument.symbol.trim().toUpperCase() !== canonical.toUpperCase()) {
     isError.value = true
     message.value = 'The candidate did not resolve to an exact, provider-verified reported ticker. The holding was not opened.'
     return
   }
   message.value = ''
-  emit('resolved', canonical, createETFHoldingDrilldownContext(
+  const context = createETFHoldingDrilldownContext(
     props.snapshot,
     props.holding,
     Number(instrumentId),
     canonical,
-  ))
+  )
+  if (!isConfirmedETFHoldingIdentity(confirmedIdentity, context)) {
+    isError.value = true
+    message.value = 'The confirmed identity no longer matches this reported holding. The chart was not opened.'
+    return
+  }
+  emit('resolved', canonical, context, confirmedIdentity)
 }
 </script>
 

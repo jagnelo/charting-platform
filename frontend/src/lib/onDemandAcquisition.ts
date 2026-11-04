@@ -42,6 +42,7 @@ export interface InstrumentAcquireResponse {
     instrument_id: number
     symbol: string
     identity_status: string
+    instrument_type?: string | null
     domain_key?: string | null
     primary_identifier_type?: string | null
     primary_identifier_value?: string | null
@@ -156,17 +157,74 @@ export function historyRangeIsAllowed(timeframe: Timeframe, start: string, end: 
 
 export interface ETFProfileAcquireResponse {
   request_id: string
-  outcome: 'cached' | 'no_data' | 'acquired' | 'held' | 'failed'
+  instrument_id: number
+  symbol: string
+  outcome: 'cached' | 'no_data' | 'acquired' | 'held' | 'unavailable' | 'failed'
   refresh: boolean
   refresh_attempted: boolean
   refresh_succeeded: boolean
-  profile: ETFProfile
+  profile: ETFProfile | null
   snapshot?: ETFHoldingsSnapshot | null
   capability?: ETFHoldingsCapability | null
   source_provider?: string | null
   source_operation?: string | null
   provider_request_log_ids: number[]
   message?: string | null
+}
+
+export type SelectedHistoryStage = 'coverage' | 'identity' | 'history'
+
+export type SelectedHistoryOutcome =
+  | { kind: 'already-covered'; coverage: HistoryCoverageSummary }
+  | { kind: 'identity-unavailable'; coverage: HistoryCoverageSummary; status: InstrumentAcquireResponse['status'] }
+  | { kind: 'acquired'; coverage: HistoryCoverageSummary; result: HistoryAcquisitionResponse }
+  | { kind: 'superseded' }
+
+/**
+ * Run the same bounded local-coverage -> canonical-identity -> admitted-history
+ * sequence for a deliberate Workstation ticker selection. Merely opening or
+ * hydrating a chart never calls this helper.
+ */
+export async function acquireSelectedHistory(
+  symbol: string,
+  timeframe: Timeframe,
+  adjusted: boolean,
+  range: HistoryAcquisitionRequest,
+  onStage?: (stage: SelectedHistoryStage) => void,
+  isCurrent: () => boolean = () => true,
+  selectedIdentity?: Promise<InstrumentAcquireResponse>,
+): Promise<SelectedHistoryOutcome> {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized) throw new TypeError('A selected ticker is required for history acquisition.')
+  onStage?.('coverage')
+  const coverage = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
+    timeframe,
+    start: range.start,
+    end: range.end,
+    mode: 'historical',
+    adjusted,
+  })
+  if (!isCurrent()) return { kind: 'superseded' }
+  if (!Array.isArray(coverage.missing_slices) || coverage.missing_slices.length === 0) {
+    return { kind: 'already-covered', coverage }
+  }
+
+  onStage?.('identity')
+  const identity = await (selectedIdentity ?? resolveExistingInstrument(normalized))
+  if (!isCurrent()) return { kind: 'superseded' }
+  if (identity.status !== 'resolved' || !identity.instrument
+    || identity.instrument.symbol.trim().toUpperCase() !== normalized
+    || !Number.isSafeInteger(identity.instrument.instrument_id) || identity.instrument.instrument_id <= 0) {
+    return { kind: 'identity-unavailable', coverage, status: identity.status }
+  }
+
+  onStage?.('history')
+  const result = await acquireInstrumentHistory(identity.instrument.instrument_id, {
+    ...range,
+    timeframe,
+    adjusted,
+  })
+  return { kind: 'acquired', coverage, result }
 }
 
 export function makeAcquisitionRequestId(): string {
@@ -239,9 +297,42 @@ export function acquireInstrumentHistory(
   })
 }
 
-export function acquireETFHoldings(symbol: string, refresh: boolean): Promise<ETFProfileAcquireResponse> {
+export function acquireETFHoldings(symbol: string, refresh: boolean, instrumentId?: number | null): Promise<ETFProfileAcquireResponse> {
+  if (instrumentId != null && (!Number.isSafeInteger(instrumentId) || instrumentId <= 0)) {
+    throw new TypeError('A positive canonical instrument ID is required when supplied.')
+  }
   return api.post(`/etf-holdings/${encodeURIComponent(symbol)}/acquire`, {
     request_id: makeAcquisitionRequestId(),
     refresh,
+    ...(instrumentId != null ? { instrument_id: instrumentId } : {}),
   })
+}
+
+/** Read the producer's authoritative freshness/admission view for one ETF. */
+export async function readETFHoldingsCapability(symbol: string): Promise<ETFHoldingsCapability | null> {
+  const normalized = symbol.trim().toUpperCase()
+  if (!normalized) return null
+  try {
+    return await api.get<ETFHoldingsCapability>(`/etf-holdings/${encodeURIComponent(normalized)}/capability`)
+  } catch {
+    // An unavailable capability read is unknown, not evidence that a saved
+    // snapshot is current. The caller may make one ordinary admitted refresh.
+    return null
+  }
+}
+
+/** Only a producer-qualified current cache is sufficient to skip refresh. */
+export function isCurrentETFHoldingsCapability(capability: ETFHoldingsCapability | null | undefined): boolean {
+  return capability?.availability === 'current'
+    && capability.identity_verified === true
+    && capability.usable_for_current_analysis === true
+}
+
+/** Holdings eligibility follows the confirmed canonical type, not a search hint. */
+export function isEligibleETFHoldingsInstrumentType(instrumentType: string | null | undefined): boolean {
+  const normalized = instrumentType?.trim().replace(/\s+/g, ' ').toLowerCase()
+  return normalized === 'etf'
+    || normalized === 'index etf'
+    || normalized === 'etv'
+    || normalized === 'exchange traded vehicle'
 }

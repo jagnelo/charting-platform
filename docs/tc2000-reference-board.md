@@ -1,5 +1,22 @@
 # TC2000 Version 25 composite reference board
 
+## 2026-11-04 — Reviewed ordinary-journey local reference successor
+
+Under Root's exact review authorization
+`ordinary-journey-TC-reviewed-local-reference-update-root-authorization-20261104.json`
+(SHA256 `6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78`),
+34 Linux local product-state PNGs were copied byte-for-byte from the reviewed
+b8 attempt20 captures. This records the now-populated default holdings and
+industries, percentage-formatted weights, current reported-row layout, and
+reviewed control rendering; it does not assert exact Version 25 parity. The
+chart 404 capture now explicitly waits for shared `Unavailable` freshness and
+idle `Refresh`, retaining its 404, chart-error, no-canvas, holdings, industry,
+and related data assertions. The 0.5% visual threshold, 1px policy, masks,
+skips, and functional assertions are unchanged. All external V25 gaps remain
+`required_missing`; these successor images remain local interim baselines only.
+The fresh 104-case strict-visual profile and exact closing-tip CI are still
+required before Root reviews the bounded checkpoint for integration.
+
 ## 2026-08-19 — Four display-scale product-state oracles now agree
 
 The remaining three seeded visual projects were refreshed after the same canonical-pane hydration
@@ -1138,3 +1155,7 @@ an original product surface with no V25 analogue. `REF-SHELL-V25` and
 `REF-STUDY-LAB-V25` remain open/`required_missing`. No assertions, visual
 thresholds, masks, reference-board claims, skips, or acceptance policy were
 changed.
+
+## 2026-11-04 — Single terminal 404 reference successor
+
+Root separately authorized exactly one additional Linux PNG at `ordinary-journey-TC-feb-single-terminal-reference-root-authorization-20261104.json`. It replaces only the 1080p/100% provider-error gap capture with the reviewed terminal `Unavailable`/idle `Refresh` actual. Together with the previously authorized34 captures, this yields35 local-only successor images; official V25 gaps remain open and no thresholds, masks, skips, or app sources changed. The preceding strict visual attempt was103/104; a fresh immutable-tip104-case run and exact closing-tip CI remain pending.

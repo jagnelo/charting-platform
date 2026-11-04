@@ -29,6 +29,21 @@ HEX40 = re.compile(r"[0-9a-f]{40}")
 HEX64 = re.compile(r"[0-9a-f]{64}")
 PRESENTATION_ADAPTATION_KEYS = {"path", "source_sha", "accepted_blob", "delta"}
 PRESENTATION_SUFFIXES = {".vue", ".ts", ".css"}
+CONSUMER_ADAPTATION_PATHS = {
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+    "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
+    "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
+    "frontend/src/lib/etfHoldingDrilldown.ts",
+    "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/tests/e2e/helpers.ts",
+}
+CONSUMER_PRESENTATION_OVERLAP_PATHS = {
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+    "frontend/src/views/ETFHoldingsView.vue",
+}
+PRESENTATION_SOURCE_CONSUMER_ADAPTATION_PATHS = {
+    "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+}
 
 
 def git(*args: str) -> str:
@@ -157,6 +172,10 @@ def validate_presentation_adaptations(
     if len(exact_paths) != len(set(exact_paths)):
         raise ValueError("presentation handoff paths must be unique")
     paths: dict[str, str] = {}
+    consumer_paths = {
+        item.get("path") for item in plan.get("approved_frontend_consumer_adaptations", [])
+        if isinstance(item, dict)
+    }
     for entry in entries:
         if not isinstance(entry, dict) or set(entry) != PRESENTATION_ADAPTATION_KEYS:
             raise ValueError("presentation adaptation entries must use the exact schema")
@@ -174,6 +193,14 @@ def validate_presentation_adaptations(
         source_entry = tree_entry(root, source, path)
         if source_entry is None or source_entry[1] != accepted_blob:
             raise ValueError(f"presentation accepted blob does not match its source: {path}")
+        if path in consumer_paths:
+            if path not in CONSUMER_PRESENTATION_OVERLAP_PATHS:
+                raise ValueError(f"consumer adaptation cannot replace this presentation pin: {path}")
+            # The exact consumer validator below owns current index/worktree
+            # bytes for this explicit overlap; keep this historical source/blob
+            # pin and let the consumer record verify the accepted delta.
+            paths[path] = f"human-authorized TC presentation adaptation from {source}: {delta}"
+            continue
         staged_entry = index_entry(root, path)
         target = root / path
         if staged_entry is None or not target.is_file() or target.is_symlink():
@@ -277,9 +304,101 @@ def approved_frozen_snapshots(
     return approved
 
 
+def validate_frontend_consumer_adaptations(
+    plan: dict[str, Any], *, root: Path = ROOT
+) -> dict[str, str]:
+    """Allow only the explicitly enumerated frontend consumer adaptations."""
+
+    entries = plan.get("approved_frontend_consumer_adaptations", [])
+    if not isinstance(entries, list):
+        raise ValueError("approved_frontend_consumer_adaptations must be a list")
+    approved = approved_frozen_snapshots(plan, root=root)
+    baseline = str(plan.get("scope_guard_baseline_sha", "")).strip()
+    manifests = plan.get("frozen_upstream_import_manifests", [])
+    presentation_entries = {
+        item.get("path"): item for item in plan.get("approved_presentation_adaptations", [])
+        if isinstance(item, dict)
+    }
+    presentation_source = str(
+        plan.get("frontend_presentation_handoff", {}).get("source_sha", "")
+    )
+    adaptations: dict[str, str] = {}
+    expected_keys = {"path", "source_sha", "accepted_blob", "delta", "rationale"}
+    for item in entries:
+        if not isinstance(item, dict) or set(item) != expected_keys:
+            raise ValueError("frontend consumer adaptations must use the exact schema")
+        path = exact_repo_path(item.get("path"), label="frontend consumer adaptation path")
+        source = str(item.get("source_sha", ""))
+        blob = str(item.get("accepted_blob", ""))
+        delta = str(item.get("delta", "")).strip()
+        rationale = str(item.get("rationale", "")).strip()
+        if path not in CONSUMER_ADAPTATION_PATHS:
+            raise ValueError(f"frontend consumer adaptation path is not explicitly supported: {path}")
+        presentation_paths = {
+            entry.get("path") for entry in plan.get("approved_presentation_adaptations", [])
+            if isinstance(entry, dict)
+        }
+        if path in adaptations or (
+            path in presentation_paths and path not in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        ):
+            raise ValueError(f"frontend consumer adaptation overlaps another adaptation: {path}")
+        presentation_entry = presentation_entries.get(path)
+        is_presentation_consumer = path in PRESENTATION_SOURCE_CONSUMER_ADAPTATION_PATHS
+        if is_presentation_consumer:
+            if (
+                not isinstance(presentation_entry, dict)
+                or source != presentation_source
+                or blob != presentation_entry.get("accepted_blob")
+            ):
+                raise ValueError(f"presentation consumer adaptation must retain its exact presentation source pin: {path}")
+        elif source not in approved:
+            raise ValueError(f"frontend consumer adaptation lacks an approved green source: {path}")
+        if not HEX40.fullmatch(blob):
+            raise ValueError(f"frontend consumer adaptation has a malformed accepted blob: {path}")
+        if not delta or not rationale:
+            raise ValueError(f"frontend consumer adaptation must state its delta and rationale: {path}")
+        if not is_presentation_consumer and not has_import_adoption_provenance(root, baseline, source):
+            raise ValueError(f"frontend consumer adaptation source is not adopted: {path}")
+        if tree_entry(root, source, path) is None or tree_entry(root, source, path)[1] != blob:
+            raise ValueError(f"frontend consumer adaptation accepted blob does not match source: {path}")
+
+        if not is_presentation_consumer:
+            matching_sources: list[str] = []
+            for raw_reference in manifests:
+                reference = exact_repo_path(raw_reference, label="frozen manifest reference")
+                manifest_path = root / reference
+                manifest = yaml.safe_load(manifest_path.read_text())
+                if not isinstance(manifest, dict) or manifest.get("source_sha") != source:
+                    continue
+                entries_in_manifest = manifest.get("paths")
+                if not isinstance(entries_in_manifest, list):
+                    raise ValueError(f"frozen manifest path list is malformed: {reference}")
+                if any(
+                    isinstance(entry, dict) and entry.get("path") == path
+                    and entry.get("state") == "present"
+                    and entry.get("blob") == blob
+                    for entry in entries_in_manifest
+                ):
+                    matching_sources.append(reference)
+            if len(matching_sources) != 1:
+                raise ValueError(f"frontend consumer adaptation must match one exact frozen import: {path}")
+
+        staged_entry = index_entry(root, path)
+        target = root / path
+        if staged_entry is None or not target.is_file() or target.is_symlink():
+            raise ValueError(f"frontend consumer adaptation must remain an indexed regular file: {path}")
+        worktree_blob = git_at(root, "hash-object", "--no-filters", "--", path)
+        worktree_mode = "100755" if target.stat().st_mode & 0o111 else "100644"
+        if staged_entry != (worktree_mode, worktree_blob):
+            raise ValueError(f"frontend consumer adaptation index/worktree drifted: {path}")
+        adaptations[path] = f"exact ordinary-selection consumer adaptation from {source}: {delta}"
+    return adaptations
+
+
 def validate_frozen_imports(
     plan: dict[str, Any], *, root: Path = ROOT,
     presentation_adaptations: dict[str, str] | None = None,
+    consumer_adaptations: dict[str, str] | None = None,
 ) -> dict[str, str]:
     """Validate immutable imported blobs without changing ordinary ownership."""
 
@@ -292,6 +411,7 @@ def validate_frozen_imports(
     frozen: dict[str, str] = {}
     manifest_paths: set[str] = set()
     presentation_adaptations = presentation_adaptations or {}
+    consumer_adaptations = consumer_adaptations or {}
     seen_manifests: set[str] = set()
     approved = approved_frozen_snapshots(plan, root=root)
     for raw_reference in references:
@@ -386,7 +506,7 @@ def validate_frozen_imports(
             if path in manifest_paths:
                 raise ValueError(f"frozen import path appears more than once: {path}")
             manifest_paths.add(path)
-            if path in presentation_adaptations:
+            if path in presentation_adaptations and path not in consumer_adaptations:
                 if state != "present":
                     raise ValueError(f"presentation cannot adapt a frozen deleted path: {path}")
                 mode = str(entry.get("mode", ""))
@@ -403,6 +523,27 @@ def validate_frozen_imports(
                     raise ValueError(
                         f"presentation adaptation does not preserve the frozen source import: {path}"
                     )
+                continue
+            if path in consumer_adaptations:
+                consumer = next(
+                    item for item in plan["approved_frontend_consumer_adaptations"]
+                    if item["path"] == path
+                )
+                if state != "present" or consumer.get("source_sha") != source:
+                    raise ValueError(f"frontend consumer adaptation source or import state drifted: {path}")
+                mode = str(entry.get("mode", ""))
+                blob = str(entry.get("blob", ""))
+                snapshot_entry = tree_entry(root, source, path)
+                if snapshot_entry != (mode, blob) or blob != consumer.get("accepted_blob"):
+                    raise ValueError(f"frontend consumer adaptation differs from frozen source: {path}")
+                target = root / path
+                staged_entry = index_entry(root, path)
+                if not target.is_file() or target.is_symlink() or staged_entry is None:
+                    raise ValueError(f"frontend consumer adaptation must remain an indexed regular file: {path}")
+                worktree_blob = git_at(root, "hash-object", "--no-filters", "--", path)
+                worktree_mode = "100755" if target.stat().st_mode & 0o111 else "100644"
+                if staged_entry != (worktree_mode, worktree_blob):
+                    raise ValueError(f"frontend consumer adaptation index/worktree drifted: {path}")
                 continue
             if authorized(path, plan)[0]:
                 raise ValueError(
@@ -511,6 +652,11 @@ def authorized(path: str, plan: dict[str, Any]) -> tuple[bool, str]:
         for item in plan.get("approved_presentation_adaptations", [])
     ):
         return True, "exact human-authorized frontend presentation path"
+    if any(
+        isinstance(item, dict) and item.get("path") == path
+        for item in plan.get("approved_frontend_consumer_adaptations", [])
+    ):
+        return True, "exact source-pinned frontend consumer adaptation"
     if any(matches(path, str(item)) for item in plan.get("excluded_paths", [])):
         return False, "excluded upstream or adjacent ownership"
     exceptions = {
@@ -609,6 +755,44 @@ def self_test() -> int:
         "frontend/src/components/etf/ETFHoldingsPanel.vue",
         {"approved_presentation_adaptations": [{"path": "frontend/src/components/etf/*.vue"}]},
     )[0]
+    consumer_path = "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
+    consumer_adaptation_plan = {
+        "excluded_paths": ["frontend/src/components/etf/"],
+        "approved_frontend_consumer_adaptations": [{"path": consumer_path}],
+    }
+    checks["one exact consumer picker exception preserves the ETF directory exclusion"] = (
+        authorized(consumer_path, consumer_adaptation_plan)[0]
+        and not authorized("frontend/src/components/etf/ETFHoldingsPanel.vue", consumer_adaptation_plan)[0]
+    )
+    consumer_view_path = "frontend/src/views/ETFHoldingsView.vue"
+    consumer_view_plan = {
+        "excluded_paths": ["frontend/src/views/ETFHoldingsView.vue"],
+        "approved_frontend_consumer_adaptations": [{"path": consumer_view_path}],
+    }
+    checks["one exact approved ETF view adaptation does not broaden ownership"] = (
+        consumer_view_path in CONSUMER_ADAPTATION_PATHS
+        and authorized(consumer_view_path, consumer_view_plan)[0]
+        and not authorized("frontend/src/views/OtherETFView.vue", consumer_view_plan)[0]
+    )
+    dashboard_search_path = "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
+    dashboard_search_plan = {
+        "excluded_paths": ["frontend/src/components/dashboard/"],
+        "approved_frontend_consumer_adaptations": [{"path": dashboard_search_path}],
+    }
+    checks["one exact dashboard picker consumer adaptation stays within its presentation path"] = (
+        dashboard_search_path in CONSUMER_ADAPTATION_PATHS
+        and dashboard_search_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and authorized(dashboard_search_path, dashboard_search_plan)[0]
+        and not authorized("frontend/src/components/dashboard/DashboardQuoteWidget.vue", dashboard_search_plan)[0]
+    )
+    checks["only exact listed presentation paths may overlap consumer pins"] = (
+        consumer_view_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and dashboard_search_path in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and "frontend/src/components/dashboard/DashboardQuoteWidget.vue"
+        not in CONSUMER_PRESENTATION_OVERLAP_PATHS
+        and "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
+        not in CONSUMER_PRESENTATION_OVERLAP_PATHS
+    )
     with tempfile.TemporaryDirectory(prefix="tc-scope-frozen-") as directory:
         root = Path(directory)
 
@@ -649,12 +833,25 @@ def self_test() -> int:
         presentation_file = root / presentation_path
         presentation_file.parent.mkdir(parents=True, exist_ok=True)
         presentation_file.write_text("<template>baseline</template>\n")
-        fixture_git("add", "gone.txt", presentation_path)
+        holding_panel_test_path = "frontend/tests/unit/components/test_etf_holdings_panel.test.ts"
+        holding_panel_test_file = root / holding_panel_test_path
+        holding_panel_test_file.parent.mkdir(parents=True, exist_ok=True)
+        holding_panel_test_file.write_text("test('imported resolved event', () => {})\n")
+        diagnostics_helper_path = "frontend/tests/e2e/helpers.ts"
+        diagnostics_helper_file = root / diagnostics_helper_path
+        diagnostics_helper_file.parent.mkdir(parents=True, exist_ok=True)
+        diagnostics_helper_file.write_text("class BrowserDiagnostics {}\n")
+        consumer_path = "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
+        consumer_file = root / consumer_path
+        consumer_file.parent.mkdir(parents=True, exist_ok=True)
+        consumer_file.write_text("<template>producer source</template>\n")
+        fixture_git("add", "gone.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path)
         fixture_git("commit", "-m", "baseline")
         baseline = fixture_git("rev-parse", "HEAD")
         fixture_git("checkout", "-b", "released-change")
         (root / "foreign.txt").write_text("released bytes\n")
         presentation_file.write_text("<template>released source</template>\n")
+        diagnostics_helper_file.write_text("class BrowserDiagnostics { controlledFault() {} }\n")
         (root / "gone.txt").unlink()
         fixture_git("add", "--all")
         fixture_git("commit", "-m", "released change")
@@ -664,6 +861,9 @@ def self_test() -> int:
         source = fixture_git("rev-parse", "HEAD")
         foreign_blob = fixture_git("rev-parse", f"{source}:foreign.txt")
         presentation_blob = fixture_git("rev-parse", f"{source}:{presentation_path}")
+        consumer_blob = fixture_git("rev-parse", f"{source}:{consumer_path}")
+        holding_panel_test_blob = fixture_git("rev-parse", f"{source}:{holding_panel_test_path}")
+        diagnostics_helper_blob = fixture_git("rev-parse", f"{source}:{diagnostics_helper_path}")
         reference = FROZEN_MANIFEST_PREFIX + source + ".yaml"
         receipt_reference = RELEASE_RECEIPT_PREFIX + source + ".json"
         receipt_payload: dict[str, Any] = {
@@ -678,7 +878,7 @@ def self_test() -> int:
         fixture_plan = {
             "scope_guard_baseline_sha": baseline,
             "owned_paths": [FROZEN_MANIFEST_PREFIX],
-            "excluded_paths": ["foreign.txt", "gone.txt", presentation_path],
+            "excluded_paths": ["foreign.txt", "gone.txt", presentation_path, "frontend/src/components/etf/"],
             "shared_path_exceptions": [],
             "frozen_upstream_import_manifests": [reference],
             "approved_frozen_upstream_snapshots": [
@@ -714,6 +914,24 @@ def self_test() -> int:
                     "mode": "100644",
                     "blob": presentation_blob,
                 },
+                {
+                    "path": consumer_path,
+                    "state": "present",
+                    "mode": "100644",
+                    "blob": consumer_blob,
+                },
+                {
+                    "path": holding_panel_test_path,
+                    "state": "present",
+                    "mode": "100644",
+                    "blob": holding_panel_test_blob,
+                },
+                {
+                    "path": diagnostics_helper_path,
+                    "state": "present",
+                    "mode": "100644",
+                    "blob": diagnostics_helper_blob,
+                },
                 {"path": "gone.txt", "state": "deleted"},
             ],
         }
@@ -722,12 +940,12 @@ def self_test() -> int:
         fixture_git("merge", "--ff-only", source)
         checks["approved fast-forward release accepts exact imported blobs"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", presentation_path, "gone.txt"}
+        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path, "gone.txt"}
         fixture_git("checkout", "main")
         fixture_git("merge", "--no-ff", "-m", "import released", source)
         frozen = validate_frozen_imports(fixture_plan, root=root)
         checks["approved merged snapshot accepts exact present and deleted paths"] = (
-            set(frozen) == {"foreign.txt", presentation_path, "gone.txt"}
+            set(frozen) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path, "gone.txt"}
         )
         checks["ordinary authorization still rejects frozen upstream paths"] = not authorized(
             "foreign.txt", fixture_plan
@@ -817,6 +1035,114 @@ def self_test() -> int:
         else:
             checks["presentation index/worktree drift fails closed"] = False
         fixture_git("restore", "--worktree", presentation_path)
+
+        consumer_file.write_text("<template>selected-row consumer picker</template>\n")
+        fixture_git("add", consumer_path)
+        consumer_plan = deep_copy(presentation_plan)
+        consumer_plan["approved_frontend_consumer_adaptations"] = [{
+            "path": consumer_path,
+            "source_sha": source,
+            "accepted_blob": consumer_blob,
+            "delta": "start the existing picker on an explicit reported-equity selection",
+            "rationale": "synthetic exact ordinary-consumer adaptation proof",
+        }]
+        consumer_adaptations = validate_frontend_consumer_adaptations(consumer_plan, root=root)
+        consumer_frozen = validate_frozen_imports(
+            consumer_plan,
+            root=root,
+            presentation_adaptations=presentation,
+            consumer_adaptations=consumer_adaptations,
+        )
+        checks["exact imported consumer picker is source-pinned and narrowly adapted"] = (
+            set(consumer_adaptations) == {consumer_path}
+            and consumer_path not in consumer_frozen
+            and authorized(consumer_path, consumer_plan)[0]
+            and not authorized("frontend/src/components/etf/ETFHoldingsPanel.vue", consumer_plan)[0]
+        )
+        wrong_consumer_blob = deep_copy(consumer_plan)
+        wrong_consumer_blob["approved_frontend_consumer_adaptations"][0]["accepted_blob"] = "b" * 40
+        try:
+            validate_frontend_consumer_adaptations(wrong_consumer_blob, root=root)
+        except (OSError, RuntimeError, ValueError):
+            checks["consumer picker adaptation with wrong source blob fails closed"] = True
+        else:
+            checks["consumer picker adaptation with wrong source blob fails closed"] = False
+        consumer_file.write_text("<template>unstaged picker drift</template>\n")
+        try:
+            validate_frontend_consumer_adaptations(consumer_plan, root=root)
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks["consumer picker index/worktree drift fails closed"] = "drifted" in str(exc)
+        else:
+            checks["consumer picker index/worktree drift fails closed"] = False
+        fixture_git("restore", "--worktree", consumer_path)
+
+        holding_panel_test_plan = deep_copy(consumer_plan)
+        holding_panel_test_plan["excluded_paths"] = [
+            *consumer_plan["excluded_paths"], "frontend/tests/unit/components/"
+        ]
+        holding_panel_test_plan["approved_frontend_consumer_adaptations"].append({
+            "path": holding_panel_test_path,
+            "source_sha": source,
+            "accepted_blob": holding_panel_test_blob,
+            "delta": "forward the actual resolved identity in the selected-row test",
+            "rationale": "synthetic exact imported test adaptation proof",
+        })
+        holding_test_adaptations = validate_frontend_consumer_adaptations(
+            holding_panel_test_plan, root=root
+        )
+        holding_test_frozen = validate_frozen_imports(
+            holding_panel_test_plan,
+            root=root,
+            presentation_adaptations=presentation,
+            consumer_adaptations=holding_test_adaptations,
+        )
+        checks["one exact imported holding-panel test adaptation stays source-pinned"] = (
+            holding_panel_test_path in CONSUMER_ADAPTATION_PATHS
+            and set(holding_test_adaptations) == {consumer_path, holding_panel_test_path}
+            and holding_panel_test_path not in holding_test_frozen
+            and authorized(holding_panel_test_path, holding_panel_test_plan)[0]
+            and not authorized(
+                "frontend/tests/unit/components/test_etf_holdings_panel_nearby.test.ts",
+                holding_panel_test_plan,
+            )[0]
+        )
+
+        diagnostics_plan = deep_copy(holding_panel_test_plan)
+        diagnostics_plan["approved_frontend_consumer_adaptations"].append({
+            "path": diagnostics_helper_path,
+            "source_sha": source,
+            "accepted_blob": diagnostics_helper_blob,
+            "delta": "attribute one explicitly armed controlled API failure by exact request identity",
+            "rationale": "synthetic exact imported diagnostics-helper adaptation proof",
+        })
+        diagnostics_adaptations = validate_frontend_consumer_adaptations(
+            diagnostics_plan, root=root
+        )
+        checks["one exact imported diagnostics helper adaptation is accepted"] = (
+            diagnostics_helper_path in CONSUMER_ADAPTATION_PATHS
+            and diagnostics_helper_path in diagnostics_adaptations
+            and authorized(diagnostics_helper_path, diagnostics_plan)[0]
+        )
+        checks["unlisted neighboring diagnostics helper remains rejected"] = (
+            not authorized("frontend/tests/e2e/other_helpers.ts", diagnostics_plan)[0]
+            and "frontend/tests/e2e/other_helpers.ts" not in diagnostics_adaptations
+        )
+        neighbor_diagnostics_plan = deep_copy(diagnostics_plan)
+        neighbor_diagnostics_plan["approved_frontend_consumer_adaptations"].append({
+            "path": "frontend/tests/e2e/other_helpers.ts",
+            "source_sha": source,
+            "accepted_blob": diagnostics_helper_blob,
+            "delta": "unlisted nearby path",
+            "rationale": "negative exact-path self-test",
+        })
+        try:
+            validate_frontend_consumer_adaptations(neighbor_diagnostics_plan, root=root)
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks["validator rejects an unlisted neighboring diagnostics path"] = (
+                "not explicitly supported" in str(exc)
+            )
+        else:
+            checks["validator rejects an unlisted neighboring diagnostics path"] = False
 
         wrong_adaptation = deep_copy(adaptation_plan)
         wrong_adaptation["approved_provider_contract_adaptations"][0]["accepted_blob"] = "b" * 40
@@ -1075,7 +1401,7 @@ def self_test() -> int:
         write_yaml(reference, valid_manifest)
         checks["active MERGE_HEAD accepts the approved exact snapshot"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", presentation_path, "gone.txt"}
+        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path, "gone.txt"}
         fixture_git("merge", "--abort")
         fixture_git("reset", "--hard", final_head)
         write_yaml(reference, valid_manifest)
@@ -1101,8 +1427,11 @@ def main() -> int:
         git("cat-file", "-e", f"{baseline}^{{commit}}")
         validate_ledger()
         presentation_adaptations = validate_presentation_adaptations(plan)
+        consumer_adaptations = validate_frontend_consumer_adaptations(plan)
         frozen_imports = validate_frozen_imports(
-            plan, presentation_adaptations=presentation_adaptations
+            plan,
+            presentation_adaptations=presentation_adaptations,
+            consumer_adaptations=consumer_adaptations,
         )
         contract_adaptations = validate_provider_contract_adaptations(
             plan, frozen=frozen_imports
@@ -1127,7 +1456,8 @@ def main() -> int:
             f"all are TC-owned, documented shared seams, or one of "
             f"{len(frozen_imports)} byte-verified immutable imports and "
             f"{len(contract_adaptations)} exact approved Provider contract adaptations and "
-            f"{len(presentation_adaptations)} exact approved presentation paths."
+            f"{len(presentation_adaptations)} exact approved presentation paths and "
+            f"{len(consumer_adaptations)} exact approved frontend consumer adaptations."
         )
         return 0
     except (OSError, RuntimeError, ValueError, yaml.YAMLError) as exc:

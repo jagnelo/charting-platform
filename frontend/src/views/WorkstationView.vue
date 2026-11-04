@@ -128,7 +128,7 @@
           @input="handleSymbolInput"
           @keydown.stop="handleSymbolInputKeydown"
         />
-        <button type="button" @click="recentSymbolsOpen = false; closeSymbolSearch(); selectSymbol(symbolDraft)">Go</button>
+        <button type="button" @click="goToSymbolDraft">Go</button>
         <button
           type="button"
           class="workstation__history-button"
@@ -151,7 +151,8 @@
           <div :id="symbolResultsId" class="workstation__canonical-symbol-options" role="listbox" aria-label="Symbol search results" :aria-busy="searchLoading ? 'true' : 'false'">
             <div v-if="searchLoading" class="workstation__symbol-search-message" role="status">Searching canonical instruments…</div>
             <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
-            <div v-else-if="searchSettled && !searchResults.length" class="workstation__symbol-search-message" role="status">No canonical instruments found for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
+            <div v-else-if="searchSettled && !searchResults.length && sourceDiscoveryLoading" class="workstation__symbol-search-message" role="status">No local match. Checking ticker availability…</div>
+            <div v-else-if="searchSettled && !searchResults.length && sourceDiscoverySettled && !sourceCandidates.length && !sourceDiscoveryError" class="workstation__symbol-search-message" role="status">No matching ticker is available for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
             <button
               v-for="(result, index) in searchResults"
               :key="`${result.symbol}:${result.exchange}`"
@@ -159,15 +160,12 @@
               type="button"
               role="option"
               :aria-selected="index === searchIndex"
-              @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id)"
+              @mousedown.prevent="selectSearchResult(result.symbol, result.instrument_id, result.type)"
             ><strong>{{ result.symbol }}</strong><span>{{ result.name }}</span><small>{{ result.exchange || result.type }}</small></button>
           </div>
           <div v-if="sourceDiscoveryMessage" class="workstation__symbol-search-message" role="status" aria-live="polite">{{ sourceDiscoveryMessage }}</div>
           <div v-if="sourceDiscoveryError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ sourceDiscoveryError }}</div>
-          <div class="workstation__source-actions" role="group" aria-label="Explicit free source actions">
-            <button class="workstation__source-option" type="button" :disabled="sourceDiscoveryLoading || sourceResolving" @mousedown.prevent @click="discoverSymbolDraft">
-              {{ sourceDiscoveryLoading ? 'Searching free sources…' : `Search free sources for ${symbolDraft.trim().toUpperCase()}` }}
-            </button>
+          <div v-if="sourceCandidates.length" class="workstation__source-actions" role="group" aria-label="Matching ticker listings">
             <button
               v-for="candidate in sourceCandidates"
               :key="`${candidate.provider}:${candidate.symbol}:${candidate.exchange}`"
@@ -176,7 +174,7 @@
               :disabled="sourceResolving"
               @mousedown.prevent
               @click="resolveSourceCandidate(candidate)"
-            >Resolve {{ candidate.symbol }} · {{ candidate.exchange || candidate.provider }} <span>{{ candidate.name }}</span></button>
+            >Use {{ candidate.symbol }} · {{ candidate.exchange || candidate.type }} <span>{{ candidate.name }}</span></button>
           </div>
         </div>
         <span :id="symbolSearchStateId" class="workstation__symbol-search-state" role="status" aria-live="polite" aria-atomic="true">{{ searchStateText }}</span>
@@ -190,6 +188,10 @@
         <span :class="{ 'workstation__leader': workspaceStore.isPersistenceLeader }">●</span>
         {{ workspaceStore.isPersistenceLeader ? 'Leader' : 'Shared' }}
         <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
+        <span v-if="selectionHistoryMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHistoryMessage }}</span>
+        <span v-if="selectionHistoryError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHistoryError }}</span>
+        <span v-if="selectionHoldingsMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHoldingsMessage }}</span>
+        <span v-if="selectionHoldingsError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHoldingsError }}</span>
         <button type="button" class="workstation__refresh" :disabled="workspaceStore.marketAnalysisRefreshing" title="Refresh top-down analysis" @click="refreshMarketData">{{ workspaceStore.marketAnalysisRefreshing ? 'Refreshing…' : 'Refresh' }}</button>
         <button type="button" class="workstation__sign-out logout-btn" title="Sign out" @click="signOut">Sign out</button>
       </div>
@@ -247,7 +249,8 @@
         :tool="popoutTool"
         :active-window-key="popoutTool.instance_key"
         :factory-layout="workspaceStore.activeTabKey"
-        @select="(symbol, instrumentId) => selectSymbol(symbol, undefined, false, instrumentId)"
+        @select="(symbol, instrumentId, preserveETFContext) => selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true)"
+        @holding-drilldown="openHoldingDrilldown"
         @compare="compareSymbols"
         @ratio="openMarketMapRatio"
         @reorder="reorderWatchlistItems"
@@ -297,14 +300,16 @@ import { useQuery } from '@tanstack/vue-query'
 import WorkspaceLayoutHost from '@/components/workstation/WorkspaceLayoutHost.vue'
 import WorkstationToolContent from '@/components/workstation/WorkstationToolContent.vue'
 import WorkstationGlyph from '@/components/workstation/WorkstationGlyph.vue'
-import { useChartStore } from '@/stores/chart'
+import { refreshMountedWorkstationChartPanels, useChartStore } from '@/stores/chart'
 import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
+import { acquireETFHoldings, acquireSelectedHistory, defaultHistoryRange, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
-import { discoverInstruments, resolveDiscoveredInstrument, type InstrumentDiscoveryCandidate } from '@/lib/onDemandAcquisition'
+import { discoverInstruments, resolveDiscoveredInstrument, type InstrumentAcquireResponse, type InstrumentDiscoveryCandidate } from '@/lib/onDemandAcquisition'
 import { useQueryClient } from '@tanstack/vue-query'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
@@ -313,6 +318,7 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
+import { holdingDrilldownRouteQuery, holdingDrilldownRouteState, isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
 
@@ -382,6 +388,7 @@ const workspaceOptionIndex = ref(0)
 const keyboardHelpOpen = ref(false)
 const recentSymbolsOpen = ref(false)
 let historyNavigationTarget: string | null = null
+let suppressSymbolDraftWatch: string | null = null
 const workspaceFileInput = ref<HTMLInputElement | null>(null)
 // Golden Layout virtual roots capture their tool object when created. Advance
 // this token only after an import/reset replaces the complete workspace object
@@ -411,18 +418,27 @@ const searchSettled = ref(false)
 const searchError = ref('')
 const sourceCandidates = ref<InstrumentDiscoveryCandidate[]>([])
 const sourceDiscoveryLoading = ref(false)
+const sourceDiscoverySettled = ref(false)
 const sourceResolving = ref(false)
 const sourceDiscoveryMessage = ref('')
 const sourceDiscoveryError = ref('')
+const selectionHistoryMessage = ref('')
+const selectionHistoryError = ref('')
+const selectionHoldingsMessage = ref('')
+const selectionHoldingsError = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
+let discoveryTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
+let lastDiscoveryQuery = ''
 const symbolSearchEnabled = ref(false)
 const searchPanelVisible = computed(() => symbolSearchEnabled.value && Boolean(symbolDraft.value.trim()))
 const searchStateText = computed(() => {
   if (!searchPanelVisible.value) return ''
   if (searchLoading.value) return 'Searching canonical instruments'
+  if (sourceDiscoveryLoading.value) return 'Checking ticker availability'
   if (searchError.value) return `Symbol search error: ${searchError.value}`
-  if (searchSettled.value && !searchResults.value.length) return `No canonical instruments found for ${symbolDraft.value.trim().toUpperCase()}`
+  if (sourceDiscoveryError.value) return `Ticker lookup error: ${sourceDiscoveryError.value}`
+  if (searchSettled.value && !searchResults.value.length && sourceDiscoverySettled.value && !sourceCandidates.value.length) return `No matching ticker is available for ${symbolDraft.value.trim().toUpperCase()}`
   return ''
 })
 const handledWheelEvents = new WeakSet<Event>()
@@ -460,12 +476,17 @@ function closeSymbolSearch() {
     clearTimeout(searchTimer)
     searchTimer = null
   }
+  if (discoveryTimer) {
+    clearTimeout(discoveryTimer)
+    discoveryTimer = null
+  }
   searchRequest += 1
   searchResults.value = []
   searchIndex.value = -1
   searchLoading.value = false
   searchSettled.value = false
   searchError.value = ''
+  sourceDiscoveryLoading.value = false
 }
 
 function handleSymbolSearchFocusout(event: FocusEvent) {
@@ -484,6 +505,16 @@ function handleSymbolInput() {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   symbolSearchEnabled.value = true
+  const inputValue = symbolInput.value?.value ?? symbolDraft.value
+  if (symbolDraft.value !== inputValue) symbolDraft.value = inputValue
+  // Schedule from the actual DOM event as well as the ref watcher. This also
+  // handles a deliberate edit/paste of an already hydrated ticker, where the
+  // input event fires but Vue sees no ref-value change.
+  suppressSymbolDraftWatch = inputValue
+  scheduleSymbolSearch(inputValue)
+  queueMicrotask(() => {
+    if (suppressSymbolDraftWatch === inputValue) suppressSymbolDraftWatch = null
+  })
   if (symbolDraft.value.trim()) {
     searchLoading.value = true
     searchSettled.value = false
@@ -1057,10 +1088,46 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
-async function selectSymbol(raw: string, timestamp?: string, allowNavigationFallback = false, instrumentId?: number | null, recordHistory = true) {
+function openHoldingDrilldown(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
+  const canonical = symbol.trim().toUpperCase()
+  if (!canonical || canonical !== context.canonicalSymbol.trim().toUpperCase()
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
+  const location = {
+    path: `/legacy/chart/${encodeURIComponent(canonical)}`,
+    query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
+  }
+  void router.push({ ...location, state: holdingDrilldownRouteState(context, confirmedIdentity) })
+}
+
+async function selectSymbol(
+  raw: string,
+  timestamp?: string,
+  allowNavigationFallback = false,
+  instrumentId?: number | null,
+  recordHistory = true,
+  preserveETFContext = false,
+  instrumentType = '',
+  acquisitionIntent = false,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   const requested = raw.trim()
   if (!requested) return
   const generation = ++symbolSelectionGeneration
+  if (!preserveETFContext) {
+    const requestedSymbol = requested.toUpperCase()
+    const sectorSymbols = new Set(
+      (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
+        .map(member => member.instrument.symbol.trim().toUpperCase()),
+    )
+    const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+    const selectedETF = sectorSymbols.has(requestedSymbol) || isEligibleETFHoldingsInstrumentType(selectedType)
+    workspaceStore.setConstituentETF(null)
+    if (selectedETF) workspaceStore.setConstituentETF(requestedSymbol)
+  } else preserveDrilldownSymbol.value = requested.toUpperCase()
   symbolProxyNotice.value = null
   // A normal symbol selection supersedes any still-running proxy drill-down
   // handler that was started by an earlier row click.
@@ -1122,6 +1189,10 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
     }
   }
   if (generation !== symbolSelectionGeneration) return
+  selectionHistoryMessage.value = ''
+  selectionHistoryError.value = ''
+  selectionHoldingsMessage.value = ''
+  selectionHoldingsError.value = ''
   let canonicalInstrumentId = typeof instrumentId === 'number' ? instrumentId : resolvedInstrumentId
   if (canonicalInstrumentId == null) {
     const knownMember = [
@@ -1130,14 +1201,21 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
     ].find(member => member.instrument.symbol.trim().toUpperCase() === symbol)
     canonicalInstrumentId = knownMember?.instrument.id ?? null
   }
-  // Crossing to a different sector starts a new industry context immediately,
-  // before any old ETF-holdings requests can complete. Stock/proxy selections
-  // intentionally retain the sector context for ratio and constituent drilldown.
+  // A direct selection begins a new holdings context immediately. A constituent
+  // row is the explicit exception: its parent ETF remains the source for the
+  // linked constituent/ratio panels while the selected equity chart changes.
   const sectorSymbols = new Set(
     (workspaceStore.marketGroups['sp500-sectors']?.members ?? [])
       .map(member => member.instrument.symbol.trim().toUpperCase()),
   )
-  if (sectorSymbols.has(symbol)) workspaceStore.setConstituentETF(symbol)
+  const selectedType = confirmedIdentity?.instrument?.instrument_type ?? instrumentType
+  const isETF = sectorSymbols.has(symbol) || isEligibleETFHoldingsInstrumentType(selectedType)
+  if (!preserveETFContext) {
+    if (isETF) workspaceStore.setConstituentETF(symbol)
+    else if (workspaceStore.constituentETF !== null) workspaceStore.setConstituentETF(null)
+  } else {
+    preserveDrilldownSymbol.value = symbol
+  }
   symbolDraft.value = symbol
   recentStore.add(symbol, undefined, recordHistory)
   // Capture the drill-down ETF before loading the newly selected symbol. A stock
@@ -1155,7 +1233,11 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   // longer than the user's next click and must not delay the visible target.
   updateAutoRatioExpression(symbol, comparisonETF)
   try {
-    await loadSymbolData(symbol, comparisonETF, false)
+    const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
+    const selectedAcquisition = acquisitionIntent
+      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity)
+      : Promise.resolve()
+    await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
     if (timestamp) {
       // The store holds this explicit intent against stale cursor publications
@@ -1174,13 +1256,220 @@ async function selectSymbol(raw: string, timestamp?: string, allowNavigationFall
   }
 }
 
-async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true) {
+async function acquireSelectedTickerData(
+  symbol: string,
+  generation: number,
+  localDataReady: Promise<void>,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
+  const timeframe = chartStore.timeframe
+  const range = defaultHistoryRange(timeframe)
+  const request = { timeframe, adjusted: true, start: range.start, end: range.end }
+  // Deliberate selection owns one identity/type reconciliation even when the
+  // chart is already cached. The backend returns locally for an already
+  // qualified identity; provisional or stale identity is governed there.
+  // History and issuer work share this result, so neither can race or resolve
+  // the selected symbol twice.
+  const identityPromise = confirmedIdentity
+    ? Promise.resolve(confirmedIdentity)
+    : resolveExistingInstrument(symbol)
+  const updateStage = (stage: SelectedHistoryStage) => {
+    if (generation !== symbolSelectionGeneration) return
+    selectionHistoryMessage.value = stage === 'coverage'
+      ? `Checking local ${timeframe} history for ${symbol}…`
+      : stage === 'identity'
+        ? `Confirming ${symbol}…`
+        : `Loading missing ${timeframe} history for ${symbol}…`
+  }
+  const historyTask = (async () => {
+    try {
+      const outcome = await acquireSelectedHistory(
+        symbol,
+        timeframe,
+        true,
+        request,
+        updateStage,
+        () => generation === symbolSelectionGeneration,
+        identityPromise,
+      )
+      if (generation !== symbolSelectionGeneration || outcome.kind === 'superseded') return
+      if (outcome.kind === 'already-covered') {
+        selectionHistoryMessage.value = `Local ${timeframe} history is available for ${symbol}.`
+      } else if (outcome.kind === 'identity-unavailable') {
+        selectionHistoryMessage.value = outcome.status === 'held'
+          ? `History for ${symbol} is currently unavailable; the selected chart is unchanged.`
+          : `The ticker identity for ${symbol} could not be confirmed; no history was requested.`
+      } else {
+        const result = outcome.result
+        selectionHistoryMessage.value = result.status === 'complete'
+          ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${symbol}.`
+          : result.status === 'partial'
+            ? `Some ${timeframe} history for ${symbol} loaded; the rest remains unavailable.`
+            : result.status === 'held'
+              ? `History for ${symbol} is currently unavailable; the selected chart is unchanged.`
+              : result.status === 'no_data'
+                ? `No ${timeframe} history is available for ${symbol}; the selected chart is unchanged.`
+                : `History for ${symbol} could not be loaded; the selected chart is unchanged.`
+        if ((result.status === 'complete' || result.status === 'partial')
+          && chartStore.symbol === symbol
+          && generation === symbolSelectionGeneration) {
+          // The initial selection read may have completed before these bars
+          // were persisted. Refresh chart bars and local derived data together
+          // so the visible technical/details panel catches up without another
+          // user action. The workspace store also fences overlapping symbol
+          // technical reads; recheck this selection before starting either read.
+          await Promise.all([
+            chartStore.refreshLocalBars(),
+            refreshMountedWorkstationChartPanels(
+              symbol,
+              timeframe,
+              () => generation === symbolSelectionGeneration,
+            ),
+            workspaceStore.loadTechnical(symbol),
+          ])
+        }
+      }
+    } catch {
+      if (generation === symbolSelectionGeneration) {
+        selectionHistoryError.value = `History for ${symbol} could not be checked or loaded; saved chart data remains available.`
+      }
+    }
+  })()
+
+  const holdingsTask = (async () => {
+    try {
+      const identity = await identityPromise
+      if (generation !== symbolSelectionGeneration) return
+      const resolvedInstrumentId = identity.instrument?.instrument_id
+      if (identity.status !== 'resolved' || !identity.instrument
+        || identity.instrument.symbol.trim().toUpperCase() !== symbol.toUpperCase()
+        || !Number.isSafeInteger(resolvedInstrumentId) || Number(resolvedInstrumentId) <= 0) {
+        selectionHoldingsMessage.value = identity.status === 'held'
+          ? `Holdings for ${symbol} are unavailable until its identity can be confirmed.`
+          : `The ticker identity for ${symbol} could not be confirmed; no holdings request was made.`
+        return
+      }
+
+      let resolvedType = identity.instrument.instrument_type?.trim() ?? ''
+      if (!resolvedType) {
+        // Older compatible responses omit classification. Read only the exact
+        // resolved local ID; never infer type from a stale autocomplete hint.
+        const localOptions = await queryClient.fetchQuery<Array<{
+          symbol: string
+          type: string
+          instrument_id?: number | null
+        }>>({
+          queryKey: ['workstation', 'instrument-search', symbol.toUpperCase(), Number(resolvedInstrumentId)],
+          queryFn: () => api.get('/instruments/search', { q: symbol, canonical_only: true }),
+          staleTime: 0,
+        })
+        if (generation !== symbolSelectionGeneration) return
+        resolvedType = localOptions.find(option => option.symbol.trim().toUpperCase() === symbol.toUpperCase()
+          && option.instrument_id === Number(resolvedInstrumentId))?.type ?? ''
+      }
+      if (!isEligibleETFHoldingsInstrumentType(resolvedType)) {
+        if (workspaceStore.constituentETF === symbol.toUpperCase()) workspaceStore.setConstituentETF(null)
+        return
+      }
+      if (generation !== symbolSelectionGeneration) return
+      // Recent-symbol and free-form Go selections can know the canonical ID
+      // before their local instrument type is available. The direct selection
+      // already cleared the old parent context; bind this ETF only after the
+      // local canonical lookup confirms its type.
+      if (workspaceStore.constituentETF !== symbol.toUpperCase()) {
+        workspaceStore.setConstituentETF(symbol)
+      }
+      await localDataReady
+      if (generation !== symbolSelectionGeneration) return
+      const stored = workspaceStore.etfHoldings[symbol.toUpperCase()]
+      const capability = await readETFHoldingsCapability(symbol)
+      if (generation !== symbolSelectionGeneration) return
+      if (isCurrentETFHoldingsCapability(capability)) {
+        const currentPage = await workspaceStore.loadETFHoldings(symbol)
+        if (generation !== symbolSelectionGeneration) return
+        const latestLocalSnapshot = currentPage?.snapshot
+          ?? workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot
+        selectionHoldingsMessage.value = currentPage?.snapshot
+          ? `Current holdings for ${symbol} are available locally.`
+          : latestLocalSnapshot
+            ? `The holdings feed for ${symbol} is current; showing saved holdings while the latest local snapshot is unavailable.`
+            : `Holdings for ${symbol} are current, but no saved snapshot was returned.`
+        return
+      }
+
+      const hasLastKnown = Boolean(stored?.snapshot)
+      selectionHoldingsMessage.value = hasLastKnown
+        ? `Showing last-known holdings for ${symbol}; checking for a current update…`
+        : `Checking holdings for ${symbol}…`
+      const holdings = await acquireETFHoldings(symbol, true, Number(resolvedInstrumentId))
+      if (generation !== symbolSelectionGeneration) return
+      if (holdings.symbol.trim().toUpperCase() !== symbol.toUpperCase()
+        || holdings.instrument_id !== Number(resolvedInstrumentId)
+        || (holdings.profile && (holdings.profile.symbol.trim().toUpperCase() !== symbol.toUpperCase()
+          || holdings.profile.instrument_id !== Number(resolvedInstrumentId)))) {
+        selectionHoldingsError.value = `Holdings for ${symbol} did not match the selected ticker; saved data was kept.`
+        return
+      }
+      if (holdings.outcome === 'unavailable') {
+        const detail = holdings.message?.trim()
+        selectionHoldingsMessage.value = hasLastKnown
+          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
+          : detail
+            ? `Holdings for ${symbol} are not available: ${detail}`
+            : `Holdings for ${symbol} are not available for this ticker.`
+        return
+      }
+      if (holdings.outcome === 'held') {
+        const detail = holdings.message?.trim()
+        selectionHoldingsMessage.value = hasLastKnown
+          ? `Last-known holdings for ${symbol} remain visible.${detail ? ` ${detail}` : ' A current update is unavailable.'}`
+          : detail
+            ? `Current holdings for ${symbol} are unavailable: ${detail}`
+            : `Current holdings for ${symbol} are unavailable; no saved snapshot is available.`
+        return
+      }
+      if (holdings.outcome === 'failed') {
+        if (hasLastKnown) {
+          selectionHoldingsError.value = `Holdings for ${symbol} could not be updated; last-known holdings remain visible.${holdings.message?.trim() ? ` ${holdings.message.trim()}` : ''}`
+        } else {
+          selectionHoldingsError.value = `Holdings for ${symbol} could not be loaded; no saved snapshot is available.`
+        }
+        return
+      }
+      if (holdings.profile) {
+        await Promise.all([workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)])
+        if (generation !== symbolSelectionGeneration) return
+        selectionHoldingsMessage.value = holdings.outcome === 'acquired'
+          ? `Holdings for ${symbol} are available from the selected ticker.`
+          : holdings.outcome === 'no_data'
+            ? hasLastKnown
+              ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
+              : `No holdings snapshot is available for ${symbol}.`
+            : `Saved holdings for ${symbol} are available locally.`
+      } else {
+        selectionHoldingsMessage.value = hasLastKnown
+          ? `No newer holdings snapshot is available for ${symbol}; last-known holdings remain visible.`
+          : `No holdings snapshot is available for ${symbol}.`
+      }
+    } catch {
+      if (generation === symbolSelectionGeneration) {
+        const hasLastKnown = Boolean(workspaceStore.etfHoldings[symbol.toUpperCase()]?.snapshot)
+        selectionHoldingsError.value = hasLastKnown
+          ? `Holdings for ${symbol} could not be checked; last-known holdings remain visible.`
+          : `Holdings for ${symbol} could not be checked; no saved snapshot is available.`
+      }
+    }
+  })()
+
+  await Promise.all([historyTask, holdingsTask])
+}
+
+async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.constituentETF, updateRatio = true, preserveETFContext = false) {
   if (!preserveActiveUserSymbolDraft(symbol)) symbolDraft.value = symbol
   if (!documentVisible.value) return
   await Promise.all([
     chartStore.loadBars(symbol, chartStore.timeframe, chartStore.barType, true),
-    workspaceStore.loadETFHoldings(symbol),
-    workspaceStore.loadETFIndustries(symbol),
+    ...(preserveETFContext ? [] : [workspaceStore.loadETFHoldings(symbol), workspaceStore.loadETFIndustries(symbol)]),
     workspaceStore.loadTechnical(symbol),
   ])
   if (updateRatio) updateAutoRatioExpression(symbol, comparisonETF)
@@ -1189,6 +1478,12 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
 function scheduleSymbolSearch(value: string) {
   if (!symbolSearchEnabled.value) return
   if (searchTimer) clearTimeout(searchTimer)
+  if (discoveryTimer) clearTimeout(discoveryTimer)
+  const requestId = ++searchRequest
+  sourceDiscoveryLoading.value = false
+  sourceResolving.value = false
+  sourceDiscoverySettled.value = false
+  sourceCandidates.value = []
   const query = value.trim()
   if (!query) {
     searchResults.value = []
@@ -1196,6 +1491,8 @@ function scheduleSymbolSearch(value: string) {
     searchLoading.value = false
     searchSettled.value = false
     searchError.value = ''
+    sourceDiscoverySettled.value = false
+    lastDiscoveryQuery = ''
     return
   }
   searchLoading.value = true
@@ -1204,7 +1501,8 @@ function scheduleSymbolSearch(value: string) {
   sourceCandidates.value = []
   sourceDiscoveryMessage.value = ''
   sourceDiscoveryError.value = ''
-  const requestId = ++searchRequest
+  sourceDiscoverySettled.value = false
+  lastDiscoveryQuery = ''
   searchTimer = setTimeout(async () => {
     try {
       const results = await queryClient.fetchQuery<Array<{ symbol: string; name: string; exchange: string; type: string }>>({
@@ -1217,6 +1515,17 @@ function scheduleSymbolSearch(value: string) {
       searchIndex.value = results.length ? 0 : -1
       searchLoading.value = false
       searchSettled.value = true
+      // Wait for the local canonical lookup, then debounce discovery only when
+      // no exact ticker exists. New input cancels this request before it starts.
+      if (shouldDiscoverTicker(query, results)) {
+        discoveryTimer = scheduleTickerDiscovery(() => {
+          if (requestId === searchRequest && symbolDraft.value.trim() === query) {
+            void discoverSymbolDraft(query, requestId)
+          }
+        })
+      } else {
+        sourceDiscoverySettled.value = true
+      }
     } catch {
       if (componentMounted && requestId === searchRequest) {
         searchResults.value = []
@@ -1229,34 +1538,31 @@ function scheduleSymbolSearch(value: string) {
   }, 120)
 }
 
-async function discoverSymbolDraft() {
-  const query = symbolDraft.value.trim()
+async function discoverSymbolDraft(rawQuery = symbolDraft.value, requestGeneration = searchRequest) {
+  const query = rawQuery.trim()
   if (!query || sourceDiscoveryLoading.value || sourceResolving.value) return
   const queryKey = query.toUpperCase()
-  const requestGeneration = searchRequest
+  if (lastDiscoveryQuery === queryKey) return
+  lastDiscoveryQuery = queryKey
   sourceDiscoveryLoading.value = true
+  sourceDiscoverySettled.value = false
   sourceDiscoveryError.value = ''
   sourceDiscoveryMessage.value = ''
   sourceCandidates.value = []
   try {
     const result = await discoverInstruments(query, [], 10)
     if (requestGeneration !== searchRequest || symbolDraft.value.trim().toUpperCase() !== queryKey) return
-    sourceCandidates.value = result.candidates
-    sourceDiscoveryMessage.value = result.candidates.length
-      ? 'Choose a source candidate and explicitly resolve its canonical identity before opening a chart.'
-      : result.status === 'held'
-        ? 'Free source discovery is held.'
-        : result.status === 'unavailable'
-          ? 'Free source discovery is unavailable.'
-          : result.status === 'no_match'
-            ? 'No source candidates matched.'
-            : 'No candidates were returned.'
+    sourceCandidates.value = Array.isArray(result.candidates) ? result.candidates : []
+    sourceDiscoveryMessage.value = tickerDiscoveryMessage(result.status, sourceCandidates.value.length)
   } catch {
     if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
-      sourceDiscoveryError.value = 'Free source discovery failed. Local search and cached charts remain available.'
+      sourceDiscoveryError.value = 'Ticker lookup failed. Local search and cached charts remain available.'
     }
   } finally {
-    sourceDiscoveryLoading.value = false
+    if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
+      sourceDiscoveryLoading.value = false
+      sourceDiscoverySettled.value = true
+    }
   }
 }
 
@@ -1272,40 +1578,53 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
     if (result.status !== 'resolved' || !result.instrument
       || !Number.isSafeInteger(result.instrument.instrument_id) || result.instrument.instrument_id <= 0) {
       sourceDiscoveryMessage.value = result.status === 'identity_conflict'
-        ? 'Identity conflict: no chart was opened.'
+        ? 'This ticker listing could not be confirmed. No chart was opened.'
         : result.status === 'held'
-          ? 'Identity resolution is held.'
+          ? 'Ticker confirmation is currently unavailable.'
           : result.status === 'no_match'
-            ? 'No canonical identity matched this candidate.'
+            ? 'No matching ticker was found.'
             : result.status === 'failed'
-              ? 'Identity resolution failed.'
-              : 'Candidate identity is not resolved.'
+              ? 'Ticker confirmation failed.'
+              : 'This ticker listing is not available.'
       return
     }
-    selectSearchResult(result.instrument.symbol, result.instrument.instrument_id)
+    selectSearchResult(result.instrument.symbol, result.instrument.instrument_id, candidate.type, result)
   } catch {
     if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
-      sourceDiscoveryError.value = 'Identity resolution failed. No chart was opened.'
+      sourceDiscoveryError.value = 'Ticker confirmation failed. No chart was opened.'
     }
   } finally {
-    sourceResolving.value = false
+    if (requestGeneration === searchRequest) sourceResolving.value = false
   }
 }
 
-function selectSearchResult(symbol: string, instrumentId?: number | null) {
+function selectSearchResult(
+  symbol: string,
+  instrumentId?: number | null,
+  instrumentType = '',
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   // Close before changing the draft. The input remains focused while an option
   // is selected with the mouse, so relying on blur leaves the listbox mounted
   // above the workstation and can intercept the next tool click.
   closeSymbolSearch()
   symbolDraft.value = symbol
-  void selectSymbol(symbol, undefined, false, instrumentId)
+  void selectSymbol(symbol, undefined, false, instrumentId, true, false, instrumentType, true, confirmedIdentity)
+}
+
+function goToSymbolDraft() {
+  const symbol = symbolDraft.value.trim()
+  const exact = searchResults.value.find(result => result.symbol.trim().toUpperCase() === symbol.toUpperCase())
+  recentSymbolsOpen.value = false
+  closeSymbolSearch()
+  void selectSymbol(symbol, undefined, false, exact?.instrument_id, true, false, exact?.type ?? '', true)
 }
 
 function selectRecentSymbol(symbol: string) {
   recentSymbolsOpen.value = false
   closeSymbolSearch()
   symbolDraft.value = symbol
-  void selectSymbol(symbol)
+  void selectSymbol(symbol, undefined, false, undefined, true, false, '', true)
 }
 
 function handleSymbolInputKeydown(event: KeyboardEvent) {
@@ -1319,7 +1638,7 @@ function handleSymbolInputKeydown(event: KeyboardEvent) {
     event.preventDefault()
     const result = searchResults.value[searchIndex.value]
     closeSymbolSearch()
-    void selectSymbol(result?.symbol ?? symbolDraft.value, undefined, false, result?.instrument_id)
+    void selectSymbol(result?.symbol ?? symbolDraft.value, undefined, false, result?.instrument_id, true, false, result?.type ?? '', true)
   } else if (event.key === 'Escape') {
     closeSymbolSearch()
   }
@@ -1337,7 +1656,7 @@ function updateAutoRatioExpression(symbol: string, comparisonETF = workspaceStor
 }
 
 function selectOccurrence(symbol: string, timestamp: string, instrumentId?: number | null) {
-  void selectSymbol(symbol, timestamp, false, instrumentId)
+  void selectSymbol(symbol, timestamp, false, instrumentId, true, false, '', true)
 }
 
 function selectIndustryForContext(industry: string, etf?: string) {
@@ -1955,7 +2274,7 @@ async function handleRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' | 
     await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
     return
   }
-  await selectSymbol(row.symbol, undefined, false, row.instrumentId)
+  await selectSymbol(row.symbol, undefined, false, row.instrumentId, true, false, '', true)
   if (action === 'chart') {
     const chart = OPENABLE_WORKSTATION_TOOLS.find(tool => tool.tool_type === 'chart')
     if (chart) openTool(chart)
@@ -2064,13 +2383,14 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
-    onSelect: (symbol: string, instrumentId?: number | null) => void selectSymbol(symbol, undefined, false, instrumentId),
+    onSelect: (symbol: string, instrumentId?: number | null, preserveETFContext?: boolean) => void selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true),
+    onHoldingDrilldown: (symbol: string, context: ETFHoldingDrilldownContext, identity?: InstrumentAcquireResponse) => openHoldingDrilldown(symbol, context, identity),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),
     onRowAction: (action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }) => void handleRowAction(action, row),
     onMarketMap: (sourceId: string) => void openMarketMap(sourceId),
-    onOccurrence: (symbol: string, timestamp: string, instrumentId?: number | null) => void selectSymbol(symbol, timestamp, false, instrumentId),
+    onOccurrence: (symbol: string, timestamp: string, instrumentId?: number | null) => void selectSymbol(symbol, timestamp, false, instrumentId, true, false, '', true),
     onSelectIndustry: (industry: string, etf: string) => selectIndustryForContext(industry, etf),
     onSelectProxy: (symbol: string, instrumentId?: number | null) => void selectIndustryProxy(symbol, instrumentId),
     onColumns: (windowKey: string, keys: string[]) => updateColumns(windowKey, keys),
@@ -2283,7 +2603,7 @@ function handleKeydown(event: KeyboardEvent) {
     const previous = recentStore.previous()
     if (!previous) return
     historyNavigationTarget = previous
-    void selectSymbol(previous, undefined, true, undefined, false).finally(() => {
+    void selectSymbol(previous, undefined, true, undefined, false, false, '', true).finally(() => {
       if (historyNavigationTarget === previous) historyNavigationTarget = null
     })
     return
@@ -2332,7 +2652,7 @@ function handleKeydown(event: KeyboardEvent) {
   const currentSymbol = allSymbols.value.includes(draftSymbol) ? draftSymbol : activeSymbol.value
   const currentIndex = allSymbols.value.indexOf(currentSymbol)
   const nextIndex = (currentIndex + (event.ctrlKey ? -1 : 1) + allSymbols.value.length) % allSymbols.value.length
-  void selectSymbol(allSymbols.value[nextIndex], undefined, true)
+  void selectSymbol(allSymbols.value[nextIndex], undefined, true, undefined, true, false, '', true)
 }
 
 // Escape is a workstation-wide command. Handle it during capture so nested
@@ -2432,7 +2752,13 @@ watch(activeSymbol, symbol => {
     workspaceStore.loadTechnical(symbol),
   ])
 })
-watch(symbolDraft, scheduleSymbolSearch)
+watch(symbolDraft, value => {
+  if (suppressSymbolDraftWatch === value) {
+    suppressSymbolDraftWatch = null
+    return
+  }
+  scheduleSymbolSearch(value)
+})
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
   if (timeframe === chartStore.timeframe) return
   void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
@@ -2554,7 +2880,13 @@ onMounted(async () => {
       // usable even when metadata/search is temporarily unavailable. The
       // navigation fallback keeps the visible symbol deterministic while the
       // chart and technical tools report their honest freshness/error state.
-      await selectSymbol(requested, undefined, true)
+      // A plain /chart restore preserves a parent fund only when one is
+      // actually bound. On a fresh workstation there is no parent context yet;
+      // let the normal local holdings/industry reads hydrate the active ETF.
+      // These are cache reads only because route hydration does not set an
+      // acquisition intent.
+      const preserveParentETFContext = explicitRouteSymbol == null && workspaceStore.constituentETF != null
+      await selectSymbol(requested, undefined, true, undefined, true, preserveParentETFContext)
       if (!componentMounted) return
     }
   }
@@ -2582,6 +2914,7 @@ onBeforeUnmount(() => {
   removeVisibilityListener?.()
   removeVisibilityListener = null
   if (searchTimer) clearTimeout(searchTimer)
+  if (discoveryTimer) clearTimeout(discoveryTimer)
   workspaceStore.disconnect()
   removeShellMenuListeners()
 })

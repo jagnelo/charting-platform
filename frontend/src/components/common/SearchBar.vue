@@ -9,6 +9,12 @@
         :readonly="readonly"
         :placeholder="placeholder"
         class="search-input"
+        role="combobox"
+        aria-haspopup="listbox"
+        :aria-expanded="showDropdown ? 'true' : 'false'"
+        :aria-controls="optionsListId"
+        :aria-activedescendant="activeOptionId"
+        :aria-label="inputAriaLabel || placeholder"
         @input="onInput"
         @focus="onFocus"
         @keydown.escape="handleEscape"
@@ -18,11 +24,13 @@
       />
       <span v-if="loading" class="search-spinner">⟳</span>
     </div>
-    <div v-if="showDropdown" class="search-results">
+    <div v-if="showDropdown" :id="dropdownId" class="search-results" role="group" aria-label="Symbol search">
       <!-- Expression chart row (shown instead of normal results when query looks like expression) -->
+      <div v-if="canResolveExpression" :id="optionsListId" class="search-option-list" role="listbox" aria-label="Symbol search results">
       <div
-        v-if="canResolveExpression"
         :class="['result-item', 'result-item--expr', { highlighted: highlightIdx === 0 }]"
+        role="option"
+        :aria-selected="highlightIdx === 0 ? 'true' : 'false'"
         @click="selectExpression"
         @mouseenter="highlightIdx = 0"
       >
@@ -30,12 +38,17 @@
         <span class="r-name">{{ expressionActionLabel }}: <em>{{ query }}</em></span>
         <span class="r-type">Synthetic</span>
       </div>
+      </div>
       <template v-else>
         <template v-if="query.trim() && !isExpression">
+          <div :id="optionsListId" class="search-option-list" role="listbox" aria-label="Symbol search results">
           <div
             v-for="(r, i) in results"
             :key="r.symbol"
+            :id="optionId(i)"
             :class="['result-item', { highlighted: i === highlightIdx }]"
+            role="option"
+            :aria-selected="i === highlightIdx ? 'true' : 'false'"
             @click="select(r)"
             @mouseenter="highlightIdx = i"
           >
@@ -43,14 +56,32 @@
             <span class="r-name">{{ r.name }}</span>
             <span class="r-type">{{ r.type }}</span>
           </div>
+          <button
+            v-for="(candidate, index) in discoveryCandidates"
+            :id="candidateOptionId(index)"
+            :key="`${candidate.provider}:${candidate.symbol}:${candidate.exchange}`"
+            type="button"
+            role="option"
+            class="search-source-candidate"
+            :class="{ highlighted: highlightIdx === results.length + index }"
+            :aria-selected="highlightIdx === results.length + index ? 'true' : 'false'"
+            :disabled="discoveryLoading || resolvingCandidate"
+            @click="resolveCandidate(candidate)"
+            @mouseenter="highlightIdx = results.length + index"
+          >Use {{ candidate.symbol }} · {{ candidate.exchange || candidate.type }} <span>{{ candidate.name }}</span></button>
+          </div>
         </template>
         <template v-else>
           <template v-if="showRecentResults">
             <div class="recent-title">Recently viewed</div>
+            <div :id="optionsListId" class="search-option-list" role="listbox" aria-label="Recently viewed symbols">
             <div
               v-for="(r, i) in recentStore.recent"
               :key="r.symbol"
+              :id="optionId(i)"
               :class="['result-item', { highlighted: i === highlightIdx }]"
+              role="option"
+              :aria-selected="i === highlightIdx ? 'true' : 'false'"
               @click="selectRecent(r.symbol)"
               @mouseenter="highlightIdx = i"
             >
@@ -58,20 +89,12 @@
               <span class="r-name">{{ r.name || 'Recent instrument' }}</span>
               <span class="r-type">Recent</span>
             </div>
+            </div>
           </template>
         </template>
-        <section v-if="allowSourceDiscovery && query.trim() && !isExpression" class="search-source-discovery" aria-label="Free source discovery" @keydown.esc="handleEscape">
-          <button type="button" :disabled="discoveryLoading || resolvingCandidate" @click="discoverFreeSources">
-            {{ discoveryLoading ? 'Searching free sources…' : `Search free sources for ${query.trim().toUpperCase()}` }}
-          </button>
-          <button
-            v-for="candidate in discoveryCandidates"
-            :key="`${candidate.provider}:${candidate.symbol}:${candidate.exchange}`"
-            type="button"
-            class="search-source-candidate"
-            :disabled="discoveryLoading || resolvingCandidate"
-            @click="resolveCandidate(candidate)"
-          >Resolve {{ candidate.symbol }} · {{ candidate.exchange || candidate.provider }} <span>{{ candidate.name }}</span></button>
+        <section v-if="allowSourceDiscovery && query.trim() && !isExpression" class="search-source-discovery" aria-label="Ticker availability" @keydown.esc="handleEscape">
+          <p v-if="discoveryScheduled || discoveryLoading" class="search-message" role="status" aria-live="polite">No exact local match. Checking ticker availability…</p>
+          <p v-if="resolvingCandidate" class="search-message" role="status" aria-live="polite">Verifying ticker identity…</p>
           <p v-if="discoveryMessage" class="search-message" role="status" aria-live="polite">{{ discoveryMessage }}</p>
           <p v-if="discoveryError" class="search-message search-message--error" role="alert">{{ discoveryError }}</p>
         </section>
@@ -93,7 +116,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, useId } from 'vue'
 import { api } from '@/lib/api'
 import {
   ensureKnownInstrumentSymbol,
@@ -107,7 +130,9 @@ import {
   discoverInstruments,
   resolveDiscoveredInstrument,
   type InstrumentDiscoveryCandidate,
+  type InstrumentAcquireResponse,
 } from '@/lib/onDemandAcquisition'
+import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null; identity_status?: string; explicitlyResolved?: boolean }
 
@@ -125,6 +150,8 @@ const props = withDefaults(defineProps<{
   sourceDiscoveryOnly?: boolean
   openOnMount?: boolean
   requiredResolvedSymbol?: string
+  resultsId?: string
+  inputAriaLabel?: string
 }>(), {
   placeholder: 'Symbol…',
   modelValue: '',
@@ -139,12 +166,18 @@ const props = withDefaults(defineProps<{
   sourceDiscoveryOnly: false,
   openOnMount: false,
   requiredResolvedSymbol: '',
+  resultsId: '',
+  inputAriaLabel: '',
 })
 const emit = defineEmits<{
-  select: [symbol: string, result?: SearchResult]
+  select: [symbol: string, result?: SearchResult, confirmedIdentity?: InstrumentAcquireResponse]
   'update:modelValue': [value: string]
 }>()
 const recentStore = useRecentInstrumentsStore()
+const generatedSearchId = useId()
+const searchId = computed(() => props.resultsId || `search-bar-${generatedSearchId}`)
+const dropdownId = computed(() => `${searchId.value}-popup`)
+const optionsListId = computed(() => searchId.value)
 
 const query            = ref(props.modelValue)
 const results          = ref<SearchResult[]>([])
@@ -157,10 +190,13 @@ const dropdownDismissed  = ref(!props.openOnMount)
 const errorMessage       = ref('')
 const discoveryCandidates = ref<InstrumentDiscoveryCandidate[]>([])
 const discoveryLoading = ref(false)
+const discoveryScheduled = ref(false)
 const resolvingCandidate = ref(false)
 const discoveryMessage = ref('')
 const discoveryError = ref('')
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
+let discoveryTimer: ReturnType<typeof setTimeout> | null = null
+let searchGeneration = 0
 
 const showRecentResults = computed(() => props.showRecent)
 const showScreenerShortcut = computed(() =>
@@ -187,71 +223,116 @@ const showDropdown = computed(() =>
     || (!query.value.trim() && showRecentResults.value && recentStore.recent.length > 0)
   )
 )
+const activeOptionId = computed(() => {
+  if (canResolveExpression.value) return optionsListId.value
+  if (query.value.trim() && highlightIdx.value >= 0) {
+    if (highlightIdx.value < results.value.length) return optionId(highlightIdx.value)
+    const candidateIndex = highlightIdx.value - results.value.length
+    if (discoveryCandidates.value[candidateIndex]) return candidateOptionId(candidateIndex)
+  }
+  if (!query.value.trim() && showRecentResults.value && recentStore.recent[highlightIdx.value]) {
+    return optionId(highlightIdx.value)
+  }
+  return undefined
+})
 
 watch(() => props.modelValue, value => {
-  if (value !== query.value) query.value = value ?? ''
+  if (value !== query.value) {
+    invalidateSearch()
+    query.value = value ?? ''
+  }
 })
 
 async function onInput() {
+  const generation = ++searchGeneration
   expressionSelected.value = false
   dropdownDismissed.value = false
   errorMessage.value = ''
   discoveryCandidates.value = []
+  highlightIdx.value = query.value.trim() ? -1 : 0
   discoveryMessage.value = ''
   discoveryError.value = ''
+  loading.value = false
   if (debounceTimer) clearTimeout(debounceTimer)
-  if (props.readonly || props.sourceDiscoveryOnly) { results.value = []; return }
+  if (discoveryTimer) clearTimeout(discoveryTimer)
+  discoveryScheduled.value = false
+  // A superseded lookup may still be awaiting its response. Let the newest
+  // input start its own bounded lookup; generation checks keep the old result
+  // from updating this query.
+  discoveryLoading.value = false
+  resolvingCandidate.value = false
+  if (props.readonly) { results.value = []; return }
   if (query.value.length < 1) { results.value = []; return }
   // Don't hit search API for expressions
   if (isExpression.value) { results.value = []; return }
+  const requested = query.value.trim()
+  if (props.sourceDiscoveryOnly) {
+    results.value = []
+    scheduleDiscovery(requested, generation)
+    return
+  }
   debounceTimer = setTimeout(async () => {
     loading.value = true
     try {
       const loaded = await api.get<SearchResult[]>('/instruments/search', {
-        q: query.value,
+        q: requested,
         canonical_only: true,
         ...(props.resultTypes.length ? { types: props.resultTypes.join(',') } : {}),
       })
+      if (generation !== searchGeneration || query.value.trim() !== requested) return
       results.value = loaded.filter(matchesResultTypeScope)
-      highlightIdx.value = 0
+      highlightIdx.value = results.value.length ? 0 : -1
+      if (props.allowSourceDiscovery && shouldDiscoverTicker(requested, results.value)) {
+        scheduleDiscovery(requested, generation)
+      }
+    } catch {
+      if (generation === searchGeneration && query.value.trim() === requested) {
+        results.value = []
+        errorMessage.value = 'Unable to search canonical instruments. Ticker availability was not checked.'
+      }
     } finally {
-      loading.value = false
+      if (generation === searchGeneration) loading.value = false
     }
   }, 250)
 }
 
-async function discoverFreeSources() {
-  const requested = query.value.trim()
+function scheduleDiscovery(requested: string, generation: number) {
+  if (!props.allowSourceDiscovery || !requested || isExpression.value || !shouldDiscoverTicker(requested, [])) return
+  if (discoveryTimer) clearTimeout(discoveryTimer)
+  discoveryScheduled.value = true
+  discoveryTimer = scheduleTickerDiscovery(() => {
+    if (generation === searchGeneration && query.value.trim() === requested) {
+      void discoverTicker(requested, generation)
+    }
+  })
+}
+
+async function discoverTicker(requested: string, generation: number) {
   if (!props.allowSourceDiscovery || !requested || isExpression.value || discoveryLoading.value) return
   const queryKey = requested.toUpperCase()
   discoveryLoading.value = true
+  discoveryScheduled.value = false
   discoveryError.value = ''
   discoveryMessage.value = ''
   discoveryCandidates.value = []
   try {
     const response = await discoverInstruments(requested, props.resultTypes, 10)
-    if (query.value.trim().toUpperCase() !== queryKey) return
+    if (generation !== searchGeneration || query.value.trim().toUpperCase() !== queryKey) return
     discoveryCandidates.value = response.candidates.filter(matchesResultTypeScope)
-    discoveryMessage.value = discoveryCandidates.value.length
-      ? `${discoveryCandidates.value.length} source candidate${discoveryCandidates.value.length === 1 ? '' : 's'} found. Resolve a candidate to verify its canonical identity.`
-      : response.status === 'held'
-        ? 'Free source discovery is held.'
-        : response.status === 'unavailable'
-          ? 'Free source discovery is unavailable.'
-          : response.status === 'no_match'
-            ? 'No source candidates matched.'
-            : 'No candidates were returned.'
+    discoveryMessage.value = tickerDiscoveryMessage(response.status, discoveryCandidates.value.length)
+    if (!results.value.length && discoveryCandidates.value.length && highlightIdx.value < 0) highlightIdx.value = 0
   } catch {
-    if (query.value.trim().toUpperCase() === queryKey) {
-      discoveryError.value = 'Free source discovery failed. Cached and local results remain available.'
+    if (generation === searchGeneration && query.value.trim().toUpperCase() === queryKey) {
+      discoveryError.value = 'Ticker availability could not be checked. Local results remain available.'
     }
   } finally {
-    discoveryLoading.value = false
+    if (generation === searchGeneration) discoveryLoading.value = false
   }
 }
 
 async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
   if (resolvingCandidate.value) return
+  const generation = searchGeneration
   const queryKey = query.value.trim().toUpperCase()
   const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
   if (requiredSymbol && candidate.symbol.trim().toUpperCase() !== requiredSymbol) {
@@ -262,7 +343,7 @@ async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
   discoveryError.value = ''
   try {
     const response = await resolveDiscoveredInstrument(candidate)
-    if (query.value.trim().toUpperCase() !== queryKey) return
+    if (generation !== searchGeneration || query.value.trim().toUpperCase() !== queryKey) return
     if (response.status !== 'resolved' || !response.instrument
       || !Number.isSafeInteger(response.instrument.instrument_id) || response.instrument.instrument_id <= 0) {
       discoveryMessage.value = response.status === 'held'
@@ -293,13 +374,13 @@ async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
       identity_status: response.instrument.identity_status,
       explicitlyResolved: true,
     }
-    commitSelection(result.symbol, result.name, result)
+    commitSelection(result.symbol, result.name, result, response)
   } catch {
-    if (query.value.trim().toUpperCase() === queryKey) {
-      discoveryError.value = 'Identity resolution failed. No chart was opened.'
+    if (generation === searchGeneration && query.value.trim().toUpperCase() === queryKey) {
+      discoveryError.value = 'Ticker identity verification failed. No chart was opened.'
     }
   } finally {
-    resolvingCandidate.value = false
+    if (generation === searchGeneration) resolvingCandidate.value = false
   }
 }
 
@@ -312,6 +393,14 @@ function matchesResultTypeScope(result: SearchResult) {
 function onFocus() {
   dropdownDismissed.value = false
   if (!query.value.trim()) highlightIdx.value = 0
+}
+
+function optionId(index: number) {
+  return `${optionsListId.value}-option-${index}`
+}
+
+function candidateOptionId(index: number) {
+  return `${optionsListId.value}-candidate-${index}`
 }
 
 function select(r: SearchResult) {
@@ -327,7 +416,7 @@ async function selectExpression() {
   loading.value = true
   try {
     const symbol = await ensureKnownInstrumentSymbol(expr)
-    commitSelection(symbol, expr)
+    commitSelection(symbol, expr, { symbol, name: expr, exchange: '', type: 'Synthetic' })
     expressionSelected.value = true
   } catch (e) {
     errorMessage.value = formatInstrumentLookupError(expr, e)
@@ -336,9 +425,16 @@ async function selectExpression() {
   }
 }
 
-function commitSelection(symbol: string, label?: string, result?: SearchResult) {
+function commitSelection(
+  symbol: string,
+  label?: string,
+  result?: SearchResult,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
+  invalidateSearch()
   emit('update:modelValue', symbol)
-  emit('select', symbol, result)
+  if (confirmedIdentity) emit('select', symbol, result, confirmedIdentity)
+  else emit('select', symbol, result)
   recentStore.add(symbol, label)
   query.value = symbol
   results.value = []
@@ -356,6 +452,10 @@ function selectFirst() {
       select(results.value[highlightIdx.value])
       return
     }
+    if (highlightIdx.value >= results.value.length && discoveryCandidates.value.length) {
+      void resolveCandidate(discoveryCandidates.value[highlightIdx.value - results.value.length] ?? discoveryCandidates.value[0])
+      return
+    }
   }
   else if (!query.value.trim() && recentStore.recent.length) {
     selectRecent(recentStore.recent[highlightIdx.value]?.symbol ?? recentStore.recent[0].symbol)
@@ -363,13 +463,25 @@ function selectFirst() {
 }
 
 function moveDown() {
+  if (query.value.trim() && discoveryCandidates.value.length) {
+    const count = results.value.length + discoveryCandidates.value.length
+    highlightIdx.value = Math.min(highlightIdx.value + 1, count - 1)
+    return
+  }
   const len = query.value.trim()
     ? results.value.length
     : recentStore.recent.length
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
-function moveUp()   { highlightIdx.value = Math.max(highlightIdx.value - 1, 0) }
+function moveUp() {
+  if (query.value.trim() && discoveryCandidates.value.length) {
+    highlightIdx.value = Math.max(highlightIdx.value - 1, 0)
+    return
+  }
+  highlightIdx.value = Math.max(highlightIdx.value - 1, 0)
+}
 function clear()    {
+  invalidateSearch()
   query.value = ''
   results.value = []
   discoveryCandidates.value = []
@@ -383,6 +495,7 @@ function clear()    {
 
 function handleEscape() {
   if (props.mode === 'picker') {
+    invalidateSearch()
     results.value = []
     dropdownDismissed.value = true
     errorMessage.value = ''
@@ -392,6 +505,18 @@ function handleEscape() {
   clear()
 }
 
+function invalidateSearch() {
+  searchGeneration += 1
+  if (debounceTimer) clearTimeout(debounceTimer)
+  if (discoveryTimer) clearTimeout(discoveryTimer)
+  debounceTimer = null
+  discoveryTimer = null
+  loading.value = false
+  discoveryLoading.value = false
+  discoveryScheduled.value = false
+  resolvingCandidate.value = false
+}
+
 function resetToCommitted() {
   const committed = props.modelValue ?? ''
   if (query.value !== committed) query.value = committed
@@ -399,6 +524,7 @@ function resetToCommitted() {
 
 function handleClickOutside(e: MouseEvent) {
   if (rootRef.value && !rootRef.value.contains(e.target as Node)) {
+    invalidateSearch()
     results.value = []
     dropdownDismissed.value = true
     errorMessage.value = ''
@@ -409,8 +535,20 @@ function handleClickOutside(e: MouseEvent) {
 onMounted(() => {
   document.addEventListener('mousedown', handleClickOutside)
   if (props.openOnMount) dropdownDismissed.value = false
+  if (props.openOnMount && props.sourceDiscoveryOnly && props.allowSourceDiscovery) {
+    scheduleDiscovery(query.value.trim(), searchGeneration)
+  }
 })
-onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
+onUnmounted(() => {
+  invalidateSearch()
+  document.removeEventListener('mousedown', handleClickOutside)
+})
+defineExpose({
+  focusInput() {
+    inputRef.value?.focus()
+    inputRef.value?.select()
+  },
+})
 </script>
 
 <style scoped>
@@ -472,6 +610,24 @@ onUnmounted(() => document.removeEventListener('mousedown', handleClickOutside))
   cursor: pointer;
   font-size: 12px;
 }
+
+.search-source-candidate {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--tc-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+.search-source-candidate span { color: var(--tc-text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-source-candidate.highlighted { background: color-mix(in srgb, var(--tc-accent) 15%, var(--tc-panel-bg)); }
+.search-source-candidate:disabled { cursor: wait; opacity: 0.65; }
 
 .result-item.highlighted { background: #1a2a3a; }
 .result-item--expr { border-left: 2px solid #64b5f6; }
