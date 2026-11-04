@@ -26290,3 +26290,8 @@ The complete 205-test functional profile is running on the same fixture, one wor
 Root authorized exactly 34 local Linux PNG successors under `ordinary-journey-TC-reviewed-local-reference-update-root-authorization-20261104.json` (SHA256 `6b7ca6e955a34e9ea4f977f56042f1886a812ea489fb613f9ea64ed57bffad78`). The copied bytes come from reviewed attempt20 captures; the 404 visual case now waits for terminal shared Unavailable freshness and idle Refresh while keeping its existing chart 404/error/no-canvas and data checks. Masks, thresholds, skips, product source, and fixture are unchanged.
 
 Attempt20 functional was 203 passed, 2 configured skips, 0 failed at zero retries. Its predecessor strict visual run was 70/104 with 34 failures; those results remain preserved and are not accepted as a pass. A fresh immutable-tip 104 strict visual run and exact closing-tip CI remain required. No official REF-HELP-V25 parity, protected deployment, or genuine Provider/issuer evidence is claimed.
+
+
+## 2026-11-04 — Single terminal 404 reference successor
+
+Root authorized one exact additional local PNG under `ordinary-journey-TC-feb-single-terminal-reference-root-authorization-20261104.json`; receipt SHA256 `21b5d80ceba5061421b1c5ca1b17e7e14bfe6478b9f4f8001ae00518f3112e27`. It is the reviewed terminal 404 state with shared `Unavailable` freshness, idle `Refresh`, correct percentage weights, and populated holdings/industries. Together with the initial34 authorized files,35 scoped local references are now copied. The prior strict visual matrix was103/104 with this single mismatch. A fresh immutable-tip104 matrix and exact closing-tip CI remain required; the b8 functional evidence and all official V25, protected deployment, and genuine-source gaps are preserved.

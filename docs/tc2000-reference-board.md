@@ -1155,3 +1155,7 @@ an original product surface with no V25 analogue. `REF-SHELL-V25` and
 `REF-STUDY-LAB-V25` remain open/`required_missing`. No assertions, visual
 thresholds, masks, reference-board claims, skips, or acceptance policy were
 changed.
+
+## 2026-11-04 — Single terminal 404 reference successor
+
+Root separately authorized exactly one additional Linux PNG at `ordinary-journey-TC-feb-single-terminal-reference-root-authorization-20261104.json`. It replaces only the 1080p/100% provider-error gap capture with the reviewed terminal `Unavailable`/idle `Refresh` actual. Together with the previously authorized34 captures, this yields35 local-only successor images; official V25 gaps remain open and no thresholds, masks, skips, or app sources changed. The preceding strict visual attempt was103/104; a fresh immutable-tip104-case run and exact closing-tip CI remain pending.

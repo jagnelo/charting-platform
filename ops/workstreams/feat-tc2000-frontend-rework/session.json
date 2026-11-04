@@ -35,17 +35,17 @@
   "closing_tip_ci": {
     "head_sha": null,
     "run_id": null,
-    "scope": "Exact ordinary-journey local-reference successor closing tip; Root observes its branch CI.",
+    "scope": "Exact ordinary-journey final local-reference successor closing tip.",
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The b8 software/artifact checkpoint is Root-accepted. This coherent reference successor preserves the exact b8 functional result and prior visual failures; exact closing-tip CI is pending publication. A fresh immutable-tip 104 strict visual profile will run separately and must finish before integration review.",
-  "current_checkpoint_status": "Root accepted the bounded b8 software/artifact checkpoint. The exact authorized 34 local reference copies and deterministic 404 terminal-state readiness assertion are prepared. Attempt20 functional was 203 passed/2 configured skips/0 failed; strict visuals were 70 passed/34 failed and those failures remain preserved. Fresh 104 strict visuals, exact closing-tip CI, protected integration, deployment, and genuine-source evidence remain pending.",
+  "current_candidate_ci_status": "The Root-accepted b8 functional evidence remains valid. The feb0d8 strict visual run completed103/104; Root authorized the single reviewed terminal image, now copied. Fresh immutable-tip104 strict visuals and exact final CI remain pending.",
+  "current_checkpoint_status": "b8 functional 203 passed/2 configured skips/0 failed. feb0d8 strict visuals were103/104 with one stable terminal 404 capture mismatch. Root authorized and reviewed one additional exact local PNG; all35 scoped reference successors are now copied. Fresh104 visuals, exact current-tip CI, protected integration/deployment and genuine-source evidence remain pending.",
   "current_exact_ci": {
     "conclusion": null,
     "head_sha": null,
     "run_id": null,
-    "scope": "Exact coherent local-reference successor closing tip; Root observes its branch CI.",
+    "scope": "Exact one-PNG local-reference successor closing tip; Root observes final branch CI.",
     "status": "pending_publication"
   },
   "current_software_checkpoint": {
@@ -183,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "ce78859e8fb870ed862e7c262867c53944c4afb7",
+  "head": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -274,7 +274,7 @@
     "status": "ready_for_integration"
   },
   "interrupted": false,
-  "last_checkpoint": "2026-11-04T15:56:33Z",
+  "last_checkpoint": "2026-11-04T16:24:18Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
   "latest_exact_ci_audit": {
     "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
@@ -306,7 +306,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish this one coherent reference-only and records close, then run the fresh immutable-tip 104 strict visual profile across all four projects at one worker/zero retries on the existing unchanged 6c6/52fa fixture. Root owns exact-tip CI observation, integration, deployment, and genuine-source proof.",
+  "next_action": "Publish this one coherent additional-PNG and records update; run a fresh immutable-tip 104-case strict visual matrix across four projects, one worker, zero retries on unchanged 6c6/52fa. Root owns exact-tip CI, integration, deployment, and genuine-source proof.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -337,7 +337,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "8d29e6648e6b7cffd7b5d5429db22240849c212600aba3a8c868b9a7512fa00e",
+  "plan_hash": "b1962e87c6eef2efc085912165374b4477309e10c7870292cc88a5dd8c8d09e4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -379,16 +379,16 @@
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "One coherent close for the Root-authorized 34 local reference successors, terminal 404 capture readiness, and truthful workstream records; fresh exact-tip strict visuals and exact CI remain pending.",
+    "current_pending_range": "One additional Root-authorized terminal404 PNG plus current records; 35 scoped local reference copies total. Fresh immutable-tip104 visuals and exact closing-tip CI pending.",
     "failure_category": null,
     "remote": "origin",
     "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
-    "status": "The b8 software/artifact checkpoint is Root-accepted. This single local-reference successor is prepared from Root-reviewed attempt20 captures; predecessor functional/visual evidence and all failures remain preserved. Publish once, run fresh 104 strict visuals on the immutable tip, and keep exact CI and Root-owned integration/deployment/source gates pending."
+    "status": "The prior feb0d8 tip is published; its full strict visual run was103/104, with one Root-reviewed terminal 404 image mismatch. This coherent update copies only the newly authorized exact PNG and records. Publish once, run fresh104 strict visuals on the immutable new tip, and preserve the b8 functional evidence and all remaining Root-owned gates."
   },
-  "remote": "ce78859e8fb870ed862e7c262867c53944c4afb7",
-  "remote_sha": "ce78859e8fb870ed862e7c262867c53944c4afb7",
+  "remote": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
+  "remote_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
   "remote_synchronized": false,
-  "remote_tracking_sha": "ce78859e8fb870ed862e7c262867c53944c4afb7",
+  "remote_tracking_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -566,7 +566,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T15:56:33Z",
+  "updated_at": "2026-11-04T16:24:18Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
