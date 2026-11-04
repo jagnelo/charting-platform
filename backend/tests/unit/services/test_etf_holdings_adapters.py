@@ -8998,6 +8998,7 @@ async def test_bondbloxx_httpx_403_stops_without_legacy_retry(monkeypatch):
 async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     adapter = get_holdings_adapter("invesco")
     assert adapter is not None
+    monkeypatch.setattr(adapter, "_cusip_cache", {})
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -25168,6 +25169,84 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
+    for symbol in ("BWET", "BDRY"):
+        metadata = known_etf_route_metadata(symbol)
+        assert metadata["provider_aliases"]["holdings_adapter"] == "amplify"
+        assert metadata["provider_aliases"]["holdings_source_provider"] == "amplify"
+        assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_state"] == (
+            "successor_issuer_route"
+        )
+        assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_refs"]
+    assert known_etf_route_metadata("IGV") == {}
+    ishares_catalog_route = known_etf_route_metadata(
+        "IGV",
+        canonical_issuer=SimpleNamespace(
+            domain_key="ishares",
+            status="active",
+            provenance={"source": "trusted issuer directory", "identifier": "unit-test"},
+        ),
+        allow_catalog_route=True,
+    )
+    assert ishares_catalog_route["provider_aliases"] == {
+        "holdings_adapter": "ishares",
+        "holdings_source_provider": "ishares",
+        "issuer_product_catalog_key": "ishares_us_etf_products_v1",
+        "issuer_catalog_discovery_hint": "trusted_canonical_issuer",
+    }
+    assert (
+        known_etf_route_metadata(
+            "IGM",
+            canonical_issuer=SimpleNamespace(
+                domain_key="ishares",
+                status="inactive",
+                provenance={"source": "fixture"},
+            ),
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    assert (
+        known_etf_route_metadata(
+            "IGM",
+            canonical_issuer=SimpleNamespace(
+                domain_key="ishares",
+                status="active",
+                provenance={},
+            ),
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    assert known_etf_route_metadata(
+        "IGV",
+        canonical_fund_name="iShares Expanded Tech-Software Sector ETF",
+        allow_catalog_route=True,
+    )["provider_aliases"]["issuer_catalog_discovery_hint"] == ("canonical_iShares_fund_name")
+    assert (
+        known_etf_route_metadata(
+            "IGV",
+            canonical_issuer=SimpleNamespace(
+                domain_key="vanguard",
+                status="active",
+                provenance={"source": "canonical issuer"},
+            ),
+            canonical_fund_name="iShares Expanded Tech-Software Sector ETF",
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    ishares = get_holdings_adapter("ishares")
+    assert ishares is not None
+    igv_probe = ishares.probe(symbol="IGV", name="iShares Expanded Tech ETF", identifiers={})
+    assert igv_probe.status == "needs_issuer_route"
+    assert "issuer_product_id" in igv_probe.required_identifiers
+    catalog_probe = ishares.probe(
+        symbol="IGV",
+        name="Canonical ETF name is not used to infer the catalog row",
+        identifiers={"issuer_product_catalog_key": "ishares_us_etf_products_v1"},
+    )
+    assert catalog_probe.status == "ready"
+    assert catalog_probe.source_url == "https://www.ishares.com/us/products/etf-investments"
     bflb = known_etf_route_metadata("BFLB")
     assert bflb == {
         "issuer": "BufferLABS",
@@ -25237,6 +25316,143 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
     assert all("idType=ticker" not in url for url in invesco_entry["url_templates"])
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_name", "provider"),
+    [
+        (
+            "XES",
+            "State Street SPDR S&P Oil & Gas Equipment & Services ETF",
+            "spdr",
+        ),
+        ("QZXE", "State Street Example Sector SPDR ETF", "spdr"),
+        ("PXJ", "Invesco Oil & Gas Services ETF", "invesco"),
+        ("QZXI", "Invesco Example Allocation ETF", "invesco"),
+        ("QZXA", "Amplify Example Market ETF", "amplify"),
+    ],
+)
+def test_unseeded_selected_fund_brand_only_nominates_registered_core_adapter(
+    symbol, canonical_name, provider
+):
+    from app.services.etf_holdings_capability import current_symbol_route_audit
+
+    assert current_symbol_route_audit(symbol) is None
+    assert known_etf_route_metadata(symbol, canonical_fund_name=canonical_name) == {}
+    metadata = known_etf_route_metadata(
+        symbol,
+        canonical_fund_name=canonical_name,
+        allow_catalog_route=True,
+    )
+
+    assert metadata["issuer"] is None
+    aliases = metadata["provider_aliases"]
+    assert aliases["holdings_adapter"] == provider
+    assert aliases["holdings_source_provider"] == provider
+    assert aliases["native_adapter_discovery_hint"] == "canonical_fund_name"
+    assert not any(
+        key in aliases
+        for key in ("issuer_product_id", "cusip", "holdings_url", "holdings_route_evidence")
+    )
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_name", "issuer"),
+    [
+        (
+            "QZXE",
+            "Invesco Example Fund ETF",
+            SimpleNamespace(
+                domain_key="spdr",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        (
+            "QZXI",
+            "State Street Example ETF",
+            SimpleNamespace(
+                domain_key="invesco",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        (
+            "QZXA",
+            "Invesco Example Market ETF",
+            SimpleNamespace(
+                domain_key="amplify",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        ("QZXA", "Amplify and Invesco Example ETF", None),
+        (
+            "QZXE",
+            "State Street Example Sector SPDR ETF",
+            SimpleNamespace(
+                domain_key="spdr",
+                status="inactive",
+                provenance={"source": "stale issuer row"},
+            ),
+        ),
+        (
+            "QZXE",
+            "State Street Example Sector SPDR ETF",
+            SimpleNamespace(
+                domain_key="unrelated_manager",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+    ],
+)
+def test_unseeded_core_route_hint_rejects_foreign_or_ambiguous_brand(
+    symbol, canonical_name, issuer
+):
+    assert (
+        known_etf_route_metadata(
+            symbol,
+            canonical_issuer=issuer,
+            canonical_fund_name=canonical_name,
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+
+
+@pytest.mark.parametrize(
+    ("provider", "canonical_name"),
+    [
+        ("spdr", "State Street Example Sector ETF"),
+        ("invesco", "Invesco Example Allocation ETF"),
+        ("amplify", "Amplify Example Market ETF"),
+    ],
+)
+def test_unseeded_trusted_core_issuer_only_nominates_exact_registered_adapter(
+    provider, canonical_name
+):
+    metadata = known_etf_route_metadata(
+        "QZXN",
+        canonical_issuer=SimpleNamespace(
+            domain_key=provider,
+            display_name=f"Canonical {provider}",
+            status="active",
+            provenance={"source": "canonical issuer directory"},
+        ),
+        canonical_fund_name=canonical_name,
+        allow_catalog_route=True,
+    )
+
+    assert metadata["issuer"] == f"Canonical {provider}"
+    aliases = metadata["provider_aliases"]
+    assert aliases["holdings_adapter"] == provider
+    assert aliases["holdings_source_provider"] == provider
+    assert aliases["native_adapter_discovery_hint"] == "trusted_canonical_issuer"
+    assert not any(
+        key in aliases
+        for key in ("issuer_product_id", "cusip", "holdings_url", "holdings_route_evidence")
+    )
 
 
 @pytest.mark.parametrize(
@@ -31525,3 +31741,189 @@ def test_north_square_q3_recheck_keeps_symbols_unavailable_without_complete_down
         assert audit.evidence_state == "non_executable_public_source"
         assert audit.investigated_at == date(2026, 10, 4)
         assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (audit.evidence_refs)
+
+
+@pytest.mark.asyncio
+async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatch):
+    """Native completeness comes from each issuer format, not profile aliases."""
+
+    # SPDR's fund-scoped daily workbook is complete only when every nonblank
+    # holdings-table row is represented by the parser.
+    spdr = get_holdings_adapter("spdr")
+    assert spdr is not None
+    spdr_symbol = "XES"
+    spdr_url = spdr._workbook_url(spdr_symbol)
+    spdr_workbook = _xlsx_workbook(
+        [
+            ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+            ["Ticker Symbol:", spdr_symbol],
+            ["Holdings:", "As of 02-Nov-2026"],
+            ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+            ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+        ]
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=spdr_workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=spdr_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    spdr_result = await spdr.fetch_latest(symbol=spdr_symbol)
+    spdr_completeness = spdr_result.legal_metadata["native_composition_completeness"]
+    assert spdr_completeness["status"] == "complete"
+    assert spdr_completeness["basis"] == "spdr_fund_scoped_daily_holdings_workbook"
+    assert spdr_completeness["reported_rows"] == spdr_completeness["parsed_rows"] == 1
+    malformed_spdr_rows = [
+        ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+        ["Ticker Symbol:", spdr_symbol],
+        ["Holdings:", "As of 02-Nov-2026"],
+        ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+        ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+        ["Unidentified security row", "", "", "", "", "", ""],
+    ]
+    assert (
+        spdr._workbook_completeness(
+            malformed_spdr_rows,
+            rows=spdr_result.rows,
+            fund_symbol=spdr_symbol,
+            composition_date=date(2026, 11, 2),
+        )["status"]
+        == "incomplete"
+    )
+
+    # Invesco's declared total is authoritative; one returned row cannot be
+    # treated as complete when the source says 105 holdings exist.
+    invesco = get_holdings_adapter("invesco")
+    assert invesco is not None
+    holdings_url = invesco._holdings_url("46090E103")
+    invesco_payload = {
+        "effectiveBusinessDate": "2026-11-02",
+        "totalNumberOfHoldings": 1,
+        "holdings": [
+            {
+                "ticker": "MSFT",
+                "issuerName": "Microsoft Corp",
+                "cusip": "594918104",
+                "securityTypeName": "Common Stock",
+            }
+        ],
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(invesco_payload), content_type="application/json", url=holdings_url
+        )
+    ]
+    invesco_result = await invesco.fetch_latest(symbol="QQQ", source_url=holdings_url)
+    invesco_completeness = invesco_result.legal_metadata["native_composition_completeness"]
+    assert invesco_completeness["status"] == "complete"
+    assert invesco_completeness["authoritative_total_matches"] is True
+    assert invesco_completeness["reported_rows"] == invesco_completeness["parsed_rows"] == 1
+    incomplete_invesco = {**invesco_payload, "totalNumberOfHoldings": 105}
+    incomplete_invesco_evidence = invesco._holdings_json_completeness(
+        incomplete_invesco, rows=invesco_result.rows
+    )
+    assert incomplete_invesco_evidence["status"] == "incomplete"
+    assert (
+        invesco._holdings_json_completeness(
+            {
+                key: value
+                for key, value in invesco_payload.items()
+                if key != "totalNumberOfHoldings"
+            },
+            rows=invesco_result.rows,
+        )["status"]
+        == "incomplete"
+    )
+    assert (
+        invesco._holdings_json_completeness(
+            {**invesco_payload, "hasMore": True}, rows=invesco_result.rows
+        )["status"]
+        == "incomplete"
+    )
+    from app.services.etf_holdings_refresh import _verified_native_composition_completeness
+
+    with pytest.raises(ValueError, match="composition completeness is not proven"):
+        _verified_native_composition_completeness(
+            profile=SimpleNamespace(instrument=SimpleNamespace(symbol="QQQ")),
+            adapter=invesco,
+            fetch_result=SimpleNamespace(
+                rows=invesco_result.rows,
+                raw_json=incomplete_invesco,
+                raw_text=json.dumps(incomplete_invesco),
+                legal_metadata={"native_composition_completeness": incomplete_invesco_evidence},
+            ),
+        )
+
+    # BlackRock's holdings.all vectors must align. The separate product
+    # catalog total is intentionally not used as a holdings row count.
+    ishares = get_holdings_adapter("ishares")
+    assert ishares is not None
+    ishares_payload = {
+        "componentsByNameMap": {
+            "holdings": {
+                "containersByNameMap": {
+                    "all": {
+                        "dataPointsByNameMap": {
+                            "asOfDate": {"value": 20261102},
+                            "ticker": {"value": ["MSFT"]},
+                            "issueName": {"value": ["MICROSOFT CORP"]},
+                            "holdingPercent": {"value": [6.5]},
+                            "unitsHeld": {"value": [100]},
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps(ishares_payload), content_type="application/json")
+    ]
+    ishares_result = await ishares.fetch_latest(symbol="IWM")
+    ishares_rows = ishares_result.rows
+    ishares_completeness = ishares_result.legal_metadata["native_composition_completeness"]
+    assert ishares_completeness["status"] == "complete"
+    assert ishares_completeness["basis"] == "blackrock_holdings_all_container"
+    assert ishares_completeness["reported_rows"] == ishares_completeness["parsed_rows"] == 1
+    truncated_ishares = json.loads(json.dumps(ishares_payload))
+    truncated_ishares["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"][
+        "dataPointsByNameMap"
+    ]["holdingPercent"]["value"] = []
+    assert (
+        ishares._holdings_all_completeness(truncated_ishares, rows=ishares_rows)["status"]
+        == "incomplete"
+    )
+
+    # Amplify's full export may contain many accounts, but every selected
+    # account row and date must be accounted for in the canonical result.
+    amplify = get_holdings_adapter("amplify")
+    assert amplify is not None
+    amplify_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "11/02/2026,BWET,MSFT,594918104,Microsoft Corp,100,1,100,1%,10000,100,1,",
+            "11/02/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,1,10,1%,1000,10,1,",
+        ]
+    )
+    FakeAsyncClient.queue = [FakeResponse(text=amplify_csv, content_type="text/csv")]
+    amplify_result = await amplify.fetch_latest(symbol="BWET")
+    amplify_completeness = amplify_result.legal_metadata["native_composition_completeness"]
+    assert amplify_completeness["status"] == "complete"
+    assert amplify_completeness["reported_rows"] == amplify_completeness["parsed_rows"] == 1
+    missing_date_csv = amplify_csv.replace("11/02/2026,BWET", ",BWET")
+    missing_date_rows, _ = amplify._parse_amplify_csv(missing_date_csv, symbol="BWET")
+    assert (
+        amplify._selected_account_csv_completeness(
+            missing_date_csv, symbol="BWET", rows=missing_date_rows
+        )["status"]
+        == "incomplete"
+    )
+    malformed_csv = amplify_csv.replace("11/02/2026,OTHER,NVDA", "11/02/2026,OTHER")
+    malformed_rows, _ = amplify._parse_amplify_csv(malformed_csv, symbol="BWET")
+    assert (
+        amplify._selected_account_csv_completeness(
+            malformed_csv, symbol="BWET", rows=malformed_rows
+        )["status"]
+        == "incomplete"
+    )

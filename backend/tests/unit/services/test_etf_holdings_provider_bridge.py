@@ -227,6 +227,85 @@ def test_vaneck_binary_response_telemetry_preserves_exact_bytes_and_text_json_be
         assert measurement.response_payloads == [expected]
 
 
+def test_native_response_body_witness_preserves_exact_invalid_utf8_wire_bytes():
+    from app.providers.telemetry import activate, deactivate
+
+    adapter = SimpleNamespace(adapter_key="spdr", source_provider="spdr")
+    scope = {
+        "attempt_id": 44,
+        "provider": "spdr",
+        "data_source_id": 61,
+        "capability": "etf_holdings",
+        "operation": "fetch_etf_holdings_latest",
+        "profile_id": 53,
+        "instrument_id": 824,
+        "provider_symbol": "XES",
+        "account_scope": "spdr:offline-fixture",
+        "review_revision": 7,
+        "provider_review_fingerprint": "a" * 64,
+        "expires_at": (datetime.now(UTC) + timedelta(seconds=60)).isoformat(),
+        "max_physical_requests": 2,
+    }
+    request_url = "https://www.ssga.com/us/en/intermediary/etfs/holding.xlsx"
+    wire_bytes = b"PK\x03\x04\x00\xff\xc0\xaf\xfeoriginal-workbook-bytes"
+    response = httpx.Response(
+        200,
+        content=wire_bytes,
+        headers={
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+        request=httpx.Request("GET", request_url),
+    )
+    measurement, token = activate(capture_response_payloads=True)
+    try:
+        with bind_etf_holdings_request_context(
+            db=object(),
+            adapter=adapter,
+            profile_id=53,
+            instrument_id=824,
+            provider_symbol="XES",
+            operation="fetch_etf_holdings_latest",
+            native_initial_qualification_job_id=44,
+            native_initial_qualification_scope=scope,
+        ) as binding:
+            binding.request_log_ids.append(13)
+            binding.request_urls_by_log_id[13] = request_url
+            bridge._observe_httpx_attempt_response(
+                response,
+                preserve_binary_payload=False,
+                max_response_bytes=None,
+            )
+            assert (
+                response.extensions[bridge.ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION][
+                    "request_log_id"
+                ]
+                == 13
+            )
+    finally:
+        deactivate(token)
+
+    captured = next(
+        payload
+        for payload in measurement.response_payloads
+        if payload.get("kind") == "etf_native_response_body"
+    )
+    witness_payload = next(
+        payload
+        for payload in measurement.response_payloads
+        if payload.get("kind") == "etf_native_response_body_witness"
+    )
+    witness = witness_payload["witness"]
+    assert base64.b64decode(captured["body_base64"], validate=True) == wire_bytes
+    assert captured["sha256"] == hashlib.sha256(wire_bytes).hexdigest()
+    assert captured["bytes_received"] == len(wire_bytes)
+    assert witness["response_body_sha256"] == hashlib.sha256(wire_bytes).hexdigest()
+    assert witness["response_body_bytes"] == len(wire_bytes)
+    assert (
+        witness["physical_request_url_sha256"]
+        == hashlib.sha256(bridge._canonical_request_url(request_url).encode()).hexdigest()
+    )
+
+
 @pytest.mark.asyncio
 async def test_request_driven_etf_call_rejects_missing_scope_before_resolver_or_transport(
     monkeypatch,

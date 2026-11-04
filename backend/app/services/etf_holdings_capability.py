@@ -2074,6 +2074,19 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
     )
 
 
+def current_symbol_route_audit(symbol: str) -> ETFHoldingsSymbolAudit | None:
+    """Return exact current symbol evidence usable to prepare one native route.
+
+    This is deliberately a symbol-scoped lookup, not an adapter/catalog scan.
+    Historical, unavailable, identity-only and unknown audit entries do not
+    become executable routes.
+    """
+
+    normalized = str(symbol or "").strip().upper()
+    audit = _TIER_0_SYMBOL_AUDITS.get(normalized) or _NON_TIER_0_SYMBOL_AUDITS.get(normalized)
+    return audit if audit is not None and audit.outcome == CURRENT else None
+
+
 def evaluate_tier0_shadow_gate(
     observations_by_symbol: Mapping[str, Sequence[Mapping[str, Any]]],
     *,

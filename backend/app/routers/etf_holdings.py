@@ -11,6 +11,7 @@ from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRu
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsBackfillJob,
     ETFHoldingsSnapshot,
     ETFProfile,
 )
@@ -126,6 +127,10 @@ from app.services.etf_holdings_edgar import (
     list_sec_nport_backfill_jobs,
     qualify_sec_nport_fund,
 )
+from app.services.etf_holdings_native_qualification import (
+    NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+    qualify_native_etf_fund,
+)
 from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
@@ -148,6 +153,8 @@ from app.services.etf_holdings_vaneck_qualification import (
     qualify_vaneck_oih_fund,
     recover_vaneck_oih_fund,
 )
+from app.services.etf_issuer_catalog import IssuerCatalogError
+from app.services.provider_runtime import ProviderNoDataError
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
 
@@ -556,23 +563,26 @@ async def acquire_holdings_profile(
         symbol=symbol,
         request_id=str(body.request_id),
         refresh=body.refresh,
+        instrument_id=body.instrument_id,
     )
     if result is None:
         raise HTTPException(status_code=404, detail="ETF holdings profile was not found")
     await db.commit()
-    profile = await profile_to_out(db, result.profile)
+    profile = await profile_to_out(db, result.profile) if result.profile is not None else None
     snapshot = result.snapshot
     if snapshot is None and result.snapshot_id is not None:
         snapshot = await get_snapshot_by_id(db, result.snapshot_id, include_holdings=True)
     return ETFProfileAcquireOut(
         request_id=body.request_id,
         outcome=result.outcome,
+        instrument_id=(result.instrument_id or (profile.instrument_id if profile else None)),
+        symbol=(result.symbol or (profile.symbol if profile else None)),
         refresh=body.refresh,
         refresh_attempted=result.refresh_attempted,
         refresh_succeeded=result.refresh_succeeded,
         profile=profile,
         snapshot=snapshot,
-        capability=profile.holdings_capability,
+        capability=profile.holdings_capability if profile else None,
         source_provider=result.source_provider,
         source_operation=result.source_operation,
         provider_request_log_ids=result.provider_request_log_ids,
@@ -1361,6 +1371,83 @@ async def qualify_initial_vaneck_oih_for_etf(
         )
     except ETFHoldingsRouteHeldError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/native-initial-qualification",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def qualify_initial_native_etf_fund(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Run one admin-only qualification for an existing reviewed native ETF route."""
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol or normalized_symbol in {"*", "ALL", "ANY"}:
+        raise HTTPException(status_code=422, detail="A single committed ETF symbol is required")
+    profile = (
+        await db.execute(
+            select(ETFProfile)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .options(selectinload(ETFProfile.instrument))
+            .where(func.upper(Instrument.symbol) == normalized_symbol)
+        )
+    ).scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Committed ETF profile not found")
+    try:
+        return await qualify_native_etf_fund(
+            db,
+            profile_id=profile.id,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (IssuerCatalogError, ProviderNoDataError) as exc:
+        failed_job = (
+            await db.execute(
+                select(ETFHoldingsBackfillJob)
+                .where(
+                    ETFHoldingsBackfillJob.etf_profile_id == profile.id,
+                    ETFHoldingsBackfillJob.job_type == NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+                )
+                .order_by(
+                    ETFHoldingsBackfillJob.started_at.desc(),
+                    ETFHoldingsBackfillJob.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if failed_job is not None and failed_job.status in {"failed", "cancelled"}:
+            cancelled = failed_job.status == "cancelled"
+            detail = {
+                "code": (
+                    "native_qualification_cancelled"
+                    if cancelled
+                    else "native_qualification_not_qualified"
+                ),
+                "outcome": "cancelled" if cancelled else "not_qualified",
+                "job_id": failed_job.id,
+                "job_status": failed_job.status,
+                "reason": failed_job.failure_reason
+                or (
+                    "Native qualification was cancelled."
+                    if cancelled
+                    else "Native source evidence was not qualified."
+                ),
+            }
+            raise HTTPException(status_code=409, detail=detail) from exc
+        detail = {
+            "code": "native_qualification_unavailable",
+            "outcome": "unavailable",
+            "reason": "The native source did not provide qualifying holdings evidence.",
+        }
+        if failed_job is not None:
+            detail["job_id"] = failed_job.id
+            detail["job_status"] = failed_job.status
+        raise HTTPException(status_code=503, detail=detail) from exc
 
 
 @router.post(

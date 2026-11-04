@@ -144,17 +144,23 @@ class ETFProfileAcquireRequest(BaseModel):
 
     request_id: UUID
     refresh: bool = False
+    # New selected-instrument clients bind the user action to the exact
+    # canonical result they displayed. The path symbol remains for backwards
+    # compatibility and is checked against this ID before any profile work.
+    instrument_id: int | None = Field(default=None, gt=0)
 
 
 class ETFProfileAcquireOut(BaseModel):
     """Selected-fund result with stored evidence kept distinct from refresh."""
 
     request_id: UUID
-    outcome: Literal["cached", "no_data", "acquired", "held", "failed"]
+    outcome: Literal["cached", "no_data", "acquired", "held", "failed", "unavailable"]
+    instrument_id: int | None = None
+    symbol: str | None = None
     refresh: bool
     refresh_attempted: bool
     refresh_succeeded: bool
-    profile: ETFProfileOut
+    profile: ETFProfileOut | None = None
     snapshot: "ETFHoldingsSnapshotOut | None" = None
     capability: ETFHoldingsCapabilityOut | None = None
     source_provider: str | None = None

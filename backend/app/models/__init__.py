@@ -15,6 +15,7 @@ from app.models.etf_holdings import (
     ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
     ETFIndexProxyMapping,
+    ETFIssuerCatalogCache,
     ETFProfile,
 )
 from app.models.exchange import Exchange
@@ -252,6 +253,7 @@ __all__ = [
     "MarketMapSnapshot",
     "DataSource",
     "ETFProfile",
+    "ETFIssuerCatalogCache",
     "ETFHoldingsRawArtifact",
     "ETFHoldingsSnapshot",
     "ETFHolding",
