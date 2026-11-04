@@ -48,11 +48,11 @@
       "backend/app/services/etf_holdings_capability.py": "17cf8ee0ca71d0952524cc25beaa1090053b1372759fc16418703df78d59524c",
       "backend/app/services/etf_holdings_refresh.py": "ad9cf4f7821babedd6bd479a63e51e124cf7e38e5e98f5226bf812648d0a3a2a",
       "backend/app/services/etf_issuer_catalog.py": "502bd8756602aa43e970e1580339ce3b4e635bd3bdf3289575f3a2a0cfd2099d",
+      "backend/tests/unit/routers/test_etf_holdings_native_qualification.py": "06186235ed139534473395c59d834c1570c9ee39f64faa361a35f2cf5895e81d",
       "backend/tests/unit/services/test_etf_holdings_adapters.py": "320e3255a5d850eb1b3342f703333e47454a2f7bb171115f36ecaa6663df36d4",
       "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
       "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "1ef3f50fb31871c4f0922bbf31c7a06ecb036976bbf45b9fafcf7df342a7c261",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py": "88ac2f9b13b8a926b2ed4f16c0b728330ca08c32d318cd2873acfe2e67dc90ad",
-      "backend/tests/unit/routers/test_etf_holdings_native_qualification.py": "06186235ed139534473395c59d834c1570c9ee39f64faa361a35f2cf5895e81d"
+      "backend/tests/unit/services/test_etf_issuer_catalog.py": "88ac2f9b13b8a926b2ed4f16c0b728330ca08c32d318cd2873acfe2e67dc90ad"
     },
     "source_paths": [
       "backend/alembic/versions/e6f7a8b9c012_add_etf_issuer_catalog_cache.py",
@@ -85,14 +85,14 @@
       "backend/tests/unit/services/test_etf_issuer_catalog.py"
     ],
     "candidate_source_sha256": {
+      "backend/app/routers/etf_holdings.py": "56c4816eb272df52ed209a2f5597917f7d5693eb989be05ddf4b9f8887fe0d70",
       "backend/app/services/etf_holdings_refresh.py": "ad9cf4f7821babedd6bd479a63e51e124cf7e38e5e98f5226bf812648d0a3a2a",
+      "backend/app/services/etf_issuer_catalog.py": "502bd8756602aa43e970e1580339ce3b4e635bd3bdf3289575f3a2a0cfd2099d",
       "backend/tests/integration/api/test_etf_holdings.py": "bf7c40a96981887914330a60c5ad78fe12ecdfe6ce72d881fff029ebfdd1357d",
+      "backend/tests/unit/routers/test_etf_holdings_native_qualification.py": "06186235ed139534473395c59d834c1570c9ee39f64faa361a35f2cf5895e81d",
       "backend/tests/unit/services/test_etf_holdings_bootstrap.py": "1db5f8c505db3e1105a42f3c677d7ca6b1b640869b73b715612b18c84920eff2",
       "backend/tests/unit/services/test_etf_holdings_native_qualification.py": "1ef3f50fb31871c4f0922bbf31c7a06ecb036976bbf45b9fafcf7df342a7c261",
-      "backend/app/routers/etf_holdings.py": "56c4816eb272df52ed209a2f5597917f7d5693eb989be05ddf4b9f8887fe0d70",
-      "backend/app/services/etf_issuer_catalog.py": "502bd8756602aa43e970e1580339ce3b4e635bd3bdf3289575f3a2a0cfd2099d",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py": "88ac2f9b13b8a926b2ed4f16c0b728330ca08c32d318cd2873acfe2e67dc90ad",
-      "backend/tests/unit/routers/test_etf_holdings_native_qualification.py": "06186235ed139534473395c59d834c1570c9ee39f64faa361a35f2cf5895e81d"
+      "backend/tests/unit/services/test_etf_issuer_catalog.py": "88ac2f9b13b8a926b2ed4f16c0b728330ca08c32d318cd2873acfe2e67dc90ad"
     },
     "completed": [
       "Preserved the exact green staging ancestry and existing feature claim/history.",
@@ -127,8 +127,8 @@
   },
   "active_goal": {
     "completed_goal_history_preserved": true,
-    "created_at_epoch": 1793388767,
-    "objective": "Implement the Root-released unresolved ETF holding drilldown in feat/etf-holdings-constituents: let a user discover and explicitly resolve the exact reported ticker from its holding row, preserve snapshot provenance, then explicitly acquire missing D1 history and reload the chart. Preserve all prior accepted checkpoints and the full AC1-AC14 roadmap; complete focused tests, the required full_stack_browser profile, exact-source CI, and hand off at ready_for_human_review. No provider requests, production operations, or integration/deployment.",
+    "created_at_epoch": 1793705535,
+    "objective": "Finish the ETF backend for the ordinary ticker journey on synchronized green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c in this original visible session. Preserve 876358b9, the existing claim and unbudgeted goal accounting, all checkpoints, failures, and the full roadmap. Complete current PostgreSQL qualification, one coherent closing publication and exact-source CI, and prepare the source-specific backend artifact for Root review. Root/TC own the combined profile and Root owns protected integration/deployment; no live Source HTTP, real-ledger, policy or sibling changes. Stop at ready_for_human_review.",
     "status": "active",
     "token_budget": null
   },
@@ -173,8 +173,8 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "closure_pending": true,
-  "closure_summary": "Root accepted the bounded etf-unresolved-calendar-side-read-fixture-20261031 checkpoint under the existing human-delegated authority (receipt SHA256 ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827). Tested implementation is 802ef5b1e6a4246cc27f29da90950984878df947; exact implementation-source CI41186532340 is terminal green. Frontend passed1495; backend accounted for5614 unit and597 integration cases at84% combined coverage. The current-source local full_stack_browser profile passed all required phases: functional201 passed/2 configured skips across all five acquisition cases, strict visual104 passed across four projects, zero retries, and exact-owned cleanup with protected inventory equal at29 containers,32 images,10 networks,51 volumes; the private10000-row smoke passed. Product/runtime build provenance remains distinct from tested source; this test-fixture checkpoint makes no runtime, migration, provider-policy, paid-source or production change. The four-record closing tip has its own CI gate after publication; no self-referential CI claim is made. integration_capture: exact branch HEAD. AC1-AC14, 15 Tier-0 and156 Tier-1, genuine OIH holdings and returned-uncached-constituent proof, source/account acceptance, target/deployment work and all other roadmap gates remain open; Root owns integration, promotion and deployment.",
+  "closure_pending": false,
+  "closure_summary": "Root accepted the bounded ordinary selected-acquisition backend software/artifact checkpoint under the existing human-delegated authority. Tested implementation source is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. The current isolated PostgreSQL module passed 110/110 with zero failures, errors or skips; its result/JUnit/log hashes, exact-owned cleanup and Root normalized protected-inventory acceptance are recorded in this workstream. The current backend image was built from the tested implementation source and backend tree, tagged etf-ordinary-journey/backend:3a8e205921071923e1517eabb7623f01ded77935, OCI image sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, linux/amd64; the private 0600 export archive SHA256 is e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. Root independently verified all 1055 tracked context blobs, image source labels/content, OCI manifest, config and layers, and accepted the artifact at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json (SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b). This record-only closing commit keeps backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c unchanged and uses integration_capture: exact branch HEAD. Its exact-source push CI remains required and pending until that run finishes. Root/TC's combined runtime functional and strict-visual profile remains required and pending; ETF launched no app/browser fixture. No Source HTTP, publisher-qualification success, policy enablement, real-ledger mutation, production change, deployment or full AC1-AC14 completion is claimed. All native failures/holds, 15 Tier-0 and 156 Tier-1, accepted archives and historical results remain preserved. Root owns the remaining profile, integration, promotion, deployment and genuine publisher/returned-constituent proof.",
   "continuation_goal": {
     "accounting_note": "This is the same unbudgeted ordinary ticker-selection goal in the original thread. Prior completed goal accounting and accepted checkpoints remain archived unchanged.",
     "created_at_epoch": 1793705535,
@@ -184,22 +184,30 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "IGV catalog multi-table parsing and typed expected-source failure handling are focused-green but not yet published or exact-source CI qualified. Producer owns the ETV admission parity fix; adopt it only after its exact green staging release. Root will then release the final isolated PostgreSQL boundary, artifact binding, and combined runtime profile. No source retry, source success, deployment, or full AC1-AC14 completion is claimed; preserve all previous failed jobs, reservations, 15 Tier-0 and 156 Tier-1, history and holds.",
-  "current_checkpoint_objective": "Implement ordinary selected-canonical-fund acquisition, exact native evidence and generic admin qualification executor using the Provider callable adopted only from green stage4d4a278b; preserve ETV/ETP versus ETN and all source/account/target holds.",
-  "current_local_delta": "Current uncommitted iShares repair: table-local category/count handling selects the ETF catalog, accepts the official %20 slug, and rejects conflicting/ambiguous/incomplete identities. Expected catalog/no-data failures return typed status tied to the terminal durable job; arbitrary exceptions remain uncaught. Focused 130/130, Ruff clean, actual retained capture parsed offline. Producer ETV admission adoption, final PostgreSQL boundary, exact-source CI, backend artifact, and Root/TC combined functional/visual profile remain pending. The prior early-probe PG database was exported privately (944371 bytes, SHA256 a6a1a2db2d1fc22ad60c896ee46747183b8218b13d95d27534e822dd4e4a6114, mode0600, pg_restore list0), then only its exact three containers, network and two volumes were removed. Root independently accepted the mount-order-normalized foreign inventory.",
-  "dirty_paths": [
-    "backend/app/routers/etf_holdings.py",
-    "backend/app/services/etf_issuer_catalog.py",
-    "backend/tests/unit/routers/test_etf_holdings_native_qualification.py",
-    "backend/tests/unit/services/test_etf_issuer_catalog.py",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "Root accepted this bounded backend software/artifact checkpoint, including the 110-case PostgreSQL proof, exact cleanup and artifact provenance. Publish the coherent four-record closure and observe its exact-source CI. Root/TC still own the combined current-backend/frontend functional and 104-case strict-visual profile; it has not run or been accepted here. AC1-AC14, 15 Tier-0 and 156 Tier-1, native-publisher failures/holds, genuine holdings/constituent proof and protected integration/deployment remain open.",
+  "current_checkpoint_objective": "Complete the accepted bounded ordinary selected-acquisition backend software/artifact checkpoint; Root/TC retain required joint runtime/browser gates and the full AC1-AC14/product objective remains open.",
+  "current_local_delta": "After green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adoption, the current isolated PostgreSQL module passed 110/110 cases (zero failures, errors or skips) on implementation source 3a8e205921071923e1517eabb7623f01ded77935/backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. Logical PROVIDER_ROUTING_ENABLED=1 was used only for mocked tests; live/paid flags remained off, credentials were isolated, and external provider egress was blocked. Exact-owned PG/Redis/network/volume cleanup reconciled true and Root accepted the normalized protected inventory. The backend artifact was built once on the existing capped shared builder and independently accepted: sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, Linux/amd64, archive SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. The four-record closing commit still needs exact push CI; Root/TC's combined runtime and strict-visual profile and genuine publisher/production gates remain pending.",
+  "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 463900089,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
+      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 463900089,
+    "volume_count": 2,
+    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "docker_ready": {
     "ready": true,
@@ -222,7 +230,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "565211dc4c00eb7d8ceb633502d604f54d5bd417",
+  "head": "3a8e205921071923e1517eabb7623f01ded77935",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -744,12 +752,12 @@
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
-  "human_closure_authorization": "Root accepted `etf-unresolved-calendar-side-read-fixture-20261031` under the existing human standing checkpoint delegation. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json` (SHA256 `ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827`). This records Root's delegated decision and does not invent a new human quote or accept the full AC1-AC14 roadmap.",
-  "implementation_sha": null,
-  "implementation_source_baseline": "c91d556f89318509e96a0292453a22d6d7d96365",
+  "human_closure_authorization": "Root accepted the bounded ordinary selected-acquisition backend software/artifact checkpoint under the existing human-delegated checkpoint authority. Current PostgreSQL/input acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-current-PG-and-backend-input-root-acceptance-20261104.json (SHA256 963d92d924f4dcdaa7b6fe0e4e014aefc7c5b4c1b283e953378618cb0cb7eeb8); independent backend artifact acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json (SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b). This records Root's delegated decision without inventing a new human quote or accepting the full AC1-AC14 roadmap.",
+  "implementation_sha": "3a8e205921071923e1517eabb7623f01ded77935",
+  "implementation_source_baseline": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
   "integration_capture": "exact branch HEAD",
   "integration_checkpoint": {
-    "acceptance_authorization": "pending_review",
+    "acceptance_authorization": "accepted_by_coordinator_under_existing_human_delegation",
     "acceptance_criteria": [
       {
         "id": "OSA1",
@@ -773,7 +781,7 @@
       }
     ],
     "branch_validation_tier": "full_integration",
-    "closure_pending": true,
+    "closure_pending": false,
     "full_roadmap_status": "AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted checkpoints, retained datasets and historical failures.",
     "goal": "Implement explicit selected-canonical-fund acquisition, generic core-publisher route nomination, and native response-body evidence without guessing issuer identity. Prepare the bounded admin executor offline against the declared Provider contract; adopt and integrate the real callable only after its exact synchronized green staging release.",
     "id": "etf-ordinary-selected-acquisition-route-preparation-20261103",
@@ -786,14 +794,14 @@
         "OSA3",
         "OSA4"
       ],
-      "current_blocker": "The exact-source CI on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is preserved red (run 41665410601; one IGV success-fixture failure, 5,764 passed/2 skipped). Its incomplete catalog-count fixture and read-only DB-double gaps are corrected locally; the affected native qualification, issuer catalog and refresh modules pass 115 with one existing Producer-contract skip. Publish this corrected candidate for a new exact-source CI. Provider callable adoption and the engine-backed test still await synchronized green staging and Root fixture release. No provider HTTP or target/policy/ledger mutation is authorized. Preserve 15 Tier-0 and 156 Tier-1 and every existing hold.",
-      "current_phase": "Ordinary adapter paths for SPDR, Invesco, iShares and Amplify are exercised with ordinary bindings and no qualification job/scope. Direct Invesco coverage proves catalog evidence survives a warm CUSIP cache and caller CUSIP hint; catalog and holdings request lineage, fund identity and effective business date are checked. The prior exact CI red remains historical; the corrected focused native/catalog/refresh modules pass 115 with one existing dependency-contract skip. Engine-backed Provider integration remains pending its separate staging/fixture release.",
+      "current_blocker": "Root accepted this bounded backend software/artifact checkpoint, including the 110-case PostgreSQL proof, exact cleanup and artifact provenance. Publish the coherent four-record closure and observe its exact-source CI. Root/TC still own the combined current-backend/frontend functional and 104-case strict-visual profile; it has not run or been accepted here. AC1-AC14, 15 Tier-0 and 156 Tier-1, native-publisher failures/holds, genuine holdings/constituent proof and protected integration/deployment remain open.",
+      "current_phase": "After green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adoption, the current isolated PostgreSQL module passed 110/110 cases (zero failures, errors or skips) on implementation source 3a8e205921071923e1517eabb7623f01ded77935/backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. Logical PROVIDER_ROUTING_ENABLED=1 was used only for mocked tests; live/paid flags remained off, credentials were isolated, and external provider egress was blocked. Exact-owned PG/Redis/network/volume cleanup reconciled true and Root accepted the normalized protected inventory. The backend artifact was built once on the existing capped shared builder and independently accepted: sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, Linux/amd64, archive SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. The four-record closing commit still needs exact push CI; Root/TC's combined runtime and strict-visual profile and genuine publisher/production gates remain pending.",
       "total": 5
     },
     "remaining_gates": [
-      "Publish this one coherent focused ETF candidate and complete its exact-source branch CI; no local Docker/profile run is part of this preparation.",
-      "After Root releases Provider through synchronized green staging, adopt only that green source and run the engine-backed shared-callable contract tests without copying Producer source.",
-      "Complete the combined source-matched local qualification after dependency adoption; Root separately owns publisher HTTP, target proof, integration, and deployment."
+      "Exact-source full_integration CI for this one closing records publication; Root observes the exact tip and no metadata follow-up is planned.",
+      "Root/TC combined profile using current backend artifact sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65 and the retained frontend component, including required functional and 104 strict-visual cases, with current protected-inventory proof.",
+      "Root-owned protected integration/master/deployment and genuine, positively qualified publisher holdings plus returned-uncached-constituent proof; preserve all source/account/policy/quota holds and AC1-AC14."
     ],
     "required_contracts": [
       "The existing POST /api/v1/etf-holdings/{symbol}/acquire remains the selected-fund action; optional positive instrument_id must match the existing canonical resolved fund for the path symbol.",
@@ -804,7 +812,7 @@
       "Every physical source request continues through the shared Provider admission, entitlement, account, quota, cost, health and hold gates; no source call, policy mutation, quota/ledger write, or target operation is part of this offline candidate.",
       "The offline executor uses the declared Provider contract; real callable/engine integration waits until the exact Provider source is released through synchronized green staging."
     ],
-    "source_baseline": "f8323af179922193f4dcf3c9f0a5d9001282455f",
+    "source_baseline": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
     "source_scope": [
       "backend/app/routers/etf_holdings.py",
       "backend/app/schemas/etf_holdings.py",
@@ -823,12 +831,12 @@
       "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
       "backend/app/strategy_lab_v2/tests/test_migration_compatibility.py"
     ],
-    "status": "implementation_in_progress",
+    "status": "accepted_ready_for_integration",
     "validation": {
-      "exact_source_ci": "Run 41665410601 on fc0840dabfb6bad9308dda8631b12dfc48b69b66 is terminal red: Backend Tests 5764 passed, 2 skipped, 1 failed in test_selected_acquire_from_null_issuer_igv_requires_official_catalog_identity. Preserve this result; corrected fixture/tests are locally green and require a new exact-source run after publication.",
+      "exact_source_ci": "Tested implementation source 3a8e205921071923e1517eabb7623f01ded77935 is the exact source for the 110-case local PostgreSQL result and image build, but was not previously published on this feature branch. This one four-record closing publication creates a new exact-source push CI run; its result is pending at publication and must be observed on the exact closing tip. Earlier CI runs qualify only their recorded SHAs. No follow-up metadata commit is planned.",
       "focused_native_routing_and_body_evidence": "Focused offline source slice passed 939 tests with one contract-dependent skip (940 collected): migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh, and issuer-catalog modules. Tests cover unseeded XES/SPDR and PXJ/Invesco plus fictitious SPDR/Invesco/Amplify nominations, trusted issuer hints, default non-selected holds, ambiguous/foreign-brand mismatches, and no product-ID fabrication. Actual-format offline adapter cases bind SPDR workbook ticker, Invesco catalog CUSIP/holdings JSON, iShares exact catalog/holdings JSON, and Amplify selected-account CSV to captured-body/parser/artifact hashes and request scope. Invalid-UTF8/NUL workbook transport proves exact base64 wire retention. Shared Strategy migration compatibility passes with its additive catalog head. Ruff check/format and diff checks pass. The sole skip is the exact Producer callable contract test, absent from synchronized staging; no provider HTTP, target, policy, quota, ledger, Docker or full profile ran.",
       "focused_selected_acquire": "From the backend project, the affected no-network modules passed 743/743: tests/unit/services/test_etf_issuer_catalog.py, test_etf_holdings_bootstrap.py, and test_etf_holdings_adapters.py. This includes the issuer_id=NULL IGV selection path, exact catalog-row identity before holdings fetch, numeric/official-slug paths, conflicting slug and mismatched identity rejection, and the 482-of-482 label without false completeness. Ruff check/format, Alembic head e6f7a8b9c012, branch-validate (46 records), the narrative regression (1/1), and git diff --check passed. No DB fixture, provider/issuer/SEC HTTP, target or policy/quota/ledger mutation occurred.",
-      "local_profile": "focused_offline_unit_slice_only; no Docker or local full profile launched; combined engine/provider qualification remains pending",
+      "local_profile": "The current local docker_integration minimum passed once: 110/110 integration cases, zero failures, errors or skips. JUnit SHA256 f613e3faaa819c9ee88ebd1d124d7f90777114b1c78a2ca4f9008871f8bc23e2; log SHA256 daa27368af53039b9ea4632e8181483fb1b32b0edfa38f25de6ba67ca1aab0f2; result receipt /tmp/etf-4de-current-pg-3a8e2059/attempt-007/pg-phase-result.json SHA256 b9f65abc8fc69170d82dddbae2a90fe03cd469760b794cf245d690074eaa7863. Exact-owned PG/Redis/network/volume cleanup receipt /tmp/etf-4de-current-pg-3a8e2059/attempt-007/cleanup-reconciliation-attempt002.json SHA256 12337ddc1d2280977507c2eeb6cf877b774dcc6054a3e31709b6e126a381 reconciles true. Root accepted normalized preservation at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-current-PG-normalized-inventory-root-review-20261104.json SHA256 db6825dc9e6f0e1480d66b6cacfde27df8962f632e7e3a496a612c7b1c3bab30. Current backend artifact sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, tag etf-ordinary-journey/backend:3a8e205921071923e1517eabb7623f01ded77935, linux/amd64; retained archive /tmp/etf-backend-artifact-4de1365-20261104/attempt002/backend-image.tar SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e; archive validation /tmp/etf-backend-artifact-4de1365-20261104/attempt002/archive-validation-attempt002.json SHA256 3709f5af302926342a13d3a15e0bd33552398c660188d6562d15134f5336c32e. Root independently accepted context, image, OCI config/layers and image contents at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b. The combined frontend/backend functional and 104-case strict-visual profile remains Root/TC-owned and pending; no profile result is claimed here.",
       "ordinary_mode_ci_followup": {
         "cause_and_correction": "The published IGV success fixture asserted a complete 482/482 catalog with one row; parser rejection was correct. The success fixture now uses an internally complete controlled 2/2 catalog, and a separate regression asserts that a partial body with the observed 482/482 label remains incomplete. The fixture uses the adapter YYYYMMDD date and supplies read-only cache/source/request-log facts required by the ordinary verifier. A direct ordinary Invesco warm-cache plus caller-CUSIP regression runs _native_adapter_fetch_evidence and asserts identity/date evidence with qualification job/scope absent.",
         "failed_job": 126019268196,
@@ -837,8 +845,21 @@
         "local_result": "115 passed, 1 existing Producer-contract skip; branch-validate accepted46 records; narrative regression1/1; Ruff and diff checks passed.",
         "next": "Publish corrected candidate; exact-source CI remains required."
       },
-      "provider_initial_qualification": "offline executor/body-evidence implementation present; actual Provider callable/engine integration is held until exact green staging adoption; no fake probe or bypass"
-    }
+      "provider_initial_qualification": "Offline executor and exact native-evidence guards passed the current 110-case isolated PostgreSQL module using the adopted Provider callable with mocked transport. Historical XES job1, IGV job2 and BWET job3 failures remain unchanged; no live publisher request or successful publisher qualification is claimed."
+    },
+    "integration_capture": "exact branch HEAD",
+    "root_acceptance_receipts": [
+      {
+        "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-current-PG-and-backend-input-root-acceptance-20261104.json",
+        "sha256": "963d92d924f4dcdaa7b6fe0e4e014aefc7c5b4c1b283e953378618cb0cb7eeb8",
+        "scope": "current PG/input acceptance"
+      },
+      {
+        "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json",
+        "sha256": "4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b",
+        "scope": "backend image/artifact acceptance"
+      }
+    ]
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -875,7 +896,7 @@
   },
   "last_checkpoint": "2026-10-31T09:51:12Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "iShares multi-table catalog and expected-source error repair is focused-green only. The retained actual response parsed offline with original byte count/hash, 482 ETF rows, and IGV239771. No Source HTTP/DB fixture. Candidate is unpublished and exact-source CI pending; Producer ETV staging adoption must precede final PG/artifact/runtime gates. Full AC1-AC14 remain open.",
+  "latest_checkpoint": "Root accepted the bounded backend software/artifact checkpoint. Current 110-case isolated PostgreSQL qualification passed; exact-owned cleanup reconciled and Root accepted protected inventory; backend image52fa was independently reviewed. Exact closing-tip CI and the Root/TC joint functional/104-strict-visual profile remain pending. No live publisher success, policy enablement, production mutation, deployment or AC1-AC14 completion is claimed.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
     "result": "Exact implementation push CI41186532340 is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947; Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive Integration Gate was skipped as configured.",
@@ -883,21 +904,18 @@
     "sha": "802ef5b1e6a4246cc27f29da90950984878df947"
   },
   "latest_staging_baseline_adoption": {
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
-    "canonical_receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
-    "exact_ci_run": 41706834463,
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261104T111148Z-4de1365cec4b.json",
+    "canonical_receipt_sha256": "ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea",
+    "exact_ci_run": 41805745211,
     "master_or_deployment_claim": false,
     "master_or_deployment_claimed": false,
     "merge_conflicts": [],
-    "pre_adoption_feature_sha": "26def097c1e64f3bcfcbf38349470dd80dbbd1cc",
-    "product_delta_imported": "Provider ETV/Exchange Traded Product classification and selected-instrument type adopted from exact green staging",
+    "pre_adoption_feature_sha": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
+    "product_delta_imported": "Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adopted through normal same-branch merge; resulting backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c",
     "release_state": "exact synchronized-green staging normally merged into the assigned ETF branch",
-    "released_staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
-    "resulting_head": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
-    "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-green4d-provider-taxonomy-adoption-release-20261103.json",
-    "root_release_review_sha256": "3ab50f1aed1a2fa2feee2916c66566a6319fc807e3bacf6da3268f48863fa1b2",
-    "source_changes_after_merge": "Provider ETV taxonomy contract adopted through green staging; no sibling imports",
-    "source_commit_before_merge": "26def097c1e64f3bcfcbf38349470dd80dbbd1cc"
+    "released_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
+    "resulting_head": "3a8e205921071923e1517eabb7623f01ded77935",
+    "source_changes_after_merge": "Green staging ancestry is in the source; tested ETF implementation is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. No sibling source copy."
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
@@ -947,9 +965,40 @@
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Complete current source/test and four-record workstream reconciliation, run normal branch/narrative/diff validation, then publish this coherent candidate and observe its exact-source CI. Do not build or launch the final PG/runtime profile until Producer ETV admission reaches green staging and Root releases its exact boundary.",
-  "plan_hash": "dcc9e7cc73233b68af5de6abc82df130e8a6a93f3790ec21768c258d27193440",
-  "plan_sha256": "dcc9e7cc73233b68af5de6abc82df130e8a6a93f3790ec21768c258d27193440",
+  "next_action": "Publish this accepted bounded software/artifact checkpoint in one four-record commit, then freeze the tip for exact-source CI. Root/TC own the combined profile and all protected integration, production, source-policy and genuine-publisher proof; do not start another fixture or source request.",
+  "ordinary_ishares_multitable_catalog_repair_2026_11_04": {
+    "captured_response_bytes": 495609,
+    "captured_response_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/igv-catalog-body-captured-raw.html",
+    "captured_response_sha256": "c165550804ed1d21edeb933c2fce02f8bcb0c5d8f3187f4dd7007f5e3a2d68fc",
+    "fixture_cleanup": {
+      "dump_bytes": 944371,
+      "dump_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/etf-native-prequal-565211-20261104-postgres-only.pg.dump",
+      "dump_sha256": "a6a1a2db2d1fc22ad60c896ee46747183b8218b13d95d27534e822dd4e4a6114",
+      "historical_failed_jobs": "XES job1, IGV job2, BWET job3 unchanged; no replay or source request",
+      "local_comparison": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/protected-inventory-cleanup-comparison-v2.private.json",
+      "local_comparison_sha256": "b3028222f1c76e9865ea6840cec5378f508fb6d23cd07b57f9fd408dbc0c5190",
+      "mode": "0600",
+      "pg_restore_list_exit": 0,
+      "removed_only": "three exact owned project containers, one project network, named PostgreSQL volume, and exact Redis anonymous volume; images unchanged",
+      "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-native-fixture-cleanup-normalized-root-review-20261104.json",
+      "root_review_sha256": "b67f35854c6742698f654832463df059af5fe274b72d12bd08351bef6207f044"
+    },
+    "offline_parse_receipt": "/tmp/etf-igv-catalog-offline-parse-proof-final-20261104.json",
+    "offline_parse_receipt_sha256": "905d815f06f59dc943a3e80f0e179ab34b285a1c5417da9f3686506272c5bf98",
+    "parser_source_sha256": "502bd8756602aa43e970e1580339ce3b4e635bd3bdf3289575f3a2a0cfd2099d",
+    "provider_http_used": false,
+    "remaining": "exact-source CI and publication pending; Producer ETV admission green staging adoption, Root-released final PostgreSQL boundary, backend artifact and combined runtime qualification remain pending; no source success claimed",
+    "result": "482 complete ETF rows; exact IGV product239771; separate 44-row Mutual Funds table excluded",
+    "source_paths_sha256": {
+      "backend/app/routers/etf_holdings.py": "56c4816eb272df52ed209a2f5597917f7d5693eb989be05ddf4b9f8887fe0d70",
+      "backend/app/services/etf_issuer_catalog.py": "62d6104c3c79c6060982690fe0bf570eca58441fe2123f50a08dc831337e5e7d",
+      "backend/tests/unit/routers/test_etf_holdings_native_qualification.py": "06186235ed139534473395c59d834c1570c9ee39f64faa361a35f2cf5895e81d",
+      "backend/tests/unit/services/test_etf_issuer_catalog.py": "0ef685b323a00fe3a286ccbf048d9ada433c6cf7200c7f297b768daaa8ecfc3e"
+    },
+    "tests": "130 focused catalog/native qualification/refresh/router tests passed; Ruff check/format passed"
+  },
+  "plan_hash": "8083bbb0eb5a77357b80220b8e5972b2f8e4648734ec0b5ac4343f3988458aef",
+  "plan_sha256": "8083bbb0eb5a77357b80220b8e5972b2f8e4648734ec0b5ac4343f3988458aef",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -2867,10 +2916,10 @@
     "state": "terminal_green_all_required_jobs",
     "supported_reconcile": "make staging-reconcile exited0; synchronized; marker absent"
   },
-  "remote": "565211dc4c00eb7d8ceb633502d604f54d5bd417",
+  "remote": "876358b9804fc0fd934d1d1d7a8472b5adc7845b",
   "remote_observation": "Local source includes the prepared ETV test and exact green Provider merge; coherent current publication is pending. origin feature remains7cf4952935392719023e24fd9dc7f658823aef18.",
-  "remote_sha": "565211dc4c00eb7d8ceb633502d604f54d5bd417",
-  "remote_synchronized": true,
+  "remote_sha": "876358b9804fc0fd934d1d1d7a8472b5adc7845b",
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -2947,7 +2996,7 @@
   },
   "schema": 2,
   "session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
-  "source_candidate_publication": "Current ordinary selected-acquisition candidate remains based on published source565211dc4c00eb7d8ceb633502d604f54d5bd417. Historical exact CI41679135322 remains red for five refresh cases; later focused candidate changes corrected legacy/native handling and ETV eligibility. This current uncommitted iShares fix parses the actual retained multi-table response and returns typed durable expected-source failure outcomes; 130 focused tests and Ruff are green. Actual capture SHA256 c165550804ed1d21edeb933c2fce02f8bcb0c5d8f3187f4dd7007f5e3a2d68fc is preserved; offline parse receipt is /tmp/etf-igv-catalog-offline-parse-proof-20261104.json. No additional Source HTTP occurred. Producer ETV parity remains a separately owned pending green-staging dependency. Candidate publication/exact CI, final PG boundary, backend artifact, and combined Root/TC runtime profile remain pending; no publisher success or full roadmap completion claimed.",
+  "source_candidate_publication": "Accepted tested implementation source 3a8e205921071923e1517eabb7623f01ded77935, backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. PG result /tmp/etf-4de-current-pg-3a8e2059/attempt-007/pg-phase-result.json (SHA256 b9f65abc8fc69170d82dddbae2a90fe03cd469760b794cf245d690074eaa7863) is 110/110 pass; Root cleanup and artifact reviews are recorded. Image sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65 was built from tested source and reviewed; archive SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. This four-record closing publication triggers its own exact-source CI; Root/TC combined runtime/visual profile remains required and pending. No Source HTTP, policy/ledger/production operation, live publisher qualification success, or full roadmap completion is claimed.",
   "staging_adoption_2026_10_24": {
     "branch_merge_commit": "dc7d5687e5f932fcec9009d17abb1f802e3bbfbc",
     "branch_merge_parents": [
@@ -2977,7 +3026,7 @@
     "released_staging_sha": "a6558c4978311d7a21c3b29d3d8fd2f043610efb"
   },
   "state": "in_progress",
-  "status": "in_progress",
+  "status": "ready_for_integration",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
     "DFTT_responses": ".ai/validation/structural-donoghue-native-replay-20261015.log",
@@ -3038,7 +3087,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T05:13:52.691749+00:00",
+  "updated_at": "2026-11-04T12:51:27.344617+00:00",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -3057,35 +3106,14 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
   "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
-  "ordinary_ishares_multitable_catalog_repair_2026_11_04": {
-    "provider_http_used": false,
-    "captured_response_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/igv-catalog-body-captured-raw.html",
-    "captured_response_bytes": 495609,
-    "captured_response_sha256": "c165550804ed1d21edeb933c2fce02f8bcb0c5d8f3187f4dd7007f5e3a2d68fc",
-    "offline_parse_receipt": "/tmp/etf-igv-catalog-offline-parse-proof-final-20261104.json",
-    "result": "482 complete ETF rows; exact IGV product239771; separate 44-row Mutual Funds table excluded",
-    "tests": "130 focused catalog/native qualification/refresh/router tests passed; Ruff check/format passed",
-    "remaining": "exact-source CI and publication pending; Producer ETV admission green staging adoption, Root-released final PostgreSQL boundary, backend artifact and combined runtime qualification remain pending; no source success claimed",
-    "source_paths_sha256": {
-      "backend/app/routers/etf_holdings.py": "56c4816eb272df52ed209a2f5597917f7d5693eb989be05ddf4b9f8887fe0d70",
-      "backend/app/services/etf_issuer_catalog.py": "62d6104c3c79c6060982690fe0bf570eca58441fe2123f50a08dc831337e5e7d",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py": "0ef685b323a00fe3a286ccbf048d9ada433c6cf7200c7f297b768daaa8ecfc3e",
-      "backend/tests/unit/routers/test_etf_holdings_native_qualification.py": "06186235ed139534473395c59d834c1570c9ee39f64faa361a35f2cf5895e81d"
-    },
-    "fixture_cleanup": {
-      "dump_path": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/etf-native-prequal-565211-20261104-postgres-only.pg.dump",
-      "dump_bytes": 944371,
-      "dump_sha256": "a6a1a2db2d1fc22ad60c896ee46747183b8218b13d95d27534e822dd4e4a6114",
-      "mode": "0600",
-      "pg_restore_list_exit": 0,
-      "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-native-fixture-cleanup-normalized-root-review-20261104.json",
-      "root_review_sha256": "b67f35854c6742698f654832463df059af5fe274b72d12bd08351bef6207f044",
-      "local_comparison": "/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/protected-inventory-cleanup-comparison-v2.private.json",
-      "local_comparison_sha256": "b3028222f1c76e9865ea6840cec5378f508fb6d23cd07b57f9fd408dbc0c5190",
-      "removed_only": "three exact owned project containers, one project network, named PostgreSQL volume, and exact Redis anonymous volume; images unchanged",
-      "historical_failed_jobs": "XES job1, IGV job2, BWET job3 unchanged; no replay or source request"
-    },
-    "offline_parse_receipt_sha256": "905d815f06f59dc943a3e80f0e179ab34b285a1c5417da9f3686506272c5bf98",
-    "parser_source_sha256": "502bd8756602aa43e970e1580339ce3b4e635bd3bdf3289575f3a2a0cfd2099d"
+  "staging_adoption_2026_11_04": {
+    "released_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261104T111148Z-4de1365cec4b.json",
+    "canonical_receipt_sha256": "ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea",
+    "exact_staging_ci": 41805745211,
+    "exact_staging_ci_state": "terminal_green_all_required_jobs",
+    "local_merge_commit": "3a8e205921071923e1517eabb7623f01ded77935",
+    "merge_conflicts": [],
+    "deployment_or_target_claimed": false
   }
 }

@@ -3,8 +3,8 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_merge_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
-latest_staging_parent_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
+latest_staging_merge_sha: "4de1365cec4bc5897c2a76d16a0004853d747f9c"
+latest_staging_parent_sha: "4de1365cec4bc5897c2a76d16a0004853d747f9c"
 staging_adoption_a6558c497831_2026_10_31:
   released_staging_sha: a6558c4978311d7a21c3b29d3d8fd2f043610efb
   canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261031T070709Z-a6558c497831.json
@@ -387,14 +387,9 @@ previously_accepted_unresolved_holding_drilldown_closure_summary_2026_10_30: >-
 previously_accepted_unxq_calendar_closure_pending_2026_10_31: false
 previously_accepted_unxq_calendar_human_closure_authorization_2026_10_31: "Root accepted `etf-unresolved-calendar-side-read-fixture-20261031` under the existing human standing checkpoint delegation. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json` (SHA256 `ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827`). This records Root's delegated decision and does not invent a new human quote or accept the full AC1-AC14 roadmap."
 previously_accepted_unxq_calendar_closure_summary_2026_10_31: "Root accepted the bounded etf-unresolved-calendar-side-read-fixture-20261031 checkpoint under the existing human-delegated authority (receipt SHA256 ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827). Tested implementation is 802ef5b1e6a4246cc27f29da90950984878df947; exact implementation-source CI41186532340 is terminal green. Frontend passed1495; backend accounted for5614 unit and597 integration cases at84% combined coverage. The current-source local full_stack_browser profile passed all required phases: functional201 passed/2 configured skips across all five acquisition cases, strict visual104 passed across four projects, zero retries, and exact-owned cleanup with protected inventory equal at29 containers,32 images,10 networks,51 volumes; the private10000-row smoke passed. Product/runtime build provenance remains distinct from tested source; this test-fixture checkpoint makes no runtime, migration, provider-policy, paid-source or production change. The four-record closing tip has its own CI gate after publication; no self-referential CI claim is made. integration_capture: exact branch HEAD. AC1-AC14, 15 Tier-0 and156 Tier-1, genuine OIH holdings and returned-uncached-constituent proof, source/account acceptance, target/deployment work and all other roadmap gates remain open; Root owns integration, promotion and deployment."
-closure_pending: true
-human_closure_authorization: "No acceptance recorded for the active ordinary selected-acquisition implementation."
-closure_summary: >-
-  This implementation remains in progress. The focused selected-acquire route-preparation
-  component is locally green, but no generic native initial-qualification executor exists
-  yet. Provider publication/adoption, the reusable exact issuer-product metadata route,
-  executor regressions, required local profile, exact branch CI, and Root review remain
-  pending. AC1-AC14 and genuine source/account/target proof remain open.
+closure_pending: false
+human_closure_authorization: "Root accepted the bounded ordinary selected-acquisition backend software/artifact checkpoint under the existing human-delegated checkpoint authority. Current PostgreSQL/input acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-current-PG-and-backend-input-root-acceptance-20261104.json (SHA256 963d92d924f4dcdaa7b6fe0e4e014aefc7c5b4c1b283e953378618cb0cb7eeb8); independent backend artifact acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json (SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b). This records Root's delegated decision without inventing a new human quote or accepting the full AC1-AC14 roadmap."
+closure_summary: "Root accepted the bounded ordinary selected-acquisition backend software/artifact checkpoint under the existing human-delegated authority. Tested implementation source is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. The current isolated PostgreSQL module passed 110/110 with zero failures, errors or skips; its result/JUnit/log hashes, exact-owned cleanup and Root normalized protected-inventory acceptance are recorded in this workstream. The current backend image was built from the tested implementation source and backend tree, tagged etf-ordinary-journey/backend:3a8e205921071923e1517eabb7623f01ded77935, OCI image sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, linux/amd64; the private 0600 export archive SHA256 is e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. Root independently verified all 1055 tracked context blobs, image source labels/content, OCI manifest, config and layers, and accepted the artifact at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json (SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b). This record-only closing commit keeps backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c unchanged and uses integration_capture: exact branch HEAD. Its exact-source push CI remains required and pending until that run finishes. Root/TC's combined runtime functional and strict-visual profile remains required and pending; ETF launched no app/browser fixture. No Source HTTP, publisher-qualification success, policy enablement, real-ledger mutation, production change, deployment or full AC1-AC14 completion is claimed. All native failures/holds, 15 Tier-0 and 156 Tier-1, accepted archives and historical results remain preserved. Root owns the remaining profile, integration, promotion, deployment and genuine publisher/returned-constituent proof."
 previously_accepted_odc_active_changeset_2026_10_27:
   name: explicit selected-fund ETF issuer acquisition
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -2511,23 +2506,15 @@ integration_checkpoint:
     (CI41397907218, terminal green). Provider callable/ETV taxonomy is now adopted only through
     released green staging 4d4a278b1b086745b22aab05d3d960539ad02c97 (CI41706834463); Provider owns
     runtime, ETF owns the qualification executor, and TC owns frontend.
-  status: implementation_in_progress
-  acceptance_authorization: pending_review
-  source_baseline: f8323af179922193f4dcf3c9f0a5d9001282455f
+  status: "accepted_ready_for_integration"
+  acceptance_authorization: "accepted_by_coordinator_under_existing_human_delegation"
+  source_baseline: "4de1365cec4bc5897c2a76d16a0004853d747f9c"
   acceptance_criteria: *etf_ordinary_selected_acquire_criteria
   progress:
     completed: [OSA1, OSA2, OSA3, OSA4, OSA5]
     total: 5
-    current_phase: >-
-      After exact green staging 4d4a278b1b086745b22aab05d3d960539ad02c97 was adopted, the isolated
-      PostgreSQL slice passed four cases: ETV/ETP BWET, ETN denial, wrong-class ETV denial, and native
-      SPDR qualification through persisted native evidence into ordinary refresh. Focused native,
-      catalog, refresh and Provider instrument unit cases passed 152/152; Ruff check/format passed.
-    current_blocker: >-
-      Publish the coherent source/record candidate and obtain exact-source branch CI, then build/export
-      the immutable current backend/worker artifact. Root/TC own component-equivalence review and the
-      combined functional/104-visual profile. No publisher HTTP, production/ledger/policy mutation or
-      app/browser fixture is released to ETF. Preserve 15 Tier-0 and 156 Tier-1 and every hold.
+    current_phase: "After green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adoption, the current isolated PostgreSQL module passed 110/110 cases (zero failures, errors or skips) on implementation source 3a8e205921071923e1517eabb7623f01ded77935/backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. Logical PROVIDER_ROUTING_ENABLED=1 was used only for mocked tests; live/paid flags remained off, credentials were isolated, and external provider egress was blocked. Exact-owned PG/Redis/network/volume cleanup reconciled true and Root accepted the normalized protected inventory. The backend artifact was built once on the existing capped shared builder and independently accepted: sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, Linux/amd64, archive SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. The four-record closing commit still needs exact push CI; Root/TC's combined runtime and strict-visual profile and genuine publisher/production gates remain pending."
+    current_blocker: "Root accepted this bounded backend software/artifact checkpoint, including the 110-case PostgreSQL proof, exact cleanup and artifact provenance. Publish the coherent four-record closure and observe its exact-source CI. Root/TC still own the combined current-backend/frontend functional and 104-case strict-visual profile; it has not run or been accepted here. AC1-AC14, 15 Tier-0 and 156 Tier-1, native-publisher failures/holds, genuine holdings/constituent proof and protected integration/deployment remain open."
   required_contracts:
     - The existing POST /api/v1/etf-holdings/{symbol}/acquire remains the selected-fund action; optional positive instrument_id must match the existing canonical resolved fund for the path symbol.
     - No-profile route preparation is limited to exact curated metadata or the exact symbol's current audit mapped to a registered native adapter with matching source_provider identity.
@@ -2599,34 +2586,22 @@ integration_checkpoint:
       fixtures use canonical descriptive fund names. Attempt002 is preserved as 5 passed/2 failed
       on the same bounded seven-node PG slice; attempt003 passed all seven cases on the corrected
       pre-ETV source. Setup refusal attempt001 remains preserved with zero tests started.
-    exact_source_ci: >-
-      Prior source5ba7 CI41679135322 remains red historical evidence. Current merged source
-      2bc627c412838eeac70ece0ae4f0bcc5ff1552dc is not yet published and requires its own exact-source
-      branch CI. Prior CI41689499891 and Provider staging CI41706834463 apply only to their exact sources.
-    local_profile: >-
-      The preserved pre-ETV seven-node PG attempt003 passed 7/7 on source5ba7. After 4d adoption,
-      current isolated PG attempt003 passed the three ETV/ETN/wrong-class cases and native SPDR
-      qualification-to-ordinary continuity (4/4). Its immediate inventory showed the exact generated
-      Ryuk sidecar transiently; it self-cleaned without manual removal, and a fresh comparison restored
-      the original 29-container/27-image/10-network/51-volume inventory. Attempt002 is preserved as a
-      pre-test inventory-helper failure; attempt001 remains a pre-test launcher refusal. Full
-      backend/artifact and combined TC runtime qualification remain pending.
+    exact_source_ci: "Tested implementation source 3a8e205921071923e1517eabb7623f01ded77935 is the exact source for the 110-case local PostgreSQL result and image build, but was not previously published on this feature branch. This one four-record closing publication creates a new exact-source push CI run; its result is pending at publication and must be observed on the exact closing tip. Earlier CI runs qualify only their recorded SHAs. No follow-up metadata commit is planned."
+    local_profile: "The current local docker_integration minimum passed once: 110/110 integration cases, zero failures, errors or skips. JUnit SHA256 f613e3faaa819c9ee88ebd1d124d7f90777114b1c78a2ca4f9008871f8bc23e2; log SHA256 daa27368af53039b9ea4632e8181483fb1b32b0edfa38f25de6ba67ca1aab0f2; result receipt /tmp/etf-4de-current-pg-3a8e2059/attempt-007/pg-phase-result.json SHA256 b9f65abc8fc69170d82dddbae2a90fe03cd469760b794cf245d690074eaa7863. Exact-owned PG/Redis/network/volume cleanup receipt /tmp/etf-4de-current-pg-3a8e2059/attempt-007/cleanup-reconciliation-attempt002.json SHA256 12337ddc1d2280977507c2eeb6cf877b774dcc6054a3e31709b6e126a381 reconciles true. Root accepted normalized preservation at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-current-PG-normalized-inventory-root-review-20261104.json SHA256 db6825dc9e6f0e1480d66b6cacfde27df8962f632e7e3a496a612c7b1c3bab30. Current backend artifact sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, tag etf-ordinary-journey/backend:3a8e205921071923e1517eabb7623f01ded77935, linux/amd64; retained archive /tmp/etf-backend-artifact-4de1365-20261104/attempt002/backend-image.tar SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e; archive validation /tmp/etf-backend-artifact-4de1365-20261104/attempt002/archive-validation-attempt002.json SHA256 3709f5af302926342a13d3a15e0bd33552398c660188d6562d15134f5336c32e. Root independently accepted context, image, OCI config/layers and image contents at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b. The combined frontend/backend functional and 104-case strict-visual profile remains Root/TC-owned and pending; no profile result is claimed here."
     focused_candidate_validation: >-
       After the ETV change, 66 focused native-qualification/bootstrap tests passed, 12 route/type
       selection tests passed, and 4 Amplify adapter-focused tests passed. Ruff format/check and
       git diff --check passed. ETV is accepted only for the exact Exchange Traded Vehicle type
       under Exchange Traded Product; ETN is rejected and an ETV without an exact issuer route is
       unavailable before profile/source work. Existing source position labels remain unchanged.
-    provider_initial_qualification: offline executor and evidence guards implemented; actual shared callable/engine persistence and ordinary SPDR continuity pass the released no-network PG regression; no live publisher request or production proof
+    provider_initial_qualification: "Offline executor and exact native-evidence guards passed the current 110-case isolated PostgreSQL module using the adopted Provider callable with mocked transport; persisted qualification-to-ordinary continuity is covered. Historical XES job1, IGV job2 and BWET job3 failures remain unchanged. No live publisher request or successful publisher qualification is claimed."
   local_validation_profile: full_stack_browser
   branch_validation_tier: full_integration
   full_roadmap_status: AC1-AC14 remain open and unchanged; preserve 15 Tier-0 and 156 Tier-1, all holds, accepted checkpoints, retained datasets and historical failures.
   remaining_gates:
-    - Publish this coherent source/record candidate and pass its exact-source full_integration branch CI.
-    - Build/export the frozen current backend/worker artifact and provide exact source/context/image provenance.
-    - Root/TC review component equivalence and own the single combined functional plus 104 strict-visual profile; live publisher/production proof and AC1-AC14 remain open.
-  closure_pending: true
-status: "in_progress"
+    ["Exact-source full_integration CI for this one closing records publication; Root observes the exact tip and no metadata follow-up is planned.", "Root/TC combined profile using current backend artifact sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65 and the retained frontend component, including required functional and 104 strict-visual cases, with current protected-inventory proof.", "Root-owned protected integration/master/deployment and genuine, positively qualified publisher holdings plus returned-uncached-constituent proof; preserve all source/account/policy/quota holds and AC1-AC14."]
+  closure_pending: false
+status: "ready_for_integration"
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
   total: 3
@@ -2646,17 +2621,8 @@ previously_accepted_unxq_calendar_progress_2026_10_31:
 progress:
   completed: [OSA1, OSA2, OSA3, OSA4, OSA5]
   total: 5
-  current_phase: >-
-    The ETF-owned iShares catalog repair and typed expected-source failure response are focused-green.
-    The actual retained official response parsed offline as 482 complete ETF rows, with IGV mapped to
-    product 239771; the 44-row Mutual Funds table was excluded. Catalog/qualification/refresh and router
-    unit suites passed 129/129, and Ruff check/format passed. No source HTTP or database fixture ran.
-  current_blocker: >-
-    The Provider-owned ETV admission parity fix is still pending its normal green-staging adoption.
-    After that clean adoption, Root will release the final isolated PostgreSQL boundary run. Exact-source
-    CI, backend artifact qualification, and the single Root/TC combined functional/104-visual profile
-    remain pending. Do not retry XES/IGV/BWET jobs or make source requests; preserve 15 Tier-0 and
-    156 Tier-1, all AC1-AC14, historical failures, data and holds.
+  current_phase: "After green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adoption, the current isolated PostgreSQL module passed 110/110 cases (zero failures, errors or skips) on implementation source 3a8e205921071923e1517eabb7623f01ded77935/backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. Logical PROVIDER_ROUTING_ENABLED=1 was used only for mocked tests; live/paid flags remained off, credentials were isolated, and external provider egress was blocked. Exact-owned PG/Redis/network/volume cleanup reconciled true and Root accepted the normalized protected inventory. The backend artifact was built once on the existing capped shared builder and independently accepted: sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, Linux/amd64, archive SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. The four-record closing commit still needs exact push CI; Root/TC's combined runtime and strict-visual profile and genuine publisher/production gates remain pending."
+  current_blocker: "Root accepted this bounded backend software/artifact checkpoint, including the 110-case PostgreSQL proof, exact cleanup and artifact provenance. Publish the coherent four-record closure and observe its exact-source CI. Root/TC still own the combined current-backend/frontend functional and 104-case strict-visual profile; it has not run or been accepted here. AC1-AC14, 15 Tier-0 and 156 Tier-1, native-publisher failures/holds, genuine holdings/constituent proof and protected integration/deployment remain open."
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2902,13 +2868,8 @@ backend_runner_timeout_remediation:
     issuer, SEC, target, quota, production, staging, sibling or deployment
     operation is authorized by this runner-only repair.
 
-current_blocker: >-
-  The IGV catalog multi-table parser and typed expected-source failure repair are focused-green but not
-  yet published or exact-source CI qualified. The Provider-owned ETV admission parity correction must
-  reach green staging and be adopted normally before Root's final PostgreSQL boundary release. Root
-  then owns fresh artifact/profile binding and the combined runtime gate. Preserve AC1-AC14, 15 Tier-0
-  and 156 Tier-1, all holds and accepted history; no source retry or publisher success is claimed.
-integration_capture: exact branch HEAD
+current_blocker: "Root accepted this bounded backend software/artifact checkpoint, including the 110-case PostgreSQL proof, exact cleanup and artifact provenance. Publish the coherent four-record closure and observe its exact-source CI. Root/TC still own the combined current-backend/frontend functional and 104-case strict-visual profile; it has not run or been accepted here. AC1-AC14, 15 Tier-0 and 156 Tier-1, native-publisher failures/holds, genuine holdings/constituent proof and protected integration/deployment remain open."
+integration_capture: "exact branch HEAD"
 
 remaining_gaps:
   - "Starting baseline was 496 registered providers, 356 native/live-backed providers, and 140 fallback-only providers; after the documented native promotions through ROBO Global/ROBO-HTEC-THNQ, Rockefeller/RMOP-RMNY-RMCA-RSMC-RGEF, Saba/CEFS, Beacon/Sammons BSR-BTA, Sapient/SQS, SMI Funds/RAA-FCTE, SRH Funds/SRHQ-SRHR, Stance/STNC, Stratified/SSPY-SHUS, TrimTabs/Abacus FCF, Anydrus/NDOW, M.D. Sass/SASS, Amplius/AAAA, Argent/AMID-ABIG-ALIL, VistaShares/RTOO-AIS-AMMO-QUSA-OMAH-ACKY-DRKY, Baillie Gifford/BGGG-BGIA-BGEG-BGUS, and Arin/ATTR, current code and provider-universe documentation report 496/422/74 and future counts must remain derived."
@@ -4076,7 +4037,7 @@ latest_sec_first_use_candidate:
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
-next_action: "Publish the coherent corrected ordinary-mode candidate with its focused and bounded PostgreSQL evidence, then require exact-source branch CI. After the new Provider classification/retained-type change reaches synchronized green staging, adopt that exact source at a clean boundary and run the engine-backed contract tests. Wait for Root's new artifact/profile binding before any broader profile; no provider HTTP or target/policy/ledger operation is authorized here."
+next_action: "Publish this accepted bounded software/artifact checkpoint in one four-record commit, then freeze the tip for exact-source CI. Root/TC own the combined profile and all protected integration, production, source-policy and genuine-publisher proof; do not start another fixture or source request."
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress
