@@ -4192,7 +4192,7 @@ active_implementation:
       status: completed
     - id: OTJ3
       text: Direct ETF selection clears or rebinds holdings context immediately; intentional constituent drilldown retains parent lineage; every reported holding remains visible with type and identity state even when unresolved; only eligible selected equities enter canonical acquisition, and null/unavailable outcomes remain typed. On deliberate ETF selection, reuse holdings only when the backend capability qualifies them as current, identity-verified, and usable for current analysis; otherwise make at most one governed refresh while retaining and labelling last-known data on held/error.
-      status: completed
+      status: in_progress
     - id: OTJ4
       text: Shared SearchBar and ordinary Chart entrypoints use the shared discovery trigger and bounded history orchestration without acquisition from picker-only controls.
       status: completed
@@ -4222,6 +4222,26 @@ active_implementation:
     5 exact consumer adaptations); workstream validation, plan/session hash and
     staged diff checks passed. Exact-source CI and Root's bundled-input equivalence
     review remain pending; the corrected joint profile has not been run.
+    The subsequent development attempt02 exposed one genuine default/factory
+    Constituents selection defect and two fixture issues. The factory row used
+    generic ticker selection instead of snapshot/row-aware holding selection,
+    so FUTURE-A could replace IGV while the old fund message remained visible.
+    The current source routes reported holding row keys through the existing
+    snapshot-aware handler, renders the existing identity/non-chartable UI for
+    factory and dedicated views, and fails closed when a reported row no longer
+    exists in the active snapshot. Industry, sector and ordinary watchlist
+    selections retain their prior behavior. The IWM list mock now matches only
+    the exact normalized list pathname, and the post-reload calendar request
+    consumes its JSON body in the armed request promise. Attempt02 remains
+    preserved as 4 passed/3 failed; its failures are not relabeled green.
+    Focused component/view tests passed 16/16, vue-tsc passed, and collection
+    still lists seven ordinary acquisition cases. The complete single-worker
+    coverage run passed at 2,588/3,684 functions (70.25%), 65,657/81,624 lines
+    and 13,713/18,653 branches using the unchanged thresholds. LCOV is
+    /tmp/tc-ordinary-factory-dispatch-coverage-20261104-attempt001/lcov.info.
+    The running development fixture still serves the earlier bb320 frontend;
+    no browser result from it qualifies this product change. A new frontend
+    artifact and replacement in the same owned fixture are required.
   latest_targeted_profile_disposition:
     base_source: bf71482deae91558ab030202673711b11b477e62
     exact_hosted_ci: 41747382975
@@ -4236,13 +4256,22 @@ active_implementation:
       The diagnostics helper unit tests pass 7/7, vue-tsc passes, and Playwright lists all seven acquisition cases. The scope-validator self-tests pass including exact helper source pin and unlisted-neighbor rejection. No browser was relaunched, no application image was rebuilt, and no product/source data was changed.
     next: >-
       Publish this test/helper/record-only correction once and obtain its exact-source CI. Root will verify bundled application-input equivalence and release the corrected profile using the retained bb320 frontend and ETF777 backend; do not rebuild either component. Run the seven ordinary acquisition cases first, then the unchanged full functional and 104 strict-visual suites at one worker/zero retries.
+  latest_development_product_correction:
+    base_source: fe8569182452c1e88fbafa12ef261efc835a9476
+    prior_attempt02: 4 passed, 3 failed, 56.5 seconds, zero retries; all three findings retained.
+    product_cause: Default/factory Watchlist emitted ETF-reported rows through generic ticker selection; dedicated constituent handling alone was snapshot/row-aware.
+    product_correction: Factory rows with ETF holding row keys use existing snapshot validation, resolution, non-chartable state and lineage-preserving drilldown; stale reported rows fail closed.
+    fixture_corrections: Exact normalized IWM holdings-list pathname; IWM unknown capability consistent in list and held response; reload calendar request body is eagerly read from the armed post-reload request.
+    checks: 16 focused component/view tests passed; vue-tsc passed; seven E2E cases discovered; complete frontend coverage passed 2,588/3,684 functions (70.25%), 65,657/81,624 lines, 13,713/18,653 branches; scope self-tests/full guard passed; workstream and plan/session hash passed; staged diff check passed.
+    lcov: /tmp/tc-ordinary-factory-dispatch-coverage-20261104-attempt001/lcov.info
+    runtime: Existing dev fixture remains on the older bb320 frontend; no new browser validation of the product fix is claimed. New source-bound frontend image required; backend777 and researchbf789 remain unchanged.
   next_action: >-
-    Publish this coherent test-only correction once and follow its exact-source CI.
-    Root will prove that bundled application inputs are byte-identical and release
-    the corrected profile using the retained frontend/backend images; no rebuild is
-    required for these test/helper/record changes. Run the seven ordinary acquisition
-    flows first and retain that result separately, then run the unchanged full
-    functional suite and 104 strict visual cases with one worker, zero retries,
-    dense 10,000-row seeding in backend and browser, observed browse count, existing
-    diagnostics, references, masks and tolerances. Root owns profile acceptance,
-    integration and deployment.
+    Finish current scope/workstream/hash checks, publish one coherent product and
+    test candidate, and obtain its exact-source CI. Build one capped source-bound
+    frontend artifact with the existing recipe; Root reviews it before replacing
+    only the owned dev frontend in the same fixture. Then run the seven ordinary
+    acquisition cases first and, if green, the unchanged full functional suite
+    plus all 104 strict visual cases with one worker, zero retries, dense 10,000-row
+    seeding in backend and browser, observed browse count, strict diagnostics,
+    references, masks and tolerances. Root owns profile acceptance, integration
+    and deployment.

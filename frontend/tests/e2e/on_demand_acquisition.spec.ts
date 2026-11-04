@@ -597,15 +597,26 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
 
   const readsBeforeReload = localReadCount
   const calendarReadsBeforeReload = calendarReads.length
-  const calendarResponseAfterReloadReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'GET'
+  const calendarResponseAfterReloadReady = page.waitForRequest(request => {
+    const url = new URL(request.url())
+    return request.method() === 'GET'
       && url.pathname === `/api/v1/calendar/instruments/${symbol}/calendar`
+  }).then(async request => {
+    const response = await request.response()
+    if (!response) throw new Error('Expected the post-reload calendar request to receive a response.')
+    return {
+      method: request.method(),
+      pathname: new URL(request.url()).pathname,
+      status: response.status(),
+      body: await response.json(),
+    }
   })
   await page.reload()
   const calendarResponseAfterReload = await calendarResponseAfterReloadReady
-  expect(calendarResponseAfterReload.status()).toBe(200)
-  expect(await calendarResponseAfterReload.json()).toEqual(noInstrumentCalendarEvents)
+  expect(calendarResponseAfterReload.method).toBe('GET')
+  expect(calendarResponseAfterReload.pathname).toBe(`/api/v1/calendar/instruments/${symbol}/calendar`)
+  expect(calendarResponseAfterReload.status).toBe(200)
+  expect(calendarResponseAfterReload.body).toEqual(noInstrumentCalendarEvents)
   await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/) 
   await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
   await expect.poll(() => localReadCount).toBeGreaterThan(readsBeforeReload)
@@ -932,8 +943,8 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
       refresh: body.refresh,
       refresh_attempted: true,
       refresh_succeeded: false,
-      profile: selectedProfile,
-      capability: selectedProfile.holdings_capability,
+      profile: { ...selectedProfile, holdings_capability: iwmUnknownCapability },
+      capability: iwmUnknownCapability,
       provider_request_log_ids: [],
       message: 'Deterministic test-fixture hold; the stored snapshot remains available.',
     } satisfies ETFProfileAcquireResponse
@@ -949,9 +960,8 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     consecutive_failures: 0, reason: 'Controlled fixture requires a governed refresh.',
     symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
   }
-  await page.route('**/api/v1/etf-holdings', async route => {
-    const url = new URL(route.request().url())
-    if (route.request().method() !== 'GET' || url.searchParams.has('q')) return route.continue()
+  await page.route(url => url.pathname.replace(/\/+$/, '') === '/api/v1/etf-holdings', async route => {
+    if (route.request().method() !== 'GET') return route.continue()
     const response = await route.fetch()
     const profiles = await response.json() as ETFProfile[]
     await route.fulfill({
@@ -987,6 +997,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const profiles = await (await profilesReady).json() as ETFProfile[]
   selectedProfile = profiles.find(profile => profile.symbol === 'IWM') ?? null
   expect(selectedProfile?.latest_snapshot_id).toBeTruthy()
+  expect(selectedProfile?.holdings_capability).toEqual(iwmUnknownCapability)
   expect(issuerRequests).toHaveLength(0)
   expect(identityRequests).toHaveLength(0)
   expect(discoveryRequests).toHaveLength(0)
@@ -1047,7 +1058,14 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const iwmIdentityResponse = await iwmIdentityResponseReady
   expect(iwmIdentityResponse.status()).toBe(200)
   expect(await iwmIdentityResponse.json()).toMatchObject({ status: 'resolved', instrument: { symbol: 'IWM', identity_status: 'resolved' } })
-  expect((await firstIwmIssuerResponseReady).status()).toBe(200)
+  const firstIwmIssuerResponse = await firstIwmIssuerResponseReady
+  expect(firstIwmIssuerResponse.status()).toBe(200)
+  expect(await firstIwmIssuerResponse.json()).toMatchObject({
+    outcome: 'held',
+    symbol: 'IWM',
+    profile: { holdings_capability: iwmUnknownCapability },
+    capability: iwmUnknownCapability,
+  })
   await expect(page.getByRole('status').filter({ hasText: 'The holdings update did not complete.' })).toBeVisible()
   expect(identityRequests).toHaveLength(1)
   expect(identityRequests[0]).toMatchObject({ symbol: 'IWM' })
@@ -1091,7 +1109,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   expectBoundedD1Request(historyRequests[0]!.body)
   expect(identityRequests).toHaveLength(2)
   expect(identityRequests[1]).toMatchObject({ symbol: 'AMD' })
-  await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'History for AMD is currently unavailable; saved chart data remains visible.' })).toBeVisible()
   const historyUrl = new URL(page.url())
   expect(historyUrl.pathname).toBe('/legacy/chart/AMD')
   expect(historyUrl.searchParams.get('holding_snapshot_id')).toBe(String(selectedProfile?.latest_snapshot_id))
@@ -1564,7 +1582,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   expect(historyRequests[0]?.instrumentId).toBe(amdInstrumentId)
   expectBoundedD1Request(historyRequests[0]!.body)
   expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
-  await expect(page.getByRole('status').filter({ hasText: /^Some history loaded;/ })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: /^Some D1 history for AMD loaded; the rest remains unavailable\.$/ })).toBeVisible()
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
@@ -2144,17 +2162,22 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await expect(reportedHolding).toBeVisible()
     await expect(reportedHolding).toContainText('12.50%')
     await expect(reportedHolding).toContainText('security · equity')
-    await expect(reportedHolding).toContainText('Equity identity not resolved')
+    await expect(reportedHolding).toHaveAccessibleName(/Identity: Equity identity not resolved\./)
     const futureHolding = igvWidget.getByRole('option', { name: /FUTURE-A Controlled futures position/ })
     const cashHolding = igvWidget.getByRole('option', { name: /— Cash and equivalents/ })
     await expect(futureHolding).toContainText('derivative · future')
     await expect(cashHolding).toContainText('cash · cash')
     const identityRequestsBeforeNonEquities = identityRequests.length
     const historyRequestsBeforeNonEquities = historyRequests.length
+    await expect(symbolSearch).toHaveValue('IGV')
     await futureHolding.click()
+    await expect(symbolSearch).toHaveValue('IGV')
+    await expect(page.getByTestId('reported-holding-selection')).toContainText('FUTURE-A · Controlled futures position')
     await expect(page.getByRole('status').filter({ hasText: 'FUTURE-A · Controlled futures position is reported as future and cannot be opened as an equity chart.' })).toBeVisible()
     await expect(page.getByRole('link', { name: 'Review ETF holdings' })).toBeVisible()
     await cashHolding.click()
+    await expect(symbolSearch).toHaveValue('IGV')
+    await expect(page.getByTestId('reported-holding-selection')).toContainText('Cash and equivalents')
     await expect(page.getByRole('status').filter({ hasText: 'Cash and equivalents is reported as cash and cannot be opened as an equity chart.' })).toBeVisible()
     expect(issuerRequests.filter(request => request.symbol === 'IGV')).toHaveLength(igvIssuerCount)
     expect(identityRequests).toHaveLength(identityRequestsBeforeNonEquities)

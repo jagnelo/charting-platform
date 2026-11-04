@@ -26029,3 +26029,43 @@ not rebuilt. The exact owned fixture was cleaned and protected-resource review
 remains preserved. Next: publish one coherent test/helper/records candidate,
 obtain exact-source CI, then Root reviews bundled application-input equivalence
 and releases the seven-case-first/full-functional/104-visual profile.
+
+---
+
+# Default/factory reported-holding selection repair — 2026-11-04
+
+Root reviewed development attempt02 (4 passed/3 failed, 56.5 seconds, zero
+retries) and confirmed a product defect: the default/factory Constituents
+watchlist sent reported rows through generic ticker selection. FUTURE-A then
+became the active symbol while the prior IGV message remained. The current
+WorkstationToolContent change dispatches only snapshot-keyed ETF holding rows
+through the existing snapshot-aware constituent handler, uses its existing
+resolution/non-chartable/lineage UI in both factory and dedicated views, and
+fails closed if the reported row no longer belongs to the current snapshot.
+Other factory watchlists and industry selection retain their existing paths.
+
+The same correction fixes the two concrete attempt02 fixture defects: IWM list
+rewriting is registered only for the normalized `/api/v1/etf-holdings` path,
+and the post-reload calendar request/body is captured in a pre-armed request
+promise before navigation can discard the response body. Existing source,
+identity, history, parent-lineage, race and BrowserDiagnostics assertions remain.
+The mixed IGV controlled fixture asserts that futures/cash leave IGV selected
+and trigger no identity/history acquisition; its unresolved UNXQ row retains
+explicit resolution, confirmed identity, chart-history and snapshot lineage
+assertions.
+
+Validation on the current worktree: 16 focused component/view tests passed,
+`vue-tsc --noEmit` passed, and Playwright discovery lists the same seven cases.
+Complete one-worker frontend coverage passed at 2,588/3,684 functions (70.25%),
+65,657/81,624 lines and 13,713/18,653 branches. LCOV:
+`/tmp/tc-ordinary-factory-dispatch-coverage-20261104-attempt001/lcov.info`.
+Scope self-tests and the full scope guard pass after staging the exact approved
+WorkstationToolContent adaptation (1,099 changed paths; 880 byte-verified
+imports; 29 Provider adaptations; 112 presentation paths; 6 exact consumer
+adaptations). Workstream validation, plan/session hash, and staged diff checks
+pass. Attempt02 stays red and preserved; the current dev fixture still serves the prior bb320 frontend,
+so no current product browser pass is claimed. Next: stage this coherent
+product/test/record candidate, run the unchanged full scope/workstream checks,
+publish once for exact-source CI, build one capped frontend artifact, and let
+Root review/replace only the owned dev frontend before the seven-case and full
+functional/104-visual profile.

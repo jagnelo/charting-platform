@@ -233,6 +233,7 @@
       :timeframe="activeTimeframe"
       :rows="factoryWatchlistRows"
       :selected="tool.instance_key === 'industries' ? (selectedIndustry ?? '') : activeSymbol"
+      :selected-row-key="selectedConstituentRowKey"
       :columns="factoryWatchlistColumns"
       :visible-column-keys="configuredColumnKeys"
       :filter-text="configuredFilterText"
@@ -252,7 +253,7 @@
       :membership-targets="personalWatchlistTargets"
       :tag-columns="configuredTagColumns"
       :market-map-source-id="factoryWatchlistSourceId"
-      @select="tool.instance_key === 'industries' ? emit('selectIndustry', $event.symbol, industryETFContext) : selectSymbol($event.symbol, $event.instrumentId)"
+      @select="selectFactoryWatchlistRow"
       @compare="emit('compare', $event)"
       @market-map="emit('marketMap', $event)"
       @row-action="handleRowAction"
@@ -491,23 +492,6 @@
         @plot-drop="addPlotColumn"
         @condition-drop="addConditionColumn"
       />
-      <ETFHoldingResolutionAction
-        v-if="selectedUnresolvedConstituent && isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent) && holdings?.snapshot"
-        :key="`${selectedETF}:${holdings.snapshot.id}:${selectedUnresolvedConstituent.id}`"
-        :holding="selectedUnresolvedConstituent"
-        :snapshot="holdings.snapshot"
-        :available="true"
-        start-immediately
-        @resolved="openResolvedConstituentHolding"
-      />
-      <p v-else-if="selectedNonChartableConstituent" class="constituent-tool__selection-state" role="status" aria-live="polite">
-        {{ reportedHoldingChartState(selectedNonChartableConstituent) }}
-        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
-      </p>
-      <p v-else-if="selectedUnresolvedConstituent && !isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent)" class="constituent-tool__selection-state" role="status" aria-live="polite">
-        {{ reportedHoldingLabel(selectedUnresolvedConstituent) }} is shown from the reported snapshot, but its equity identity is not confirmed yet.
-        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
-      </p>
       <small
         v-if="constituentExclusionSummary"
         class="constituent-tool__provenance"
@@ -999,6 +983,29 @@
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp, $event.instrument_id)" />
     <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" @open-study="emit('openStudy', $event)" />
     <UnknownToolRecovery v-else :tool="tool" />
+    <div
+      v-if="selectedConstituentRowKey && (tool.instance_key === 'constituent-list' || tool.tool_type === 'watchlist')"
+      class="constituent-tool__selection"
+      data-testid="reported-holding-selection"
+    >
+      <ETFHoldingResolutionAction
+        v-if="selectedUnresolvedConstituent && isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent) && holdings?.snapshot"
+        :key="`${selectedETF}:${holdings.snapshot.id}:${selectedUnresolvedConstituent.id}`"
+        :holding="selectedUnresolvedConstituent"
+        :snapshot="holdings.snapshot"
+        :available="true"
+        start-immediately
+        @resolved="openResolvedConstituentHolding"
+      />
+      <p v-else-if="selectedNonChartableConstituent" class="constituent-tool__selection-state" role="status" aria-live="polite">
+        {{ reportedHoldingChartState(selectedNonChartableConstituent) }}
+        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+      </p>
+      <p v-else-if="selectedUnresolvedConstituent && !isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent)" class="constituent-tool__selection-state" role="status" aria-live="polite">
+        {{ reportedHoldingLabel(selectedUnresolvedConstituent) }} is shown from the reported snapshot, but its equity identity is not confirmed yet.
+        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+      </p>
+    </div>
   </ToolWindow>
 </template>
 
@@ -2116,6 +2123,24 @@ function selectSymbol(symbol: string, instrumentId?: number | null) {
   emit('select', symbol, instrumentId, props.tool.instance_key === 'constituent-list')
 }
 
+function isReportedETFHoldingRow(row: WatchlistRow) {
+  return typeof row.rowKey === 'string' && row.rowKey.startsWith('etf-holding:')
+}
+
+function selectFactoryWatchlistRow(row: WatchlistRow) {
+  if (props.tool.instance_key === 'industries') {
+    selectedConstituentRowKey.value = null
+    emit('selectIndustry', row.symbol, industryETFContext.value)
+    return
+  }
+  if (isReportedETFHoldingRow(row)) {
+    selectConstituentRow(row)
+    return
+  }
+  selectedConstituentRowKey.value = null
+  selectSymbol(row.symbol, row.instrumentId)
+}
+
 function selectConstituentRow(row: WatchlistRow) {
   const snapshot = holdings.value?.snapshot
   const holding = selectedETF.value && !selectedIndustry.value && snapshot
@@ -2123,6 +2148,7 @@ function selectConstituentRow(row: WatchlistRow) {
     : null
   if (!holding || !snapshot) {
     selectedConstituentRowKey.value = null
+    if (isReportedETFHoldingRow(row)) return
     selectSymbol(row.symbol, row.instrumentId)
     return
   }
