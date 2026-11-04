@@ -23,6 +23,7 @@ from app.models.instrument import EquityDetail, Instrument, OptionDetail
 from app.models.instrument_identity import (
     InstrumentIdentifier,
     InstrumentIdentifierType,
+    InstrumentProviderCapabilityStatus,
     InstrumentProviderSymbol,
 )
 from app.models.instrument_stats import InstrumentStats
@@ -37,6 +38,12 @@ from app.models.market_data_foundation import (
 )
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentProfileSnapshot
+from app.models.provider_runtime import (
+    ProviderEntitlement,
+    ProviderEntitlementRevision,
+    ProviderHealthState,
+    ProviderPolicy,
+)
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.routers import instruments as instruments_router
 from app.schemas.instrument_acquisition import (
@@ -60,6 +67,11 @@ _TABLES = (
     InstrumentIdentifier.__table__,
     InstrumentProviderSymbol.__table__,
     InstrumentProfileSnapshot.__table__,
+    ProviderPolicy.__table__,
+    ProviderEntitlement.__table__,
+    ProviderEntitlementRevision.__table__,
+    ProviderHealthState.__table__,
+    InstrumentProviderCapabilityStatus.__table__,
     InstrumentIdentityQuarantine.__table__,
     InstrumentIdentityQuarantineObservation.__table__,
     InstrumentStats.__table__,
@@ -639,3 +651,209 @@ async def test_cached_qualified_acquire_reconciles_retained_etv_type_without_tra
         assert provenance["observed_at"] == observed_at.isoformat()
         assert provenance["reconciled_at"]
         assert retained.payload["quote_type"] == "ETV"
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
+async def test_massive_us_etv_history_resolver_requires_real_primary_listing(
+    on_demand_history_database, monkeypatch
+):
+    """Exercise ETV market/listing admission through the resolver on PostgreSQL."""
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.data_source import DataSource
+    from app.models.exchange import Exchange
+    from app.models.instrument import Instrument
+    from app.models.listing import InstrumentListing
+    from app.models.provider_runtime import (
+        ProviderCapability,
+        ProviderEntitlement,
+        ProviderHealthState,
+        ProviderPolicy,
+    )
+    from app.services.provider_runtime import resolve_provider_chain, seed_provider_runtime
+
+    now = datetime.now(UTC)
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    monkeypatch.setattr(settings, "MASSIVE_API_KEY", "offline-test-credential")
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "offline PostgreSQL resolver fixture",
+    )
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "written_automated_persistent_archive_and_audience",
+    )
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_REVIEWED_AT", now - timedelta(minutes=1))
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_EXPIRES_AT", now + timedelta(days=1))
+    monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", {})
+
+    async with on_demand_history_database.begin() as setup_db:
+        await seed_provider_runtime(setup_db)
+        massive = await setup_db.scalar(select(DataSource).where(DataSource.name == "massive"))
+        assert massive is not None
+        policy = await setup_db.scalar(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == massive.id,
+                ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        )
+        entitlement = await setup_db.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == massive.id,
+                ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        )
+        health = await setup_db.scalar(
+            select(ProviderHealthState).where(
+                ProviderHealthState.data_source_id == massive.id,
+                ProviderHealthState.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        )
+        assert policy is not None and entitlement is not None and health is not None
+        policy.is_enabled = True
+        policy.quota_scope = "private-offline-massive-test-account"
+        policy.quota_source = "offline resolver fixture"
+        policy.quota_verified_at = now
+        policy.quota_contract = {
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests_per_day",
+                    "limit": 20,
+                    "window_seconds": 86_400,
+                    "unit": "requests",
+                    "scope": "private-offline-massive-test-account",
+                    "source": "offline resolver fixture",
+                    "reset": "rolling",
+                }
+            ],
+            "operation_costs": {"fetch_ohlcv": 1},
+        }
+        entitlement.configured_plan = "reviewed-free-offline-fixture"
+        entitlement.is_free = True
+        entitlement.authentication_required = True
+        entitlement.usage_terms = "offline resolver fixture only"
+        entitlement.live_probe_status = "passed"
+        entitlement.enabled_environments = [settings.APP_ENV]
+        entitlement.review_due_at = now + timedelta(days=1)
+
+        classes: dict[str, AssetClass] = {}
+        types: dict[tuple[str, str], InstrumentType] = {}
+        for class_name in ("Exchange Traded Product", "Equity"):
+            asset_class = AssetClass(name=class_name, description="offline resolver fixture")
+            setup_db.add(asset_class)
+            await setup_db.flush()
+            classes[class_name] = asset_class
+        for class_name, type_name in (
+            ("Exchange Traded Product", "Exchange Traded Vehicle"),
+            ("Exchange Traded Product", "ETN"),
+            ("Equity", "Exchange Traded Vehicle"),
+        ):
+            instrument_type = InstrumentType(
+                asset_class_id=classes[class_name].id,
+                name=type_name,
+                description="offline resolver fixture",
+            )
+            setup_db.add(instrument_type)
+            await setup_db.flush()
+            types[(class_name, type_name)] = instrument_type
+
+        exchanges = {
+            "US": Exchange(
+                mic="XNYS",
+                name="New York Stock Exchange fixture",
+                country_code="US",
+                timezone="America/New_York",
+                currency="USD",
+            ),
+            "GB": Exchange(
+                mic="XLON",
+                name="London Stock Exchange fixture",
+                country_code="GB",
+                timezone="Europe/London",
+                currency="USD",
+            ),
+        }
+        setup_db.add_all(exchanges.values())
+        await setup_db.flush()
+
+        subjects: dict[str, Instrument] = {}
+        cases = (
+            ("ETVPOS", "Exchange Traded Product", "Exchange Traded Vehicle", "US", "USD", True),
+            ("ETNMISMATCH", "Exchange Traded Product", "ETN", "US", "USD", True),
+            ("CLASSMISMATCH", "Equity", "Exchange Traded Vehicle", "US", "USD", True),
+            (
+                "FOREIGNLIST",
+                "Exchange Traded Product",
+                "Exchange Traded Vehicle",
+                "GB",
+                "USD",
+                True,
+            ),
+            (
+                "MISSINGLIST",
+                "Exchange Traded Product",
+                "Exchange Traded Vehicle",
+                None,
+                "USD",
+                False,
+            ),
+        )
+        for symbol, class_name, type_name, country, listing_currency, has_listing in cases:
+            instrument = Instrument(
+                symbol=symbol,
+                name="Offline ETV resolver fixture",
+                currency="USD",
+                instrument_type_id=types[(class_name, type_name)].id,
+                is_active=True,
+                identity_status="resolved",
+                is_synthetic=False,
+                domain_key=f"offline:ETV:{symbol}",
+            )
+            setup_db.add(instrument)
+            await setup_db.flush()
+            subjects[symbol] = instrument
+            if has_listing:
+                setup_db.add(
+                    InstrumentListing(
+                        instrument_id=instrument.id,
+                        exchange_id=exchanges[country].id,
+                        ticker=symbol,
+                        currency=listing_currency,
+                        is_primary=True,
+                        is_active=True,
+                        source="offline resolver fixture",
+                    )
+                )
+        await setup_db.flush()
+
+    async def resolve(symbol: str):
+        async with on_demand_history_database() as db:
+            return await resolve_provider_chain(
+                db,
+                ProviderCapability.PRICE_HISTORY,
+                instrument_id=subjects[symbol].id,
+                provider_symbol=symbol,
+                operation="fetch_ohlcv:D1",
+                operation_cost_overrides={"massive": 1},
+                adjusted=False,
+            )
+
+    positive = await resolve("ETVPOS")
+    assert any(candidate.provider_name == "massive" for candidate in positive)
+
+    for symbol in ("ETNMISMATCH", "CLASSMISMATCH", "FOREIGNLIST", "MISSINGLIST"):
+        rejected = await resolve(symbol)
+        assert all(candidate.provider_name != "massive" for candidate in rejected), symbol
+
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        {"massive": {"fetch_ohlcv": "offline held-provider negative"}},
+    )
+    held = await resolve("ETVPOS")
+    assert all(candidate.provider_name != "massive" for candidate in held)

@@ -386,7 +386,9 @@ async def test_vaneck_qualification_can_resolve_disabled_policy_only_in_exact_co
             return [(policy, health, data_source, entitlement)]
 
         def one_or_none(self):
-            return ("etf", "exchange_traded_fund")
+            # Match resolve_provider_chain's (AssetClass.name, InstrumentType.name)
+            # query and the canonical bootstrap classification for an ETF.
+            return ("Equity", "ETF")
 
     class FakeDB:
         def __init__(self):
