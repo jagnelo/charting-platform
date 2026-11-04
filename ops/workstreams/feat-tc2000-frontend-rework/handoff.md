@@ -26230,3 +26230,44 @@ exited 0 without OOM. Its log SHA256 is
 This isolated development proof is not the formal seven-case profile. The
 corrected source and records still require normal scope/workstream checks,
 publication, exact-source CI, and Root's fresh seven-case release on c476.
+
+
+## 2026-11-04 — Adopt exact green staging 4de1365
+
+Root released synchronized green staging `4de1365cec4bc5897c2a76d16a0004853d747f9c` under canonical receipt
+`ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4de1365cec4bc5897c2a76d16a0004853d747f9c.json` (SHA256 `ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea`), exact CI `41805745211` attempt 1 terminal
+success including Exhaustive. The same-attempt reconciliation is complete and
+the degraded marker is absent. The receipt is copied byte-for-byte into this
+workstream. The exact merge into the clean pre-adoption feature HEAD
+`5519c6af21757f036c956119dacfae1bd5d2b85b` completed without conflicts at `38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b`; merge-base is
+`4d4a278b1b086745b22aab05d3d960539ad02c97`. Provider source `a56d97899f6d0194a7eead572b3edc70c355ddee`
+arrived through staging only.
+
+The new 885-path complete frozen-import manifest
+`ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4de1365cec4bc5897c2a76d16a0004853d747f9c.yaml` (SHA256 `da82f1f96768b05b8f0c464b2a7a1707060e899b9a45981f1cbc1c28a0d88148`) supersedes only the active manifest
+reference. All prior manifests and receipts remain unchanged. All ten paths
+changed between released stages 4d and 4de were already in the previous complete
+manifest; no unlisted upstream paths were found. The merged backend tree is
+`c37137f2a92335831a249c176e0c77fccff01733`, exactly matching 4de; the merged frontend tree is
+`826df26696c4beefb96b63066220e5859beb36c3`, exactly matching accepted source `5519c6af`. Root reviewed
+the retained c476 artifact and verified its production/build input equivalence;
+it remains attributed to its actual a6c02704 source and is reused without a
+rebuild.
+
+The pre-adoption `5519c6af` exact CI `41784665635` and formal attempt17 remain
+preserved: seven ordinary flows passed in 54.6 seconds, one worker, zero retries.
+Those results remain scoped to their original source/runtime pair. No tests or
+application image were rebuilt for this ancestry/import adoption. The new
+adoption publication still needs its exact branch CI. The full current-source
+functional and 104 strict-visual profile remains held until Root accepts the
+corrected ETF backend artifact and releases the paired runtime. No source HTTP,
+real ledger operation, sibling/staging/master change or deployment occurred.
+AC1–AC9, official V25 and the broader roadmap remain open; prior accepted
+F8Y/TCO checkpoints and all historical failures remain intact.
+
+The existing-key SSH443 connection helper was tried for a read-only staging
+probe and failed with `Permission denied (publickey)` after three attempts; the
+command was not executed through that helper. A prior `git fetch origin staging`
+did return exact `FETCH_HEAD=4de1365cec4bc5897c2a76d16a0004853d747f9c`. No keys, agents or Git configuration
+were changed. Push will use only the same approved connection route; if it
+continues to reject the existing identity, report the exact error to Root.

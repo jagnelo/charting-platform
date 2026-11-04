@@ -19,7 +19,7 @@
   ],
   "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
   "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
-  "adoption_source_base_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+  "adoption_source_base_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
   "branch": "feat/tc2000-frontend-rework",
   "claim": {
     "branch": "feat/tc2000-frontend-rework",
@@ -39,14 +39,14 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Published test-only source f92480ae0aed6734d43a00049a2b83c9215be3ef has not yet produced an exact CI result in the connected status lookup. Its fresh attempt15 snapshot passed 6/7 ordinary cases at one worker/zero retries/no OOM; the sole failure was an old-document calendar response body invalidated during reload. Root-authorized development-only attempt16 passed the patched reload case 1/1 using the exact f924 archive plus the hashed E2E-only patch. This does not count as formal qualification; publish the correction, obtain exact-tip CI, and run all seven after Root release. Full functional/strict visuals remain held for corrected Provider/ETF backend inputs.",
-  "current_checkpoint_status": "Ordinary ticker journey remains in progress and unaccepted. Root reviewed the immutable c476 frontend and its served assets remain byte-identical in the owned fixture. Attempt15 used a fresh exact f924 snapshot and passed six of seven ordinary cases; the sole test failure was the UNXQ calendar response-body protocol error across reload. Root-authorized development-only attempt16 passed that case 1/1 on an immutable f924 base plus the hashed E2E-only patch. The test-only correction preserves actual method/path/status/body, lineage, loaded local bars and no-extra-acquisition checks while associating the response with the new main-frame document epoch. Fresh formal seven-case execution and exact-source CI remain pending. The full functional/strict-visual profile is held for corrected Provider/ETF backend inputs. Historical F8Y/TCO acceptance, all nine roadmap criteria, V25 and operational holds remain unchanged.",
+  "current_candidate_ci_status": "Exact pre-adoption 5519 CI41784665635 is green; staging 4de1365cec4bc5897c2a76d16a0004853d747f9c is adopted in local merge 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b. Exact feature CI for the adoption publication is pending Root observation.",
+  "current_checkpoint_status": "Ordinary ticker journey remains active and unaccepted. Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c was merged at 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b; frontend tree 826df26696c4beefb96b63066220e5859beb36c3 remains identical to accepted 5519 and Root approved reusing the source-a6 c476 image. The exact 5519 CI and formal seven-case pass remain pre-adoption evidence. The new adoption tip still needs exact branch CI; the combined functional and 104 strict-visual profile waits for Root's accepted corrected ETF backend artifact and paired release. All failure evidence, accepted historical checkpoints and AC1-AC9 remain preserved.",
   "current_exact_ci": {
     "conclusion": null,
-    "head_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
+    "head_sha": null,
     "run_id": null,
-    "scope": "Exact f924 CI was not returned by the connected workflow/status lookup; Root owns the hosted CI observation. The test-only document-epoch correction requires its own exact-source CI.",
-    "status": "pending"
+    "scope": "Exact-source CI for the coherent 4de adoption publication; Root observes this run.",
+    "status": "pending_publication"
   },
   "current_software_checkpoint": {
     "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
@@ -183,7 +183,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6e7f95dcde467a12187742ec2b02c6f491c7ca9f",
+  "head": "38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -337,7 +337,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "f21cad022cb6308dea4c6caa9158a4eb942b3a0c6c01c1aea4a243d2fdd372cb",
+  "plan_hash": "d5c7f38adbc05c4b8021a62b333688a27d1c47dfa285ba6d3a76ff1a64da7773",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -371,11 +371,11 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "Attempt15 on exact f924 passed six of seven ordinary cases; the remaining reload failure is corrected in the E2E file, and Root-authorized attempt16 development probe passed 1/1. Complete current records/hash/scope validation and publish once; exact-tip CI observation and Root's fresh formal seven-case release remain pending. Full functional/strict visuals remain held for corrected Provider/ETF backend components.",
-    "current_phase": "The existing c476/777 fixture served the reviewed frontend assets and passed health checks. Attempt15 ran seven ordinary cases at one worker/zero retries: six passed, one failed with a stale old-document calendar response body. The document-epoch E2E fix passed isolated attempt16 1/1 in 6.9 seconds using an immutable f924 archive plus the exact hashed E2E patch, no overlay, zero retries and no OOM. Formal seven-case and exact-source CI remain pending.",
-    "next_action": "Complete scope/workstream/plan-hash and append-only record checks, publish this test-only correction once, then obtain Root's exact-tip CI observation and fresh seven-case release on c476. If all seven pass, hand the receipt to Root; full functional/104 strict visuals wait for corrected Provider/ETF backend release.",
+    "current_blocker": "Exact-source branch CI for the adoption publication is pending; the full functional/104 strict-visual profile waits for Root's accepted corrected ETF backend artifact and paired runtime release.",
+    "current_phase": "Adopted synchronized green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c at 38e4ecc8d6b98c3da0bb1a386129be03b83a3d8b; backend and frontend tree equivalence checked, c476 retained, and the frozen-import receipt/manifest is being reconciled.",
+    "next_action": "Finish the manifest and current session/workstream records, run scope/workstream/hash/diff checks, publish once for exact CI, then await Root's corrected ETF backend pair before the combined profile.",
     "total": 6,
-    "updated_at": "2026-11-04T06:11:46Z"
+    "updated_at": "2026-11-04T11:30:32Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
@@ -385,10 +385,10 @@
     "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
     "status": "Published f924 is clean and synchronized. Its test-only correction of the two attempt14 assertions was run in attempt15: six of seven ordinary cases passed; the remaining old-document calendar response-body race was corrected and passed the focused attempt16 development probe. The current document-epoch patch changes only the E2E test; production frontend/build inputs and the reviewed c476 image are unchanged. Current records and normal guards precede publication; Root releases the fresh formal seven-case run. The combined full profile remains held for corrected Provider/ETF backend."
   },
-  "remote": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
-  "remote_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
-  "remote_synchronized": true,
-  "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
+  "remote": "5519c6af21757f036c956119dacfae1bd5d2b85b",
+  "remote_sha": "5519c6af21757f036c956119dacfae1bd5d2b85b",
+  "remote_synchronized": false,
+  "remote_tracking_sha": "5519c6af21757f036c956119dacfae1bd5d2b85b",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
