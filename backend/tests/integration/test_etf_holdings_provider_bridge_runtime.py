@@ -100,6 +100,31 @@ class _ProviderDB:
         return self._session_factory()
 
 
+async def _canonical_equity_instrument_type(session: AsyncSession, name: str) -> InstrumentType:
+    """Reuse the canonical type rows inside this test's isolated schema."""
+    asset_class = await session.scalar(select(AssetClass).where(AssetClass.name == "Equity"))
+    if asset_class is None:
+        asset_class = AssetClass(name="Equity", description="Canonical equity asset class")
+        session.add(asset_class)
+        await session.flush()
+
+    instrument_type = await session.scalar(
+        select(InstrumentType).where(
+            InstrumentType.asset_class_id == asset_class.id,
+            InstrumentType.name == name,
+        )
+    )
+    if instrument_type is None:
+        instrument_type = InstrumentType(
+            asset_class_id=asset_class.id,
+            name=name,
+            description=f"Canonical Equity/{name} test fixture type",
+        )
+        session.add(instrument_type)
+        await session.flush()
+    return instrument_type
+
+
 @pytest_asyncio.fixture
 async def provider_db(db_engine):
     """Use a per-test schema for commits outside the shared rollback fixture."""
@@ -201,17 +226,8 @@ async def test_admin_reparse_response_uses_fresh_eager_session_and_is_idempotent
     )
 
     async with provider_db() as seed:
-        asset_class = AssetClass(name=f"ETF-reparse-{suffix}", description="test only")
-        seed.add(asset_class)
-        await seed.flush()
-        etf_type = InstrumentType(
-            asset_class_id=asset_class.id, name="ETF", description="test only"
-        )
-        stock_type = InstrumentType(
-            asset_class_id=asset_class.id, name="Stock", description="test only"
-        )
-        seed.add_all([etf_type, stock_type])
-        await seed.flush()
+        etf_type = await _canonical_equity_instrument_type(seed, "ETF")
+        stock_type = await _canonical_equity_instrument_type(seed, "Stock")
         etf_instrument = Instrument(
             instrument_type_id=etf_type.id,
             symbol=symbol,
@@ -461,16 +477,7 @@ async def _seed_reviewed_fixture(
     configured_scopes[review_account_key] = account_scope
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", configured_scopes)
 
-    asset_class = AssetClass(name=f"ETF-fixture-{suffix}", description="isolated integration")
-    session.add(asset_class)
-    await session.flush()
-    instrument_type = InstrumentType(
-        asset_class_id=asset_class.id,
-        name="ETF",
-        description="synthetic ETF bridge fixture",
-    )
-    session.add(instrument_type)
-    await session.flush()
+    instrument_type = await _canonical_equity_instrument_type(session, "ETF")
     instrument = Instrument(
         instrument_type_id=instrument_type.id,
         symbol=instrument_symbol_override or f"ZZ{suffix[:4].upper()}",

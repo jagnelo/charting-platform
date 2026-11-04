@@ -14,7 +14,11 @@ import pytest
 from sqlalchemy import select
 
 from app.config import provider_rate_limit_seed, settings
+from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
+from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import ProviderQuotaWindow
 from app.models.provider_runtime import (
     ProviderCapability,
@@ -29,9 +33,10 @@ from app.providers.base import ProviderAccountUsage, ProviderAccountUsageDimensi
 from app.providers.errors import ProviderRateLimitError, ProviderResponseError
 from app.providers.finra import FINRAProvider
 from app.providers.finra_otc_directory import FINRAOTCDirectoryProvider
-from app.providers.registry import get_provider_usage_profile
+from app.providers.registry import get_provider_usage_profile, provider_supports_instrument
 from app.providers.telemetry import observe_binary_response_payload, observe_response
 from app.services import provider_runtime
+from app.services.etf_holdings_adapters import get_holdings_adapter
 from app.services.provider_quota_coordinator import (
     ProviderQuotaAdmissionError,
     provider_quota_coordinator_summary,
@@ -53,6 +58,7 @@ from app.services.provider_runtime import (
     _get_bucket,
     _get_semaphore,
     _native_etf_initial_qualification_matches,
+    bind_explicit_etf_holdings_acquisition,
     bind_native_etf_initial_qualification,
     execute_provider_call,
     list_provider_status,
@@ -455,6 +461,423 @@ async def test_ordinary_native_etf_route_stays_held_without_positive_probe(db, m
         etf_holdings_adapters={"spdr": adapter},
     )
     assert chain == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("asset_class_name", "instrument_type_name", "expected"),
+    [
+        ("Equity", "ETF", True),
+        ("Equity", "Exchange Traded Fund", True),
+        ("Exchange Traded Product", "Exchange Traded Vehicle", True),
+        ("Exchange Traded Product", "ETN", False),
+        ("Exchange Traded Product", "Unclassified", False),
+        ("Exchange Traded Product", "Exchange Traded Product", False),
+        ("Equity", "Stock", False),
+        ("Equity", "Exchange Traded Vehicle", False),
+        ("Future", "ETF", False),
+        ("Cryptocurrency", "ETF", False),
+        ("", "ETF", False),
+    ],
+)
+async def test_etf_holdings_resolver_admits_only_matching_etf_and_etv_types(
+    db, monkeypatch, asset_class_name, instrument_type_name, expected
+):
+    """Exercise the real issuer registry and resolver instrument pre-hop gate."""
+
+    adapter = get_holdings_adapter("amplify")
+    assert adapter is not None
+    assert adapter.source_provider == "amplify"
+
+    source = DataSource(
+        name="amplify",
+        is_active=True,
+        base_url="https://amplify.example.test",
+        supported_capabilities=[ProviderCapability.ETF_HOLDINGS.value],
+        config={"capabilities": [ProviderCapability.ETF_HOLDINGS.value]},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        is_enabled=True,
+        max_concurrency=1,
+        tokens_per_minute=60,
+        burst_capacity=1,
+        cooldown_seconds=30,
+        quota_scope="amplify-test-account",
+        quota_source="offline reviewed resolver fixture",
+        quota_verified_at=datetime.now(UTC),
+        quota_contract={
+            "reset": "rolling",
+            "dimensions": [
+                {
+                    "name": "requests",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "amplify-test-account",
+                    "source": "offline reviewed resolver fixture",
+                    "reset": "rolling",
+                }
+            ],
+            "operation_costs": {"fetch_etf_holdings_latest": 1},
+        },
+    )
+    entitlement = ProviderEntitlement(
+        data_source_id=source.id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        configured_plan="reviewed-free",
+        is_free=True,
+        live_probe_status="passed",
+        revision=1,
+    )
+    db.add_all([policy, entitlement])
+    db.flush()
+    db.add(
+        ProviderHealthState(
+            data_source_id=source.id,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            failure_streak=0,
+            ewma_latency_ms=Decimal("0"),
+            ewma_success_rate=Decimal("1"),
+            ewma_completeness=Decimal("1"),
+            ewma_freshness=Decimal("1"),
+            ewma_consistency=Decimal("1"),
+            observed_score=Decimal("0"),
+        )
+    )
+    asset_class = AssetClass(name=asset_class_name)
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name=instrument_type_name, asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="BWET",
+        name="Resolver taxonomy fixture",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        identity_status="resolved",
+        is_synthetic=False,
+    )
+    db.add(instrument)
+    db.flush()
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    with bind_explicit_etf_holdings_acquisition(
+        request_id=f"offline-route-test:{instrument.id}",
+        instrument_id=instrument.id,
+        symbol="BWET",
+        issuer_provider_name="amplify",
+    ):
+        chain = await resolve_provider_chain(
+            AsyncSessionAdapter(db),
+            ProviderCapability.ETF_HOLDINGS,
+            instrument_id=instrument.id,
+            profile_id=81,
+            provider_symbol="BWET",
+            operation="fetch_etf_holdings_latest",
+            etf_holdings_adapters={"amplify": adapter},
+        )
+
+    amplify_chain = [item for item in chain if item.provider_name == "amplify"]
+    assert bool(amplify_chain) is expected, [item.provider_name for item in chain]
+    if expected:
+        assert amplify_chain[0].provider is adapter
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    (
+        "asset_class_name",
+        "instrument_type_name",
+        "listing_country",
+        "listing_currency",
+        "has_listing",
+        "capability",
+        "operation",
+        "hold_massive",
+        "expected_massive",
+    ),
+    [
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            True,
+        ),
+        (
+            "Equity",
+            "ETF",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            True,
+        ),
+        (
+            "Exchange Traded Product",
+            "ETN",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            False,
+        ),
+        (
+            "Equity",
+            "Exchange Traded Vehicle",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Unclassified",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "GB",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "US",
+            "EUR",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "US",
+            "USD",
+            False,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "search_instruments",
+            False,
+            False,
+        ),
+        (
+            "Exchange Traded Product",
+            "Exchange Traded Vehicle",
+            "US",
+            "USD",
+            True,
+            ProviderCapability.PRICE_HISTORY,
+            "fetch_ohlcv:D1",
+            True,
+            False,
+        ),
+    ],
+)
+async def test_only_reviewed_us_etv_history_routes_to_massive_without_widening_registry(
+    db,
+    monkeypatch,
+    asset_class_name,
+    instrument_type_name,
+    listing_country,
+    listing_currency,
+    has_listing,
+    capability,
+    operation,
+    hold_massive,
+    expected_massive,
+):
+    """Keep ETV history limited to Massive's US stock-bar contract."""
+
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    now = datetime.now(UTC)
+    for provider_name in ("massive", "alpaca"):
+        source = db.execute(select(DataSource).where(DataSource.name == provider_name)).scalar_one()
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        ).scalar_one()
+        entitlement = db.execute(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == ProviderCapability.PRICE_HISTORY,
+            )
+        ).scalar_one()
+        policy.is_enabled = True
+        policy.quota_scope = f"{provider_name}-test-account"
+        policy.quota_source = "offline resolver route fixture"
+        policy.quota_verified_at = now
+        policy.quota_contract = {
+            "reset": "rolling",
+            "operation_costs": {"fetch_ohlcv": 1},
+            "dimensions": [
+                {
+                    "name": "requests_per_day",
+                    "limit": 20,
+                    "window_seconds": 86_400,
+                    "unit": "requests",
+                    "scope": f"{provider_name}-test-account",
+                    "source": "offline resolver route fixture",
+                    "reset": "rolling",
+                }
+            ],
+        }
+        entitlement.configured_plan = "reviewed-free-fixture"
+        entitlement.is_free = True
+        entitlement.authentication_required = True
+        entitlement.live_probe_status = "passed"
+        entitlement.usage_terms = "offline resolver fixture only"
+        entitlement.enabled_environments = [settings.APP_ENV]
+        entitlement.review_due_at = now + timedelta(days=1)
+
+    monkeypatch.setattr(settings, "MASSIVE_API_KEY", "resolver-test-only")
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "resolver-test-only")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "resolver-test-only")
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "offline resolver fixture",
+    )
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "written_automated_persistent_archive_and_audience",
+    )
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_REVIEWED_AT", now)
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_EXPIRES_AT", now + timedelta(days=1))
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", False)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        {"massive": {"fetch_ohlcv": "unit-test held-source control"}} if hold_massive else {},
+    )
+
+    asset_class = AssetClass(name=asset_class_name)
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name=instrument_type_name, asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="BWET",
+        name="Exchange-listed vehicle route fixture",
+        currency=listing_currency,
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        identity_status="resolved",
+        is_synthetic=False,
+    )
+    db.add(instrument)
+    db.flush()
+    if has_listing:
+        exchange = Exchange(
+            mic="XNYS",
+            name="New York Stock Exchange fixture",
+            country_code=listing_country,
+            timezone="America/New_York",
+            currency=listing_currency,
+        )
+        db.add(exchange)
+        db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                exchange_id=exchange.id,
+                ticker="BWET",
+                currency=listing_currency,
+                is_primary=True,
+                is_active=True,
+                source="offline resolver route fixture",
+            )
+        )
+        db.flush()
+
+    chain = await resolve_provider_chain(
+        async_db,
+        capability,
+        instrument_id=instrument.id,
+        provider_symbol=instrument.symbol,
+        operation=operation,
+        operation_cost_overrides={"massive": 1, "alpaca": 1},
+        adjusted=False,
+    )
+    massive_chain = [item for item in chain if item.provider_name == "massive"]
+    alpaca_chain = [item for item in chain if item.provider_name == "alpaca"]
+    assert bool(massive_chain) is expected_massive, [item.provider_name for item in chain]
+    if instrument_type_name == "ETF":
+        assert alpaca_chain  # ordinary ETF routing remains unchanged
+    else:
+        assert alpaca_chain == []  # ETV never falls through Equity's generic registry entry
+    if expected_massive:
+        assert massive_chain[0].provider is provider_runtime.get_provider("massive")
+    assert not provider_supports_instrument(
+        "massive",
+        asset_class="Exchange Traded Product",
+        instrument_type="Exchange Traded Vehicle",
+    )
+    assert not provider_supports_instrument(
+        "alpaca",
+        asset_class="Exchange Traded Product",
+        instrument_type="Exchange Traded Vehicle",
+    )
 
 
 def _grant_test_perpetual_archive(monkeypatch, prefix: str) -> None:
