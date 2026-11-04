@@ -3203,6 +3203,20 @@ approved_frontend_consumer_adaptations:
     rationale: >-
       This source-only UI consumer helper adds no ETF identity decision, persisted data mutation, backend
       policy, source call, automatic constituent fan-out, or current-analysis eligibility override.
+  - path: frontend/tests/e2e/helpers.ts
+    source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+    accepted_blob: 0acf9b94424a8cecafe59d3c7a447cdd0554e4d7
+    delta: >-
+      Add one explicitly armed controlled-API-fault attribution in the existing
+      BrowserDiagnostics class. A single 503 is expected only when its observed
+      POST URL and request_id match the armed values, and at most one resource
+      console entry is attributed only when msg.location().url matches that URL.
+      Unarmed, mismatched, duplicate, and unrelated 503 diagnostics remain fatal.
+    rationale: >-
+      Root's exact 2026-11-04 disposition authorizes this minimal adaptation of
+      the imported helper for the existing delayed OIH failure test. The frozen
+      import remains pinned to its exact green 4d source/blob; no global 503
+      allow-list or suppression of unrelated browser diagnostics is introduced.
 approved_frozen_upstream_snapshots:
 - source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
   receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
@@ -4200,23 +4214,35 @@ active_implementation:
     acquisition flows. The prior collector ENOENT attempt, predecessor CI/browser
     failures and the frozen 2a32 functional run (201 passed, 2 failed, 2 configured
     skips) remain preserved; no obsolete visual run is claimed. Provider4d is
-    adopted and green; there is no pending Producer release. No current-source
-    browser profile, provider/issuer HTTP or service operation occurred. The final
+    adopted and green; there is no pending Producer release. No browser run has
+    executed on the corrected test-only candidate, and no provider/issuer HTTP or
+    service operation occurred. The final
     scope self-tests and full scope guard passed (1,098 changed paths, 881
     byte-verified imports, 29 Provider adaptations, 112 presentation adaptations,
     5 exact consumer adaptations); workstream validation, plan/session hash and
-    staged diff checks passed. Exact-source CI and the fresh source-matched frontend
-    artifact follow publication; the Root-reviewed replacement joint profile remains
-    pending.
+    staged diff checks passed. Exact-source CI and Root's bundled-input equivalence
+    review remain pending; the corrected joint profile has not been run.
+  latest_targeted_profile_disposition:
+    base_source: bf71482deae91558ab030202673711b11b477e62
+    exact_hosted_ci: 41747382975
+    hosted_result: 196 passed, 3 failed, 110 configured skips; preserve as red evidence.
+    prior_owned_seven_case_result: 4 passed, 3 failed; preserve exact artifacts and cleanup receipt.
+    causes_and_corrections:
+      - IWM and no-snapshot first-use assertions now separate automatic D1 from deliberate M1, bind each phase to the exact AMD canonical ID, request bounds and unique request IDs, and retain the successful M1 local readback and lineage checks.
+      - The IGV test now uses the rendered Constituents group/listbox and retains selected-fund, reported-row, weight, type and unresolved-identity assertions.
+      - The deliberate delayed OIH 503 remains tested. BrowserDiagnostics narrowly attributes only one armed exact POST URL/request_id/503 and at most its matching resource-console entry; unarmed, mismatched and excess 503 responses remain fatal.
+      - The IWM fixture now returns the same unknown capability from its selected profile, capability endpoint and held response while retaining the real seeded profile, IDs, snapshot and rows; the unchanged eligibility assertion waits for that baseline.
+    focused_checks: >-
+      The diagnostics helper unit tests pass 7/7, vue-tsc passes, and Playwright lists all seven acquisition cases. The scope-validator self-tests pass including exact helper source pin and unlisted-neighbor rejection. No browser was relaunched, no application image was rebuilt, and no product/source data was changed.
+    next: >-
+      Publish this test/helper/record-only correction once and obtain its exact-source CI. Root will verify bundled application-input equivalence and release the corrected profile using the retained bb320 frontend and ETF777 backend; do not rebuild either component. Run the seven ordinary acquisition cases first, then the unchanged full functional and 104 strict-visual suites at one worker/zero retries.
   next_action: >-
-    Publish this coherent candidate once and follow its exact-source CI. Build one bounded,
-    immutable frontend artifact from the clean published source with the existing
-    recipe. Root must verify that artifact with the qualified ETF backend before
-    releasing the single joint profile. Run the seven ordinary acquisition flows
-    first, then continue the unchanged full functional suite and 104 strict visual
-    cases with one worker, zero retries, dense 10,000-row seeding in backend and
-    browser, observed browse count, existing diagnostics, references, masks and
-    tolerances. First execute the seven existing on-demand Chromium cases and
-    retain their result separately; then execute the complete functional and
-    strict-visual gates without adding the preliminary seven to the full-suite
-    counts. Root owns profile acceptance, integration and deployment.
+    Publish this coherent test-only correction once and follow its exact-source CI.
+    Root will prove that bundled application inputs are byte-identical and release
+    the corrected profile using the retained frontend/backend images; no rebuild is
+    required for these test/helper/record changes. Run the seven ordinary acquisition
+    flows first and retain that result separately, then run the unchanged full
+    functional suite and 104 strict visual cases with one worker, zero retries,
+    dense 10,000-row seeding in backend and browser, observed browse count, existing
+    diagnostics, references, masks and tolerances. Root owns profile acceptance,
+    integration and deployment.

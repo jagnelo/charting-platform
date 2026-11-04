@@ -35,6 +35,7 @@ CONSUMER_ADAPTATION_PATHS = {
     "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
     "frontend/src/lib/etfHoldingDrilldown.ts",
     "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/tests/e2e/helpers.ts",
 }
 CONSUMER_PRESENTATION_OVERLAP_PATHS = {
     "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
@@ -836,16 +837,21 @@ def self_test() -> int:
         holding_panel_test_file = root / holding_panel_test_path
         holding_panel_test_file.parent.mkdir(parents=True, exist_ok=True)
         holding_panel_test_file.write_text("test('imported resolved event', () => {})\n")
+        diagnostics_helper_path = "frontend/tests/e2e/helpers.ts"
+        diagnostics_helper_file = root / diagnostics_helper_path
+        diagnostics_helper_file.parent.mkdir(parents=True, exist_ok=True)
+        diagnostics_helper_file.write_text("class BrowserDiagnostics {}\n")
         consumer_path = "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
         consumer_file = root / consumer_path
         consumer_file.parent.mkdir(parents=True, exist_ok=True)
         consumer_file.write_text("<template>producer source</template>\n")
-        fixture_git("add", "gone.txt", presentation_path, consumer_path, holding_panel_test_path)
+        fixture_git("add", "gone.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path)
         fixture_git("commit", "-m", "baseline")
         baseline = fixture_git("rev-parse", "HEAD")
         fixture_git("checkout", "-b", "released-change")
         (root / "foreign.txt").write_text("released bytes\n")
         presentation_file.write_text("<template>released source</template>\n")
+        diagnostics_helper_file.write_text("class BrowserDiagnostics { controlledFault() {} }\n")
         (root / "gone.txt").unlink()
         fixture_git("add", "--all")
         fixture_git("commit", "-m", "released change")
@@ -857,6 +863,7 @@ def self_test() -> int:
         presentation_blob = fixture_git("rev-parse", f"{source}:{presentation_path}")
         consumer_blob = fixture_git("rev-parse", f"{source}:{consumer_path}")
         holding_panel_test_blob = fixture_git("rev-parse", f"{source}:{holding_panel_test_path}")
+        diagnostics_helper_blob = fixture_git("rev-parse", f"{source}:{diagnostics_helper_path}")
         reference = FROZEN_MANIFEST_PREFIX + source + ".yaml"
         receipt_reference = RELEASE_RECEIPT_PREFIX + source + ".json"
         receipt_payload: dict[str, Any] = {
@@ -919,6 +926,12 @@ def self_test() -> int:
                     "mode": "100644",
                     "blob": holding_panel_test_blob,
                 },
+                {
+                    "path": diagnostics_helper_path,
+                    "state": "present",
+                    "mode": "100644",
+                    "blob": diagnostics_helper_blob,
+                },
                 {"path": "gone.txt", "state": "deleted"},
             ],
         }
@@ -927,12 +940,12 @@ def self_test() -> int:
         fixture_git("merge", "--ff-only", source)
         checks["approved fast-forward release accepts exact imported blobs"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, "gone.txt"}
+        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path, "gone.txt"}
         fixture_git("checkout", "main")
         fixture_git("merge", "--no-ff", "-m", "import released", source)
         frozen = validate_frozen_imports(fixture_plan, root=root)
         checks["approved merged snapshot accepts exact present and deleted paths"] = (
-            set(frozen) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, "gone.txt"}
+            set(frozen) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path, "gone.txt"}
         )
         checks["ordinary authorization still rejects frozen upstream paths"] = not authorized(
             "foreign.txt", fixture_plan
@@ -1093,6 +1106,43 @@ def self_test() -> int:
                 holding_panel_test_plan,
             )[0]
         )
+
+        diagnostics_plan = deep_copy(holding_panel_test_plan)
+        diagnostics_plan["approved_frontend_consumer_adaptations"].append({
+            "path": diagnostics_helper_path,
+            "source_sha": source,
+            "accepted_blob": diagnostics_helper_blob,
+            "delta": "attribute one explicitly armed controlled API failure by exact request identity",
+            "rationale": "synthetic exact imported diagnostics-helper adaptation proof",
+        })
+        diagnostics_adaptations = validate_frontend_consumer_adaptations(
+            diagnostics_plan, root=root
+        )
+        checks["one exact imported diagnostics helper adaptation is accepted"] = (
+            diagnostics_helper_path in CONSUMER_ADAPTATION_PATHS
+            and diagnostics_helper_path in diagnostics_adaptations
+            and authorized(diagnostics_helper_path, diagnostics_plan)[0]
+        )
+        checks["unlisted neighboring diagnostics helper remains rejected"] = (
+            not authorized("frontend/tests/e2e/other_helpers.ts", diagnostics_plan)[0]
+            and "frontend/tests/e2e/other_helpers.ts" not in diagnostics_adaptations
+        )
+        neighbor_diagnostics_plan = deep_copy(diagnostics_plan)
+        neighbor_diagnostics_plan["approved_frontend_consumer_adaptations"].append({
+            "path": "frontend/tests/e2e/other_helpers.ts",
+            "source_sha": source,
+            "accepted_blob": diagnostics_helper_blob,
+            "delta": "unlisted nearby path",
+            "rationale": "negative exact-path self-test",
+        })
+        try:
+            validate_frontend_consumer_adaptations(neighbor_diagnostics_plan, root=root)
+        except (OSError, RuntimeError, ValueError) as exc:
+            checks["validator rejects an unlisted neighboring diagnostics path"] = (
+                "not explicitly supported" in str(exc)
+            )
+        else:
+            checks["validator rejects an unlisted neighboring diagnostics path"] = False
 
         wrong_adaptation = deep_copy(adaptation_plan)
         wrong_adaptation["approved_provider_contract_adaptations"][0]["accepted_blob"] = "b" * 40
@@ -1351,7 +1401,7 @@ def self_test() -> int:
         write_yaml(reference, valid_manifest)
         checks["active MERGE_HEAD accepts the approved exact snapshot"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, "gone.txt"}
+        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, diagnostics_helper_path, "gone.txt"}
         fixture_git("merge", "--abort")
         fixture_git("reset", "--hard", final_head)
         write_yaml(reference, valid_manifest)

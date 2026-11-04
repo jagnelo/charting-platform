@@ -26001,3 +26001,31 @@ Provider staging `4d4a278b1b086745b22aab05d3d960539ad02c97` is adopted and green
 Final affected units passed 95/95 across seven files, including ETFHoldingsView 20/20. `vue-tsc --noEmit` and the Vite production build passed (540 modules; existing large Workstation chunk warning). Playwright collection lists 197 tests, including the seven ordinary acquisition flows. Full one-worker coverage passed 154 files / 1,555 tests; Root-reviewed LCOV is 2,588/3,683 functions (70.2688%) against the unchanged 70% floor. Report directory: `/tmp/tc-ordinary-final-coverage-20261104-attempt003` (LCOV SHA256 `034935dcf06aae201aaac04b53a4c5af8e56e6f478f4ad1d3767be7454f54498`). The previous coverage collector ENOENT remains a preserved infrastructure failure. Scope self-tests and the full guard passed (1,098 changed paths, 881 byte-verified imports, 29 Provider adaptations, 112 presentation adaptations and 5 exact consumer adaptations); workstream validation, plan/session hash and staged diff checks passed.
 
 The frozen 2a32 joint profile remains red at 201 passed, 2 failed and 2 configured skips in 24.2 minutes; no obsolete visual phase was run. Its exact owned cleanup and protected-inventory review remain preserved. This current source has not run a browser profile or source HTTP. Next: publish once, follow exact-source CI, then build the already-released bounded frontend artifact paired with unchanged qualified ETF565211/backend777. After Root reviews the pair and releases the slot, run the seven on-demand cases first and then the unchanged full functional and 104 strict-visual suites, preserving one-worker/zero-retry settings and all existing diagnostics/oracles.
+
+## 2026-11-04 — targeted ordinary-flow fixture/diagnostic correction
+
+The bf7148 predecessor profile remains red and preserved: the owned seven-case
+run was 4 passed / 3 failed, and exact CI `41747382975` was 196 passed / 3
+failed / 110 configured skips. Root's disposition identifies test-fixture and
+rendered-locator mismatches. The IWM profile list now reports the same unknown
+capability as its capability endpoint and held response, retaining the real
+seeded profile IDs, snapshot and rows; the test waits for the stable unknown
+baseline and keeps the original eligibility assertion. IWM and the no-snapshot
+OIH-to-AMD case assert automatic D1 separately from deliberate M1, including
+exact instrument ID, bounded dates, distinct request IDs, lineage and
+successful M1 local readback. The IGV case uses the rendered `Constituents`
+group and `Constituents symbols` listbox, with selected-fund and reported-row,
+type, weight and unresolved-identity checks intact.
+
+The intentionally delayed OIH 503 still runs. Its only diagnostic attribution
+is armed with the actual POST URL and request ID and accepts status 503 plus at
+most one matching resource-console entry. Matching console-before-response
+ordering is covered; pre-arm, wrong URL/request ID/method, duplicate response or
+console events remain fatal. Focused diagnostics tests pass 7/7, `vue-tsc`
+passes, Playwright lists all seven cases, and scope-validator self-tests pass
+with the exact helper source/blob and unlisted-neighbor rejection. No corrected
+browser profile was rerun; the retained bb320 frontend and ETF777 backend were
+not rebuilt. The exact owned fixture was cleaned and protected-resource review
+remains preserved. Next: publish one coherent test/helper/records candidate,
+obtain exact-source CI, then Root reviews bundled application-input equivalence
+and releases the seven-case-first/full-functional/104-visual profile.

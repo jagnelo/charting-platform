@@ -890,7 +890,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const identityRequests: InstrumentRequestBody[] = []
   const discoveryRequests: DiscoveryRequest[] = []
   const issuerRequests: IssuerRequest[] = []
-  const historyRequests: HistoryRequestBody[] = []
+  const historyRequests: Array<{ instrumentId: number; body: HistoryRequestBody }> = []
   let selectedProfile: ETFProfile | null = null
   let amdInstrumentId = 0
   let iwmInstrumentId = 0
@@ -943,13 +943,26 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   // The stored IWM snapshot is marked stale in this controlled fixture, so an
   // explicit profile selection should confirm identity once and then attempt
   // the governed refresh while retaining that snapshot.
+  const iwmUnknownCapability: ETFHoldingsCapability = {
+    availability: 'unknown', source_tier: 'none', identity_verified: true,
+    usable_for_current_analysis: false, displayable_last_known: true,
+    consecutive_failures: 0, reason: 'Controlled fixture requires a governed refresh.',
+    symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
+  }
+  await page.route('**/api/v1/etf-holdings', async route => {
+    const url = new URL(route.request().url())
+    if (route.request().method() !== 'GET' || url.searchParams.has('q')) return route.continue()
+    const response = await route.fetch()
+    const profiles = await response.json() as ETFProfile[]
+    await route.fulfill({
+      response,
+      json: profiles.map(profile => profile.symbol === 'IWM'
+        ? { ...profile, holdings_capability: iwmUnknownCapability }
+        : profile),
+    })
+  })
   await page.route('**/api/v1/etf-holdings/IWM/capability', async route => {
-    await route.fulfill({ status: 200, json: {
-      availability: 'unknown', source_tier: 'none', identity_verified: true,
-      usable_for_current_analysis: false, displayable_last_known: true,
-      consecutive_failures: 0, reason: 'Controlled fixture requires a governed refresh.',
-      symbol_audit: { tier: 0, outcome: 'not_run', evidence_state: 'test_fixture', next_action: '', evidence_refs: [] },
-    } satisfies ETFHoldingsCapability })
+    await route.fulfill({ status: 200, json: iwmUnknownCapability })
   })
 
   await page.route('**/api/v1/coverage/instruments/AMD/ohlcv*', async route => {
@@ -958,9 +971,9 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
 
   await page.route('**/api/v1/instruments/*/history-acquisitions**', async route => {
     const body = route.request().postDataJSON() as HistoryRequestBody
-    historyRequests.push(body)
     const requestedId = Number(new URL(route.request().url()).pathname.match(/\/instruments\/(\d+)\//)?.[1])
     expect(requestedId).toBe(amdInstrumentId)
+    historyRequests.push({ instrumentId: requestedId, body })
     await route.fulfill({ status: 200, json: heldHistory(body, requestedId, 'AMD') })
   })
 
@@ -1018,6 +1031,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(lineage).toBeVisible()
   const originalLineage = await lineage.innerText()
   const snapshotPanel = page.locator('.holdings-main > .workspace-panel').filter({ has: lineage })
+  await expect(snapshotPanel.locator('.panel-title-row > .panel-meta')).toContainText(/unknown/i)
   const originalEligibility = await snapshotPanel.locator('.panel-title-row > .panel-meta').innerText()
   const compositionLine = await page.locator('.snapshot-date-line').innerText()
   const compositionDate = compositionLine.match(/Composition (\d{4}-\d{2}-\d{2})/)?.[1]
@@ -1059,10 +1073,25 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
+  const automaticD1HistoryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === `/api/v1/instruments/${amdInstrumentId}/history-acquisitions`
+      && (response.request().postDataJSON() as HistoryRequestBody).timeframe === 'D1'
+  })
   await page.locator('button.holding-row').filter({ hasText: 'AMD' }).click()
   await page.getByRole('button', { name: 'View history' }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/AMD(?:\?|$)/)
   expect((await initialChartCoverageReady).status()).toBe(200)
+  const automaticD1History = await automaticD1HistoryReady
+  expect(automaticD1History.status()).toBe(200)
+  expect(await automaticD1History.json()).toMatchObject({ status: 'held', symbol: 'AMD', instrument_id: amdInstrumentId })
+  expect(historyRequests).toHaveLength(1)
+  expect(historyRequests[0]?.instrumentId).toBe(amdInstrumentId)
+  expectBoundedD1Request(historyRequests[0]!.body)
+  expect(identityRequests).toHaveLength(2)
+  expect(identityRequests[1]).toMatchObject({ symbol: 'AMD' })
+  await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
   const historyUrl = new URL(page.url())
   expect(historyUrl.pathname).toBe('/legacy/chart/AMD')
   expect(historyUrl.searchParams.get('holding_snapshot_id')).toBe(String(selectedProfile?.latest_snapshot_id))
@@ -1081,6 +1110,12 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
 
   const chartCanvases = page.locator('.chart-body canvas')
   await expect(chartCanvases.first()).toBeVisible()
+  const m1HistoryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === `/api/v1/instruments/${amdInstrumentId}/history-acquisitions`
+      && (response.request().postDataJSON() as HistoryRequestBody).timeframe === 'M1'
+  })
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
@@ -1100,14 +1135,24 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
   await expect(chartCanvases.first()).toBeVisible()
   const canvasCountBefore = await chartCanvases.count()
+  const identityBeforeExplicitM1 = identityRequests.length
   await page.getByTestId('history-load-missing').click()
   await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
+  const m1History = await m1HistoryReady
+  expect(m1History.status()).toBe(200)
+  expect(await m1History.json()).toMatchObject({ status: 'held', symbol: 'AMD', instrument_id: amdInstrumentId })
+  expect(identityRequests).toHaveLength(identityBeforeExplicitM1 + 1)
+  expect(identityRequests.at(-1)).toMatchObject({ symbol: 'AMD' })
   await expect(historicalContext).toBeVisible()
   await expect(chartCanvases).toHaveCount(canvasCountBefore)
-  expect(identityRequests).toHaveLength(2)
-  expect(identityRequests[1]).toMatchObject({ symbol: 'AMD' })
-  expect(historyRequests).toHaveLength(1)
-  expectBoundedM1Request(historyRequests[0]!)
+  expect(identityRequests).toHaveLength(3)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['IWM', 'AMD', 'AMD'])
+  expect(historyRequests).toHaveLength(2)
+  expect(historyRequests.map(request => request.body.timeframe)).toEqual(['D1', 'M1'])
+  expect(historyRequests.every(request => request.instrumentId === amdInstrumentId)).toBe(true)
+  expect(new Set(historyRequests.map(request => request.body.request_id)).size).toBe(2)
+  expectBoundedD1Request(historyRequests[0]!.body)
+  expectBoundedM1Request(historyRequests[1]!.body)
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
@@ -1120,7 +1165,7 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   const identityRequests: InstrumentRequestBody[] = []
   const discoveryRequests: DiscoveryRequest[] = []
   const issuerRequests: IssuerRequest[] = []
-  const historyRequests: HistoryRequestBody[] = []
+  const historyRequests: Array<{ instrumentId: number; body: HistoryRequestBody }> = []
   let amdInstrumentId = 0
   let iwmInstrumentId = 0
   let acquiredCoverage: {
@@ -1321,18 +1366,19 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   })
   await page.route('**/api/v1/instruments/*/history-acquisitions**', async route => {
     const body = route.request().postDataJSON() as HistoryRequestBody
-    historyRequests.push(body)
     const requestedId = Number(new URL(route.request().url()).pathname.match(/\/instruments\/(\d+)\//)?.[1])
     expect(requestedId).toBe(amdInstrumentId)
+    historyRequests.push({ instrumentId: requestedId, body })
     const startMs = Date.parse(body.start)
     const endMs = Date.parse(body.end)
-    const barMs = Math.ceil(startMs / 60_000) * 60_000
+    const intervalMs = body.timeframe === 'D1' ? 86_400_000 : 60_000
+    const barMs = Math.ceil(startMs / intervalMs) * intervalMs
     expect(barMs).toBeGreaterThanOrEqual(startMs)
     expect(barMs).toBeLessThanOrEqual(endMs)
     acquiredFixtureBar = fixtureBarAt(new Date(barMs).toISOString())
     const missingSlices: Array<{ start: string; end: string }> = []
     if (startMs < barMs) missingSlices.push({ start: body.start, end: acquiredFixtureBar.ts })
-    const afterBarMs = barMs + 60_000
+    const afterBarMs = barMs + intervalMs
     if (afterBarMs < endMs) missingSlices.push({ start: new Date(afterBarMs).toISOString(), end: body.end })
     acquiredCoverage = {
       status: 'partial',
@@ -1485,6 +1531,12 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
     return response.request().method() === 'GET'
       && url.pathname === '/api/v1/instruments/AMD/data-coverage'
   })
+  const automaticD1HistoryReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === `/api/v1/instruments/${amdInstrumentId}/history-acquisitions`
+      && (response.request().postDataJSON() as HistoryRequestBody).timeframe === 'D1'
+  })
   await holdingButton.click()
   await page.getByRole('button', { name: 'View history' }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/AMD(?:\?|$)/)
@@ -1501,6 +1553,18 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
   await expect(historicalContext).toBeVisible()
   await expect(historicalContext).toContainText('does not establish current ETF analysis eligibility')
   await expect(page.locator('.chart-root').first()).toHaveAttribute('aria-busy', 'false')
+  const automaticD1History = await automaticD1HistoryReady
+  expect(automaticD1History.status()).toBe(200)
+  const automaticD1Result = await automaticD1History.json() as HistoryAcquisitionResponse
+  expect(automaticD1Result).toMatchObject({ status: 'partial', symbol: 'AMD', instrument_id: amdInstrumentId, timeframe: 'D1' })
+  expect(automaticD1Result.bars).toHaveLength(1)
+  expect(Date.parse(automaticD1Result.bars[0]!.ts)).toBeGreaterThanOrEqual(Date.parse(historyRequests[0]!.body.start))
+  expect(Date.parse(automaticD1Result.bars[0]!.ts)).toBeLessThanOrEqual(Date.parse(historyRequests[0]!.body.end))
+  expect(historyRequests).toHaveLength(1)
+  expect(historyRequests[0]?.instrumentId).toBe(amdInstrumentId)
+  expectBoundedD1Request(historyRequests[0]!.body)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD'])
+  await expect(page.getByRole('status').filter({ hasText: /^Some history loaded;/ })).toBeVisible()
   const m1LocalBarsReady = page.waitForResponse(response => {
     const url = new URL(response.url())
     return response.request().method() === 'GET'
@@ -1525,18 +1589,23 @@ test('a no-snapshot ETF first use acquires fixture holdings and loads a resolved
       && response.request().method() === 'GET'
       && url.pathname === '/api/v1/ohlcv/local/AMD/M1'
   })
+  const identityCountBeforeM1 = identityRequests.length
   await page.getByTestId('history-load-missing').click()
   await expect(page.getByRole('status').filter({ hasText: /^Some history loaded;/ })).toBeVisible()
   const localReadback = await localReadbackReady
   const readbackBars = await localReadback.json() as OHLCVBar[]
-  expect(historyRequests).toHaveLength(1)
-  expectBoundedM1Request(historyRequests[0]!)
+  expect(historyRequests).toHaveLength(2)
+  expect(historyRequests.map(request => request.body.timeframe)).toEqual(['D1', 'M1'])
+  expect(historyRequests.every(request => request.instrumentId === amdInstrumentId)).toBe(true)
+  expectBoundedD1Request(historyRequests[0]!.body)
+  expectBoundedM1Request(historyRequests[1]!.body)
   expect(acquiredFixtureBar).not.toBeNull()
-  expect(Date.parse(acquiredFixtureBar!.ts)).toBeGreaterThanOrEqual(Date.parse(historyRequests[0]!.start))
-  expect(Date.parse(acquiredFixtureBar!.ts)).toBeLessThanOrEqual(Date.parse(historyRequests[0]!.end))
-  expect(identityRequests).toHaveLength(2)
-  expect(identityRequests[1]).toMatchObject({ symbol: 'AMD' })
-  expect(historyRequests[0]).toBeDefined()
+  expect(Date.parse(acquiredFixtureBar!.ts)).toBeGreaterThanOrEqual(Date.parse(historyRequests[1]!.body.start))
+  expect(Date.parse(acquiredFixtureBar!.ts)).toBeLessThanOrEqual(Date.parse(historyRequests[1]!.body.end))
+  expect(identityRequests).toHaveLength(identityCountBeforeM1 + 1)
+  expect(identityRequests.map(request => request.symbol)).toEqual(['OIH', 'AMD', 'AMD'])
+  expect(identityRequests.at(-1)).toMatchObject({ symbol: 'AMD' })
+  expect(new Set(historyRequests.map(request => request.body.request_id)).size).toBe(2)
   expect(successfulHistoryResponseReceived).toBe(true)
   expect(localReadbackCount).toBeGreaterThan(0)
   expect(readbackBars).toHaveLength(1)
@@ -1585,6 +1654,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const unresolvedDiscoveryStarted = deferred()
   const unresolvedDiscoveryGate = deferred()
   let oihAcquireCount = 0
+  let delayedOihFailureUrl: string | null = null
   let igvSnapshotAvailable = false
   const capabilityReads: FixtureETF[] = []
   let unxqDiscoveryCount = 0
@@ -1899,6 +1969,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
         await route.fulfill({ status: 200, json: holdingsResponse(symbol, body, 'acquired') })
         return
       }
+      delayedOihFailureUrl = route.request().url()
       oihFailureStarted.resolve()
       await oihFailureGate.promise
       await route.fulfill({ status: 503, json: { detail: 'Controlled fixture error; no source request was made.' } })
@@ -2026,6 +2097,14 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     })
     await chooseETF('OIH')
     await oihFailureStarted.promise
+    const controlledOihFailure = issuerRequests.filter(request => request.symbol === 'OIH').at(-1)?.body
+    expect(controlledOihFailure?.request_id).toMatch(/^[0-9a-f-]{36}$/i)
+    expect(delayedOihFailureUrl).toBeTruthy()
+    browserDiagnostics.allowExpectedControlledApiFault(
+      delayedOihFailureUrl!,
+      controlledOihFailure!.request_id,
+      503,
+    )
     const xhbAfterFailureSelectionReady = page.waitForResponse(response => {
       const url = new URL(response.url())
       return response.request().method() === 'POST' && url.pathname === '/api/v1/etf-holdings/XHB/acquire'
@@ -2057,7 +2136,9 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(igvIssuerCount).toBe(1)
     expect(capabilityReads).toContain('IGV')
     await chooseETF('IGV')
-    const igvWidget = page.getByRole('listbox', { name: /IGV holdings.*symbols/i })
+    const igvGroup = page.getByRole('group', { name: 'Constituents' })
+    await expect(igvGroup).toContainText('IGV')
+    const igvWidget = igvGroup.getByRole('listbox', { name: 'Constituents symbols' })
     await expect(igvWidget).toBeVisible()
     const reportedHolding = igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })
     await expect(reportedHolding).toBeVisible()
@@ -2106,6 +2187,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     // candidate is acquired once, the route retains snapshot/row lineage, and
     // chart history is then loaded for only that one selected equity.
     await chooseETF('IGV')
+    await expect(igvGroup).toContainText('IGV')
     await expect(igvWidget).toBeVisible()
     await expect(igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ })).toBeVisible()
     const identityResponseReady = page.waitForResponse(response => {

@@ -39,14 +39,14 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Current candidate is ready for its single publication; no exact-source CI result exists yet. Predecessor c5 coverage-only red and frozen 2a32 functional red remain historical evidence.",
-  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d4a278b1b086745b22aab05d3d960539ad02c97 is adopted and green; no Producer release is pending. Current source now includes the confirmed chart identity handoff and dedicated ETF holding selected-profile/snapshot/row fence. Full frontend coverage, focused tests, type-check, build, and Playwright collection pass. Exact-source CI and the replacement joint browser profile remain pending. Prior accepted TCO/F8Y checkpoints, all nine roadmap criteria, AC1-AC9, official V25 and operational holds remain unchanged.",
+  "current_candidate_ci_status": "The bf7148 predecessor is preserved red in exact CI41747382975 (196 passed, 3 failed, 110 configured skips). This test/helper-only correction is ready for one publication; its exact-source CI is pending.",
+  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d4a278b1b086745b22aab05d3d960539ad02c97 is adopted and green. The current correction fixes only phase-specific test assertions, the IWM controlled-capability fixture, the rendered IGV locator and one exact armed OIH 503 diagnostic attribution. Focused diagnostics tests 7/7, vue-tsc and seven-case Playwright collection pass. No corrected browser profile or rebuilt image is claimed. Prior accepted TCO/F8Y checkpoints, all nine roadmap criteria, AC1-AC9, official V25 and operational holds remain unchanged.",
   "current_exact_ci": {
-    "head_sha": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
-    "run_id": 41722035105,
+    "head_sha": "bf71482deae91558ab030202673711b11b477e62",
+    "run_id": 41747382975,
     "conclusion": "failure",
     "status": "failure",
-    "scope": "Preserved predecessor CI: 154 frontend files/1552 tests passed, but global function coverage69.44% failed unchanged70% threshold. Repaired coverage was then verified locally; exact reconciled-tip CI pending."
+    "scope": "Preserved exact predecessor CI: 196 passed, 3 failed, 110 configured skips. Root disposition identifies the IWM capability fixture mismatch, phase-specific D1/M1 assertions, IGV rendered locator, and exact OIH 503 diagnostic attribution. This corrected candidate has no CI result yet."
   },
   "current_software_checkpoint": {
     "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
@@ -72,28 +72,14 @@
     "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
   },
   "dirty_paths": [
-    "scripts/validate-tc2000-scope.py",
-    "frontend/src/components/chart/ChartPanel.vue",
-    "frontend/src/components/common/SearchBar.vue",
-    "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
-    "frontend/src/components/etf/ETFHoldingsPanel.vue",
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/etfHoldingDrilldown.ts",
-    "frontend/src/views/ChartView.vue",
-    "frontend/src/views/ETFHoldingsView.vue",
-    "frontend/src/views/WorkstationView.vue",
+    "frontend/tests/e2e/helpers.ts",
     "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
-    "frontend/tests/unit/components/test_etf_holding_resolution_action.test.ts",
-    "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
-    "frontend/tests/unit/components/test_search_bar.test.ts",
-    "frontend/tests/unit/lib/test_etf_reported_constituents.test.ts",
-    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
-    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "frontend/tests/unit/e2e/test_browser_diagnostics.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
+    "scripts/validate-tc2000-scope.py"
   ],
   "docker": {
     "available": false,
@@ -195,7 +181,7 @@
   "goal_request_state": "ready",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2a32d1fd5d25a97db023e7b60f28b492d755361c",
+  "head": "bf71482deae91558ab030202673711b11b477e62",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -262,7 +248,7 @@
     },
     "recorded_at": "2026-10-27T22:28:35Z"
   },
-  "implementation_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
+  "implementation_sha": "bf71482deae91558ab030202673711b11b477e62",
   "integration_checkpoint": {
     "acceptance": "Root accepted bounded F8Y checkpoint under existing standing human delegation on 2026-10-28; see .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json. This is not full-roadmap acceptance.",
     "archive_of_prior_checkpoint": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
@@ -318,7 +304,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish this coherent candidate once; follow its exact-source CI; build the already-released bounded frontend artifact and send its immutable receipt to Root. After Root reviews the pair and releases the slot, run the seven on-demand cases first, then the unchanged full functional and 104 strict-visual gates.",
+  "next_action": "Publish this coherent test/helper/records correction once and follow exact-source CI. Root will verify bundled application-input equivalence and release the corrected profile using retained frontend bb320 and ETF backend777 without rebuilding. Run the seven on-demand cases first, then the unchanged full functional and 104 strict-visual gates at one worker and zero retries.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -349,7 +335,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "81a915f6c33ae235d3c818958a48b25bf2782fc6a0d47d775d1096f3714ee6c6",
+  "plan_hash": "683383eb7c8fce58989d40b7d8c0cd4a7cbe5783a57c23597410644238e0d34d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -384,24 +370,24 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "No Producer release is pending. Final candidate publication/exact-source CI and Root review of the already-released frontend artifact paired with ETF565211/backend777 remain; the replacement joint profile follows that review.",
-    "current_phase": "Provider4d green staging is adopted. Current chart and dedicated ETF holding navigation preserve one-use confirmed-identity/lineage handoff and live selected-profile/snapshot/row fencing. Focused units, full frontend coverage, type-check, build, E2E discovery, scope self-tests/full guard and workstream validation pass; current-source browser profile remains pending.",
-    "next_action": "Publish this coherent candidate once; follow its exact-source CI; build the already-released bounded frontend artifact and send its immutable receipt to Root. After Root reviews the pair and releases the slot, run the seven on-demand cases first, then the unchanged full functional and 104 strict-visual gates.",
+    "current_blocker": "The bf7148 predecessor is red in exact CI41747382975. This test/helper-only correction is pending one publication and exact-source CI; Root must then verify existing frontend bb320/backend777 bundle equivalence and release the corrected profile.",
+    "current_phase": "The correction is test/helper/records-only: phase-specific D1/M1 requests, consistent IWM unknown-capability fixture, rendered IGV Constituents locator and one exact armed OIH 503 diagnostic attribution. Seven diagnostics unit cases, vue-tsc, seven-case discovery and scope self-tests pass. No corrected browser profile, image rebuild, real-source request or product change is claimed.",
+    "next_action": "Publish this correction once and follow exact-source CI; after Root verifies retained component equivalence and releases the slot, run the seven on-demand cases first, then full functional and 104 strict-visual gates at one worker/zero retries.",
     "total": 6,
-    "updated_at": "2026-11-04T00:30:02Z"
+    "updated_at": "2026-11-04T01:32:36Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "Publish this candidate once; exact-source branch CI; build and Root-review the already-released corrected frontend artifact paired with ETF565211/backend777; then the one replacement joint functional/strict-visual profile.",
+    "current_pending_range": "Publish this test/helper/records correction once and obtain exact-source CI; Root verifies existing frontend bb320/backend777 input equivalence and releases the corrected seven-case-first/full functional/strict-visual profile.",
     "failure_category": null,
     "remote": "origin",
-    "remote_tracking_sha": "2a32d1fd5d25a97db023e7b60f28b492d755361c",
-    "status": "All required local frontend and scope/workstream checks pass. Candidate is ready for one normal publication; exact candidate CI and joint profile remain pending. Provider4d is already adopted and green."
+    "remote_tracking_sha": "bf71482deae91558ab030202673711b11b477e62",
+    "status": "Focused diagnostics tests, frontend type-check, seven-case discovery and scope self-tests pass. Full scope/workstream checks and exact candidate CI remain pending. Provider4d is adopted and green; no image rebuild is required for this test/helper-only correction."
   },
-  "remote": "c5ffadaa9cf76e1c6e3360cf2ad9022e0b441f55",
-  "remote_sha": "2a32d1fd5d25a97db023e7b60f28b492d755361c",
+  "remote": "bf71482deae91558ab030202673711b11b477e62",
+  "remote_sha": "bf71482deae91558ab030202673711b11b477e62",
   "remote_synchronized": true,
-  "remote_tracking_sha": "2a32d1fd5d25a97db023e7b60f28b492d755361c",
+  "remote_tracking_sha": "bf71482deae91558ab030202673711b11b477e62",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -579,7 +565,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T00:30:02Z",
+  "updated_at": "2026-11-04T01:32:36Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

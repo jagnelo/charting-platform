@@ -43,13 +43,15 @@ async function ensureUserExists(
   throw new Error(`Failed to provision E2E user ${username}: ${lastStatus} ${lastBody}`)
 }
 
-class BrowserDiagnostics {
+export class BrowserDiagnostics {
   private page: Page | null = null
   consoleErrors: string[] = []
+  private consoleErrorLocations: string[] = []
   consoleWarnings: string[] = []
   pageErrors: string[] = []
   requestFailures: string[] = []
   unexpectedApi404Paths: string[] = []
+  unexpectedApi503s: string[] = []
   /**
    * The branch Compose stack intentionally starts without imported canonical market
    * data. These documented read contracts return a structured 404 that the UI renders
@@ -80,6 +82,27 @@ class BrowserDiagnostics {
   // handled 409 as a console error, so classify only the allow-listed API
   // routes above.
   expectedCurrentAnalysisConflictResponses = 0
+  private controlledApiFault: {
+    url: string
+    requestId: string
+    status: number
+    responseObserved: boolean
+    consoleStartIndex: number
+    consoleErrorIndex: number | null
+  } | null = null
+
+  allowExpectedControlledApiFault(url: string, requestId: string, status: number) {
+    if (this.controlledApiFault) throw new Error('Only one controlled API fault may be armed per test')
+    if (!url || !requestId || status !== 503) throw new Error('Controlled API fault requires an exact URL, request ID, and 503 status')
+    this.controlledApiFault = {
+      url,
+      requestId,
+      status,
+      responseObserved: false,
+      consoleStartIndex: this.consoleErrors.length,
+      consoleErrorIndex: null,
+    }
+  }
 
   allowExpectedWatchlistConflictResponses(count = 1) {
     this.expectedWatchlistConflictResponses += count
@@ -98,7 +121,17 @@ class BrowserDiagnostics {
     this.page = page
     page.on('console', (msg) => {
       const text = msg.text()
-      if (msg.type() === 'error') this.consoleErrors.push(text)
+      if (msg.type() === 'error') {
+        const index = this.consoleErrors.push(text) - 1
+        const location = msg.location().url
+        this.consoleErrorLocations[index] = location
+        const fault = this.controlledApiFault
+        if (fault && fault.responseObserved && index >= fault.consoleStartIndex && fault.consoleErrorIndex === null
+          && text === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)'
+          && location === fault.url) {
+          fault.consoleErrorIndex = index
+        }
+      }
       if (msg.type() === 'warning') this.consoleWarnings.push(text)
     })
     page.on('pageerror', (err) => {
@@ -112,6 +145,26 @@ class BrowserDiagnostics {
       this.requestFailures.push(`${req.method()} ${req.url()} :: ${errorText}`)
     })
     page.on('response', (response) => {
+      const fault = this.controlledApiFault
+      if (response.status() === 503) {
+        let requestId: string | undefined
+        try {
+          requestId = (response.request().postDataJSON() as { request_id?: string } | null)?.request_id
+        } catch {
+          requestId = undefined
+        }
+        if (fault && !fault.responseObserved && response.url() === fault.url
+          && response.request().method() === 'POST' && requestId === fault.requestId) {
+          fault.responseObserved = true
+          const matchingConsoleIndex = this.consoleErrors.findIndex((error, index) =>
+            index >= fault.consoleStartIndex
+            && error === 'Failed to load resource: the server responded with a status of 503 (Service Unavailable)'
+            && this.consoleErrorLocations[index] === fault.url)
+          if (matchingConsoleIndex >= 0) fault.consoleErrorIndex = matchingConsoleIndex
+        } else {
+          this.unexpectedApi503s.push(`${response.request().method()} ${response.url()} request_id=${requestId ?? 'unavailable'}`)
+        }
+      }
       if (response.status() === 409) {
         const path = new URL(response.url()).pathname
         if (/^\/api\/v1\/workspaces\/\d+\/snapshot$/.test(path)) {
@@ -151,12 +204,13 @@ class BrowserDiagnostics {
       })
     }
     const unexpectedPageErrors = this.filterExpectedPageErrors()
-    if (unexpectedConsoleErrors.length || unexpectedPageErrors.length || this.requestFailures.length || this.unexpectedApi404Paths.length) {
+    if (unexpectedConsoleErrors.length || unexpectedPageErrors.length || this.requestFailures.length || this.unexpectedApi404Paths.length || this.unexpectedApi503s.length) {
       const body = [
         unexpectedConsoleErrors.length ? `Console errors:\n${unexpectedConsoleErrors.join('\n')}` : '',
         unexpectedPageErrors.length ? `Page errors:\n${unexpectedPageErrors.join('\n')}` : '',
         this.requestFailures.length ? `Request failures:\n${this.requestFailures.join('\n')}` : '',
         this.unexpectedApi404Paths.length ? `Unexpected API 404 paths:\n${this.unexpectedApi404Paths.join('\n')}` : '',
+        this.unexpectedApi503s.length ? `Unexpected API 503 responses:\n${this.unexpectedApi503s.join('\n')}` : '',
       ].filter(Boolean).join('\n\n')
       await testInfo.attach('browser-critical-issues.txt', {
         body,
@@ -178,6 +232,7 @@ class BrowserDiagnostics {
         pageErrors: unexpectedPageErrors,
         requestFailures: this.requestFailures,
         unexpectedApi404Paths: this.unexpectedApi404Paths,
+        unexpectedApi503s: this.unexpectedApi503s,
       },
       'unexpected browser console/page/request failures',
     ).toEqual({
@@ -185,6 +240,7 @@ class BrowserDiagnostics {
       pageErrors: [],
       requestFailures: [],
       unexpectedApi404Paths: [],
+      unexpectedApi503s: [],
     })
   }
 
@@ -206,7 +262,10 @@ class BrowserDiagnostics {
     let expectedWatchlistConflictResponses = this.expectedWatchlistConflictResponses
     let expectedCurrentAnalysisConflictResponses = this.expectedCurrentAnalysisConflictResponses
     let expectedWatchlistLoadErrors = this.expectedWatchlistLoadErrors
-    return this.consoleErrors.filter(error => {
+    return this.consoleErrors.filter((error, index) => {
+      if (this.controlledApiFault?.responseObserved
+        && this.controlledApiFault.consoleErrorIndex === index
+        && this.consoleErrorLocations[index] === this.controlledApiFault.url) return false
       if (error === 'Failed to load resource: the server responded with a status of 404 (Not Found)'
         && expectedUnavailableApi404s > 0) {
         expectedUnavailableApi404s -= 1
