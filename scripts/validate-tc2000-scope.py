@@ -32,6 +32,7 @@ PRESENTATION_SUFFIXES = {".vue", ".ts", ".css"}
 CONSUMER_ADAPTATION_PATHS = {
     "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
     "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
+    "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
     "frontend/src/lib/etfHoldingDrilldown.ts",
     "frontend/src/views/ETFHoldingsView.vue",
 }
@@ -831,11 +832,15 @@ def self_test() -> int:
         presentation_file = root / presentation_path
         presentation_file.parent.mkdir(parents=True, exist_ok=True)
         presentation_file.write_text("<template>baseline</template>\n")
+        holding_panel_test_path = "frontend/tests/unit/components/test_etf_holdings_panel.test.ts"
+        holding_panel_test_file = root / holding_panel_test_path
+        holding_panel_test_file.parent.mkdir(parents=True, exist_ok=True)
+        holding_panel_test_file.write_text("test('imported resolved event', () => {})\n")
         consumer_path = "frontend/src/components/etf/ETFHoldingResolutionAction.vue"
         consumer_file = root / consumer_path
         consumer_file.parent.mkdir(parents=True, exist_ok=True)
         consumer_file.write_text("<template>producer source</template>\n")
-        fixture_git("add", "gone.txt", presentation_path, consumer_path)
+        fixture_git("add", "gone.txt", presentation_path, consumer_path, holding_panel_test_path)
         fixture_git("commit", "-m", "baseline")
         baseline = fixture_git("rev-parse", "HEAD")
         fixture_git("checkout", "-b", "released-change")
@@ -851,6 +856,7 @@ def self_test() -> int:
         foreign_blob = fixture_git("rev-parse", f"{source}:foreign.txt")
         presentation_blob = fixture_git("rev-parse", f"{source}:{presentation_path}")
         consumer_blob = fixture_git("rev-parse", f"{source}:{consumer_path}")
+        holding_panel_test_blob = fixture_git("rev-parse", f"{source}:{holding_panel_test_path}")
         reference = FROZEN_MANIFEST_PREFIX + source + ".yaml"
         receipt_reference = RELEASE_RECEIPT_PREFIX + source + ".json"
         receipt_payload: dict[str, Any] = {
@@ -907,6 +913,12 @@ def self_test() -> int:
                     "mode": "100644",
                     "blob": consumer_blob,
                 },
+                {
+                    "path": holding_panel_test_path,
+                    "state": "present",
+                    "mode": "100644",
+                    "blob": holding_panel_test_blob,
+                },
                 {"path": "gone.txt", "state": "deleted"},
             ],
         }
@@ -915,12 +927,12 @@ def self_test() -> int:
         fixture_git("merge", "--ff-only", source)
         checks["approved fast-forward release accepts exact imported blobs"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", presentation_path, consumer_path, "gone.txt"}
+        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, "gone.txt"}
         fixture_git("checkout", "main")
         fixture_git("merge", "--no-ff", "-m", "import released", source)
         frozen = validate_frozen_imports(fixture_plan, root=root)
         checks["approved merged snapshot accepts exact present and deleted paths"] = (
-            set(frozen) == {"foreign.txt", presentation_path, consumer_path, "gone.txt"}
+            set(frozen) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, "gone.txt"}
         )
         checks["ordinary authorization still rejects frozen upstream paths"] = not authorized(
             "foreign.txt", fixture_plan
@@ -1050,6 +1062,37 @@ def self_test() -> int:
         else:
             checks["consumer picker index/worktree drift fails closed"] = False
         fixture_git("restore", "--worktree", consumer_path)
+
+        holding_panel_test_plan = deep_copy(consumer_plan)
+        holding_panel_test_plan["excluded_paths"] = [
+            *consumer_plan["excluded_paths"], "frontend/tests/unit/components/"
+        ]
+        holding_panel_test_plan["approved_frontend_consumer_adaptations"].append({
+            "path": holding_panel_test_path,
+            "source_sha": source,
+            "accepted_blob": holding_panel_test_blob,
+            "delta": "forward the actual resolved identity in the selected-row test",
+            "rationale": "synthetic exact imported test adaptation proof",
+        })
+        holding_test_adaptations = validate_frontend_consumer_adaptations(
+            holding_panel_test_plan, root=root
+        )
+        holding_test_frozen = validate_frozen_imports(
+            holding_panel_test_plan,
+            root=root,
+            presentation_adaptations=presentation,
+            consumer_adaptations=holding_test_adaptations,
+        )
+        checks["one exact imported holding-panel test adaptation stays source-pinned"] = (
+            holding_panel_test_path in CONSUMER_ADAPTATION_PATHS
+            and set(holding_test_adaptations) == {consumer_path, holding_panel_test_path}
+            and holding_panel_test_path not in holding_test_frozen
+            and authorized(holding_panel_test_path, holding_panel_test_plan)[0]
+            and not authorized(
+                "frontend/tests/unit/components/test_etf_holdings_panel_nearby.test.ts",
+                holding_panel_test_plan,
+            )[0]
+        )
 
         wrong_adaptation = deep_copy(adaptation_plan)
         wrong_adaptation["approved_provider_contract_adaptations"][0]["accepted_blob"] = "b" * 40
@@ -1308,7 +1351,7 @@ def self_test() -> int:
         write_yaml(reference, valid_manifest)
         checks["active MERGE_HEAD accepts the approved exact snapshot"] = set(
             validate_frozen_imports(fixture_plan, root=root)
-        ) == {"foreign.txt", presentation_path, consumer_path, "gone.txt"}
+        ) == {"foreign.txt", presentation_path, consumer_path, holding_panel_test_path, "gone.txt"}
         fixture_git("merge", "--abort")
         fixture_git("reset", "--hard", final_head)
         write_yaml(reference, valid_manifest)

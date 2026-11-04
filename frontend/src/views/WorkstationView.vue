@@ -318,7 +318,7 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
-import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import { holdingDrilldownRouteQuery, holdingDrilldownRouteState, isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
 
@@ -1088,14 +1088,19 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
-function openHoldingDrilldown(symbol: string, context: ETFHoldingDrilldownContext) {
+function openHoldingDrilldown(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   const canonical = symbol.trim().toUpperCase()
   if (!canonical || canonical !== context.canonicalSymbol.trim().toUpperCase()
     || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
-  void router.push({
+  const location = {
     path: `/legacy/chart/${encodeURIComponent(canonical)}`,
     query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
-  })
+  }
+  void router.push({ ...location, state: holdingDrilldownRouteState(context, confirmedIdentity) })
 }
 
 async function selectSymbol(
@@ -2377,7 +2382,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
     onSelect: (symbol: string, instrumentId?: number | null, preserveETFContext?: boolean) => void selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true),
-    onHoldingDrilldown: (symbol: string, context: ETFHoldingDrilldownContext) => openHoldingDrilldown(symbol, context),
+    onHoldingDrilldown: (symbol: string, context: ETFHoldingDrilldownContext, identity?: InstrumentAcquireResponse) => openHoldingDrilldown(symbol, context, identity),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),

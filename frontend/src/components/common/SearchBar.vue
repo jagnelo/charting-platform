@@ -130,6 +130,7 @@ import {
   discoverInstruments,
   resolveDiscoveredInstrument,
   type InstrumentDiscoveryCandidate,
+  type InstrumentAcquireResponse,
 } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 
@@ -169,7 +170,7 @@ const props = withDefaults(defineProps<{
   inputAriaLabel: '',
 })
 const emit = defineEmits<{
-  select: [symbol: string, result?: SearchResult]
+  select: [symbol: string, result?: SearchResult, confirmedIdentity?: InstrumentAcquireResponse]
   'update:modelValue': [value: string]
 }>()
 const recentStore = useRecentInstrumentsStore()
@@ -373,7 +374,7 @@ async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
       identity_status: response.instrument.identity_status,
       explicitlyResolved: true,
     }
-    commitSelection(result.symbol, result.name, result)
+    commitSelection(result.symbol, result.name, result, response)
   } catch {
     if (generation === searchGeneration && query.value.trim().toUpperCase() === queryKey) {
       discoveryError.value = 'Ticker identity verification failed. No chart was opened.'
@@ -424,10 +425,16 @@ async function selectExpression() {
   }
 }
 
-function commitSelection(symbol: string, label?: string, result?: SearchResult) {
+function commitSelection(
+  symbol: string,
+  label?: string,
+  result?: SearchResult,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   invalidateSearch()
   emit('update:modelValue', symbol)
-  emit('select', symbol, result)
+  if (confirmedIdentity) emit('select', symbol, result, confirmedIdentity)
+  else emit('select', symbol, result)
   recentStore.add(symbol, label)
   query.value = symbol
   results.value = []

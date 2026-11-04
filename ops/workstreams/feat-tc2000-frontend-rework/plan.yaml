@@ -2444,12 +2444,15 @@ frontend_presentation_handoff:
   - frontend/src/views/StrategyLabView.vue
   - frontend/src/views/WatchlistView.vue
   - frontend/src/views/WorkstationView.vue
-  allowed_delta: 'Presentation: shared shell, navigation, typography, spacing, surface colors, controls,
+  allowed_delta: >-
+    Presentation: shared shell, navigation, typography, spacing, surface colors, controls,
     tables, dialogs, status language and responsive layout. Preserve route targets, API/data contracts,
     provenance, identity, availability, provider policy, ETF parsing/PIT and Strategy execution. Exact
     UPlotChart adaptation may clear its OHLC overlay when instrument/timeframe/bar-type scope changes or
     the current series is empty, preventing prior-context values from being presented as current; it does
-    not alter selection, chart data, or acquisition behavior.'
+    not alter selection, chart data, or acquisition behavior. Separately, Root authorized the exact
+    ChartPanel consumer handoff to carry SearchBar's actual confirmed canonical identity response through
+    the existing selected-history helper; this adds no identity authority or acquisition policy.
   preserved_contracts:
   - all public/authenticated route URLs and redirects
   - Workstation and popout behavior
@@ -2472,7 +2475,11 @@ approved_presentation_adaptations:
 - path: frontend/src/components/chart/ChartPanel.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: 4f4568a23ac7fccc888f5c46a3eb665a3556fa7f
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: >-
+    TC shell/theme/navigation presentation adaptation; additionally carry only SearchBar's
+    actual confirmed identity response through the existing selected-history helper, as
+    explicitly authorized by Root for this ordinary ticker selection flow. Preserve all
+    routes, local-identity resolution, Synthetic exclusion, and acquisition policy.
 - path: frontend/src/components/chart/DrawingToolbar.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: f5489eb8e7a22e6b21b218cb80e2bb5b9271a485
@@ -2608,7 +2615,10 @@ approved_presentation_adaptations:
 - path: frontend/src/components/etf/ETFHoldingsPanel.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: fce872445d8a6e8b2687658ac326a6d04f79a139
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
+  delta: >-
+    TC presentation adaptation; additionally forward only the actual resolved holding identity
+    with its existing exact snapshot/row context to the chart consumer. Preserve current-analysis
+    eligibility, stale-context rejection, reporting and lineage semantics; add no identity authority.
 - path: frontend/src/components/options/OptionsChainPanel.vue
   source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
   accepted_blob: f9c42ca3aafe4f4a0f759b1f99497b791747fdbc
@@ -3157,7 +3167,10 @@ approved_frontend_consumer_adaptations:
       data, ETF source implementation, or other imported path. Current/stale semantics
       remain server-owned; stale or unknown selection outcomes preserve labelled snapshots.
       A confirmed ETV candidate uses its resolved canonical ID; unavailable issuer outcomes
-      remain visible and do not claim a stored profile.
+      remain visible and do not claim a stored profile. Holding chart navigation carries
+      the exact snapshot/row lineage, selected-history intent and confirmed identity through
+      a one-shot router handoff; the live selected profile, snapshot and row membership are
+      rechecked before navigation. URL-only hydration remains passive.
   - path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
     source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
     accepted_blob: 9c899304ac51f9fa1de652c5d9a655800414ae4f
@@ -3170,6 +3183,17 @@ approved_frontend_consumer_adaptations:
       user-facing copy and immediate activation of the existing picker after a deliberate row click.
       This is not presentation-only authority. It changes no ETF API, identity/admission policy,
       holdings data, or source behavior; every other frontend/src/components/etf path remains excluded.
+  - path: frontend/tests/unit/components/test_etf_holdings_panel.test.ts
+    source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
+    accepted_blob: dc828a740c647834c3cf7028bc952c2c263cdfee
+    delta: >-
+      Update only the existing selected-row resolver event fixture with its actual resolved
+      UNXQ response and assert that same response is emitted with the existing symbol/context.
+      All prior event, context, and selection expectations remain.
+    rationale: >-
+      Root's exact 2026-11-04 approval authorizes this one frozen imported test path because the
+      consumer event now carries actual confirmation to avoid resolving the same gesture twice.
+      The frozen manifest remains intact; every other imported test path stays byte-pinned.
   - path: frontend/src/lib/etfHoldingDrilldown.ts
     source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
     accepted_blob: 5b40ea8f143c1477d3eece2bc44ef668368f1f19
@@ -4165,30 +4189,34 @@ active_implementation:
       text: After complete or partial selected history persists, reload local chart and technical/details data for the still-current visible symbol without a second action; late prior-symbol completion cannot repaint the new selection.
       status: completed
   validation: >-
-    On the current source candidate based on 4ec9a9e21b64ba35708698044041d81649a2b93b,
-    three focused suites passed 102/102 with one Vitest fork (63 Workstation
-    bindings, 19 dedicated ETF Holdings, and 20 acquisition-helper tests). Vue
-    type-check and Vite production build passed (540 modules; existing large
-    Workstation chunk warning). Playwright collection lists 197 tests across the
-    two relevant E2E files; collection only, no browser execution. An initial
-    Vitest invocation from repository root failed before collection because it
-    discovered archived .ai/runtime copies; the package-root rerun passed. The
-    frozen 4ec9 full functional profile remains red at 187 passed/16 failed/2
-    configured skips; strict visual was not run on obsolete components. Its
-    failures and cleanup receipts remain preserved and do not qualify this
-    candidate. Exact candidate CI is pending coherent publication. Provider's
-    revised retained-type classification must first enter green staging; TC will
-    adopt that exact release at a clean boundary before Root binds a new
-    application artifact and allocates the complete functional/strict-visual
-    profile. No app image was built, no browser or source request ran, and no provider/issuer HTTP
-    or service operation occurred for this candidate.
+    On the current post-4d source, the final seven affected unit files passed
+    95/95, including the dedicated ETF view and selected-snapshot-fence suite
+    at 20/20. The complete frontend coverage run passed 154 files / 1,555 tests
+    with Root's LCOV review confirming 2,588/3,683 functions (70.2688%) against
+    the unchanged 70% threshold, using one fork and a fresh reports directory at
+    /tmp/tc-ordinary-final-coverage-20261104-attempt003. Vue type-check and
+    Vite production build passed (540 modules; existing large Workstation chunk
+    warning). Playwright collection lists 197 tests, including all seven ordinary
+    acquisition flows. The prior collector ENOENT attempt, predecessor CI/browser
+    failures and the frozen 2a32 functional run (201 passed, 2 failed, 2 configured
+    skips) remain preserved; no obsolete visual run is claimed. Provider4d is
+    adopted and green; there is no pending Producer release. No current-source
+    browser profile, provider/issuer HTTP or service operation occurred. The final
+    scope self-tests and full scope guard passed (1,098 changed paths, 881
+    byte-verified imports, 29 Provider adaptations, 112 presentation adaptations,
+    5 exact consumer adaptations); workstream validation, plan/session hash and
+    staged diff checks passed. Exact-source CI and the fresh source-matched frontend
+    artifact follow publication; the Root-reviewed replacement joint profile remains
+    pending.
   next_action: >-
-    Publish this coherent source/workstream candidate and observe its exact-source
-    branch CI. Do not build an application image or launch a full browser profile
-    against the old Provider dependency. After Root releases the new exact green
-    Provider staging source, adopt only that source normally at a clean boundary,
-    reconcile its classification contract, then wait for Root's new immutable
-    component binding. The corrected combined profile remains one worker, zero
-    retries, dense 10,000-row seeding in backend and browser with observed browse
-    count, and all existing assertions, visual references, masks, and tolerances.
-    Root owns profile allocation, acceptance, integration, and deployment.
+    Publish this coherent candidate once and follow its exact-source CI. Build one bounded,
+    immutable frontend artifact from the clean published source with the existing
+    recipe. Root must verify that artifact with the qualified ETF backend before
+    releasing the single joint profile. Run the seven ordinary acquisition flows
+    first, then continue the unchanged full functional suite and 104 strict visual
+    cases with one worker, zero retries, dense 10,000-row seeding in backend and
+    browser, observed browse count, existing diagnostics, references, masks and
+    tolerances. First execute the seven existing on-demand Chromium cases and
+    retain their result separately; then execute the complete functional and
+    strict-visual gates without adding the preliminary seven to the full-suite
+    counts. Root owns profile acceptance, integration and deployment.

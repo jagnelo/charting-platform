@@ -234,14 +234,15 @@ import { computed, ref, watch } from 'vue'
 import { api } from '@/lib/api'
 import { formatSourceFailureClass } from '@/lib/workstation/sourceCapability'
 import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
-import type { ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import { isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
 import type { ETFHolding, ETFHoldingsCapability, ETFHoldingsSnapshot } from '@/types'
 
 const props = defineProps<{ symbol: string | null }>()
 const emit = defineEmits<{
   availability: [available: boolean]
   openSymbol: [symbol: string]
-  openHolding: [symbol: string, context: ETFHoldingDrilldownContext]
+  openHolding: [symbol: string, context: ETFHoldingDrilldownContext, confirmedIdentity?: InstrumentAcquireResponse]
 }>()
 
 const snapshot = ref<ETFHoldingsSnapshot | null>(null)
@@ -421,11 +422,16 @@ function openHolding(row: ETFHolding) {
   if (target) emit('openSymbol', target)
 }
 
-function openResolvedHolding(symbol: string, context: ETFHoldingDrilldownContext) {
+function openResolvedHolding(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   if (!currentAnalysisAvailable.value
     || symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
-    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
-  emit('openHolding', symbol, context)
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0
+    || !isConfirmedETFHoldingIdentity(confirmedIdentity, context)) return
+  emit('openHolding', symbol, context, confirmedIdentity)
 }
 
 function selectHolding(row: ETFHolding) {

@@ -66,7 +66,7 @@ describe('ChartView radar handoff', () => {
 
   afterEach(() => vi.unstubAllGlobals())
 
-  function mountDeferredPresetsChart(delaySymbolLoad = false) {
+  function mountDeferredPresetsChart(delaySymbolLoad = false, initialSymbol = 'SPY') {
     const pinia = createPinia()
     setActivePinia(pinia)
     const chartStore = useChartStore()
@@ -79,8 +79,8 @@ describe('ChartView radar handoff', () => {
     const presetsStore = usePresetsStore()
     const radarStore = useRadarStore()
     layoutStore.layout = '1'
-    route.params.symbol = 'SPY'
-    route.path = '/chart/SPY'
+    route.params.symbol = initialSymbol
+    route.path = `/chart/${initialSymbol}`
 
     let presetsReady = false
     let resolvePresets!: () => void
@@ -198,7 +198,15 @@ describe('ChartView radar handoff', () => {
       coverage: { status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-11-03T00:00:00Z' }] },
       result: { status: 'complete', coverage: { status: 'ready', bar_count: 250, missing_slices: [] } } as never,
     })
-    await (wrapper.vm as unknown as { onSymbolSelect: (symbol: string) => Promise<void> }).onSymbolSelect('QQQ')
+    const confirmedIdentity = {
+      request_id: 'resolved-qqq',
+      status: 'resolved' as const,
+      instrument: { instrument_id: 22, symbol: 'QQQ', identity_status: 'verified' },
+      source_outcomes: [],
+    }
+    await (wrapper.vm as unknown as {
+      onSymbolSelect: (symbol: string, result?: unknown, identity?: typeof confirmedIdentity) => Promise<void>
+    }).onSymbolSelect('QQQ', { symbol: 'QQQ', explicitlyResolved: true }, confirmedIdentity)
     await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
       'QQQ',
       'D1',
@@ -206,7 +214,9 @@ describe('ChartView radar handoff', () => {
       expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
       expect.any(Function),
       expect.any(Function),
+      expect.any(Promise),
     ))
+    await expect(vi.mocked(acquireSelectedHistory).mock.calls.at(-1)![6]).resolves.toEqual(confirmedIdentity)
     await vi.waitFor(() => expect(refreshLocalBars).toHaveBeenCalledOnce())
     expect(chartStore.bars).toEqual(cachedBars)
     wrapper.unmount()
@@ -258,9 +268,15 @@ describe('ChartView radar handoff', () => {
       holdingType: 'equity',
     }
     const vm = wrapper.vm as unknown as {
-      onHoldingDrilldown: (symbol: string, evidence: ETFHoldingDrilldownContext) => Promise<void>
+      onHoldingDrilldown: (symbol: string, evidence: ETFHoldingDrilldownContext, identity?: unknown) => Promise<void>
     }
-    await vm.onHoldingDrilldown('UNXQ', context)
+    const confirmedIdentity = {
+      request_id: 'resolved-unxq',
+      status: 'resolved' as const,
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'verified' },
+      source_outcomes: [],
+    }
+    await vm.onHoldingDrilldown('UNXQ', context, confirmedIdentity)
     await flushPromises()
 
     expect(replace).toHaveBeenCalledWith({
@@ -268,7 +284,73 @@ describe('ChartView radar handoff', () => {
       query: holdingDrilldownRouteQuery(context),
     })
     expect(chartStore.loadBars).toHaveBeenCalledWith('UNXQ', expect.any(String), 'candles', true)
+    await expect(vi.mocked(acquireSelectedHistory).mock.calls.at(-1)![6]).resolves.toEqual(confirmedIdentity)
     wrapper.unmount()
+  })
+
+  it('consumes an exact one-shot selection and identity handoff while direct holding URLs stay passive', async () => {
+    const confirmedIdentity = {
+      request_id: 'resolved-unxq',
+      status: 'resolved' as const,
+      instrument: { instrument_id: 8802, symbol: 'UNXQ', identity_status: 'verified' },
+      source_outcomes: [],
+    }
+    route.params.symbol = 'UNXQ'
+    const selectedContext: ETFHoldingDrilldownContext = {
+      instrumentId: 8802,
+      canonicalSymbol: 'UNXQ',
+      snapshotId: 8801,
+      compositionDate: '2026-10-27',
+      knownAt: '2026-10-28T12:00:00Z',
+      provenance: 'issuer_current_holdings',
+      sourceProvider: 'fixture-only',
+      holdingRowId: 8803,
+      sourceRowId: 'issuer-row-8803',
+      reportedSymbol: 'UNXQ',
+      reportedName: 'Uncached Example Equity',
+      holdingType: 'equity',
+    }
+    route.query = {
+      holding_snapshot_id: '8801',
+      holding_instrument_id: '8802',
+      holding_composition_date: '2026-10-27',
+      holding_known_at: '2026-10-28T12:00:00Z',
+      holding_provenance: 'issuer_current_holdings',
+      holding_source_provider: 'fixture-only',
+      holding_row_id: '8803',
+      holding_source_row_id: 'issuer-row-8803',
+      holding_reported_symbol: 'UNXQ',
+      holding_reported_name: 'Uncached Example Equity',
+      holding_type: 'equity',
+      holding_history_intent: 'selected',
+    }
+    window.history.replaceState({
+      key: 'tc-holding-route',
+      tcHoldingSelectionHandoff: JSON.stringify(selectedContext),
+      tcHoldingIdentityHandoff: JSON.stringify(confirmedIdentity),
+    }, '', '/legacy/chart/UNXQ')
+    const chart = mountDeferredPresetsChart(false, 'UNXQ')
+    await flushPromises()
+    chart.releasePresets()
+    await flushPromises()
+
+    const selectedCall = vi.mocked(acquireSelectedHistory).mock.calls.at(-1)!
+    await expect(selectedCall[6]).resolves.toEqual(confirmedIdentity)
+    expect(window.history.state.tcHoldingSelectionHandoff).toBeUndefined()
+    expect(window.history.state.tcHoldingIdentityHandoff).toBeUndefined()
+    chart.wrapper.unmount()
+
+    route.params.symbol = 'UNXQ'
+    window.history.replaceState({ key: 'tc-direct-url' }, '', '/legacy/chart/UNXQ')
+    vi.mocked(acquireSelectedHistory).mockClear().mockResolvedValue({
+      kind: 'already-covered', coverage: { status: 'ready', bar_count: 1, missing_slices: [] },
+    })
+    const directChart = mountDeferredPresetsChart(false, 'UNXQ')
+    await flushPromises()
+    directChart.releasePresets()
+    await flushPromises()
+    expect(vi.mocked(acquireSelectedHistory)).not.toHaveBeenCalled()
+    directChart.wrapper.unmount()
   })
 
   it('preserves valid holding lineage on initial chart hydration but clears it on deliberate symbol selection', async () => {

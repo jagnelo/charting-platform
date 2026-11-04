@@ -139,6 +139,14 @@ describe('reported ETF constituent projection', () => {
     expect(isCurrentETFHoldingSelection(context, 'IGV', snapshot, holdings[1])).toBe(false)
   })
 
+  it('keeps a resolved holding selectable by its canonical instrument when its reported ticker is an alias', () => {
+    const row = holdings[2]!
+    const context = createETFHoldingDrilldownContext(snapshot, row, 99, 'AAPL')
+    expect(isCurrentETFHoldingSelection(context, 'IGV', snapshot, row)).toBe(true)
+    expect(isCurrentETFHoldingSelection({ ...context, instrumentId: 100 }, 'IGV', snapshot, row)).toBe(false)
+    expect(isCurrentETFHoldingSelection(context, 'OIH', snapshot, row)).toBe(false)
+  })
+
   it('hydrates chart acquisition intent only from a complete holding-lineage route', () => {
     const context = createETFHoldingDrilldownContext(snapshot, holdings[0]!, 1234, 'UNXQ')
     const query = holdingDrilldownRouteQuery(context)

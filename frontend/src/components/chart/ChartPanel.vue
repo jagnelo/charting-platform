@@ -109,7 +109,7 @@ import { useAlertsStore } from '@/stores/alerts'
 import TimeframeSelector from '@/components/chart/TimeframeSelector.vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import UPlotChart        from '@/components/chart/UPlotChart.vue'
-import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { acquireSelectedHistory, defaultHistoryRange, type InstrumentAcquireResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import type { Timeframe } from '@/types'
 
 const props = defineProps<{ panelId: string }>()
@@ -163,9 +163,13 @@ function closeSearch() {
   searchQuery.value = ''
 }
 
-function onSearchSelection(symbol: string, result?: { type?: string }) {
+function onSearchSelection(
+  symbol: string,
+  result?: { type?: string },
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   closeSearch()
-  void onSymbolSelect(symbol, result?.type !== 'Synthetic')
+  void onSymbolSelect(symbol, result?.type !== 'Synthetic', confirmedIdentity)
 }
 
 function handleClickOutside(e: MouseEvent) {
@@ -189,7 +193,11 @@ function setLinkGroup(group: ReturnType<typeof panelLinks.groupFor>) {
   linkMenuOpen.value = false
 }
 
-async function onSymbolSelect(symbol: string, acquireHistory = true) {
+async function onSymbolSelect(
+  symbol: string,
+  acquireHistory = true,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
   const selectedTimeframe = localTf.value
@@ -198,7 +206,7 @@ async function onSymbolSelect(symbol: string, acquireHistory = true) {
   layoutStore.updatePanel(props.panelId, { symbol, timeframe: selectedTimeframe })
   // A deliberate symbol selection may request missing history for this panel.
   // Layout restoration and timeframe changes remain local-only.
-  if (acquireHistory) void acquirePanelHistory(symbol, selectedTimeframe, generation, selection)
+  if (acquireHistory) void acquirePanelHistory(symbol, selectedTimeframe, generation, selection, confirmedIdentity)
   const targetIds = panelLinks.linkedPanelIds(props.panelId, layoutStore.panels.map(p => p.id))
   for (const id of targetIds) {
     if (!isCurrent(generation, selection)) return
@@ -217,7 +225,13 @@ async function onSymbolSelect(symbol: string, acquireHistory = true) {
   }
 }
 
-async function acquirePanelHistory(symbol: string, timeframe: Timeframe, generation: number, selection: number) {
+async function acquirePanelHistory(
+  symbol: string,
+  timeframe: Timeframe,
+  generation: number,
+  selection: number,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   const normalized = symbol.trim().toUpperCase()
   const isSelectedScope = () => {
     const panel = layoutStore.panels.find(item => item.id === props.panelId)
@@ -239,6 +253,7 @@ async function acquirePanelHistory(symbol: string, timeframe: Timeframe, generat
       { timeframe, adjusted: true, start: range.start, end: range.end },
       stage => { if (isSelectedScope()) historyProgress.value = stageMessage[stage] },
       isSelectedScope,
+      confirmedIdentity ? Promise.resolve(confirmedIdentity) : undefined,
     )
     if (!isSelectedScope() || outcome.kind === 'superseded') return
     if (outcome.kind === 'already-covered') {

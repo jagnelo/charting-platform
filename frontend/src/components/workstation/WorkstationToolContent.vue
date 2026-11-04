@@ -1028,12 +1028,14 @@ import VirtualWatchlistTool, { type WatchlistColumn, type WatchlistRow } from '.
 import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
 import {
   createETFHoldingDrilldownContext,
+  isConfirmedETFHoldingIdentity,
   isEligibleUnresolvedEquityHolding,
   isEquitySecurityHolding,
   isCurrentETFHoldingSelection,
   isResolvedCanonicalEquityHolding,
   type ETFHoldingDrilldownContext,
 } from '@/lib/etfHoldingDrilldown'
+import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
 import { etfHoldingWatchlistRowKey, projectReportedETFHoldings } from '@/lib/workstation/etfReportedConstituents'
 import type { ETFHolding } from '@/types'
 import {
@@ -1148,7 +1150,7 @@ let personalMutationSequence = 0
 let benchmarkFamilyReadinessSequence = 0
 let familyAnalyticsSequence = 0
 let familyOverviewSequence = 0
-const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null, preserveConstituentContext?: boolean]; holdingDrilldown: [symbol: string, context: ETFHoldingDrilldownContext]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null, preserveConstituentContext?: boolean]; holdingDrilldown: [symbol: string, context: ETFHoldingDrilldownContext, confirmedIdentity?: InstrumentAcquireResponse]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -2135,14 +2137,19 @@ function selectConstituentRow(row: WatchlistRow) {
   ))
 }
 
-function openResolvedConstituentHolding(symbol: string, context: ETFHoldingDrilldownContext) {
+function openResolvedConstituentHolding(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   const holding = selectedUnresolvedConstituent.value
   const snapshot = holdings.value?.snapshot
   if (!holding || !snapshot
     || !isCurrentETFHoldingSelection(context, selectedETF.value, snapshot, holding)
     || context.canonicalSymbol.trim().toUpperCase() !== symbol.trim().toUpperCase()
-    || String(holding.reported_symbol || '').trim().toUpperCase() !== symbol.trim().toUpperCase()) return
-  emit('holdingDrilldown', symbol, context)
+    || String(holding.reported_symbol || '').trim().toUpperCase() !== symbol.trim().toUpperCase()
+    || !isConfirmedETFHoldingIdentity(confirmedIdentity, context)) return
+  emit('holdingDrilldown', symbol, context, confirmedIdentity)
 }
 
 function reportedHoldingLabel(row: ETFHolding) {

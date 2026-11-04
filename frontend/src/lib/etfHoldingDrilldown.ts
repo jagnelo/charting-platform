@@ -1,4 +1,5 @@
 import type { ETFHolding, ETFHoldingsSnapshot } from '@/types'
+import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
 
 export interface ETFHoldingDrilldownContext {
   instrumentId: number
@@ -13,6 +14,20 @@ export interface ETFHoldingDrilldownContext {
   reportedSymbol: string
   reportedName: string
   holdingType: string
+}
+
+/** Validates a real identity response against the exact reported holding context. */
+export function isConfirmedETFHoldingIdentity(
+  response: InstrumentAcquireResponse | null | undefined,
+  context: ETFHoldingDrilldownContext,
+): response is InstrumentAcquireResponse & { instrument: NonNullable<InstrumentAcquireResponse['instrument']> } {
+  const instrument = response?.instrument
+  return response?.status === 'resolved'
+    && Boolean(instrument)
+    && Number.isSafeInteger(instrument?.instrument_id)
+    && instrument?.instrument_id === context.instrumentId
+    && instrument?.symbol.trim().toUpperCase() === context.canonicalSymbol.trim().toUpperCase()
+    && ['resolved', 'verified'].includes(instrument?.identity_status.trim().toLowerCase() ?? '')
 }
 
 const EQUITY_HOLDING_TYPES = new Set(['equity', 'stock', 'commonstock', 'commonshares', 'ordinaryshares', 'realestateinvestmenttrust'])
@@ -73,10 +88,15 @@ export function isCurrentETFHoldingSelection(
   holding: ETFHolding | null | undefined,
 ): boolean {
   if (!snapshot || !holding) return false
+  const exactReportedTicker = context.canonicalSymbol.trim().toUpperCase()
+    === holding.reported_symbol?.trim().toUpperCase()
+  const exactResolvedTicker = holding.is_resolved
+    && context.instrumentId === holding.constituent_instrument_id
+    && context.canonicalSymbol.trim().toUpperCase() === holding.constituent_symbol?.trim().toUpperCase()
   return context.snapshotId === snapshot.id
     && context.holdingRowId === holding.id
     && context.instrumentId > 0
-    && context.canonicalSymbol.trim().toUpperCase() === holding.reported_symbol?.trim().toUpperCase()
+    && (exactReportedTicker || exactResolvedTicker)
     && etfSymbol.trim().toUpperCase() === snapshot.etf_symbol.trim().toUpperCase()
 }
 
@@ -94,6 +114,38 @@ export function holdingDrilldownRouteQuery(context: ETFHoldingDrilldownContext):
     holding_reported_name: context.reportedName,
     holding_type: context.holdingType,
   }
+}
+
+export function holdingDrilldownRouteState(
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+): Record<string, string> {
+  const state: Record<string, string> = {
+    tcHoldingSelectionHandoff: JSON.stringify(context),
+  }
+  if (isConfirmedETFHoldingIdentity(confirmedIdentity, context)) {
+    state.tcHoldingIdentityHandoff = JSON.stringify(confirmedIdentity)
+  }
+  return state
+}
+
+export function isSameETFHoldingDrilldownContext(
+  left: ETFHoldingDrilldownContext | null | undefined,
+  right: ETFHoldingDrilldownContext | null | undefined,
+): boolean {
+  if (!left || !right) return false
+  return left.instrumentId === right.instrumentId
+    && left.canonicalSymbol.trim().toUpperCase() === right.canonicalSymbol.trim().toUpperCase()
+    && left.snapshotId === right.snapshotId
+    && left.compositionDate === right.compositionDate
+    && left.knownAt === right.knownAt
+    && left.provenance === right.provenance
+    && left.sourceProvider === right.sourceProvider
+    && left.holdingRowId === right.holdingRowId
+    && left.sourceRowId === right.sourceRowId
+    && left.reportedSymbol === right.reportedSymbol
+    && left.reportedName === right.reportedName
+    && left.holdingType === right.holdingType
 }
 
 export function parseETFHoldingDrilldownRouteQuery(

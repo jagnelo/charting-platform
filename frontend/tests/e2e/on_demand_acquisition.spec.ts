@@ -560,10 +560,18 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   expect((await discoveryResponseReady).status()).toBe(200)
   expect(discoveryRequests).toHaveLength(1)
   expect(identityRequests).toHaveLength(0)
+  const historyResponseReady = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'POST'
+      && url.pathname === `/api/v1/instruments/${instrumentId}/history-acquisitions`
+  })
   await page.getByRole('option', { name: /Use UNXQ · XNYS/ }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/)
   expect(identityRequests).toHaveLength(1)
-  expect(historyRequests).toHaveLength(0)
+  const historyResponse = await historyResponseReady
+  expect(historyResponse.status()).toBe(200)
+  expect(historyRequests).toHaveLength(1)
+  expectBoundedD1Request(historyRequests[0]!)
   expect(localReadCount).toBeGreaterThan(0)
   expect(localReadBars[0]).toEqual([])
   expect(calendarReads).toHaveLength(0)
@@ -581,15 +589,7 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
   await expect(page.locator('.historical-holding-context')).toContainText('controlled_fixture')
 
-  const historyResponseReady = page.waitForResponse(response => {
-    const url = new URL(response.url())
-    return response.request().method() === 'POST'
-      && url.pathname === `/api/v1/instruments/${instrumentId}/history-acquisitions`
-  })
-  await page.getByTestId('history-load-missing').click()
-  const historyResponse = await historyResponseReady
-  expect(historyResponse.status()).toBe(200)
-  await expect(page.getByRole('status').filter({ hasText: 'History loaded: 1 bars are available.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'Loaded 1 local D1 bars for UNXQ.' })).toBeVisible()
   expect(historyRequests).toHaveLength(1)
   expect(historyRequests[0]?.timeframe).toBe('D1')
   await expect.poll(() => localReadCount).toBeGreaterThan(1)
@@ -1589,6 +1589,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   const capabilityReads: FixtureETF[] = []
   let unxqDiscoveryCount = 0
   const identityRequests: InstrumentRequestBody[] = []
+  const locallySearchedSymbols = new Set<FixtureSymbol>()
   const igvSnapshotId = 991203
   const unxqHolding: ETFHolding = {
     id: 991601,
@@ -1922,14 +1923,23 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(discoveryRequests).toHaveLength(0)
 
     async function chooseETF(symbol: FixtureSymbol) {
-      const localSearchReady = page.waitForResponse(response => {
-        const url = new URL(response.url())
-        return response.request().method() === 'GET'
-          && url.pathname === '/api/v1/instruments/search'
-          && url.searchParams.get('q')?.toUpperCase() === symbol
-      })
+      // Search results may still be fresh in the Workstation's 30s query cache
+      // after a fund switch. Require the first local request, then select the
+      // visible cached result on repeat choices without waiting for a GET that
+      // correctly does not occur.
+      const localSearchReady = locallySearchedSymbols.has(symbol)
+        ? null
+        : page.waitForResponse(response => {
+          const url = new URL(response.url())
+          return response.request().method() === 'GET'
+            && url.pathname === '/api/v1/instruments/search'
+            && url.searchParams.get('q')?.toUpperCase() === symbol
+        })
       await symbolSearch.fill(symbol)
-      expect(await (await localSearchReady).json()).toMatchObject([{ symbol, type: 'ETF', instrument_id: instruments[symbol].id }])
+      if (localSearchReady) {
+        expect(await (await localSearchReady).json()).toMatchObject([{ symbol, type: 'ETF', instrument_id: instruments[symbol].id }])
+        locallySearchedSymbols.add(symbol)
+      }
       const option = page.getByRole('listbox', { name: 'Symbol search results' })
         .getByRole('option', { name: new RegExp(`^${symbol}\\b`) })
       await expect(option).toBeVisible()

@@ -729,7 +729,15 @@ import type {
   ETFHoldingsCapability,
   ETFProfile,
 } from '@/types'
-import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
+import {
+  createETFHoldingDrilldownContext,
+  holdingDrilldownRouteQuery,
+  holdingDrilldownRouteState,
+  isConfirmedETFHoldingIdentity,
+  isCurrentETFHoldingSelection,
+  type ETFHoldingDrilldownContext,
+} from '@/lib/etfHoldingDrilldown'
 
 interface ETFSearchResult {
   symbol: string
@@ -1495,28 +1503,52 @@ function canViewHoldingHistory(row: ETFHolding) {
     && Boolean(row.constituent_symbol && !isSyntheticHoldingSymbol(row.constituent_symbol))
 }
 
+function isCurrentSelectedHoldingContext(context: ETFHoldingDrilldownContext, row: ETFHolding) {
+  const currentPage = page.value
+  const currentProfile = selectedProfile.value
+  if (!currentPage || !currentProfile
+    || currentProfile.symbol.trim().toUpperCase() !== currentPage.snapshot.etf_symbol.trim().toUpperCase()
+    || selectedSnapshotId.value !== String(currentPage.snapshot.id)
+    || context.snapshotId !== currentPage.snapshot.id
+    || context.holdingRowId !== row.id
+    || row.snapshot_id !== currentPage.snapshot.id) return false
+  const currentRow = currentPage.holdings.find(holding => holding.id === row.id)
+  return Boolean(currentRow
+    && currentRow.snapshot_id === currentPage.snapshot.id
+    && isCurrentETFHoldingSelection(context, currentProfile.symbol, currentPage.snapshot, currentRow))
+}
+
 function openHoldingHistory(row: ETFHolding) {
   if (!page.value || !canViewHoldingHistory(row)) return
   const symbol = row.constituent_symbol!
-  void router.push({
-    path: `/legacy/chart/${encodeURIComponent(symbol)}`,
-    query: {
-      holding_snapshot_id: String(page.value.snapshot.id),
-      holding_composition_date: page.value.snapshot.composition_date,
-      holding_known_at: page.value.snapshot.known_at ?? '',
-      holding_provenance: page.value.snapshot.provenance,
-      holding_instrument_id: String(row.constituent_instrument_id),
-    },
-  })
+  const context = createETFHoldingDrilldownContext(page.value.snapshot, row, row.constituent_instrument_id!, symbol)
+  if (!isCurrentSelectedHoldingContext(context, row)) return
+  openHoldingChart(symbol, context)
 }
 
-function openResolvedHolding(symbol: string, context: ETFHoldingDrilldownContext) {
+function openResolvedHolding(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   if (!page.value || !currentHoldingsAvailable.value) return
   if (symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
-    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0
+    || !selectedHolding.value
+    || !isCurrentSelectedHoldingContext(context, selectedHolding.value)
+    || (confirmedIdentity && !isConfirmedETFHoldingIdentity(confirmedIdentity, context))) return
+  openHoldingChart(symbol, context, confirmedIdentity)
+}
+
+function openHoldingChart(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   void router.push({
     path: `/legacy/chart/${encodeURIComponent(symbol)}`,
-    query: holdingDrilldownRouteQuery(context),
+    query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
+    state: holdingDrilldownRouteState(context, confirmedIdentity),
   })
 }
 

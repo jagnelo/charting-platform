@@ -243,7 +243,8 @@ import { usePresetsStore }  from '@/stores/presets'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useRadarStore } from '@/stores/radar'
 import { api } from '@/lib/api'
-import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { acquireSelectedHistory, defaultHistoryRange, type InstrumentAcquireResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { isConfirmedETFHoldingIdentity, isSameETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import ResizeHandle         from '@/components/common/ResizeHandle.vue'
 import SearchBar            from '@/components/common/SearchBar.vue'
@@ -519,14 +520,52 @@ async function loadComparisonBars() {
   }))
 }
 
-async function onSymbolSelect(symbol: string) {
-  return selectChartSymbol(symbol, undefined, false, true)
+async function onSymbolSelect(
+  symbol: string,
+  searchResult?: { type?: string },
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
+  return selectChartSymbol(symbol, undefined, false, searchResult?.type !== 'Synthetic', confirmedIdentity)
 }
 
-async function onHoldingDrilldown(symbol: string, context: ETFHoldingDrilldownContext) {
+async function onHoldingDrilldown(
+  symbol: string,
+  context: ETFHoldingDrilldownContext,
+  confirmedIdentity?: InstrumentAcquireResponse,
+) {
   if (symbol.trim().toUpperCase() !== context.canonicalSymbol.trim().toUpperCase()
-    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
-  return selectChartSymbol(symbol, context, false, true)
+    || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0
+    || (confirmedIdentity && !isConfirmedETFHoldingIdentity(confirmedIdentity, context))) return
+  return selectChartSymbol(symbol, context, false, true, confirmedIdentity)
+}
+
+function takeHoldingSelectionHandoff(context: ETFHoldingDrilldownContext | null): {
+  selected: boolean
+  confirmedIdentity?: InstrumentAcquireResponse
+} {
+  if (typeof window === 'undefined') return { selected: false }
+  const state = window.history.state as Record<string, unknown> | null
+  const rawSelection = state?.tcHoldingSelectionHandoff
+  const rawIdentity = state?.tcHoldingIdentityHandoff
+  if (!state || (!Object.prototype.hasOwnProperty.call(state, 'tcHoldingSelectionHandoff')
+    && !Object.prototype.hasOwnProperty.call(state, 'tcHoldingIdentityHandoff'))) return { selected: false }
+  const nextState = { ...(state ?? {}) }
+  delete nextState.tcHoldingSelectionHandoff
+  delete nextState.tcHoldingIdentityHandoff
+  window.history.replaceState(nextState, '', window.location.href)
+  if (!context || typeof rawSelection !== 'string') return { selected: false }
+  try {
+    const selectedContext = JSON.parse(rawSelection) as ETFHoldingDrilldownContext
+    if (!isSameETFHoldingDrilldownContext(selectedContext, context)) return { selected: false }
+    if (typeof rawIdentity !== 'string') return { selected: true }
+    const candidate = JSON.parse(rawIdentity) as InstrumentAcquireResponse
+    return {
+      selected: true,
+      confirmedIdentity: isConfirmedETFHoldingIdentity(candidate, context) ? candidate : undefined,
+    }
+  } catch {
+    return { selected: false }
+  }
 }
 
 async function selectChartSymbol(
@@ -534,6 +573,7 @@ async function selectChartSymbol(
   holdingContext?: ETFHoldingDrilldownContext,
   preserveHydratedHoldingContext = false,
   acquireHistory = false,
+  confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
@@ -560,7 +600,7 @@ async function selectChartSymbol(
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
     if (!isCurrentSelection()) return
-    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection)
+    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity)
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
@@ -587,7 +627,7 @@ async function selectChartSymbol(
       await pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
       if (!isCurrentSelection()) return
     }
-    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection)
+    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity)
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {
@@ -604,6 +644,7 @@ async function acquireSelectedChartHistory(
   symbol: string,
   selectedChartStore: typeof chartStore,
   isCurrentSelection: () => boolean,
+  confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   const timeframe = selectedChartStore.timeframe
   const isCurrentChartScope = () => isCurrentSelection()
@@ -624,6 +665,7 @@ async function acquireSelectedChartHistory(
       { timeframe, adjusted: true, start: range.start, end: range.end },
       stage => { if (isCurrentChartScope()) selectedHistoryProgress.value = stages[stage] },
       isCurrentChartScope,
+      confirmedIdentity ? Promise.resolve(confirmedIdentity) : undefined,
     )
     if (!isCurrentChartScope() || outcome.kind === 'superseded') return
     if (outcome.kind === 'already-covered') {
@@ -799,11 +841,15 @@ onMounted(async () => {
       && historicalHoldingContext.value.symbol.toUpperCase() === sym.toUpperCase(),
     )
     const selectedHoldingContext = historicalHoldingRouteContext.value
+    const holdingHandoff = route.query.holding_history_intent === 'selected'
+      ? takeHoldingSelectionHandoff(selectedHoldingContext)
+      : { selected: false as const }
     const symbolSelection = selectChartSymbol(
       sym,
       selectedHoldingContext ?? undefined,
       preserveHydratedHoldingContext,
-      selectedHoldingContext !== null && route.query.holding_history_intent === 'selected',
+      selectedHoldingContext !== null && holdingHandoff.selected,
+      holdingHandoff.confirmedIdentity,
     )
     const bootstrapSelection = selectionGeneration
     const bootstrapIndicatorEdit = chartStore.indicatorEditGeneration

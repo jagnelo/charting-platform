@@ -98,7 +98,7 @@ describe('ETFHoldingResolutionAction', () => {
       provider_candidate: { provider: 'free-source', symbol: 'UNXQ', exchange: 'XNYS' },
       request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
     })
-    expect(wrapper.emitted('resolved')?.[0]).toMatchObject([
+    expect(wrapper.emitted('resolved')?.[0]?.slice(0, 2)).toMatchObject([
       'UNXQ',
       {
         instrumentId: 987654,
@@ -114,6 +114,11 @@ describe('ETFHoldingResolutionAction', () => {
         reportedName: 'Unlisted Example Corp',
       },
     ])
+    expect(wrapper.emitted('resolved')?.[0]?.[2]).toMatchObject({
+      request_id: 'c1de14e1-d595-4e68-a7aa-0ae10cb8fe20',
+      status: 'resolved',
+      instrument: { instrument_id: 987654, symbol: 'UNXQ', identity_status: 'verified' },
+    })
     expect(holding.is_resolved).toBe(false)
     expect(holding.constituent_instrument_id).toBeNull()
 

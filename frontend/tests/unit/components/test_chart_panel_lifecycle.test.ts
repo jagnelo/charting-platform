@@ -263,7 +263,7 @@ describe('ChartPanel lifecycle fencing', () => {
     await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
       'C', 'D1', true,
       expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
-      expect.any(Function), expect.any(Function),
+      expect.any(Function), expect.any(Function), undefined,
     ))
     expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'C', canonical_only: true })
     wrapper.unmount()
@@ -319,8 +319,12 @@ describe('ChartPanel lifecycle fencing', () => {
     await vi.waitFor(() => expect(acquireSelectedHistory).toHaveBeenCalledWith(
       'C', 'D1', true,
       expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
-      expect.any(Function), expect.any(Function),
+      expect.any(Function), expect.any(Function), expect.any(Promise),
     ))
+    const panelHistoryCall = vi.mocked(acquireSelectedHistory).mock.calls.at(-1)!
+    await expect(panelHistoryCall[6]).resolves.toMatchObject({
+      status: 'resolved', instrument: { instrument_id: 43, symbol: 'C', identity_status: 'verified' },
+    })
     expect(loadBars).toHaveBeenCalledTimes(1)
     expect(loadBars).toHaveBeenCalledWith('C', 'D1')
     wrapper.unmount()

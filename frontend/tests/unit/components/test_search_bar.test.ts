@@ -312,8 +312,14 @@ describe('SearchBar', () => {
       symbol: 'EVOL', provider_candidate: { provider: 'free-source', symbol: 'EVOL', exchange: 'XNYS' },
     }))
     expect(wrapper.emitted('select')?.[0]?.[0]).toBe('EVOL')
+    expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({
       type: 'ETV', instrument_id: 991, identity_status: 'resolved', explicitlyResolved: true,
+    })
+    expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({
+      request_id: 'resolve-etv',
+      status: 'resolved',
+      instrument: { instrument_id: 991, symbol: 'EVOL', identity_status: 'resolved', instrument_type: 'Exchange Traded Vehicle' },
     })
   })
 
@@ -390,6 +396,10 @@ describe('SearchBar', () => {
     await wrapper.get('input').trigger('keydown.enter')
     await flushPromises()
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'C', instrument_id: 31, explicitlyResolved: true })
+    expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
+    expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({
+      status: 'resolved', instrument: { instrument_id: 31, symbol: 'C', identity_status: 'verified' },
+    })
   })
 
   it('does not resolve or emit a candidate whose provider-verified symbol differs from the reported ticker', async () => {

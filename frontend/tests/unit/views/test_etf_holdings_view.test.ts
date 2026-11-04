@@ -3,7 +3,12 @@ import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import ETFHoldingsView from '@/views/ETFHoldingsView.vue'
-import { holdingDrilldownRouteQuery, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import {
+  createETFHoldingDrilldownContext,
+  holdingDrilldownRouteQuery,
+  holdingDrilldownRouteState,
+  type ETFHoldingDrilldownContext,
+} from '@/lib/etfHoldingDrilldown'
 
 const routerPush = vi.fn()
 
@@ -524,15 +529,16 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('Circuit closed')
 
     await wrapper.find('.detail-title button').trigger('click')
+    const selectedContext = createETFHoldingDrilldownContext(
+      holdingsPage().snapshot,
+      holdingsPage().holdings[0]!,
+      200,
+      'MSFT',
+    )
     expect(routerPush).toHaveBeenCalledWith({
       path: '/legacy/chart/MSFT',
-      query: {
-        holding_snapshot_id: '55',
-        holding_composition_date: '2026-06-07',
-        holding_known_at: '2026-06-07T04:15:00Z',
-        holding_provenance: 'issuer_current_holdings',
-        holding_instrument_id: '200',
-      },
+      query: { ...holdingDrilldownRouteQuery(selectedContext), holding_history_intent: 'selected' },
+      state: holdingDrilldownRouteState(selectedContext),
     })
 
     await wrapper.find('.research-action').trigger('click')
@@ -615,18 +621,53 @@ describe('ETFHoldingsView', () => {
     expect(historyButton.text()).toBe('View history')
     expect(historyButton.attributes('disabled')).toBeUndefined()
     await historyButton.trigger('click')
+    const selectedContext = createETFHoldingDrilldownContext(
+      holdingsPage().snapshot,
+      holdingsPage().holdings[0]!,
+      200,
+      'MSFT',
+    )
     expect(routerPush).toHaveBeenCalledWith({
       path: '/legacy/chart/MSFT',
-      query: {
-        holding_snapshot_id: '55',
-        holding_composition_date: '2026-06-07',
-        holding_known_at: '2026-06-07T04:15:00Z',
-        holding_provenance: 'issuer_current_holdings',
-        holding_instrument_id: '200',
-      },
+      query: { ...holdingDrilldownRouteQuery(selectedContext), holding_history_intent: 'selected' },
+      state: holdingDrilldownRouteState(selectedContext),
     })
     expect(wrapper.find('.panel-meta').text()).toContain('Profile current eligibility: stale')
     expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('does not route an old page row while a newly selected snapshot is still loading', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce([profile])
+      .mockResolvedValueOnce(dates)
+      .mockResolvedValueOnce(holdingsPage())
+      .mockResolvedValueOnce(diffPayload())
+      .mockResolvedValueOnce(weightEvolutionPayload())
+      .mockResolvedValueOnce(transitionTimelinePayload())
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
+
+    let releasePage!: (value: unknown) => void
+    const pendingPage = new Promise(resolve => { releasePage = resolve })
+    vi.mocked(api.get).mockImplementationOnce(() => pendingPage as Promise<never>)
+    const snapshotPicker = wrapper.findAll('.toolbar select').at(-1)!
+    await snapshotPicker.setValue('54')
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/etf-holdings/SPY/holdings', expect.objectContaining({ snapshot_id: '54' })))
+    vi.mocked(api.get).mockResolvedValueOnce(diffPayload())
+
+    await wrapper.find('.detail-title button').trigger('click')
+    expect(routerPush).not.toHaveBeenCalled()
+
+    const previousPage = holdingsPage()
+    releasePage({
+      ...previousPage,
+      snapshot: { ...previousPage.snapshot, id: 54, composition_date: '2026-06-06' },
+      holdings: previousPage.holdings.map(holding => ({ ...holding, snapshot_id: 54 })),
+    })
+    await flushPromises()
+    expect(routerPush).not.toHaveBeenCalled()
+    wrapper.unmount()
   })
 
   it('does not offer a history route for an unresolved holding row', async () => {
@@ -701,15 +742,22 @@ describe('ETFHoldingsView', () => {
       holdingType: 'equity',
     }
     const searchBars = wrapper.findAllComponents({ name: 'SearchBar' })
+    const confirmedIdentity = {
+      request_id: 'confirmed-unxq',
+      status: 'resolved' as const,
+      instrument: { instrument_id: context.instrumentId, symbol: 'UNXQ', identity_status: 'verified' },
+      source_outcomes: [],
+    }
     searchBars[1]!.vm.$emit('select', 'UNXQ', {
       instrument_id: context.instrumentId,
       explicitlyResolved: true,
       identity_status: 'verified',
-    })
+    }, confirmedIdentity)
     await nextTick()
     expect(routerPush).toHaveBeenCalledWith({
       path: '/legacy/chart/UNXQ',
-      query: holdingDrilldownRouteQuery(context),
+      query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
+      state: holdingDrilldownRouteState(context, confirmedIdentity),
     })
     expect(unresolvedPage.holdings[0]?.is_resolved).toBe(false)
     expect(unresolvedPage.holdings[0]?.constituent_instrument_id).toBeNull()
