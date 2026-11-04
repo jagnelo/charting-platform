@@ -26069,3 +26069,48 @@ product/test/record candidate, run the unchanged full scope/workstream checks,
 publish once for exact-source CI, build one capped frontend artifact, and let
 Root review/replace only the owned dev frontend before the seven-case and full
 functional/104-visual profile.
+
+## 2026-11-04 — default reported-holding resolver visibility correction
+
+The owned attempt03 run is preserved at 6 passed / 1 failed in 58.8 seconds,
+one worker, zero retries, no OOM; its only failure was the unresolved UNXQ
+candidate locator expecting a button instead of the actual SearchBar option.
+The old exact-source 15c2 CI41762739430 is also preserved red on that same
+obsolete button-role query (198 passed, 1 failed, 110 configured skips); no
+other old CI failure was reported. Attempt03 screenshot and browser evidence
+remain unchanged.
+
+Attempt04 corrected the absence and positive locators to the actual
+`Symbol search results` listbox option. Its pre-click geometry probe measured
+the candidate at left -101/top 812/right 175/bottom 854, outside the
+Constituents tool body (left 1/top 427/right 279/bottom 698); the element's
+center was neither in the tool body nor an ordinary hit target. This is a real
+default/factory holding-resolution visibility defect. Attempt04 remains a
+failed diagnostic probe, not a product pass.
+
+The current minimal product layout puts the factory Watchlist and dedicated
+constituent list plus their reported-holding resolution/status panel inside
+bounded grid rows. The table retains its own scrolling; the selection panel
+has independent bounded scrolling, and SearchBar results flow within it so
+the explicit candidate remains in the visible hit area. Cash/futures status,
+identity and snapshot-row checks, stale selection fences, and ordinary exact
+candidate clicks are unchanged. The E2E case asserts the candidate's actual
+bounds lie inside the tool body and that its center hits the option before an
+ordinary click. No forced scroll/click, visual-reference update, or
+diagnostic suppression was added.
+
+Current checks: focused Workstation/ETF component suites passed 45/45 across
+three files; `vue-tsc --noEmit` passed; Playwright collection lists all seven
+ordinary cases. Root independently verified full one-worker frontend coverage
+attempt004 exit 0: 154 files / 1,555 tests; functions 2,588/3,684 (70.2497%),
+lines 65,662/81,652, branches 13,713/18,652; unchanged function floor 70%.
+LCOV remains at `/tmp/tc-ordinary-final-coverage-20261104-attempt004/lcov.info`.
+TC scope self-tests passed. Workstream validation passed; full scope guard was
+first run before staging and correctly rejected imported presentation
+index/worktree drift, so stage the owned source/test/record set before its
+normal index/worktree equality check. The exact old fixture serves the
+unchanged 15c2 image; no rerun of that image is applicable after this product
+change. The same owned fixture and ETF777 backend are retained; a new frontend
+artifact and Root image review are required before frontend replacement and
+the seven-case-first profile. The broader functional/strict-visual profile,
+exact candidate CI, all AC1-AC9, and REF-HELP-V25 remain open.

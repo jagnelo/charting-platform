@@ -227,8 +227,8 @@
         @condition-drop="addConditionColumn"
       />
     </section>
+    <div v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool" class="constituent-tool constituent-tool--factory">
     <VirtualWatchlistTool
-      v-else-if="tool.tool_type === 'watchlist' && !isIndustryTool"
       :label="tool.title || 'WatchList'"
       :timeframe="activeTimeframe"
       :rows="factoryWatchlistRows"
@@ -271,6 +271,30 @@
         @plot-drop="addPlotColumn"
         @condition-drop="addConditionColumn"
     />
+    <div
+      v-if="selectedConstituentRowKey && tool.tool_type === 'watchlist'"
+      class="constituent-tool__selection"
+      data-testid="reported-holding-selection"
+    >
+      <ETFHoldingResolutionAction
+        v-if="selectedUnresolvedConstituent && isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent) && holdings?.snapshot"
+        :key="`${selectedETF}:${holdings.snapshot.id}:${selectedUnresolvedConstituent.id}`"
+        :holding="selectedUnresolvedConstituent"
+        :snapshot="holdings.snapshot"
+        :available="true"
+        start-immediately
+        @resolved="openResolvedConstituentHolding"
+      />
+      <p v-else-if="selectedNonChartableConstituent" class="constituent-tool__selection-state" role="status" aria-live="polite">
+        {{ reportedHoldingChartState(selectedNonChartableConstituent) }}
+        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+      </p>
+      <p v-else-if="selectedUnresolvedConstituent && !isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent)" class="constituent-tool__selection-state" role="status" aria-live="polite">
+        {{ reportedHoldingLabel(selectedUnresolvedConstituent) }} is shown from the reported snapshot, but its equity identity is not confirmed yet.
+        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+      </p>
+    </div>
+    </div>
     <div v-else-if="tool.instance_key === 'ratio-chart'" class="analysis">
       <RatioUPlot :symbol="ratioChartExpression?.numerator ?? activeSymbol" :benchmarks="ratioChartExpression ? [ratioChartExpression.denominator] : ratioBenchmarks" editable-benchmarks :timeframe="activeTimeframe" :as-of="typeof tool.configuration.as_of === 'string' ? tool.configuration.as_of : null" :linked-timestamp="workspaceStore.timestampForLinkGroup(localLinkGroup)" @cursor-timestamp="workspaceStore.publishTimestamp($event, localLinkGroup, tool.instance_key)" @configuration="emit('configuration', tool.instance_key, { ...tool.configuration, ...$event, auto_ratio: false })" />
     </div>
@@ -500,6 +524,29 @@
         aria-atomic="true"
         :title="constituentExclusionCodes.join(', ')"
       >{{ constituentExclusionSummary }}</small>
+      <div
+        v-if="selectedConstituentRowKey && tool.instance_key === 'constituent-list'"
+        class="constituent-tool__selection"
+        data-testid="reported-holding-selection"
+      >
+        <ETFHoldingResolutionAction
+          v-if="selectedUnresolvedConstituent && isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent) && holdings?.snapshot"
+          :key="`${selectedETF}:${holdings.snapshot.id}:${selectedUnresolvedConstituent.id}`"
+          :holding="selectedUnresolvedConstituent"
+          :snapshot="holdings.snapshot"
+          :available="true"
+          start-immediately
+          @resolved="openResolvedConstituentHolding"
+        />
+        <p v-else-if="selectedNonChartableConstituent" class="constituent-tool__selection-state" role="status" aria-live="polite">
+          {{ reportedHoldingChartState(selectedNonChartableConstituent) }}
+          <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+        </p>
+        <p v-else-if="selectedUnresolvedConstituent && !isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent)" class="constituent-tool__selection-state" role="status" aria-live="polite">
+          {{ reportedHoldingLabel(selectedUnresolvedConstituent) }} is shown from the reported snapshot, but its equity identity is not confirmed yet.
+          <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
+        </p>
+      </div>
     </div>
     <div v-else-if="tool.instance_key === 'breadth-summary' || tool.tool_type === 'breadth'" class="breadth-tool" role="region" :aria-label="`Breadth analysis for ${breadthGroupKey}`" :aria-busy="breadthBusy ? 'true' : 'false'">
       <div class="breadth-tool__universe">
@@ -983,29 +1030,6 @@
     <ResearchResultsTool v-else-if="tool.tool_type === 'research_results'" @occurrence="emit('occurrence', $event.symbol, $event.timestamp, $event.instrument_id)" />
     <CodeLibraryTool v-else-if="tool.tool_type === 'code_library'" @open-study="emit('openStudy', $event)" />
     <UnknownToolRecovery v-else :tool="tool" />
-    <div
-      v-if="selectedConstituentRowKey && (tool.instance_key === 'constituent-list' || tool.tool_type === 'watchlist')"
-      class="constituent-tool__selection"
-      data-testid="reported-holding-selection"
-    >
-      <ETFHoldingResolutionAction
-        v-if="selectedUnresolvedConstituent && isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent) && holdings?.snapshot"
-        :key="`${selectedETF}:${holdings.snapshot.id}:${selectedUnresolvedConstituent.id}`"
-        :holding="selectedUnresolvedConstituent"
-        :snapshot="holdings.snapshot"
-        :available="true"
-        start-immediately
-        @resolved="openResolvedConstituentHolding"
-      />
-      <p v-else-if="selectedNonChartableConstituent" class="constituent-tool__selection-state" role="status" aria-live="polite">
-        {{ reportedHoldingChartState(selectedNonChartableConstituent) }}
-        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
-      </p>
-      <p v-else-if="selectedUnresolvedConstituent && !isEligibleUnresolvedEquityHolding(selectedUnresolvedConstituent)" class="constituent-tool__selection-state" role="status" aria-live="polite">
-        {{ reportedHoldingLabel(selectedUnresolvedConstituent) }} is shown from the reported snapshot, but its equity identity is not confirmed yet.
-        <RouterLink to="/legacy/etf-holdings">Review ETF holdings</RouterLink>
-      </p>
-    </div>
   </ToolWindow>
 </template>
 
@@ -4536,6 +4560,10 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
 .constituent-tool { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; height: 100%; min-height: 0; background: #11161b; }
+.constituent-tool--factory { grid-template-rows: minmax(0, 1fr) auto; }
+.constituent-tool__selection { min-width: 0; max-height: 48%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
+.constituent-tool__selection :deep(.search-bar) { width: 100%; }
+.constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
 .constituent-tool__selection-state { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 6px 8px; border-top: 1px solid #28343c; color: #b8c5cf; font: 11px "Segoe UI", Arial, sans-serif; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }

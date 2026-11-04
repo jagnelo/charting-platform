@@ -39,14 +39,14 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The bf7148 predecessor is preserved red in exact CI41747382975 (196 passed, 3 failed, 110 configured skips). This test/helper-only correction is ready for one publication; its exact-source CI is pending.",
-  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d4a278b1b086745b22aab05d3d960539ad02c97 is adopted and green. The current correction fixes only phase-specific test assertions, the IWM controlled-capability fixture, the rendered IGV locator and one exact armed OIH 503 diagnostic attribution. Focused diagnostics tests 7/7, vue-tsc and seven-case Playwright collection pass. No corrected browser profile or rebuilt image is claimed. Prior accepted TCO/F8Y checkpoints, all nine roadmap criteria, AC1-AC9, official V25 and operational holds remain unchanged.",
+  "current_candidate_ci_status": "Exact 15c2 CI41762739430 is preserved red only on the stale Use UNXQ button locator (198 passed, 1 failed, 110 configured skips). The current product/layout and E2E correction is pending one publication and exact-source CI.",
+  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d4a278b1b086745b22aab05d3d960539ad02c97 is adopted and green. The default/factory resolver candidate was clipped outside its tool; attempt04 measured its out-of-bounds center and the current layout puts the action inside bounded grid rows with independent table/resolver scrolling. Focused units 45/45, vue-tsc, Playwright discovery and Root-verified full coverage pass. The old 15c2 image has not been rerun; one new frontend artifact is required. Prior accepted TCO/F8Y checkpoints, all nine roadmap criteria, AC1-AC9, official V25 and operational holds remain unchanged.",
   "current_exact_ci": {
-    "head_sha": "bf71482deae91558ab030202673711b11b477e62",
-    "run_id": 41747382975,
+    "head_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
+    "run_id": 41762739430,
     "conclusion": "failure",
     "status": "failure",
-    "scope": "Preserved exact predecessor CI: 196 passed, 3 failed, 110 configured skips. Root disposition identifies the IWM capability fixture mismatch, phase-specific D1/M1 assertions, IGV rendered locator, and exact OIH 503 diagnostic attribution. This corrected candidate has no CI result yet."
+    "scope": "Preserved exact 15c2 CI: 198 passed, 1 failed, 110 configured skips; only the old Use UNXQ button-role locator failed. The source correction uses the actual listbox option and fixes its measured clipped tool layout; this new candidate has no exact CI result yet."
   },
   "current_software_checkpoint": {
     "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
@@ -335,7 +335,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "667c5278568019c33f5bf4140769a48eabda509904d7ce4d9b7f0050e61c23b7",
+  "plan_hash": "113fd011d44ac7e0c85aabe31ed7c8e4dba07f802eb68b641538b236e5978018",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -370,24 +370,24 @@
       "OTJ4",
       "OTJ6"
     ],
-    "current_blocker": "The bf7148 predecessor is red in exact CI41747382975. This test/helper-only correction is pending one publication and exact-source CI; Root must then verify existing frontend bb320/backend777 bundle equivalence and release the corrected profile.",
-    "current_phase": "The correction is test/helper/records-only: phase-specific D1/M1 requests, consistent IWM unknown-capability fixture, rendered IGV Constituents locator and one exact armed OIH 503 diagnostic attribution. Seven diagnostics unit cases, vue-tsc, seven-case discovery and scope self-tests pass. No corrected browser profile, image rebuild, real-source request or product change is claimed.",
-    "next_action": "Publish this correction once and follow exact-source CI; after Root verifies retained component equivalence and releases the slot, run the seven on-demand cases first, then full functional and 104 strict-visual gates at one worker/zero retries.",
+    "current_blocker": "Exact 15c2 CI41762739430 is preserved red on its stale Use UNXQ button locator. The current product/layout and E2E correction is pending one coherent publication, exact-source CI, and a new Root-reviewed frontend artifact; the existing ETF777 backend and owned fixture are retained.",
+    "current_phase": "The default/factory reported-holding candidate was present in the accessibility tree but clipped below and left of its Workstation tool. Attempt04 measured the failed hit target; the current layout keeps the resolver inside bounded grid rows and the browser regression checks bounds and center hit before ordinary selection. Focused units (45/45), vue-tsc, seven-case discovery, and one-worker full coverage (70.2497% functions) pass. No current-image browser pass is claimed.",
+    "next_action": "Complete staged scope/workstream checks, publish this coherent correction once and follow exact-source CI, build the capped source-bound frontend artifact, then after Root image review replace only the owned dev frontend and run seven ordinary cases first; continue full functional and strict visuals only if they pass.",
     "total": 6,
-    "updated_at": "2026-11-04T01:32:36Z"
+    "updated_at": "2026-11-04T03:40:19Z"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "Publish this test/helper/records correction once and obtain exact-source CI; Root verifies existing frontend bb320/backend777 input equivalence and releases the corrected seven-case-first/full functional/strict-visual profile.",
+    "current_pending_range": "Publish this bounded Workstation reported-holding layout and E2E correction once; obtain exact-source CI and build one new capped frontend image. Root reviews/replaces only the owned dev frontend; seven ordinary flows first, followed by full functional/104 strict-visual only if green.",
     "failure_category": null,
     "remote": "origin",
-    "remote_tracking_sha": "bf71482deae91558ab030202673711b11b477e62",
-    "status": "Focused diagnostics tests, frontend type-check, seven-case discovery and scope self-tests pass. Full scope/workstream checks and exact candidate CI remain pending. Provider4d is adopted and green; no image rebuild is required for this test/helper-only correction."
+    "remote_tracking_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
+    "status": "Focused Workstation/ETF units, frontend type-check, seven-case discovery, full coverage and scope self-tests pass. The first full scope guard correctly requires staging the imported path adaptation before equality validation; full scope/workstream checks and exact candidate CI remain pending. Provider4d is adopted and green. This is a product layout change and requires one new frontend artifact; ETF777/backend is unchanged."
   },
-  "remote": "bf71482deae91558ab030202673711b11b477e62",
-  "remote_sha": "bf71482deae91558ab030202673711b11b477e62",
+  "remote": "15c2c449eb0519e495fb51fc67d602cc131af996",
+  "remote_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
   "remote_synchronized": true,
-  "remote_tracking_sha": "bf71482deae91558ab030202673711b11b477e62",
+  "remote_tracking_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"

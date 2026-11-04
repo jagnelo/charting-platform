@@ -2202,7 +2202,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect((await staleDiscoveryReady).status()).toBe(200)
     await expect(symbolSearch).toHaveValue('XHB')
     await expect(page).toHaveURL(/\/$/)
-    await expect(page.getByRole('button', { name: /Use UNXQ · TEST/ })).toHaveCount(0)
+    await expect(page.getByRole('listbox', { name: 'Symbol search results' }).getByRole('option', { name: /Use UNXQ · TEST/ })).toHaveCount(0)
     expect(identityRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
     expect(historyRequests.filter(request => request.symbol === 'UNXQ')).toHaveLength(0)
 
@@ -2224,8 +2224,29 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
         && url.pathname === `/api/v1/instruments/${instruments.UNXQ.id}/history-acquisitions`
     })
     await igvWidget.getByRole('option', { name: /UNXQ Unlisted Example Software Corp/ }).click()
-    const candidate = page.getByRole('button', { name: /Use UNXQ · TEST/ })
+    const candidate = page.getByTestId('reported-holding-selection')
+      .getByRole('listbox', { name: 'Symbol search results' })
+      .getByRole('option', { name: /Use UNXQ · TEST/ })
     await expect(candidate).toBeVisible()
+    const candidateGeometry = await candidate.evaluate(element => {
+      const rect = element.getBoundingClientRect()
+      const body = element.closest('.tool-window__body')
+      const bodyRect = body?.getBoundingClientRect()
+      const x = rect.left + rect.width / 2
+      const y = rect.top + rect.height / 2
+      const hit = document.elementFromPoint(x, y)
+      const withinBody = Boolean(bodyRect && x >= bodyRect.left && x <= bodyRect.right && y >= bodyRect.top && y <= bodyRect.bottom)
+      return {
+        candidate: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+        toolBody: bodyRect ? { left: bodyRect.left, top: bodyRect.top, right: bodyRect.right, bottom: bodyRect.bottom } : null,
+        centerInsideToolBody: withinBody,
+        centerHitCandidate: Boolean(hit && (hit === element || element.contains(hit))),
+        hitElement: hit ? `${hit.tagName.toLowerCase()}.${String(hit.className || '').toString().replace(/\s+/g, '.')}` : null,
+      }
+    })
+    console.log(`[reported-holding-candidate-geometry] ${JSON.stringify(candidateGeometry)}`)
+    expect(candidateGeometry.centerInsideToolBody).toBe(true)
+    expect(candidateGeometry.centerHitCandidate).toBe(true)
     await candidate.click()
     expect((await identityResponseReady).status()).toBe(200)
     expect((await historyResponseReady).status()).toBe(200)
