@@ -23,7 +23,9 @@ ISHARES_US_CATALOG_URL = "https://www.ishares.com/us/products/etf-investments"
 ISHARES_US_CATALOG_CACHE_TTL = timedelta(hours=24)
 ISHARES_US_CATALOG_MAX_RESPONSE_BYTES = 10 * 1024 * 1024
 ISHARES_US_CATALOG_MAX_REDIRECTS = 3
-_PRODUCT_PATH = re.compile(r"^/us/products/([0-9]+)(?:/([A-Za-z0-9]+(?:-[A-Za-z0-9]+)*))?/?$")
+_PRODUCT_PATH = re.compile(
+    r"^/us/products/([0-9]+)(?:/([A-Za-z0-9]+(?:(?:-|%20)+[A-Za-z0-9]+)*))?/?$"
+)
 _TICKER = re.compile(r"^[A-Z0-9][A-Z0-9.-]{0,11}$")
 _REPORTED_TOTAL = re.compile(
     r"\b(?:showing\s+)?(\d+)\s+of\s+(\d+)(?:\s+total)?\s+funds?\b", re.IGNORECASE
@@ -83,17 +85,39 @@ class _CatalogHTMLParser(HTMLParser):
     def __init__(self) -> None:
         super().__init__(convert_charrefs=True)
         self.tables: list[list[list[_Cell]]] = []
+        self.table_categories: list[str | None] = []
+        self.table_contexts: list[str] = []
         self.page_text: list[str] = []
         self._table_depth = 0
         self._table: list[list[_Cell]] = []
         self._row: list[_Cell] | None = None
         self._cell: _Cell | None = None
+        self._last_category: str | None = None
+        self._capturing_category = False
+        self._category_text: list[str] = []
+        self._collecting_table_context = False
+        self._table_context_text: list[str] = []
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         lowered = tag.lower()
+        attributes = dict(attrs)
+        if lowered == "div" and "category-title" in (attributes.get("class") or "").split():
+            self._capturing_category = True
+            self._category_text = []
+            self._collecting_table_context = True
+            self._table_context_text = []
         if lowered == "table":
             if self._table_depth == 0:
                 self._table = []
+                self.table_categories.append(self._last_category)
+                context = (
+                    " ".join(self._table_context_text)
+                    if self._last_category is not None
+                    else " ".join(self.page_text[-12:])
+                )
+                self.table_contexts.append(context)
+                self._collecting_table_context = False
+                self._last_category = None
             self._table_depth += 1
         elif self._table_depth and lowered == "tr":
             self._row = []
@@ -106,7 +130,10 @@ class _CatalogHTMLParser(HTMLParser):
 
     def handle_endtag(self, tag: str) -> None:
         lowered = tag.lower()
-        if lowered in {"td", "th"} and self._cell is not None and self._row is not None:
+        if lowered == "div" and self._capturing_category:
+            self._last_category = " ".join(" ".join(self._category_text).split())
+            self._capturing_category = False
+        elif lowered in {"td", "th"} and self._cell is not None and self._row is not None:
             self._cell.text = [" ".join("".join(self._cell.text).split())]
             self._row.append(self._cell)
             self._cell = None
@@ -123,6 +150,10 @@ class _CatalogHTMLParser(HTMLParser):
 
     def handle_data(self, data: str) -> None:
         self.page_text.append(data)
+        if self._collecting_table_context:
+            self._table_context_text.append(data)
+        if self._capturing_category:
+            self._category_text.append(data)
         if self._cell is not None:
             self._cell.text.append(data)
 
@@ -210,75 +241,188 @@ def parse_ishares_us_product_catalog(
         raise IssuerCatalogError("iShares catalog response left its reviewed US page origin.")
     parser = _CatalogHTMLParser()
     parser.feed(raw_html)
-    matching_tables: list[tuple[list[list[_Cell]], int, int, int]] = []
-    for table in parser.tables:
+    matching_tables: list[tuple[str | None, str, list[IssuerCatalogProduct]]] = []
+    for table_index, table in enumerate(parser.tables):
         for row_index, row in enumerate(table):
             headers = [" ".join(cell.text).strip().casefold() for cell in row]
             if "ticker" in headers and "name" in headers:
+                ticker_column = headers.index("ticker")
+                name_column = headers.index("name")
+                entries: list[IssuerCatalogProduct] = []
+                tickers: set[str] = set()
+                product_ids: set[str] = set()
+                for data_row in table[row_index + 1 :]:
+                    if max(ticker_column, name_column) >= len(data_row):
+                        raise IssuerCatalogError(
+                            "Catalog product row is missing a Ticker or Name cell."
+                        )
+                    ticker_cell = data_row[ticker_column]
+                    name_cell = data_row[name_column]
+                    ticker = " ".join(ticker_cell.text).strip().upper()
+                    name = " ".join(name_cell.text).strip()
+                    if not ticker and not name:
+                        continue
+                    if not _TICKER.fullmatch(ticker) or not name:
+                        raise IssuerCatalogError(
+                            "Catalog contains a malformed ticker or fund name."
+                        )
+                    if len(ticker_cell.hrefs) != 1 or len(name_cell.hrefs) != 1:
+                        raise IssuerCatalogError(
+                            "Ticker and Name must each link to one exact product page."
+                        )
+                    ticker_product = _product_link(ticker_cell.hrefs[0], page_url=page_url)
+                    name_product = _product_link(name_cell.hrefs[0], page_url=page_url)
+                    if ticker_product[0] != name_product[0] or (
+                        ticker_product[1] is not None
+                        and name_product[1] is not None
+                        and ticker_product[1] != name_product[1]
+                    ):
+                        raise IssuerCatalogError(
+                            "Ticker and Name links conflict on their product identity."
+                        )
+                    product_id = ticker_product[0]
+                    product_url = (
+                        ticker_product[2]
+                        if ticker_product[1] is not None
+                        else name_product[2]
+                        if name_product[1] is not None
+                        else ticker_product[2]
+                    )
+                    if ticker in tickers:
+                        raise IssuerCatalogError("Catalog contains duplicate ticker rows.")
+                    if product_id in product_ids:
+                        raise IssuerCatalogError(
+                            "Catalog assigns one product ID to multiple ticker rows."
+                        )
+                    tickers.add(ticker)
+                    product_ids.add(product_id)
+                    entries.append(
+                        IssuerCatalogProduct(
+                            ticker=ticker,
+                            name=name,
+                            product_id=product_id,
+                            product_url=product_url,
+                        )
+                    )
+                if not entries:
+                    raise IssuerCatalogError("Catalog product table contains no valid fund rows.")
                 matching_tables.append(
-                    (table, row_index, headers.index("ticker"), headers.index("name"))
+                    (
+                        parser.table_categories[table_index],
+                        parser.table_contexts[table_index],
+                        entries,
+                    )
                 )
                 break
-    if len(matching_tables) != 1:
-        raise IssuerCatalogError("Catalog must contain exactly one Ticker/Name product table.")
 
-    table, header_index, ticker_column, name_column = matching_tables[0]
-    entries: list[IssuerCatalogProduct] = []
-    tickers: set[str] = set()
-    product_ids: set[str] = set()
-    for row in table[header_index + 1 :]:
-        if max(ticker_column, name_column) >= len(row):
-            raise IssuerCatalogError("Catalog product row is missing a Ticker or Name cell.")
-        ticker_cell = row[ticker_column]
-        name_cell = row[name_column]
-        ticker = " ".join(ticker_cell.text).strip().upper()
-        name = " ".join(name_cell.text).strip()
-        if not ticker and not name:
-            continue
-        if not _TICKER.fullmatch(ticker) or not name:
-            raise IssuerCatalogError("Catalog contains a malformed ticker or fund name.")
-        if len(ticker_cell.hrefs) != 1 or len(name_cell.hrefs) != 1:
-            raise IssuerCatalogError("Ticker and Name must each link to one exact product page.")
-        ticker_product = _product_link(ticker_cell.hrefs[0], page_url=page_url)
-        name_product = _product_link(name_cell.hrefs[0], page_url=page_url)
-        if ticker_product[0] != name_product[0] or (
-            ticker_product[1] is not None
-            and name_product[1] is not None
-            and ticker_product[1] != name_product[1]
+    if not matching_tables:
+        raise IssuerCatalogError("Catalog contains no Ticker/Name product table.")
+
+    # The official page can contain separate ETF and mutual-fund product
+    # tables, each with its own truthful total. Only the ETF section is in
+    # scope. Older/minimal layouts without a section label remain supported
+    # through their table-local result count.
+    categories = [
+        table[0].strip().casefold() if table[0] is not None else None for table in matching_tables
+    ]
+    if any(category is not None for category in categories):
+        recognized_categories = {"etf", "etfs", "mutual funds"}
+        if any(
+            category is None or category not in recognized_categories for category in categories
         ):
-            raise IssuerCatalogError("Ticker and Name links conflict on their product identity.")
-        product_id = ticker_product[0]
-        product_url = (
-            ticker_product[2]
-            if ticker_product[1] is not None
-            else name_product[2]
-            if name_product[1] is not None
-            else ticker_product[2]
-        )
-        if ticker in tickers:
-            raise IssuerCatalogError("Catalog contains duplicate ticker rows.")
-        if product_id in product_ids:
-            raise IssuerCatalogError("Catalog assigns one product ID to multiple ticker rows.")
-        tickers.add(ticker)
-        product_ids.add(product_id)
-        entries.append(
-            IssuerCatalogProduct(
-                ticker=ticker,
-                name=name,
-                product_id=product_id,
-                product_url=product_url,
-            )
-        )
-    if not entries:
-        raise IssuerCatalogError("Catalog product table contains no valid fund rows.")
+            raise IssuerCatalogError("Catalog contains an unclassified product table.")
+    labeled_etf_tables = [
+        table
+        for table in matching_tables
+        if table[0] is not None and table[0].strip().casefold() in {"etf", "etfs"}
+    ]
+    selected_tables = labeled_etf_tables or [table for table in matching_tables if table[0] is None]
+    if not selected_tables:
+        raise IssuerCatalogError("Catalog has no identified ETF product table.")
+    table_totals: list[int | None] = []
+    for _category, context, _entries in selected_tables:
+        local_totals = {
+            int(total) for _visible, total in _REPORTED_TOTAL.findall(context) if int(total) > 0
+        }
+        if len(local_totals) > 1:
+            raise IssuerCatalogError("ETF catalog table has conflicting reported totals.")
+        table_totals.append(next(iter(local_totals), None))
 
-    text = " ".join(" ".join(parser.page_text).split())
-    reported_totals = {int(total) for _, total in _REPORTED_TOTAL.findall(text) if int(total) > 0}
-    if len(reported_totals) > 1:
-        raise IssuerCatalogError("Catalog contains conflicting reported fund totals.")
-    reported_total = next(iter(reported_totals), None)
-    # The label alone is not enough. Completeness requires every visible row to
-    # parse and the observed row count to equal the issuer-reported total.
+    def merge_tables(
+        tables: list[list[IssuerCatalogProduct]],
+    ) -> tuple[IssuerCatalogProduct, ...]:
+        by_ticker: dict[str, IssuerCatalogProduct] = {}
+        product_id_to_ticker: dict[str, str] = {}
+        for table_entries in tables:
+            for product in table_entries:
+                prior_id_ticker = product_id_to_ticker.get(product.product_id)
+                if prior_id_ticker is not None and prior_id_ticker != product.ticker:
+                    raise IssuerCatalogError(
+                        "Catalog assigns one product ID to multiple ticker rows."
+                    )
+                product_id_to_ticker[product.product_id] = product.ticker
+                prior = by_ticker.get(product.ticker)
+                if prior is None:
+                    by_ticker[product.ticker] = product
+                    continue
+                prior_slug = urlsplit(prior.product_url).path.rstrip("/").rsplit("/", 1)[-1]
+                product_slug = urlsplit(product.product_url).path.rstrip("/").rsplit("/", 1)[-1]
+                if (
+                    not prior_slug.isdigit()
+                    and not product_slug.isdigit()
+                    and prior_slug != product_slug
+                ):
+                    raise IssuerCatalogError(
+                        "Catalog contains conflicting product slugs for one ticker."
+                    )
+                if prior.product_id != product.product_id or _identity_name_tokens(
+                    prior.name
+                ) != _identity_name_tokens(product.name):
+                    raise IssuerCatalogError(
+                        "Catalog contains conflicting product identities for one ticker."
+                    )
+                if prior_slug.isdigit() and not product_slug.isdigit():
+                    by_ticker[product.ticker] = product
+        return tuple(by_ticker.values())
+
+    table_entries = [entries for _category, _context, entries in selected_tables]
+    # Repeated tables may show the same product rows, but a conflicting ticker,
+    # name, product ID, or slug anywhere in the response makes the catalog
+    # ambiguous even when another table happens to match the reported total.
+    merged_entries = merge_tables(table_entries)
+    if len(table_entries) == 1:
+        entries = table_entries[0]
+        reported_total = table_totals[0]
+    else:
+        known_totals = {value for value in table_totals if value is not None}
+        if len(known_totals) > 1:
+            raise IssuerCatalogError("ETF catalog tables have conflicting reported totals.")
+        reported_total = next(iter(known_totals), None)
+        identity_sets = [
+            {(item.ticker, item.product_id, _identity_name_tokens(item.name)) for item in candidate}
+            for candidate in table_entries
+        ]
+        matching_totals = [
+            candidate
+            for candidate, local_total in zip(table_entries, table_totals, strict=True)
+            if local_total is not None and len(candidate) == local_total
+        ]
+        if len(matching_totals) == 1 and len(merged_entries) == reported_total:
+            entries = tuple(matching_totals[0])
+        elif all(candidate == identity_sets[0] for candidate in identity_sets[1:]):
+            entries = merged_entries
+        elif reported_total is not None and len(merged_entries) == reported_total:
+            # Some official pages split one catalog over multiple tables. Merge
+            # only when exact row identity and the issuer's reported total make
+            # the union unambiguous.
+            entries = merged_entries
+        else:
+            raise IssuerCatalogError(
+                "Catalog has ambiguous Ticker/Name tables or an incomplete product union."
+            )
+
+    # A total label alone is insufficient. Every row in the selected table or
+    # exact merged fragments was parsed and linked to one same-origin product.
     complete = reported_total is not None and len(entries) == reported_total
     return ParsedIssuerCatalog(tuple(entries), reported_total, complete)
 

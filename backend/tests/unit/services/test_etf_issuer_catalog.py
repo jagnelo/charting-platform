@@ -71,6 +71,15 @@ def _row_with_paths(
     )
 
 
+def _section_table(category: str, rows: str, result_count: str) -> str:
+    return (
+        f'<div class="category-title">{category}</div>'
+        f'<div class="totals">Showing {result_count}</div>'
+        f"<table><thead><tr><th>Ticker</th><th>Name</th></tr></thead>"
+        f"<tbody>{rows}</tbody></table>"
+    )
+
+
 async def _async_value(value):
     return value
 
@@ -249,6 +258,18 @@ def test_catalog_accepts_numeric_and_official_slug_links_but_rejects_conflicting
     )
     assert numeric_only.product_for("IGV").product_url.endswith("/239771/")
 
+    encoded_space = parse_ishares_us_product_catalog(
+        _catalog_html(
+            _row_with_paths(
+                "IGLB",
+                "iShares 10 Year Investment Grade Corporate Bond ETF",
+                "239423",
+                name_slug="ishares-10%20-year-investment-grade-corporate-bond-etf",
+            )
+        )
+    )
+    assert encoded_space.product_for("IGLB").product_id == "239423"
+
     conflicting_slugs = _row_with_paths(
         "IGV",
         "iShares Expanded Tech-Software Sector ETF",
@@ -258,6 +279,103 @@ def test_catalog_accepts_numeric_and_official_slug_links_but_rejects_conflicting
     )
     with pytest.raises(IssuerCatalogError, match="conflict"):
         parse_ishares_us_product_catalog(_catalog_html(conflicting_slugs))
+
+    unsafe_encoded_path = _row_with_paths(
+        "IGV",
+        "iShares Expanded Tech ETF",
+        "239771",
+        name_slug="ishares-expanded%2Ftech-etf",
+    )
+    with pytest.raises(IssuerCatalogError):
+        parse_ishares_us_product_catalog(_catalog_html(unsafe_encoded_path))
+
+
+def test_catalog_selects_etf_table_and_ignores_separate_mutual_fund_table():
+    html = (
+        "<html><body>"
+        + _section_table(
+            "Mutual Funds",
+            _row("MUTF", "iShares Example Mutual Fund", "910044"),
+            "1 of 1 total funds",
+        )
+        + _section_table(
+            "ETFs",
+            _row("IGV", "iShares Expanded Tech-Software Sector ETF", "239771")
+            + _row("IGM", "iShares Expanded Tech Sector ETF", "910002"),
+            "Showing 2 of 2 total funds",
+        )
+        + "</body></html>"
+    )
+
+    parsed = parse_ishares_us_product_catalog(html)
+
+    assert parsed.complete is True
+    assert parsed.reported_total == 2
+    assert {product.ticker for product in parsed.entries} == {"IGV", "IGM"}
+    assert parsed.product_for("MUTF") is None
+
+
+def test_catalog_rejects_unclassified_product_table_when_sections_are_present():
+    html = (
+        "<html><body>"
+        + _section_table(
+            "ETFs",
+            _row("IGV", "iShares Expanded Tech-Software Sector ETF", "239771"),
+            "1 of 1 total funds",
+        )
+        + _catalog_html(_row("IGM", "iShares Expanded Tech Sector ETF", "910002"))
+        + "</body></html>"
+    )
+
+    with pytest.raises(IssuerCatalogError, match="unclassified"):
+        parse_ishares_us_product_catalog(html)
+
+
+def test_catalog_merges_only_identity_consistent_split_product_tables():
+    html = (
+        "<html><body>"
+        + _catalog_html(
+            _row("IGV", "iShares Expanded Tech ETF", "910001"), result_count="2 of 2 funds"
+        )
+        + _catalog_html(
+            _row("IGM", "iShares Expanded Tech Sector ETF", "910002"), result_count="2 of 2 funds"
+        )
+        + "</body></html>"
+    )
+
+    parsed = parse_ishares_us_product_catalog(html)
+
+    assert parsed.complete is True
+    assert parsed.reported_total == 2
+    assert {product.ticker for product in parsed.entries} == {"IGV", "IGM"}
+
+
+def test_catalog_rejects_conflicting_identity_across_same_scope_tables():
+    html = (
+        "<html><body>"
+        + _catalog_html(
+            _row("IGV", "iShares Expanded Tech ETF", "910001"), result_count="2 of 2 funds"
+        )
+        + _catalog_html(
+            _row("IGV", "iShares Conflicting ETF", "910099"), result_count="2 of 2 funds"
+        )
+        + "</body></html>"
+    )
+
+    with pytest.raises(IssuerCatalogError, match="conflict"):
+        parse_ishares_us_product_catalog(html)
+
+
+def test_catalog_rejects_unlabeled_ambiguous_tables_without_authoritative_totals():
+    html = (
+        "<html><body>"
+        + _catalog_html(_row("IGV", "iShares Expanded Tech ETF", "910001"), result_count="")
+        + _catalog_html(_row("IGM", "iShares Expanded Tech Sector ETF", "910002"), result_count="")
+        + "</body></html>"
+    )
+
+    with pytest.raises(IssuerCatalogError, match="ambiguous"):
+        parse_ishares_us_product_catalog(html)
 
 
 @pytest.mark.parametrize(

@@ -11,6 +11,7 @@ from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRu
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsBackfillJob,
     ETFHoldingsSnapshot,
     ETFProfile,
 )
@@ -126,7 +127,10 @@ from app.services.etf_holdings_edgar import (
     list_sec_nport_backfill_jobs,
     qualify_sec_nport_fund,
 )
-from app.services.etf_holdings_native_qualification import qualify_native_etf_fund
+from app.services.etf_holdings_native_qualification import (
+    NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+    qualify_native_etf_fund,
+)
 from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
@@ -149,6 +153,8 @@ from app.services.etf_holdings_vaneck_qualification import (
     qualify_vaneck_oih_fund,
     recover_vaneck_oih_fund,
 )
+from app.services.etf_issuer_catalog import IssuerCatalogError
+from app.services.provider_runtime import ProviderNoDataError
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
 
@@ -1399,6 +1405,49 @@ async def qualify_initial_native_etf_fund(
         )
     except ETFHoldingsRouteHeldError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (IssuerCatalogError, ProviderNoDataError) as exc:
+        failed_job = (
+            await db.execute(
+                select(ETFHoldingsBackfillJob)
+                .where(
+                    ETFHoldingsBackfillJob.etf_profile_id == profile.id,
+                    ETFHoldingsBackfillJob.job_type == NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+                )
+                .order_by(
+                    ETFHoldingsBackfillJob.started_at.desc(),
+                    ETFHoldingsBackfillJob.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if failed_job is not None and failed_job.status in {"failed", "cancelled"}:
+            cancelled = failed_job.status == "cancelled"
+            detail = {
+                "code": (
+                    "native_qualification_cancelled"
+                    if cancelled
+                    else "native_qualification_not_qualified"
+                ),
+                "outcome": "cancelled" if cancelled else "not_qualified",
+                "job_id": failed_job.id,
+                "job_status": failed_job.status,
+                "reason": failed_job.failure_reason
+                or (
+                    "Native qualification was cancelled."
+                    if cancelled
+                    else "Native source evidence was not qualified."
+                ),
+            }
+            raise HTTPException(status_code=409, detail=detail) from exc
+        detail = {
+            "code": "native_qualification_unavailable",
+            "outcome": "unavailable",
+            "reason": "The native source did not provide qualifying holdings evidence.",
+        }
+        if failed_job is not None:
+            detail["job_id"] = failed_job.id
+            detail["job_status"] = failed_job.status
+        raise HTTPException(status_code=503, detail=detail) from exc
 
 
 @router.post(

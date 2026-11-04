@@ -2647,14 +2647,16 @@ progress:
   completed: [OSA1, OSA2, OSA3, OSA4, OSA5]
   total: 5
   current_phase: >-
-    Green Provider stage 4d4a278b1b086745b22aab05d3d960539ad02c97 was normally adopted in local
-    merge 2bc627c412838eeac70ece0ae4f0bcc5ff1552dc. Post-adoption PG passed four cases and the
-    focused native/catalog/refresh/Provider unit slice passed 152/152; Ruff check/format passed.
+    The ETF-owned iShares catalog repair and typed expected-source failure response are focused-green.
+    The actual retained official response parsed offline as 482 complete ETF rows, with IGV mapped to
+    product 239771; the 44-row Mutual Funds table was excluded. Catalog/qualification/refresh and router
+    unit suites passed 129/129, and Ruff check/format passed. No source HTTP or database fixture ran.
   current_blocker: >-
-    Publish the coherent current source/records, obtain exact-source CI, and build/export the frozen
-    backend/worker artifact. Root/TC own component-equivalence review and the combined functional/
-    104-visual profile. No issuer HTTP, production/ledger/policy mutation or ETF app/browser fixture
-    is released. Preserve 15 Tier-0 and 156 Tier-1, all AC1-AC14, history and holds.
+    The Provider-owned ETV admission parity fix is still pending its normal green-staging adoption.
+    After that clean adoption, Root will release the final isolated PostgreSQL boundary run. Exact-source
+    CI, backend artifact qualification, and the single Root/TC combined functional/104-visual profile
+    remain pending. Do not retry XES/IGV/BWET jobs or make source requests; preserve 15 Tier-0 and
+    156 Tier-1, all AC1-AC14, historical failures, data and holds.
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
   on synchronized source `7c8cda46a56ee52bc358a6f6c75e0ef59e168903`. The
@@ -2901,10 +2903,11 @@ backend_runner_timeout_remediation:
     operation is authorized by this runner-only repair.
 
 current_blocker: >-
-  The preceding exact-source CI remains red as historical evidence, and the corrected candidate needs
-  its own published CI. The final Provider classification/retained-instrument-type source is still
-  awaiting green staging; adopt it only at a clean boundary, then use only Root's fresh artifact and
-  profile binding. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and accepted history.
+  The IGV catalog multi-table parser and typed expected-source failure repair are focused-green but not
+  yet published or exact-source CI qualified. The Provider-owned ETV admission parity correction must
+  reach green staging and be adopted normally before Root's final PostgreSQL boundary release. Root
+  then owns fresh artifact/profile binding and the combined runtime gate. Preserve AC1-AC14, 15 Tier-0
+  and 156 Tier-1, all holds and accepted history; no source retry or publisher success is claimed.
 integration_capture: exact branch HEAD
 
 remaining_gaps:
@@ -4443,3 +4446,49 @@ ordinary_mode_catalog_ci_followup_2026_11_03:
     qualified. The real Provider callable/engine-backed test remains held for
     synchronized green staging adoption and Root's fixture release. No provider HTTP,
     Docker/DB fixture, policy/quota/ledger/target operation or deployment occurred.
+
+
+ordinary_ishares_multitable_catalog_repair_2026_11_04:
+  scope: >-
+    Correct the supported iShares US catalog parser for the captured official page's separate ETF
+    and Mutual Funds tables, and return typed durable outcomes for expected catalog/no-data errors.
+    This is part of the active ordinary selected-fund route work; it does not authorize another
+    provider request or a retry of any failed qualification.
+  preserved_trigger: >-
+    The actual IGV request returned HTTP 200 and retained 495609 response bytes with SHA256
+    c165550804ed1d21edeb933c2fce02f8bcb0c5d8f3187f4dd7007f5e3a2d68fc. The page has an ETF table
+    with 482 rows and a separate Mutual Funds table with 44 rows; the exact IGV row is in the ETF
+    table and links to product 239771. The actual BWET qualification was a pretransport ProviderNoDataError
+    because Producer admission excluded ETV; no request log or physical transport was created.
+  implementation: >-
+    The parser scopes each table to its category and local reported total, accepts the observed safe
+    percent-encoded-space official slug form, selects the ETF table, and merges only identity-consistent
+    fragments whose union matches the issuer total. It rejects conflicting/ambiguous rows, IDs, names,
+    slugs, unsupported paths and incomplete unions. The admin qualification route now maps only
+    IssuerCatalogError and ProviderNoDataError to typed failed/unavailable responses linked to the
+    durable terminal job; unexpected programming exceptions remain visible and no latch/recovery
+    behavior changed.
+  focused_validation: >-
+    130 focused catalog/native qualification/refresh/router tests passed; Ruff check/format passed.
+    Offline parsing of the retained body verified its original byte count/hash, ETF scope, 482/482
+    completeness, and IGV product 239771/name/URL. Final receipt: /tmp/etf-igv-catalog-offline-parse-proof-final-20261104.json (body SHA256 c165550804ed1d21edeb933c2fce02f8bcb0c5d8f3187f4dd7007f5e3a2d68fc).
+    No additional source request or test database fixture was used for this parser/error repair.
+  early_probe_fixture_disposition_2026_11_04:
+    private_database_dump: /tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/etf-native-prequal-565211-20261104-postgres-only.pg.dump
+    dump_bytes: 944371
+    dump_sha256: a6a1a2db2d1fc22ad60c896ee46747183b8218b13d95d27534e822dd4e4a6114
+    dump_mode: '0600'
+    pg_restore_list_exit: 0
+    dump_receipt: /tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/early-native-fixture-dump-receipt.private.json
+    root_cleanup_review: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-native-fixture-cleanup-normalized-root-review-20261104.json
+    root_cleanup_review_sha256: b67f35854c6742698f654832463df059af5fe274b72d12bd08351bef6207f044
+    local_normalized_inventory_receipt: /tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/protected-inventory-cleanup-comparison-v2.private.json
+    local_normalized_inventory_sha256: b3028222f1c76e9865ea6840cec5378f508fb6d23cd07b57f9fd408dbc0c5190
+    cleanup: exact 3 project containers, 1 project network, and 2 exact owned volumes removed; 32 images unchanged; normalized retained inventory accepted by Root
+    preserved_failures: XES job1, IGV job2, BWET job3 and all raw/request/cost/ledger evidence remain unchanged; no job retry or source call
+  remaining: >-
+    This candidate still needs coherent publication and exact-source CI. Producer ETV admission must
+    arrive through green staging and normal local adoption before the authorized final PostgreSQL
+    boundary; backend artifact and the Root/TC combined runtime profile remain pending. XES, IGV and
+    BWET failed one-shot histories, all reservations/holds, disabled policies and not_run entitlements
+    remain immutable. No genuine publisher success, deployment or AC1-AC14 completion is claimed.
