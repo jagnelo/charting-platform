@@ -285,7 +285,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   has the identical application tree and passed its full required CI40656688915. This feature-branch adoption records
   ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment
   and the complete roadmap remain open.'
-current_blocker: Exact-source branch CI and Root's combined functional/strict-visual profile remain pending for the adopted Provider staging plus TC consumer source. Root will provide the frozen ETF backend artifact after the authorized minimum PostgreSQL proof. No fixture, build, browser, provider/issuer request, target, or hold change is included in this adoption context.
+current_blocker: The released c7 frontend profile exposed a remaining factory-constituent resolver clipping defect after six of seven ordinary flows passed. A bounded grid-width correction and actual candidate-bounds/center-hit assertion are implemented and locally checked. Publish this source once, obtain exact CI, build one source-bound frontend artifact, then have Root release replacement and rerun the seven flows before the unchanged full functional/strict-visual profile. Provider4d and ETF777 are already adopted/qualified; genuine issuer/source and deployment proof remain pending and Root-owned.
 current_checkpoint_status: >-
   The F8Y Tag Column and TCO1-TCO6 checkpoints remain accepted historical scopes
   with their original evidence and archives. Current active implementation is
@@ -295,9 +295,14 @@ current_checkpoint_status: >-
   to pre-adoption source a33c848d6820d30f0a47a797f8760d15dbd73131; Provider
   producer code is consumed through staging, not duplicated. Focused tests and
   seeded browser preparation remain software evidence, not genuine source proof.
-  This adoption has no new CI or full-profile result: exact feature CI and the
-  combined functional/strict-visual profile are pending. Root will provide the
-  frozen ETF backend artifact after the authorized minimum PostgreSQL proof.
+  Provider4d and ETF565211/backend777 are adopted/qualified. The current c7
+  frontend smoke passed health/auth and observed dense browse total 10,000; its
+  seven-case run exited 1 after six passes because the factory holding resolver
+  extended beyond its tool body and missed an ordinary center hit. The current
+  width correction constrains the grid and Watchlist while retaining separately
+  scrollable table/resolver regions and verifies candidate bounds/hit target.
+  Exact-source CI and a corrected source-bound frontend profile remain pending;
+  genuine source and deployment proof remain Root-owned.
   The Dashboard watchlist/widget picker uses canonical-only local search and
   identity lookup, with no provider discovery or history acquisition.
   Successful/partial automatic history persistence now refreshes only mounted
@@ -356,9 +361,20 @@ ordinary_ticker_latest_update: >-
   results inside the panel. Attempt04's failure and geometry evidence remain
   preserved. Focused units, vue-tsc, Playwright discovery, and full one-worker
   coverage pass (2588/3684 functions, 70.2497%; unchanged 70% floor). The
-  current change needs one source-bound frontend artifact and Root-reviewed
-  replacement before rerunning the seven ordinary cases; the old 15c2 exact CI
-  failure is preserved and its stale locator is not current-source proof.
+  c7 attempt05 smoke passed with observed browse total 10,000; the seven ordinary
+  cases completed 6 passed/1 failed in 54.7 seconds at one worker and zero
+  retries, with no OOM. The remaining candidate was visibly clipped because the
+  factory grid/Watchlist retained min-content width and shifted the tool body
+  horizontally. Current CSS constrains both to tool width and bounds the
+  selection panel; E2E checks full candidate containment, zero parent horizontal
+  scroll and ordinary center hit. Focused suites passed 54 tests, vue-tsc/Vite
+  build passed, and complete one-worker coverage passed at 2,588/3,684 functions
+  (70.2497%) against the unchanged 70% floor; LCOV is
+  /tmp/tc-ordinary-final-coverage-20261104-attempt005/lcov.info. The c7 image
+  does not contain this correction. Publish once for exact CI and build a new
+  frontend artifact; Root must review/release replacement before rerunning the
+  seven cases. The old 15c2 CI and c7 attempt05/attempt06 failures remain
+  preserved and are not current-source acceptance.
 historical_blocker_archive: >-
   F9e cause is now independently reproduced in actual-source-derived static
   Help DOM/CSS, per coordinator diagnostic tc-help-native-scroll-diagnostic-
@@ -3392,10 +3408,10 @@ status: in_progress
 progress:
   completed: [F8Y1, F8Y2, F8Y3, F8Y4]
   total: 4
-  current_phase: The ordinary ticker journey remains in progress. The reported-holding resolver is now constrained inside its Workstation tool and the E2E case records actual bounds and center-hit accessibility before selecting the identity candidate. F8Y and TCO1-TCO6 remain accepted historical checkpoints; all nine original roadmap criteria and REF-HELP-V25 remain open.
-  current_blocker: Exact 15c2 CI41762739430 is preserved red only on the old Use UNXQ button locator. The current product/test correction is pending one coherent publication, exact-source CI, and a new frontend artifact reviewed by Root before replacing the existing development frontend.
-  next_action: Complete required scope/workstream checks, publish this source correction once, build the one capped source-bound frontend artifact, and after Root review replace only the owned development frontend; run seven ordinary cases first, then the unchanged full functional and 104 strict-visual profile if green.
-  updated_at: '2026-11-04T03:40:19Z'
+  current_phase: The c7 frontend smoke passed with observed browse total 10,000. Its seven ordinary cases completed 6 passed/1 failed; the remaining failure measured a clipped factory holding resolver. A width-only grid correction and actual bounds/center-hit assertion are implemented; all nine roadmap criteria and REF-HELP-V25 remain open.
+  current_blocker: The existing c7 image predates the width correction. Complete scope/workstream checks, publish the corrected source once, build its bounded frontend image, and obtain Root's release before replacing the owned frontend and rerunning seven ordinary cases.
+  next_action: Publish the corrected width-constrained constituent resolver and geometry regression after final checks, build one capped source-bound frontend artifact, and await Root image review/replacement release; then run the seven ordinary cases first and, if green, the unchanged full functional and 104 strict-visual profile.
+  updated_at: '2026-11-04T04:15:52Z'
 historical_checkpoint_status_archive: >-
   Current boundary (2026-10-22): published HEAD is
   a7c8ecba208ce6c79d8f1a5d7294500122e462e5; one test-only change in
@@ -4280,6 +4296,17 @@ active_implementation:
     checks: 16 focused component/view tests passed; vue-tsc passed; seven E2E cases discovered; complete frontend coverage passed 2,588/3,684 functions (70.25%), 65,657/81,624 lines, 13,713/18,653 branches; scope self-tests/full guard passed; workstream and plan/session hash passed; staged diff check passed.
     lcov: /tmp/tc-ordinary-factory-dispatch-coverage-20261104-attempt001/lcov.info
     runtime: Existing dev fixture remains on the older bb320 frontend; no new browser validation of the product fix is claimed. New source-bound frontend image required; backend777 and researchbf789 remain unchanged.
+  latest_factory_resolver_width_correction:
+    base_image: sha256:b08077d2603388757d469f7aa631d53cf6ae9db574fad6601594d814014b252b
+    runtime: The reviewed c7 image replaced only the owned frontend. Root verified semantic preservation of the other 44 containers and all image, volume, and network identities; the only initial guard mismatch was Mounts array ordering. Served index and JavaScript matched the reviewed image. Startup/auth smoke passed with observed dense browse total 10,000.
+    prior_seven_case_run: attempt05 completed 6 passed/1 failed in 54.7 seconds, one worker, zero retries, no OOM. Candidate visibility failed because the resolution content extended outside the factory tool body and its center hit the parent.
+    correction: Constrain constituent tool/grid and Watchlist to minmax(0,1fr) width, bound the selection panel, preserve independent table/panel scrolling, and verify the candidate is fully inside the tool body with zero parent horizontal scroll and an ordinary center hit.
+    checks: >-
+      54 focused tests passed; vue-tsc/Vite production build passed; full frontend
+      coverage passed 2,588/3,684 functions (70.2497%) against the unchanged 70%
+      floor. Coverage report is /tmp/tc-ordinary-final-coverage-20261104-attempt005/lcov.info.
+    next: Publish this source once and build one source-bound frontend artifact. Root review/release is required before replacing the owned frontend and rerunning seven ordinary cases; full functional and 104-case strict visual profile follow only if those pass.
+    preserved_probe: attempt06 measured resolver width 419-431px against a 278px tool body with parent scrollLeft 103; its changed-input diagnostic run remains a failed probe, not qualification.
   next_action: >-
     Finish current scope/workstream/hash checks, publish one coherent product and
     test candidate, and obtain its exact-source CI. Build one capped source-bound

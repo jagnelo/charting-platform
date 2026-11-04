@@ -2236,16 +2236,22 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
       const y = rect.top + rect.height / 2
       const hit = document.elementFromPoint(x, y)
       const withinBody = Boolean(bodyRect && x >= bodyRect.left && x <= bodyRect.right && y >= bodyRect.top && y <= bodyRect.bottom)
+      const fullyWithinBody = Boolean(bodyRect && rect.left >= bodyRect.left && rect.right <= bodyRect.right
+        && rect.top >= bodyRect.top && rect.bottom <= bodyRect.bottom)
       return {
         candidate: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
         toolBody: bodyRect ? { left: bodyRect.left, top: bodyRect.top, right: bodyRect.right, bottom: bodyRect.bottom } : null,
         centerInsideToolBody: withinBody,
+        fullyWithinToolBody: fullyWithinBody,
+        toolBodyScrollLeft: (body as HTMLElement | null)?.scrollLeft ?? null,
         centerHitCandidate: Boolean(hit && (hit === element || element.contains(hit))),
         hitElement: hit ? `${hit.tagName.toLowerCase()}.${String(hit.className || '').toString().replace(/\s+/g, '.')}` : null,
       }
     })
     console.log(`[reported-holding-candidate-geometry] ${JSON.stringify(candidateGeometry)}`)
     expect(candidateGeometry.centerInsideToolBody).toBe(true)
+    expect(candidateGeometry.fullyWithinToolBody).toBe(true)
+    expect(candidateGeometry.toolBodyScrollLeft).toBe(0)
     expect(candidateGeometry.centerHitCandidate).toBe(true)
     await candidate.click()
     expect((await identityResponseReady).status()).toBe(200)

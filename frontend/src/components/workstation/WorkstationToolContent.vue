@@ -4559,9 +4559,10 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
-.constituent-tool { display: grid; grid-template-rows: minmax(0, 1fr) auto auto; height: 100%; min-height: 0; background: #11161b; }
-.constituent-tool--factory { grid-template-rows: minmax(0, 1fr) auto; }
-.constituent-tool__selection { min-width: 0; max-height: 48%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
+.constituent-tool { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto auto; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; background: #11161b; }
+.constituent-tool--factory { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.constituent-tool :deep(.watchlist) { width: 100%; min-width: 0; max-width: 100%; }
+.constituent-tool__selection { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; max-height: 48%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
 .constituent-tool__selection :deep(.search-bar) { width: 100%; }
 .constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }

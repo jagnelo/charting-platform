@@ -26114,3 +26114,35 @@ change. The same owned fixture and ETF777 backend are retained; a new frontend
 artifact and Root image review are required before frontend replacement and
 the seven-case-first profile. The broader functional/strict-visual profile,
 exact candidate CI, all AC1-AC9, and REF-HELP-V25 remain open.
+
+## 2026-11-04 — factory resolver width correction after c7 attempt05
+
+Root verified that c7 frontend image `sha256:b08077d2603388757d469f7aa631d53cf6ae9db574fad6601594d814014b252b`
+replaced only the owned frontend. Its initial post-mutation guard differed only
+by Docker Mounts array ordering; Root independently confirmed the remaining 44
+containers and all image, volume, and network identities were preserved. Served
+index/JavaScript matched the reviewed image. Startup/auth smoke passed and
+observed `dense_universe_total=10000` (log SHA256
+`6c5ceb9f883a62cd9ee1039c21236286a781dfe09e5ecbb984c59bf015cc339e`).
+
+The seven ordinary cases completed 6 passed / 1 failed in 54.7 seconds, one
+worker, zero retries, no OOM (attempt05 log SHA256
+`2fc1517f8cb074431d1a941ba822a7a78e5454ae3d70fe23594ed72b0ddb4470f16`). The
+remaining factory holding resolver candidate was outside its tool body and its
+center hit the parent. Changed-input attempt06 measured a 419–431px resolver
+against a 278px tool body and `scrollLeft=103`; that failed diagnostic probe is
+retained, not qualification.
+
+The current correction constrains the constituent grid and Watchlist to the
+tool width, bounds the resolver panel, and keeps table/panel scrolling separate.
+The browser assertion checks full candidate containment, no parent horizontal
+scroll and an ordinary center hit before clicking. Focused suites passed 54
+tests, `vue-tsc` and Vite build passed, and full one-worker frontend coverage
+passed 2,588/3,684 functions (70.2497%) against the unchanged 70% floor; LCOV is
+`/tmp/tc-ordinary-final-coverage-20261104-attempt005/lcov.info` (SHA256
+`19c546122e48552ac9ba0e3f06c6a64f281e5eafbaeb27b2befb4afbcdc20d18`). The c7
+image does not contain this correction. Next: run final scope/workstream/hash
+checks, publish once, build one bounded source-specific frontend artifact, and
+wait for Root review/release before replacement and another seven-case run.
+The full functional and strict-visual suites remain required after those cases
+pass. AC1–AC9, genuine issuer/source proof, and deployment remain open.

@@ -39,8 +39,8 @@
     "status": "pending_publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact 15c2 CI41762739430 is preserved red only on the stale Use UNXQ button locator (198 passed, 1 failed, 110 configured skips). The current product/layout and E2E correction is pending one publication and exact-source CI.",
-  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d4a278b1b086745b22aab05d3d960539ad02c97 is adopted and green. The default/factory resolver candidate was clipped outside its tool; attempt04 measured its out-of-bounds center and the current layout puts the action inside bounded grid rows with independent table/resolver scrolling. Focused units 45/45, vue-tsc, Playwright discovery and Root-verified full coverage pass. The old 15c2 image has not been rerun; one new frontend artifact is required. Prior accepted TCO/F8Y checkpoints, all nine roadmap criteria, AC1-AC9, official V25 and operational holds remain unchanged.",
+  "current_candidate_ci_status": "The c7 source-bound image profile exposed a real factory resolver clipping issue (attempt05: six passed, one failed). The width-only correction is locally checked and pending one coherent source publication, exact-source CI, and a new frontend artifact; no result from the corrected-source browser profile is claimed.",
+  "current_checkpoint_status": "The ordinary ticker journey remains in progress and unaccepted. Provider4d and ETF565211/backend777 are adopted/qualified. The c7 frontend startup smoke passed with observed dense browse total 10,000; its seven-case run was 6 passed/1 failed because the factory resolver was clipped outside its tool. Current width-constrained layout and full bounds/ordinary-hit regression pass focused tests, frontend build, and complete coverage. The c7 image predates this correction; exact-source CI, a new frontend artifact, and corrected browser profile remain pending. Prior accepted F8Y/TCO checkpoints, all nine roadmap criteria, V25, and operational holds remain unchanged.",
   "current_exact_ci": {
     "head_sha": "15c2c449eb0519e495fb51fc67d602cc131af996",
     "run_id": 41762739430,
@@ -335,7 +335,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "113fd011d44ac7e0c85aabe31ed7c8e4dba07f802eb68b641538b236e5978018",
+  "plan_hash": "6d38570e0e5b377aeb4d9c3ca2c60875298c9c54b5ae49d4e3a656a7df0dfb17",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -565,7 +565,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T02:48:00Z",
+  "updated_at": "2026-11-04T04:17:00Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
