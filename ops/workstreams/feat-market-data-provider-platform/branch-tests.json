@@ -2,33 +2,27 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/services/instrument_mastering.py (shared ETF/ETN/ETV/unknown quote-type mapping)",
-    "backend/app/services/instrument_sync.py and backend/app/services/market_universe.py (shared taxonomy across discovery and universe reconciliation)",
-    "backend/app/routers/instruments.py::acquire_instrument (retained-profile reconciliation on already-qualified local selection without transport or identity changes)",
-    "backend/app/schemas/instrument_acquisition.py::QualifiedInstrumentIdentity (optional persisted instrument_type)",
-    "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/{test_instrument_sync_metadata.py,test_market_universe.py} (profile, cached selection, lineage, provenance, and no-transport regressions)",
-    "complete backend/DDL coverage and exact-source branch CI; no live source request or target change",
-    "Root-owned downstream consumer qualification, protected staging/master integration, deployment, and genuine-source checks remain separate gates"
+    "backend/app/services/provider_runtime.py::resolve_provider_chain (exact ETF issuer route and Massive-only US-listed ETV PRICE_HISTORY/fetch_ohlcv route; no generic registry widening)",
+    "backend/tests/unit/services/test_provider_runtime.py plus backend/tests/integration/api/test_on_demand_history_postgres.py (registered resolver cases and real PostgreSQL ETV listing-admission positive/negative checks)",
+    "Previously accepted selected-acquire taxonomy/schema continuity remains a compatibility gate; no source request or identity mutation",
+    "Complete backend/DDL coverage and exact-source branch CI remain required for this Provider checkpoint; no live provider request or target change"
   ],
   "commands": [
     {
       "id": "focused-provider-type-taxonomy-units",
-      "command": "pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
+      "command": "pytest backend/tests/unit/services/test_provider_runtime.py backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
       "covers": [
         1,
         2,
-        3,
-        4,
-        5
+        3
       ],
-      "scope_note": "No-network mapping, cached-acquire/provenance, discovery/universe and optional response contract regressions."
+      "scope_note": "Resolver-bound ETF/ETV issuer-adapter routing, explicit scope, retained taxonomy compatibility, and no-transport unit regressions."
     },
     {
       "id": "cached-selected-acquire-postgres",
       "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_cached_qualified_acquire_reconciles_retained_etv_type_without_transport -q",
       "covers": [
-        3,
-        5
+        3
       ],
       "scope_note": "One exact isolated capped PostgreSQL API/ORM case; it was executed locally with a private schema and no provider calls."
     },
@@ -36,9 +30,28 @@
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
-        6
+        4
       ],
       "scope_note": "Complete backend/DDL collector and coverage are mandatory on exact-source CI; no duplicate full local collector is launched for this bounded minimum profile."
+    },
+    {
+      "id": "massive-us-etv-postgres-resolver-admission",
+      "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_massive_us_etv_history_resolver_requires_real_primary_listing -q",
+      "covers": [
+        1,
+        2
+      ],
+      "scope_note": "One bounded isolated PostgreSQL integration for the actual ORM listing query; fake test credential only, source egress denied, no provider request.",
+      "result": "Passed 1/1 in 9.87s, native exit 0; Root accepted the exact source pins and cleanup.",
+      "execution_receipt": "/tmp/provider-etv-us-history-pg-20261104/execution.json",
+      "execution_receipt_sha256": "39fdac82e49be4a0e317af086262413c92d7201e50e8e5312157f2dc950337d5",
+      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
+      "root_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
+      "pytest_log": "/tmp/provider-etv-us-history-pg-20261104/pytest.log",
+      "pytest_log_sha256": "b19fe149c33f9c7fc67903dceb64afaf0dc034c33f5cdee16e8f4f6c316736ba",
+      "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
+      "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
+      "cleanup_summary": "The exact owned PG container and internal network were removed; no Docker volume was created. Root matched the one additional exited container to authorized TC attempt15 and it was preserved."
     }
   ],
   "ci_covered_commands": {
@@ -48,14 +61,14 @@
     {
       "id": "exact-source-branch-ci",
       "covers": [
-        6
+        4
       ],
       "reason": "The complete backend/DDL and branch-declared results must be terminal green on the exact coherent source tip."
     },
     {
       "id": "root-combined-browser-and-release",
       "covers": [
-        7
+        4
       ],
       "reason": "Root owns combined consumer browser qualification, protected staging/master integration, deployment, and genuine-source checks; none is claimed as performed in this Provider local profile."
     }
