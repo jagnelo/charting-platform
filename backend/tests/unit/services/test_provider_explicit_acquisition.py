@@ -17,9 +17,15 @@ from app.routers.instruments import _history_application_limit_reason
 from app.schemas.instrument_acquisition import (
     HistoryAcquisitionRequest,
     InstrumentAcquireRequest,
+    InstrumentAcquisitionSourceOutcome,
 )
 from app.services import provider_runtime
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaAdmissionError,
+    ProviderQuotaCoordinatorError,
+)
 from app.services.provider_runtime import (
+    ProviderQuotaUnknownError,
     ProviderRequestScopeDeniedError,
     bind_explicit_etf_holdings_acquisition,
     bind_explicit_provider_acquisition,
@@ -662,6 +668,119 @@ async def test_history_readback_excludes_overlapping_alternate_series(monkeypatc
     assert oversized.status == "held"
     assert oversized.reason_code == "application_requested_range_limit_exceeded"
     assert fetch_calls == 1
+
+
+@pytest.mark.parametrize(
+    ("error", "reason_code"),
+    [
+        (
+            ProviderQuotaAdmissionError("quota admission denied"),
+            "provider_quota_admission_denied",
+        ),
+        (
+            ProviderQuotaCoordinatorError("quota coordinator unavailable"),
+            "provider_quota_coordinator_unavailable",
+        ),
+        (
+            ProviderQuotaUnknownError("quota contract unknown"),
+            "provider_quota_contract_unknown",
+        ),
+    ],
+)
+@pytest.mark.asyncio
+async def test_history_quota_errors_return_typed_held_outcomes(
+    monkeypatch, db, instrument, error, reason_code
+):
+    class AsyncSessionAdapter:
+        async def execute(self, statement):
+            return db.execute(statement)
+
+    async def stable_identity(_db, _instrument, *_args):
+        return object()
+
+    async def quota_denied(*_args, **_kwargs):
+        raise error
+
+    held_outcome = InstrumentAcquisitionSourceOutcome(
+        provider="massive",
+        capability=ProviderCapability.PRICE_HISTORY.value,
+        operation="fetch_ohlcv:D1",
+        status="held",
+        reason_code=reason_code,
+    )
+    held_outcome_calls = 0
+
+    async def held_provider_status(_db, _capability, _operation):
+        nonlocal held_outcome_calls
+        held_outcome_calls += 1
+        return [held_outcome]
+
+    monkeypatch.setattr(instruments_router, "_qualified_identity", stable_identity)
+    monkeypatch.setattr(instruments_router, "fetch_ohlcv", quota_denied)
+    monkeypatch.setattr(instruments_router, "_held_provider_outcomes", held_provider_status)
+    start = datetime(2026, 1, 2, tzinfo=UTC)
+    response = await instruments_router.acquire_instrument_history(
+        instrument.id,
+        HistoryAcquisitionRequest(
+            timeframe=Timeframe.D1,
+            adjusted=True,
+            start=start,
+            end=start + timedelta(days=2),
+            source_provider="massive",
+            request_id="history-quota-hold-test",
+        ),
+        db=AsyncSessionAdapter(),
+        current_user=SimpleNamespace(id=1),
+    )
+
+    assert response.status == "held"
+    assert response.reason_code == reason_code
+    assert response.source_outcomes == [held_outcome]
+    assert held_outcome_calls == 1
+
+
+@pytest.mark.asyncio
+async def test_history_unexpected_error_stays_failed_and_logs_only_safe_context(
+    monkeypatch, db, instrument, caplog
+):
+    class AsyncSessionAdapter:
+        async def execute(self, statement):
+            return db.execute(statement)
+
+    async def stable_identity(_db, _instrument, *_args):
+        return object()
+
+    async def unexpected_error(*_args, **_kwargs):
+        raise RuntimeError("provider_token=must-not-appear")
+
+    async def no_held_status(*_args, **_kwargs):
+        return []
+
+    monkeypatch.setattr(instruments_router, "_qualified_identity", stable_identity)
+    monkeypatch.setattr(instruments_router, "fetch_ohlcv", unexpected_error)
+    monkeypatch.setattr(instruments_router, "_held_provider_outcomes", no_held_status)
+    start = datetime(2026, 1, 2, tzinfo=UTC)
+    request_id = "history-unexpected-error-test"
+    response = await instruments_router.acquire_instrument_history(
+        instrument.id,
+        HistoryAcquisitionRequest(
+            timeframe=Timeframe.D1,
+            adjusted=True,
+            start=start,
+            end=start + timedelta(days=2),
+            source_provider="massive",
+            request_id=request_id,
+        ),
+        db=AsyncSessionAdapter(),
+        current_user=SimpleNamespace(id=1),
+    )
+
+    assert response.status == "failed"
+    assert response.reason_code == "history_acquisition_failed"
+    assert request_id in caplog.text
+    assert str(instrument.id) in caplog.text
+    assert "RuntimeError" in caplog.text
+    assert "provider_token=must-not-appear" not in caplog.text
 
 
 @pytest.mark.asyncio

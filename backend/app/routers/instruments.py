@@ -1020,10 +1020,25 @@ async def acquire_instrument_history(
         except ProviderRateLimitError:
             execution_status = "held"
             reason_code = "provider_capacity_unavailable"
+        except ProviderQuotaAdmissionError:
+            execution_status = "held"
+            reason_code = "provider_quota_admission_denied"
+        except ProviderQuotaCoordinatorError:
+            execution_status = "held"
+            reason_code = "provider_quota_coordinator_unavailable"
+        except ProviderQuotaUnknownError:
+            execution_status = "held"
+            reason_code = "provider_quota_contract_unknown"
         except ProviderNoDataError:
             execution_status = "no_data"
             reason_code = "no_admitted_provider_data"
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                "Unexpected history acquisition error request_id=%s instrument_id=%s error_type=%s",
+                body.request_id,
+                instrument.id,
+                type(exc).__name__,
+            )
             execution_status = "failed"
             reason_code = "history_acquisition_failed"
 
