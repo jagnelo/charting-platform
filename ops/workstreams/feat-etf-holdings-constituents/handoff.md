@@ -1,3 +1,11 @@
+# Current accepted checkpoint — strict native capability projection (2026-11-05)
+
+Root accepted `etf-native-capability-projection-20261105` under the existing human-delegated authority. Receipt `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json` (SHA256 `1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40`). Tested runtime source `6eae00eb8380438da771fed0c42d19587e9520ce`; runtime CI `42009540648` is terminal green on that implementation only. Root accepted the exact paired served profile: 203 functional passed/2 configured skips, 104 strict visuals across four projects, and 2 served Enter/Go cases; zero retries and no reference/tolerance changes. The exact SPY7/IGV8 retained-input proof passed with 16 negative bindings and no historical mutation. Protected inventory is preserved.
+
+This is a records-only closure. Exact CI for this closing tip remains pending and mandatory; Root owns its observation, staging/master integration, deployment, and genuine deployed user-flow checks. AC1-AC14, 15 Tier-0/156 Tier-1, all holds and datasets, and prior failures/acceptances remain preserved and open where applicable. `integration_capture: exact branch HEAD`.
+
+---
+
 ## Current ordinary ETF ticker acquisition work — 2026-11-03
 
 The active session goal is the human-activated ordinary ticker-selection repair in `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md`. Exact green staging `f8323af179922193f4dcf3c9f0a5d9001282455f` was adopted in this same ETF worktree; its canonical receipt is `/home/m920q/charting-platform/.ai/staging-attempts/20261102T111449Z-f8323af17992.json`, SHA256 `506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188`, with exact staging CI `41397907218` terminal green. The earlier accepted UNXQ fixture checkpoint is preserved below and in the workstream archive; it is not the current goal.
