@@ -181,7 +181,11 @@ def receipt_has_ci_qualification(data: dict, commit: str) -> bool:
         and int(master_release.get("run_id", 0)) > 0
         and master_release.get("required_job") == "Master Release Provenance"
         and set(master_release.get("verified_required_jobs") or [])
-        == {"Master Release Provenance", "Exhaustive Integration Gate"}
+        in (
+            {"Master Release Provenance"},
+            # Read schema-2 receipts written before the compatibility job was removed.
+            {"Master Release Provenance", "Exhaustive Integration Gate"},
+        )
         and master_release.get("conclusion") == "success"
         and data.get("master_product_suite_replay")
         == "not_run; exact staging product qualification reused"

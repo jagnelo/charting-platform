@@ -8,6 +8,14 @@ human_intent_authorization: "Human explicitly directed on 2026-11-05: fix workfl
 planning_state: ready
 human_closure_authorization: "Human urgent mandate to repair development bottlenecks plus standing delegation for technical checkpoint acceptance and promotion. Root acts on that delegation; no fresh human approval needed. Root's 2026-11-05 acceptance artifact workflow-implementation-technical-acceptance.json states: 'accepted bounded implementation; exact pushed-source CI and canonical release gates remain mandatory'; it accepts this bounded implementation on the unchanged product-input baseline e9e1b2b08277dfb4a1e102822b089a6ff29998cc and authorizes ready_for_integration only."
 closure_summary: "195 workflow tests passed in 2.91s, followed by 9/9 final branch-tests allowlist, actual temp-Git command-sequence, and local-profile regressions in 0.56s; runtime/YAML narrative guard passed 1/1 with --no-cov; all 47 workstream records, changed-file Ruff, format, and diff checks passed. No product source changed and no full product/browser/Docker suite is claimed. Exact final pushed-source CI is still pending. Remaining: clean synchronized publication, exact run/source CI evidence, and schema-2 same-SHA staging/master receipt with both run IDs, trusted required jobs, workflow/event/SHA, synchronized refs, and explicit reuse mode; local-plan bootstrap remains limited to the reviewed complete plan and verified exclusive claim, with clean synchronized source required at integration. integration_capture: exact branch HEAD. Root retains integration, promotion, and deployment ownership."
+correction_summary: "The two Root review findings were corrected without amending published 26cf65de: the master workflow has unique job display names and requires only Master Release Provenance, while exact staging evidence remains verified; a scoped immediate parent may fall back only to a direct full-delta eligible merge-base with genuine full CI for that same SHA. Focused affected regressions passed 90/90 in 1.68s, including first-push, second-scoped-commit, product-bearing negative temp-Git cases, skipped-job uniqueness, master required-job mode, and old schema-2 receipt compatibility. No product source changed. Exact CI for the new pushed source remains Root-owned and pending. integration_capture: exact branch HEAD."
+corrective_closure_authorization: "Human standing delegation and urgent workflow mandate authorize Root's 2026-11-05 corrective acceptance in workflow-corrective-implementation-technical-acceptance.json: 'Root accepts AC8/AC9 corrective implementation after actual focused tests and complete corrective code review; final record checks/push/exactCI remain mandatory'. Root explicitly accepts the corrected bounded checkpoint and authorizes ready_for_integration in the same new corrective publication, without amending 26cf65de."
+corrective_closure_summary: "AC1/AC4/AC8/AC9 are technically accepted after 90 affected tests passed in 1.68s and Root reviewed all 18 implementation hashes. Changed-file Ruff check/format, git diff --check, and own-record validation passed. Product inputs remain unchanged and no product/browser suite is claimed. One new clean corrective commit and push remain, then exact CI for that new SHA and Root canonical staging/master adoption. First promotion must use the accepted helper from persistent staging with Root coordinator cwd and explicit schema-2 same-SHA reuse/run provenance; no compatibility alias. integration_capture: exact branch HEAD."
+post_review_hash_note: "Root's accepted .github/workflows/ci.yml SHA was b7b50f284fda7c2cd0969171e22aa4f5cd462e4bc064ced0b80fe4bd3362eee7. The final diff-check found one extra blank line at EOF; it was removed without changing workflow logic. Current file SHA is ff8bab6a6d2dabe93b560603c156281d6417b0222c91d014aad02ee09e62f8e0. Root's final exact-source CI remains authoritative for the published file."
+new_correction_authorization: "Root's 2026-11-05 review authorizes only two corrective issues: remove the duplicate master Exhaustive Integration Gate display name and add fail-closed exact-common-ancestor fallback after a scoped immediate parent. Root owns the missed duplicate-name finding; no human action is required. Preserve published 26cf65de unchanged and make one new focused commit."
+review_history:
+  - "Root accepted the bounded implementation at published 26cf65de under the human's standing delegation; exact-source CI remained Root-owned and pending."
+  - "Root's subsequent actual GitHub API review found the duplicate master status name and scoped-parent fallback gap. This supersedes that acceptance only for AC8/AC9; prior review and evidence remain preserved."
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
 local_validation_profile: unit
@@ -21,6 +29,8 @@ scope:
   - "Bound staging.py observation: allow 243 minutes for the 45-minute backend prerequisite plus 180-minute exhaustive gate, distinguish still-running observation expiry from failed tests, fetch detailed jobs only at terminal status, and seek coordinated retry discovery only for terminal failures in eligible setup steps."
   - "Permit a complete local plan to bootstrap under an explicit scoped exception and verified exclusive claim; retain clean synchronized publication checks at integration."
   - "Update guidance for cost implications, focused checks, one coherent publication, compact handoffs, and preserved authority/provider/quota/data/evidence controls."
+  - "Remove the duplicate master gate display name; master requires only Master Release Provenance after the verifier validates the unique full staging job set, while schema-2 readers remain backward compatible."
+  - "When an immediate parent has only scoped CI, permit fallback only to the exact branch/staging merge-base after a direct full-delta eligible classification and trusted full CI for that same SHA; product-bearing unqualified deltas remain broad."
 owned_paths:
   - .github/workflows/ci.yml
   - scripts/ci-change-scope.py
@@ -59,6 +69,10 @@ acceptance_criteria:
     text: "Guidance records observed and expected cost implications, focused checks, one coherent publication, compact current handoffs, and all existing authorization, access, paid/provider/quota, data, and evidence safeguards."
   - id: AC7
     text: "Focused workflow regressions and relevant workstream guards pass; Root's delegated acceptance allows ready_for_integration after one coherent checkpoint, while exact pushed-source CI and Root-owned integration, promotion, and deployment remain mandatory."
+  - id: AC8
+    text: "Every GitHub workflow job has a unique display name regardless of whether it runs or is skipped; master requires only Master Release Provenance, and the verifier still validates all unique successful staging jobs. The schema-2 reader accepts prior compatibility receipts and legacy github_replay receipts."
+  - id: AC9
+    text: "After a scoped immediate parent, fallback is allowed only when a direct two-tree diff from the exact branch/staging merge-base classifies the entire delta eligible and genuine full CI is verified for that same SHA; an unqualified runtime-bearing parent remains broad."
 branch_tests:
   - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python -m pytest tests/workflow -q"
   - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python -m pytest backend/tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers --no-cov -q"
@@ -69,12 +83,12 @@ migration_impact: none
 deployment_impact: none
 status: ready_for_integration
 remaining_gaps:
-  - "Exact pushed-source CI for the final clean synchronized branch SHA is pending and must be green before Root integrates."
-  - "Root must use the qualified same-SHA staging reuse helper and schema-2 receipt with explicit mode and actual staging/master run identities; no compatibility status alone substitutes for verified staging jobs."
+  - "Exact CI for the new clean corrective SHA is pending and Root-owned."
+  - "Root owns canonical staging/master adoption and must invoke the qualified helper from persistent staging with Root coordinator cwd; no integration/promotion/deployment occurs in this worktree."
 progress:
-  completed: [AC1, AC2, AC3, AC4, AC5, AC6, AC7]
-  total: 7
+  completed: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9]
+  total: 9
   current_phase: ready_for_integration
   current_blocker: none
-  next_action: publish exact branch HEAD, obtain exact-source CI, then Root performs integration capture and canonical release gates
+  next_action: complete affected Ruff/diff and workstream validation, append the 90-test receipt, then commit/push without amending 26cf65de
 bootstrap_exception: "Root-authorized 2026-11-05: skip the plan-only commit/push and old plan-ready remote prerequisite as a demonstrated bottleneck. Keep this reviewed ready plan local under the active goal and exclusive claim. Require clean synchronized source at normal integration gates."

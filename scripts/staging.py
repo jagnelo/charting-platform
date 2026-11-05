@@ -60,7 +60,7 @@ STAGING_PROMOTION_JOBS = (
     *BRANCH_PRODUCT_JOBS,
     "Exhaustive Integration Gate",
 )
-MASTER_RELEASE_JOBS = ("Master Release Provenance", "Exhaustive Integration Gate")
+MASTER_RELEASE_JOBS = ("Master Release Provenance",)
 
 
 def require_promotion_evidence(
@@ -591,14 +591,10 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
         selected["unexecuted_product_jobs"] = []
     elif exhaustive:
         require_success("Master Release Provenance")
-        require_success("Exhaustive Integration Gate")
         selected["validation_mode"] = (
             "exact_staging_evidence_reuse_with_master_release_checks"
         )
-        selected["verified_required_jobs"] = [
-            "Master Release Provenance",
-            "Exhaustive Integration Gate",
-        ]
+        selected["verified_required_jobs"] = ["Master Release Provenance"]
         selected["unexecuted_product_jobs"] = [
             "Backend Tests",
             "Frontend Unit Tests",

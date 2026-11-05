@@ -45,17 +45,18 @@ def test_only_exact_trusted_green_staging_gate_is_accepted():
     )
 
 
-def test_master_ci_points_to_single_staging_gate_and_release_checks():
+def test_workflow_display_names_are_unique_and_master_has_only_release_provenance():
     import yaml
 
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    display_names = [
+        job.get("name", job_id) for job_id, job in workflow["jobs"].items()
+    ]
+    assert len(display_names) == len(set(display_names))
     assert workflow["jobs"]["platform-gate"]["if"].endswith("refs/heads/staging'")
     assert workflow["jobs"]["master-release"]["name"] == "Master Release Provenance"
     assert workflow["jobs"]["master-release"]["permissions"]["actions"] == "read"
-    bridge = workflow["jobs"]["master-gate-compatibility"]
-    assert bridge["name"] == "Exhaustive Integration Gate"
-    assert bridge["needs"] == ["master-release"]
-    assert "not rerun" in bridge["steps"][0]["run"]
+    assert "master-gate-compatibility" not in workflow["jobs"]
 
 
 def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
@@ -91,15 +92,23 @@ def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
             "event": "push",
             "run_id": 456,
             "required_job": "Master Release Provenance",
-            "verified_required_jobs": [
-                "Master Release Provenance",
-                "Exhaustive Integration Gate",
-            ],
+            "verified_required_jobs": ["Master Release Provenance"],
             "conclusion": "success",
         },
         "master_product_suite_replay": "not_run; exact staging product qualification reused",
     }
     assert rpi.receipt_has_ci_qualification(receipt, sha)
+    old_schema2_receipt = {
+        **receipt,
+        "master_release_ci": {
+            **receipt["master_release_ci"],
+            "verified_required_jobs": [
+                "Master Release Provenance",
+                "Exhaustive Integration Gate",
+            ],
+        },
+    }
+    assert rpi.receipt_has_ci_qualification(old_schema2_receipt, sha)
     receipt["staging_ci"]["verified_required_jobs"].remove("E2E Tests (Playwright)")
     assert not rpi.receipt_has_ci_qualification(receipt, sha)
     assert not rpi.receipt_has_ci_qualification(

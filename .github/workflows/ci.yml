@@ -49,7 +49,17 @@ jobs:
             if [ "$candidate" != "broad" ] && python scripts/verify-prior-qualification.py --sha "$base_sha"; then
               python scripts/ci-change-scope.py --base "$base_sha" --prior-qualified --github-output "$GITHUB_OUTPUT"
             else
-              python scripts/ci-change-scope.py --base "$base_sha" --github-output "$GITHUB_OUTPUT"
+              fallback_sha="$(git merge-base HEAD origin/staging)" || fallback_sha=""
+              if [ -n "$fallback_sha" ] && [ "$fallback_sha" != "$base_sha" ]; then
+                fallback_candidate="$(python scripts/ci-change-scope.py --base "$fallback_sha" --candidate)" || fallback_candidate="broad"
+                if [ "$fallback_candidate" != "broad" ] && python scripts/verify-prior-qualification.py --sha "$fallback_sha"; then
+                  python scripts/ci-change-scope.py --base "$fallback_sha" --prior-qualified --github-output "$GITHUB_OUTPUT"
+                else
+                  python scripts/ci-change-scope.py --base "$fallback_sha" --github-output "$GITHUB_OUTPUT"
+                fi
+              else
+                python scripts/ci-change-scope.py --base "$base_sha" --github-output "$GITHUB_OUTPUT"
+              fi
             fi
           fi
 
@@ -366,13 +376,3 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: python scripts/verify-master-promotion.py
-
-  master-gate-compatibility:
-    name: Exhaustive Integration Gate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    needs: [master-release]
-    runs-on: ubuntu-latest
-    timeout-minutes: 2
-    steps:
-      - name: Confirm reused staging qualification without replay
-        run: echo "Exact same-SHA staging integration evidence and master release checks passed; product suites were not rerun on master."

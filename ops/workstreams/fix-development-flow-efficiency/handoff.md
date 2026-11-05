@@ -21,11 +21,11 @@ synchronized exact-source checks still apply at integration.
   push event, SHA, complete required job set, and synchronized refs, then runs
   release identity/provenance checks. The promotion helper requires exact
   staging and master run IDs and the explicit same-SHA reuse mode; the master
-  verifier itself checks the complete successful staging job set. A small
-  `Exhaustive Integration Gate` compatibility status lets the current Root
-  coordinator finish its transition, while its job text states that product
-  suites were not rerun. Receipt schema 2 records same-SHA reuse explicitly,
-  and the RPi receipt guard still accepts legacy `github_replay=pass` receipts.
+  verifier itself checks the complete successful staging job set. Master
+  publishes only the uniquely named `Master Release Provenance` status; no
+  duplicate integration-gate alias is emitted. Receipt schema 2 records
+  same-SHA reuse explicitly, and the RPi reader accepts both the previous
+  schema-2 job list and legacy `github_replay=pass` receipts.
 - The observer makes one status-only read per three minutes for up to 243
   minutes, covering the 45-minute backend prerequisite plus the 180-minute
   exhaustive gate; it fetches job details once after terminal status and reports
@@ -58,8 +58,36 @@ the full gate once per meaningful batch.
 
 ## Closure state
 
-Root accepted the bounded implementation under the human's standing delegation;
-the plan records that authorization and `ready_for_integration` status. The
-final pushed-source CI run is still pending. Root owns integration capture,
-promotion, and deployment after exact-source CI passes. The live ticker repair
-release remains independent.
+At published SHA `26cf65de`, Root accepted the bounded implementation under the
+human's standing delegation and left exact pushed-source CI to Root. The later
+API review reopened only the duplicate job-name and scoped-parent fallback
+findings listed below. No integration, promotion, or deployment is performed
+from this worktree. The live ticker repair release remains independent.
+
+## Root review correction addendum
+
+Root identified two concrete issues after published SHA `26cf65de`:
+GitHub emits duplicate display names when the master compatibility alias is
+skipped, and a later eligible commit cannot reuse full qualification at the
+exact common ancestor after its immediate parent has only scoped CI. The
+corrective commit removes the alias and permits ancestor fallback only after a
+direct full-delta allowlist check plus full qualification of that same SHA.
+Product-bearing unqualified parents remain broad. The prior acceptance record
+and tests remain historical evidence; these two corrections are the only
+reopened scope.
+
+The focused correction suite passed 90/90 in 1.68 seconds. It covers the
+workflow-wide unique display-name invariant, master release-only success
+requirements, previous schema-2 receipt compatibility, the actual shell
+sequence after a scoped parent, and a product-bearing negative ancestor case.
+Root's corrective acceptance confirms all 18 reviewed implementation hashes and
+technically accepts AC1/AC4/AC8/AC9. Exact pushed-source CI remains pending for
+Root; no product suite was rerun. The first canonical promotion must use the
+qualified helper from persistent staging with Root coordinator cwd and the
+explicit schema-2 same-SHA receipt; Root owns integration, promotion, and
+deployment.
+
+The accepted workflow-file hash was `b7b50f28…`; `git diff --check` exposed one
+extra blank line at EOF, which was removed without logic changes. The final
+workflow-file hash is `ff8bab6a…`; exact CI on the new published SHA is the
+authority for that final file.

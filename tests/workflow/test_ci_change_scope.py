@@ -118,8 +118,8 @@ def test_actual_ci_scope_sequence_uses_qualified_merge_base_and_direct_tree_diff
         shutil.copy(ROOT / "scripts" / "ci-change-scope.py", repo / "scripts")
         (repo / "scripts" / "verify-prior-qualification.py").write_text(
             "import os, sys\n"
-            "open(os.environ['VERIFY_LOG'], 'w').write(sys.argv[2])\n"
-            "raise SystemExit(int(os.environ.get('VERIFY_RESULT', '0')))\n"
+            "with open(os.environ['VERIFY_LOG'], 'a') as log: log.write(sys.argv[2] + '\\n')\n"
+            "raise SystemExit(0 if sys.argv[2] == os.environ['QUALIFIED_SHA'] else 1)\n"
         )
         git(repo, "init", "-b", "fix/example")
         git(repo, "config", "user.email", "ci@example.invalid")
@@ -148,24 +148,20 @@ def test_actual_ci_scope_sequence_uses_qualified_merge_base_and_direct_tree_diff
         feature_head = git(repo, "rev-parse", "HEAD")
         assert git(repo, "merge-base", "HEAD", "origin/staging") == qualified_base
 
-        scope_script = str(repo / "scripts" / "ci-change-scope.py")
-        verify_script = str(repo / "scripts" / "verify-prior-qualification.py")
-        assert scope_script.endswith("ci-change-scope.py")
-        assert verify_script.endswith("verify-prior-qualification.py")
-        for verify_result, expected_scope in (("0", "metadata"), ("1", "broad")):
-            output = repo / f"output-{verify_result}"
-            verify_log = repo / f"verify-{verify_result}"
+        def run_scope(before: str, head: str, name: str):
+            output = repo / f"output-{name}"
+            verify_log = repo / f"verify-{name}"
             environment = os.environ.copy()
             environment.update(
                 {
-                    "BEFORE": "0" * 40,
+                    "BEFORE": before,
                     "PR_BASE": "",
-                    "GITHUB_SHA": feature_head,
+                    "GITHUB_SHA": head,
                     "GITHUB_OUTPUT": str(output),
                     "GITHUB_REPOSITORY": "example/repo",
                     "GH_TOKEN": "test-token",
                     "VERIFY_LOG": str(verify_log),
-                    "VERIFY_RESULT": verify_result,
+                    "QUALIFIED_SHA": qualified_base,
                 }
             )
             result = subprocess.run(
@@ -179,8 +175,41 @@ def test_actual_ci_scope_sequence_uses_qualified_merge_base_and_direct_tree_diff
             values = dict(
                 line.split("=", 1) for line in output.read_text().splitlines()
             )
-            assert values["scope"] == expected_scope
-            assert verify_log.read_text() == qualified_base
+            log = verify_log.read_text().splitlines() if verify_log.exists() else []
+            return values["scope"], log
+
+        # First push: resolve origin/staging's common ancestor and verify that
+        # exact SHA before allowing the narrow lane.
+        scope, calls = run_scope("0" * 40, feature_head, "first-push")
+        assert scope == "metadata"
+        assert calls == [qualified_base]
+
+        # A second commit's immediate parent has scoped CI only. Fall back only
+        # after the entire branch delta to the exact ancestor remains eligible,
+        # and query full qualification for that same ancestor SHA.
+        handoff = repo / "ops/workstreams/example/handoff.md"
+        handoff.write_text("second eligible metadata commit\n")
+        git(repo, "add", str(handoff.relative_to(repo)))
+        git(repo, "commit", "-m", "second scoped metadata commit")
+        second_head = git(repo, "rev-parse", "HEAD")
+        scope, calls = run_scope(feature_head, second_head, "second-eligible")
+        assert scope == "metadata"
+        assert calls == [feature_head, qualified_base]
+
+        # An unqualified runtime-bearing immediate parent cannot be laundered
+        # through the qualified ancestor: the direct full-delta candidate is broad.
+        git(repo, "checkout", "-b", "fix/runtime-change", qualified_base)
+        (repo / "backend" / "app.py").write_text("unqualified product runtime\n")
+        git(repo, "add", "backend/app.py")
+        git(repo, "commit", "-m", "unqualified runtime parent")
+        runtime_parent = git(repo, "rev-parse", "HEAD")
+        plan.write_text("metadata after unqualified runtime change\n")
+        git(repo, "add", str(plan.relative_to(repo)))
+        git(repo, "commit", "-m", "metadata after runtime change")
+        runtime_head = git(repo, "rev-parse", "HEAD")
+        scope, calls = run_scope(runtime_parent, runtime_head, "runtime-negative")
+        assert scope == "broad"
+        assert calls == [runtime_parent]
 
         # Diffing directly against newer staging sees its product change.
         # A three-dot merge-base diff would hide it and incorrectly say metadata.

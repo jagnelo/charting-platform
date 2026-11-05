@@ -297,9 +297,11 @@ the retired workflow and must never receive a new candidate.
    successful staging Exhaustive Integration Gate qualifies that identical SHA
    on master. Master runs identity, provenance, synchronized-ref, and release
    checks against the trusted staging push run and unique required jobs. A
-   compatibility status named `Exhaustive Integration Gate` confirms that
-   verified evidence for the still-running legacy coordinator; its step states
-   that suites were not rerun. It does not report tests as newly run.
+   master workflow requires only the unique `Master Release Provenance` job;
+   it has no duplicate alias for the staging integration job. The verifier
+   checks the full successful staging job set, exact run identity, event, SHA,
+   and synchronized refs before master release checks pass. Reused product
+   suites are recorded as unexecuted on master.
    Failed or unavailable checks mark master degraded and block deployment/new
    integration until repaired.
 
@@ -341,17 +343,22 @@ claim ownership, or review gates.
 CI selects a narrow lane only from an exact changed-path allowlist. Workstream
 records run their hash/scope/narrative guards, including tests that read those
 records as input. Workflow-only edits run affected `tests/workflow` regressions
-and prove product inputs are unchanged. The prior exact parent must have a
-trusted successful full product qualification; absent, failed, or inaccessible
-evidence sends the change to broad validation. Unknown paths and renames that
-touch product inputs also retain broad validation. Skipped suites remain
-explicitly skipped, never newly passed.
+and prove product inputs are unchanged. First check the exact immediate parent
+for trusted successful full product qualification. If that parent has only
+scoped CI, compare the complete branch tree directly with the exact
+branch/staging merge-base; use the narrow lane only when that entire delta is
+eligible and the same ancestor SHA has trusted successful full qualification.
+Unknown paths, unqualified product-bearing deltas, and renames that touch
+product inputs retain broad validation. Skipped suites remain explicitly
+skipped, never newly passed.
 
 Scope classification compares the candidate tree directly with the exact
 qualified base SHA. On a first push with no `before` SHA, resolve the merge-base
 of the branch and current `origin/staging`, then require full qualification for
-that same ancestor SHA. Never diff against one base while qualifying another;
-failed SHA resolution or missing qualification selects broad validation.
+that same ancestor SHA. A later commit with a scoped parent may use that same
+ancestor only after rechecking the full branch delta and full qualification.
+Never diff against one base while qualifying another; failed SHA resolution or
+missing qualification selects broad validation.
 
 The measured feature-push baseline is about 31 minutes of backend tests plus 23
 minutes of browser tests, or roughly 54 minutes per push. Eligible records-only

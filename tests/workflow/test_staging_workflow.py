@@ -249,6 +249,63 @@ def test_public_api_errors_never_manufacture_ci_evidence(
         staging.github_run("staging", "a" * 40, exhaustive=True)
 
 
+def test_master_ci_reuse_requires_only_unique_release_provenance_job(monkeypatch):
+    staging = load_script("staging")
+    sha = "a" * 40
+    monkeypatch.setattr(staging, "shutil_which", lambda _name: None)
+    monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
+    calls = []
+
+    def urlopen(request, timeout):
+        url = request.full_url
+        calls.append(url)
+        if "/actions/workflows/ci.yml/runs?" in url:
+            payload = {
+                "workflow_runs": [
+                    {
+                        "id": 456,
+                        "head_sha": sha,
+                        "head_branch": "master",
+                        "event": "push",
+                        "status": "completed",
+                        "conclusion": "success",
+                    }
+                ]
+            }
+        elif url.endswith("/jobs?per_page=100"):
+            payload = {
+                "jobs": [
+                    {
+                        "name": "Master Release Provenance",
+                        "status": "completed",
+                        "conclusion": "success",
+                    }
+                ]
+            }
+        else:
+            payload = {
+                "id": 456,
+                "head_sha": sha,
+                "head_branch": "master",
+                "event": "push",
+                "workflow_id": 123,
+                "status": "completed",
+                "conclusion": "success",
+                "run_attempt": 1,
+                "html_url": "https://github.com/example/repo/actions/runs/456",
+            }
+        return io.BytesIO(json.dumps(payload).encode())
+
+    monkeypatch.setattr(staging.urllib.request, "urlopen", urlopen)
+    result = staging.github_run("master", sha, exhaustive=True)
+    assert result["validation_mode"] == (
+        "exact_staging_evidence_reuse_with_master_release_checks"
+    )
+    assert result["verified_required_jobs"] == ["Master Release Provenance"]
+    assert "Exhaustive Integration Gate" in result["unexecuted_product_jobs"]
+    assert sum("/jobs?" in url for url in calls) == 1
+
+
 def test_expired_observation_remains_pending_and_never_fetches_jobs(monkeypatch):
     staging = load_script("staging")
     monkeypatch.setattr(staging, "shutil_which", lambda _name: None)
