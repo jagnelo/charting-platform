@@ -2,29 +2,32 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/services/provider_runtime.py::resolve_provider_chain (exact ETF issuer route and Massive-only US-listed ETV PRICE_HISTORY/fetch_ohlcv route; no generic registry widening)",
-    "backend/tests/unit/services/test_provider_runtime.py and backend/tests/unit/services/test_provider_explicit_acquisition.py plus backend/tests/integration/api/test_on_demand_history_postgres.py and backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (registered resolver, canonical taxonomy fixtures, and complete real PostgreSQL/Redis bridge compatibility checks)",
-    "Previously accepted selected-acquire taxonomy/schema continuity remains a compatibility gate; no source request or identity mutation",
-    "Complete backend/DDL coverage and exact-source branch CI remain required for this Provider checkpoint; no live provider request or target change"
+    "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)",
+    "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)",
+    "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)",
+    "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
   ],
   "commands": [
     {
-      "id": "focused-provider-type-taxonomy-units",
-      "command": "pytest backend/tests/unit/services/test_provider_runtime.py backend/tests/unit/services/test_provider_explicit_acquisition.py backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
+      "id": "focused-exact-ticker-discovery",
+      "command": "uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q",
       "covers": [
         1,
         2,
         3
       ],
-      "scope_note": "Resolver-bound ETF/ETV issuer-adapter routing, exact disabled-policy initial-qualification context, explicit acquisition entitlement and hold regressions, and no-transport compatibility checks."
-    },
-    {
-      "id": "cached-selected-acquire-postgres",
-      "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_cached_qualified_acquire_reconciles_retained_etv_type_without_transport -q",
-      "covers": [
-        3
-      ],
-      "scope_note": "One exact isolated capped PostgreSQL API/ORM case; it was executed locally with a private schema and no provider calls."
+      "scope_note": "Focused router/provider-search regression suite with mocked providers; includes exact fallback, cached empty page, identity/filter/hold and no-write checks. No Source HTTP or full fixture.",
+      "selected": 67,
+      "passed": 67,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsed_seconds": 27.67,
+      "source_sha256": {
+        "backend/app/routers/instruments.py": "0424332617b9eb188ac413f2d077da3794b77e0f7b7a5a47c1b969aab55bf818",
+        "backend/app/services/market_data.py": "b4a3ef40aa6c620ae1447921da28d1f1cb16d04b5db641508348b4b2e85f0b13",
+        "backend/tests/unit/routers/test_instruments_router.py": "e1158c55bb26052adf5af3c0c845b18f9c4a1f8815e0a76b40ae4e3f0a4d6699"
+      }
     },
     {
       "id": "full-backend-suite",
@@ -32,53 +35,7 @@
       "covers": [
         4
       ],
-      "scope_note": "Complete backend/DDL collector and coverage are mandatory on exact-source CI; no duplicate full local collector is launched for this bounded minimum profile."
-    },
-    {
-      "id": "massive-us-etv-postgres-resolver-admission",
-      "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_massive_us_etv_history_resolver_requires_real_primary_listing -q",
-      "covers": [
-        1,
-        2
-      ],
-      "scope_note": "One bounded isolated PostgreSQL integration for the actual ORM listing query; fake test credential only, source egress denied, no provider request.",
-      "result": "Passed 1/1 in 9.87s, native exit 0; Root accepted the exact source pins and cleanup.",
-      "execution_receipt": "/tmp/provider-etv-us-history-pg-20261104/execution.json",
-      "execution_receipt_sha256": "39fdac82e49be4a0e317af086262413c92d7201e50e8e5312157f2dc950337d5",
-      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
-      "root_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
-      "pytest_log": "/tmp/provider-etv-us-history-pg-20261104/pytest.log",
-      "pytest_log_sha256": "b19fe149c33f9c7fc67903dceb64afaf0dc034c33f5cdee16e8f4f6c316736ba",
-      "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
-      "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
-      "cleanup_summary": "The exact owned PG container and internal network were removed; no Docker volume was created. Root matched the one additional exited container to authorized TC attempt15 and it was preserved."
-    },
-    {
-      "id": "canonical-bridge-runtime-postgres-module",
-      "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py -q",
-      "covers": [
-        1,
-        2,
-        3
-      ],
-      "scope_note": "Complete provider bridge integration module on only the owned PostgreSQL/Redis fixtures; canonical Equity/ETF and Equity/Stock positive fixtures match persisted taxonomy. All transports are mocked; no provider HTTP.",
-      "selected": 108,
-      "passed": 108,
-      "failed": 0,
-      "errors": 0,
-      "skipped": 0,
-      "exit_code": 0,
-      "elapsed_seconds": 1103.87,
-      "source_test_sha256": "81808e74138816a6a59b255b6621349f2bf732757c10970f58309af588b0e29c",
-      "runtime_sha256_unchanged": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
-      "prelaunch_manifest": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-prelaunch.json",
-      "prelaunch_manifest_sha256": "e060a8946c76adaf5c4b8ad21d21aa214c012439d61318e09c2907ab1f761a25",
-      "result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
-      "result_receipt_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
-      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
-      "root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
-      "cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
-      "cleanup_receipt_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb"
+      "scope_note": "Complete backend/DDL/coverage gate remains required on the exact published source; not run in this bounded checkpoint."
     }
   ],
   "ci_covered_commands": {
@@ -86,18 +43,18 @@
   },
   "external_gates": [
     {
-      "id": "exact-source-branch-ci",
+      "id": "exact-source-backend-and-branch-ci",
       "covers": [
         4
       ],
-      "reason": "The complete backend/DDL and branch-declared results must be terminal green on the exact coherent source tip."
+      "reason": "Complete backend/DDL, frontend, branch-declared, and browser jobs must be terminal green on the exact coherent closing source tip."
     },
     {
-      "id": "root-combined-browser-and-release",
+      "id": "root-combined-full-stack-browser-release",
       "covers": [
         4
       ],
-      "reason": "Root owns combined consumer browser qualification, protected staging/master integration, deployment, and genuine-source checks; none is claimed as performed in this Provider local profile."
+      "reason": "Root owns the combined full_stack_browser profile, protected staging/master integration, promotion, deployment, and genuine ordinary ticker/provider flow checks."
     }
   ],
   "fixture_correction_local_proof": {
@@ -168,5 +125,161 @@
       "status": "failure preserved; all 58 integration failures were caused by two positive factories using suffixed noncanonical AssetClass names rejected by correct runtime admission",
       "integration_counts": "560 passed, 58 failed, 2 skipped; 1168.07 seconds"
     }
+  },
+  "previously_accepted_provider_etv_routing_manifest": {
+    "plan_tests": [
+      "backend/app/services/provider_runtime.py::resolve_provider_chain (exact ETF issuer route and Massive-only US-listed ETV PRICE_HISTORY/fetch_ohlcv route; no generic registry widening)",
+      "backend/tests/unit/services/test_provider_runtime.py and backend/tests/unit/services/test_provider_explicit_acquisition.py plus backend/tests/integration/api/test_on_demand_history_postgres.py and backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (registered resolver, canonical taxonomy fixtures, and complete real PostgreSQL/Redis bridge compatibility checks)",
+      "Previously accepted selected-acquire taxonomy/schema continuity remains a compatibility gate; no source request or identity mutation",
+      "Complete backend/DDL coverage and exact-source branch CI remain required for this Provider checkpoint; no live provider request or target change"
+    ],
+    "commands": [
+      {
+        "id": "focused-provider-type-taxonomy-units",
+        "command": "pytest backend/tests/unit/services/test_provider_runtime.py backend/tests/unit/services/test_provider_explicit_acquisition.py backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_instrument_sync_metadata.py backend/tests/unit/services/test_market_universe.py -q",
+        "covers": [
+          1,
+          2,
+          3
+        ],
+        "scope_note": "Resolver-bound ETF/ETV issuer-adapter routing, exact disabled-policy initial-qualification context, explicit acquisition entitlement and hold regressions, and no-transport compatibility checks."
+      },
+      {
+        "id": "cached-selected-acquire-postgres",
+        "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_cached_qualified_acquire_reconciles_retained_etv_type_without_transport -q",
+        "covers": [
+          3
+        ],
+        "scope_note": "One exact isolated capped PostgreSQL API/ORM case; it was executed locally with a private schema and no provider calls."
+      },
+      {
+        "id": "full-backend-suite",
+        "command": "make test-backend-coverage",
+        "covers": [
+          4
+        ],
+        "scope_note": "Complete backend/DDL collector and coverage are mandatory on exact-source CI; no duplicate full local collector is launched for this bounded minimum profile."
+      },
+      {
+        "id": "massive-us-etv-postgres-resolver-admission",
+        "command": "pytest backend/tests/integration/api/test_on_demand_history_postgres.py::test_massive_us_etv_history_resolver_requires_real_primary_listing -q",
+        "covers": [
+          1,
+          2
+        ],
+        "scope_note": "One bounded isolated PostgreSQL integration for the actual ORM listing query; fake test credential only, source egress denied, no provider request.",
+        "result": "Passed 1/1 in 9.87s, native exit 0; Root accepted the exact source pins and cleanup.",
+        "execution_receipt": "/tmp/provider-etv-us-history-pg-20261104/execution.json",
+        "execution_receipt_sha256": "39fdac82e49be4a0e317af086262413c92d7201e50e8e5312157f2dc950337d5",
+        "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
+        "root_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
+        "pytest_log": "/tmp/provider-etv-us-history-pg-20261104/pytest.log",
+        "pytest_log_sha256": "b19fe149c33f9c7fc67903dceb64afaf0dc034c33f5cdee16e8f4f6c316736ba",
+        "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
+        "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
+        "cleanup_summary": "The exact owned PG container and internal network were removed; no Docker volume was created. Root matched the one additional exited container to authorized TC attempt15 and it was preserved."
+      },
+      {
+        "id": "canonical-bridge-runtime-postgres-module",
+        "command": "pytest backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py -q",
+        "covers": [
+          1,
+          2,
+          3
+        ],
+        "scope_note": "Complete provider bridge integration module on only the owned PostgreSQL/Redis fixtures; canonical Equity/ETF and Equity/Stock positive fixtures match persisted taxonomy. All transports are mocked; no provider HTTP.",
+        "selected": 108,
+        "passed": 108,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "exit_code": 0,
+        "elapsed_seconds": 1103.87,
+        "source_test_sha256": "81808e74138816a6a59b255b6621349f2bf732757c10970f58309af588b0e29c",
+        "runtime_sha256_unchanged": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
+        "prelaunch_manifest": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-prelaunch.json",
+        "prelaunch_manifest_sha256": "e060a8946c76adaf5c4b8ad21d21aa214c012439d61318e09c2907ab1f761a25",
+        "result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
+        "result_receipt_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
+        "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
+        "root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
+        "cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
+        "cleanup_receipt_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb"
+      }
+    ],
+    "ci_covered_commands": {
+      "full-backend-suite": "Backend Tests"
+    },
+    "external_gates": [
+      {
+        "id": "exact-source-branch-ci",
+        "covers": [
+          4
+        ],
+        "reason": "The complete backend/DDL and branch-declared results must be terminal green on the exact coherent source tip."
+      },
+      {
+        "id": "root-combined-browser-and-release",
+        "covers": [
+          4
+        ],
+        "reason": "Root owns combined consumer browser qualification, protected staging/master integration, deployment, and genuine-source checks; none is claimed as performed in this Provider local profile."
+      }
+    ]
+  },
+  "previously_published_provider_exact_acquire_manifest": {
+    "plan_tests": [
+      "backend/app/routers/instruments.py::acquire_instrument (authoritative exact profile fallback only after no exact bounded-fuzzy result; existing runtime admission/accounting retained)",
+      "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/test_provider_explicit_acquisition.py (exact hit beyond fuzzy page, exact absence, provider/profile/symbol/listing/domain conflicts, empty listing authority, and search/profile/quota/rate holds)",
+      "Complete backend/DDL coverage and exact-source branch CI remain mandatory; the shared calendar-readiness E2E test change is limited to the Root-reviewed one-file barrier. Root-owned combined release qualification remains pending. No live provider request or target change."
+    ],
+    "commands": [
+      {
+        "id": "focused-exact-symbol-acquisition",
+        "command": "cd backend && UV_CACHE_DIR=/tmp/provider-exact-acquire-uv-cache uv run --no-sync --project . pytest tests/unit/routers/test_instruments_router.py tests/unit/services/test_provider_explicit_acquisition.py -q",
+        "covers": [
+          1,
+          2
+        ],
+        "scope_note": "Focused acquisition route/explicit-acquisition regressions; mocked provider adapters only, no source HTTP.",
+        "selected": 49,
+        "passed": 49,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "elapsed_seconds": 12.45,
+        "source_sha256": {
+          "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
+          "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
+        }
+      },
+      {
+        "id": "full-backend-suite",
+        "command": "make test-backend-coverage",
+        "covers": [
+          3
+        ],
+        "scope_note": "Complete backend/DDL/coverage gate remains required on the exact final source; not run in this bounded candidate."
+      }
+    ],
+    "ci_covered_commands": {
+      "full-backend-suite": "Backend Tests"
+    },
+    "external_gates": [
+      {
+        "id": "exact-source-backend-and-branch-ci",
+        "covers": [
+          3
+        ],
+        "reason": "Complete backend/DDL and branch-declared CI must be terminal green on the exact published source SHA."
+      },
+      {
+        "id": "root-combined-release-qualification",
+        "covers": [
+          3
+        ],
+        "reason": "Root owns combined consumer qualification, acceptance, protected integration, promotion, deployment, and genuine provider operations."
+      }
+    ]
   }
 }

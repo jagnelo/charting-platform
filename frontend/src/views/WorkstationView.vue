@@ -413,6 +413,7 @@ const tabDragOverKey = ref<string | null>(null)
 const tabDragCommitted = ref(false)
 const searchResults = ref<Array<{ symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null }>>([])
 const searchIndex = ref(-1)
+const searchOptionExplicitlyNavigated = ref(false)
 const searchLoading = ref(false)
 const searchSettled = ref(false)
 const searchError = ref('')
@@ -1477,6 +1478,7 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
 
 function scheduleSymbolSearch(value: string) {
   if (!symbolSearchEnabled.value) return
+  searchOptionExplicitlyNavigated.value = false
   if (searchTimer) clearTimeout(searchTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
   const requestId = ++searchRequest
@@ -1498,6 +1500,9 @@ function scheduleSymbolSearch(value: string) {
   searchLoading.value = true
   searchSettled.value = false
   searchError.value = ''
+  // Do not leave options from the previous query selectable while this
+  // debounced request is pending.
+  searchResults.value = []
   sourceCandidates.value = []
   sourceDiscoveryMessage.value = ''
   sourceDiscoveryError.value = ''
@@ -1630,15 +1635,26 @@ function selectRecentSymbol(symbol: string) {
 function handleSymbolInputKeydown(event: KeyboardEvent) {
   if (event.key === 'ArrowDown' && searchResults.value.length) {
     event.preventDefault()
+    searchOptionExplicitlyNavigated.value = true
     searchIndex.value = (searchIndex.value + 1) % searchResults.value.length
   } else if (event.key === 'ArrowUp' && searchResults.value.length) {
     event.preventDefault()
+    searchOptionExplicitlyNavigated.value = true
     searchIndex.value = (searchIndex.value - 1 + searchResults.value.length) % searchResults.value.length
   } else if (event.key === 'Enter') {
     event.preventDefault()
-    const result = searchResults.value[searchIndex.value]
-    closeSymbolSearch()
-    void selectSymbol(result?.symbol ?? symbolDraft.value, undefined, false, result?.instrument_id, true, false, result?.type ?? '', true)
+    const typedSymbol = symbolDraft.value.trim()
+    const exactResult = searchResults.value.find(result =>
+      result.symbol.trim().toUpperCase() === typedSymbol.toUpperCase(),
+    )
+    const result = searchOptionExplicitlyNavigated.value
+      ? searchResults.value[searchIndex.value]
+      : exactResult
+    if (result) {
+      selectSearchResult(result.symbol, result.instrument_id, result.type)
+    } else {
+      goToSymbolDraft()
+    }
   } else if (event.key === 'Escape') {
     closeSymbolSearch()
   }
