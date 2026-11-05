@@ -1,20 +1,65 @@
 {
-  "schema": 2,
+  "acceptance_criteria": [],
+  "active_session_id": "b07dfe18-088a-42fa-8e1e-941127583d52",
   "branch": "fix/development-flow-efficiency",
-  "parent_branch": "staging",
-  "implementation_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
-  "remote_sha": null,
-  "active_session_id": null,
-  "previous_session_ids": [],
-  "goal_state": "not_started",
-  "goal_budget_policy": "unbounded_unless_human_authorized",
-  "planning_state": "draft",
-  "progress": {
-    "completed": [],
-    "total": 0,
-    "current_phase": "plan",
-    "current_blocker": "none"
+  "dirty_paths": [],
+  "docker": {
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 0,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-fix-development-flow-efficiency-164d68b6",
+      "charting-stack-fix-development-flow-efficiency-164d68b6"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 0,
+    "volume_count": 0,
+    "worktree_id": "fix-development-flow-efficiency-164d68b654"
   },
-  "next_action": "run make agent-session-start",
-  "retained_docker_resources": []
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Implement and qualify the authorized development-throughput fixes in fix/development-flow-efficiency: proportionate metadata/workflow validation with meaningful affected guards and honest reused product evidence; trusted exact same-SHA staging evidence reuse for master promotion; correct efficient CI observation; and local-plan bootstrap without plan-only remote publication. Preserve human intent, exclusive claims, meaningful regression coverage, exact evidence, user data, provider/paid/quota controls, original VS Code visibility and human model/effort choices. Use focused workflow tests, one coherent code/test/record publication, and leave integration/promotion/deployment to Root. Do not delay the independently progressing ordinary-ticker repair release.",
+  "goal_request": {
+    "objective": "Implement and qualify the authorized development-throughput fixes in fix/development-flow-efficiency: proportionate metadata/workflow validation with meaningful affected guards and honest reused product evidence; trusted exact same-SHA staging evidence reuse for master promotion; correct efficient CI observation; and local-plan bootstrap without plan-only remote publication. Preserve human intent, exclusive claims, meaningful regression coverage, exact evidence, user data, provider/paid/quota controls, original VS Code visibility and human model/effort choices. Use focused workflow tests, one coherent code/test/record publication, and leave integration/promotion/deployment to Root. Do not delay the independently progressing ordinary-ticker repair release."
+  },
+  "goal_request_state": "active",
+  "goal_state": "active",
+  "head": "4d7ad1d77d3ca44d5facd1314bbae09bce516da5",
+  "implementation_sha": "working-tree",
+  "local_validation_profile": "unit",
+  "next_action": "Publish exact branch HEAD, obtain exact-source CI, then Root performs integration capture and canonical release gates",
+  "parent_branch": "staging",
+  "plan_hash": "7544aaa644b0261870da627c4f20368370c0a1a2941315b10bb3f06abed6b8f9",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": ["AC1", "AC2", "AC3", "AC4", "AC5", "AC6", "AC7"],
+    "current_blocker": "none",
+    "current_phase": "ready_for_integration",
+    "total": 7
+  },
+  "remote": "4d7ad1d77d3ca44d5facd1314bbae09bce516da5",
+  "remote_sha": "4d7ad1d77d3ca44d5facd1314bbae09bce516da5",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "b07dfe18-088a-42fa-8e1e-941127583d52",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency",
+  "worktree_id": "fix-development-flow-efficiency-164d68b654"
 }

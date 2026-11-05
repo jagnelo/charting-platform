@@ -77,7 +77,7 @@ def test_manifest_maps_plan_descriptions_to_commands_and_external_gates(tmp_path
 def test_github_ci_only_reuses_the_backend_job_after_declaring_dependency():
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text())
     branch_job = workflow["jobs"]["branch-declared"]
-    assert branch_job["needs"] == ["backend"]
+    assert branch_job["needs"] == ["changed-scope", "backend"]
     backend_job_name = workflow["jobs"]["backend"]["name"]
     assert backend_job_name == "Backend Tests"
     run_step = next(
@@ -123,16 +123,23 @@ def test_actual_workstream_ci_mapping_runs_migrations_and_leaves_live_gate_open(
 
     assert RUNNER.main() == 0
     output = capsys.readouterr().out
-    assert calls == [
-        [
-            "/bin/sh",
-            "-lc",
-            "INTEGRATION_BASE_SHA=origin/master make test-migration-compatibility",
-        ]
+    manifest = RUNNER.execution_manifest(
+        ROOT
+        / "ops"
+        / "workstreams"
+        / "feat-market-data-provider-platform"
+        / "plan.yaml",
+        "feat/market-data-provider-platform",
+    )
+    expected_commands = [
+        ["/bin/sh", "-lc", item["command"]]
+        for item in manifest["commands"]
+        if item["id"] != "full-backend-suite"
     ]
+    assert calls == expected_commands
     assert "successful upstream GitHub CI job: Backend Tests" in output
     assert (
-        "External acceptance gate NOT RUN: current-source-provider-live-matrix"
+        "External acceptance gate NOT RUN: " + manifest["external_gates"][0]["id"]
         in output
     )
     assert "not full workstream acceptance" in output

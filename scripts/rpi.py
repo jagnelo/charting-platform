@@ -143,11 +143,49 @@ def exact_commit(commit: str) -> None:
         "rev-parse", f"{commit}^{{tree}}"
     ):
         raise SystemExit("validation receipt does not match COMMIT and tree")
-    if (
-        os.environ.get("RPI_REQUIRE_CI_REPLAY", "true").lower() == "true"
-        and data.get("github_replay") != "pass"
-    ):
-        raise SystemExit("independent GitHub replay is not recorded as pass for COMMIT")
+    if os.environ.get("RPI_REQUIRE_CI_REPLAY", "true").lower() == "true":
+        if not receipt_has_ci_qualification(data, commit):
+            raise SystemExit(
+                "no compatible exact-source GitHub qualification is recorded for COMMIT"
+            )
+
+
+def receipt_has_ci_qualification(data: dict, commit: str) -> bool:
+    """Accept legacy replay receipts or explicit same-SHA evidence reuse."""
+    if data.get("github_replay") == "pass":
+        return True
+    staging = data.get("staging_ci") or {}
+    master_release = data.get("master_release_ci") or {}
+    return bool(
+        data.get("receipt_schema") == 2
+        and data.get("validation_mode") == "same_sha_staging_evidence_reuse"
+        and staging.get("sha") == commit
+        and staging.get("workflow_path") == ".github/workflows/ci.yml"
+        and staging.get("event") == "push"
+        and str(staging.get("run_id", "")).isdigit()
+        and int(staging.get("run_id", 0)) > 0
+        and staging.get("required_job") == "Exhaustive Integration Gate"
+        and set(staging.get("verified_required_jobs") or [])
+        == {
+            "Changed-path validation scope",
+            "Backend Tests",
+            "Frontend Unit Tests",
+            "E2E Tests (Playwright)",
+            "Exhaustive Integration Gate",
+        }
+        and staging.get("conclusion") == "success"
+        and master_release.get("sha") == commit
+        and master_release.get("workflow_path") == ".github/workflows/ci.yml"
+        and master_release.get("event") == "push"
+        and str(master_release.get("run_id", "")).isdigit()
+        and int(master_release.get("run_id", 0)) > 0
+        and master_release.get("required_job") == "Master Release Provenance"
+        and set(master_release.get("verified_required_jobs") or [])
+        == {"Master Release Provenance", "Exhaustive Integration Gate"}
+        and master_release.get("conclusion") == "success"
+        and data.get("master_product_suite_replay")
+        == "not_run; exact staging product qualification reused"
+    )
 
 
 def ssh_args(config: dict[str, str]) -> list[str]:

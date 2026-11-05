@@ -293,9 +293,15 @@ the retired workflow and must never receive a new candidate.
    that exact source SHA; the guarded close command keeps the remote source ref
    as an audit reference.
 4. `make promote-staging COMMIT=<sha> CONFIRM=<sha>` accepts only the current,
-   synchronized, green staging SHA and fast-forwards `master`. `master` then
-   independently replays the exhaustive gate. A failed replay marks master
-   degraded and blocks deployment/new integration until repaired.
+   synchronized, green staging SHA and fast-forwards `master`. The same exact
+   successful staging Exhaustive Integration Gate qualifies that identical SHA
+   on master. Master runs identity, provenance, synchronized-ref, and release
+   checks against the trusted staging push run and unique required jobs. A
+   compatibility status named `Exhaustive Integration Gate` confirms that
+   verified evidence for the still-running legacy coordinator; its step states
+   that suites were not rerun. It does not report tests as newly run.
+   Failed or unavailable checks mark master degraded and block deployment/new
+   integration until repaired.
 
 If the coordinator CI watcher is interrupted or cannot read GitHub, the
 degraded marker remains authoritative until verified recovery. From the exact
@@ -310,14 +316,63 @@ replay tests selectively, promote master or deploy. Public API polling is
 conservative and fetches job details only after a run finishes; rate exhaustion
 is unavailable evidence, not a passing test or a product-test failure.
 5. `master` is the runnable/deployable release line, not the branch from which
-   ordinary work starts. Promotion never rewrites history and never publishes an
-   untested source advance. Source branches and their PR-equivalent workstream
-   records remain the audit trail after their local worktrees are closed.
+   ordinary work starts. If promotion carries the identical current staging
+   SHA, its exact successful Exhaustive Integration Gate may qualify that same
+   commit on master. Promotion and master release checks verify the trusted CI
+   workflow, push event, exact SHA, unique required job, synchronized
+   staging/master refs, commit tree, and release identity/provenance. They do
+   not claim the integration suite ran again on master. Any SHA, tree, workflow,
+   event, job, or ref mismatch fails closed. Keep one full cross-feature gate at
+   each meaningful staging batch boundary. Source branches and their
+   PR-equivalent workstream records remain the audit trail after closure.
 6. `make staging-bootstrap CONFIRM=<current-master-sha>` is a one-time,
    human-confirmed operation after this workflow itself reaches `master`.
 
 The historical cleanup commands remain available only to account for and remove
 pre-staging `.ai/integration` artifacts. They are not part of current integration.
+
+A complete, human-authorized local schema-4 plan may start implementation under
+its verified exclusive session claim without a plan-only commit/push when the
+plan explicitly records a scoped bootstrap exception. This is only a bootstrap
+optimization: validation, exact-source branch CI, and clean synchronized source
+checks remain required before integration. Do not use it to bypass human intent,
+claim ownership, or review gates.
+
+CI selects a narrow lane only from an exact changed-path allowlist. Workstream
+records run their hash/scope/narrative guards, including tests that read those
+records as input. Workflow-only edits run affected `tests/workflow` regressions
+and prove product inputs are unchanged. The prior exact parent must have a
+trusted successful full product qualification; absent, failed, or inaccessible
+evidence sends the change to broad validation. Unknown paths and renames that
+touch product inputs also retain broad validation. Skipped suites remain
+explicitly skipped, never newly passed.
+
+Scope classification compares the candidate tree directly with the exact
+qualified base SHA. On a first push with no `before` SHA, resolve the merge-base
+of the branch and current `origin/staging`, then require full qualification for
+that same ancestor SHA. Never diff against one base while qualifying another;
+failed SHA resolution or missing qualification selects broad validation.
+
+The measured feature-push baseline is about 31 minutes of backend tests plus 23
+minutes of browser tests, or roughly 54 minutes per push. Eligible records-only
+or workflow-only pushes keep the targeted guards and avoid rerunning those
+product jobs; the final local workflow regression run completed 195 tests in
+2.91 seconds (CI still installs its declared guard dependencies). Staging retains
+one complete product gate per meaningful cross-feature batch. The previously
+repeated roughly two-hour master matrix is replaced by exact staging evidence
+verification and master release checks with a 10-minute job bound. Public API
+observation now permits 243 minutes at one status read every three minutes,
+covering the 45-minute backend prerequisite plus the 180-minute CI gate, with
+detailed jobs fetched once after terminal state and about 20 run reads per hour.
+Retry discovery is limited to 12 checks and only after failed eligible setup
+steps.
+
+For workflow repairs, run focused tests for the changed classifier, gate trust,
+or observer behavior and then relevant workstream validators. Avoid replaying
+unrelated historical audits or heavy stacks. Update the current handoff and
+append one evidence record, then publish one coherent checkpoint; do not create
+repeated metadata-only CI runs. Report meaningful phase changes instead of
+repeated polling or long reasoning transcripts.
 
 The exceptional workflow-maintenance rehearsal performed directly on `staging`
 is recorded in the tracked `ops/workflow-validation.jsonl` ledger. This does
