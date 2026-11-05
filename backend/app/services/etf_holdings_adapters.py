@@ -183,6 +183,10 @@ class HoldingsFetchResult:
     legal_metadata: dict[str, Any] | None = None
 
 
+class ETFNativeSourceEvidenceError(ValueError):
+    """A native issuer response failed an expected identity/schema proof."""
+
+
 def _native_holdings_parse_witness(
     adapter: Any,
     response: Any,
@@ -4371,11 +4375,27 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         issue_values = cls._blackrock_values(data_points, "issueName")
         reported_rows = len(ticker_values)
         aligned_core = reported_rows > 0 and len(issue_values) == reported_rows
-        aligned_columns = bool(data_points) and all(
-            len(value.get("value")) == reported_rows
-            for value in data_points.values()
-            if isinstance(value, dict) and isinstance(value.get("value"), list)
-        )
+        aligned_columns = bool(data_points)
+        for key, data_point in data_points.items():
+            if not isinstance(data_point, dict):
+                continue
+            # BlackRock's holdings.all response includes a non-row date selector
+            # alongside the row vectors. It is explicitly inactive and hidden;
+            # all other value/formattedValue arrays participate in row alignment.
+            if (
+                key == "dateList"
+                and data_point.get("fullName") == "holdings.dateList"
+                and data_point.get("active") is False
+                and data_point.get("visible") is False
+            ):
+                continue
+            for vector_key in ("value", "formattedValue"):
+                vector = data_point.get(vector_key)
+                if isinstance(vector, list) and len(vector) != reported_rows:
+                    aligned_columns = False
+                    break
+            if not aligned_columns:
+                break
         components = payload.get("componentsByNameMap")
         holdings = components.get("holdings") if isinstance(components, dict) else None
         containers = holdings.get("containersByNameMap") if isinstance(holdings, dict) else None
@@ -4683,11 +4703,13 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             symbol=normalized_symbol,
         )
         if fund_symbol != normalized_symbol:
-            raise ValueError(
+            raise ETFNativeSourceEvidenceError(
                 f"SPDR workbook identity did not match requested ETF {normalized_symbol}."
             )
         if not rows:
-            raise ValueError(f"SPDR workbook did not expose holdings for {normalized_symbol}.")
+            raise ETFNativeSourceEvidenceError(
+                f"SPDR workbook did not expose holdings for {normalized_symbol}."
+            )
         workbook_rows = parse_xlsx_table(response.content)
         completeness = self._workbook_completeness(
             workbook_rows,
@@ -4749,7 +4771,9 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 compact_layout = True
                 break
         if header_index is None:
-            raise ValueError("SPDR workbook did not expose the expected holdings schema.")
+            raise ETFNativeSourceEvidenceError(
+                "SPDR workbook did not expose the expected holdings schema."
+            )
         fund_symbol = next(
             (
                 (_clean(row[1]) or "").upper()
@@ -4777,14 +4801,9 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             identifier = _clean(raw.get("Identifier"))
             if not any((name, source_ticker, identifier)):
                 continue
-            holding_type, row_type = cls._classify_row(name=name, source_ticker=source_ticker)
-            # SPDR appends legal/disclaimer text below the holdings table. Those
-            # rows contain only a long name-like string and no ticker or stable
-            # identifier; treating them as securities both pollutes the snapshot
-            # and can overflow the canonical holding-name column. Keep genuine
-            # cash/derivative rows (which are classified separately) intact.
-            if len(name or "") > 300:
+            if cls._is_legal_footer(raw, name=name, ticker=source_ticker, identifier=identifier):
                 continue
+            holding_type, row_type = cls._classify_row(name=name, source_ticker=source_ticker)
             if not source_ticker and not identifier and row_type != "cash":
                 continue
             row_symbol = source_ticker if row_type == "security" else None
@@ -4817,6 +4836,23 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             )
         return rows, composition_date, fund_symbol
 
+    @staticmethod
+    def _is_legal_footer(
+        raw: dict[str, Any], *, name: str | None, ticker: str | None, identifier: str | None
+    ) -> bool:
+        """Ignore only recognizable issuer boilerplate outside the holdings rows."""
+
+        if ticker or identifier or not name:
+            return False
+        if sum(1 for value in raw.values() if _clean(value)) != 1:
+            return False
+        normalized = " ".join(name.casefold().split())
+        return (
+            "please click" in normalized
+            or "should not be considered a recommendation" in normalized
+            or len(name) > 300
+        )
+
     @classmethod
     def _workbook_completeness(
         cls,
@@ -4846,13 +4882,11 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 name = _clean(raw.get("Name"))
                 ticker = _clean(raw.get("Ticker"))
                 identifier = _clean(raw.get("Identifier"))
-                if len(name or "") > 300 and not ticker and not identifier:
-                    # The registered SPDR workbook schema appends legal copy
-                    # below the table; it is not a reported portfolio row.
+                if cls._is_legal_footer(raw, name=name, ticker=ticker, identifier=identifier):
                     ignored_footer_rows += 1
                     continue
                 reported_rows += 1
-                if len(raw_row) > len(header) or len(raw_row) < len(header):
+                if any(_clean(value) for value in raw_row[len(header) :]):
                     malformed_rows += 1
         parsed_rows = len(rows)
         complete = bool(

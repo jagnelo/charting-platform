@@ -5,6 +5,7 @@ import pytest
 from fastapi import HTTPException
 
 from app.routers import etf_holdings
+from app.services.etf_holdings_adapters import ETFNativeSourceEvidenceError
 from app.services.etf_issuer_catalog import IssuerCatalogError
 from app.services.provider_runtime import ProviderNoDataError
 
@@ -30,6 +31,7 @@ class _QualificationDB:
     "source_error",
     [
         IssuerCatalogError("ambiguous issuer catalog"),
+        ETFNativeSourceEvidenceError("Native source row accounting is incomplete."),
         ProviderNoDataError("no supported holdings source returned data"),
     ],
 )
@@ -119,3 +121,48 @@ async def test_unexpected_native_qualification_programming_error_is_not_hidden(m
         await etf_holdings.qualify_initial_native_etf_fund(
             "IGV", db=db, current_user=SimpleNamespace(id=7)
         )
+
+
+@pytest.mark.asyncio
+async def test_retained_evidence_continuation_accepts_only_job_reference_and_admin_context(
+    monkeypatch,
+):
+    job = SimpleNamespace(id=11, status="completed")
+    continuation = AsyncMock(return_value=job)
+    monkeypatch.setattr(
+        etf_holdings,
+        "continue_native_etf_fund_from_retained_evidence",
+        continuation,
+    )
+    db = object()
+    result = await etf_holdings.continue_native_etf_qualification_from_retained_evidence(
+        " spy ",
+        8,
+        db=db,
+        current_user=SimpleNamespace(id=7),
+    )
+
+    assert result is job
+    continuation.assert_awaited_once()
+    assert continuation.await_args.args == (db,)
+    args = continuation.await_args.kwargs
+    assert args["predecessor_job_id"] == 8
+    assert args["expected_symbol"] == "SPY"
+    assert args["requested_by_user_id"] == 7
+    assert "raw_payload" not in args
+
+
+@pytest.mark.asyncio
+async def test_retained_evidence_continuation_rejects_wildcard_before_service(monkeypatch):
+    continuation = AsyncMock()
+    monkeypatch.setattr(
+        etf_holdings,
+        "continue_native_etf_fund_from_retained_evidence",
+        continuation,
+    )
+    with pytest.raises(HTTPException) as raised:
+        await etf_holdings.continue_native_etf_qualification_from_retained_evidence(
+            "ALL", 8, db=object(), current_user=SimpleNamespace(id=7)
+        )
+    assert raised.value.status_code == 422
+    continuation.assert_not_awaited()

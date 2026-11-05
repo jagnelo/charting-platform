@@ -897,6 +897,9 @@ async def test_selected_acquire_from_null_issuer_igv_requires_official_catalog_i
         result_count="2 of 2 funds",
     )
     holding_payload = {
+        # The retained authentic IGV holdings response carries both fields;
+        # product identity must match the official catalog, not just its name.
+        "productId": 239771,
         "fundName": "iShares Expanded Tech-Software Sector ETF",
         "componentsByNameMap": {
             "holdings": {

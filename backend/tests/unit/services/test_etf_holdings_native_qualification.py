@@ -3,26 +3,36 @@ import hashlib
 import inspect
 import json
 from datetime import UTC, date, datetime, timedelta
+from decimal import Decimal
 from types import SimpleNamespace
 
 import pytest
 
 from app.config import settings
-from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFProfile
+from app.models.etf_holdings import ETFHoldingsBackfillJob, ETFHoldingsRawArtifact, ETFProfile
 from app.models.instrument import Instrument
 from app.models.provider_runtime import ProviderCapability
 from app.services import etf_holdings_adapters as adapters_module
-from app.services.etf_holdings_adapters import get_holdings_adapter
+from app.services.etf_holdings import _hash_payload
+from app.services.etf_holdings_adapters import (
+    ETFNativeSourceEvidenceError,
+    _table_to_text,
+    get_holdings_adapter,
+    parse_xlsx_table,
+)
 from app.services.etf_holdings_native_qualification import (
     NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
     _attempt_scope,
+    _issuer_catalog_identity_claim,
     _native_provider_contract,
     _native_review_snapshot_still_matches,
+    _reparse_retained_native_failure,
     _require_one_shot_available,
     _reviewed_native_route,
     _verify_invesco_catalog_identity_evidence,
     _verify_issuer_catalog_identity_evidence,
     _verify_persisted_qualification_adapter_state,
+    _verify_retained_evidence_body_log_link,
 )
 from app.services.etf_holdings_provider_bridge import (
     ETF_NATIVE_INITIAL_QUALIFICATION_DEADLINE_SECONDS,
@@ -728,6 +738,12 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str, *, ordinary=F
                                 "fundName": {
                                     "value": ["iShares Expanded Tech-Software Sector ETF"]
                                 },
+                                "dateList": {
+                                    "fullName": "holdings.dateList",
+                                    "value": [20261102, 20261030, 20260930, 20251231],
+                                    "active": False,
+                                    "visible": False,
+                                },
                                 "ticker": {"value": ["MSFT"]},
                                 "issueName": {"value": ["Microsoft Corp"]},
                                 "holdingPercent": {"value": [6.5]},
@@ -806,6 +822,217 @@ async def _fetch_native_adapter_result(monkeypatch, provider: str, *, ordinary=F
     if profile is None:
         profile = _native_adapter_profile(adapter, symbol, name)
     return profile, adapter, result
+
+
+async def _retained_native_failure_fixture(monkeypatch, provider: str):
+    profile, adapter, result = await _fetch_native_adapter_result(monkeypatch, provider)
+    binding = _OfflineAdapterClient.last_binding
+    now = datetime.now(UTC)
+    request_ids = list(binding.request_log_ids)
+    request_urls = [binding.request_urls_by_log_id[value] for value in request_ids]
+    logs = []
+    attempts = []
+    for index, (request_id, url, captured) in enumerate(
+        zip(request_ids, request_urls, _OfflineAdapterClient.captured_responses, strict=True)
+    ):
+        captured_url, body, capture = captured
+        assert captured_url == url
+        if provider == "spdr":
+            response_payloads = [
+                {
+                    "kind": "etf_native_response_body",
+                    "encoding": "base64",
+                    "body_base64": base64.b64encode(body).decode("ascii"),
+                    "bytes_received": len(body),
+                    "complete": True,
+                    "sha256": hashlib.sha256(body).hexdigest(),
+                },
+                {"kind": "etf_native_response_body_witness", "witness": capture},
+            ]
+        elif "etf-investments" in url:
+            response_payloads = [
+                body.decode("utf-8"),
+                {"kind": "etf_native_response_body_witness", "witness": capture},
+            ]
+        else:
+            response_payloads = [
+                json.loads(body),
+                {"kind": "etf_native_response_body_witness", "witness": capture},
+            ]
+        requested_at = now - timedelta(seconds=3 - index)
+        log = SimpleNamespace(
+            id=request_id,
+            data_source_id=61,
+            capability=ProviderCapability.ETF_HOLDINGS,
+            operation="fetch_etf_holdings_latest",
+            instrument_id=profile.instrument_id,
+            provider_symbol=profile.instrument.symbol,
+            requested_at=requested_at,
+            completed_at=requested_at + timedelta(milliseconds=100),
+            success=True,
+            http_requests=1,
+            settled_usage_units=Decimal("1"),
+            response_bytes=len(body),
+            response_payloads=response_payloads,
+        )
+        logs.append(log)
+        attempts.append(
+            {
+                "request_log_id": request_id,
+                "request_url": url,
+                "success": True,
+                "error_type": None,
+                "error_message": None,
+                "response_headers": {},
+                "response_payloads": response_payloads,
+            }
+        )
+    job = SimpleNamespace(
+        id=44,
+        etf_profile_id=profile.id,
+        source_provider=provider,
+        job_type=NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+        status="failed",
+        started_at=now - timedelta(seconds=5),
+        failure_reason=(
+            "Native qualification source body does not prove the selected fund identity"
+            if provider == "spdr"
+            else "Native holdings composition completeness is not proven "
+            "(provider=ishares, status=incomplete, reason=all-container row vectors are "
+            "incomplete or misaligned)."
+        ),
+        extra_data={
+            "qualification_scope": binding.native_initial_qualification_scope,
+            "provider_request_log_ids": request_ids,
+            "request_urls": request_urls,
+        },
+    )
+    raw_payload = result.raw_json if result.raw_json is not None else result.raw_text
+    artifact = ETFHoldingsRawArtifact(
+        id=5,
+        etf_profile_id=profile.id,
+        data_source_id=61,
+        source_kind="issuer_adapter_rejected_fetch",
+        source_url=result.source_url,
+        source_identifier=result.source_identifier,
+        content_hash=_hash_payload(raw_payload),
+        payload_text=result.raw_text,
+        payload_json=result.raw_json,
+        legal_metadata={
+            "provider_request_log_ids": request_ids,
+            "request_urls": request_urls,
+            "request_attempts": attempts,
+        },
+    )
+    hostnames = list(dict.fromkeys(url.split("/", 3)[2] for url in request_urls))
+    source = SimpleNamespace(
+        id=61,
+        name=provider,
+        config={"etf_holdings_review": {"https_hosts": hostnames}},
+    )
+    catalog_identity = None
+    if provider == "ishares":
+        catalog_identity = _issuer_catalog_identity_claim(
+            profile, result.legal_metadata["issuer_product_catalog"]
+        )
+        assert catalog_identity is not None
+    return profile, adapter, result, binding, job, artifact, source, logs, catalog_identity
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["spdr", "ishares"])
+async def test_retained_native_failure_reparse_uses_exact_settled_evidence_without_transport(
+    monkeypatch, provider
+):
+    fixture = await _retained_native_failure_fixture(monkeypatch, provider)
+    profile, adapter, _result, binding, job, artifact, source, logs, catalog_identity = fixture
+    request_count = len(_OfflineAdapterClient.requested)
+    rebuilt, evidence, continuation = _reparse_retained_native_failure(
+        profile=profile,
+        adapter=adapter,
+        predecessor=job,
+        rejected_artifact=artifact,
+        source=source,
+        request_logs=logs,
+        request_urls=list(binding.request_urls_by_log_id.values()),
+        catalog_identity=catalog_identity,
+    )
+
+    assert rebuilt.rows
+    assert evidence["composition_completeness"]["status"] == "complete"
+    assert evidence["raw_payload_hash"] == artifact.content_hash
+    assert continuation["physical_http_requests"] == 0
+    assert continuation["quota_reservations"] == 0
+    assert len(_OfflineAdapterClient.requested) == request_count
+    if provider == "spdr":
+        assert (
+            continuation["recovery_input"]["representation"] == "provider_request_log_binary_body"
+        )
+        assert (
+            continuation["recovery_input"]["input_sha256"]
+            == continuation["physical_body_capture"]["response_body_sha256"]
+        )
+    else:
+        recovery_input = continuation["recovery_input"]
+        assert recovery_input["representation"] == "provider_request_log_normalized_json_object"
+        assert recovery_input["normalized_payload_sha256"] == evidence["raw_payload_hash"]
+        assert (
+            recovery_input["normalized_payload_sha256"]
+            != recovery_input["physical_response_sha256"]
+        )
+        assert "parser_input_sha256" not in recovery_input
+
+    evidence_artifact = SimpleNamespace(
+        legal_metadata={
+            "retained_evidence_continuation": continuation,
+            "provider_request_log_ids": job.extra_data["provider_request_log_ids"],
+        },
+        payload_json=rebuilt.raw_json,
+    )
+    _verify_retained_evidence_body_log_link(
+        evidence=evidence,
+        profile=profile,
+        source=source,
+        snapshot=SimpleNamespace(source_url=rebuilt.source_url),
+        job=job,
+        artifact=evidence_artifact,
+        request_ids=job.extra_data["provider_request_log_ids"],
+        request_urls=job.extra_data["request_urls"],
+        logs_by_id={log.id: log for log in logs},
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mutation", ["artifact_hash", "account_scope", "provider_payload"])
+async def test_retained_native_failure_reparse_rejects_swapped_or_incomplete_evidence(
+    monkeypatch, mutation
+):
+    fixture = await _retained_native_failure_fixture(monkeypatch, "ishares")
+    profile, adapter, _result, binding, job, artifact, source, logs, catalog_identity = fixture
+    if mutation == "artifact_hash":
+        artifact.content_hash = "f" * 64
+    elif mutation == "account_scope":
+        capture_payload = next(
+            item
+            for item in logs[-1].response_payloads
+            if item.get("kind") == "etf_native_response_body_witness"
+        )
+        capture_payload["witness"]["account_scope"] = "foreign:account"
+    else:
+        artifact.payload_json = {**artifact.payload_json, "fundName": "Foreign Fund"}
+        artifact.content_hash = _hash_payload(artifact.payload_json)
+
+    with pytest.raises((ETFNativeSourceEvidenceError, ETFHoldingsRouteHeldError)):
+        _reparse_retained_native_failure(
+            profile=profile,
+            adapter=adapter,
+            predecessor=job,
+            rejected_artifact=artifact,
+            source=source,
+            request_logs=logs,
+            request_urls=list(binding.request_urls_by_log_id.values()),
+            catalog_identity=catalog_identity,
+        )
 
 
 @pytest.mark.asyncio
@@ -1024,6 +1251,108 @@ async def test_native_qualification_accepts_actual_offline_adapter_result_and_ke
         raw_payload_text=ordinary_result.raw_text,
         raw_payload_json=ordinary_result.raw_json,
     )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("url_case", ["recorded_redirect", "unbound_redirect", "foreign_host"])
+async def test_spdr_native_identity_accepts_only_the_bound_same_fund_redirect(url_case):
+    adapter = get_holdings_adapter("spdr")
+    assert adapter is not None
+    profile = _native_adapter_profile(adapter, "SPY", "State Street SPDR S&P 500 ETF Trust")
+    requested_url = adapter._workbook_url("SPY")
+    final_url = "https://www.ssga.com/library-content/products/fund-data/etfs/us/holdings-daily-us-en-spy.xlsx"
+    workbook = _xlsx_for_native_spdr("SPY", "State Street SPDR S&P 500 ETF Trust")
+    workbook_rows = parse_xlsx_table(workbook)
+    rows, composition_date, fund_symbol = adapter._parse_workbook(workbook, symbol="SPY")
+    result = SimpleNamespace(
+        rows=rows,
+        raw_text=_table_to_text(workbook_rows),
+        raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+        source_url=final_url,
+        source_identifier=None,
+        legal_metadata={
+            "source_provider": "spdr",
+            "adapter_key": adapter.adapter_key,
+            "source_format": "xlsx",
+            "composition_date": composition_date.isoformat(),
+            "native_composition_completeness": adapter._workbook_completeness(
+                workbook_rows,
+                rows=rows,
+                fund_symbol=fund_symbol,
+                composition_date=composition_date,
+            ),
+        },
+    )
+    request_urls = {1: requested_url}
+    if url_case != "unbound_redirect":
+        request_urls[2] = (
+            final_url
+            if url_case == "recorded_redirect"
+            else final_url.replace("www.ssga.com", "attacker.example")
+        )
+    binding = SimpleNamespace(
+        request_log_ids=list(request_urls),
+        request_urls_by_log_id=request_urls,
+    )
+    if url_case == "foreign_host":
+        result.source_url = request_urls[2]
+
+    if url_case == "recorded_redirect":
+        evidence = _native_adapter_fetch_evidence(
+            profile,
+            adapter,
+            result,
+            request_binding=binding,
+            require_body_witness=False,
+        )
+        assert evidence["fund_identity"]["symbol"] == "SPY"
+        assert evidence["fund_identity"]["source_url"] == final_url
+        assert evidence["composition_date"] == "2026-11-02"
+    else:
+        with pytest.raises(ETFNativeSourceEvidenceError, match="does not prove the selected fund"):
+            _native_adapter_fetch_evidence(
+                profile,
+                adapter,
+                result,
+                request_binding=binding,
+                require_body_witness=False,
+            )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("mutation", ["misaligned_holdings_vector", "active_date_selector"])
+async def test_ishares_native_completeness_ignores_only_inactive_date_selector(
+    monkeypatch, mutation
+):
+    profile, adapter, result = await _fetch_native_adapter_result(monkeypatch, "ishares")
+    points = adapter._blackrock_holdings_data_points(result.raw_json)
+    assert points["dateList"]["active"] is False
+    completeness = adapter._holdings_all_completeness(result.raw_json, rows=result.rows)
+    assert completeness["status"] == "complete"
+    assert completeness["reported_rows"] == completeness["parsed_rows"] == len(result.rows)
+    assert completeness["all_list_columns_aligned"] is True
+
+    mutated_payload = json.loads(json.dumps(result.raw_json))
+    mutated_points = adapter._blackrock_holdings_data_points(mutated_payload)
+    if mutation == "misaligned_holdings_vector":
+        mutated_points["holdingPercent"]["value"] = []
+    else:
+        mutated_points["dateList"]["active"] = True
+    mutated_evidence = adapter._holdings_all_completeness(mutated_payload, rows=result.rows)
+    assert mutated_evidence["status"] == "incomplete"
+    result.raw_json = mutated_payload
+    result.legal_metadata["native_composition_completeness"] = mutated_evidence
+    with pytest.raises(
+        ETFNativeSourceEvidenceError,
+        match="composition completeness is not proven",
+    ):
+        _native_adapter_fetch_evidence(
+            profile,
+            adapter,
+            result,
+            request_binding=_OfflineAdapterClient.last_binding,
+            require_body_witness=False,
+        )
 
 
 @pytest.mark.asyncio
