@@ -3243,6 +3243,390 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
 
 @pytest.mark.integration
 @pytest.mark.asyncio
+@pytest.mark.parametrize("provider", ["spdr", "ishares"])
+async def test_retained_native_failure_continuation_persists_without_transport(
+    provider_db, monkeypatch, provider
+):
+    """A retained settled response can qualify once without replaying its failed request."""
+    from app.models.etf_holdings import (
+        ETFHoldingsAdapterState,
+        ETFHoldingsBackfillJob,
+        ETFHoldingsRawArtifact,
+        ETFHoldingsSnapshot,
+        ETFIssuerCatalogCache,
+    )
+    from app.models.provider_runtime import ProviderEntitlement
+    from app.services.etf_holdings_native_qualification import (
+        NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+        NATIVE_ETF_RETAINED_EVIDENCE_CONTINUATION_JOB_TYPE,
+        _attempt_scope,
+        continue_native_etf_fund_from_retained_evidence,
+    )
+    from app.services.etf_issuer_catalog import ISHARES_US_CATALOG_KEY
+    from app.services.provider_runtime import provider_native_etf_review_fingerprint
+    from tests.unit.services.test_etf_holdings_native_qualification import (
+        _fetch_native_adapter_result,
+        _OfflineAdapterClient,
+    )
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        provider_db.url.render_as_string(hide_password=False),
+    )
+    draft_profile, adapter, fetch_result = await _fetch_native_adapter_result(monkeypatch, provider)
+    captures = list(_OfflineAdapterClient.captured_responses)
+    original_transport_calls = list(_OfflineAdapterClient.requested)
+    symbol = draft_profile.instrument.symbol
+    fund_name = draft_profile.instrument.name
+    request_urls = [url for url, _body, _capture in captures]
+    assert request_urls and len(request_urls) == len(captures) <= 3
+    reviewed_hosts = list(dict.fromkeys(url.split("/", 3)[2] for url in request_urls))
+
+    async with provider_db() as setup:
+        async with setup.begin():
+            case = await _seed_reviewed_fixture(
+                setup,
+                limit=4,
+                monkeypatch=monkeypatch,
+                reviewed_hosts=reviewed_hosts,
+                provider_name_override=provider,
+                instrument_symbol_override=symbol,
+            )
+            instrument = await setup.get(Instrument, case.instrument_id)
+            assert instrument is not None
+            instrument.name = fund_name
+            instrument.identity_status = "resolved"
+            profile = ETFProfile(
+                instrument_id=instrument.id,
+                instrument=instrument,
+                issuer="State Street" if provider == "spdr" else "BlackRock",
+                adapter_key=provider,
+                adapter_status="ready",
+                provider_aliases={
+                    "holdings_adapter": provider,
+                    "holdings_source_provider": provider,
+                    "expected_fund_symbol": symbol,
+                },
+            )
+            case.policy.is_enabled = False
+            entitlement = await setup.scalar(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.data_source_id == case.source_id,
+                    ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+                )
+            )
+            assert entitlement is not None
+            entitlement.live_probe_status = "not_run"
+            entitlement.revision = 7
+            admin = User(
+                username=f"retained-{provider}-{uuid4().hex[:8]}",
+                email=f"retained-{provider}-{uuid4().hex[:8]}@example.test",
+                hashed_password="synthetic-test-only",
+                is_active=True,
+                is_admin=True,
+            )
+            setup.add_all([profile, admin])
+            await setup.flush()
+            profile_id = profile.id
+            admin_id = admin.id
+            source = await setup.get(DataSource, case.source_id)
+            assert source is not None
+            fingerprint = provider_native_etf_review_fingerprint(source, case.policy, entitlement)
+            now = datetime.now(UTC)
+            failed_job = ETFHoldingsBackfillJob(
+                etf_profile_id=profile_id,
+                requested_by_user_id=admin_id,
+                source_provider=provider,
+                job_type=NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+                status="failed",
+                failure_reason=(
+                    "Native qualification source body does not prove the selected fund identity"
+                    if provider == "spdr"
+                    else "Native holdings composition completeness is not proven "
+                    "(provider=ishares, status=incomplete, reason=all-container row vectors are "
+                    "incomplete or misaligned)."
+                ),
+                started_at=now - timedelta(seconds=10),
+                completed_at=now - timedelta(seconds=1),
+                discovered_count=0,
+                ingested_count=0,
+                skipped_count=0,
+                failed_count=1,
+                extra_data={},
+            )
+            setup.add(failed_job)
+            await setup.flush()
+            scope = _attempt_scope(
+                attempt_id=failed_job.id,
+                provider_name=provider,
+                data_source_id=case.source_id,
+                profile=profile,
+                account_scope=case.account_scope,
+                entitlement_revision=entitlement.revision,
+                review_fingerprint=fingerprint,
+                expires_at=now + timedelta(minutes=2),
+            )
+
+            logs = []
+            for url, body, _capture in captures:
+                requested_at = now - timedelta(seconds=4)
+                log = ProviderRequestLog(
+                    data_source_id=case.source_id,
+                    capability=ProviderCapability.ETF_HOLDINGS,
+                    operation="fetch_etf_holdings_latest",
+                    instrument_id=profile.instrument_id,
+                    provider_symbol=symbol,
+                    operation_family="etf_holdings",
+                    requested_at=requested_at,
+                    completed_at=requested_at + timedelta(milliseconds=100),
+                    success=True,
+                    usage_mode="call_count",
+                    usage_unit_label="requests",
+                    usage_units=Decimal("1"),
+                    settled_usage_units=Decimal("1"),
+                    http_requests=1,
+                    response_bytes=len(body),
+                    response_headers={},
+                    response_payloads=[],
+                )
+                setup.add(log)
+                logs.append(log)
+            await setup.flush()
+            request_ids = [log.id for log in logs]
+            attempts = []
+            for log, (url, body, _old_capture) in zip(logs, captures, strict=True):
+                capture = {
+                    "request_log_id": log.id,
+                    "physical_request_url_sha256": hashlib.sha256(
+                        bridge._canonical_request_url(url).encode("utf-8")
+                    ).hexdigest(),
+                    "response_body_sha256": hashlib.sha256(body).hexdigest(),
+                    "response_body_bytes": len(body),
+                    "content_type": (
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                        if provider == "spdr"
+                        else "text/html"
+                        if "etf-investments" in url
+                        else "application/json"
+                    ),
+                    "binary_body": provider == "spdr",
+                    "status_code": 200,
+                    "attempt_id": failed_job.id,
+                    "provider": provider,
+                    "data_source_id": case.source_id,
+                    "capability": ProviderCapability.ETF_HOLDINGS.value,
+                    "operation": "fetch_etf_holdings_latest",
+                    "profile_id": profile_id,
+                    "instrument_id": profile.instrument_id,
+                    "provider_symbol": symbol,
+                    "account_scope": case.account_scope,
+                    "review_revision": entitlement.revision,
+                    "provider_review_fingerprint": fingerprint,
+                }
+                if provider == "spdr":
+                    payload = {
+                        "kind": "etf_native_response_body",
+                        "encoding": "base64",
+                        "body_base64": base64.b64encode(body).decode("ascii"),
+                        "bytes_received": len(body),
+                        "complete": True,
+                        "sha256": hashlib.sha256(body).hexdigest(),
+                    }
+                elif "etf-investments" in url:
+                    payload = body.decode("utf-8")
+                else:
+                    payload = json.loads(body)
+                log.response_payloads = [
+                    payload,
+                    {"kind": bridge.ETF_NATIVE_RESPONSE_BODY_WITNESS_KIND, "witness": capture},
+                ]
+                attempts.append(
+                    {
+                        "request_log_id": log.id,
+                        "request_url": url,
+                        "success": True,
+                        "error_type": None,
+                        "error_message": None,
+                        "response_headers": {},
+                        "response_payloads": log.response_payloads,
+                    }
+                )
+            failed_job.extra_data = {
+                "qualification_scope": scope,
+                "provider_request_log_ids": request_ids,
+                "request_urls": request_urls,
+                "qualification_outcome": {
+                    "status": "not_qualified",
+                    "reason": failed_job.failure_reason,
+                },
+            }
+            payload = fetch_result.raw_json or fetch_result.raw_text
+            rejected_artifact = ETFHoldingsRawArtifact(
+                etf_profile_id=profile_id,
+                data_source_id=case.source_id,
+                source_kind="issuer_adapter_rejected_fetch",
+                source_url=fetch_result.source_url,
+                source_identifier=fetch_result.source_identifier,
+                content_type="application/json" if isinstance(payload, dict) else "text/plain",
+                content_hash=_hash_payload(payload),
+                fetched_at=now,
+                parser_version=adapter.adapter_key,
+                payload_text=fetch_result.raw_text,
+                payload_json=fetch_result.raw_json,
+                legal_metadata={
+                    "failure_type": "ETFNativeSourceEvidenceError",
+                    "failure_message": failed_job.failure_reason,
+                    "validation": {"status": "ingest_rejected"},
+                    "evidence_source": "shared_provider_request_log_and_refresh_rejection",
+                    "provider_request_log_ids": request_ids,
+                    "request_urls": request_urls,
+                    "request_attempts": attempts,
+                },
+            )
+            setup.add(rejected_artifact)
+
+            if provider == "ishares":
+                from app.services.etf_issuer_catalog import parse_ishares_us_product_catalog
+
+                catalog_url, catalog_body, _ = captures[0]
+                catalog = parse_ishares_us_product_catalog(
+                    catalog_body.decode("utf-8"), page_url=catalog_url
+                )
+                setup.add(
+                    ETFIssuerCatalogCache(
+                        provider_name="ishares",
+                        catalog_key=ISHARES_US_CATALOG_KEY,
+                        data_source_id=case.source_id,
+                        source_url=catalog_url,
+                        final_url=catalog_url,
+                        content_sha256=hashlib.sha256(catalog_body).hexdigest(),
+                        response_bytes=len(catalog_body),
+                        response_encoding="utf-8",
+                        raw_body_base64=base64.b64encode(catalog_body).decode("ascii"),
+                        parsed_entries=[entry.as_json() for entry in catalog.entries],
+                        reported_total=catalog.reported_total,
+                        catalog_complete=catalog.complete,
+                        requested_symbol=symbol,
+                        provider_request_log_ids=[request_ids[0]],
+                        request_urls=[catalog_url],
+                        fetched_at=logs[0].completed_at,
+                    )
+                )
+
+    quota_engine = quota_coordinator._engine_for(
+        provider_db.url.render_as_string(hide_password=False)
+    )
+    with quota_engine.connect() as connection:
+        reservations_before = connection.execute(
+            select(quota_coordinator._reservations.c.id).where(
+                quota_coordinator._reservations.c.provider_name == provider
+            )
+        ).all()
+
+    async with provider_db() as session_a, provider_db() as session_b:
+        results = await asyncio.gather(
+            continue_native_etf_fund_from_retained_evidence(
+                session_a,
+                predecessor_job_id=failed_job.id,
+                expected_symbol=symbol,
+                requested_by_user_id=admin_id,
+            ),
+            continue_native_etf_fund_from_retained_evidence(
+                session_b,
+                predecessor_job_id=failed_job.id,
+                expected_symbol=symbol,
+                requested_by_user_id=admin_id,
+            ),
+            return_exceptions=True,
+        )
+    successes = [result for result in results if isinstance(result, ETFHoldingsBackfillJob)]
+    denials = [result for result in results if isinstance(result, ETFHoldingsRouteHeldError)]
+    assert len(successes) == 1 and len(denials) == 1
+    assert successes[0].status == "completed"
+    assert successes[0].job_type == NATIVE_ETF_RETAINED_EVIDENCE_CONTINUATION_JOB_TYPE
+    assert _OfflineAdapterClient.requested == original_transport_calls
+    with quota_engine.connect() as connection:
+        reservations_after = connection.execute(
+            select(quota_coordinator._reservations.c.id).where(
+                quota_coordinator._reservations.c.provider_name == provider
+            )
+        ).all()
+    assert reservations_after == reservations_before
+
+    async with provider_db() as readback:
+        failed = await readback.get(ETFHoldingsBackfillJob, failed_job.id)
+        assert failed is not None and failed.status == "failed"
+        children = list(
+            (
+                await readback.scalars(
+                    select(ETFHoldingsBackfillJob).where(
+                        ETFHoldingsBackfillJob.etf_profile_id == profile_id,
+                        ETFHoldingsBackfillJob.job_type
+                        == NATIVE_ETF_RETAINED_EVIDENCE_CONTINUATION_JOB_TYPE,
+                    )
+                )
+            ).all()
+        )
+        assert len(children) == 1 and children[0].status == "completed"
+        receipt = children[0].extra_data["retained_evidence_continuation"]
+        assert receipt["physical_http_requests"] == 0
+        assert receipt["quota_reservations"] == 0
+        assert receipt["request_log_ids"] == request_ids
+        snapshot = await readback.scalar(
+            select(ETFHoldingsSnapshot)
+            .options(selectinload(ETFHoldingsSnapshot.rows))
+            .where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
+        )
+        assert snapshot is not None
+        assert snapshot.source_provider == provider
+        assert snapshot.completeness_status == "complete"
+        assert snapshot.composition_date == date(2026, 11, 2)
+        assert snapshot.row_count == len(snapshot.rows) and snapshot.row_count > 0
+        evidence = snapshot.extra_data["legal_metadata"]["native_initial_qualification_evidence"]
+        assert (
+            evidence["retained_evidence_continuation"]["recovery_input"]
+            == receipt["recovery_input"]
+        )
+        if provider == "ishares":
+            recovery_input = receipt["recovery_input"]
+            assert recovery_input["normalized_payload_sha256"] == evidence["raw_payload_hash"]
+            assert (
+                recovery_input["physical_response_sha256"]
+                != recovery_input["normalized_payload_sha256"]
+            )
+            assert "parser_input_sha256" not in recovery_input
+        artifact = await readback.get(ETFHoldingsRawArtifact, snapshot.source_artifact_id)
+        assert artifact is not None and artifact.content_hash == evidence["raw_payload_hash"]
+        state = await readback.scalar(
+            select(ETFHoldingsAdapterState).where(
+                ETFHoldingsAdapterState.etf_profile_id == profile_id,
+                ETFHoldingsAdapterState.adapter_key == provider,
+            )
+        )
+        assert state is not None and state.status == "success"
+        assert state.composition_date == snapshot.composition_date
+        policy = await readback.get(ProviderPolicy, case.policy.id)
+        entitlement = await readback.scalar(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == case.source_id,
+                ProviderEntitlement.capability == ProviderCapability.ETF_HOLDINGS,
+            )
+        )
+        assert policy is not None and policy.is_enabled is False
+        assert entitlement is not None and entitlement.live_probe_status == "passed"
+        assert entitlement.revision == 8
+        assert await readback.scalar(
+            select(func.count(ProviderRequestLog.id)).where(
+                ProviderRequestLog.data_source_id == case.source_id
+            )
+        ) == len(request_ids)
+
+
+@pytest.mark.integration
+@pytest.mark.asyncio
 async def test_native_qualification_failure_is_durably_latched_after_rollback(
     provider_db, monkeypatch
 ):

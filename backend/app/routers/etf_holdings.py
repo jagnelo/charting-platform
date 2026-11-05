@@ -107,6 +107,7 @@ from app.services.etf_holdings import (
     snapshot_to_out,
 )
 from app.services.etf_holdings_adapters import (
+    ETFNativeSourceEvidenceError,
     get_holdings_adapter,
     holdings_adapter_catalog,
     parse_holdings_csv,
@@ -129,6 +130,7 @@ from app.services.etf_holdings_edgar import (
 )
 from app.services.etf_holdings_native_qualification import (
     NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+    continue_native_etf_fund_from_retained_evidence,
     qualify_native_etf_fund,
 )
 from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
@@ -1405,7 +1407,7 @@ async def qualify_initial_native_etf_fund(
         )
     except ETFHoldingsRouteHeldError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
-    except (IssuerCatalogError, ProviderNoDataError) as exc:
+    except (ETFNativeSourceEvidenceError, IssuerCatalogError, ProviderNoDataError) as exc:
         failed_job = (
             await db.execute(
                 select(ETFHoldingsBackfillJob)
@@ -1448,6 +1450,32 @@ async def qualify_initial_native_etf_fund(
             detail["job_id"] = failed_job.id
             detail["job_status"] = failed_job.status
         raise HTTPException(status_code=503, detail=detail) from exc
+
+
+@router.post(
+    "/{symbol}/native-initial-qualification/{predecessor_job_id}/continue-retained-evidence",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def continue_native_etf_qualification_from_retained_evidence(
+    symbol: str,
+    predecessor_job_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Revalidate one failed settled SPDR/iShares response without new HTTP."""
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol or normalized_symbol in {"*", "ALL", "ANY"} or predecessor_job_id <= 0:
+        raise HTTPException(status_code=422, detail="A single failed native job is required")
+    try:
+        return await continue_native_etf_fund_from_retained_evidence(
+            db,
+            predecessor_job_id=predecessor_job_id,
+            expected_symbol=normalized_symbol,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
 
 
 @router.post(

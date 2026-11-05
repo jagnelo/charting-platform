@@ -31760,6 +31760,13 @@ async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatc
             ["Holdings:", "As of 02-Nov-2026"],
             ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
             ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+            ["Cash & Other", "", "", "", "0.1", "20"],
+            [
+                "State Street Global Advisors (SSGA) is now State Street Investment Management. Please click here for more information."
+            ],
+            [
+                "Portfolio holdings, allocations and weightings are as of the date indicated and should not be considered a recommendation to buy individual securities."
+            ],
         ]
     )
     FakeAsyncClient.queue = [
@@ -31774,7 +31781,8 @@ async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatc
     spdr_completeness = spdr_result.legal_metadata["native_composition_completeness"]
     assert spdr_completeness["status"] == "complete"
     assert spdr_completeness["basis"] == "spdr_fund_scoped_daily_holdings_workbook"
-    assert spdr_completeness["reported_rows"] == spdr_completeness["parsed_rows"] == 1
+    assert spdr_completeness["reported_rows"] == spdr_completeness["parsed_rows"] == 2
+    assert spdr_completeness["ignored_known_footer_rows"] == 2
     malformed_spdr_rows = [
         ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
         ["Ticker Symbol:", spdr_symbol],
@@ -31786,6 +31794,22 @@ async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatc
     assert (
         spdr._workbook_completeness(
             malformed_spdr_rows,
+            rows=spdr_result.rows[:1],
+            fund_symbol=spdr_symbol,
+            composition_date=date(2026, 11, 2),
+        )["status"]
+        == "incomplete"
+    )
+    overflow_row = [
+        ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+        ["Ticker Symbol:", spdr_symbol],
+        ["Holdings:", "As of 02-Nov-2026"],
+        ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+        ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD", "unexpected"],
+    ]
+    assert (
+        spdr._workbook_completeness(
+            overflow_row,
             rows=spdr_result.rows,
             fund_symbol=spdr_symbol,
             composition_date=date(2026, 11, 2),
@@ -31871,6 +31895,12 @@ async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatc
                             "issueName": {"value": ["MICROSOFT CORP"]},
                             "holdingPercent": {"value": [6.5]},
                             "unitsHeld": {"value": [100]},
+                            "dateList": {
+                                "fullName": "holdings.dateList",
+                                "value": [20261102, 20261030, 20260930, 20251231],
+                                "active": False,
+                                "visible": False,
+                            },
                         }
                     }
                 }
@@ -31886,6 +31916,15 @@ async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatc
     assert ishares_completeness["status"] == "complete"
     assert ishares_completeness["basis"] == "blackrock_holdings_all_container"
     assert ishares_completeness["reported_rows"] == ishares_completeness["parsed_rows"] == 1
+    assert ishares_completeness["all_list_columns_aligned"] is True
+    active_date_selector = json.loads(json.dumps(ishares_payload))
+    active_date_selector["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"][
+        "dataPointsByNameMap"
+    ]["dateList"]["active"] = True
+    assert (
+        ishares._holdings_all_completeness(active_date_selector, rows=ishares_rows)["status"]
+        == "incomplete"
+    )
     truncated_ishares = json.loads(json.dumps(ishares_payload))
     truncated_ishares["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"][
         "dataPointsByNameMap"
