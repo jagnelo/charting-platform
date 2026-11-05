@@ -18,6 +18,25 @@ def text(path: str) -> str:
     return (ROOT / path).read_text()
 
 
+class UniqueKeyLoader(yaml.SafeLoader):
+    pass
+
+
+def unique_mapping(loader, node, deep=False):
+    result = {}
+    for key_node, value_node in node.value:
+        key = loader.construct_object(key_node, deep=deep)
+        if key in result:
+            raise ValueError(f"duplicate YAML key: {key}")
+        result[key] = loader.construct_object(value_node, deep=deep)
+    return result
+
+
+UniqueKeyLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_MAPPING_TAG, unique_mapping
+)
+
+
 def load_script(name: str):
     spec = importlib.util.spec_from_file_location(name, ROOT / "scripts" / f"{name}.py")
     assert spec and spec.loader
@@ -27,7 +46,17 @@ def load_script(name: str):
 
 
 @pytest.mark.parametrize(
-    "jobs_mode", ["success", "skipped", "missing", "duplicate", "run_failure"]
+    "jobs_mode",
+    [
+        "success",
+        "legacy_4",
+        "single_gate",
+        "single_gate_no_scope",
+        "skipped",
+        "missing",
+        "duplicate",
+        "run_failure",
+    ],
 )
 def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
     monkeypatch: pytest.MonkeyPatch,
@@ -37,7 +66,6 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
     sha = "a" * 40
     monkeypatch.setattr(staging, "shutil_which", lambda name: None)
     monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
-    monkeypatch.setattr(staging, "CI_RETRY_DISCOVERY_ATTEMPTS", 0)
     calls: list[str] = []
     sleeps: list[float] = []
     details = iter(["in_progress", "completed"])
@@ -46,13 +74,14 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
         assert timeout == 20
         url = request.full_url
         calls.append(url)
-        if "/actions/runs?" in url:
+        if "/actions/workflows/ci.yml/runs?" in url:
             payload = {
                 "workflow_runs": [
                     {
                         "id": 123,
                         "head_sha": sha,
                         "head_branch": "staging",
+                        "event": "push",
                         "status": "in_progress",
                         "conclusion": None,
                     }
@@ -62,17 +91,42 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
             payload = {
                 "jobs": [
                     {
-                        "name": "Exhaustive Integration Gate",
-                        "conclusion": "skipped"
-                        if jobs_mode == "skipped"
-                        else "success",
+                        "name": name,
+                        "status": "completed",
+                        "conclusion": (
+                            "skipped"
+                            if (
+                                jobs_mode in {"single_gate", "single_gate_no_scope"}
+                                and name in staging.BRANCH_PRODUCT_JOBS
+                            )
+                            or (
+                                jobs_mode == "skipped"
+                                and name == "Exhaustive Integration Gate"
+                            )
+                            else "success"
+                        ),
                     }
+                    for name in (
+                        "Changed-path validation scope",
+                        "Backend Tests",
+                        "Frontend Unit Tests",
+                        "E2E Tests (Playwright)",
+                        "Exhaustive Integration Gate",
+                    )
+                    if not (
+                        jobs_mode in {"legacy_4", "single_gate_no_scope"}
+                        and name == "Changed-path validation scope"
+                    )
                 ]
             }
             if jobs_mode == "missing":
-                payload["jobs"] = []
+                payload["jobs"] = [
+                    item
+                    for item in payload["jobs"]
+                    if item["name"] != "Exhaustive Integration Gate"
+                ]
             elif jobs_mode == "duplicate":
-                payload["jobs"] *= 2
+                payload["jobs"].append(dict(payload["jobs"][-1]))
         else:
             status = next(details)
             payload = {
@@ -90,16 +144,111 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
 
     monkeypatch.setattr(staging.urllib.request, "urlopen", urlopen)
     monkeypatch.setattr(staging.time, "sleep", sleeps.append)
-    if jobs_mode == "success":
+    if jobs_mode in {"success", "legacy_4", "single_gate"}:
         result = staging.github_run("staging", sha, exhaustive=True)
         assert result["conclusion"] == "success"
+        if jobs_mode == "single_gate":
+            assert result["validation_mode"] == staging.STAGING_VALIDATION_MODE
+            assert result["verified_required_jobs"] == list(
+                staging.STAGING_PROMOTION_JOBS
+            )
+            assert result["unexecuted_product_jobs"] == list(
+                staging.BRANCH_PRODUCT_JOBS
+            )
+        else:
+            assert result["validation_mode"] == staging.LEGACY_STAGING_VALIDATION_MODE
+            if jobs_mode == "legacy_4":
+                assert result["verified_required_jobs"] == list(
+                    staging.LEGACY_STAGING_PROMOTION_JOBS
+                )
     else:
-        with pytest.raises(SystemExit, match="not green|Exhaustive Integration Gate"):
+        with pytest.raises(
+            SystemExit,
+            match="not green|integration/release job|required job successfully|supported full-gate profile|requires successful changed-path",
+        ):
             staging.github_run("staging", sha, exhaustive=True)
     assert len(calls) == 4  # discovery, two run reads, one terminal jobs read
     assert sum("/jobs?" in url for url in calls) == 1
-    assert sleeps == [120.0]
-    assert staging.CI_API_WATCH_ATTEMPTS * staging.CI_API_POLL_SECONDS == 3600
+    assert sleeps == [180.0]
+    assert staging.CI_API_WATCH_ATTEMPTS * staging.CI_API_POLL_SECONDS == 14580
+
+
+def test_gh_ci_discovery_uses_reported_event_and_workflow_identity(monkeypatch):
+    staging = load_script("staging")
+    sha = "a" * 40
+    monkeypatch.setattr(staging, "shutil_which", lambda _name: "/usr/bin/gh")
+    monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
+    monkeypatch.setattr(staging.time, "sleep", lambda _seconds: None)
+    calls = []
+    required = [
+        "Changed-path validation scope",
+        "Backend Tests",
+        "Frontend Unit Tests",
+        "E2E Tests (Playwright)",
+        "Exhaustive Integration Gate",
+    ]
+
+    def run(*args, **kwargs):
+        calls.append(args)
+        if args[1:3] == ("run", "list"):
+            return SimpleNamespace(
+                returncode=0,
+                stderr="",
+                stdout=json.dumps(
+                    [
+                        {
+                            "databaseId": 123,
+                            "headSha": sha,
+                            "headBranch": "staging",
+                            "status": "completed",
+                            "conclusion": "success",
+                            "url": "https://github.com/example/repo/actions/runs/123",
+                            "runAttempt": 1,
+                            "event": "push",
+                            "workflowDatabaseId": 7,
+                        }
+                    ]
+                ),
+            )
+        if "jobs" in args:
+            return SimpleNamespace(
+                returncode=0,
+                stderr="",
+                stdout=json.dumps(
+                    {
+                        "jobs": [
+                            {
+                                "name": name,
+                                "status": "completed",
+                                "conclusion": "success",
+                            }
+                            for name in required
+                        ]
+                    }
+                ),
+            )
+        return SimpleNamespace(
+            returncode=0,
+            stderr="",
+            stdout=json.dumps(
+                {
+                    "status": "completed",
+                    "conclusion": "success",
+                    "url": "https://github.com/example/repo/actions/runs/123",
+                    "runAttempt": 1,
+                    "headSha": sha,
+                    "headBranch": "staging",
+                    "event": "push",
+                    "workflowDatabaseId": 7,
+                }
+            ),
+        )
+
+    monkeypatch.setattr(staging, "run", run)
+    result = staging.github_run("staging", sha, exhaustive=True)
+    assert result["workflowId"] == 7
+    list_args = next(call for call in calls if call[1:3] == ("run", "list"))
+    assert any(value.endswith("event,workflowDatabaseId") for value in list_args)
 
 
 @pytest.mark.parametrize(
@@ -132,6 +281,189 @@ def test_public_api_errors_never_manufacture_ci_evidence(
     monkeypatch.setattr(staging.urllib.request, "urlopen", denied)
     with pytest.raises(SystemExit, match=message):
         staging.github_run("staging", "a" * 40, exhaustive=True)
+
+
+def test_master_ci_reuse_requires_only_unique_release_provenance_job(monkeypatch):
+    staging = load_script("staging")
+    sha = "a" * 40
+    monkeypatch.setattr(staging, "shutil_which", lambda _name: None)
+    monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
+    calls = []
+
+    def urlopen(request, timeout):
+        url = request.full_url
+        calls.append(url)
+        if "/actions/workflows/ci.yml/runs?" in url:
+            payload = {
+                "workflow_runs": [
+                    {
+                        "id": 456,
+                        "head_sha": sha,
+                        "head_branch": "master",
+                        "event": "push",
+                        "status": "completed",
+                        "conclusion": "success",
+                    }
+                ]
+            }
+        elif url.endswith("/jobs?per_page=100"):
+            payload = {
+                "jobs": [
+                    {
+                        "name": "Master Release Provenance",
+                        "status": "completed",
+                        "conclusion": "success",
+                    }
+                ]
+            }
+        else:
+            payload = {
+                "id": 456,
+                "head_sha": sha,
+                "head_branch": "master",
+                "event": "push",
+                "workflow_id": 123,
+                "status": "completed",
+                "conclusion": "success",
+                "run_attempt": 1,
+                "html_url": "https://github.com/example/repo/actions/runs/456",
+            }
+        return io.BytesIO(json.dumps(payload).encode())
+
+    monkeypatch.setattr(staging.urllib.request, "urlopen", urlopen)
+    result = staging.github_run("master", sha, exhaustive=True)
+    assert result["validation_mode"] == (
+        "exact_staging_evidence_reuse_with_master_release_checks"
+    )
+    assert result["verified_required_jobs"] == ["Master Release Provenance"]
+    assert "Exhaustive Integration Gate" in result["unexecuted_product_jobs"]
+    assert sum("/jobs?" in url for url in calls) == 1
+
+
+def test_expired_observation_remains_pending_and_never_fetches_jobs(monkeypatch):
+    staging = load_script("staging")
+    monkeypatch.setattr(staging, "shutil_which", lambda _name: None)
+    monkeypatch.setattr(staging, "github_repository", lambda: "example/repo")
+    monkeypatch.setattr(staging, "CI_API_WATCH_ATTEMPTS", 2)
+    calls = []
+
+    def urlopen(request, timeout):
+        calls.append(request.full_url)
+        if "/actions/workflows/ci.yml/runs?" in request.full_url:
+            payload = {
+                "workflow_runs": [
+                    {
+                        "id": 1,
+                        "head_sha": "a" * 40,
+                        "head_branch": "staging",
+                        "event": "push",
+                        "status": "in_progress",
+                    }
+                ]
+            }
+        elif "/jobs?" in request.full_url:
+            raise AssertionError("job details must not be fetched while CI is running")
+        else:
+            payload = {
+                "id": 1,
+                "head_sha": "a" * 40,
+                "head_branch": "staging",
+                "event": "push",
+                "status": "in_progress",
+                "run_attempt": 1,
+            }
+        return io.BytesIO(json.dumps(payload).encode())
+
+    monkeypatch.setattr(staging.urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(staging.time, "sleep", lambda _seconds: None)
+    with pytest.raises(
+        SystemExit, match=r"expired after 6(?:\.0)? minutes.*still in_progress"
+    ):
+        staging.github_run("staging", "a" * 40, exhaustive=True)
+    assert len(calls) == 3
+
+
+def test_branch_scope_modes_keep_skipped_product_suites_explicit():
+    staging = load_script("staging")
+    base = [
+        {
+            "name": "Changed-path validation scope",
+            "status": "completed",
+            "conclusion": "success",
+        },
+        {
+            "name": "Branch-declared Tests",
+            "status": "completed",
+            "conclusion": "success",
+        },
+    ]
+    scoped = base + [
+        {"name": name, "status": "completed", "conclusion": "skipped"}
+        for name in staging.BRANCH_PRODUCT_JOBS
+    ]
+    mode, skipped = staging.branch_ci_mode(scoped)
+    assert mode == "scoped_guards_with_exact_prior_full_qualification"
+    assert skipped == list(staging.BRANCH_PRODUCT_JOBS)
+    full = base + [
+        {"name": name, "status": "completed", "conclusion": "success"}
+        for name in staging.BRANCH_PRODUCT_JOBS
+    ]
+    assert staging.branch_ci_mode(full) == ("full_branch_suites", [])
+    with pytest.raises(SystemExit, match="partial or failed"):
+        staging.branch_ci_mode(full[:-1] + [{**full[-1], "conclusion": "skipped"}])
+
+
+def test_first_policy_promotion_requires_explicit_staging_and_reuse_run_identity():
+    staging = load_script("staging")
+    sha = "a" * 40
+    stage = {
+        "headSha": sha,
+        "headBranch": "staging",
+        "event": "push",
+        "workflowPath": ".github/workflows/ci.yml",
+        "databaseId": 123,
+        "validation_mode": staging.STAGING_VALIDATION_MODE,
+        "verified_required_jobs": list(staging.STAGING_PROMOTION_JOBS),
+    }
+    master = {
+        "headSha": sha,
+        "headBranch": "master",
+        "event": "push",
+        "workflowPath": ".github/workflows/ci.yml",
+        "databaseId": 456,
+        "validation_mode": "exact_staging_evidence_reuse_with_master_release_checks",
+        "verified_required_jobs": list(staging.MASTER_RELEASE_JOBS),
+    }
+    staging.require_promotion_evidence(
+        stage,
+        branch="staging",
+        commit=sha,
+        mode=staging.STAGING_VALIDATION_MODE,
+        required_jobs=staging.STAGING_PROMOTION_JOBS,
+    )
+    staging.require_promotion_evidence(
+        master,
+        branch="master",
+        commit=sha,
+        mode="exact_staging_evidence_reuse_with_master_release_checks",
+        required_jobs=staging.MASTER_RELEASE_JOBS,
+    )
+    with pytest.raises(SystemExit, match="explicit trusted source identity"):
+        staging.require_promotion_evidence(
+            {**master, "validation_mode": "full_master_replay"},
+            branch="master",
+            commit=sha,
+            mode="exact_staging_evidence_reuse_with_master_release_checks",
+            required_jobs=staging.MASTER_RELEASE_JOBS,
+        )
+    with pytest.raises(SystemExit, match="explicit trusted source identity"):
+        staging.require_promotion_evidence(
+            {**stage, "databaseId": None},
+            branch="staging",
+            commit=sha,
+            mode=staging.STAGING_VALIDATION_MODE,
+            required_jobs=staging.STAGING_PROMOTION_JOBS,
+        )
 
 
 @pytest.mark.parametrize(
@@ -224,7 +556,16 @@ def test_interrupted_watch_reconciliation_is_exact_and_fail_closed(
             raise SystemExit("actual exhaustive gate not green")
         if case == "marker_changed":
             marker_path.write_text(json.dumps({**marker, "reason": "changed"}))
-        return {"url": "https://github.com/example/repo/actions/runs/123"}
+        return {
+            "headSha": sha,
+            "headBranch": "staging",
+            "event": "push",
+            "workflowPath": ".github/workflows/ci.yml",
+            "databaseId": 123,
+            "validation_mode": staging.STAGING_VALIDATION_MODE,
+            "verified_required_jobs": list(staging.STAGING_PROMOTION_JOBS),
+            "url": "https://github.com/example/repo/actions/runs/123",
+        }
 
     def record(payload):
         assert marker_path.exists()  # Persist success before releasing the guard.
@@ -272,6 +613,52 @@ def test_ci_uses_staging_and_master_without_emulation() -> None:
     assert "name: Exhaustive Integration Gate" in workflow_text
     assert "refs/heads/staging" in workflow_text
     assert "refs/heads/master" in workflow_text
+    assert workflow["jobs"]["platform-gate"]["if"].endswith("refs/heads/staging'")
+    assert workflow["jobs"]["master-release"]["name"] == "Master Release Provenance"
+
+
+def test_ci_yaml_has_unique_keys_and_diagnostics_stay_with_staging_gate():
+    workflow = yaml.load(text(".github/workflows/ci.yml"), Loader=UniqueKeyLoader)
+    gate = workflow["jobs"]["platform-gate"]
+    assert (
+        sum(
+            step.get("name") == "Preserve browser diagnostics" for step in gate["steps"]
+        )
+        == 1
+    )
+    assert not any(
+        step.get("name") == "Preserve browser diagnostics"
+        for step in workflow["jobs"]["master-release"]["steps"]
+    )
+    with pytest.raises(ValueError, match="duplicate YAML key: if"):
+        yaml.load("job:\n  if: true\n  if: false\n", Loader=UniqueKeyLoader)
+
+
+def test_scoped_branch_jobs_require_installed_guards_and_inherit_only_prior_suites():
+    workflow = yaml.safe_load(text(".github/workflows/ci.yml"))
+    branch = workflow["jobs"]["branch-declared"]
+    assert "github.event_name == 'pull_request'" in branch["if"]
+    names = [step.get("name") for step in branch["steps"]]
+    assert "Install backend dependencies" in names
+    assert (
+        "GITHUB_HEAD_REF"
+        in next(
+            step
+            for step in branch["steps"]
+            if step.get("name") == "Run tests declared by this branch"
+        )["run"]
+    )
+    narrative = next(
+        step
+        for step in branch["steps"]
+        if step.get("name") == "Check workstream narrative inputs"
+    )
+    assert "--no-cov" in narrative["run"]
+    assert (
+        "verify-prior-qualification.py"
+        in workflow["jobs"]["changed-scope"]["steps"][1]["run"]
+    )
+    assert "--no-renames" in text("scripts/ci-change-scope.py")
 
 
 def test_normal_integration_gate_is_architecture_neutral() -> None:
@@ -698,6 +1085,7 @@ def test_bootstrap_recovers_after_branch_and_remote_were_already_created(
 
     monkeypatch.setattr(staging, "STAGING_PATH", target)
     monkeypatch.setattr(staging, "root_master_ready", lambda: None)
+    monkeypatch.setattr(staging, "require_healthy_master", lambda: None)
     monkeypatch.setattr(staging, "fetch_branch", lambda branch, cwd: None)
     monkeypatch.setattr(staging, "synchronized", lambda path, branch: current)
 
