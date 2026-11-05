@@ -1,0 +1,19 @@
+{
+  "state": "green",
+  "created_at": "2026-11-04T19:40:59.058422+00:00",
+  "starting_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
+  "staging_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
+  "sources": [
+    {
+      "branch": "feat/etf-holdings-constituents",
+      "sha": "2824a86d18721bf74bb9286f84379dac06a7f75e"
+    },
+    {
+      "branch": "feat/tc2000-frontend-rework",
+      "sha": "b11d9d1a722a19d234a166a000becea582993fce"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/41879969933",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2: https://github.com/jagnelo/charting-platform/actions/runs/41879969933 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/41879969933', 'status': 'in_progress', 'conclusion': None}]"
+}

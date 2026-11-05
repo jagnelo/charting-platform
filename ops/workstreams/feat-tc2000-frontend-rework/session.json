@@ -1,25 +1,29 @@
 {
   "acceptance_criteria": [
     {
-      "id": "F8Y1",
-      "text": "On the real Workstation parent host, wait for the successful workspace snapshot PUT whose exact WatchList instance_key contains the selected target watchlist id and tag-watchlist column key; after reload and target selection verify the Tag header is restored before the locked-row interaction."
+      "id": "TCENTER1",
+      "text": "In Workstation, Enter on typed text submits that exact ticker unless the user deliberately arrow-navigated; an exact local ticker match is chosen even when it is not the first fuzzy result."
     },
     {
-      "id": "F8Y2",
-      "text": "The ordinary parent-host XLE context menu for a locked Tag Column target keeps the Remove menuitem visible and disabled; no DELETE request or membership mutation occurs. Preserve ordinary clicks, existing readiness checks and the 60-second test timeout."
+      "id": "TCENTER2",
+      "text": "In shared chart SearchBar, typed Enter submits the exact ticker or exact local result; hover changes only the highlight, while arrow navigation and direct suggestion clicks retain explicit selection behavior."
     },
     {
-      "id": "F8Y3",
-      "text": "The unchanged focused/component checks, full canonical functional suite and all 104 strict visual cases across existing projects pass at zero retries, with exact repair-source branch CI green; preserve every assertion, visual reference, mask and tolerance."
+      "id": "TCENTER3",
+      "text": "Preserve expression selection, resolved candidate identity verification, restricted picker result/type behavior, and ordinary select-event compatibility."
     },
     {
-      "id": "F8Y4",
-      "text": "Retain the exact original first-attempt failure/trace and all setup receipts; qualify the exact source and reused component images, run only the uniquely owned bounded fixture, preserve the protected resource baseline and remove only owned validation resources after terminal evidence."
+      "id": "TCENTER4",
+      "text": "Clear stale local options on query changes and ignore late results from older searches."
+    },
+    {
+      "id": "TCENTER5",
+      "text": "Focused regression checks, type-check and normal scope/workstream validation pass; publish one coherent implementation commit for Root artifact/profile qualification. Exact-source CI and the complete local profile remain pending."
     }
   ],
   "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
   "active_session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
-  "adoption_source_base_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
+  "adoption_source_base_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
   "branch": "feat/tc2000-frontend-rework",
   "claim": {
     "branch": "feat/tc2000-frontend-rework",
@@ -35,53 +39,55 @@
   "closing_tip_ci": {
     "head_sha": null,
     "run_id": null,
-    "scope": "Exact ordinary-journey final local-reference successor closing tip.",
-    "status": "pending_publication"
+    "scope": "Exact ordinary typed-ticker Enter closing publication; Root observes CI after push.",
+    "status": "pending"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The Root-accepted b8 functional evidence remains valid. The feb0d8 strict visual run completed103/104; Root authorized the single reviewed terminal image, now copied. Fresh immutable-tip104 strict visuals and exact final CI remain pending.",
-  "current_checkpoint_status": "b8 functional 203 passed/2 configured skips/0 failed. feb0d8 strict visuals were103/104 with one stable terminal 404 capture mismatch. Root authorized and reviewed one additional exact local PNG; all35 scoped reference successors are now copied. Fresh104 visuals, exact current-tip CI, protected integration/deployment and genuine-source evidence remain pending.",
+  "current_candidate_ci_status": "Closing publication is the exact-source CI candidate; CI is pending Root observation after push.",
+  "current_checkpoint_status": "Root accepted the bounded ordinary typed-ticker Enter software/profile checkpoint under the existing standing delegation. Functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects at zero retries; served-bundle F Enter probe 1/1. Root acceptance receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json. Exact closing-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending.",
   "current_exact_ci": {
     "conclusion": null,
     "head_sha": null,
     "run_id": null,
-    "scope": "Exact one-PNG local-reference successor closing tip; Root observes final branch CI.",
-    "status": "pending_publication"
+    "scope": "Exact ordinary typed-ticker Enter closing publication; Root observes CI after push.",
+    "status": "pending"
   },
   "current_software_checkpoint": {
-    "acceptance": "Root accepted 2026-10-28 under the existing standing human delegation; exact records-only closing-tip CI remains required before integration.",
-    "archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
-    "criteria_completed": [
-      "F8Y1",
-      "F8Y2",
-      "F8Y3",
-      "F8Y4"
-    ],
-    "criteria_ids": [
-      "F8Y1",
-      "F8Y2",
-      "F8Y3",
-      "F8Y4"
-    ],
-    "criteria_total": 4,
-    "id": "tc-f8y-tag-columns-repair-20261028",
-    "local_evidence": "Root reviewed focused parent-host1/1 and component119/119; full functional199 passed/107 configured skips/0 failed and strict visual104/104 across four projects, both zero retries. Exact source CI40752914676 is terminal green. Receipt tc-f8y-root-checkpoint-acceptance-20261028.json binds source/runtime/cleanup evidence; earlier red/setup receipts remain preserved.",
-    "planning_authority": "Root direct activation under existing human first-human deployment authority; no new human acceptance is claimed.",
-    "source_base": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
+    "id": "tc-ordinary-ticker-enter-selection-20261105",
     "status": "ready_for_integration",
-    "test_diff_sha256": "d8aff663a01775e71f9176d6001b0b2d5bcd15c5fb2890914dde6b8503a850b5"
+    "criteria_ids": [
+      "TCENTER1",
+      "TCENTER2",
+      "TCENTER3",
+      "TCENTER4",
+      "TCENTER5"
+    ],
+    "criteria_total": 5,
+    "criteria_completed": [
+      "TCENTER1",
+      "TCENTER2",
+      "TCENTER3",
+      "TCENTER4",
+      "TCENTER5"
+    ],
+    "local_evidence": "Root accepted the complete local profile at source 6e1ed68d2e1c10968716cb362fd56fda9f83ec75: functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects, zero retries; served-bundle F Enter probe 1/1. Controlled local API responses are not genuine Provider/issuer proof. Exact evidence and cleanup receipts are linked in the plan and validation journal.",
+    "source_base": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
+    "acceptance": "Root accepted the bounded software/profile checkpoint under standing delegated authority; exact receipt is /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json. This is not full-roadmap acceptance.",
+    "planning_authority": "Human activation in the original TC session on 2026-11-05 under standing authority.",
+    "integration_capture": "exact branch HEAD",
+    "pending": "Exact closing-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending. The nine-item roadmap remains open; retained backend 52fa was not a newly combined Provider/ETF release."
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/VirtualWatchlistTool.vue",
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/onDemandAcquisition.ts",
+    "frontend/src/components/common/SearchBar.vue",
     "frontend/src/views/WorkstationView.vue",
     "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
+    "frontend/tests/unit/components/test_search_bar.test.ts",
+    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
+    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json"
+    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.yaml",
+    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.json"
   ],
   "docker": {
     "available": false,
@@ -175,15 +181,15 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/tc2000-frontend-rework: Repair F8y Tag Column persistence readiness in the real Workstation parent host while preserving locked-target disabled Remove and zero-DELETE behavior, with the normal source-matched local profile and exact-source CI.. Acceptance criteria: F8Y1: On the real Workstation parent host, wait for the successful workspace snapshot PUT whose exact WatchList instance_key contains the selected target watchlist id and tag-watchlist column key; after reload and target selection verify the Tag header is restored before the locked-row interaction.; F8Y2: The ordinary parent-host XLE context menu for a locked Tag Column target keeps the Remove menuitem visible and disabled; no DELETE request or membership mutation occurs. Preserve ordinary clicks, existing readiness checks and the 60-second test timeout.; F8Y3: The unchanged focused/component checks, full canonical functional suite and all 104 strict visual cases across existing projects pass at zero retries, with exact repair-source branch CI green; preserve every assertion, visual reference, mask and tolerance.; F8Y4: Retain the exact original first-attempt failure/trace and all setup receipts; qualify the exact source and reused component images, run only the uniquely owned bounded fixture, preserve the protected resource baseline and remove only owned validation resources after terminal evidence.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Repair ordinary typed-ticker Enter behavior in Workstation and shared chart SearchBar: submit the exact typed ticker or its exact local match instead of implicitly selecting a fuzzy prefix, while deliberate arrow navigation and suggestion clicks retain their chosen-option behavior. Preserve expressions, candidate identity verification, picker/type restrictions, and stale-search fencing.",
   "goal_recorded_at": "2026-10-23T05:19:32.501383+00:00",
   "goal_request": {
-    "objective": "Advance feat/tc2000-frontend-rework: Prepare tc2000-workstation-integration-1: repair independent chart-template pointer interception and functional/visual blockers; consume synchronized green Provider+ETF staging, reconcile real consumer contracts, validate the combined workstation and publish a clean checkpoint for human review.. Acceptance criteria: TCP1: Diagnose and fix chart-template pointer interception with browser regression evidence and a coordinator-readable narrow repair proposal.; TCP2: Resolve required functional/visual failures without weakening reference policy; document missing reference evidence and proposed checkpoint limitations for human review.; TCP3: After Provider and ETF reach synchronized green staging, merge that staging into this clean unfrozen source and reconcile all shared paths and actual provider coverage/preflight and ETF lineage/freshness consumers.; TCP4: Validate usable combined workstation and immutable Study consumers, success and unavailable paths, with the required full integration/browser profile and exact-source branch CI.; TCP5: Publish a clean pushed checkpoint and complete roadmap dispositions at ready_for_human_review; retain pending human acceptance and coordinator-only staging integration/freeze release.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
+    "objective": "Repair ordinary typed-ticker Enter behavior in Workstation and shared chart SearchBar: submit the exact typed ticker or its exact local match instead of implicitly selecting a fuzzy prefix, while deliberate arrow navigation and suggestion clicks retain their chosen-option behavior. Preserve expressions, candidate identity verification, picker/type restrictions, and stale-search fencing."
   },
-  "goal_request_state": "ready",
+  "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
+  "head": "6e1ed68d2e1c10968716cb362fd56fda9f83ec75",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -250,28 +256,30 @@
     },
     "recorded_at": "2026-10-27T22:28:35Z"
   },
-  "implementation_sha": "b8c973f7139d2395f9c158a3dfacd0748318092c",
+  "implementation_sha": "6e1ed68d2e1c10968716cb362fd56fda9f83ec75",
   "integration_checkpoint": {
-    "acceptance": "Root accepted bounded F8Y checkpoint under existing standing human delegation on 2026-10-28; see .ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json. This is not full-roadmap acceptance.",
-    "archive_of_prior_checkpoint": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
-    "criteria_completed": [
-      "F8Y1",
-      "F8Y2",
-      "F8Y3",
-      "F8Y4"
-    ],
+    "id": "tc-ordinary-ticker-enter-selection-20261105",
+    "objective": "Make typed Enter submit the exact ticker or exact local match in Workstation and shared chart SearchBar; preserve explicit arrow/click selection, expressions, identity checks, picker scopes, and stale-search fencing.",
+    "status": "in_progress",
+    "acceptance": "Pending. No new checkpoint acceptance is claimed.",
+    "planning_authority": "Human activation in the original TC session on 2026-11-05 under standing authority; Root coordinates final profile and integration.",
+    "source_capture": "Current source is the TC branch after adoption of exact green staging dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2; capture exact branch HEAD at publication.",
     "criteria_ids": [
-      "F8Y1",
-      "F8Y2",
-      "F8Y3",
-      "F8Y4"
+      "TCENTER1",
+      "TCENTER2",
+      "TCENTER3",
+      "TCENTER4",
+      "TCENTER5"
     ],
-    "criteria_total": 4,
-    "id": "tc-f8y-tag-columns-repair-20261028",
-    "planning_authority": "Root direct activation under existing human first-human deployment authority; no new human acceptance is claimed.",
-    "required_next_gate": "Root observes terminal success for the exact records-only closing-tip branch CI, then performs supported integration. No new local profile is required for this records-only close.",
-    "source_base": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
-    "status": "ready_for_integration"
+    "criteria_total": 5,
+    "criteria_completed": [
+      "TCENTER1",
+      "TCENTER2",
+      "TCENTER3",
+      "TCENTER4"
+    ],
+    "required_next_gate": "Complete one local implementation commit; Root then qualifies the immutable frontend with the compatible backend and owns exact-source CI before any closure or integration.",
+    "full_roadmap": "All nine original AC1-AC9 criteria, official REF-HELP-V25, genuine Provider/issuer proof, protected integration, and deployment remain open or Root-owned."
   },
   "interrupted": false,
   "last_checkpoint": "2026-11-04T16:24:18Z",
@@ -283,30 +291,24 @@
     "run_id": 40752914676
   },
   "latest_staging_adoption": {
-    "backend_tree": "42bf806179e6b0852b589e309628590dd0813cdf",
-    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json",
-    "checkpoint": "Ordinary ticker journey remains in progress; controlled fixtures are not genuine source proof; preserve all9 roadmap criteria, AC1-AC9, V25 and operational holds",
-    "focused_validation": "Seven affected frontend unit files71/71; vue-tsc passed; Playwright collection7/7; scope self-test/full guard and workstream validation passed. Full local frontend tests154/1552, functions2582/3671=70.3351% on pre-adoption frontend inputs.",
-    "frontend_src_tree": "94b189aaf4289bd714fc1a86958814c9253f708b",
-    "manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/4d4a278b1b086745b22aab05d3d960539ad02c97.yaml",
-    "manifest_path_count": 885,
-    "manifest_sha256": "e370744e89c3c559396be58cda698b498f8dedb1d775987892ad8005b8ee1057",
-    "merge_base": "eb74b439319ad32006a3d68fc7b6e98959148af7",
-    "merge_commit": "d9bc0ef40a101c1f3fcb29f2b264fdcaf9792cd5",
-    "merge_result": "Exact Root-released staging merged without conflicts into the existing claimed TC worktree; no sibling source copy",
-    "new_exact_import_path": "backend/tests/unit/routers/test_instruments_router.py",
-    "premerge_feature_head": "218b1dafe095486547e0fdb0a23bda6ef8053ec4",
-    "profile": "No post-adoption app build or browser runtime yet; one bounded frontend artifact build authorized after clean freeze; Root must verify joint component inputs before full combined profile",
-    "publication": "Pending one coherent ownership/session/import reconciliation commit and push; exact final-tip branch CI required",
-    "receipt_sha256": "c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7",
-    "staging_ci_attempt": 1,
-    "staging_ci_run": 41706834463,
-    "staging_ci_status": "terminal success for Backend, Frontend Unit, E2E, and actual Exhaustive; Branch-declared expected skip",
-    "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97"
+    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.json",
+    "checkpoint": "The new ordinary typed-ticker Enter repair is active and unaccepted. Prior accepted checkpoints and the full roadmap remain intact.",
+    "component_proof": "Frontend tree eacb29643e4dd3e95721188bcb76c1d39b4983f2 remained identical to accepted b11. Backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c is the exact released staging tree.",
+    "import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.yaml",
+    "import_manifest_sha256": "39d9f839ff0fe4eac5b487a934d915b450b42c85e37fc595034bf1e042fedbbc",
+    "imported_paths": 891,
+    "local_validation": "Adoption only. Exact receipt and manifest are copied/pinned; final normal scope/workstream validation is part of this candidate. No new full profile is claimed.",
+    "manifest_sha256": "9cc483ee9aafee6e8d999a1e28d822b83dbb4e3ae60ab4424a53bce1fa86427c",
+    "merge_result": "Exact Root-released green staging fast-forwarded into the original TC branch. No conflict or sibling worktree mutation.",
+    "premerge_feature_head": "b11d9d1a722a19d234a166a000becea582993fce",
+    "receipt_sha256": "af0903527a29c5c8792ebe9cab881b3944596bac0c9028bced8d772d626de09a",
+    "staging_ci_run": 41879969933,
+    "staging_ci_status": "Terminal green per exact canonical receipt; supported reconciliation completed and degraded marker absent.",
+    "staging_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2"
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish this one coherent additional-PNG and records update; run a fresh immutable-tip 104-case strict visual matrix across four projects, one worker, zero retries on unchanged 6c6/52fa. Root owns exact-tip CI, integration, deployment, and genuine-source proof.",
+  "next_action": "Make the coherent local implementation commit without pushing, then give Root the exact SHA and frontend tree for its allocated artifact/profile.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -337,7 +339,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "b1962e87c6eef2efc085912165374b4477309e10c7870292cc88a5dd8c8d09e4",
+  "plan_hash": "4d52e3c4c8fe5bff547e7574c94e102e5a220981c02a23d361fcfa067bfcd116",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -366,27 +368,27 @@
   },
   "progress": {
     "completed": [
-      "OTJ1",
-      "OTJ2",
-      "OTJ4",
-      "OTJ6"
+      "TCENTER1",
+      "TCENTER2",
+      "TCENTER3",
+      "TCENTER4",
+      "TCENTER5"
     ],
-    "current_blocker": "Build and publish one source-specific frontend artifact from this reviewed source, then obtain Root's replacement review and verify fresh /chart hydration plus unresolved-holding drilldown. Exact current-source CI and full functional/104 strict visuals remain pending; preserve attempt19's 202/1/2 functional and 66/38 visual results as predecessor evidence.",
-    "current_phase": "Focused repair for attempt19 is implemented in WorkstationView.vue, the mounted Workstation tests and F8e.1's ordinary horizontal-column checks. Workstation tests68/68 and two late-response store tests passed; vue-tsc --noEmit passed. Prior attempt19 red evidence remains preserved.",
-    "next_action": "Run normal workstream/scope/diff checks on the coherent source and current records, publish once for exact CI, and build one frontend image with the retained capped shared builder. Send Root the immutable artifact and replacement proposal; do not mutate the existing fixture before review.",
-    "total": 6,
-    "updated_at": "2026-11-04T14:19:57Z"
+    "total": 5,
+    "current_phase": "Root-accepted bounded typed-Enter software/profile checkpoint; one coherent closing-record publication is being finalized. Exact-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending.",
+    "current_blocker": "No implementation or local-profile blocker. Exact closing-tip CI and Root-owned protected integration/deployment and genuine Provider/issuer proof remain pending.",
+    "next_action": "Root observes exact closing-tip CI for the single closing publication; Root owns protected integration/deployment and genuine Provider/issuer proof. Preserve the wider roadmap as open.",
+    "updated_at": "2026-11-05"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "One additional Root-authorized terminal404 PNG plus current records; 35 scoped local reference copies total. Fresh immutable-tip104 visuals and exact closing-tip CI pending.",
+    "current_pending_range": "Adopted dae1 staging plus Workstation/SearchBar typed-Enter behavior, focused regressions, and one authorized UNXQ test synchronization change.",
     "failure_category": null,
     "remote": "origin",
-    "remote_tracking_sha": "f92480ae0aed6734d43a00049a2b83c9215be3ef",
-    "status": "The prior feb0d8 tip is published; its full strict visual run was103/104, with one Root-reviewed terminal 404 image mismatch. This coherent update copies only the newly authorized exact PNG and records. Publish once, run fresh104 strict visuals on the immutable new tip, and preserve the b8 functional evidence and all remaining Root-owned gates."
+    "status": "local candidate unpublished"
   },
-  "remote": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
-  "remote_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
+  "remote": "b11d9d1a722a19d234a166a000becea582993fce",
+  "remote_sha": "b11d9d1a722a19d234a166a000becea582993fce",
   "remote_synchronized": false,
   "remote_tracking_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
   "retained_docker_resources": [
@@ -527,7 +529,7 @@
       "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97"
     }
   ],
-  "state": "in_progress",
+  "state": "ready_for_integration",
   "takeover_history": [
     {
       "at": "2026-09-09T12:31:34.588751+00:00",
@@ -566,7 +568,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-04T16:24:18Z",
+  "updated_at": "2026-11-05",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

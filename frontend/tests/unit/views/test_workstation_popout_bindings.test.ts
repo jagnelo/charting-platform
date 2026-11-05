@@ -635,6 +635,61 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('submits the typed ticker instead of its first partial local result on Enter', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'F') {
+        return [{ symbol: 'FTI', name: 'TechnipFMC plc', exchange: 'NYSE', type: 'Common Stock', instrument_id: 17 }]
+      }
+      if (path === '/instruments/F') return { id: 18, symbol: 'F', name: 'Ford Motor Company' }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    harness.workspace.publishSymbol.mockClear()
+
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('F')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('TechnipFMC plc'))
+    await input.trigger('keydown', { key: 'Enter' })
+
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'F', instrumentId: 77 })))
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'FTI' }))
+    wrapper.unmount()
+  })
+
+  it('uses an exact local ticker match when it is not the default first result', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockImplementation(async (path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/search' && params?.q === 'XLE') {
+        return [
+          { symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 88 },
+          { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89 },
+        ]
+      }
+      if (path === '/instruments/XLE') return { id: 89, symbol: 'XLE', name: 'Energy Select Sector SPDR Fund' }
+      return []
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+    harness.workspace.publishSymbol.mockClear()
+
+    const input = wrapper.get('input[aria-label="Active symbol"]')
+    await input.setValue('XLE')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Technology Select Sector SPDR Fund'))
+    await input.trigger('keydown', { key: 'Enter' })
+
+    await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLE', instrumentId: 89 })))
+    expect(harness.workspace.publishSymbol).not.toHaveBeenCalledWith(expect.objectContaining({ symbol: 'XLK' }))
+    wrapper.unmount()
+  })
+
   it('uses Backspace for viewed-symbol history when the workstation owns focus', async () => {
     routeState.path = '/'
     routeState.params = {}
