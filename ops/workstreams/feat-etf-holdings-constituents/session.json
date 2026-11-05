@@ -70,7 +70,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -105,15 +105,27 @@
   "current_blocker_latest": "Only the final exact closing-tip CI and Root-owned protected integration/deployment/genuine-flow gates remain. The exact closing-tip CI is pending, not green.",
   "current_checkpoint_objective": "Close etf-native-capability-projection-20261105 with the accepted exact runtime/profile evidence; final closing-tip CI remains mandatory and Root-owned.",
   "current_local_delta": "This publication changes only the four owned workstream records. Runtime implementation 6eae00eb, exact-source CI42009540648, paired served profile, and retained-input proof are accepted by Root; no product/production/source data changed.",
-  "dirty_paths": [
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 463900089,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
+      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 463900089,
+    "volume_count": 2,
+    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "docker_ready": {
     "ready": true,
@@ -136,7 +148,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6eae00eb8380438da771fed0c42d19587e9520ce",
+  "head": "8a9839a59b7a177dbd0d600ce566c4fb0b32c31f",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -354,7 +366,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -738,7 +750,7 @@
     },
     "remaining_gates": [
       "Exact final closing-tip CI must be terminal green before integration.",
-      "Root owns accepted compatible ETF\u2192TC staging, green staging and independent master gates.",
+      "Root owns accepted compatible ETF→TC staging, green staging and independent master gates.",
       "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
     ],
     "retained_input_proof": {
@@ -1762,7 +1774,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -3246,7 +3258,7 @@
       "NCP3",
       "NCP4"
     ],
-    "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates.",
+    "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates. The full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, all source/account/target holds, and genuine production workflows remain open.",
     "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
     "total": 4
   },
@@ -3305,9 +3317,9 @@
     "state": "terminal_green_all_required_jobs",
     "supported_reconcile": "make staging-reconcile exited0; synchronized; marker absent"
   },
-  "remote": "6eae00eb8380438da771fed0c42d19587e9520ce",
+  "remote": "8a9839a59b7a177dbd0d600ce566c4fb0b32c31f",
   "remote_observation": "Local source includes the prepared ETV test and exact green Provider merge; coherent current publication is pending. origin feature remains7cf4952935392719023e24fd9dc7f658823aef18.",
-  "remote_sha": "6eae00eb8380438da771fed0c42d19587e9520ce",
+  "remote_sha": "8a9839a59b7a177dbd0d600ce566c4fb0b32c31f",
   "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
