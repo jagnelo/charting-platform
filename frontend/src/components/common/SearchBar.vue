@@ -50,7 +50,7 @@
             role="option"
             :aria-selected="i === highlightIdx ? 'true' : 'false'"
             @click="select(r)"
-            @mouseenter="highlightIdx = i"
+            @mouseenter="highlightOption(i)"
           >
             <span class="r-symbol">{{ r.symbol }}</span>
             <span class="r-name">{{ r.name }}</span>
@@ -67,7 +67,7 @@
             :aria-selected="highlightIdx === results.length + index ? 'true' : 'false'"
             :disabled="discoveryLoading || resolvingCandidate"
             @click="resolveCandidate(candidate)"
-            @mouseenter="highlightIdx = results.length + index"
+            @mouseenter="highlightOption(results.length + index)"
           >Use {{ candidate.symbol }} · {{ candidate.exchange || candidate.type }} <span>{{ candidate.name }}</span></button>
           </div>
         </template>
@@ -83,7 +83,7 @@
               role="option"
               :aria-selected="i === highlightIdx ? 'true' : 'false'"
               @click="selectRecent(r.symbol)"
-              @mouseenter="highlightIdx = i"
+              @mouseenter="highlightOption(i)"
             >
               <span class="r-symbol">{{ r.symbol }}</span>
               <span class="r-name">{{ r.name || 'Recent instrument' }}</span>
@@ -194,6 +194,7 @@ const discoveryScheduled = ref(false)
 const resolvingCandidate = ref(false)
 const discoveryMessage = ref('')
 const discoveryError = ref('')
+const optionExplicitlyNavigated = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
 let searchGeneration = 0
@@ -245,10 +246,12 @@ watch(() => props.modelValue, value => {
 
 async function onInput() {
   const generation = ++searchGeneration
+  optionExplicitlyNavigated.value = false
   expressionSelected.value = false
   dropdownDismissed.value = false
   errorMessage.value = ''
   discoveryCandidates.value = []
+  results.value = []
   highlightIdx.value = query.value.trim() ? -1 : 0
   discoveryMessage.value = ''
   discoveryError.value = ''
@@ -448,6 +451,17 @@ function commitSelection(
 function selectFirst() {
   if (isExpression.value) { void selectExpression(); return }
   if (query.value.trim()) {
+    if (props.mode === 'chart' && !optionExplicitlyNavigated.value) {
+      const exact = results.value.find(result =>
+        result.symbol.trim().toUpperCase() === query.value.trim().toUpperCase(),
+      )
+      if (exact) {
+        select(exact)
+      } else {
+        commitSelection(query.value.trim())
+      }
+      return
+    }
     if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length) {
       select(results.value[highlightIdx.value])
       return
@@ -465,23 +479,32 @@ function selectFirst() {
 function moveDown() {
   if (query.value.trim() && discoveryCandidates.value.length) {
     const count = results.value.length + discoveryCandidates.value.length
+    optionExplicitlyNavigated.value = true
     highlightIdx.value = Math.min(highlightIdx.value + 1, count - 1)
     return
   }
   const len = query.value.trim()
     ? results.value.length
     : recentStore.recent.length
+  if (len) optionExplicitlyNavigated.value = true
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
 function moveUp() {
   if (query.value.trim() && discoveryCandidates.value.length) {
+    optionExplicitlyNavigated.value = true
     highlightIdx.value = Math.max(highlightIdx.value - 1, 0)
     return
   }
+  const len = query.value.trim() ? results.value.length : recentStore.recent.length
+  if (len) optionExplicitlyNavigated.value = true
   highlightIdx.value = Math.max(highlightIdx.value - 1, 0)
+}
+function highlightOption(index: number) {
+  highlightIdx.value = index
 }
 function clear()    {
   invalidateSearch()
+  optionExplicitlyNavigated.value = false
   query.value = ''
   results.value = []
   discoveryCandidates.value = []
@@ -507,6 +530,7 @@ function handleEscape() {
 
 function invalidateSearch() {
   searchGeneration += 1
+  optionExplicitlyNavigated.value = false
   if (debounceTimer) clearTimeout(debounceTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
   debounceTimer = null

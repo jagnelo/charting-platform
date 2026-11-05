@@ -91,10 +91,13 @@ describe('SearchBar', () => {
     ])
   })
 
-  it('does not offer or emit a raw direct symbol when search returns no provider matches', async () => {
-    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([])
+  it('submits the typed ticker on Enter instead of choosing a partial local result', async () => {
+    ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
+      { symbol: 'FTI', name: 'TechnipFMC plc', exchange: 'NYSE', type: 'Common Stock' },
+    ])
 
     const wrapper = mountSearchBar({
+      props: { allowSourceDiscovery: true },
       global: {
         stubs: {
           RouterLink: { template: '<a><slot /></a>' },
@@ -102,17 +105,84 @@ describe('SearchBar', () => {
       },
     })
 
-    await wrapper.find('input').setValue('TSLA')
+    await wrapper.find('input').setValue('F')
     vi.advanceTimersByTime(260)
     await flushPromises()
+    await nextTick()
+    expect(wrapper.text()).toContain('TechnipFMC plc')
+    await wrapper.find('.result-item').trigger('mouseenter')
     await wrapper.find('input').trigger('keydown.enter')
     await flushPromises()
     await nextTick()
 
-    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'TSLA', canonical_only: true })
-    expect(wrapper.text()).not.toContain('Open chart for')
-    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
-    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'F', canonical_only: true })
+    expect(wrapper.emitted('update:modelValue')).toEqual([['F']])
+    expect(wrapper.emitted('select')).toEqual([['F', undefined]])
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('submits the exact local ticker even when it is not the first fuzzy result', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'XLK', name: 'Technology Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 88 },
+      { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89 },
+    ])
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+
+    await wrapper.get('input').setValue('XLE')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await wrapper.get('input').trigger('keydown.enter')
+
+    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('XLE')
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'XLE', instrument_id: 89 })
+  })
+
+  it('keeps picker Enter bound to the visible scoped result rather than submitting typed text', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'FTI', name: 'TechnipFMC plc', exchange: 'NYSE', type: 'Common Stock' },
+    ])
+    const wrapper = mountSearchBar({
+      props: { mode: 'picker', resultTypes: ['Stock'] },
+      global: { stubs: { RouterLink: true } },
+    })
+
+    await wrapper.get('input').setValue('F')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await wrapper.get('input').trigger('keydown.enter')
+
+    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('FTI')
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'FTI', type: 'Common Stock' })
+  })
+
+  it('ignores a late local result after the user has typed a newer ticker', async () => {
+    let resolveOld!: (value: unknown) => void
+    vi.mocked(api.get)
+      .mockImplementationOnce(() => new Promise(resolve => { resolveOld = resolve }) as ReturnType<typeof api.get>)
+      .mockResolvedValueOnce([
+        { symbol: 'NVDA', name: 'NVIDIA Corporation', exchange: 'NASDAQ', type: 'Common Stock', instrument_id: 44 },
+      ])
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+
+    await input.setValue('F')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    expect(api.get).toHaveBeenCalledTimes(1)
+
+    await input.setValue('NVDA')
+    expect(wrapper.text()).not.toContain('TechnipFMC')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await nextTick()
+    expect(wrapper.text()).toContain('NVIDIA Corporation')
+
+    resolveOld([{ symbol: 'FTI', name: 'TechnipFMC plc', exchange: 'NYSE', type: 'Common Stock', instrument_id: 17 }])
+    await flushPromises()
+    await nextTick()
+    expect(wrapper.text()).not.toContain('TechnipFMC plc')
+    await input.trigger('keydown.enter')
+    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('NVDA')
   })
 
   it('can scope provider-backed results to specific instrument types', async () => {
@@ -393,6 +463,9 @@ describe('SearchBar', () => {
     await flushPromises()
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     expect(wrapper.text()).toContain('Use C')
+    // The candidate is selected only after an intentional keyboard action;
+    // default highlight alone must not turn Enter into a candidate resolve.
+    await wrapper.get('input').trigger('keydown', { key: 'ArrowDown' })
     await wrapper.get('input').trigger('keydown.enter')
     await flushPromises()
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'C', instrument_id: 31, explicitlyResolved: true })
