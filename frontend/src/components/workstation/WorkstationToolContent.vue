@@ -3475,7 +3475,7 @@ const industries = computed(() => industryComposition.value?.industries ?? [])
 const industrySnapshot = computed(() => selectedETF.value ? workspaceStore.industrySnapshots[selectedETF.value] : null)
 const selectedIndustry = computed(() => workspaceStore.selectedIndustry)
 const selectedIndustryProxy = computed(() => workspaceStore.selectedIndustryProxy)
-watch(() => [selectedETF.value, holdings.value?.snapshot.id, selectedIndustry.value] as const, () => {
+watch([() => selectedETF.value, () => holdings.value?.snapshot.id, () => selectedIndustry.value], () => {
   selectedConstituentRowKey.value = null
 })
 const industryProxyState = computed(() => selectedETF.value && selectedIndustry.value
