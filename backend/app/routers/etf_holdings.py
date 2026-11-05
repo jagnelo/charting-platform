@@ -11,6 +11,7 @@ from app.models.benchmark_family_history import BenchmarkFamilyHoldingsRefreshRu
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsBackfillJob,
     ETFHoldingsSnapshot,
     ETFProfile,
 )
@@ -56,6 +57,8 @@ from app.schemas.etf_holdings import (
     ETFHoldingsShadowGateOut,
     ETFHoldingsSnapshotOut,
     ETFHoldingsTransitionTimelineOut,
+    ETFHoldingsVanEckPostTransportContinuationRequest,
+    ETFHoldingsVanEckQualificationRecoveryRequest,
     ETFHoldingsWeightEvolutionOut,
     ETFProfileAcquireOut,
     ETFProfileAcquireRequest,
@@ -104,6 +107,7 @@ from app.services.etf_holdings import (
     snapshot_to_out,
 )
 from app.services.etf_holdings_adapters import (
+    ETFNativeSourceEvidenceError,
     get_holdings_adapter,
     holdings_adapter_catalog,
     parse_holdings_csv,
@@ -124,6 +128,11 @@ from app.services.etf_holdings_edgar import (
     list_sec_nport_backfill_jobs,
     qualify_sec_nport_fund,
 )
+from app.services.etf_holdings_native_qualification import (
+    NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+    continue_native_etf_fund_from_retained_evidence,
+    qualify_native_etf_fund,
+)
 from app.services.etf_holdings_provider_bridge import ETFHoldingsRouteHeldError
 from app.services.etf_holdings_refresh import (
     ETFHoldingsRouteNotReadyError,
@@ -141,7 +150,13 @@ from app.services.etf_holdings_refresh import (
     refresh_etf_holdings_for_date,
 )
 from app.services.etf_holdings_sec import parse_sec_legacy_holdings_xml, parse_sec_nport_xml
-from app.services.etf_holdings_vaneck_qualification import qualify_vaneck_oih_fund
+from app.services.etf_holdings_vaneck_qualification import (
+    continue_vaneck_oih_fund,
+    qualify_vaneck_oih_fund,
+    recover_vaneck_oih_fund,
+)
+from app.services.etf_issuer_catalog import IssuerCatalogError
+from app.services.provider_runtime import ProviderNoDataError
 
 router = APIRouter(prefix="/etf-holdings", tags=["etf-holdings"])
 
@@ -550,23 +565,26 @@ async def acquire_holdings_profile(
         symbol=symbol,
         request_id=str(body.request_id),
         refresh=body.refresh,
+        instrument_id=body.instrument_id,
     )
     if result is None:
         raise HTTPException(status_code=404, detail="ETF holdings profile was not found")
     await db.commit()
-    profile = await profile_to_out(db, result.profile)
+    profile = await profile_to_out(db, result.profile) if result.profile is not None else None
     snapshot = result.snapshot
     if snapshot is None and result.snapshot_id is not None:
         snapshot = await get_snapshot_by_id(db, result.snapshot_id, include_holdings=True)
     return ETFProfileAcquireOut(
         request_id=body.request_id,
         outcome=result.outcome,
+        instrument_id=(result.instrument_id or (profile.instrument_id if profile else None)),
+        symbol=(result.symbol or (profile.symbol if profile else None)),
         refresh=body.refresh,
         refresh_attempted=result.refresh_attempted,
         refresh_succeeded=result.refresh_succeeded,
         profile=profile,
         snapshot=snapshot,
-        capability=profile.holdings_capability,
+        capability=profile.holdings_capability if profile else None,
         source_provider=result.source_provider,
         source_operation=result.source_operation,
         provider_request_log_ids=result.provider_request_log_ids,
@@ -1352,6 +1370,165 @@ async def qualify_initial_vaneck_oih_for_etf(
         return await qualify_vaneck_oih_fund(
             db,
             requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/native-initial-qualification",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def qualify_initial_native_etf_fund(
+    symbol: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Run one admin-only qualification for an existing reviewed native ETF route."""
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol or normalized_symbol in {"*", "ALL", "ANY"}:
+        raise HTTPException(status_code=422, detail="A single committed ETF symbol is required")
+    profile = (
+        await db.execute(
+            select(ETFProfile)
+            .join(Instrument, Instrument.id == ETFProfile.instrument_id)
+            .options(selectinload(ETFProfile.instrument))
+            .where(func.upper(Instrument.symbol) == normalized_symbol)
+        )
+    ).scalar_one_or_none()
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Committed ETF profile not found")
+    try:
+        return await qualify_native_etf_fund(
+            db,
+            profile_id=profile.id,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except (ETFNativeSourceEvidenceError, IssuerCatalogError, ProviderNoDataError) as exc:
+        failed_job = (
+            await db.execute(
+                select(ETFHoldingsBackfillJob)
+                .where(
+                    ETFHoldingsBackfillJob.etf_profile_id == profile.id,
+                    ETFHoldingsBackfillJob.job_type == NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
+                )
+                .order_by(
+                    ETFHoldingsBackfillJob.started_at.desc(),
+                    ETFHoldingsBackfillJob.id.desc(),
+                )
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if failed_job is not None and failed_job.status in {"failed", "cancelled"}:
+            cancelled = failed_job.status == "cancelled"
+            detail = {
+                "code": (
+                    "native_qualification_cancelled"
+                    if cancelled
+                    else "native_qualification_not_qualified"
+                ),
+                "outcome": "cancelled" if cancelled else "not_qualified",
+                "job_id": failed_job.id,
+                "job_status": failed_job.status,
+                "reason": failed_job.failure_reason
+                or (
+                    "Native qualification was cancelled."
+                    if cancelled
+                    else "Native source evidence was not qualified."
+                ),
+            }
+            raise HTTPException(status_code=409, detail=detail) from exc
+        detail = {
+            "code": "native_qualification_unavailable",
+            "outcome": "unavailable",
+            "reason": "The native source did not provide qualifying holdings evidence.",
+        }
+        if failed_job is not None:
+            detail["job_id"] = failed_job.id
+            detail["job_status"] = failed_job.status
+        raise HTTPException(status_code=503, detail=detail) from exc
+
+
+@router.post(
+    "/{symbol}/native-initial-qualification/{predecessor_job_id}/continue-retained-evidence",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def continue_native_etf_qualification_from_retained_evidence(
+    symbol: str,
+    predecessor_job_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Revalidate one failed settled SPDR/iShares response without new HTTP."""
+
+    normalized_symbol = symbol.strip().upper()
+    if not normalized_symbol or normalized_symbol in {"*", "ALL", "ANY"} or predecessor_job_id <= 0:
+        raise HTTPException(status_code=422, detail="A single failed native job is required")
+    try:
+        return await continue_native_etf_fund_from_retained_evidence(
+            db,
+            predecessor_job_id=predecessor_job_id,
+            expected_symbol=normalized_symbol,
+            requested_by_user_id=current_user.id,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/vaneck-initial-qualification/recover",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def recover_initial_vaneck_oih_qualification(
+    symbol: str,
+    body: ETFHoldingsVanEckQualificationRecoveryRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create the single audited successor to an exact pretransport OIH denial."""
+
+    if symbol.strip().upper() != "OIH":
+        raise HTTPException(status_code=422, detail="VanEck qualification recovery is OIH-only")
+    try:
+        return await recover_vaneck_oih_fund(
+            db,
+            requested_by_user_id=current_user.id,
+            predecessor_job_id=body.predecessor_job_id,
+            review_evidence_reference=body.review_evidence_reference,
+            review_evidence_sha256=body.review_evidence_sha256,
+            operator_reason=body.operator_reason,
+        )
+    except ETFHoldingsRouteHeldError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+
+
+@router.post(
+    "/{symbol}/vaneck-initial-qualification/continue",
+    response_model=ETFHoldingsBackfillJobOut,
+)
+async def continue_vaneck_oih_qualification_after_uncertain_attempt(
+    symbol: str,
+    body: ETFHoldingsVanEckPostTransportContinuationRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """Create one reviewed successor to an exact post-transport-uncertain OIH job."""
+
+    if symbol.strip().upper() != "OIH":
+        raise HTTPException(status_code=422, detail="VanEck continuation is OIH-only")
+    try:
+        return await continue_vaneck_oih_fund(
+            db,
+            requested_by_user_id=current_user.id,
+            predecessor_job_id=body.predecessor_job_id,
+            request_id=str(body.request_id),
+            predecessor_contract=body.predecessor_contract,
+            predecessor_extra_data_sha256=body.predecessor_extra_data_sha256,
+            review_evidence_reference=body.review_evidence_reference,
+            review_evidence_sha256=body.review_evidence_sha256,
         )
     except ETFHoldingsRouteHeldError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc

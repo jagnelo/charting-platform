@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import json
 import zipfile
 from datetime import UTC, date, datetime, timedelta
@@ -67,6 +68,7 @@ from app.services.etf_holdings_capability import (
     _NON_TIER_0_SYMBOL_AUDITS,
     _TIER_0_SYMBOL_AUDITS,
 )
+from app.services.etf_holdings_provider_bridge import VANECK_OIH_CANONICAL_DOWNLOAD_URL
 
 
 class MockDate(date):
@@ -162,6 +164,70 @@ def _xlsx_workbook_sheets(sheets: list[list[list[str]]]) -> bytes:
                 "</worksheet>"
             )
             workbook.writestr(f"xl/worksheets/sheet{sheet_index}.xml", worksheet)
+    return output.getvalue()
+
+
+def _xlsx_with_declared_worksheet_names(
+    workbook_bytes: bytes,
+    names: list[str],
+    *,
+    hidden_indexes: set[int] | None = None,
+    first_sheet_relationship_target: str | None = None,
+    core_title: str | None = None,
+) -> bytes:
+    """Add workbook metadata for identity tests without changing sheet1 holdings."""
+
+    source = BytesIO(workbook_bytes)
+    output = BytesIO()
+    hidden_indexes = hidden_indexes or set()
+    with zipfile.ZipFile(source) as original, zipfile.ZipFile(output, mode="w") as updated:
+        members = {name: original.read(name) for name in original.namelist()}
+        for member, content in members.items():
+            updated.writestr(member, content)
+        template = members["xl/worksheets/sheet1.xml"]
+        for index in range(2, len(names) + 1):
+            updated.writestr(f"xl/worksheets/sheet{index}.xml", template)
+        if first_sheet_relationship_target and "sheet2.xml" in first_sheet_relationship_target:
+            updated.writestr("xl/worksheets/sheet2.xml", template)
+        sheet_nodes = []
+        relationships = []
+        for index, name in enumerate(names, start=1):
+            state = ' state="hidden"' if index in hidden_indexes else ""
+            sheet_nodes.append(
+                f'<sheet name="{escape(name, {chr(34): "&quot;"})}" sheetId="{index}"'
+                f'{state} r:id="rId{index}"/>'
+            )
+            target = (
+                first_sheet_relationship_target
+                if index == 1 and first_sheet_relationship_target
+                else f"worksheets/sheet{index}.xml"
+            )
+            relationships.append(
+                f'<Relationship Id="rId{index}" '
+                'Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" '
+                f'Target="{target}"/>'
+            )
+        workbook_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" '
+            'xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">'
+            f'<sheets>{"".join(sheet_nodes)}</sheets></workbook>'
+        )
+        relationships_xml = (
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">'
+            f'{"".join(relationships)}</Relationships>'
+        )
+        updated.writestr("xl/workbook.xml", workbook_xml)
+        updated.writestr("xl/_rels/workbook.xml.rels", relationships_xml)
+        if core_title is not None:
+            updated.writestr(
+                "docProps/core.xml",
+                '<?xml version="1.0" encoding="UTF-8"?>'
+                '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" '
+                'xmlns:dc="http://purl.org/dc/elements/1.1/">'
+                f"<dc:title>{escape(core_title)}</dc:title></cp:coreProperties>",
+            )
     return output.getvalue()
 
 
@@ -4766,9 +4832,130 @@ async def test_vaneck_initial_oih_qualification_is_exact_one_request_and_retains
     assert FakeAsyncClient.constructed[0]["follow_redirects"] is False
     assert result.source_identifier == "oil-services-etf-oih"
     assert result.legal_metadata["initial_qualification"] is True
+    assert result.legal_metadata["upstream_response_diagnostic"] == {
+        "upstream_http_status": 200,
+        "response_body_bytes": len(workbook),
+        "response_body_sha256": hashlib.sha256(workbook).hexdigest(),
+        "allowlisted_response_headers": {
+            "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        },
+    }
     assert base64.b64decode(result.raw_json["raw_workbook_base64"]) == workbook
     assert result.raw_json["raw_workbook_bytes"] == len(workbook)
     assert result.rows[0].symbol == "SLB"
+
+
+@pytest.mark.asyncio
+async def test_vaneck_job5_qualification_uses_only_the_reviewed_canonical_url(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook = _xlsx_workbook(
+        [
+            [f"OIH | Daily Holdings (%)  {datetime.now(UTC):%m/%d/%Y}"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_initial_qualification(
+        symbol="OIH",
+        identifiers={"product_slug": "oil-services-etf-oih"},
+        reviewed_request_url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+    )
+
+    assert FakeAsyncClient.requested == [
+        (
+            VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+            {
+                "headers": adapter._request_headers(product_slug="oil-services-etf-oih"),
+                "follow_redirects": False,
+            },
+        )
+    ]
+    assert FakeAsyncClient.constructed[0]["follow_redirects"] is False
+    assert result.source_url == VANECK_OIH_CANONICAL_DOWNLOAD_URL
+    assert result.legal_metadata["initial_qualification"] is True
+
+
+@pytest.mark.asyncio
+async def test_vaneck_job5_qualification_rejects_unreviewed_url_before_transport(monkeypatch):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    FakeAsyncClient.requested = []
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match="not a reviewed OIH destination"):
+        await adapter.fetch_initial_qualification(
+            symbol="OIH",
+            identifiers={"product_slug": "oil-services-etf-oih"},
+            reviewed_request_url="https://www.vaneck.com/us/en/other-fund.xlsx",
+        )
+
+    assert FakeAsyncClient.requested == []
+
+
+@pytest.mark.asyncio
+async def test_vaneck_ordinary_oih_acquisition_uses_canonical_url_over_stale_profile_url(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook = _xlsx_workbook(
+        [
+            [f"OIH | Daily Holdings (%)  {datetime.now(UTC):%m/%d/%Y}"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+        ]
+    )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(
+        symbol="OIH",
+        issuer_product_id="oil-services-etf-oih",
+        source_url="https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+    )
+
+    assert len(FakeAsyncClient.requested) == 1
+    assert FakeAsyncClient.requested[0][0] == VANECK_OIH_CANONICAL_DOWNLOAD_URL
+    assert result.source_url == VANECK_OIH_CANONICAL_DOWNLOAD_URL
 
 
 @pytest.mark.asyncio
@@ -4795,8 +4982,96 @@ async def test_vaneck_initial_oih_qualification_records_redirect_without_followi
         )
 
     assert raised.value.location == "https://files.vaneck.com/oih.xlsx"
+    assert raised.value.vaneck_initial_response_diagnostic == {
+        "upstream_http_status": 302,
+        "response_body_bytes": 0,
+        "response_body_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "allowlisted_response_headers": {"content-type": "text/csv"},
+    }
     assert len(FakeAsyncClient.requested) == 1
     assert FakeAsyncClient.requested[0][1]["follow_redirects"] is False
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_qualification_error_retains_actual_status_and_bounded_body_hash(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    response_body = b"denied"
+    response = FakeResponse(
+        status_code=503,
+        content=response_body,
+        headers={"content-length": str(len(response_body)), "set-cookie": "private=value"},
+    )
+
+    def raise_for_status():
+        request = httpx.Request(
+            "GET",
+            "https://www.vaneck.com/us/en/investments/oil-services-etf-oih/downloads/holdings/?cken=true",
+        )
+        httpx.Response(
+            response.status_code,
+            content=response.content,
+            headers=response.headers,
+            request=request,
+        ).raise_for_status()
+
+    response.raise_for_status = raise_for_status
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [response]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(adapter.InitialQualificationResponseError) as raised:
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    diagnostic = raised.value.vaneck_initial_response_diagnostic
+    assert diagnostic["upstream_http_status"] == 503
+    assert diagnostic["response_body_bytes"] == len(response_body)
+    assert diagnostic["response_body_sha256"] == hashlib.sha256(response_body).hexdigest()
+    assert diagnostic["allowlisted_response_headers"] == {
+        "content-type": "text/csv",
+        "content-length": str(len(response_body)),
+    }
+    assert "set-cookie" not in diagnostic["allowlisted_response_headers"]
+    assert len(FakeAsyncClient.requested) == 1
+
+
+@pytest.mark.asyncio
+async def test_vaneck_initial_qualification_parse_failure_retains_actual_response_diagnostic(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    response_body = b"not-an-xlsx"
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            status_code=200,
+            content=response_body,
+            headers={"content-length": str(len(response_body))},
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(adapter.InitialQualificationResponseError) as raised:
+        await adapter.fetch_initial_qualification(
+            symbol="OIH", identifiers={"product_slug": "oil-services-etf-oih"}
+        )
+
+    diagnostic = raised.value.vaneck_initial_response_diagnostic
+    assert diagnostic["upstream_http_status"] == 200
+    assert diagnostic["response_body_bytes"] == len(response_body)
+    assert diagnostic["response_body_sha256"] == hashlib.sha256(response_body).hexdigest()
+    assert diagnostic["allowlisted_response_headers"] == {
+        "content-type": "text/csv",
+        "content-length": str(len(response_body)),
+    }
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
@@ -4874,6 +5149,175 @@ async def test_vaneck_initial_workbook_identity_comes_from_body_not_requested_sl
         assert "SMH" in evidence
     else:
         assert title_with_date in evidence
+
+
+def _generic_oih_workbook_rows(*, identity_row: list[str] | None = None) -> list[list[str]]:
+    return [
+        ["Daily Holdings (%) 10/29/2026"],
+        identity_row or [],
+        [
+            "Number",
+            "Ticker",
+            "Holding Name",
+            "Identifier (FIGI)",
+            "Shares",
+            "Asset Class",
+            "Market Value (US$)",
+            "% of Net Assets",
+        ],
+        ["1", "SLB", "SLB Ltd", "BBG000BSJK37", "10", "Stock", "$100", "100%"],
+    ]
+
+
+def test_vaneck_retained_job6_workbook_uses_exact_single_sheet_identity_fixture():
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook_path = Path(__file__).parents[2] / "fixtures/vaneck/oih_job6_identity.xlsx"
+    raw_workbook = workbook_path.read_bytes()
+    assert hashlib.sha256(raw_workbook).hexdigest() == (
+        "c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2"
+    )
+
+    rows, composition_date = adapter._parse_workbook(raw_workbook)
+    workbook_rows = parse_xlsx_table(raw_workbook)
+    status, evidence = adapter._initial_workbook_identity(
+        raw_workbook, workbook_rows, composition_date=composition_date
+    )
+
+    assert rows
+    assert composition_date == date(2026, 10, 29)
+    assert status == "matched"
+    assert "worksheet:OIH_asof_20261029" in evidence
+
+
+@pytest.mark.parametrize(
+    ("sheet_names", "identity_row", "core_title", "relationship_target", "expected"),
+    [
+        (["OIH_asof_20261029"], None, None, None, "matched"),
+        (["SMH_asof_20261029"], None, None, None, "mismatch"),
+        (["OIH_asof_20260230"], None, None, None, "unverified"),
+        (["prefix_OIH_asof_20261029"], None, None, None, "unverified"),
+        (["OIH_asof_20261029_backup"], None, None, None, "unverified"),
+        (["OIH_asof_20261028"], None, None, None, "mismatch"),
+        (["OIH_asof_20261029", "SMH_asof_20261029"], None, None, None, "mismatch"),
+        (["OIH_asof_20261028", "OIH_asof_20261029"], None, None, None, "mismatch"),
+        (["Holdings", "OIH_asof_20261029"], None, None, None, "unverified"),
+        (["OIH_asof_20261029"], ["Fund Ticker", "SMH"], None, None, "mismatch"),
+        (["OIH_asof_20261029"], None, "VanEck Semiconductor ETF (SMH)", None, "mismatch"),
+        (["OIH_asof_20261029"], None, None, "worksheets/sheet2.xml", "unverified"),
+    ],
+)
+def test_vaneck_worksheet_identity_is_anchored_single_sheet_and_date_bound(
+    sheet_names, identity_row, core_title, relationship_target, expected
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    workbook = _xlsx_with_declared_worksheet_names(
+        _xlsx_workbook(_generic_oih_workbook_rows(identity_row=identity_row)),
+        sheet_names,
+        hidden_indexes={2},
+        first_sheet_relationship_target=relationship_target,
+        core_title=core_title,
+    )
+    rows, composition_date = adapter._parse_workbook(workbook)
+    status, evidence = adapter._initial_workbook_identity(
+        workbook, parse_xlsx_table(workbook), composition_date=composition_date
+    )
+    assert rows
+    assert composition_date == date(2026, 10, 29)
+    assert status == expected
+    assert evidence
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "identity_source",
+    ["retained_sheet", "generic_title_only", "wrong_fund_ticker", "wrong_fund_name"],
+)
+async def test_vaneck_ordinary_oih_fetch_uses_same_body_identity_gate(monkeypatch, identity_source):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    if identity_source == "retained_sheet":
+        workbook = (
+            Path(__file__).parents[2] / "fixtures/vaneck/oih_job6_identity.xlsx"
+        ).read_bytes()
+    elif identity_source == "generic_title_only":
+        workbook = _xlsx_workbook(_generic_oih_workbook_rows())
+    else:
+        identity_row = (
+            ["Fund Ticker", "SMH"]
+            if identity_source == "wrong_fund_ticker"
+            else ["Fund Name", "VanEck Semiconductor ETF (SMH)"]
+        )
+        workbook = _xlsx_with_declared_worksheet_names(
+            _xlsx_workbook(_generic_oih_workbook_rows(identity_row=identity_row)),
+            ["OIH_asof_20261029"],
+        )
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [FakeResponse(content=workbook, url=VANECK_OIH_CANONICAL_DOWNLOAD_URL)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    if identity_source == "retained_sheet":
+        result = await adapter.fetch_latest(
+            symbol="OIH",
+            issuer_product_id="oil-services-etf-oih",
+            identifiers={"product_slug": "oil-services-etf-oih"},
+        )
+        assert result.legal_metadata["body_identity_status"] == "matched"
+        assert "worksheet:OIH_asof_20261029" in result.legal_metadata["body_identity_evidence"]
+        assert result.legal_metadata["source_quality"] == "issuer_reported_dated_complete_holdings"
+        assert result.legal_metadata["completeness_status"] == "complete"
+    else:
+        expected_identity_status = (
+            "unverified" if identity_source == "generic_title_only" else "mismatch"
+        )
+        with pytest.raises(ValueError, match=f"body identity is {expected_identity_status}"):
+            await adapter.fetch_latest(
+                symbol="OIH",
+                issuer_product_id="oil-services-etf-oih",
+                identifiers={"product_slug": "oil-services-etf-oih"},
+            )
+    assert FakeAsyncClient.requested[0][0] == VANECK_OIH_CANONICAL_DOWNLOAD_URL
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("case", "expected_error"),
+    [
+        ("invalid_date", "no valid composition date"),
+        ("future_date", "composition date is in the future"),
+        ("empty_rows", "did not expose holdings"),
+    ],
+)
+async def test_vaneck_ordinary_oih_does_not_mark_invalid_or_empty_workbook_complete(
+    monkeypatch, case, expected_error
+):
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    if case == "invalid_date":
+        title = "OIH | Daily Holdings (%) 13/41/2026"
+        rows = _generic_oih_workbook_rows()
+        rows[0] = [title]
+    elif case == "future_date":
+        tomorrow = datetime.now(UTC).date() + timedelta(days=1)
+        rows = _generic_oih_workbook_rows()
+        rows[0] = [f"OIH | Daily Holdings (%) {tomorrow:%m/%d/%Y}"]
+    else:
+        rows = _generic_oih_workbook_rows()[:-1]
+    workbook = _xlsx_workbook(rows)
+    FakeAsyncClient.requested = []
+    FakeAsyncClient.constructed = []
+    FakeAsyncClient.queue = [FakeResponse(content=workbook, url=VANECK_OIH_CANONICAL_DOWNLOAD_URL)]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    with pytest.raises(ValueError, match=expected_error):
+        await adapter.fetch_latest(
+            symbol="OIH",
+            issuer_product_id="oil-services-etf-oih",
+            identifiers={"product_slug": "oil-services-etf-oih"},
+        )
+    assert len(FakeAsyncClient.requested) == 1
 
 
 @pytest.mark.asyncio
@@ -8554,6 +8998,7 @@ async def test_bondbloxx_httpx_403_stops_without_legacy_retry(monkeypatch):
 async def test_invesco_adapter_fetches_public_json_api(monkeypatch):
     adapter = get_holdings_adapter("invesco")
     assert adapter is not None
+    monkeypatch.setattr(adapter, "_cusip_cache", {})
 
     FakeAsyncClient.requested = []
     FakeAsyncClient.queue = [
@@ -24724,6 +25169,84 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     assert rsp["issuer"] == "Invesco"
     assert rsp["provider_aliases"]["holdings_adapter"] == "invesco"
     assert rsp["provider_aliases"]["cusip"] == "46137V357"
+    for symbol in ("BWET", "BDRY"):
+        metadata = known_etf_route_metadata(symbol)
+        assert metadata["provider_aliases"]["holdings_adapter"] == "amplify"
+        assert metadata["provider_aliases"]["holdings_source_provider"] == "amplify"
+        assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_state"] == (
+            "successor_issuer_route"
+        )
+        assert metadata["provider_aliases"]["holdings_route_evidence"]["evidence_refs"]
+    assert known_etf_route_metadata("IGV") == {}
+    ishares_catalog_route = known_etf_route_metadata(
+        "IGV",
+        canonical_issuer=SimpleNamespace(
+            domain_key="ishares",
+            status="active",
+            provenance={"source": "trusted issuer directory", "identifier": "unit-test"},
+        ),
+        allow_catalog_route=True,
+    )
+    assert ishares_catalog_route["provider_aliases"] == {
+        "holdings_adapter": "ishares",
+        "holdings_source_provider": "ishares",
+        "issuer_product_catalog_key": "ishares_us_etf_products_v1",
+        "issuer_catalog_discovery_hint": "trusted_canonical_issuer",
+    }
+    assert (
+        known_etf_route_metadata(
+            "IGM",
+            canonical_issuer=SimpleNamespace(
+                domain_key="ishares",
+                status="inactive",
+                provenance={"source": "fixture"},
+            ),
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    assert (
+        known_etf_route_metadata(
+            "IGM",
+            canonical_issuer=SimpleNamespace(
+                domain_key="ishares",
+                status="active",
+                provenance={},
+            ),
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    assert known_etf_route_metadata(
+        "IGV",
+        canonical_fund_name="iShares Expanded Tech-Software Sector ETF",
+        allow_catalog_route=True,
+    )["provider_aliases"]["issuer_catalog_discovery_hint"] == ("canonical_iShares_fund_name")
+    assert (
+        known_etf_route_metadata(
+            "IGV",
+            canonical_issuer=SimpleNamespace(
+                domain_key="vanguard",
+                status="active",
+                provenance={"source": "canonical issuer"},
+            ),
+            canonical_fund_name="iShares Expanded Tech-Software Sector ETF",
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+    ishares = get_holdings_adapter("ishares")
+    assert ishares is not None
+    igv_probe = ishares.probe(symbol="IGV", name="iShares Expanded Tech ETF", identifiers={})
+    assert igv_probe.status == "needs_issuer_route"
+    assert "issuer_product_id" in igv_probe.required_identifiers
+    catalog_probe = ishares.probe(
+        symbol="IGV",
+        name="Canonical ETF name is not used to infer the catalog row",
+        identifiers={"issuer_product_catalog_key": "ishares_us_etf_products_v1"},
+    )
+    assert catalog_probe.status == "ready"
+    assert catalog_probe.source_url == "https://www.ishares.com/us/products/etf-investments"
     bflb = known_etf_route_metadata("BFLB")
     assert bflb == {
         "issuer": "BufferLABS",
@@ -24793,6 +25316,143 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
     assert all("idType=ticker" not in url for url in invesco_entry["url_templates"])
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_name", "provider"),
+    [
+        (
+            "XES",
+            "State Street SPDR S&P Oil & Gas Equipment & Services ETF",
+            "spdr",
+        ),
+        ("QZXE", "State Street Example Sector SPDR ETF", "spdr"),
+        ("PXJ", "Invesco Oil & Gas Services ETF", "invesco"),
+        ("QZXI", "Invesco Example Allocation ETF", "invesco"),
+        ("QZXA", "Amplify Example Market ETF", "amplify"),
+    ],
+)
+def test_unseeded_selected_fund_brand_only_nominates_registered_core_adapter(
+    symbol, canonical_name, provider
+):
+    from app.services.etf_holdings_capability import current_symbol_route_audit
+
+    assert current_symbol_route_audit(symbol) is None
+    assert known_etf_route_metadata(symbol, canonical_fund_name=canonical_name) == {}
+    metadata = known_etf_route_metadata(
+        symbol,
+        canonical_fund_name=canonical_name,
+        allow_catalog_route=True,
+    )
+
+    assert metadata["issuer"] is None
+    aliases = metadata["provider_aliases"]
+    assert aliases["holdings_adapter"] == provider
+    assert aliases["holdings_source_provider"] == provider
+    assert aliases["native_adapter_discovery_hint"] == "canonical_fund_name"
+    assert not any(
+        key in aliases
+        for key in ("issuer_product_id", "cusip", "holdings_url", "holdings_route_evidence")
+    )
+
+
+@pytest.mark.parametrize(
+    ("symbol", "canonical_name", "issuer"),
+    [
+        (
+            "QZXE",
+            "Invesco Example Fund ETF",
+            SimpleNamespace(
+                domain_key="spdr",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        (
+            "QZXI",
+            "State Street Example ETF",
+            SimpleNamespace(
+                domain_key="invesco",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        (
+            "QZXA",
+            "Invesco Example Market ETF",
+            SimpleNamespace(
+                domain_key="amplify",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+        ("QZXA", "Amplify and Invesco Example ETF", None),
+        (
+            "QZXE",
+            "State Street Example Sector SPDR ETF",
+            SimpleNamespace(
+                domain_key="spdr",
+                status="inactive",
+                provenance={"source": "stale issuer row"},
+            ),
+        ),
+        (
+            "QZXE",
+            "State Street Example Sector SPDR ETF",
+            SimpleNamespace(
+                domain_key="unrelated_manager",
+                status="active",
+                provenance={"source": "canonical issuer directory"},
+            ),
+        ),
+    ],
+)
+def test_unseeded_core_route_hint_rejects_foreign_or_ambiguous_brand(
+    symbol, canonical_name, issuer
+):
+    assert (
+        known_etf_route_metadata(
+            symbol,
+            canonical_issuer=issuer,
+            canonical_fund_name=canonical_name,
+            allow_catalog_route=True,
+        )
+        == {}
+    )
+
+
+@pytest.mark.parametrize(
+    ("provider", "canonical_name"),
+    [
+        ("spdr", "State Street Example Sector ETF"),
+        ("invesco", "Invesco Example Allocation ETF"),
+        ("amplify", "Amplify Example Market ETF"),
+    ],
+)
+def test_unseeded_trusted_core_issuer_only_nominates_exact_registered_adapter(
+    provider, canonical_name
+):
+    metadata = known_etf_route_metadata(
+        "QZXN",
+        canonical_issuer=SimpleNamespace(
+            domain_key=provider,
+            display_name=f"Canonical {provider}",
+            status="active",
+            provenance={"source": "canonical issuer directory"},
+        ),
+        canonical_fund_name=canonical_name,
+        allow_catalog_route=True,
+    )
+
+    assert metadata["issuer"] == f"Canonical {provider}"
+    aliases = metadata["provider_aliases"]
+    assert aliases["holdings_adapter"] == provider
+    assert aliases["holdings_source_provider"] == provider
+    assert aliases["native_adapter_discovery_hint"] == "trusted_canonical_issuer"
+    assert not any(
+        key in aliases
+        for key in ("issuer_product_id", "cusip", "holdings_url", "holdings_route_evidence")
+    )
 
 
 @pytest.mark.parametrize(
@@ -31081,3 +31741,228 @@ def test_north_square_q3_recheck_keeps_symbols_unavailable_without_complete_down
         assert audit.evidence_state == "non_executable_public_source"
         assert audit.investigated_at == date(2026, 10, 4)
         assert "web:north-square-filepoint-etf-reports-no-q3-2026-10-04" in (audit.evidence_refs)
+
+
+@pytest.mark.asyncio
+async def test_native_adapter_completeness_uses_source_row_accounting(monkeypatch):
+    """Native completeness comes from each issuer format, not profile aliases."""
+
+    # SPDR's fund-scoped daily workbook is complete only when every nonblank
+    # holdings-table row is represented by the parser.
+    spdr = get_holdings_adapter("spdr")
+    assert spdr is not None
+    spdr_symbol = "XES"
+    spdr_url = spdr._workbook_url(spdr_symbol)
+    spdr_workbook = _xlsx_workbook(
+        [
+            ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+            ["Ticker Symbol:", spdr_symbol],
+            ["Holdings:", "As of 02-Nov-2026"],
+            ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+            ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+            ["Cash & Other", "", "", "", "0.1", "20"],
+            [
+                "State Street Global Advisors (SSGA) is now State Street Investment Management. Please click here for more information."
+            ],
+            [
+                "Portfolio holdings, allocations and weightings are as of the date indicated and should not be considered a recommendation to buy individual securities."
+            ],
+        ]
+    )
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            content=spdr_workbook,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            url=spdr_url,
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+    spdr_result = await spdr.fetch_latest(symbol=spdr_symbol)
+    spdr_completeness = spdr_result.legal_metadata["native_composition_completeness"]
+    assert spdr_completeness["status"] == "complete"
+    assert spdr_completeness["basis"] == "spdr_fund_scoped_daily_holdings_workbook"
+    assert spdr_completeness["reported_rows"] == spdr_completeness["parsed_rows"] == 2
+    assert spdr_completeness["ignored_known_footer_rows"] == 2
+    malformed_spdr_rows = [
+        ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+        ["Ticker Symbol:", spdr_symbol],
+        ["Holdings:", "As of 02-Nov-2026"],
+        ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+        ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD"],
+        ["Unidentified security row", "", "", "", "", "", ""],
+    ]
+    assert (
+        spdr._workbook_completeness(
+            malformed_spdr_rows,
+            rows=spdr_result.rows[:1],
+            fund_symbol=spdr_symbol,
+            composition_date=date(2026, 11, 2),
+        )["status"]
+        == "incomplete"
+    )
+    overflow_row = [
+        ["Fund Name:", "State Street SPDR S&P Oil & Gas Equipment & Services ETF"],
+        ["Ticker Symbol:", spdr_symbol],
+        ["Holdings:", "As of 02-Nov-2026"],
+        ["Name", "Ticker", "Identifier", "SEDOL", "Weight", "Shares Held", "Local Currency"],
+        ["Microsoft Corp", "MSFT", "594918104", "2588173", "6.5", "100", "USD", "unexpected"],
+    ]
+    assert (
+        spdr._workbook_completeness(
+            overflow_row,
+            rows=spdr_result.rows,
+            fund_symbol=spdr_symbol,
+            composition_date=date(2026, 11, 2),
+        )["status"]
+        == "incomplete"
+    )
+
+    # Invesco's declared total is authoritative; one returned row cannot be
+    # treated as complete when the source says 105 holdings exist.
+    invesco = get_holdings_adapter("invesco")
+    assert invesco is not None
+    holdings_url = invesco._holdings_url("46090E103")
+    invesco_payload = {
+        "effectiveBusinessDate": "2026-11-02",
+        "totalNumberOfHoldings": 1,
+        "holdings": [
+            {
+                "ticker": "MSFT",
+                "issuerName": "Microsoft Corp",
+                "cusip": "594918104",
+                "securityTypeName": "Common Stock",
+            }
+        ],
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text=json.dumps(invesco_payload), content_type="application/json", url=holdings_url
+        )
+    ]
+    invesco_result = await invesco.fetch_latest(symbol="QQQ", source_url=holdings_url)
+    invesco_completeness = invesco_result.legal_metadata["native_composition_completeness"]
+    assert invesco_completeness["status"] == "complete"
+    assert invesco_completeness["authoritative_total_matches"] is True
+    assert invesco_completeness["reported_rows"] == invesco_completeness["parsed_rows"] == 1
+    incomplete_invesco = {**invesco_payload, "totalNumberOfHoldings": 105}
+    incomplete_invesco_evidence = invesco._holdings_json_completeness(
+        incomplete_invesco, rows=invesco_result.rows
+    )
+    assert incomplete_invesco_evidence["status"] == "incomplete"
+    assert (
+        invesco._holdings_json_completeness(
+            {
+                key: value
+                for key, value in invesco_payload.items()
+                if key != "totalNumberOfHoldings"
+            },
+            rows=invesco_result.rows,
+        )["status"]
+        == "incomplete"
+    )
+    assert (
+        invesco._holdings_json_completeness(
+            {**invesco_payload, "hasMore": True}, rows=invesco_result.rows
+        )["status"]
+        == "incomplete"
+    )
+    from app.services.etf_holdings_refresh import _verified_native_composition_completeness
+
+    with pytest.raises(ValueError, match="composition completeness is not proven"):
+        _verified_native_composition_completeness(
+            profile=SimpleNamespace(instrument=SimpleNamespace(symbol="QQQ")),
+            adapter=invesco,
+            fetch_result=SimpleNamespace(
+                rows=invesco_result.rows,
+                raw_json=incomplete_invesco,
+                raw_text=json.dumps(incomplete_invesco),
+                legal_metadata={"native_composition_completeness": incomplete_invesco_evidence},
+            ),
+        )
+
+    # BlackRock's holdings.all vectors must align. The separate product
+    # catalog total is intentionally not used as a holdings row count.
+    ishares = get_holdings_adapter("ishares")
+    assert ishares is not None
+    ishares_payload = {
+        "componentsByNameMap": {
+            "holdings": {
+                "containersByNameMap": {
+                    "all": {
+                        "dataPointsByNameMap": {
+                            "asOfDate": {"value": 20261102},
+                            "ticker": {"value": ["MSFT"]},
+                            "issueName": {"value": ["MICROSOFT CORP"]},
+                            "holdingPercent": {"value": [6.5]},
+                            "unitsHeld": {"value": [100]},
+                            "dateList": {
+                                "fullName": "holdings.dateList",
+                                "value": [20261102, 20261030, 20260930, 20251231],
+                                "active": False,
+                                "visible": False,
+                            },
+                        }
+                    }
+                }
+            }
+        }
+    }
+    FakeAsyncClient.queue = [
+        FakeResponse(text=json.dumps(ishares_payload), content_type="application/json")
+    ]
+    ishares_result = await ishares.fetch_latest(symbol="IWM")
+    ishares_rows = ishares_result.rows
+    ishares_completeness = ishares_result.legal_metadata["native_composition_completeness"]
+    assert ishares_completeness["status"] == "complete"
+    assert ishares_completeness["basis"] == "blackrock_holdings_all_container"
+    assert ishares_completeness["reported_rows"] == ishares_completeness["parsed_rows"] == 1
+    assert ishares_completeness["all_list_columns_aligned"] is True
+    active_date_selector = json.loads(json.dumps(ishares_payload))
+    active_date_selector["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"][
+        "dataPointsByNameMap"
+    ]["dateList"]["active"] = True
+    assert (
+        ishares._holdings_all_completeness(active_date_selector, rows=ishares_rows)["status"]
+        == "incomplete"
+    )
+    truncated_ishares = json.loads(json.dumps(ishares_payload))
+    truncated_ishares["componentsByNameMap"]["holdings"]["containersByNameMap"]["all"][
+        "dataPointsByNameMap"
+    ]["holdingPercent"]["value"] = []
+    assert (
+        ishares._holdings_all_completeness(truncated_ishares, rows=ishares_rows)["status"]
+        == "incomplete"
+    )
+
+    # Amplify's full export may contain many accounts, but every selected
+    # account row and date must be accounted for in the canonical result.
+    amplify = get_holdings_adapter("amplify")
+    assert amplify is not None
+    amplify_csv = "\n".join(
+        [
+            "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+            "11/02/2026,BWET,MSFT,594918104,Microsoft Corp,100,1,100,1%,10000,100,1,",
+            "11/02/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,1,10,1%,1000,10,1,",
+        ]
+    )
+    FakeAsyncClient.queue = [FakeResponse(text=amplify_csv, content_type="text/csv")]
+    amplify_result = await amplify.fetch_latest(symbol="BWET")
+    amplify_completeness = amplify_result.legal_metadata["native_composition_completeness"]
+    assert amplify_completeness["status"] == "complete"
+    assert amplify_completeness["reported_rows"] == amplify_completeness["parsed_rows"] == 1
+    missing_date_csv = amplify_csv.replace("11/02/2026,BWET", ",BWET")
+    missing_date_rows, _ = amplify._parse_amplify_csv(missing_date_csv, symbol="BWET")
+    assert (
+        amplify._selected_account_csv_completeness(
+            missing_date_csv, symbol="BWET", rows=missing_date_rows
+        )["status"]
+        == "incomplete"
+    )
+    malformed_csv = amplify_csv.replace("11/02/2026,OTHER,NVDA", "11/02/2026,OTHER")
+    malformed_rows, _ = amplify._parse_amplify_csv(malformed_csv, symbol="BWET")
+    assert (
+        amplify._selected_account_csv_completeness(
+            malformed_csv, symbol="BWET", rows=malformed_rows
+        )["status"]
+        == "incomplete"
+    )

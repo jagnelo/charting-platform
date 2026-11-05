@@ -119,10 +119,10 @@ other base:
 make integrate BRANCH=fix/staging-gate REMEDIATE_DEGRADED=1
 ```
 
-If the independent replay of `master` fails, the workflow records
+If exact master release identity/provenance checks fail, the workflow records
 `.ai/master-degraded.json`. While that marker exists, staging cannot be bootstrapped and
-new ordinary worktrees cannot be created. The exact master revision must be repaired or
-replayed successfully first; a red master is never used as the starting point for staging.
+new ordinary worktrees cannot be created. The exact master revision must pass its release
+checks first; a red master is never used as the starting point for staging.
 
 Each worktree gets an `ops/workstreams/<branch-slug>/` record with a plan,
 handoff, and append-only validation evidence. Closing refuses dirty, unmerged,
@@ -182,7 +182,9 @@ retains the remote branch and record. It refuses any product, deployment, dirty,
 unsynchronized branch.
 
 After the exact staging SHA is green, `promote-staging` fast-forwards master to it and
-waits for master's independent exhaustive replay. Normal CI is architecture-neutral and
+waits for master's exact staging-provenance and release checks. The full integration
+matrix runs at the staging batch boundary and is not replayed on the identical master
+SHA. Normal CI is architecture-neutral and
 contains no emulation. RPi architecture validation/building occurs only through an
 explicitly requested `rpi-preflight`/`rpi-bundle`/`deploy-rpi` flow using the configured
 `RPI_DOCKER_PLATFORM`.

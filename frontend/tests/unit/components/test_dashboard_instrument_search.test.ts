@@ -55,7 +55,7 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
     await nextTick()
 
-    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA' })
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'NVDA', canonical_only: true })
     expect(document.body.textContent).toContain('NVIDIA Corp')
 
     const button = document.body.querySelector('.dash-search-item') as HTMLButtonElement
@@ -63,6 +63,7 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
     await nextTick()
 
+    expect(api.get).toHaveBeenCalledWith('/instruments/NVDA', { canonical_only: true })
     expect(wrapper.emitted('select')?.[0]).toEqual(['NVDA'])
   })
 
@@ -84,7 +85,9 @@ describe('DashboardInstrumentSearch', () => {
     await nextTick()
 
     expect(document.body.querySelectorAll('.dash-search-item').length).toBe(0)
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'mcd', canonical_only: true })
     expect(wrapper.emitted('select')).toBeUndefined()
+    expect(api.post).not.toHaveBeenCalled()
   })
 
   it('does not publish a late search response after the widget unmounts', async () => {
@@ -145,7 +148,7 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
     await nextTick()
 
-    expect(api.post).toHaveBeenCalledWith('/instruments/resolve-expression', {
+    expect(api.post).toHaveBeenCalledWith('/instruments/resolve-expression?canonical_only=true', {
       expression: '=SPY-QQQ',
     })
     expect(document.body.textContent).toContain('Could not resolve =SPY-QQQ')

@@ -506,6 +506,9 @@ interface TooltipState {
 const tooltip = ref<TooltipState>({
   hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null, ariaLabel: '',
 })
+function clearTooltip() {
+  tooltip.value = { hasData: false, date: '', o: 0, h: 0, l: 0, c: 0, v: 0, chg: null, ariaLabel: '' }
+}
 
 interface InstrumentEvent {
   id: number
@@ -3478,6 +3481,20 @@ watch(() => chartStore.bars, () => {
   if (uplot) updateData(); else void initChart()
   applyLinkedTimestamp(props.linkedTimestamp)
 }, { deep: false })
+// The OHLC overlay is local component state. Clear it as soon as its source
+// chart scope changes (or the new scope is empty) so a prior instrument's last
+// candle is never advertised above an empty/new chart while data is loading.
+watch([
+  () => chartStore.symbol,
+  () => chartStore.timeframe,
+  () => chartStore.barType,
+  () => chartStore.bars.length,
+], (currentScope, previousScope) => {
+  const scopeChanged = currentScope[0] !== previousScope[0]
+    || currentScope[1] !== previousScope[1]
+    || currentScope[2] !== previousScope[2]
+  if (scopeChanged || currentScope[3] === 0) clearTooltip()
+}, { flush: 'sync' })
 // Keep the settings dialog and its controls mounted while a transform request
 // is in flight, but never leave the previous numerical renderer visible under
 // the loading state. The workstation owns the component for the whole request;

@@ -1,15 +1,20 @@
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
+from sqlalchemy import insert
 
 from app.config import settings
 from app.models.data_source import DataSource
 from app.models.provider_runtime import ProviderEntitlement, ProviderPolicy
 from app.services import etf_holdings_provider_bridge as bridge
+from app.services import etf_holdings_vaneck_qualification as qualification
+from app.services import provider_quota_coordinator as quota
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ETFVaneckInitialQualificationBudget,
@@ -17,15 +22,523 @@ from app.services.etf_holdings_provider_bridge import (
 from app.services.etf_holdings_vaneck_qualification import (
     VANECK_OIH_INITIAL_QUALIFICATION_JOB_TYPE,
     VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+    VANECK_OIH_INITIAL_QUOTA_DIMENSION,
+    VANECK_OIH_INITIAL_QUOTA_GROUP,
     VANECK_OIH_INITIAL_URL,
     VANECK_OIH_PRODUCT_SLUG,
+    _current_vaneck_application_usage_projection,
+    _job4_request_log_lineage,
     _lock_and_validate_current_provider_review,
+    _posttransport_request_fingerprint,
     _provider_review_fingerprint,
+    _quota_activity_exists_since_attempt,
+    _verified_posttransport_spent_reservation,
 )
 from app.services.provider_runtime import (
     ProviderCapability,
     bind_vaneck_initial_etf_qualification,
 )
+
+
+def test_job4_request_log_lineage_accepts_exact_empty_top_level_persisted_witness():
+    actual_shape = {
+        "provider_request_log_ids": [],
+        "qualification_outcome": {
+            "provider_attempt_evidence": {
+                "admitted_attempt_recorded": True,
+                "request_log_callback_ids": [14],
+                "persisted_request_log_ids": [14],
+                "all_callback_logs_persisted": True,
+                "positive_qualification_linked": False,
+            }
+        },
+    }
+
+    log_ids, evidence_source = _job4_request_log_lineage(actual_shape)
+
+    assert log_ids == [14]
+    assert evidence_source == "qualification_outcome.provider_attempt_evidence"
+
+
+def test_job4_request_log_lineage_preserves_populated_legacy_top_level_ids():
+    legacy_shape = {
+        "provider_request_log_ids": [9],
+        "qualification_outcome": {"provider_attempt_evidence": {"request_log_callback_ids": [8]}},
+    }
+
+    log_ids, evidence_source = _job4_request_log_lineage(legacy_shape)
+
+    assert log_ids == [9]
+    assert evidence_source == "job.provider_request_log_ids"
+
+
+@pytest.mark.parametrize(
+    "attempt_evidence",
+    [
+        None,
+        {},
+        {
+            "admitted_attempt_recorded": False,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [],
+            "persisted_request_log_ids": [],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [15],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14, 15],
+            "persisted_request_log_ids": [14, 15],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [True],
+            "persisted_request_log_ids": [True],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [True],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": False,
+            "positive_qualification_linked": False,
+        },
+        {
+            "admitted_attempt_recorded": True,
+            "request_log_callback_ids": [14],
+            "persisted_request_log_ids": [14],
+            "all_callback_logs_persisted": True,
+            "positive_qualification_linked": True,
+        },
+    ],
+)
+def test_job4_request_log_lineage_rejects_incomplete_or_ambiguous_empty_top_level_witness(
+    attempt_evidence,
+):
+    extra = {
+        "provider_request_log_ids": [],
+        "qualification_outcome": {"provider_attempt_evidence": attempt_evidence},
+    }
+
+    with pytest.raises(ETFHoldingsRouteHeldError):
+        _job4_request_log_lineage(extra)
+
+
+def test_posttransport_request_fingerprint_keeps_legacy_default_and_separates_job4_contract():
+    shared = {
+        "predecessor_job_id": 4,
+        "request_id": "d6b08d78-ea66-4b2c-b1b1-0871634219ba",
+        "review_evidence_reference": "root-review:job4-settlement-successor-2026-10-30",
+        "review_evidence_sha256": "e" * 64,
+        "requested_by_user_id": 7,
+    }
+    omitted_contract = _posttransport_request_fingerprint(**shared)
+    explicit_legacy = _posttransport_request_fingerprint(
+        **shared,
+        predecessor_contract="job3_posttransport_linkage_v1",
+        predecessor_extra_data_sha256=None,
+    )
+    job4_contract = _posttransport_request_fingerprint(
+        **shared,
+        predecessor_contract="job4_settlement_projection_v1",
+        predecessor_extra_data_sha256="a" * 64,
+    )
+
+    assert omitted_contract == explicit_legacy
+    assert job4_contract != omitted_contract
+    assert job4_contract != _posttransport_request_fingerprint(
+        **shared,
+        predecessor_contract="job4_settlement_projection_v1",
+        predecessor_extra_data_sha256="b" * 64,
+    )
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        ({}, ("call_count", "requests")),
+        (
+            {"usage_tracking": {"mode": "call_count", "unit_label": "requests"}},
+            ("call_count", "requests"),
+        ),
+        (
+            {"usage_tracking": {"mode": "call_count", "unit_label": "physical_http_requests"}},
+            None,
+        ),
+        ({"usage_tracking": {"mode": "native_usage", "unit_label": "requests"}}, None),
+        ({"usage_tracking": "invalid"}, ("call_count", "requests")),
+    ],
+)
+def test_job4_continuation_requires_current_request_count_projection(config, expected):
+    assert _current_vaneck_application_usage_projection(SimpleNamespace(config=config)) == expected
+
+
+def _seed_quota_ledger_history(monkeypatch, path, *, matching_activity=None):
+    url = f"sqlite:///{path}"
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", url)
+    engine = quota._engine_for(url)
+    now = datetime.now(UTC)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(quota._reservations).values(
+                reservation_id="00000000-0000-4000-8000-000000000001",
+                provider_name="other-provider",
+                account_scope="other-account",
+                operation="unrelated_operation",
+                quota_group="unrelated",
+                dimension="requests",
+                unit="requests",
+                window_started_at=now - timedelta(days=2),
+                window_seconds=60,
+                reserved_units=1,
+                release_only=False,
+                lease_expires_at=None,
+                identity_digest=None,
+                state="settled",
+                created_at=now - timedelta(days=2),
+                settled_at=now - timedelta(days=2),
+            )
+        )
+        if matching_activity in {"pending", "uncertain"}:
+            connection.execute(
+                insert(quota._reservations).values(
+                    reservation_id="00000000-0000-4000-8000-000000000002",
+                    provider_name="vaneck",
+                    account_scope="reviewed-oih-account",
+                    operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                    quota_group="etf_holdings",
+                    dimension="requests",
+                    unit="requests",
+                    window_started_at=now - timedelta(minutes=1),
+                    window_seconds=60,
+                    reserved_units=1,
+                    release_only=False,
+                    lease_expires_at=None,
+                    identity_digest=None,
+                    state=matching_activity,
+                    created_at=now - timedelta(seconds=5),
+                    settled_at=None,
+                )
+            )
+        elif matching_activity in {
+            "receipt",
+            "receipt_linked_target",
+            "other_account_receipt",
+            "orphan_receipt",
+            "mismatched_receipt",
+            "mismatched_operation_receipt",
+        }:
+            receipt_reservation_id = "00000000-0000-4000-8000-000000000003"
+            if matching_activity != "orphan_receipt":
+                connection.execute(
+                    insert(quota._reservations).values(
+                        reservation_id=receipt_reservation_id,
+                        provider_name=(
+                            "other-provider"
+                            if matching_activity == "mismatched_receipt"
+                            else "vaneck"
+                        ),
+                        account_scope=(
+                            "another-account"
+                            if matching_activity == "other_account_receipt"
+                            else "reviewed-oih-account"
+                        ),
+                        operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                        quota_group="etf_holdings",
+                        dimension="requests",
+                        unit="requests",
+                        window_started_at=now - timedelta(minutes=1),
+                        window_seconds=60,
+                        reserved_units=1,
+                        release_only=False,
+                        lease_expires_at=None,
+                        identity_digest=None,
+                        state="uncertain",
+                        created_at=(
+                            now - timedelta(minutes=2)
+                            if matching_activity == "receipt_linked_target"
+                            else now - timedelta(seconds=5)
+                        ),
+                        settled_at=None,
+                    )
+                )
+            connection.execute(
+                insert(quota._live_receipts).values(
+                    reservation_id=receipt_reservation_id,
+                    provider_name="vaneck",
+                    operation=(
+                        "other_operation"
+                        if matching_activity == "mismatched_operation_receipt"
+                        else VANECK_OIH_INITIAL_QUALIFICATION_OPERATION
+                    ),
+                    run_id="synthetic-run",
+                    # Receipt usage_scope is deliberately not the ledger's
+                    # account_scope; only reservation linkage proves account.
+                    usage_scope="synthetic-provider-usage-label",
+                    receipt_status="observed",
+                    reconciliation_state="uncertain",
+                    created_at=now - timedelta(seconds=5),
+                    reconciled_at=None,
+                    error=None,
+                )
+            )
+    engine.dispose()
+    return url, now
+
+
+def test_recovery_ledger_check_does_not_create_missing_file(tmp_path, monkeypatch):
+    missing_path = tmp_path / "missing-ledger.sqlite3"
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_QUOTA_LEDGER_DATABASE_URL",
+        f"sqlite:///{missing_path}",
+    )
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="ledger is unavailable"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+
+    assert not missing_path.exists()
+
+
+@pytest.mark.parametrize(
+    ("quota_group", "dimension", "accepted"),
+    [
+        ("oih_first_sample", "vaneck_oih_first_sample_requests_120s", True),
+        ("requests", "vaneck_oih_first_sample_requests_120s", False),
+        ("oih_first_sample", "requests", False),
+        ("requests", "requests", False),
+    ],
+)
+def test_posttransport_spent_reservation_requires_exact_retained_oih_scope(
+    tmp_path, monkeypatch, quota_group, dimension, accepted
+):
+    """Only the actual historical VanEck group/dimension pair proves spent use."""
+    path = tmp_path / "posttransport-spent-oih.sqlite3"
+    url = f"sqlite:///{path}"
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", url)
+    engine = quota._engine_for(url)
+    quota.metadata.create_all(engine)
+    created_at = datetime(2026, 10, 30, 0, 38, 48, 483760, tzinfo=UTC)
+    settled_at = datetime(2026, 10, 30, 0, 38, 48, 836210, tzinfo=UTC)
+    started_at = created_at - timedelta(seconds=8)
+    completed_at = settled_at + timedelta(seconds=1)
+    with engine.begin() as connection:
+        connection.execute(
+            insert(quota._reservations).values(
+                id=41361,
+                reservation_id="78b87a43-d20e-4155-9faa-923be65b4653",
+                provider_name="vaneck",
+                account_scope="reviewed-oih-account",
+                operation=VANECK_OIH_INITIAL_QUALIFICATION_OPERATION,
+                quota_group=quota_group,
+                dimension=dimension,
+                unit="requests",
+                window_started_at=started_at,
+                window_seconds=120,
+                reserved_units=1,
+                release_only=False,
+                lease_expires_at=None,
+                identity_digest=None,
+                state="settled",
+                created_at=created_at,
+                settled_at=settled_at,
+            )
+        )
+    engine.dispose()
+    ledger_before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    if accepted:
+        proof = _verified_posttransport_spent_reservation(
+            account_scope="reviewed-oih-account",
+            started_at=started_at,
+            completed_at=completed_at,
+        )
+        assert proof["reservation_id"] == "78b87a43-d20e-4155-9faa-923be65b4653"
+        assert proof["quota_group"] == VANECK_OIH_INITIAL_QUOTA_GROUP
+        assert proof["dimension"] == VANECK_OIH_INITIAL_QUOTA_DIMENSION
+        assert proof["unit"] == "requests"
+        assert proof["reserved_units"] == 1
+        assert proof["state"] == "settled"
+        assert proof["live_receipt_present"] is False
+    else:
+        with pytest.raises(ETFHoldingsRouteHeldError, match="settled OIH usage unit"):
+            _verified_posttransport_spent_reservation(
+                account_scope="reviewed-oih-account",
+                started_at=started_at,
+                completed_at=completed_at,
+            )
+
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == ledger_before
+
+
+@pytest.mark.parametrize("activity", ["pending", "uncertain", "receipt", "receipt_linked_target"])
+def test_recovery_ledger_check_rejects_matching_reservation_or_receipt(
+    tmp_path, monkeypatch, activity
+):
+    path = tmp_path / f"ledger-{activity}.sqlite3"
+    _, now = _seed_quota_ledger_history(monkeypatch, path, matching_activity=activity)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_ignores_receipt_only_when_linkage_proves_other_account(
+    tmp_path, monkeypatch
+):
+    path = tmp_path / "ledger-other-account-receipt.sqlite3"
+    _, now = _seed_quota_ledger_history(
+        monkeypatch, path, matching_activity="other_account_receipt"
+    )
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert not _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+@pytest.mark.parametrize(
+    "activity", ["orphan_receipt", "mismatched_receipt", "mismatched_operation_receipt"]
+)
+def test_recovery_ledger_rejects_orphan_or_mismatched_receipt_linkage(
+    tmp_path, monkeypatch, activity
+):
+    path = tmp_path / f"ledger-{activity}.sqlite3"
+    _, now = _seed_quota_ledger_history(monkeypatch, path, matching_activity=activity)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_check_allows_only_unrelated_prior_history(tmp_path, monkeypatch):
+    path = tmp_path / "ledger-history.sqlite3"
+    _, now = _seed_quota_ledger_history(monkeypatch, path)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+
+    assert not _quota_activity_exists_since_attempt(
+        account_scope="reviewed-oih-account",
+        started_at=now - timedelta(seconds=10),
+        completed_at=now,
+    )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_rejects_memory_sqlite_config(monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "sqlite:///:memory:")
+    with pytest.raises(ETFHoldingsRouteHeldError, match="URI is unsupported"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+
+
+@pytest.mark.parametrize("uri_style", ["file_uri", "path_query"])
+def test_recovery_ledger_rejects_sqlite_uri_options_without_creating_file(
+    tmp_path, monkeypatch, uri_style
+):
+    uri_path = tmp_path / "uri-ledger.sqlite3"
+    ledger_url = (
+        f"sqlite:///file:{uri_path}?mode=ro&uri=true"
+        if uri_style == "file_uri"
+        else f"sqlite:///{uri_path}?immutable=1"
+    )
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", ledger_url)
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="URI is unsupported"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+    assert not uri_path.exists()
+
+
+def test_recovery_ledger_rejects_incomplete_schema_without_mutating_file(tmp_path, monkeypatch):
+    path = tmp_path / "incomplete-ledger.sqlite3"
+    with sqlite3.connect(path) as connection:
+        connection.execute("CREATE TABLE unrelated (id INTEGER PRIMARY KEY)")
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", f"sqlite:///{path}")
+
+    with pytest.raises(ETFHoldingsRouteHeldError, match="schema is incomplete"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
+
+
+def test_recovery_ledger_fails_closed_on_unreadable_existing_ledger(tmp_path, monkeypatch):
+    path = tmp_path / "ledger-connection-error.sqlite3"
+    _seed_quota_ledger_history(monkeypatch, path)
+    before = hashlib.sha256(path.read_bytes()).hexdigest()
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", f"sqlite:///{path}")
+
+    def fail_connection(*args, **kwargs):
+        raise PermissionError("fixture-only unreadable ledger")
+
+    monkeypatch.setattr(qualification, "create_engine", fail_connection)
+    with pytest.raises(ETFHoldingsRouteHeldError, match="could not be verified read-only"):
+        _quota_activity_exists_since_attempt(
+            account_scope="reviewed-oih-account",
+            started_at=datetime.now(UTC) - timedelta(minutes=1),
+            completed_at=datetime.now(UTC),
+        )
+    assert hashlib.sha256(path.read_bytes()).hexdigest() == before
 
 
 @pytest.mark.asyncio
@@ -329,3 +842,16 @@ async def test_expired_vaneck_authority_cannot_open_disabled_policy_pre_review(m
                 policy=policy,
                 entitlement=entitlement,
             )
+
+
+def test_vaneck_review_expiry_guard_preserves_nullable_schedule_semantics():
+    qualification._assert_provider_review_not_expired(
+        SimpleNamespace(review_due_at=None)  # type: ignore[arg-type]
+    )
+    qualification._assert_provider_review_not_expired(
+        SimpleNamespace(review_due_at=datetime.now(UTC) + timedelta(days=1))  # type: ignore[arg-type]
+    )
+    with pytest.raises(ETFHoldingsRouteHeldError, match="review is expired"):
+        qualification._assert_provider_review_not_expired(
+            SimpleNamespace(review_due_at=datetime.now(UTC) - timedelta(seconds=1))  # type: ignore[arg-type]
+        )

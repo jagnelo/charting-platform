@@ -3160,21 +3160,34 @@ test.describe('TC2000 workstation', () => {
   })
 
   test('F8k-search-states — symbol search exposes loading and no-result states', async ({ page, browserDiagnostics }) => {
+    let finishDiscovery!: () => void
+    const discoveryGate = new Promise<void>(resolve => { finishDiscovery = resolve })
     await page.route('**/api/v1/instruments/search**', async route => {
       await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' })
+    })
+    await page.route('**/api/v1/instruments/discover', async route => {
+      await discoveryGate
+      const body = route.request().postDataJSON() as { request_id: string }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ request_id: body.request_id, status: 'no_match', candidates: [], source_outcomes: [] }),
+      })
     })
     await page.goto('/chart/SPY')
     const workstation = page.locator('.workstation:visible').last()
     await expect(workstation).toBeVisible()
     const activeSymbol = workstation.getByRole('combobox', { name: 'Active symbol' })
+    const results = workstation.getByRole('listbox', { name: 'Symbol search results' })
     await activeSymbol.click()
     await activeSymbol.fill('')
     await activeSymbol.pressSequentially('ZZZZ', { delay: 25 })
-    const results = workstation.getByRole('listbox', { name: 'Symbol search results' })
     await expect(results).toBeVisible()
     await expect(results).toHaveAttribute('aria-busy', 'false', { timeout: 10_000 })
     await expect(activeSymbol).toHaveAttribute('aria-busy', 'false')
-    await expect(results).toContainText('No canonical instruments found for “ZZZZ”')
+    await expect(results).toContainText('No local match. Checking ticker availability…')
+    finishDiscovery()
+    await expect(results).toContainText('No matching ticker is available for “ZZZZ”.')
     await expect(results.getByRole('option')).toHaveCount(0)
     await activeSymbol.press('Escape')
     await expect(results).toHaveCount(0)
@@ -3636,8 +3649,7 @@ test.describe('TC2000 workstation', () => {
 
     const constituents = page.getByRole('region', { name: 'Constituents' }).filter({ has: page.locator('.watchlist__row') }).last()
     await expect(constituents).toBeVisible({ timeout: 15_000 })
-    await expect(constituents.locator('.watchlist__header')).toContainText(/1D.*1W.*1M.*3M.*6M/)
-    for (const target of ['YTD', '1Y']) {
+    for (const target of ['1D', '1W', '1M', '3M', '6M', 'YTD', '1Y']) {
       await expect.poll(async () => {
         const scroll = constituents.locator('.watchlist__scroll')
         const bounds = await scroll.evaluate(element => ({ max: element.scrollWidth - element.clientWidth }))
@@ -3649,7 +3661,7 @@ test.describe('TC2000 workstation', () => {
           if ((await constituents.locator('.watchlist__header').innerText()).includes(target)) return true
         }
         return false
-      }, { timeout: 10_000, message: `constituent columns should expose ${target}` }).toBe(true)
+      }, { timeout: 10_000, message: `constituent columns should expose ${target} through the horizontal viewport` }).toBe(true)
     }
     await constituents.locator('.watchlist__scroll').evaluate(element => {
       element.scrollTo({ left: 0, behavior: 'instant' })
@@ -7608,8 +7620,27 @@ test.describe('Dashboard', () => {
     const editor = personal.getByRole('dialog', { name: 'Column editor', exact: true })
     const targetSelect = editor.getByRole('combobox', { name: 'Tag Column target WatchList', exact: true })
     await targetSelect.selectOption(targetId)
+    const watchlistWindowKey = await personal.evaluate(element => element.closest<HTMLElement>('[data-window-key]')?.dataset.windowKey ?? null)
+    expect(watchlistWindowKey).toBeTruthy()
+    const tagColumnSnapshotSaved = page.waitForResponse(response => {
+      if (response.request().method() !== 'PUT' || !response.url().includes('/api/v1/workspaces/') || !response.url().endsWith('/snapshot') || !response.ok()) return false
+      try {
+        const payload = response.request().postDataJSON() as {
+          tabs?: Array<{ windows?: Array<{ instance_key?: string; configuration?: Record<string, unknown> }> }>
+        }
+        const configuration = payload.tabs?.flatMap(tab => tab.windows ?? [])
+          .find(window => window.instance_key === watchlistWindowKey)?.configuration
+        const targetWatchlistIds = configuration?.tag_watchlist_ids
+        const columnKeys = configuration?.column_keys
+        return Array.isArray(targetWatchlistIds) && targetWatchlistIds.includes(Number(targetId))
+          && Array.isArray(columnKeys) && columnKeys.includes(`tag-watchlist:${targetId}`)
+      } catch {
+        return false
+      }
+    })
     await editor.getByRole('button', { name: 'Add Tag Column', exact: true }).click()
     await expect(personal.locator('.watchlist__header')).toContainText(`Tag · ${targetName}`, { timeout: 10_000 })
+    await tagColumnSnapshotSaved
     await personal.getByRole('button', { name: 'Columns', exact: true }).click()
 
     await sourceRow.click({ button: 'right' })
@@ -7648,6 +7679,7 @@ test.describe('Dashboard', () => {
     await expect(personal).toHaveAttribute('aria-busy', 'false')
     await expect(watchlistSelect.locator('option').filter({ hasText: `${targetName} · Locked` })).toHaveCount(1, { timeout: 10_000 })
     await watchlistSelect.selectOption(targetId)
+    await expect(personal.locator('.watchlist__header')).toContainText(`Tag · ${targetName}`, { timeout: 10_000 })
     const lockedSourceRow = personal.locator('.watchlist__row').filter({ hasText: 'XLE' })
     await expect(lockedSourceRow).toBeVisible({ timeout: 10_000 })
     await lockedSourceRow.click({ button: 'right' })

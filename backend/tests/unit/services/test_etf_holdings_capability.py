@@ -98,6 +98,83 @@ def state(
     )
 
 
+def native_qualified_profile(provider: str, symbol: str, instrument_id: int):
+    return SimpleNamespace(
+        adapter_key=provider,
+        instrument_id=instrument_id,
+        instrument=SimpleNamespace(id=instrument_id, symbol=symbol, name=f"{symbol} Fund"),
+    )
+
+
+def native_qualified_snapshot(provider: str, symbol: str, instrument_id: int):
+    payload_hash = "a" * 64
+    physical_hash = "b" * 64
+    _, fund_identity, source_identifier = {
+        "spdr": (
+            "spdr_fund_workbook_preamble",
+            {"basis": "spdr_fund_workbook_preamble", "symbol": symbol},
+            None,
+        ),
+        "ishares": (
+            "issuer_product_catalog",
+            {"basis": "issuer_product_catalog", "ticker": symbol, "product_id": "239771"},
+            "239771",
+        ),
+    }[provider]
+    completeness = {
+        "status": "complete",
+        "verified": True,
+        "all_reported_rows_parsed": True,
+        "reported_rows": 25,
+        "parsed_rows": 25,
+        "source_payload_hash": payload_hash,
+    }
+    evidence = {
+        "provider": provider,
+        "adapter_key": provider,
+        "instrument_id": instrument_id,
+        "symbol": symbol,
+        "fund_identity": fund_identity,
+        "source_identifier": source_identifier,
+        "source_url": "https://issuer.example/holdings.json",
+        "composition_date": NOW.date().isoformat(),
+        "composition_date_source_field": "composition_date",
+        "composition_completeness": completeness,
+        "parser_version": f"{provider}-json-v1",
+        "schema_fingerprint": "c" * 64,
+        "raw_payload_hash": payload_hash,
+        "holdings_response_body_witness": {
+            "parser_input_sha256": physical_hash,
+            "normalized_payload_sha256": payload_hash,
+            "provider_capture": {"response_body_sha256": physical_hash},
+        },
+    }
+    return SimpleNamespace(
+        source_artifact_id=17,
+        composition_date=NOW.date(),
+        as_of_date=None,
+        known_at=NOW,
+        published_at=NOW,
+        provenance="issuer_self_snapshotted_holdings",
+        source_provider=provider,
+        source_identifier=source_identifier,
+        completeness_status="complete",
+        row_count=25,
+        resolved_count=24,
+        unresolved_count=1,
+        parser_version=f"{provider}-json-v1",
+        source_url="https://issuer.example/holdings.json",
+        extra_data={
+            "schema_fingerprint": "c" * 64,
+            "legal_metadata": {
+                "native_initial_qualification_evidence": evidence,
+                "native_composition_completeness_evidence": completeness,
+                "artifact_identity_validation": {"status": "unverified"},
+            },
+        },
+    )
+
+
 def test_current_requires_complete_snapshot_and_successful_check():
     result = evaluate_capability(profile(), snapshot(), state(), now=NOW)
 
@@ -484,6 +561,138 @@ def test_unverified_identity_never_becomes_current_even_with_complete_rows():
     assert result.identity_verified is False
     assert result.usable_for_current_analysis is False
     assert "identity verification" in result.reason
+
+
+@pytest.mark.parametrize(
+    ("provider", "symbol", "instrument_id"),
+    [("spdr", "SPY", 8), ("ishares", "IGV", 82)],
+)
+def test_complete_persisted_native_qualification_evidence_verifies_identity(
+    provider, symbol, instrument_id
+):
+    result = evaluate_capability(
+        native_qualified_profile(provider, symbol, instrument_id),
+        native_qualified_snapshot(provider, symbol, instrument_id),
+        state(),
+        now=NOW,
+    )
+
+    assert result.identity_verified is True
+    assert result.availability == CURRENT
+    assert result.usable_for_current_analysis is True
+
+
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        "wrong_instrument",
+        "wrong_symbol",
+        "wrong_provider",
+        "wrong_source_url",
+        "wrong_date",
+        "wrong_schema",
+        "wrong_payload_hash",
+        "wrong_source_identifier",
+        "incomplete_rows",
+        "wrong_fund_ticker",
+        "missing_response_witness",
+    ],
+)
+def test_native_qualification_evidence_must_match_snapshot_and_canonical_fund(mutation):
+    profile_value = native_qualified_profile("ishares", "IGV", 82)
+    snapshot_value = native_qualified_snapshot("ishares", "IGV", 82)
+    evidence = snapshot_value.extra_data["legal_metadata"]["native_initial_qualification_evidence"]
+    completeness = snapshot_value.extra_data["legal_metadata"][
+        "native_composition_completeness_evidence"
+    ]
+    if mutation == "wrong_instrument":
+        evidence["instrument_id"] = 83
+    elif mutation == "wrong_symbol":
+        evidence["symbol"] = "IGM"
+    elif mutation == "wrong_provider":
+        evidence["provider"] = "invesco"
+    elif mutation == "wrong_source_url":
+        evidence["source_url"] = "https://other.example/holdings.json"
+    elif mutation == "wrong_date":
+        evidence["composition_date"] = "2026-09-03"
+    elif mutation == "wrong_schema":
+        evidence["schema_fingerprint"] = "d" * 64
+    elif mutation == "wrong_payload_hash":
+        evidence["raw_payload_hash"] = "e" * 64
+    elif mutation == "wrong_source_identifier":
+        evidence["source_identifier"] = "wrong-product"
+    elif mutation == "incomplete_rows":
+        completeness["parsed_rows"] = 24
+    elif mutation == "wrong_fund_ticker":
+        evidence["fund_identity"]["ticker"] = "IGM"
+    elif mutation == "missing_response_witness":
+        evidence.pop("holdings_response_body_witness")
+
+    result = evaluate_capability(
+        profile_value,
+        snapshot_value,
+        state(),
+        now=NOW,
+    )
+
+    assert result.identity_verified is False
+    assert result.availability == DEGRADED
+    assert result.usable_for_current_analysis is False
+
+
+def test_retained_native_continuation_is_bound_to_zero_request_recovery_lineage():
+    profile_value = native_qualified_profile("spdr", "SPY", 8)
+    snapshot_value = native_qualified_snapshot("spdr", "SPY", 8)
+    evidence = snapshot_value.extra_data["legal_metadata"]["native_initial_qualification_evidence"]
+    evidence.pop("holdings_response_body_witness")
+    evidence["retained_evidence_continuation"] = {
+        "version": 1,
+        "predecessor_job_id": 8,
+        "source_provider": "spdr",
+        "account_scope": "reviewed-public-download",
+        "review_revision": 4,
+        "provider_review_fingerprint": "f" * 64,
+        "provider_request_log_ids": [33, 34, 35],
+        "request_urls": [
+            "https://issuer.example/metadata",
+            "https://issuer.example/workbook",
+            "https://issuer.example/workbook.xlsx",
+        ],
+        "physical_http_requests": 0,
+        "quota_reservations": 0,
+        "physical_body_capture": {
+            "request_log_id": 35,
+            "response_body_sha256": "b" * 64,
+        },
+        "recovery_input": {"normalized_payload_sha256": "a" * 64},
+    }
+
+    accepted = evaluate_capability(profile_value, snapshot_value, state(), now=NOW)
+    assert accepted.identity_verified is True
+    assert accepted.usable_for_current_analysis is True
+
+    evidence["retained_evidence_continuation"]["physical_http_requests"] = 1
+    rejected = evaluate_capability(profile_value, snapshot_value, state(), now=NOW)
+    assert rejected.identity_verified is False
+    assert rejected.usable_for_current_analysis is False
+
+
+def test_native_source_access_cadence_is_read_from_snapshot_provenance():
+    profile_value = native_qualified_profile("spdr", "SPY", 8)
+    snapshot_value = native_qualified_snapshot("spdr", "SPY", 8)
+    snapshot_value.extra_data["legal_metadata"]["source_access"] = (
+        "spdr_fund_scoped_daily_holdings_xlsx"
+    )
+
+    result = evaluate_capability(
+        profile_value,
+        snapshot_value,
+        state(extra_data={"expected_cadence": "unspecified"}),
+        now=NOW,
+    )
+
+    assert result.expected_cadence == "daily"
+    assert result.freshness_deadline == NOW.date() + timedelta(days=5)
 
 
 def test_unrecognized_source_tier_never_becomes_current_even_with_complete_rows():

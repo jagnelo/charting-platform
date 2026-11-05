@@ -326,7 +326,6 @@ def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, d
     from app.models.instrument import Instrument
 
     assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
-
     response = client.get("/api/v1/etf-holdings/ZZZ/capability", headers=auth_headers)
 
     assert response.status_code == 200, response.text
@@ -335,6 +334,175 @@ def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, d
     assert body["usable_for_current_analysis"] is False
     assert body["symbol_audit"]["outcome"] == "unknown"
     assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+
+def test_capability_endpoint_uses_persisted_native_snapshot_and_requires_artifact(
+    client, auth_headers, instrument_type, db
+):
+    """Native evidence is evaluated against the ORM row, never the public snapshot DTO."""
+    import hashlib
+    from datetime import UTC, date, datetime
+
+    from app.models.etf_holdings import (
+        ETFHolding,
+        ETFHoldingsAdapterState,
+        ETFHoldingsRawArtifact,
+        ETFHoldingsSnapshot,
+        ETFProfile,
+    )
+    from app.models.instrument import Instrument
+
+    next_instrument_id = (db.query(Instrument.id).order_by(Instrument.id.desc()).first() or (0,))[
+        0
+    ] + 1
+    next_profile_id = (db.query(ETFProfile.id).order_by(ETFProfile.id.desc()).first() or (0,))[
+        0
+    ] + 1
+    if next_profile_id == next_instrument_id:
+        next_profile_id += 1
+    instrument = Instrument(
+        id=next_instrument_id,
+        symbol="NCPX",
+        name="Native Capability Projection Test ETF",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    db.add(instrument)
+    db.flush()
+    profile = ETFProfile(
+        id=next_profile_id,
+        instrument_id=instrument.id,
+        issuer="SPDR",
+        adapter_key="spdr",
+        adapter_status="ready",
+        legal_metadata={"source_access": "spdr_fund_scoped_daily_holdings_xlsx"},
+    )
+    db.add(profile)
+    db.flush()
+    assert profile.id != profile.instrument_id
+
+    now = datetime.now(UTC)
+    composition_date = date.today()
+    source_url = "https://issuer.example/NCPX-holdings.xlsx"
+    payload_hash = hashlib.sha256(b"normalized native payload").hexdigest()
+    body_hash = hashlib.sha256(b"captured workbook bytes").hexdigest()
+    parser_version = "spdr-native-test-v1"
+    schema_fingerprint = "c" * 64
+    completeness = {
+        "status": "complete",
+        "verified": True,
+        "all_reported_rows_parsed": True,
+        "reported_rows": 1,
+        "parsed_rows": 1,
+        "source_payload_hash": payload_hash,
+    }
+    artifact = ETFHoldingsRawArtifact(
+        etf_profile_id=profile.id,
+        source_kind="issuer_holdings",
+        source_url=source_url,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        content_hash=body_hash,
+        composition_date=composition_date,
+        fetched_at=now,
+        parser_version=parser_version,
+        payload_text="captured workbook fixture bytes",
+        legal_metadata={},
+    )
+    db.add(artifact)
+    db.flush()
+    snapshot = ETFHoldingsSnapshot(
+        etf_profile_id=profile.id,
+        source_artifact_id=artifact.id,
+        composition_date=composition_date,
+        as_of_date=composition_date,
+        known_at=now,
+        provenance="issuer_self_snapshotted_holdings",
+        source_provider="spdr",
+        source_url=source_url,
+        source_quality="verified",
+        completeness_status="complete",
+        row_count=1,
+        resolved_count=0,
+        unresolved_count=1,
+        parser_version=parser_version,
+        snapshot_hash=hashlib.sha256(b"snapshot").hexdigest(),
+        extra_data={
+            "schema_fingerprint": schema_fingerprint,
+            "legal_metadata": {
+                "source_tier": "issuer_native",
+                "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
+                "native_composition_completeness_evidence": completeness,
+                "native_initial_qualification_evidence": {
+                    "provider": "spdr",
+                    "adapter_key": "spdr",
+                    "instrument_id": profile.instrument_id,
+                    "symbol": "NCPX",
+                    "fund_identity": {
+                        "basis": "spdr_fund_workbook_preamble",
+                        "symbol": "NCPX",
+                    },
+                    "source_identifier": None,
+                    "source_url": source_url,
+                    "composition_date": composition_date.isoformat(),
+                    "composition_completeness": completeness,
+                    "parser_version": parser_version,
+                    "schema_fingerprint": schema_fingerprint,
+                    "raw_payload_hash": payload_hash,
+                    "holdings_response_body_witness": {
+                        "parser_input_sha256": body_hash,
+                        "normalized_payload_sha256": payload_hash,
+                        "provider_capture": {"response_body_sha256": body_hash},
+                    },
+                },
+            },
+        },
+    )
+    db.add(snapshot)
+    db.flush()
+    db.add(
+        ETFHolding(
+            snapshot_id=snapshot.id,
+            position=1,
+            reported_symbol="UNRESOLVED_TEST_ROW",
+            reported_name="Unresolved test constituent",
+            holding_type="equity",
+            row_type="security",
+            source_row_hash=hashlib.sha256(b"row").hexdigest(),
+            is_resolved=False,
+        )
+    )
+    db.add(
+        ETFHoldingsAdapterState(
+            etf_profile_id=profile.id,
+            adapter_key="spdr",
+            status="success",
+            last_checked_at=now,
+            last_success_at=now,
+            source_url=source_url,
+            row_count=1,
+            resolved_count=0,
+            unresolved_count=1,
+            composition_date=composition_date,
+            completeness_status="complete",
+            extra_data={"expected_cadence": "daily"},
+        )
+    )
+    db.flush()
+
+    valid = client.get("/api/v1/etf-holdings/NCPX/capability", headers=auth_headers)
+    assert valid.status_code == 200, valid.text
+    assert valid.json()["identity_verified"] is True
+    assert valid.json()["availability"] == "current"
+    assert valid.json()["usable_for_current_analysis"] is True
+
+    snapshot.source_artifact_id = None
+    db.flush()
+    missing_artifact = client.get("/api/v1/etf-holdings/NCPX/capability", headers=auth_headers)
+    assert missing_artifact.status_code == 200, missing_artifact.text
+    assert missing_artifact.json()["identity_verified"] is False
+    assert missing_artifact.json()["availability"] == "degraded"
+    assert missing_artifact.json()["usable_for_current_analysis"] is False
 
 
 @pytest.mark.parametrize(
@@ -1006,6 +1174,131 @@ async def test_selected_fund_acquire_handler_serializes_with_real_async_session(
         assert (
             committed_snapshot.extra_data["legal_metadata"]["application_request_id"] == request_id
         )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("symbol", "asset_class_name", "instrument_type_name", "eligible"),
+    [
+        ("BWET", "Exchange Traded Product", "Exchange Traded Vehicle", True),
+        ("XETN", "Exchange Traded Product", "ETN", False),
+        ("XWRG", "Equity", "Exchange Traded Vehicle", False),
+    ],
+)
+async def test_selected_fund_acquire_resolves_exchange_traded_product_type_in_postgres(
+    selected_fund_acquire_database,
+    monkeypatch,
+    symbol,
+    asset_class_name,
+    instrument_type_name,
+    eligible,
+):
+    """The production ORM type path admits ETV/ETP, but not ETN or a wrong class."""
+    from uuid import uuid4
+
+    from fastapi import HTTPException
+    from sqlalchemy import select, text
+    from sqlalchemy.orm import selectinload
+
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+    from app.routers.etf_holdings import acquire_holdings_profile
+    from app.schemas.etf_holdings import ETFProfileAcquireRequest
+    from app.services import etf_holdings_refresh
+
+    session_factory = selected_fund_acquire_database
+    # Keep the committed seed session checked out so the request must use a
+    # second PostgreSQL connection, not merely a new identity map on the same
+    # connection.
+    async with session_factory() as seed_db:
+        async with seed_db.begin():
+            asset_class = AssetClass(name=asset_class_name, description=asset_class_name)
+            seed_db.add(asset_class)
+            await seed_db.flush()
+            instrument_type = InstrumentType(
+                asset_class_id=asset_class.id,
+                name=instrument_type_name,
+                description=instrument_type_name,
+            )
+            seed_db.add(instrument_type)
+            await seed_db.flush()
+            instrument = Instrument(
+                instrument_type_id=instrument_type.id,
+                symbol=symbol,
+                name=(
+                    "Breakwave Tanker Shipping ETF"
+                    if symbol == "BWET"
+                    else f"Test {instrument_type_name}"
+                ),
+                is_active=True,
+                identity_status="resolved",
+                is_synthetic=False,
+            )
+            seed_db.add(instrument)
+            await seed_db.flush()
+            instrument_id = instrument.id
+        seed_pid = await seed_db.scalar(text("SELECT pg_backend_pid()"))
+
+        # The selected acquire path must resolve its type/asset-class
+        # relationship from a fresh request session, not the ORM object
+        # retained by the seed step. Disable the staged Provider binder so this
+        # PostgreSQL regression is deterministic and cannot make an external
+        # source request. Native body identity/witness validation remains
+        # covered by the existing adapter tests.
+        monkeypatch.setattr(etf_holdings_refresh, "_explicit_etf_acquisition_binder", lambda: None)
+        request_id = str(uuid4())
+        async with session_factory() as request_db:
+            request_pid = await request_db.scalar(text("SELECT pg_backend_pid()"))
+            assert request_pid != seed_pid
+            request = ETFProfileAcquireRequest(
+                request_id=request_id,
+                refresh=True,
+                instrument_id=instrument_id,
+            )
+            if not eligible:
+                with pytest.raises(HTTPException) as denied:
+                    await acquire_holdings_profile(
+                        symbol=symbol,
+                        body=request,
+                        db=request_db,
+                        current_user=None,
+                    )
+                assert denied.value.status_code == 404
+                return
+
+            response = await acquire_holdings_profile(
+                symbol=symbol,
+                body=request,
+                db=request_db,
+                current_user=None,
+            )
+            payload = response.model_dump(mode="json")
+            assert payload["outcome"] == "held"
+            assert payload["instrument_id"] == instrument_id
+            assert payload["symbol"] == symbol
+            assert payload["refresh_attempted"] is False
+            assert payload["provider_request_log_ids"] == []
+            assert payload["profile"]["name"] == "Breakwave Tanker Shipping ETF"
+            assert payload["profile"]["adapter_key"] == "amplify"
+            aliases = payload["profile"]["provider_aliases"]
+            assert aliases["holdings_source_provider"] == "amplify"
+            assert aliases["holdings_route_evidence"]["evidence_state"] == (
+                "successor_issuer_route"
+            )
+
+    # Independently confirm the persisted row still has the intended exact
+    # relational type after request-session commit/serialization.
+    async with session_factory() as verification_db:
+        persisted = await verification_db.scalar(
+            select(Instrument)
+            .options(
+                selectinload(Instrument.instrument_type).selectinload(InstrumentType.asset_class)
+            )
+            .where(Instrument.id == instrument_id)
+        )
+        assert persisted is not None
+        assert persisted.instrument_type.name == instrument_type_name
+        assert persisted.instrument_type.asset_class.name == asset_class_name
 
 
 def test_bootstrap_endpoint_seeds_known_ishares_route_metadata(client, auth_headers, monkeypatch):
@@ -1971,13 +2264,14 @@ def test_overlap_matrix_can_expand_etf_family_from_profile_metadata(
 
 
 def test_admin_can_refresh_spdr_provider_xlsx_route(
-    client, admin_headers, auth_headers, monkeypatch
+    client, db, admin_headers, auth_headers, monkeypatch
 ):
     composition_date = datetime.now(UTC).date()
     raw_workbook = _xlsx_workbook(
         [
             ["Fund Ticker", "XLY"],
             ["Fund Name", "Consumer Discretionary Select Sector SPDR Fund"],
+            ["Holdings", f"As of {composition_date.strftime('%d-%b-%Y')}"],
             [],
             ["Ticker", "Name", "Weight (%)", "Shares", "Market Value", "Currency"],
             ["AMZN", "Amazon.com Inc.", "18.5%", "20", "4500", "USD"],
@@ -2020,13 +2314,19 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
         "/api/v1/etf-holdings/XLY/profile",
         json={
             "issuer": "State Street",
-            "provider_aliases": {
-                "holdings_composition_date": composition_date.isoformat(),
-            },
+            "provider_aliases": {},
         },
         headers=admin_headers,
     )
     assert profile.status_code == 200
+    # The native workbook verifies both its fund ticker and descriptive name;
+    # seed the canonical security-master name rather than the lightweight
+    # symbol-only placeholder created by this endpoint fixture.
+    from app.models.instrument import Instrument
+
+    instrument = db.query(Instrument).filter(Instrument.symbol == "XLY").one()
+    instrument.name = "Consumer Discretionary Select Sector SPDR Fund"
+    db.flush()
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
@@ -2044,7 +2344,7 @@ def test_admin_can_refresh_spdr_provider_xlsx_route(
     assert body["holdings"][0]["weight"] == "0.18500000"
     assert body["extra_data"]["legal_metadata"]["source_format"] == "xlsx"
     validation = body["extra_data"]["legal_metadata"]["artifact_identity_validation"]
-    assert validation["status"] == "matched_inferred"
+    assert validation["status"] == "matched"
     assert validation["matched"][0]["value"] == "XLY"
 
 
@@ -2131,6 +2431,7 @@ def test_admin_can_refresh_spdr_product_page_discovered_zip_route(
     assert body["holdings"][0]["reported_symbol"] == "AAPL"
     legal_metadata = body["extra_data"]["legal_metadata"]
     assert legal_metadata["source_format"] == "zip"
+    assert body["completeness_status"] == "unknown"
     assert legal_metadata["selected_archive_file"] == "daily-holdings.csv"
     assert legal_metadata["selected_archive_file_format"] == "csv"
     validation = legal_metadata["artifact_identity_validation"]
@@ -2747,7 +3048,7 @@ def test_admin_can_probe_ready_ishares_product_id_route(client, admin_headers):
 
 
 def test_admin_can_refresh_ishares_product_id_route(
-    client, admin_headers, auth_headers, monkeypatch
+    client, db, admin_headers, auth_headers, monkeypatch
 ):
     composition_date = datetime.now(UTC).date()
     payload = {
@@ -2832,6 +3133,13 @@ def test_admin_can_refresh_ishares_product_id_route(
         headers=admin_headers,
     )
     assert profile.status_code == 200
+    # The direct product response has fundTicker/fundName identity evidence;
+    # model the canonical descriptive fund record used by ordinary requests.
+    from app.models.instrument import Instrument
+
+    instrument = db.query(Instrument).filter(Instrument.symbol == "IVV").one()
+    instrument.name = "iShares Core S&P 500 ETF"
+    db.flush()
 
     refresh = client.post("/api/v1/etf-holdings/refresh", headers=admin_headers)
     assert refresh.status_code == 200
@@ -2857,6 +3165,7 @@ def test_admin_can_refresh_ishares_product_id_route(
     validation = body["extra_data"]["legal_metadata"]["artifact_identity_validation"]
     assert validation["status"] == "matched"
     assert validation["matched"][0]["value"] == "IVV"
+    assert validation["native_fund_identity_evidence"]["basis"] == "ishares_holdings_response"
 
 
 def test_admin_can_refresh_issuer_holdings_for_specific_date(
@@ -3365,6 +3674,7 @@ def test_issuer_adapter_can_discover_holdings_file_from_product_page(
     assert body["source_provider"] == "invesco"
     assert body["source_url"] == holdings_url
     assert body["row_count"] == 2
+    assert body["completeness_status"] == "unknown"
     legal_metadata = body["extra_data"]["legal_metadata"]
     assert legal_metadata["route_resolution"] == "issuer_product_page_discovery"
     assert legal_metadata["artifact_identity_validation"]["status"] == "matched"
@@ -3455,6 +3765,7 @@ def test_issuer_adapter_discovers_holdings_file_from_product_page_data_attribute
     assert body["source_provider"] == "spdr"
     assert body["source_url"] == holdings_url
     assert body["row_count"] == 2
+    assert body["completeness_status"] == "unknown"
     assert (
         body["extra_data"]["legal_metadata"]["route_resolution"] == "issuer_product_page_discovery"
     )

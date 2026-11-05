@@ -221,26 +221,60 @@ describe('WorkspaceLayoutHost', () => {
   })
 
   it('does not synthesize tab clicks when the supported stack getter reports the component active', async () => {
-    const wrapper = mount(WorkspaceLayoutHost, {
-      props: {
-        layout: { root: { type: 'row', content: [] } } as any,
-        activeWindowKey: 'chart-1',
-        renderTool: () => h('div'),
-      },
+    vi.useFakeTimers({ toFake: ['Date', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] })
+    const pendingFrames = new Map<number, FrameRequestCallback>()
+    let nextFrameId = 0
+    const requestFrame = vi.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
+      const id = ++nextFrameId
+      pendingFrames.set(id, callback)
+      return id
     })
-    const component = goldenLayouts[0].root.contentItems[0]
-    const tabClick = vi.fn()
-    component.parentItem.header.tabs = [{ contentItem: component, element: { click: tabClick } }]
+    const cancelFrame = vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(id => {
+      pendingFrames.delete(id)
+    })
+    let wrapper: ReturnType<typeof mount> | undefined
 
-    await new Promise(resolve => setTimeout(resolve, 60))
-    const settledActivationCount = component.parentItem.setActiveComponentItem.mock.calls.length
-    await new Promise(resolve => setTimeout(resolve, 75))
+    try {
+      wrapper = mount(WorkspaceLayoutHost, {
+        props: {
+          layout: { root: { type: 'row', content: [] } } as any,
+          activeWindowKey: 'chart-1',
+          renderTool: () => h('div'),
+        },
+      })
+      const component = goldenLayouts[0].root.contentItems[0]
+      const tabClick = vi.fn()
+      component.parentItem.header.tabs = [{ contentItem: component, element: { click: tabClick } }]
 
-    expect('activeComponentItem' in component.parentItem).toBe(false)
-    expect(component.parentItem.getActiveComponentItem()).toBe(component)
-    expect(component.parentItem.setActiveComponentItem).toHaveBeenCalledTimes(settledActivationCount)
-    expect(tabClick).not.toHaveBeenCalled()
-    wrapper.unmount()
+      await nextTick()
+      // Drain the bounded bootstrap RAF callbacks, including nested reasserts.
+      // The cap also fails if a future change creates an unexpected RAF loop.
+      for (let frame = 0; pendingFrames.size > 0 && frame < 6; frame += 1) {
+        const callbacks = [...pendingFrames.values()]
+        pendingFrames.clear()
+        callbacks.forEach(callback => callback(frame * 16))
+        await nextTick()
+        await vi.advanceTimersByTimeAsync(0)
+      }
+      expect(pendingFrames.size).toBe(0)
+      // Let the component's single 25ms active-component poll observe the
+      // supported getter and stop before taking the stable baseline.
+      await vi.advanceTimersByTimeAsync(25)
+      const settledActivationCount = component.parentItem.setActiveComponentItem.mock.calls.length
+
+      await vi.advanceTimersByTimeAsync(75)
+
+      expect('activeComponentItem' in component.parentItem).toBe(false)
+      expect(component.parentItem.getActiveComponentItem()).toBe(component)
+      expect(component.parentItem.setActiveComponentItem).toHaveBeenCalledTimes(settledActivationCount)
+      expect(tabClick).not.toHaveBeenCalled()
+    } finally {
+      wrapper?.unmount()
+      vi.clearAllTimers()
+      requestFrame.mockRestore()
+      cancelFrame.mockRestore()
+      vi.useRealTimers()
+    }
   })
 
   it('does not reassert a component through a header that no longer owns it during a drag', async () => {

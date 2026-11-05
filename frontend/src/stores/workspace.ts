@@ -4,6 +4,7 @@ import { api } from '@/lib/api'
 import { isEditorTarget as isWorkstationEditorTarget } from '@/lib/workstation/keyboard'
 import { normaliseGoldenLayoutConfig } from '@/lib/workstation/layout'
 import type { LinkGroup } from '@/stores/dashboardLinks'
+import type { ETFHolding, ETFHoldingsPage } from '@/types'
 
 export type { LinkGroup } from '@/stores/dashboardLinks'
 
@@ -831,28 +832,8 @@ export interface PythonBreadthRunState {
   diagnostics: Array<Record<string, unknown>>
 }
 
-export interface ETFHoldingState {
-  constituent_instrument_id: number | null
-  constituent_symbol: string | null
-  constituent_name: string | null
-  reported_symbol: string | null
-  reported_name: string | null
-  weight: number | null
-  is_resolved: boolean
-}
-
-export interface ETFHoldingsPageState {
-  snapshot: {
-    etf_symbol: string
-    composition_date: string
-    known_at: string | null
-    provenance: string
-    source_provider: string
-    completeness_status: string
-  }
-  holdings: ETFHoldingState[]
-  total: number
-}
+export type ETFHoldingState = ETFHolding
+export type ETFHoldingsPageState = ETFHoldingsPage
 
 export interface ETFConstituentSnapshotState extends GroupSnapshotState {
   etf_symbol: string
@@ -1116,6 +1097,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const pythonBreadthRunIds = ref<Record<string, number>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
+  const etfConstituentSnapshotErrors = ref<Record<string, string | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
@@ -2705,7 +2687,11 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfHoldings.value = { ...etfHoldings.value, [normalized]: page }
       const sameETF = constituentETF.value === normalized
-      constituentETF.value = normalized
+      // Passive hydration may complete after the user has selected a different
+      // direct symbol. Only bind this result when the selection context is
+      // unset or still names this ETF; clearConstituentETF invalidates any
+      // older in-flight request at the selection boundary.
+      if (constituentETF.value == null || sameETF) constituentETF.value = normalized
       // Repeated concurrent hydration for the same ETF is expected (initial
       // shell load, linked-symbol watcher, and an explicit selection can all
       // request it). It must not erase an industry/proxy selection the user has
@@ -2722,7 +2708,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
-        etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
+        // A missing current read must not erase a retained last-known snapshot.
+        // Empty first use is represented as null; refresh failure preserves the
+        // exact prior page and its provenance for the selected fund.
+        if (!etfHoldings.value[normalized]) {
+          etfHoldings.value = { ...etfHoldings.value, [normalized]: null }
+        }
         return null
       }
       error.value = cause?.message ?? `Unable to load ETF holdings for ${normalized}`
@@ -2737,6 +2728,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const requestKey = 'top-down:constituent-snapshot'
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
+    etfConstituentSnapshotErrors.value = { ...etfConstituentSnapshotErrors.value, [normalized]: null }
     try {
       const snapshot = await api.get<ETFConstituentSnapshotState>(
         `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`,
@@ -2744,11 +2736,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       )
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: snapshot }
+      etfConstituentSnapshotErrors.value = { ...etfConstituentSnapshotErrors.value, [normalized]: null }
       return snapshot
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
         etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: null }
+        return null
+      }
+      if (cause?.status === 409 && /etf_holdings_not_current/i.test(String(cause?.code ?? cause?.message ?? ''))) {
+        etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: null }
+        etfConstituentSnapshotErrors.value = {
+          ...etfConstituentSnapshotErrors.value,
+          [normalized]: `Current constituent analysis for ${normalized} is unavailable because its holdings are not current.`,
+        }
         return null
       }
       error.value = cause?.message ?? `Unable to calculate ${normalized} constituent strength`
@@ -2880,9 +2881,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     selectedIndustryProxy.value = null
   }
 
-  function setConstituentETF(symbol: string) {
-    const normalized = symbol.trim().toUpperCase()
-    if (!normalized) return
+  function setConstituentETF(symbol: string | null) {
+    const normalized = symbol?.trim().toUpperCase() || null
+    if (normalized == null) {
+      // Invalidate pending holdings reads so an old ETF response cannot
+      // resurrect context after a direct symbol selection or a failed lookup.
+      beginAnalysisRequest('top-down:holdings')
+      constituentETF.value = null
+      clearIndustrySelection()
+      return
+    }
     constituentETF.value = normalized
     clearIndustrySelection()
   }
@@ -3487,6 +3495,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     pythonBreadthRunIds,
     etfHoldings,
     etfConstituentSnapshots,
+    etfConstituentSnapshotErrors,
     etfIndustries,
     industryConstituents,
     industryProxies,

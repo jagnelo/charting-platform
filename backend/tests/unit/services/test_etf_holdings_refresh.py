@@ -97,6 +97,47 @@ async def _no_prior_snapshot(*_args, **_kwargs):
     return None
 
 
+@pytest.mark.parametrize(
+    ("raw_text", "expected_status"),
+    [
+        ("Daily Holdings (%) 10/29/2026\nTicker,Weight,Name\nSLB,1.0%,SLB Ltd", "matched"),
+        ("Fund Ticker,SMH\nTicker,Weight\nSLB,1.0%", "mismatch"),
+        (
+            "Fund Name,VanEck Semiconductor ETF (SMH)\nTicker,Weight\nSLB,1.0%",
+            "mismatch",
+        ),
+    ],
+)
+def test_verified_oih_worksheet_identity_fills_missing_table_identity_but_not_conflicts(
+    raw_text, expected_status
+):
+    profile_value = _profile("OIH")
+    profile_value.adapter_key = "vaneck"
+    profile_value.instrument.name = "VanEck Oil Services ETF"
+    profile_value.provider_aliases = {
+        "product_slug": "oil-services-etf-oih",
+        "expected_etf_symbol": "OIH",
+        "expected_etf_name": "VanEck Oil Services ETF",
+    }
+
+    result = refresh._validate_artifact_identity(
+        profile_value,
+        raw_text,
+        verified_body_identity=["worksheet:OIH_asof_20261029"],
+    )
+
+    assert result["status"] == expected_status
+    if expected_status == "matched":
+        assert result["matched"] == [
+            {
+                "type": "verified_body_identity",
+                "value": "worksheet:OIH_asof_20261029",
+            }
+        ]
+    else:
+        assert result["matched"] == []
+
+
 def test_curated_spdr_route_metadata_binds_adapter_and_publisher_identity():
     profile_value = _profile("SPY")
     profile_value.provider_aliases = {"operator_review_ref": "retained-review-record"}
@@ -251,6 +292,314 @@ async def test_schema_drift_is_rejected_for_an_unchanged_parser():
 
     assert error.value.previous_fingerprint != error.value.observed_fingerprint
     assert error.value.parser_version == "fixture-json-v1"
+
+
+def _vaneck_schema_result(payload):
+    profile = _profile("OIH")
+    profile.adapter_key = "vaneck"
+    profile.provider_aliases = {"product_slug": "oil-services-etf-oih"}
+    adapter = SimpleNamespace(adapter_key="vaneck", source_provider="vaneck")
+    fetch_result = SimpleNamespace(
+        source_identifier="oil-services-etf-oih",
+        raw_json=payload,
+        legal_metadata={
+            "source_provider": "vaneck",
+            "adapter_key": "vaneck",
+            "source_format": "xlsx",
+            "product_slug": "oil-services-etf-oih",
+            "body_identity_status": "matched",
+            "body_identity_evidence": ["OIH"],
+            "composition_date": "2026-10-29",
+        },
+    )
+    return profile, adapter, fetch_result
+
+
+@pytest.mark.asyncio
+async def test_vaneck_qualification_diagnostics_share_ordinary_schema_and_migrate_exact_legacy_state():
+    ordinary_payload = {
+        "source_format": "xlsx",
+        "workbook_rows": [
+            ["Daily Holdings (%)  10/29/2026"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "Notional Value",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB", "FIGI", "1", "Equity", "1", "1", "0.1"],
+        ],
+    }
+    qualification_payload = {
+        **ordinary_payload,
+        "raw_workbook_base64": "cHJvb2Y=",
+        "raw_workbook_sha256": "a" * 64,
+        "raw_workbook_bytes": 5,
+    }
+    profile, adapter, qualification_result = _vaneck_schema_result(qualification_payload)
+    qualification_fingerprint, no_legacy = refresh._vaneck_oih_schema_fingerprints(
+        profile,
+        adapter,
+        qualification_result,
+        parser_version="vaneck-xlsx-v1",
+        verified_body_identity=["OIH"],
+    )
+    assert no_legacy is None
+
+    _, _, ordinary_result = _vaneck_schema_result(ordinary_payload)
+    ordinary_fingerprint, legacy_fingerprint = refresh._vaneck_oih_schema_fingerprints(
+        profile,
+        adapter,
+        ordinary_result,
+        parser_version="vaneck-xlsx-v1",
+        verified_body_identity=["OIH"],
+    )
+    assert ordinary_fingerprint == qualification_fingerprint
+    assert legacy_fingerprint == refresh._schema_fingerprint(raw_payload_json=qualification_payload)
+
+    state = _state(extra_data={"schema_fingerprint": legacy_fingerprint})
+    state.parser_version = "vaneck-xlsx-v1"
+    await refresh._ensure_schema_fingerprint_is_stable(
+        _Session([_Result(scalar=state)]),
+        profile,
+        parser_version="vaneck-xlsx-v1",
+        raw_payload_json=ordinary_payload,
+        schema_fingerprint_override=ordinary_fingerprint,
+        legacy_qualification_fingerprint=legacy_fingerprint,
+    )
+
+
+def test_authentic_oih_workbook_qualification_and_ordinary_payloads_share_schema_fingerprint():
+    import base64
+    import hashlib
+    from pathlib import Path
+
+    from app.services.etf_holdings_adapters import get_holdings_adapter, parse_xlsx_table
+
+    workbook = (
+        Path(__file__).resolve().parents[2] / "fixtures/vaneck/oih_schema_continuity.xlsx"
+    ).read_bytes()
+    assert len(workbook) == 5396
+    raw_sha256 = hashlib.sha256(workbook).hexdigest()
+    assert raw_sha256 == "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653"
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    _, composition_date = adapter._parse_workbook(workbook)
+    assert composition_date is not None
+    workbook_rows = parse_xlsx_table(workbook)
+    identity_status, identity_evidence = adapter._initial_workbook_identity(
+        workbook,
+        workbook_rows,
+        composition_date=composition_date,
+    )
+    assert identity_status == "matched"
+    ordinary_payload = {"source_format": "xlsx", "workbook_rows": workbook_rows}
+    qualification_payload = {
+        **ordinary_payload,
+        "raw_workbook_base64": base64.b64encode(workbook).decode("ascii"),
+        "raw_workbook_sha256": raw_sha256,
+        "raw_workbook_bytes": len(workbook),
+    }
+    profile = _profile("OIH")
+    profile.adapter_key = "vaneck"
+    profile.provider_aliases = {"product_slug": "oil-services-etf-oih"}
+
+    fingerprints = []
+    for payload in (qualification_payload, ordinary_payload):
+        fetch_result = SimpleNamespace(
+            source_identifier="oil-services-etf-oih",
+            raw_json=payload,
+            legal_metadata={
+                "source_provider": "vaneck",
+                "adapter_key": "vaneck",
+                "source_format": "xlsx",
+                "product_slug": "oil-services-etf-oih",
+                "body_identity_status": identity_status,
+                "body_identity_evidence": identity_evidence,
+                "composition_date": composition_date.isoformat(),
+            },
+        )
+        fingerprint, _legacy = refresh._vaneck_oih_schema_fingerprints(
+            profile,
+            adapter,
+            fetch_result,
+            parser_version="vaneck-xlsx-v1",
+            verified_body_identity=identity_evidence,
+        )
+        fingerprints.append(fingerprint)
+    assert fingerprints[0] is not None and fingerprints[0] == fingerprints[1]
+    assert "raw_workbook_base64" in qualification_payload
+    assert "raw_workbook_base64" not in ordinary_payload
+
+
+@pytest.mark.asyncio
+async def test_authentic_oih_workbook_header_change_still_fails_legacy_schema_check():
+    import base64
+    import hashlib
+    import io
+    import zipfile
+    from pathlib import Path
+
+    from app.services.etf_holdings_adapters import get_holdings_adapter, parse_xlsx_table
+
+    workbook = (
+        Path(__file__).resolve().parents[2] / "fixtures/vaneck/oih_schema_continuity.xlsx"
+    ).read_bytes()
+    assert len(workbook) == 5396
+    raw_sha256 = hashlib.sha256(workbook).hexdigest()
+    assert raw_sha256 == "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653"
+
+    output = io.BytesIO()
+    replacement_count = 0
+    with zipfile.ZipFile(io.BytesIO(workbook)) as source:
+        with zipfile.ZipFile(output, "w", compression=zipfile.ZIP_DEFLATED) as changed:
+            for info in source.infolist():
+                content = source.read(info.filename)
+                if info.filename == "xl/sharedStrings.xml":
+                    replacement_count = content.count(b"Notional Value")
+                    content = content.replace(b"Notional Value", b"Notional Field")
+                changed.writestr(info, content)
+    assert replacement_count == 1
+    changed_workbook = output.getvalue()
+    assert hashlib.sha256(changed_workbook).hexdigest() != raw_sha256
+
+    adapter = get_holdings_adapter("vaneck")
+    assert adapter is not None
+    original_rows, original_date = adapter._parse_workbook(workbook)
+    changed_rows, changed_date = adapter._parse_workbook(changed_workbook)
+    assert original_rows and changed_rows and changed_date == original_date
+    ordinary_rows = parse_xlsx_table(changed_workbook)
+    assert ordinary_rows[2][7] == "Notional Field"
+    identity_status, identity_evidence = adapter._initial_workbook_identity(
+        changed_workbook,
+        ordinary_rows,
+        composition_date=changed_date,
+    )
+    assert identity_status == "matched"
+
+    qualification_payload = {
+        "source_format": "xlsx",
+        "workbook_rows": parse_xlsx_table(workbook),
+        "raw_workbook_base64": base64.b64encode(workbook).decode("ascii"),
+        "raw_workbook_sha256": raw_sha256,
+        "raw_workbook_bytes": len(workbook),
+    }
+    legacy_fingerprint = refresh._schema_fingerprint(raw_payload_json=qualification_payload)
+    changed_payload = {"source_format": "xlsx", "workbook_rows": ordinary_rows}
+    profile = _profile("OIH")
+    profile.adapter_key = "vaneck"
+    profile.provider_aliases = {"product_slug": "oil-services-etf-oih"}
+    fetch_result = SimpleNamespace(
+        source_identifier="oil-services-etf-oih",
+        raw_json=changed_payload,
+        legal_metadata={
+            "source_provider": "vaneck",
+            "adapter_key": "vaneck",
+            "source_format": "xlsx",
+            "product_slug": "oil-services-etf-oih",
+            "body_identity_status": identity_status,
+            "body_identity_evidence": identity_evidence,
+            "composition_date": changed_date.isoformat(),
+        },
+    )
+    observed, legacy_candidate = refresh._vaneck_oih_schema_fingerprints(
+        profile,
+        adapter,
+        fetch_result,
+        parser_version="vaneck-xlsx-v1",
+        verified_body_identity=identity_evidence,
+    )
+    assert observed is not None and observed != legacy_fingerprint
+    assert legacy_candidate is None
+
+    state = _state(extra_data={"schema_fingerprint": legacy_fingerprint})
+    state.parser_version = "vaneck-xlsx-v1"
+    with pytest.raises(refresh.ETFHoldingsSchemaDriftError, match="schema fingerprint drift"):
+        await refresh._ensure_schema_fingerprint_is_stable(
+            _Session([_Result(scalar=state)]),
+            profile,
+            parser_version="vaneck-xlsx-v1",
+            raw_payload_json=changed_payload,
+            schema_fingerprint_override=observed,
+            legacy_qualification_fingerprint=legacy_candidate,
+        )
+
+
+@pytest.mark.asyncio
+async def test_vaneck_legacy_schema_compatibility_does_not_accept_changed_workbook_rows():
+    ordinary_payload = {
+        "source_format": "xlsx",
+        "workbook_rows": [
+            ["Daily Holdings (%)  10/29/2026"],
+            [],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares",
+                "Asset Class",
+                "Market Value (US$)",
+                "Notional Value",
+                "% of Net Assets",
+            ],
+            ["1", "SLB", "SLB", "FIGI", "1", "Equity", "1", "1", "0.1"],
+        ],
+    }
+    profile, adapter, result = _vaneck_schema_result(ordinary_payload)
+    observed, legacy = refresh._vaneck_oih_schema_fingerprints(
+        profile,
+        adapter,
+        result,
+        parser_version="vaneck-xlsx-v1",
+        verified_body_identity=["OIH"],
+    )
+    changed_payload = {
+        "source_format": "xlsx",
+        "workbook_rows": [
+            ordinary_payload["workbook_rows"][0],
+            ordinary_payload["workbook_rows"][1],
+            [
+                "Number",
+                "Ticker",
+                "Holding Name",
+                "Identifier (FIGI)",
+                "Shares renamed",
+                "Asset Class",
+                "Market Value (US$)",
+                "Notional Value",
+                "% of Net Assets",
+            ],
+            ordinary_payload["workbook_rows"][3],
+        ],
+    }
+    _, _, changed_result = _vaneck_schema_result(changed_payload)
+    changed, changed_legacy = refresh._vaneck_oih_schema_fingerprints(
+        profile,
+        adapter,
+        changed_result,
+        parser_version="vaneck-xlsx-v1",
+        verified_body_identity=["OIH"],
+    )
+    assert changed != observed and changed_legacy is None and legacy is not None
+
+    state = _state(extra_data={"schema_fingerprint": legacy})
+    state.parser_version = "vaneck-xlsx-v1"
+    with pytest.raises(refresh.ETFHoldingsSchemaDriftError, match="schema fingerprint drift"):
+        await refresh._ensure_schema_fingerprint_is_stable(
+            _Session([_Result(scalar=state)]),
+            profile,
+            parser_version="vaneck-xlsx-v1",
+            raw_payload_json=changed_payload,
+            schema_fingerprint_override=changed,
+            legacy_qualification_fingerprint=changed_legacy,
+        )
 
 
 @pytest.mark.asyncio

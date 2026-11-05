@@ -1,11 +1,193 @@
+# Current handoff — capability GET persisted snapshot — 2026-11-05
+
+The original owner session and claim are unchanged. Root released the branch at `45cc8206602d7823ca29e132d991d88b0bcbbc25` for this bounded follow-up. The capability GET path previously evaluated native identity against `ETFHoldingsSnapshotOut`; the strict verifier requires ORM-only `source_artifact_id`. The service now shares one latest-snapshot ORM query between capability and DTO rendering, preserving existing visibility, controlled-fixture exclusion, ordering, and eager loading. The optional snapshot keyword remains but is typed as the ORM model. No public DTO fields or native checks changed.
+
+A real endpoint regression seeds a complete SPDR-shaped qualified snapshot and raw artifact with deliberately distinct profile/instrument IDs, asserts current/identity/usable on GET, then removes the artifact link and asserts fail-closed capability. It does not mutate production or call sources. Local validation: capability unit module 130/130; the endpoint regression passed 1/1 in 21.65s with distinct profile/instrument IDs and both valid-current and missing-artifact fail-closed assertions; Ruff and format pass. The initial sandbox Docker denial occurred before setup and was superseded by the successful narrow Docker-authorized test run. OIH's retained analytics response remains an honest stale 409 with identity verified, daily deadline 2026-11-04 and composition date 2026-10-30.
+
+**Next action:** Root reviews this coherent candidate and owns the exact hosted/staging gate. No local heavy Docker/browser matrix, source calls, production writes, integration, promotion or deployment are performed here. AC1-AC14, `15 Tier-0 and 156 Tier-1`, all holds and genuine deployed-flow gates remain open.
+
+---
+
+# Current accepted checkpoint — strict native capability projection (2026-11-05)
+
+Root accepted `etf-native-capability-projection-20261105` under the existing human-delegated authority. Receipt `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json` (SHA256 `1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40`). Tested runtime source `6eae00eb8380438da771fed0c42d19587e9520ce`; runtime CI `42009540648` is terminal green on that implementation only. Root accepted the exact paired served profile: 203 functional passed/2 configured skips, 104 strict visuals across four projects, and 2 served Enter/Go cases; zero retries and no reference/tolerance changes. The exact SPY7/IGV8 retained-input proof passed with 16 negative bindings and no historical mutation. Protected inventory is preserved.
+
+This is a records-only closure. Exact CI for this closing tip remains pending and mandatory; Root owns its observation, staging/master integration, deployment, and genuine deployed user-flow checks. AC1-AC14, 15 Tier-0/156 Tier-1, all holds and datasets, and prior failures/acceptances remain preserved and open where applicable. `integration_capture: exact branch HEAD`.
+
+---
+
+## Current ordinary ETF ticker acquisition work — 2026-11-03
+
+The active session goal is the human-activated ordinary ticker-selection repair in `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-ticker-journey-repair-20261103.md`. Exact green staging `f8323af179922193f4dcf3c9f0a5d9001282455f` was adopted in this same ETF worktree; its canonical receipt is `/home/m920q/charting-platform/.ai/staging-attempts/20261102T111449Z-f8323af17992.json`, SHA256 `506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188`, with exact staging CI `41397907218` terminal green. The earlier accepted UNXQ fixture checkpoint is preserved below and in the workstream archive; it is not the current goal.
+
+### Focused selected-acquire route preparation
+
+`POST /api/v1/etf-holdings/{symbol}/acquire` now accepts the backward-compatible optional body field `instrument_id` (positive integer). When supplied, the service resolves the existing active, resolved, non-synthetic canonical fund for the path symbol and rejects a mismatching ID before profile lookup or source work. Existing callers without that field retain their request shape. The response adds `instrument_id` and `symbol`; for the precise no-route case it permits `profile: null` with `outcome: "unavailable"`, `refresh_attempted: false`, and no snapshot/request-log IDs. TC can use these fields to bind the automatic selected-fund call to the exact canonical result and render unavailable without borrowing a prior fund's state.
+
+Route preparation no longer relies on a BWET-only symbol seed. Curated exact routes remain supported; otherwise a single exact symbol lookup in the current ETF source-audit records may bind only the matching `provider_identity` to a registered adapter whose native `source_provider` is identical. During explicit selected-fund acquisition only, an exact iShares brand in a resolved canonical fund name may nominate the registered iShares catalog even when `Instrument.issuer_id` is NULL, as Root's production read-only query found for IGV82 and the other sampled ETFs. The canonical name is only a catalog-discovery hint, not issuer/product proof; a canonical issuer conflict rejects the hint. The official catalog must match the selected ticker and full canonical fund name before a product ID or holdings URL is used. Bootstrap and other non-selected flows do not gain this catalog fallback. BWET and BDRY exercise the Amplify successor-audit path. IGV and IGM are test witnesses absent from the static product-ID map; no numeric ID, including Root's official IGV witness239771, is hardcoded.
+
+The no-network catalog parser accepts exactly one Ticker/Name table and requires each exact ticker/name cell to link to the same HTTPS `www.ishares.com/us/products/<numeric_id>` product. An optional slug is accepted only on the same path; two cell links with different slugs for the same numeric ID are ambiguous and rejected. This covers the actual IGV link `/us/products/239771/ishares-expanded-tech-software-sector-etf` while preserving numeric-only links. The observed `Showing 482 of 482 total funds` label is parsed, but completeness still requires all482 parsed rows; a label alone never establishes completeness. Duplicate ticker/product IDs, conflicting links, malformed IDs, foreign origins, ambiguous tables and malformed rows fail closed. It retains exact response bytes as base64 with SHA256/size/encoding, same-origin source/final URLs, retrieval time, parsed rows and Provider log IDs. Before holdings retrieval, the selected row's exact ticker and normalized full name must match the already resolved canonical fund. A positive row from partial content can resolve only that ticker; absence is usable only when parsed row count equals the issuer-reported total. A 24-hour cache entry is reused only when raw bytes, parsed projection, canonical source identity, retrieval time and successful request-log scope agree.
+
+The catalog GET and each redirect remain internal physical requests of the selected fund's existing `fetch_etf_holdings_latest` operation through the shared Provider bridge. Each hop consumes ordinary admission/quota under the same instrument/profile/symbol scope; reviewed iShares and BlackRock hosts, operation cost and current holds must be provisioned by Root before any live call. No source HTTP, entitlement/policy mutation or target operation occurred here.
+
+For configured routes, the normal shared Provider acquisition bridge remains mandatory for policy, entitlement, cost, quota, health and holds. The generic native initial-qualification transition is not yet present in the published dependency. Provider confirmed its future callable will be only `provider_runtime.bind_native_etf_initial_qualification(...)`, scoped by attempt, provider, profile, instrument, symbol, fixed operation, account, review revision/fingerprint, expiry and physical-request budget. Do not import Provider's feature branch or change its files. After Root stages and releases the green Provider implementation, the next ETF commit will implement a generic admin executor that derives authority from locked durable rows and only marks a probe passed after actual raw, dated, schema and fund-identity evidence is persisted and the current review is rechecked. No source HTTP, policy/ledger mutation or target action occurred in this focused slice.
+
+Focused no-network validation is green: the catalog, ETF bootstrap and adapter modules passed 743/743. The null-issuer canonical IGV service regression verifies the actual production record shape, uses the canonical name only as a catalog-discovery hint, and requires exact official ticker and full-name identity before holdings retrieval. Numeric and optional official slug paths are covered; conflicting same-product slugs and mismatched catalog identity fail closed. The observed Showing 482 of 482 total funds label is parsed without treating a label alone as proof of completeness. Ruff check/format, Alembic head e6f7a8b9c012, branch validation (46 records), the exact workstream narrative regression (1/1), and diff checks passed. No database fixture, browser profile, build, provider/issuer/SEC HTTP, target operation or source CI was run. The focused code is not accepted or fully qualified. Provider's sealed initial-qualification callable, including its required data_source_id, must arrive through synchronized green staging before ETF adopts it; Root owns host/cost review, source provisioning, staging/master integration and deployment. The complete AC1-AC14 roadmap, actual publisher qualification, returned-constituent proof, source/account review and combined local profile/exact-source CI remain open.
+
+# Current implementation — unresolved holding drilldown (2026-10-30)
+
+## Active scope
+
+Root released this feedback correction in `/home/m920q/charting-platform/.ai/staging-attempts/etf-unresolved-holding-drilldown-implementation-release-root-review-20261030.json` (SHA256 `3d6a73b0ca7b915464e54f2a6102e40e955479f7943ce74992bfaad220f81443`). Work starts from immutable accepted source `c91d556f89318509e96a0292453a22d6d7d96365` in the existing claimed branch/worktree. The accepted MEB checkpoint is archived in plan/session records; its closure and exact CI remain valid only for its own bytes. Current scope is in progress and has no new acceptance.
+
+The user path must begin on one eligible unresolved real-security row: explicitly discover the exact `reported_symbol`, explicitly choose and resolve a provider candidate, preserve snapshot/date/known_at/provenance and reported-row evidence into the chart route, then separately click the existing missing-history control for D1 and reload persisted bars. The row remains unresolved in its snapshot. Resolved-row navigation remains as before. Cash/reference/synthetic/missing ticker/current-capability and held/conflict/no-match/error states remain unavailable; no discovery on render, per-holding fanout, implicit history request, provider/issuer HTTP by this worker, or target mutation.
+
+## Preflight and state
+
+Current narrative check repair: the durable blocker summaries now retain the exact ledger-derived count `15 Tier-0 and 156 Tier-1`; implementation and focused checks are complete, while the isolated full profile and exact-source CI remain pending. The earlier failing narrative regression is preserved in validation history; no assertion or roadmap criterion changed.
+
+Supported existing-owner UV status preflight verified claim `f206bbc5-abbf-473a-a44f-fb5706c81282`, branch `feat/etf-holdings-constituents`, worktree ID `feat-etf-holdings-constituents-fdc36fa27a`, and local/origin HEAD `c91d556f89318509e96a0292453a22d6d7d96365`. Default sandbox denied Docker status; the authorized narrow read-only escalation succeeded. It reported Docker available, zero owned containers, two retained volumes (~464 MB), no cleanup/build/runtime action. The newly created session-local implementation goal is unbudgeted; previous completed goal/accounting archives were not reset or replaced.
+
+Staging candidate `b1b06fd8344549484e26ce3bf960befc832531ef` run `41108906686` is still in progress and is not this source's validation. Do not alter/cancel it or merge it unless Root later publishes canonical green. Product changes require their own exact-source CI and local profile. The minimum local profile for this frontend/UI handoff is `full_stack_browser`; remote tier remains `full_integration`.
+
+## Acceptance and next action
+
+UHD1-UHD4 implementation and focused checks are complete in the working candidate. The changed-slice frontend tests passed 63/63; the full frontend suite passed 1,493/1,493 across 151 files; `vue-tsc` and the production build passed. The E2E file lists five cases, including the controlled row-originated unresolved-symbol journey. The uPlot contract, 26-assertion visual policy and Compose contracts passed. `make test-fe` itself exited 2 after Vitest because its later UV helper hit the shared read-only UV cache; the isolated helper checks passed and the setup failure is retained.
+
+The reused backend component is explicitly source-bound: current `HEAD:backend` is tree `85154a468a08550596c41ceec27dbda673f0deb8`, the same tree label on Root-qualified image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc`. The existing accepted 5961 sharded backend evidence covers that exact tree (6,202 IDs: 6,197 passed, 5 expected skips, zero failures/errors, 84.4% coverage; canonical PostgreSQL DDL 2/2). It is reused component evidence, not a new frontend/runtime result.
+
+Next, freeze and publish the coherent candidate before the expensive runtime profile. Then build only the changed frontend image, use the immutable qualified backend and the Research image only after exact source-input equivalence, and run the owned isolated functional and strict visual profile with backend egress denied, no provider credentials or shared quota ledger, one browser worker, zero retries and unchanged screenshot oracles. Record the actual service/image/cgroup IDs and clean only this exact project, proving protected inventory equality. Run/verify exact-source branch CI. Root owns canonical staging adoption, actual VanEck continuation, genuine holdings/uncached-stock target proof, integration and deployment. All original AC1-AC14, accepted checkpoint archives, quota/production holds, raw/PIT lineage, retained datasets and 30-day observation remain open/preserved.
+
+## Current bounded checkpoint - historical VanEck quota-dimension repair (2026-10-30)
+
+Root released this repair under the existing human-authorized on-demand workflow after verifying immutable settled reservation 41361. Exact synchronized-green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 was adopted by fast-forward from 206a1544234d362b39adccb24fafc37ecfad5e7f; canonical receipt [20261030T094848Z-cb8240f69647.json](/home/m920q/charting-platform/.ai/staging-attempts/20261030T094848Z-cb8240f69647.json) SHA256 6fe63d74d984040b43ccd2527d7dbce8911bb1393abcbb180f705e02cf9fd4b5, exact staging CI 41020845787. No tree delta or sibling source import occurred in adoption.
+
+The retained reservation is provider vaneck, operation fetch_etf_holdings_latest, with the recorded account scope, quota_group=oih_first_sample, dimension=vaneck_oih_first_sample_requests_120s, unit=requests, and one settled unit. The strict read-only verifier requires that exact pair and preserves account, operation, time window/chronology, settled state, no-live-receipt and evidence-lineage checks. It has no generic fallback. The retained ledger was not mutated, relabelled, reset or replayed.
+
+Focused evidence: exact retained-row shape and wrong-group/dimension unit cases passed 4/4; the full test_etf_holdings_vaneck_qualification.py module passed 39/39. Ruff check, Ruff format check, and compilation passed for the three changed Python files. The changed real-chain PostgreSQL integration regression is not yet executed; exact branch CI and the source-matched full profile remain pending. Root review/release is required before any heavy fixture/profile. No provider/issuer/SEC request, target change, quota operation or policy activation occurred.
+
+The previously accepted job3 evidence-and-reviewed-successor checkpoint remains accepted and is archived in the plan/session; its artifacts, red attempts and unknown historical physical outcome remain intact. All 14 AC1-AC14 criteria remain open and unchanged. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT history, and the 30-day observation. Genuine OIH/source/account and target/deployment acceptance remain Root-owned and unclaimed.
+
+### Candidate-bound full-profile proposal for Root review
+
+Implementation inputs currently have these SHA256 values (recheck against the published candidate before release): service `backend/app/services/etf_holdings_vaneck_qualification.py` `e1bc63056f6a4245ea912655394f2487dbe51b4cd0e3f5cbdfd0b57bc1776358`; unit tests `backend/tests/unit/services/test_etf_holdings_vaneck_qualification.py` `b6a3bbcc0ce0bf891a94a0bde974eddd718c42ee99a3209a54a2f3f76bcb59c4`; actual-chain integration tests `backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py` `eed3f9528fd2a1cc2f675b4cd4e2ddbf6db2dba862213c6cad7105a6f295ae40`. These are local candidate file hashes, not a published SHA or test receipt.
+
+The repository minimum local profile for this exact delta is docker_integration: it changes backend quota-ledger verification and adds unit plus PostgreSQL integration regressions. No frontend, browser, authentication, websocket, Compose, E2E, or visual path changed, so this delta does not by itself require the larger full_stack_browser local profile. The normal full_integration branch, staging, and master gates remain unchanged.
+
+Root should release one isolated disposable PostgreSQL/Redis fixture after reviewing the exact published candidate, current host capacity, and protected-resource inventory. Bind the run to that source SHA, a fresh complete backend unit/integration node-ID manifest, exact settings/locks/config/environment, and a new coverage file. Run the full source-matched backend qualification with private quota storage, no provider credentials, live flags off, provider/issuer egress denied, zero retries, 300-second unit and 900-second integration process limits, and the unchanged coverage floor. Preserve the canonical Research test projection (1 GiB test memory; OPENBLAS, OMP, MKL and NUMEXPR threads each 1) without changing app Research limits. The changed VanEck qualification unit module and actual PostgreSQL bridge-continuation integration tests must execute. Run the two repository-required PostgreSQL-only migration tests separately with TEST_DATABASE_URL unset, no-cov, a disposable PostgreSQL instance, and unchanged 900-second/zero-retry limits; keep their coverage separate.
+
+If the approved docker_integration profile requires a backend image, build a new image from the published repair source with exact source/context/Dockerfile/base-image provenance and ownership labels, using the reviewed bounded owned-builder controls. Prior image 363431 predates this repair and cannot qualify the changed backend. The frontend/app/browser phases and their image builds are outside this changed-path minimum unless Root identifies a concrete cross-boundary dependency. Reuse unrelated cached components only with exact source/image-equivalence proof; do not start an app stack by default. Record exact fixture ownership, private settings, collection/JUnit/log/coverage hashes, and exact-owned cleanup with protected inventory equality. No source HTTP, live quota use, target operation, or deployment is part of software qualification.
+
+## Historical accepted checkpoint - VanEck job3 evidence repair and reviewed successor (2026-10-30)
+
+The following section preserves its original contemporaneous wording from before Root accepted that checkpoint; its later acceptance and current status are summarized above.
+
+Root released this same-branch implementation under the existing on-demand goal: [continuation authorization](/home/m920q/charting-platform/.ai/staging-attempts/etf-job3-evidence-repair-continuation-20261030.md). Baseline is 08fd268ce871e5e8bae96c68f9986bef7390ce4a. The accepted61 / 7f30 checkpoint remains archived acceptance; this follow-up is not accepted and does not close AC1-AC14.
+
+The single production job3 POST failed after admission. Job2, job3, artifacts3/4 and the one settled usage unit remain unchanged. The historical job3 top-level log-ID list is empty; artifact4 metadata references13, but the log row is absent after rollback. The retained aggregate ledger proves one settled unit, not the physical response or exact wire outcome. No old body/log can be reconstructed; no replay, reset, enablement, or target change occurred. Attempt004 remains red (5 passed/6 failed) and exposed loss of exact NUL/invalid-UTF8 workbook bytes when decoded text was persisted. The source now keeps bounded issuer response bytes in base64 with SHA-256 and byte count, while retaining JSON/text compatibility and existing redaction/size controls.
+
+The bounded post-transport successor is implemented for offline validation only under Root's reviewed contract. It preserves the historical uncertainty and spent usage, requires fresh exact review/scope/admission/settlement evidence, permits at most one new successor and one bounded physical request, and leaves policy disabled. Failures, cancellation and late admission denials remain durable and nonpositive. No real provider/issuer HTTP was used.
+
+Focused history is append-only: attempts004-014 include preserved red and setup diagnostics; attempt015 passed20/20 and Root reviewed it. Final-source attempt016 passed21/21 with zero failures/errors/skips, one worker and zero retries, using the owned isolated PostgreSQL fixture plus a real read-only SQLite quota ledger. It covers successful idempotent continuation, predecessor and scope/current-review/expiry checks, ledger dimension/unit/chronology mismatches, disabled policy and admission/transport/cancellation failures, and nullable review_due_at compatibility. SQLite reads use mode=ro, query_only, and explicit BEGIN; tests observed the underlying driver in an active read transaction. Attempt016 result SHA256 1e0887d402c8803c0e8e95b3f62ac059681efe0149b8dc32cff7a0b5dbdf34a5, JUnit SHA256 861abb41981b80a1ae245c92d6e0476d1ebf92c62b19330f5f299d72eb84a42b, log SHA256 421b78f7b540ccc2b55df8a499b847bbfa5b9baed2d4bbe859ff36ad307434a8. Root has reviewed attempt015; attempt016 review, exact-source branch CI and the complete profile remain pending.
+
+### Candidate-bound full-profile proposal (awaiting Root release)
+
+Bind every phase to the eventual clean published candidate SHA, its seven backend/test SHA256 inputs in `session.json`, freshly collected full test-ID manifest, lock/config hashes, and exact image provenance. The backend source changed after7f30, so build a new backend image; do not reuse image915350 for backend/worker. Reuse cached frontend or Research images only if current source trees are proved identical to their image-bound sources, otherwise wait for a reviewed build release. Preserve the exact pinned research base and current source tree.
+
+1. **Backend:** use one newly assigned project with owned isolated PostgreSQL and Redis, provider/issuer egress denied, credentials empty, paid/live flags off, private quota ledger, process-group timeout cleanup, zero retries and exact current collection. Keep the canonical native test projection: `RESEARCH_MAX_MEMORY_BYTES=1073741824`, `OPENBLAS_NUM_THREADS=1`, `OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, `NUMEXPR_NUM_THREADS=1`, plus the already reviewed diagnostic-only `faulthandler_timeout=0`. Preserve300s unit and900s integration process limits, the prior deterministic25-unit/at-most100-integration sequential batching, complete ID accounting, XML/JUnit evidence and the unchanged75% combined coverage floor. Fresh coverage only; no predecessor failed-batch coverage is imported as green.
+2. **Canonical DDL supplement:** separately run `test_forward_dispatch_admission_migration_enforces_complete_context` and `test_market_series_default_timestamp_repair_fresh_and_existing_rows` through canonical disposable Testcontainers PostgreSQL with `TEST_DATABASE_URL` unset. Require2pass/0skip, save separate supplemental coverage/evidence, and leave the main backend coverage bytes unchanged.
+3. **Images and application:** after backend terminal success and required owned fixture transition, start only the newly released exact project. Pin backend/worker to the fresh candidate image and other components to digest-qualified images with source-equivalence receipts. Use a dedicated app database and separate Redis app/queue namespaces from the backend test database/cache. Preserve the known app runtime caps of1CPU/512MiB/64PIDs, readiness bounds15s initial and30s restart, provider-egress denial and absent credentials. Run app/API/auth/worker restart checks, then the complete functional and strict visual suites with one browser worker, zero retries and unchanged references/tolerance0.005.
+4. **Ownership and cleanup:** Root captures the fresh protected baseline and phase releases, ports and exact resource IDs before launch. Build serially with a fresh owned builder under the prior reviewed3GiB/no-swap,2CPU,128-PID,1200s cap; retain a source-labelled backend artifact and rollback export. Do not borrow or remove retained/TC resources. After every phase is terminal, compare protected container/image/volume/network identities and mount/label semantics, clean only exact resources created by this project, and preserve the candidate artifacts for Root review.
+
+No full profile, build, or Compose phase is released to this worker yet. Root owns phase release and resource allocation.
+
+Next: Root monitors the exact-source branch CI triggered by this publication. After terminal green, provide the exact source/image/context/resource pins for Root's source-matched full-profile release. Preserve all AC1-AC14, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT history and the 30-day observation. Root owns acceptance, future genuine source execution, target changes, integration and deployment.
+
+---
+
 # Current implementation — explicit selected ETF acquisition — 2026-10-27
 
-## Current checkpoint: etf-on-demand-consumer-20261027 — accepted; closing CI pending
+## Current checkpoint: ODC software accepted and adopted in green staging; full roadmap open
 
 Root authorized this six-criterion software checkpoint under the standing
 human-authorized on-demand acquisition goal. The accepted ERF response/order
 checkpoint and its evidence remain preserved below as historical acceptance;
 they do not close this newer consumer scope. Full AC1-AC14 stays the roadmap.
+
+## Latest synchronized staging baseline adopted — 4bc50a9de9eb2453c75eda047d01466309a3a3da (2026-10-28)
+
+The existing ETF branch tip `61f121af513d5db4511751ab962a34d1afde6f75`
+merged only the exact released `origin/staging` commit
+`4bc50a9de9eb2453c75eda047d01466309a3a3da` in owner merge
+`93a897fabf343fdf896e283b485791466002b60d`. The merge base is the prior
+adopted staging baseline `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`; the
+merge had no conflicts. Canonical receipt
+`/home/m920q/charting-platform/.ai/staging-attempts/20261028T172241Z-4bc50a9de9eb.json`
+(SHA256 `0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d`)
+and Root's release review
+`/home/m920q/charting-platform/.ai/staging-attempts/provider-4bc50-staging-green-root-review-20261028.json`
+(SHA256 `ec98b03fc925df57fa1e61a92610f1d32490319bb0c6df19ce83dcb07b37dc2a`)
+confirm exact staging CI `40721314996` terminal green, including the exhaustive
+gate. The release exercised 5,569 backend unit passes/1 existing skip, 553
+integration passes/2 existing skips, 1,471 frontend passes, 196 E2E passes/110
+configured skips with all four required on-demand cases executed, and the
+exhaustive gate's 199 functional and 104 strict visual passes at zero retries.
+
+The imported source delta is Provider's cache reuse change in
+`backend/app/services/market_data.py` and its persistence regression. After the
+merge, backend tree `3448ffb5ee585fc7a738080169b629dcc9f60047` and frontend
+tree `6f6e64e1d303e81c467983eb118a5459c3152075` exactly match staging. No
+frontend, configuration, or migration-path changes were imported. The full
+merged tree differs from staging only in these four ETF-owned records; the
+Provider records were preserved from staging. This was an exact staging merge,
+not an off-staging cherry-pick, so no frozen-upstream-import manifest applies.
+No local tests/builds were rerun; the imported source relies on the exact green
+staging qualification. The owned branch CI will run on the records publication.
+
+Master CI `40735299702` is still running, not green. Production remains at
+`e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2`; this adoption is not deployment or
+source/account acceptance. Root retains master/promotion/deployment and genuine
+OIH qualification/API/UI acceptance. No provider/issuer/SEC request, quota
+reservation, target mutation, policy change, or operational trial occurred.
+The ODC software checkpoint remains accepted, while all AC1-AC14 remain open;
+preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests,
+all holds/quarantines, raw/PIT lineage, and the 30-day observation. No new
+roadmap implementation was started. After Root completes deployment/source
+priorities and releases more ETF implementation, the next ETF-owned step remains
+AC2: continue the retained issuer-evidence audit from reviewed existing
+evidence.
+
+## Previously adopted synchronized staging baseline — e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2 (2026-10-28)
+
+The clean ETF tip `95a93f0b932f58018d4f0d40f17f8fdb9eecdb20` was an ancestor of canonical synchronized-green
+staging `e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2` and was fast-forwarded to that exact commit without
+conflicts. The canonical receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/20261028T100958Z-e3e87183fdf8.json` (SHA256 `ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da`); exact staging CI
+[run 40656688915](https://github.com/jagnelo/charting-platform/actions/runs/40656688915)
+passed Backend, Frontend, E2E, and Exhaustive Integration Gate. The exhaustive
+coverage includes 1,471 frontend tests, 553 integration tests, 199 functional
+cases, and 104 strict visual cases at zero retries. No local tests or builds
+were rerun in this adoption.
+
+The adopted tree `424122f716d92389d6ffccddfb913977124b19b3` adds 17 accepted TC frontend paths and 7 TC-owned
+workstream/receipt paths relative to the ETF tip, with no backend, config, or
+scripts changes. Staging's parents are `173745205692acd3fca650eeeafcd6de38f29fed` and TC source
+`addd41731b2be9b740b3c4bab624118ba2371029`. TC remains the presentation implementation owner; ETF retains
+its consumer/domain ownership and does not duplicate TC styling or components.
+No ETF workstream file changed in the staging merge; this handoff and the other
+ETF-owned records reconcile the adoption. An ETF frozen-import manifest is not
+applicable because this is an exact fast-forward of the complete released
+staging tree, with no off-staging path import.
+
+Independent master CI [run 40670024330](https://github.com/jagnelo/charting-platform/actions/runs/40670024330)
+was still running at adoption; no master-green or deployment claim is made.
+Root owns the first usable on-demand deployment, actual OIH source/account
+qualification, and target/API/UI acceptance. No source HTTP, quota use, target
+mutation, or deployment occurred here. The accepted ODC software checkpoint
+and its implementation/test receipts remain distinct from target acceptance;
+all AC1-AC14 remain open. After Root completes the deployment priority and
+releases further ETF implementation, the next branch-owned step is AC2: resume
+the retained issuer-evidence audit from reviewed existing evidence.
 
 ## Accepted Provider staging adopted; consumer contract revalidation — 2026-10-27
 
@@ -1861,7 +2043,7 @@ The local uncommitted capability regression separately proves that a static
 Tier-0 `CURRENT` audit does not establish current holdings: no snapshot is
 unknown, an expired snapshot is stale/last-known, and only a fresh snapshot
 with successful route state becomes current. The whole capability module
-passed 115/115 after that test; the exact narrative-count sentinel passed1/1,
+passed 115/115 after that test; the exact narrative-count sentinel passed 1/1,
 Ruff check/format and `git diff --check` passed, and the workstream validator
 accepted the record. This later branch-local check is not a claim that f04
 contains the regression, nor is it the sample's live evidence.
@@ -16206,7 +16388,7 @@ SPDR's native adapter/curated symbol mapping is in the ETF adapter catalog, whil
 
 Practical disposition: if a real, rights-reviewed SPY/RSP artifact is independently available, an administrator may import it with original body and accurate source, identity, publication/composition/as-of/known-at, completeness, and rights provenance, but accepted f04 does not clearly isolate imported success from native adapter success; do not rely on that import for current support until the distinction is resolved. Static source logic indicates the API could still mark a sufficiently caller-attested import `CURRENT`; this has not been reproduced at runtime and is not evidence of Provider admission. The local artifact search found no such SPY/RSP basket: the retained RSST CSV is for RSST and lists SPYM only as a constituent. For a native SPY request, the profile binding is supported, but f04 lacks a demonstrated bootstrap path for the shared SPDR admission records. Required evidence still includes actual issuer/product and route identity, reviewed host/redirect and permitted-use/retention terms, actual request/quota dimension facts, account-scope binding, and evidence for any zero recurring commitment plus the reviewed aggregate budget; none is inferred from public reachability or application safety caps. Do not call the route or imported sample admitted/current until those records and runtime checks exist.
 
-No API, import, profile/runtime row, policy, entitlement, quota, commitment, budget, activation, upstream HTTP, fixture, data operation, cleanup, or external write was performed. This is a source/retained-evidence conclusion only; all ETF roadmap and safety gates remain open. The adapter timeout, redirect ceiling, canary symbol cap, and other app-side safety limits are not SPDR quota/rate-limit/account-counter or cost facts. Those publisher-native facts remain unknown absent reviewed evidence. The corrected workstream validator accepted the record, the exact narrative-count sentinel passed1/1, session/JSONL parsing and session-to-plan hash comparison passed, and `git diff --check` passed. These checks do not establish Provider admission or sample eligibility.
+No API, import, profile/runtime row, policy, entitlement, quota, commitment, budget, activation, upstream HTTP, fixture, data operation, cleanup, or external write was performed. This is a source/retained-evidence conclusion only; all ETF roadmap and safety gates remain open. The adapter timeout, redirect ceiling, canary symbol cap, and other app-side safety limits are not SPDR quota/rate-limit/account-counter or cost facts. Those publisher-native facts remain unknown absent reviewed evidence. The corrected workstream validator accepted the record, the exact narrative-count sentinel passed 1/1, session/JSONL parsing and session-to-plan hash comparison passed, and `git diff --check` passed. These checks do not establish Provider admission or sample eligibility.
 
 ## Accepted-f04 SEC first-use path review — 2026-10-23 15:30Z
 
@@ -17502,3 +17684,507 @@ raw/PIT lineage, and the 30-day observation. Root retains actual source/account
 qualification, target acceptance, integration, promotion, and deployment.
 
 The current plan and session blocker summaries retain the audited narrative invariant: Both now contain 15 Tier-0 and 156 Tier-1 symbol investigations. The 74 fallback identities remain part of the preserved full roadmap.
+
+## VanEck pretransport recovery and closed-session response repair — focused green
+
+Root released this bounded same-branch follow-up after the single deployed OIH
+administrator qualification created failed job 2 before transport and then
+returned HTTP 500 while serializing detached `filings`. Root confirmed zero
+issuer/provider HTTP, zero Provider request logs and zero quota activity. The
+local no-body rejection diagnostic remains preserved; its exact permitted
+recovery disposition is reviewed at
+[/home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/oih-job2-diagnostic-artifact-recovery-root-review-20261029.json).
+Root separately reviewed the recovery contract at
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-pretransport-recovery-contract-root-review-20261029.json).
+The entitlement's reviewed-free label was corrected by Root to revision 2;
+policy remains disabled/not_run, and job 2/latch is unchanged. No recovery or
+real issuer operation has been attempted by this owner.
+
+The current owned source change is limited to the fresh-session eager response
+reload, an admin-only explicit recovery endpoint/request schema, the exact
+pretransport predecessor validation and its offline/engine-backed tests. The
+only tolerated predecessor raw row is one exact hash-verified locally generated
+no-body `ProviderNoDataError` JSON diagnostic with no content bytes, URL,
+identifier, validation facts, request IDs, URLs or attempts. The successor
+records that artifact's ID and hash. Any changed payload/hash, other metadata,
+extra artifact, body, request log, quota activity, snapshot or filing denies;
+the original failed job and raw record are never rewritten.
+
+Quota history checking now reads an existing ledger without creating or
+upgrading it. Plain SQLite path ledgers use a file URI in `mode=ro` plus
+`query_only`; SQLite URI/query forms fail closed. PostgreSQL uses a read-only
+transaction. Missing, in-memory, unreadable, incomplete or empty-history
+ledgers deny. Live receipts are traced through `reservation_id`; `usage_scope`
+is not account scope. Only consistent linked reservation rows can establish a
+different account; orphaned and mismatched provider/operation linkage denies.
+The account advisory lock, fresh review fingerprint/revision, shared Provider
+admission, cost/quota/health holds, zero-dollar/free-only requirements,
+disabled policy, no replay, and the fixed physical/time/body/redirect/retry
+limits remain in force.
+
+Focused evidence is source-local and does not accept the checkpoint:
+
+- Offline qualification-ledger unit module: 34 passed in 2.57s; exact output
+  [/tmp/etf-vaneck-recovery-focused-20261029/unit-final.log](/tmp/etf-vaneck-recovery-focused-20261029/unit-final.log)
+  and JUnit
+  [/tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml](/tmp/etf-vaneck-recovery-focused-20261029/unit-final.xml).
+- Root-reviewed real PostgreSQL/MockTransport slice: 12 passed, 44 deselected,
+  zero skips in 117.33s. It includes the real qualification-to-Provider chain,
+  failed and successful nonempty response serialization after the operation
+  session closes, one concurrent recovery successor, immutable failed
+  predecessor, exact diagnostic acceptance and seven ambiguous-evidence
+  denials. No external transport was used. Root's receipt is
+  [/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-vaneck-recovery-focused-db-root-review-20261029.json);
+  raw log and JUnit are under
+  [/tmp/etf-vaneck-recovery-focused-20261029/attempt3](/tmp/etf-vaneck-recovery-focused-20261029/attempt3).
+- Ruff check/format, Python compilation and `git diff --check` passed. The
+  final tracked source file SHA256 values are recorded in the adjacent plan and
+  validation record. The PG attempt's service file differs from the final file
+  only by a subsequent SQLite guard broadening from `mode`/`uri` keys to any
+  query option; that local branch is covered by the final 34-test unit run.
+- Attempt 1 remains a setup-only red: 12 setup errors occurred before tests
+  because its pytest basetemp parent was absent. Attempt 2 remains 11 passed
+  and one test-helper `UnboundLocalError`; neither is relabeled as a product
+  failure or pass. Their JUnit/logs and the setup receipt remain under
+  `/tmp/etf-vaneck-recovery-focused-20261029`.
+
+The follow-up is not accepted and has no complete-profile or exact-tip CI
+evidence yet. The next source publication captures the candidate by exact
+branch HEAD rather than embedding a self-referential SHA. Root's full local
+slot is reserved but has not been launched. Proposed profile for Root review:
+use a new private project named from the published candidate SHA, a protected
+`git archive` and candidate-bound backend image labels; freshly collect and
+run every current unit/integration ID once with the canonical 300s/900s
+process caps and fresh combined coverage at the existing 75% floor. Run the
+two canonical PostgreSQL-only DDL tests separately if the shared-DSN suite
+skips them. Then run the unchanged complete frontend/API/worker/restart,
+functional and strict visual profile: one browser worker, zero retries, exact
+original masks/references and 0.005 tolerance. Keep application DB and Redis
+namespaces distinct from backend tests, deny provider/issuer egress, keep live
+flags and credentials off, and use a private fixture ledger. Reuse frontend or
+Research images only after exact candidate input and provenance equivalence is
+reviewed. Root should recheck capacity before build; use one owned serial
+builder at 3 GiB, no extra swap, 2 CPUs, 128 PIDs, and keep added profile
+resources within the 8 GiB envelope. Use the already reviewed 1-CPU/512-MiB/
+64-PID worker profile and its unchanged restart bounds. Capture and preserve the
+complete live container/image/volume/network identity sets immediately before
+launch, without excluding preexisting resources based on TC/worktree labels.
+Compare canonical mount objects and label key/value maps before and after.
+Any external-owner lifecycle change requires contemporaneous Root evidence for
+the exact IDs; do not apply a blanket exemption. Remove only exact ETF-owned
+resources after terminal completion. Export the exact qualified candidate image
+archive and digest/provenance receipt before cleanup; retain the approved image
+and rollback artifact with owner, reason, next use and review condition. No
+fixture/build has started; Root must release the phases after reviewing this
+candidate-bound proposal.
+
+The accepted ODC software checkpoint, all AC1–AC14 text and dispositions,
+15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, disabled
+routes, holds/quarantines, retained raw/PIT lineage and 30-day observation
+remain unchanged. Root owns any later real recovery, source/account evidence,
+target/API/UI acceptance, integration and deployment.
+
+## 2026-10-29 follow-up record check
+
+The unchanged narrative invariant regression
+`test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers`
+passed 1/1 in 2.98s after the current session blocker restored the required
+`15 Tier-0 and 156 Tier-1` phrase; `make branch-validate` passed with 46
+records. A final offline invocation of the 34-case qualification unit module
+plus this exact narrative node passed all 35 tests in 3.93s. Root's independent
+Provider review found no blocking findings on the fixed recovery snapshot
+(`d1ffe6b1...544a7`), documented at
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-recovery-quota-findings-closed-root-review-20261029.json).
+This is review closure only. The focused source candidate remains unaccepted
+until its exact branch CI and full source-matched profile pass.
+
+
+## 2026-10-29 — accepted VanEck bounded checkpoint
+
+Root accepted `etf-vaneck-pretransport-recovery-and-response-serialization-20261029`
+under the existing delegated authority at tested implementation
+`7f30a8c330ffbb1e34c22f2f485aafec9fac0f23`. The acceptance decision is
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-7f30-checkpoint-acceptance-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-7f30-checkpoint-acceptance-root-review-20261029.json);
+Root's source-bound runtime review is
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-915350-runtime-qualified-root-review-20261029.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-915350-runtime-qualified-root-review-20261029.json).
+
+The accepted evidence is 6151 backend passes, 5 configured skips and 84.4%
+coverage; the separate canonical PostgreSQL DDL tests passed 2/2; all 11 app
+phases passed; functional checks passed 200 with 2 configured canonical-live
+skips, including all four on-demand UI cases; strict visuals passed 104/104.
+Retries were zero, owned cleanup was empty, and protected inventories matched.
+Exact implementation CI `40899171592` is green. The original raw DDL
+runner false-negative remains preserved; Root resolved the temporary
+Ryuk-sidecar timing independently and accepted the test result without rerun.
+
+This closes only the bounded software checkpoint. The failed deployed OIH job
+2 and its no-body diagnostic remain preserved; no real source HTTP, quota
+reservation, policy activation, target mutation, genuine VanEck qualification,
+or deployment is claimed. Root owns those target/source steps and integration.
+The records-closing-tip CI is pending after this publication; do not embed its
+own commit SHA. `integration_capture: exact branch HEAD`. AC1-AC14 remain
+open, including 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent
+requests, all holds/quarantines, raw/PIT lineage, and the 30-day observation.
+Root watches exact closing-tip CI; after Root releases further ETF work, the
+next branch-owned roadmap action is AC2 retained issuer evidence.
+
+## Closing-summary guard correction — 2026-10-29
+
+Root's staging preflight found that `closure_summary` must contain the exact literal `integration_capture: exact branch HEAD`; the prior wording used “is” and failed before any merge. This records-only correction updates the current closure summary and handoff marker, refreshes the session plan hash, and appends this validation entry. The existing guard, 46-record workstream validator, and exact narrative regression passed. Product and qualified runtime inputs are unchanged; the successor exact-tip CI remains Root-owned and pending verification.
+
+
+### Proposed operator continuation for already-consumed job3 — pending Root review
+
+This is a proposal only. Diagnostic4 remains the local no-body JSON artifact, not a workbook; its SHA256 is `25c2d92366c306c378fab29a91dd201ffc5366ef273719ad03e41182ac9675dc`. Metadata referenced request-log13, but the ProviderRequestLog row is absent after rollback. The shared ledger has one settled VanEck operation reservation/unit and no live receipt. That is spent usage, not proof of whether a response arrived or what it contained. Job2, job3 and artifacts3/4 remain unchanged; job3 is post-admission/transport-uncertain, never pretransport or zero usage.
+
+A minimal future admin request would carry only `predecessor_job_id=3`, an opaque bounded `operator_review_reference`, `review_evidence_sha256`, and UUID `request_id`. The server derives OIH/profile/source/host/operation/account/revision/expiry and fixed limits from trusted current records; the attestation fields never trigger path, URL, or file reads. Under a lock on exact failed job3, require immutable lineage, fresh current review fingerprint/revision/expiry, exact account scope, Provider health, global/free-only/paid-off/hold/quota/cost admission, a read-only ledger check counting the settled unit as spent, and a separately reviewed finite application budget. Atomically permit one distinct successor. Same-request replay is idempotent; concurrent or later successor requests are held before transport. Never reset/reuse the old latch, job2/job3 helper, authority, or reservation.
+
+The successor would permit at most one physical request to the existing reviewed URL, with no redirect/retry/SEC fallback, 120-second deadline, 30-second minimum spacing and 5 MiB response cap. Pre-admission denial creates no successor/transport. A running attempt can be completed only after exact OIH identity/date/completeness, raw-byte hash, durable scoped request log and settlement all pass. HTTP/transport failure, cancellation, partial or wrong body remains failed/interrupted and nonpositive with evidence retained, no accepted snapshot and policy disabled/not_run. Positive qualification still does not activate policy. No-network engine-backed tests should prove exact success, predecessor immutability, idempotent/concurrent duplicate denial, bad identity/review/scope/expiry/ledger/quota/hold rejection, and HTTP/transport/cancel/partial/wrong-body evidence preservation.
+
+
+## Root-accepted job3 evidence and reviewed-successor checkpoint — 2026-10-30
+
+Root accepted `etf-vaneck-job3-evidence-and-reviewed-successor-20261030` at tested implementation `7449f84e35dc193708298c9ac5062322b3274d50` under the existing human-delegated authority. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-7449-checkpoint-acceptance-root-review-20261030.json` (SHA256 `9f6899b8271e2bb4fcfb3df799192d64307d1707b202a0c2f80f6f9feffa354c`). Runtime qualification: `/home/m920q/charting-platform/.ai/staging-attempts/etf-363431-runtime-qualified-root-review-20261030.json` (SHA256 `d32b9dd807b6e88d53051e3e019d5086a30d614e08c7311ad9716817cca92f30`). This is Root exercising delegated acceptance, not a new human quote.
+
+The accepted profile is 21 focused source checks; exact implementation CI `40992519303`; 6,194 unique backend IDs with 6,189 passed, 5 configured skips, no failures/errors and 84.4% coverage; canonical PostgreSQL DDL supplement 2 passed/0 skipped; all 11 isolated runtime phases passed; functional 200 passed/2 configured live skips (including all four on-demand cases); strict visual 104 passed/0 skipped across four profiles (26 each, unchanged 0.005 tolerance); zero automatic retries; exact owned cleanup empty and protected inventory equal. The candidate backend image is `sha256:3634315f19ab766e1c3a6e874bd78e086d6ea1ed7007b32c44be27dfdeca88e3`; retained archive SHA256 `4d4a4c5c4f429a729330114f0c2fa01cda204f5ba7d5d4502fc873116f4937cd`.
+
+Preserve as historical evidence: the original backend timeout and partial77 (excluded from qualified totals), the DDL runner cleanup-reporting false-negative and Root’s no-rerun reconciliation, the failed first app attempt with the incorrect 1 GiB Research projection, and r2 prepare attempt001 failure with its prepopulated source quarantine and successful authorized recovery. The original 61 accepted checkpoint, job2/job3 and artifacts3/4 remain intact. Job3’s request-log/body gap and exact physical outcome remain unknown; its one settled usage unit remains spent. The bounded implementation preserves binary evidence and provides the reviewed one-successor contract, but no genuine OIH holdings or constituent-source request, policy activation, target/API/UI acceptance, deployment, or full roadmap completion is claimed.
+
+The original AC1-AC14 roadmap remains open. Both now contain 15 Tier-0 and 156 Tier-1. The current narrative also preserves 74 fallback identities, 119 spent requests, all source holds/quarantines, raw/PIT lineage, and the 30-day observation. Root owns actual source/account qualification, target decisions, integration, promotion, deployment, and verification of the exact closing-tip CI.
+
+Closing records distinguish tested source `7449f84e35dc193708298c9ac5062322b3274d50` from the records-only closing HEAD. The closing-tip CI is pending after publication. No self-referential commit SHA is embedded; `integration_capture: exact branch HEAD`.
+
+
+## Root-accepted historical quota-dimension checkpoint — 2026-10-30
+
+Root accepted `etf-historical-quota-dimension-binding-repair-20261030` under the existing delegated authority. Acceptance is recorded in [/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-checkpoint-acceptance-root-review-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-checkpoint-acceptance-root-review-20261030.json) (SHA256 `a3be26a92319b0a427f0757243775c573af7989f9db8ed59687277b1d346d812`); the source-matched runtime review is [/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-runtime-qualified-root-review-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-runtime-qualified-root-review-20261030.json) (SHA256 `71415c456988b144462b06f0b102358044cc09954b8919b49b7699608c8b9308`). This is Root's delegated checkpoint acceptance, not a new human quote.
+
+Tested implementation source: `596163e81066111158c2a19268f81aaf2bcec56c`; exact implementation CI `41040527971` is terminal green. Root accepted all 6202 backend IDs (6197 pass, 5 expected skips, 0 failures/errors; 84.4% coverage) and the separate canonical PostgreSQL DDL supplement (2 pass, 0 skip). The exact candidate image `sha256:36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc` is retained with archive SHA256 `8ed9ee11a042810e4d848815577990dfff7db62a315e9dc4914996bd39567a49` (521,133,056 bytes). The isolated image probe verified 1047 source files, API/worker imports and schema/route, and 39 existing cases passed once with zero skips and container exit 0. Two prior setup attempts ran zero test bodies. The successful probe's external XML copy from stopped tmpfs failed after in-container JUnit had asserted all 39 cases; stdout, exit 0 and in-container JUnit assertion evidence remain retained. Root reviewed and accepted this reporting limitation without replay in [/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-5961-artifact-probe-export-root-disposition-20261030.json). The two prior setup attempts ran zero test bodies. Full backend and DDL JUnit remain retained. Exact builder/cache cleanup passed per [/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-36b99ccd-builder-cleanup-root-receipt-20261030.json); the candidate artifact remains retained and foreign inventory, data and legacy volumes were preserved.
+
+This closes only HQD1-HQD4 and the bounded software/runtime checkpoint. It does not establish an 11-phase/full-browser profile, genuine OIH holdings or constituent acquisition, source/account acceptance, policy activation, target acceptance, deployment, or completion of AC1-AC14. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, every hold/quarantine, raw/PIT lineage, the 30-day observation, prior accepted checkpoint archives and all historical failures. Root owns exact closing-tip CI verification and any later staging/master integration, source acceptance and deployment. The closing record does not contain its own commit SHA; `integration_capture: exact branch HEAD`.
+
+## Master exhaustive runner timeout remediation — 2026-10-30
+
+Root released the narrow runner correction in
+[/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json](/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json)
+(SHA256 `da4780ab9674c10b22e1533c55dd506d02f62ff030a09bfd7db91fe9cae3812d`).
+The owner branch fast-forward adopted exact synchronized-green staging
+`870d37dcc2b9715402ccfefce12a61020465ab35` from clean published tip
+`a45d1e2e8312819c640693ad340d1fc4e917debb`, with no conflicts; this merge
+preceded implementation. The exact failed master CI log remains preserved at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-exhaustive-failed-job-124157576674-20261030.private.log`
+(SHA256 `dd9e92a19d3dfedd33b5f046682829032fab7dcb8fe1e416f6f40253d0f7d398`).
+It records 113/113 passing unit shards followed by one 595-ID integration
+process that timed out at 900 seconds (exit 124) after 84 percent and 61 more
+dots, without an assertion traceback. The same-source staging run
+`41064397398` passed 593 integrations with 2 expected skips in 861.25 seconds.
+The failure is an aggregate process-boundary issue; no timeout increase or
+failed-CI replay is authorized.
+
+The runner now partitions the full collected integration list, in original
+order, into serial batches of 25 with an unchanged 900-second limit per
+process. Existing unit partitioning and 300-second collection/unit limits
+remain. It rejects duplicate collected IDs before coverage erase, erases
+coverage once, appends every unit and integration process, and runs the
+combined 75-percent report/XML only after all batches succeed. Nonzero exits,
+signals, and timeouts stop the sequence; later batches and success reporting do
+not run. Focused subprocess-mocked runner tests passed 17/17: exact
+25/25/remainder coverage, exactly-once ordered IDs, coverage lifecycle,
+duplicate rejection, nonzero/timeout/signal aborts. No Docker or browser fixture
+was created or used. The existing ETF runtime/YAML ledger-count narrative
+regression passed 1/1 after the record update. The canonical minimum local
+profile for the changed paths is `unit`; the workstream/branch tier remains
+`full_integration`, and exact
+branch, staging, and master gates are unchanged.
+
+The implementation and this active repair are not yet accepted. This single
+source-and-record publication will trigger exact owner-branch CI; Root reviews
+that result and retains all staging/master integration and deployment
+ownership. The previously accepted HQD1-HQD4 checkpoint and its receipts,
+failures and source/image qualification remain preserved. The full AC1-AC14
+roadmap remains open; preserve 15 Tier-0 and 156 Tier-1, 74 fallback
+identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the
+30-day observation. No provider/issuer/SEC request, target or quota mutation,
+deployment, or full-roadmap completion is claimed.
+
+## Accepted bounded checkpoint — master exhaustive integration batching (2026-10-30)
+
+Root accepted `etf-master-exhaustive-integration-batching-20261030` under the existing delegated checkpoint authority. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-d31b-runner-checkpoint-acceptance-root-review-20261030.json` (SHA256 `3fca6c9350648e96c63103c8e0c52f801d7569f057a5f293071f5baf34c99b96`). Tested implementation is `d31b84ab3514500729e3cf8b04e36a42c34e031c`; exact push CI [41090873497](https://github.com/jagnelo/charting-platform/actions/runs/41090873497) is terminal green on that SHA. Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive was skipped as expected. Playwright reported 196 passed, 110 configured skips, 0 failures.
+
+The source change is limited to `scripts/backend_coverage.py` and `tests/workflow/test_backend_coverage.py`. Integration IDs execute once in deterministic serial batches of 25, preserving order, duplicate rejection, one coverage erase, append for every test process, the 75% combined floor, original 300-second collection/unit and 900-second integration limits, zero retries, and fail-fast nonzero/signal/timeout handling. Focused runner tests passed 17/17; the narrative regression passed 1/1 and preserves the required 15 Tier-0 and 156 Tier-1 counts. This closure changes only these four workstream records; there is no backend/frontend product or runtime delta.
+
+The prior master exhaustive timeout remains preserved as historical evidence; it was not blindly retried or addressed by raising the timeout. HQD1-HQD4 closure metadata is archived in the plan and session before replacement. All original AC1-AC14 remain open, as do genuine OIH holdings, returned uncached constituent acquisition, source/account, target and deployment acceptance. Preserve 74 fallback identities, 119 spent requests, all holds/quarantines, raw/PIT lineage and the 30-day observation. Root owns exact 870d remediation integration, staging/master exhaustive gates, qualified 36b99 rollout and the genuine source/target journey.
+
+This is a Root-accepted bounded checkpoint, not full feature completion. The single closing commit does not self-reference its own SHA: `integration_capture: exact branch HEAD`. Root captures its exact closing-tip CI externally; no post-publication metadata commit is planned.
+
+## Massive CS and holding-lineage correction — 2026-10-30
+
+Root's review of source `43e501b3c39d3ec2f320295bc56810daa393e566` found that
+the unresolved-holding action requested only `Equity`/`Stock`, while Massive
+preserves a common-stock row's native type as `CS` and the backend applies a
+raw substring type filter before returning discovery candidates. The corrected
+request includes the verified `CS` code; the shared candidate scope accepts
+that raw type while retaining the non-equity guards. The controlled browser
+fixture now applies the same raw substring filter before returning a `CS`
+candidate, and the unit test exercises native `CS` plus an `ETF` negative.
+
+The preserved 43e functional attempt is terminal red: 197 passed, 4 failed,
+2 skipped, exit 1; strict visuals were not started. Its exact log is
+`/tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional.log`
+(SHA256 `8fc3f1f3ba892517b8ee5b98340de79189943ff16114f6722b3683b8b9d5542c`)
+and Root's disposition is
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-43e-functional-failures-root-review-20261030.json`.
+The failures were: a broad `.holding-row` locator matched the table header and
+data button; two same-symbol ChartView hydration paths stripped valid holding
+lineage; and the 10000-row browser performance case lacked its private backend
+fixture seed. The correction targets actual `button.holding-row` elements,
+preserves valid lineage only during same-symbol initial URL hydration while
+deliberate symbol navigation clears it, and enables the existing large-universe
+seed only in the new private test backend/browser configuration. The 43e image
+and archive remain retained as predecessor evidence, not as the corrected
+frontend artifact.
+
+After that attempt reached its terminal result, only the exact owned browser
+container, Compose project, project volumes and detached empty project network
+were removed. Protected container/image/volume/network identity sets match the
+pre-profile snapshot, with the single owned 43e frontend image intentionally
+retained and its archive preserved. The post-cleanup snapshot is
+`/tmp/etf-unresolved-holding-drilldown-43e501b3-20261030/artifacts/functional-after-cleanup.json`
+(SHA256 `93b164e640219a4df74151f60c0cf5d6e53da825116cd472fbcab9d5ea791a20`).
+
+The focused CS/hydration unit slice passed 28/28. The full frontend Vitest run,
+Vue type-check and production build passed on the corrected working tree; the
+uPlot, visual-acceptance-policy and Compose contract checks passed as well.
+Current-source browser functional and strict-visual qualification, exact-source
+branch CI and Root review remain pending. No provider/source/issuer request,
+quota/ledger/target mutation, policy activation, production action, or
+staging/master write occurred. Preserve all prior accepted archives, the full
+AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 counts, holds and historical failures.
+
+## d014 browser diagnostics fixture correction — 2026-10-30
+
+The d014 functional profile is preserved as a failed predecessor: 200 passed,
+1 failed, 2 skipped, exit 1. Its sole failure was the final assertion in the
+new unresolved-holding journey, which read the nonexistent
+`browserDiagnostics.errors` property after the explicit Massive `CS` discovery,
+canonical resolution, D1 acquisition, lineage and reload assertions completed.
+The browser-critical attachment also records 404 console responses. Preserve
+the full log at `/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/functional.log`
+(SHA256 `c00457eabe281a59395fd988394941b46c3de9e16632e5f413e30c823076e631`)
+and Root's review at
+`/home/m920q/charting-platform/.ai/staging-attempts/etf-d014-diagnostics-contract-root-review-20261030.json`
+(SHA256 `d8f5aa1804fc6a7581f46e999d09616afe12a7f5cec59f99528c0d1077d3708d`).
+
+The corrected E2E fixture now uses the supported
+`browserDiagnostics.expectNoCriticalIssues()` assertion and explicitly serves
+typed empty option-exposure and expiration responses for
+`/api/v1/instruments/UNXQ/options/exposure` and
+`/api/v1/instruments/UNXQ/options/exposure/expirations`. It asserts both exact
+reads occurred, so any remaining unexpected API 404 will be reported by the
+shared diagnostics contract. This is a test-fixture correction; no global
+diagnostics policy, product behavior, assertion, retry, or visual tolerance was
+changed. Playwright test discovery listed all five on-demand tests and Vue type
+checking passed. Browser execution of the corrected case and strict visuals
+remain pending.
+
+Exact owned-project cleanup completed with exit 0. The global cleanup
+comparison is `/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/global-inventory-cleanup-comparison.json`
+(SHA256 `9ef2803d952b7720b8f863d173e53dc45dd5cbfff11c5990669f0585efa4c3d3`)
+and reported equality. Root completed the separate production backend-only
+release window; receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-backend36-release-window-complete-root-review-20261030.json`
+(SHA256 `72c05155edf2b65db4ef725cbba942c568796c5bd0d5d5080f4bc93454b21daa`)
+records the new backend `660554c33f75309ceacadc07697361025bcfba2752855f20e69ffeebad862419`
+and worker `ee59c3f5252aeed8f3b58174d006c85d3b0f19fcb6621d7080dc9e6cf1ebf520`
+IDs. The fresh post-release protected snapshot is
+`/tmp/etf-holding-drilldown-d014a6e7-20261030/artifacts/protected-before-corrected-current-profile.json`
+(SHA256 `d4aeb8d8a926ddf107e897ef432e7fcd75650e7f98d6addad6d5e429ca5c341d`):
+29 containers, 31 images, 51 volumes and 10 networks. Preserve the immutable
+frontend image/archive; runtime reuse remains conditional on Root confirming
+production build-input equivalence for this test-only delta. Exact-source CI
+and a complete corrected-source profile remain required. All source, quota,
+provider, target, deployment and full AC1-AC14 roadmap holds remain in force.
+
+## Current Root-accepted drilldown closure — 2026-10-30
+
+This is the authoritative current handoff and supersedes earlier in-progress/pending status text above. Root accepted bounded checkpoint `etf-unresolved-holding-drilldown-20261030` under existing delegated authority; receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-drilldown-checkpoint-acceptance-root-review-20261030.json` SHA256 `ce235d144b58db900a405a9ea722f20de8fbde269a6e309edb9b4d8f67c64ca4`. Tested implementation is `78dcca03983de9304fe7e44303ab35e6d88a03c2`. Exact implementation CI `41135061084` is terminal green on that SHA across Backend, Frontend Unit, Branch-declared Tests and E2E/Playwright. Root's runtime qualification receipt `/home/m920q/charting-platform/.ai/staging-attempts/etf-78dcca-full-runtime-qualified-root-review-20261030.json` SHA256 `70cc8134e56d0e82cb4d7098d745918760a135cfd653ffe6ff4bfa3f77b036ad` records all required phases passing: 201 functional passed/2 configured skips, 104 strict visuals passed across four projects, zero retries, exact-owned cleanup and protected inventory equality.
+
+The frontend image `57d146888c3ee34d5976a8fde6b76d9a815df37e5ddb25a12fc69266088ef4ce` was built from D014 and is retained as such. Root approved its use for the current test source because the changed E2E spec is not bundled in the image; runtime qualification is bound to tested source78dcca plus that separately identified image. Backend tree/image `85154a468a08550596c41ceec27dbda673f0deb8` / `36b99ccdc1156d9e209d60e24419db64480267980d577135c600bbeef71727cc` remained unchanged and reused as component evidence. No backend/API/schema/migration/dependency/provider-policy/production-runtime change is part of this checkpoint.
+
+This one coherent closing publication adopts exact synchronized green staging `b1b06fd8344549484e26ce3bf960befc832531ef`, canonical receipt `/home/m920q/charting-platform/.ai/staging-attempts/20261030T202046Z-b1b06fd83445.json` SHA256 `ff42acabdf1396583091102063adcd4e08d56658d786201d6cbd53efee881919`, staging CI `41108906686`. Its product tree is unchanged from the accepted base; accepted78dcca product bytes remain intact. Closing record text does not self-reference its commit: `integration_capture: exact branch HEAD`. The closing-tip CI is pending external verification and is the only checkpoint publication gate still outstanding.
+
+UHD1-UHD4 are accepted; the original AC1-AC14 roadmap remains open and unchanged. Preserve 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage, retained datasets, 30-day observation and all historical failures/archives. No genuine VanEck/OIH source response, returned uncached constituent, account/source operation, target acceptance, deployment or full-roadmap completion is claimed. Root owns integration, promotion, deployment and genuine operational proof. After Root verifies the exact closing-tip CI, hand off the frozen branch; do not create a self-referential records follow-up.
+
+
+## Current UNXQ calendar fixture checkpoint — 2026-10-31
+
+The current branch adopted exact green staging `a6558c4978311d7a21c3b29d3d8fd2f043610efb` by fast-forward (exact staging CI `41171928099`, attempt 1, terminal green). The independent master replay failure `41179345123` / job `124478798349` remains preserved: strict BrowserDiagnostics caught an uncontrolled fictional `GET /api/v1/calendar/instruments/UNXQ/calendar` returning 404. The current change is limited to the E2E fixture and four ETF-owned records; it adds an exact-path typed empty `CalendarEvent[]` response, bounded start/end assertions and observations after history availability/reload. No backend/provider/runtime, production, target, ledger, quota, or source-transport change is included.
+
+Vue type-check and Playwright discovery passed (all 5 acquisition E2E cases listed). The one full frontend Vitest attempt is preserved as 1494 passed/1 failed; its unrelated `WorkspaceLayoutHost` call-count assertion at `frontend/tests/unit/components/test_workspace_layout_host.test.ts:241` expected 5 and observed 6. It was not retried or edited. The browser test body and full current-source profile have not yet run. Strict diagnostics, zero retries, existing visual oracles/tolerances and cleanup requirements remain mandatory.
+
+The current backend tree is `1926d47bec96874d1afbea1338c6fcc004ec6560`, matching the retained qualified backend component. The frontend production source/build inputs remain identical to D014; the only frontend difference is this nonbundled E2E spec, so the retained frontend runtime image may be reused with that distinction recorded. Exact current-source branch CI and the fresh isolated full-stack functional/strict-visual profile remain pending. AC1-AC14 and all existing holds remain open; Root owns acceptance and later integration/deployment.
+
+
+## Adjacent layout test clock correction — 2026-10-31
+
+Root review `/home/m920q/charting-platform/.ai/staging-attempts/etf-unxq-adjacent-layout-clock-fixture-root-review-20261031.json` tied the earlier 1494-pass/1-fail Vitest result to delayed startup RAF callbacks in unchanged `WorkspaceLayoutHost.vue`, not to a component defect. The single adjacent unit test now uses a scoped fake timer window and a bounded explicit RAF queue to drain mount/reassert startup before its baseline, then advances the observation interval. Its active getter, no-private-field, dynamic unchanged-call-count and no-synthetic-click assertions are unchanged; wrapper, timers and RAF spies are cleaned in `finally`. The focused file passed 13/13, Vue type-check passed, and Playwright discovery listed all five acquisition E2E cases. The original full-suite red is retained; one complete frontend unit rerun is still required.
+
+
+The full frontend Vitest suite was rerun once after that scoped test-only correction and passed 151/151 files, 1495/1495 tests. The earlier 1494/1 result remains in the validation journal as historical failure evidence. Its corrected run log is `/tmp/etf-unxq-frontend-vitest-corrected.log` (SHA256 `b42725ace7418c612987d45db4ad1b39b5a37036283469dd13509174281068a2`). The source-matched E2E body/full-stack profile and exact branch CI remain pending.
+
+
+## UNXQ calendar fixture checkpoint — validation complete, Root review pending — 2026-10-31
+
+The scoped implementation is `802ef5b1e6a4246cc27f29da90950984878df947`. This branch adopted exact green staging `a6558c4978311d7a21c3b29d3d8fd2f043610efb` by fast-forward first (staging CI41171928099 green); the independent master replay failure 41179345123/job124478798349 remains preserved. UCF1-UCF4 are implemented: only the exact fictional UNXQ calendar GET is served with the typed `CalendarEvent[]` fixture, bounded dates are checked after explicit D1 history and reload, and strict `BrowserDiagnostics.expectNoCriticalIssues()` plus all acquisition assertions remain intact. The adjacent `WorkspaceLayoutHost` unit test uses scoped fake timers/RAF without changing component behavior or assertions.
+
+The focused layout file passed 13/13; corrected full frontend Vitest passed 1495/1495 across 151 files; Vue type-check and Playwright discovery passed. The earlier 1494/1 attempt is preserved. The current-source private `full_stack_browser` profile passed functional 201/2 configured skips and strict visual 104/104 across four projects, zero retries. The 10000-row private smoke passed. Exact-owned cleanup exited 0; protected inventory equality is 29 containers, 32 images, 10 networks and 51 volumes. Exact push CI41186532340 is terminal green on `802ef5b1e6a4246cc27f29da90950984878df947` across Backend, Frontend Unit, Branch-declared and E2E/Playwright; the Exhaustive gate was skipped as configured.
+
+The verified frontend-equivalence receipt `/tmp/etf-unxq-calendar-802ef5b1-20261031/artifacts/frontend-image-equivalence.json` has SHA256 `f991c30ac8f1e211f4f22b9b64ebde051c13a6a28a04a9ba75447ccf23034d9a`. Frozen helper `app-runner.sh` SHA256 `1301b12025b2b7daf2a758e2b2f99736c5e89f466600036fdcd80f0c980f8edc` emits that verified value; `component-inputs-verified.json` records the same hash. Correction/results receipt `/tmp/etf-unxq-calendar-802ef5b1-20261031/artifacts/frontend-equivalence-receipt-correction-and-profile-results.json` SHA256 `94d97b5a559723c3ac383921227d88e0b3388590387c88f02642f7ee72c8d6e3`. The pretest functional directory-permission failure and the visual duplicate-start guard refusal are preserved; the latter did not start a second browser.
+
+This candidate is `ready_for_human_review`; checkpoint acceptance remains pending Root, with `integration_capture: exact branch HEAD`. AC1-AC14, 15 Tier-0 and 156 Tier-1, all prior accepted checkpoints, holds, retained datasets and historical red evidence remain unchanged. No genuine provider response, production acquisition, staging integration, deployment or full-roadmap completion is claimed. Root owns acceptance and later integration/deployment.
+
+
+## Root-accepted UNXQ calendar-fixture checkpoint closure — 2026-10-31
+
+Root accepted `etf-unresolved-calendar-side-read-fixture-20261031` under the existing human standing checkpoint delegation. Receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json` (SHA256 `ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827`). Tested implementation remains `802ef5b1e6a4246cc27f29da90950984878df947`; exact implementation CI `41186532340` is green. The source-matched local profile passed functional `201 passed / 2 configured skips` across all five acquisition cases and strict visual `104 passed` across four projects, with zero retries. Frontend unit validation passed `1495`; backend evidence accounts for `5614` unit and `597` integration cases with `84%` combined coverage. Exact-owned cleanup preserved the protected inventory (`29` containers, `32` images, `10` networks, `51` volumes); the private 10000-row smoke passed.
+
+This is a bounded test-fixture checkpoint only: no runtime, migration, provider-policy, paid-source, ledger or production change is claimed. The final four-record publication has a distinct exact-tip CI, pending after push. `integration_capture: exact branch HEAD`. The full AC1-AC14 roadmap remains open, including genuine OIH holdings/returned-uncached-constituent acquisition, source/account and target/deployment proof; Root owns those gates and all integration/promotion/deployment. Preserve 15 Tier-0 and 156 Tier-1, all holds, accepted archives and historical failures.
+
+
+## Ordinary selected-ETF acquisition and native qualification — active preparation — 2026-11-03
+
+The current OSA candidate extends selected-fund route nomination without ticker-specific route
+seeds. During explicit selected acquire only, a trusted canonical issuer or an unambiguous
+canonical fund-brand hint can nominate one exact registered iShares, SPDR, Invesco or Amplify
+adapter. XES and PXJ are offline witnesses to the unseeded SPDR and Invesco paths; neither is added
+to the curated product map. These hints do not prove issuer/product/source identity. The native
+adapter still must verify the fund from its own data: SPDR workbook fund ticker and fund-scoped URL,
+Invesco exact catalog ticker/CUSIP plus holdings response, iShares exact catalog/product/holdings
+lineage, or Amplify selected-account rows from its retained full CSV. Ambiguous, foreign-brand,
+conflicting or unsupported routes remain unavailable/held through the existing Provider gates.
+
+Native initial-qualification evidence now links the captured physical holdings body to the exact
+adapter parser input, normalized retained artifact hash, request URL, settled Provider log and
+sealed account/review scope. Binary wire bytes have their own base64/hash/size proof, distinct from
+the normalized parsed artifact; an iShares/Invesco catalog hop cannot stand in for the holdings
+body. Missing/swapped body hashes, wrong log/scope, catalog-only evidence, foreign fund identity,
+missing date or schema mismatch stay nonpositive. The offline executor derives its authority from
+current durable rows and targets the declared Provider callable; no Provider source was imported
+from its branch and the live callable/engine contract remains pending exact green staging adoption.
+
+Focused offline validation passed 939 tests with 1 contract-dependent skip (940 collected) across
+migration compatibility, native qualification, Provider bridge, EDGAR, VanEck, adapter, refresh
+and issuer-catalog suites. The skipped test explicitly requires the Producer callable not yet in
+synchronized staging. Ruff check/format and diff checks pass. No source HTTP, Docker, database
+fixture, policy/quota/ledger/target mutation, or full local profile was run. The focused candidate is
+not accepted or ready for integration. Next: publish this coherent candidate, complete its exact
+source CI, then adopt the Producer only after Root releases its synchronized green staging source
+and run the engine-backed contract tests. Full qualification and all AC1-AC14 remain open.
+
+
+## Ordinary native adapter identity/date correction — focused offline green — 2026-11-03
+
+Root review found the earlier four format-normalization cases reused the sealed initial-qualification request context, so they did not demonstrate ordinary adapter behavior. Each case now performs a separate registered-adapter fetch under the ordinary `bind_etf_holdings_request_context` with no qualification job or scope, verifies ordinary request URL lineage, and then checks exact native fund identity, provider-reported composition date/source field, persisted identity validation, schema continuity, and current/cache eligibility. The foreign-fund/account and missing-reported-date negatives also exercise ordinary bindings.
+
+The ordinary Invesco path now requires its exact current catalog row whenever there is no explicitly configured product page, even if a CUSIP or process-local cache hint exists. A separate ordinary test supplies both a warm QQQ→CUSIP cache entry and caller CUSIP hint and verifies catalog then holdings requests, exact catalog identity, raw catalog hash, and the provider-reported business date. The refresh path does not need a special marker.
+
+Focused command from `backend`: `uv run --project . pytest tests/unit/services/test_etf_holdings_native_qualification.py tests/unit/services/test_etf_holdings_refresh.py -q`; result `77 passed, 1 skipped`. Ruff check/format and `git diff --check` pass. The pending PostgreSQL executor-to-ordinary test was not executed; no fixture, database, source HTTP, policy/quota/ledger, target, or deployment operation occurred. Provider callable adoption through green staging and the isolated engine-backed contract test remain pending.
+
+
+Final ordinary-mode compatibility check (2026-11-03): the full adapter unit module passed681/681 after retaining legacy unbound adapter fallback while enforcing fresh catalog evidence on actual bound ordinary Invesco refresh. The combined native-qualification/refresh/workstream-narrative run passed78 with1 existing skip. Ruff check/format and `git diff --check` pass. The PostgreSQL executor-to-ordinary test remains unexecuted pending its separate release.
+
+
+## Ordinary catalog evidence follow-up — 2026-11-03
+
+The exact-source CI on `fc0840dabfb6bad9308dda8631b12dfc48b69b66` is retained as red: run `41665410601`, Backend job `126019268196`, with 5,764 passed, 2 skipped and one failure in the IGV selected-acquire success case. The fixture claimed a complete 482/482 official catalog while containing one row; the parser correctly denied it. The successful IGV fixture now uses an internally complete controlled 2/2 catalog. A separate regression confirms that a partial body with the observed `Showing 482 of 482 total funds` label reports total 482 but remains incomplete. The fixture uses iShares' `YYYYMMDD` composition-date field and models the read-only catalog cache/source/request-log facts required by the ordinary durable verifier.
+
+A direct ordinary Invesco test now exercises `fetch_latest` under a bound ordinary context with qualification job/scope absent, a warm QQQ→CUSIP cache and caller CUSIP hint; it verifies fresh catalog then holdings requests, exact retained catalog evidence and effective-business-date identity. The existing SPDR/Invesco/iShares/Amplify ordinary-format cases continue to execute real adapters under ordinary bindings. Before adding the new partial-body-count regression, the native qualification, issuer catalog and refresh modules passed 114 tests with one existing Producer-contract skip. The final rerun then passed 115 with 1 existing Producer-contract skip. Ruff check/format, the workstream narrative regression (1/1), `make branch-validate` (46 records), and `git diff --check` passed. The corrected candidate still needs publication and its own exact-source CI; engine-backed Provider integration remains held for green staging adoption and Root's fixture release.
+
+
+## Legacy issuer-route correction and ETV eligibility — 2026-11-03
+
+Root's exact-source CI `41679135322` is preserved red on source `5ba7dc66035a272f23ffcdb03c2f705f7a6dacb0`: five ETF holdings integration cases reported zero refreshes. The ordinary refresh path had incorrectly subjected the legacy `issuer_product_page_discovery` routes to native-format evidence validation. The corrected path retains strict checks for native adapter outputs while allowing legacy page-discovered CSV/ZIP routes to keep their established identity/parser behavior. Those older routes remain `unknown` completeness; profile aliases and inferred row counts are not promoted to native complete/current proof. The SPDR workbook fixture now proves its date from the actual workbook body, and direct SPDR/iShares fixtures use the canonical descriptive fund names required by their body identity checks. No assertions or positive evidence guards were weakened.
+
+The canonical fund resolver admits `Exchange Traded Vehicle` only under the exact `Exchange Traded Product` asset class. `ETN` remains a distinct denied type. ETV classification alone does not admit a holdings fetch: the selected fund still needs an exact issuer-backed adapter/source route and matching native fund evidence. The route-less ETV regression returns unavailable before source/profile work. Parser position labels remain adapter sourced, including Amplify cash/futures/derivative rows; no ticker-specific exception or ETV-to-ETF relabeling was added.
+
+The seven-node isolated PG/Testcontainers compatibility run in `/tmp/etf-calendar-route-repair-20261103/attempt003/terminal-result.json` passed `7/7`, exit 0; result SHA256 `b99af19d9e84bd41c1df4b2a0aae2f7df462bfee5e994346863fe5349a702800`, JUnit SHA256 `7cccd4c6259d85c90e209552c857dab2b459dc928cf7e63f952d4d0ca2d1fba4`, and log SHA256 `2e3fbfdd9b2b6aa99946a7098bbffb44e7deafdcc49bd627ab0415047e760abd`. Its protected inventory before/after stable IDs and facts matched (38 containers, 26 images, 13 networks, 57 volumes); automatic Testcontainers cleanup was verified. This PG run preceded the final ETV-only resolver/test change, so it is not claimed as ETV database qualification. Current post-ETV focused checks passed: native qualification/bootstrap selection `66`, route/type selection `12`, and Amplify adapter-filtered tests `4`; Ruff format/check and `git diff --check` pass. Attempt002's `5/7` red and attempt001's pre-test setup refusal remain historical evidence.
+
+Publish this coherent candidate and obtain its own exact-source branch CI. The new Provider classification/retained-instrument-type contract must first reach exact green staging, then be adopted at a clean boundary. Do not reuse the prior artifact or browser-profile release: Root must provide fresh artifact/profile pins after that adoption. No Provider code import, source HTTP, policy/quota/ledger/target change, image build, or full browser profile is included or claimed here. AC1-AC14, 15 Tier-0 and 156 Tier-1, and all existing holds remain open.
+
+
+## Green Provider adoption and ETV PostgreSQL proof — 2026-11-03
+
+Adopted synchronized-green staging 4d4a278b1b086745b22aab05d3d960539ad02c97 after Root reconciliation. Canonical receipt SHA256 c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7; exact staging CI41706834463, attempt1, all required jobs green. Local merge2bc627c412838eeac70ece0ae4f0bcc5ff1552dc has parents26def097c1e64f3bcfcbf38349470dd80dbbd1cc and released staging; no conflicts or sibling imports.
+
+Post-adoption PostgreSQL attempt003 passed4/4: BWET ETV/ETP acquire held before source transport, ETN denial, wrong-class ETV denial, and native SPDR qualification through persisted raw/date/fund/schema evidence into ordinary refresh. Only external HTTP was MockTransport; no issuer request, production database/ledger or policy/quota mutation. JUnit SHA256 012466b327b355832b28a089ed8f1e34ee3682e915651fa8cb66792c69910a81; log SHA256 412e534b7a60b94f333cf9dcb9372f8bd5435b8bfb2629581bca2fb59a849a95; phase summary /tmp/etf-ordinary-journey-etv-pg-20261103/attempt003/artifacts/phase-final-result.json SHA256758506e7f817387d2500d7e84ff2a319cef02b0f37fd1cac16562a96af851f0d. The immediate inventory showed the generated Ryuk sidecar transiently; it self-cleaned without manual removal. Fresh comparison restored29 containers/27 images/10 networks/51 volumes.
+
+Focused native qualification/catalog/refresh and Provider instrument tests passed152/152; Ruff check and format passed. Attempt002 remains a zero-test prelaunch inventory-helper failure. Next: publish the coherent source/records, pass exact-source CI, and build/export the current immutable backend/worker artifact. Root/TC own component equivalence and the single combined browser profile. Live publisher proof and AC1-AC14 remain open.
+
+
+## iShares multi-table catalog and expected-source failure repair — 2026-11-04
+
+Root identified the captured IGV catalog contract failure and the BWET pretransport ETV admission gap. The IGV response is retained as 495609 bytes with SHA256 `c165550804ed1d21edeb933c2fce02f8bcb0c5d8f3187f4dd7007f5e3a2d68fc`. Offline parsing now scopes the official `ETFs` and `Mutual Funds` tables independently, selects only the ETF table, verifies the reported 482/482 rows, and resolves IGV to official product `239771` and its exact product URL. Numeric and official slug links remain same-origin and identity-checked; encoded spaces are accepted only in the slug grammar. Conflicting, ambiguous, malformed, or incomplete catalog rows remain rejected. The retained body was not fetched again and was not committed. Offline parse receipt: `/tmp/etf-igv-catalog-offline-parse-proof-20261104.json`.
+
+Expected `IssuerCatalogError` and `ProviderNoDataError` failures from native initial qualification now return typed unavailable/not-qualified/cancelled API details linked to the durable terminal job. The original failure reason is retained; programming exceptions remain uncaught. No latch, replay, recovery, or positive qualification behavior changed.
+
+Focused validation: the final catalog/native qualification/refresh/router suites passed 130 tests; Ruff check/format passed. The initial 45-case parser run had 44 passed/1 failed due to a preceding section total leaking into the next table; a later 130-case run exposed one additional scope-label regression (129 passed/1 failed), which was fixed by consuming each section label at its table boundary. Both red results are retained in `validation.jsonl`. The final captured-body offline parse passed with unchanged raw hash. No additional source request or test database run was used for this repair.
+
+The original failed one-shot histories remain unchanged: XES job1 pretransport missing recurring-cost evidence; IGV job2 failed after one genuine catalog GET; BWET job3 failed before transport because Provider admission did not accept ETV. No retry or further source request occurred. Provider owns ETV admission parity and must deliver it through normal green staging before ETF adoption. Exact-source CI, the final isolated PostgreSQL boundary, backend artifact qualification, and the single Root/TC combined runtime profile remain pending. AC1-AC14, all holds, and genuine publisher acquisition remain open.
+
+
+Root's authorized early-probe fixture release was completed without another source request. The exact `etf_native_app` database was exported to a custom-format PostgreSQL dump at `/tmp/etf-native-parallel-prequalification-565211-20261104/setup-attempt-003/artifacts/etf-native-prequal-565211-20261104-postgres-only.pg.dump`: 944371 bytes, SHA256 `a6a1a2db2d1fc22ad60c896ee46747183b8218b13d95d27534e822dd4e4a6114`, mode `0600`, `PGDMP` header, `pg_restore --list` exit 0. The dump receipt preserves source565211/backend tree c53a00d/image777 and references the unchanged job1/2/3, raw, request, and zero-cost evidence.
+
+Only the exact project containers, its network, named pgdata volume, and the verified Redis anonymous volume were removed. No image or shared quota ledger was touched. Root independently accepted the mount-order-normalized comparison: 54→51 containers, 32 images unchanged, 14→13 networks, 59→57 volumes, with all remaining resources semantically identical. Root review: `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-native-fixture-cleanup-normalized-root-review-20261104.json` (SHA256 `b67f35854c6742698f654832463df059af5fe274b72d12bd08351bef6207f044`). The three failed jobs remain immutable; there was no replay.
+
+## Ordinary selected-acquisition backend checkpoint — 2026-11-04
+
+Root accepted this bounded backend software/artifact checkpoint under the existing delegated authority. Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c (receipt SHA256 ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea, CI41805745211) was merged normally; tested implementation is 3a8e205921071923e1517eabb7623f01ded77935, backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. The current isolated PostgreSQL module passed 110/110 (zero failures/errors/skips); JUnit SHA256 f613e3faaa819c9ee88ebd1d124d7f90777114b1c78a2ca4f9008871f8bc23e2, log SHA256 daa27368af53039b9ea4632e8181483fb1b32b0edfa38f25de6ba67ca1aab0f2, result receipt SHA256 b9f65abc8fc69170d82dddbae2a90fe03cd469760b794cf245d690074eaa7863. Exact-owned PG/Redis/network/volume cleanup reconciled true at /tmp/etf-4de-current-pg-3a8e2059/attempt-007/cleanup-reconciliation-attempt002.json (SHA256 12337ddc1d2280977507c2eeb6cf877b774dcc6054a3e31709b6e126a381); Root accepted normalized protected inventory at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-current-PG-normalized-inventory-root-review-20261104.json (SHA256 db6825dc9e6f0e1480d66b6cacfde27df8962f632e7e3a496a612c7b1c3bab30).
+
+The source-bound backend artifact was built once on the existing capped shared builder: image sha256:52fa759490c8c5c039b81ff9ecf44759eca76437ad7259a775872e29a4ffca65, tag etf-ordinary-journey/backend:3a8e205921071923e1517eabb7623f01ded77935, Linux/amd64; private mode0600 export archive SHA256 e177790df22720b18b23c38b4a3da4986a6330b4a1e2866b49426e15c510724e. Root independently accepted all1055 tracked context blobs, OCI manifest/config/layers, source labels and image contents at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-52fa-backend-artifact-root-review-20261104.json (SHA256 4f1d3691645ae21b7ad88e36d316730e1c15e4ac19a7291c8302f1a605673d7b). No builder recreation, old image replacement, provider HTTP, live qualification, real-ledger/policy mutation or production change occurred.
+
+This closing publication is records-only and preserves backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. Its own exact-source push CI remains pending until the closing tip run completes. Root/TC still own and must pass the combined current backend/frontend functional and 104-case strict-visual profile with protected-inventory proof. Genuine publisher qualification, returned-constituent proof, deployment, all holds, 15 Tier-0/156 Tier-1 and AC1-AC14 remain open. integration_capture: exact branch HEAD.
+
+
+## Retained native failure continuation — 2026-11-05
+
+Root conditionally accepted the exact eight-file backend/test implementation under `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-native-recovery-software-conditional-acceptance-20261105.json` (SHA256 `3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5`). This is technical acceptance of the bounded software only; final exact-source CI and combined profile remain required.
+
+The SPDR and iShares retained failed-job chains were each reparsed offline by `_reparse_retained_native_failure` from the supplied repeatable-read export (ec732fdbc84c99bf870694fd16f8ee8522f3a93a2250e1cadf6a796f4970e4d1). SPDR job 8/artifact 14/logs 33–35 proves 505 complete rows dated 2026-11-03 from the exact 54,467-byte binary response body (SHA256 `1b1638c6…`). iShares job 9/artifact 15/logs 36–37 proves 110 complete rows dated 2026-11-03 using the retained normalized JSON object (60,461 bytes, SHA256 `b64e3f9e…`) and exact catalog-cache identity IGV/product 239771. Its distinct 60,805-byte physical holdings response remains SHA256 `a492b1fd…`; no wire serialization or parser-input hash was invented. Full hashes and lineage are in `/tmp/etf-native-retained-continuation-evidence-20261105.json`.
+
+The current isolated PostgreSQL continuation node passed 2/2 in 10.81 seconds. It verified persistence/readback, disabled policy, revision-after-persist, repeat/concurrent denial, and zero transport/reservations. Attempt001 remains a zero-test path refusal. The typed expected-evidence exception mapping was a later small delta covered by focused unit tests, not claimed as part of the PG run. Focused selection passed 9/9; Ruff check/format and `git diff --check` passed.
+
+Owned PG/network cleanup is complete. Root normalized the concurrent inventory delta and verified all original resources preserved; only the Provider-owned PG/network addition was concurrent and was left untouched. Root receipt: `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-concurrent-PG-inventory-root-normalization-20261105.json` (SHA256 `ea902163b7f6abae4603910f200f3768aa93f9b83d272a836508a42b177fd968`). Raw inventory evidence remains at `/tmp/etf-retained-pg-preflight-20261105.json` and `/tmp/etf-retained-pg-postflight-20261105.json`.
+
+One coherent source/record publication remains pending Root's reviewed byte-identical TC shared-test patch; exact-source CI has not run for this candidate. The failed production jobs 8/9 and every original request/cost/quota receipt remain unchanged. No new Source HTTP, production mutation, policy enablement, deployment, or full AC1-AC14 completion is claimed.
+
+
+Root accepted the exact shared calendar barrier in `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json` (SHA256 `0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86`). Applied `/tmp/tc-ordinary-enter-calendar-barrier.patch` (SHA256 `76a69bbf61625619379a8583f428edcb42a1d7418e4043c5c2705acdf0408673`) only in this worktree; `frontend/tests/e2e/on_demand_acquisition.spec.ts` now hashes to `ab419373397abc84d656c18b5178178a2faafddbb33f3d27ec85894292c03b2f`. The reviewed change keeps the mocked history response gated until the existing pre-response empty-chart and zero-calendar-read assertions complete; no TC product/runtime source was imported. Root's isolated oracle passed 1/1 in 7.5 seconds on pinned Noble with one worker and zero retries. The setup errors and earlier red remain historical. Final exact-source CI is still required.
+
+The final branch-test manifest was verified list-only under a clean exact-CI environment (`ENV_FILE=/dev/null`, private `/tmp` ledger paths, no inherited credentials, `GITHUB_ACTIONS=true`, and `BRANCH_TESTS_CI_COVERED_COMMANDS=full-backend-suite`): exit 0, 12 mappings, zero test commands executed. The preceding Make wrapper warning about default quota-ledger directory and empty env-file paths is retained at `/tmp/etf-final-branch-manifest-wrapper-warning-20261105.txt` and is not counted as this manifest result.
+
+## Current bounded checkpoint closure — 2026-11-05
+
+Root delegated acceptance of the bounded native retained-evidence continuation under the existing human authority (receipt SHA256 `3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5`); the accepted implementation is `b6d67ce93104a0a2cf83b1c41f385513b3c230f8`. The reviewed shared calendar test patch is recorded separately (receipt SHA256 `0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86`, resulting file SHA256 `ab419373397abc84d656c18b5178178a2faafddbb33f3d27ec85894292c03b2f`). The workstream is `ready_for_integration`, with `integration_capture: exact branch HEAD`. The exact closing-tip full CI is pending and mandatory; no pending or red result is represented as green. The local evidence is the 2/2 PostgreSQL continuation proof plus Root's pinned 1/1 shared-test oracle, not a complete local full_stack_browser matrix. Root/TC own the combined full functional/strict-visual/protected-inventory gate, integration, deployment, and genuine source journey. AC1-AC14, 15 Tier-0/156 Tier-1, holds and historical failures remain preserved and open.
+
+
+## IGV CI fixture correction — 2026-11-05 02:37 UTC
+
+Exact source CI41952652528 on `b6d67ce93104a0a2cf83b1c41f385513b3c230f8` failed one parameterized IGV success case (1 failed, 5,838 passed, 1 configured skip). Root review `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-b6-IGV-success-fixture-CI-root-review-20261105.json` traced it to a controlled positive holdings payload that omitted `productId`. The retained real IGV response has `productId: 239771` and the same exact fund name. Added the matching product ID to that test fixture only; the mismatched canonical-name negative remains unchanged, and no production runtime code changed. The exact case passes 2/2 parameterizations, the issuer-catalog module passes 43/43, and Ruff check/format pass. The corrected candidate's exact-source CI has not yet run; no green claim is made. Existing local-profile classification remains `full_stack_browser`, but current local evidence is only PostgreSQL 2/2 plus Root's pinned browser oracle 1/1; the full combined functional, strict-visual and protected-inventory gates remain mandatory.
+
+
+## SPDR expected provenance fixture correction — 2026-11-05
+
+Root accepted the exact test correction at `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-SPDR-provenance-correction-root-acceptance-20261105.json`. CI `41956681710` remains red on parent `3b18ee20c706429f63397fb87aa5dd331fe9b7fe`; its sole failure expected a `fund_identity` dictionary without the genuine `requested_source_url`. The exact-equality fixture now includes `requested_source_url: workbook_url`; runtime and all later replay, ordinary-refresh, schema and body-witness assertions are unchanged.
+
+The isolated PostgreSQL node `test_native_spdr_qualification_persists_then_ordinary_refreshes_same_schema` passed 1/1 in 24.92 seconds. Log `/tmp/etf-spdr-provenance-postgres-20261105/attempt002/pytest.log` SHA256 `0487264854c8032b554e0f656de2540c6116c114b448d50782fbf1a6632c4317`; JUnit SHA256 `6c2a3999142f1ab6c1ab4f32282c66d4acf0ffb10b0c8e4555572bb51a3ae37c`. Ruff check and format pass. Root verified the original 40 container IDs, 13 networks and 55 volumes were preserved. The exact newly pulled Ryuk image was already absent on inspection, so no image removal was performed. Exact final-tip CI remains pending and mandatory; Root owns observation. No runtime change, source HTTP, real-ledger operation, or roadmap completion is claimed. All AC1-AC14, holds, prior failures and histories remain preserved.
+
+
+## Native capability projection follow-up — 2026-11-05
+
+The current repair derives `identity_verified` from already persisted native qualification evidence only after the canonical fund, provider/adapter, source URL/identifier, date, parser/schema, completeness, payload hash, and captured-body or retained-continuation lineage match the selected snapshot. It does not rewrite existing snapshots, jobs, or raw artifacts. The retained continuation writes its verified identity projection only when creating its new snapshot. Cadence inference uses explicit SPDR daily-workbook metadata; iShares remains conservative where its stored source contract does not specify cadence.
+
+Root observed 192 focused backend tests, Ruff, and format passing. Exact-source CI and the combined backend/frontend functional, strict-visual, and protected-inventory profile remain pending under Root ownership. No Source HTTP, production/ledger/policy mutation, integration, or deployment was performed. AC1-AC14, 15 Tier-0/156 Tier-1, all holds, and genuine deployed user flows remain open.
+
+
+## Exact-CI narrative blocker correction — 2026-11-05
+
+Exact closing CI42022408556, Backend job127228166659, failed only tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers because session.progress.current_blocker lacked the required literal tier-count phrase. The plan blocker already contained the counts and the existing handoff contained “Both now contain 15 Tier-0 and 156 Tier-1”. The session blocker now also preserves the pending closing-tip CI and Root-owned release gates while explicitly stating `15 Tier-0 and 156 Tier-1`. The first local invocation was attempted from backend before the edit script was applied; its relative session path was missing and the exact test consequently failed against unchanged session data. After applying the session-only correction, the exact requested pytest node passed 1/1 in 3.21s with ENV_FILE=.env.dev, PYTHONDONTWRITEBYTECODE=1, UV_OFFLINE=1, UV_NO_SYNC=1, --no-cov, and cache disabled. No other test was run. No plan, backend, frontend, test, ledger, source, oracle, tolerance, or production data changed. The final exact closing-tip CI remains mandatory and Root-owned; no green result is claimed.

@@ -1,28 +1,59 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+from types import SimpleNamespace
 
 import pytest
 
 from app.config import settings
 from app.lib.time_utils import wire_datetime
+from app.models.asset_class import InstrumentType
+from app.models.data_source import DataSource
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.instrument_identity import (
+    InstrumentIdentifier,
+    InstrumentIdentifierType,
+    InstrumentProviderSymbol,
+)
 from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
+from app.models.market_data_foundation import InstrumentIdentityQuarantine
 from app.models.ohlcv import OHLCVBar, Timeframe
-from app.providers.base import InstrumentProfile, ListingRecord
+from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.routers.instruments import (
     _create_from_provider,
     _ensure_52w_stats,
     _instrument_search_exchange,
     _needs_52w_stats_refresh,
+    acquire_instrument,
+    discover_instruments,
 )
 from app.schemas.instrument import (
     FieldProvenanceOut,
     InstrumentIdentifierOut,
     InstrumentListingOut,
     InstrumentStatsOut,
+)
+from app.schemas.instrument_acquisition import (
+    InstrumentAcquireRequest,
+    InstrumentDiscoveryRequest,
+    ProviderCandidateBinding,
+)
+from app.services import market_data
+from app.services.instrument_mastering import (
+    apply_profile_to_instrument,
+    instrument_type_for_quote_type,
+    store_profile_snapshot,
+)
+from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+from app.services.provider_runtime import (
+    _EXPLICIT_ACQUISITION_CONTEXT,
+    ProviderCapability,
+    ProviderNoDataError,
+    ProviderQuotaUnknownError,
+    ProviderRateLimitError,
+    ProviderRequestScopeDeniedError,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -152,6 +183,470 @@ def test_legacy_search_keeps_provider_discovery_when_request_driven_mode_is_disa
     assert calls == 1
 
 
+def _discovery_exact_profile(symbol: str = "QXDISC") -> InstrumentProfile:
+    return InstrumentProfile(
+        provider="massive",
+        symbol=symbol,
+        canonical_symbol=symbol,
+        name="Exact discovery profile",
+        quote_type="ETF",
+        exchange="XNAS",
+        identifiers=[
+            IdentifierRecord(
+                identifier_type="figi",
+                identifier_value="BBG00QXDISC01",
+                is_primary=True,
+            )
+        ],
+        listings=[
+            ListingRecord(
+                provider_symbol=symbol,
+                exchange_code="XNAS",
+                provider_instrument_type="ETF",
+                is_primary=True,
+            )
+        ],
+    )
+
+
+def _discovery_fuzzy_page() -> list[dict]:
+    return [
+        {
+            "symbol": f"A{i}DISC",
+            "name": "Unrelated bounded fuzzy result",
+            "exchange": "XNAS",
+            "type": "ETF",
+            "provider": "massive",
+        }
+        for i in range(10)
+    ]
+
+
+def _discovery_search_outcome() -> dict:
+    return {
+        "provider": "massive",
+        "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+        "operation": "search_instruments",
+        "status": "returned",
+        "result_count": 10,
+    }
+
+
+@pytest.mark.asyncio
+async def test_discovery_exact_profile_fallback_is_selectable_and_does_not_create_canonical_state(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    symbol = "QXDISC"
+    profile = _discovery_exact_profile(symbol)
+    profile_calls = 0
+
+    async def _search(_db, query, *, source_outcomes=None):
+        assert query == symbol
+        source_outcomes.append(_discovery_search_outcome())
+        return _discovery_fuzzy_page()
+
+    async def _status(_db):
+        return [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": True,
+            }
+        ]
+
+    async def _exact_profile(_db, capability, operation, **kwargs):
+        nonlocal profile_calls
+        profile_calls += 1
+        scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+        assert scope is not None
+        assert scope.request_id == "discover-qx-profile"
+        assert scope.symbol == symbol
+        assert scope.provider_names == frozenset({"massive"})
+        assert scope.operations == frozenset(
+            {(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}
+        )
+        assert capability == ProviderCapability.INSTRUMENT_METADATA
+        assert operation == "get_instrument_profile"
+        assert kwargs["provider_name"] == "massive"
+        assert kwargs["provider_symbol"] == symbol
+        assert kwargs["usage_identity"] == symbol
+        assert kwargs["treat_empty_as_failure"] is True
+
+        class FakeProvider:
+            def get_instrument_profile(self, requested):
+                assert requested == symbol
+                return profile
+
+        assert kwargs["invoke"](FakeProvider(), symbol) is profile
+        assert kwargs["response_items"](profile) == 1
+        return SimpleNamespace(provider_name="massive", result=profile)
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _exact_profile)
+
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(
+            query=symbol,
+            types=["ETF"],
+            request_id="discover-qx-profile",
+        ),
+        async_db,
+        None,
+    )
+
+    assert response.status == "complete"
+    assert response.candidates[0].model_dump() == {
+        "symbol": symbol,
+        "name": "Exact discovery profile",
+        "exchange": "XNAS",
+        "type": "ETF",
+        "provider": "massive",
+        "instrument_id": None,
+        "identity_status": "provider_candidate",
+    }
+    assert len(response.candidates) == 10
+    assert profile_calls == 1
+    assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
+    assert (
+        db.query(InstrumentProviderSymbol).filter_by(provider_symbol=symbol).one_or_none() is None
+    )
+
+
+@pytest.mark.asyncio
+async def test_discovery_exact_profile_fallback_respects_metadata_holds_without_transport(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    exact_calls = 0
+
+    async def _search(_db, _query, *, source_outcomes=None):
+        source_outcomes.append(_discovery_search_outcome())
+        return _discovery_fuzzy_page()
+
+    async def _status(_db):
+        return [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": False,
+                "quota_state": "unknown",
+            }
+        ]
+
+    async def _forbidden_exact(*_args, **_kwargs):
+        nonlocal exact_calls
+        exact_calls += 1
+        raise AssertionError("metadata held; exact profile transport is forbidden")
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _forbidden_exact)
+
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(query="QXDISC", request_id="discover-held-metadata"),
+        async_db,
+        None,
+    )
+
+    assert response.status == "partial"
+    assert exact_calls == 0
+    assert any(
+        item.capability == ProviderCapability.INSTRUMENT_METADATA.value
+        and item.status == "held"
+        and item.reason_code == "unknown"
+        for item in response.source_outcomes
+    )
+    assert db.query(Instrument).filter_by(symbol="QXDISC").one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_discovery_search_hold_prevents_exact_metadata_fallback(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    exact_calls = 0
+
+    async def _search(_db, _query, *, source_outcomes=None):
+        source_outcomes.append(
+            {
+                **_discovery_search_outcome(),
+                "status": "held",
+                "reason_code": "search_policy_disabled",
+            }
+        )
+        return []
+
+    async def _status(_db):
+        raise AssertionError("a held search must not trigger metadata admission or fallback")
+
+    async def _forbidden_exact(*_args, **_kwargs):
+        nonlocal exact_calls
+        exact_calls += 1
+        raise AssertionError("a held search must not trigger exact profile transport")
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _forbidden_exact)
+
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(query="QXDISC", request_id="discover-held-search"),
+        async_db,
+        None,
+    )
+
+    assert response.status == "held"
+    assert response.candidates == []
+    assert exact_calls == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("hold", "expected_reason"),
+    [
+        ("quota", "provider_quota_admission_denied"),
+        ("rate", "provider_capacity_unavailable"),
+        ("scope", "exact_profile_scope_held"),
+    ],
+)
+async def test_discovery_exact_profile_runtime_holds_remain_held(
+    db, monkeypatch, hold, expected_reason
+):
+    async_db = AsyncSessionAdapter(db)
+
+    async def _search(_db, _query, *, source_outcomes=None):
+        source_outcomes.append(_discovery_search_outcome())
+        return _discovery_fuzzy_page()
+
+    async def _status(_db):
+        return [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": True,
+            }
+        ]
+
+    async def _held_exact(*_args, **_kwargs):
+        if hold == "quota":
+            raise ProviderQuotaAdmissionError("quota reservation denied")
+        if hold == "rate":
+            raise ProviderRateLimitError("massive", "capacity denied")
+        raise ProviderRequestScopeDeniedError("exact_profile_scope_held")
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _held_exact)
+
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(query="QXDISC", request_id=f"discover-held-{hold}"),
+        async_db,
+        None,
+    )
+
+    assert response.status == "partial"
+    assert all(candidate.symbol != "QXDISC" for candidate in response.candidates)
+    assert any(
+        item.capability == ProviderCapability.INSTRUMENT_METADATA.value
+        and item.status == "held"
+        and item.reason_code == expected_reason
+        for item in response.source_outcomes
+    )
+
+
+@pytest.mark.asyncio
+async def test_discovery_exact_fallback_retains_provider_for_fresh_empty_search_cache(
+    monkeypatch,
+):
+    class EmptySearchCacheDB:
+        reads = 0
+
+        async def execute(self, _statement):
+            self.reads += 1
+            return SimpleNamespace(
+                scalar_one_or_none=lambda: SimpleNamespace(payload={"results": []})
+            )
+
+    async_db = EmptySearchCacheDB()
+    resolved = SimpleNamespace(
+        provider_name="massive",
+        data_source=SimpleNamespace(id=17),
+        policy=SimpleNamespace(freshness_seconds=300),
+    )
+    profile = _discovery_exact_profile()
+    exact_calls = 0
+
+    async def _resolved_chain(*_args, **_kwargs):
+        return [resolved]
+
+    async def _status(_db):
+        return [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": True,
+            }
+        ]
+
+    async def _exact_profile(_db, capability, operation, **kwargs):
+        nonlocal exact_calls
+        exact_calls += 1
+        assert capability == ProviderCapability.INSTRUMENT_METADATA
+        assert operation == "get_instrument_profile"
+        assert kwargs["provider_name"] == "massive"
+        return SimpleNamespace(provider_name="massive", result=profile)
+
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _resolved_chain)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _exact_profile)
+
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(query="QXDISC", request_id="discover-empty-cache"),
+        async_db,
+        None,
+    )
+
+    assert response.candidates[0].symbol == "QXDISC"
+    assert response.candidates[0].provider == "massive"
+    assert exact_calls == 1
+    assert async_db.reads == 1
+    search_outcome = next(
+        item
+        for item in response.source_outcomes
+        if item.capability == ProviderCapability.INSTRUMENT_SEARCH.value
+    )
+    assert search_outcome.status == "cache_hit"
+    assert search_outcome.result_count == 0
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "mismatch",
+    ["provider", "symbol", "listing", "domain", "type_filter"],
+)
+async def test_discovery_exact_profile_fallback_rejects_identity_and_filter_mismatches(
+    db, monkeypatch, mismatch
+):
+    async_db = AsyncSessionAdapter(db)
+    symbol = "QXDISC"
+    profile = _discovery_exact_profile(symbol)
+    if mismatch == "provider":
+        profile.provider = "fmp"
+    elif mismatch == "symbol":
+        profile.symbol = "QXOTHER"
+        profile.canonical_symbol = "QXOTHER"
+    elif mismatch == "listing":
+        profile.listings[0].provider_symbol = "QXOTHER"
+    elif mismatch == "domain":
+        profile.identifiers = []
+
+    async def _search(_db, _query, *, source_outcomes=None):
+        source_outcomes.append(_discovery_search_outcome())
+        return _discovery_fuzzy_page()
+
+    async def _status(_db):
+        return [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": True,
+            }
+        ]
+
+    async def _exact_profile(*_args, **kwargs):
+        class FakeProvider:
+            def get_instrument_profile(self, _requested):
+                return profile
+
+        return SimpleNamespace(
+            provider_name="massive",
+            result=kwargs["invoke"](FakeProvider(), symbol),
+        )
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _exact_profile)
+    body = InstrumentDiscoveryRequest(
+        query=symbol,
+        types=["STOCK"] if mismatch == "type_filter" else ["ETF"],
+        request_id=f"discover-reject-{mismatch}",
+    )
+
+    response = await discover_instruments(body, async_db, None)
+
+    assert all(candidate.symbol != symbol for candidate in response.candidates)
+    assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
+    if mismatch != "type_filter":
+        assert any(
+            item.reason_code == "exact_profile_identity_or_listing_mismatch"
+            for item in response.source_outcomes
+        )
+    else:
+        assert response.status == "no_match"
+        assert any(
+            item.reason_code == "exact_profile_excluded_by_type_filter"
+            for item in response.source_outcomes
+        )
+
+
+@pytest.mark.asyncio
+async def test_discovery_exact_profile_fallback_does_not_run_for_free_text_or_filtered_fuzzy_exact(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    exact_calls = 0
+
+    async def _search(_db, query, *, source_outcomes=None):
+        source_outcomes.append(_discovery_search_outcome())
+        if query == "Ford Motor":
+            return _discovery_fuzzy_page()
+        return [
+            {
+                "symbol": "QXDISC",
+                "name": "Exact fuzzy result",
+                "exchange": "XNAS",
+                "type": "ETF",
+                "provider": "massive",
+            }
+        ]
+
+    async def _status(_db):
+        return [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": True,
+            }
+        ]
+
+    async def _forbidden_exact(*_args, **_kwargs):
+        nonlocal exact_calls
+        exact_calls += 1
+        raise AssertionError("free text or an exact fuzzy result must not trigger fallback")
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _forbidden_exact)
+
+    free_text = await discover_instruments(
+        InstrumentDiscoveryRequest(query="Ford Motor", request_id="discover-free-text"),
+        async_db,
+        None,
+    )
+    filtered_exact = await discover_instruments(
+        InstrumentDiscoveryRequest(
+            query="QXDISC",
+            types=["STOCK"],
+            request_id="discover-filtered-exact",
+        ),
+        async_db,
+        None,
+    )
+
+    assert exact_calls == 0
+    assert all(candidate.symbol != "QXDISC" for candidate in filtered_exact.candidates)
+    assert free_text.candidates
+
+
 class TestInstrumentAutoCreate:
     @pytest.mark.asyncio
     async def test_rejects_non_exact_provider_match(self, db, monkeypatch):
@@ -244,6 +739,988 @@ class TestInstrumentAutoCreate:
         assert created is not None
         assert created.symbol == "CSCO"
         assert seen_provider_name == "yfinance"
+
+
+class TestExplicitAcquireCanonicalIdentity:
+    @pytest.mark.asyncio
+    async def test_cached_qualified_identity_reconciles_etv_without_provider_transport(
+        self, db, instrument_type, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        instrument = Instrument(
+            symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="resolved",
+            domain_key="figi:BBG000GENV001",
+            primary_identifier_type="figi",
+            primary_identifier_value="BBG000GENV001",
+        )
+        exchange = Exchange(mic="ARCX", name="NYSE Arca")
+        db.add_all([instrument, exchange])
+        db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                exchange_id=exchange.id,
+                ticker="GENV",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                source="massive",
+            )
+        )
+        db.flush()
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol="GENV",
+            canonical_symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            quote_type="ETV",
+            exchange="ARCX",
+            raw_payload={"ticker": "GENV", "type": "ETV"},
+            listings=[ListingRecord(provider_symbol="GENV", exchange_code="ARCX")],
+        )
+        retained_classification = await store_profile_snapshot(async_db, instrument, profile)
+        later_nonclassifying_profile = InstrumentProfile(
+            provider="yfinance",
+            symbol="GENV",
+            canonical_symbol="GENV",
+            name="Generic Exchange Traded Vehicle",
+            currency="USD",
+            quote_type=None,
+            raw_payload={"ticker": "GENV"},
+        )
+        await store_profile_snapshot(
+            async_db,
+            instrument,
+            later_nonclassifying_profile,
+            observed_at=datetime.now(UTC) + timedelta(seconds=1),
+        )
+
+        async def forbidden_transport(*_args, **_kwargs):
+            raise AssertionError("cached qualified acquisition must not call a provider")
+
+        monkeypatch.setattr(
+            "app.routers.instruments.search_provider_instruments_async", forbidden_transport
+        )
+        monkeypatch.setattr(
+            "app.routers.instruments.get_provider_profile_async", forbidden_transport
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol="GENV", request_id="cached-etv-reconcile"),
+            async_db,
+        )
+
+        db.refresh(instrument)
+        assert response.status == "resolved"
+        assert response.instrument.instrument_id == instrument.id
+        assert response.instrument.instrument_type == "Exchange Traded Vehicle"
+        assert instrument.symbol == "GENV"
+        assert instrument.domain_key == "figi:BBG000GENV001"
+        assert instrument.primary_identifier_type == "figi"
+        assert instrument.primary_identifier_value == "BBG000GENV001"
+        assert instrument.field_provenance["instrument_type"]["note"].startswith(
+            "provider_quote_type=ETV"
+        )
+        assert instrument.field_provenance["instrument_type"]["source"] == "massive"
+        assert instrument.field_provenance["instrument_type"]["observed_at"] == (
+            retained_classification.observed_at.replace(tzinfo=UTC).isoformat()
+        )
+        assert instrument.field_provenance["instrument_type"]["fetched_at"] == (
+            retained_classification.fetched_at.replace(tzinfo=UTC).isoformat()
+        )
+        assert instrument.field_provenance["instrument_type"]["reconciled_at"]
+
+    @pytest.mark.parametrize(
+        ("code", "expected"),
+        [
+            ("ETF", ("Equity", "ETF", "ETF")),
+            ("ETN", ("Exchange Traded Product", "ETN", "ETN")),
+            ("ETV", ("Exchange Traded Product", "Exchange Traded Vehicle", "ETV")),
+            (
+                "UNRECOGNIZED_PROVIDER_CODE",
+                ("Unclassified", "Unclassified", "UNRECOGNIZED_PROVIDER_CODE"),
+            ),
+        ],
+    )
+    def test_provider_quote_type_does_not_collapse_exchange_traded_categories(self, code, expected):
+        assert instrument_type_for_quote_type(code) == expected
+
+    @pytest.mark.asyncio
+    async def test_new_profile_persists_provider_etv_as_distinct_vehicle_type(self, db):
+        async_db = AsyncSessionAdapter(db)
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol="GENW",
+            canonical_symbol="GENW",
+            name="Generic Exchange Traded Vehicle",
+            quote_type="ETV",
+            exchange="ARCX",
+            listings=[ListingRecord(provider_symbol="GENW", exchange_code="ARCX")],
+            raw_payload={"ticker": "GENW", "type": "ETV"},
+        )
+
+        created = await apply_profile_to_instrument(
+            async_db, profile, allow_external_identifier=False
+        )
+        persisted_type = db.get(InstrumentType, created.instrument_type_id)
+
+        assert created.symbol == "GENW"
+        assert persisted_type.asset_class.name == "Exchange Traded Product"
+        assert persisted_type.name == "Exchange Traded Vehicle"
+        assert created.field_provenance["instrument_type"]["note"] == "provider_quote_type=ETV"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("existing_scaffold", [False, True])
+    async def test_promotes_scaffold_from_exact_authoritative_provider_profile(
+        self, db, instrument_type, monkeypatch, existing_scaffold
+    ):
+        async_db = AsyncSessionAdapter(db)
+        scaffold = None
+        if existing_scaffold:
+            scaffold = Instrument(
+                symbol="OIH",
+                name="OIH industry proxy ETF",
+                currency="USD",
+                instrument_type_id=instrument_type.id,
+                is_active=True,
+                identity_status="provisional",
+                primary_identifier_type="composite_figi",
+                primary_identifier_value="BBG000D02J82",
+            )
+            arca = Exchange(mic="ARCX", name="NYSE Arca")
+            massive = DataSource(name="massive", is_active=True, config={})
+            db.add_all([scaffold, arca, massive])
+            db.flush()
+            db.add_all(
+                [
+                    InstrumentIdentifier(
+                        instrument_id=scaffold.id,
+                        data_source_id=massive.id,
+                        identifier_type=InstrumentIdentifierType.COMPOSITE_FIGI,
+                        identifier_value="BBG000D02J82",
+                        is_primary=True,
+                        is_active=True,
+                    ),
+                    InstrumentProviderSymbol(
+                        instrument_id=scaffold.id,
+                        data_source_id=massive.id,
+                        provider_symbol="OIH",
+                        provider_exchange_code="ARCX",
+                        provider_instrument_type="ETF",
+                        is_primary=True,
+                        is_active=True,
+                    ),
+                ]
+            )
+            db.add(
+                InstrumentListing(
+                    instrument_id=scaffold.id,
+                    exchange_id=arca.id,
+                    ticker="OIH",
+                    currency="USD",
+                    is_primary=True,
+                    is_active=True,
+                    source="massive",
+                )
+            )
+            db.flush()
+
+        async def _search(*_args, **_kwargs):
+            return [
+                {
+                    "symbol": "OIH",
+                    "name": "VanEck Oil Services ETF",
+                    "exchange": "ARCX",
+                    "type": "ETF",
+                    "provider": "massive",
+                }
+            ]
+
+        async def _profile(*_args, provider_name=None, **_kwargs):
+            assert provider_name == "massive"
+            return InstrumentProfile(
+                provider="massive",
+                symbol="OIH",
+                canonical_symbol="OIH",
+                name="VanEck Oil Services ETF",
+                currency="USD",
+                quote_type="ETF",
+                exchange="ARCX",
+                identifiers=[
+                    IdentifierRecord(
+                        identifier_type="composite_figi",
+                        identifier_value="BBG000D02J82",
+                        is_primary=True,
+                    )
+                ],
+                listings=[
+                    ListingRecord(
+                        provider_symbol="OIH",
+                        exchange_code="ARCX",
+                        currency="USD",
+                        provider_instrument_type="ETF",
+                        is_primary=True,
+                    )
+                ],
+            )
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+        monkeypatch.setattr(
+            "app.services.instrument_mastering.ensure_external_identifier",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("explicit acquisition must not run fallback identifier lookup")
+            ),
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol="OIH",
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol="OIH", exchange="ARCX"
+                ),
+                request_id="test-oih-authoritative-profile",
+            ),
+            async_db,
+        )
+
+        assert response.status == "resolved"
+        assert response.instrument is not None
+        persisted = db.query(Instrument).filter(Instrument.symbol == "OIH").one()
+        assert response.instrument.instrument_id == persisted.id
+        if scaffold is not None:
+            assert persisted.id == scaffold.id
+        assert response.instrument.identity_status == "resolved"
+        assert response.instrument.domain_key == "composite-figi:BBG000D02J82"
+        assert response.instrument.primary_identifier_type == "composite_figi"
+        assert response.instrument.primary_identifier_value == "BBG000D02J82"
+        assert (
+            db.query(InstrumentIdentifier)
+            .filter(
+                InstrumentIdentifier.instrument_id == response.instrument.instrument_id,
+                InstrumentIdentifier.identifier_type == InstrumentIdentifierType.COMPOSITE_FIGI,
+                InstrumentIdentifier.identifier_value == "BBG000D02J82",
+                InstrumentIdentifier.is_active.is_(True),
+            )
+            .one_or_none()
+            is not None
+        )
+
+    @pytest.mark.asyncio
+    async def test_exact_profile_resolves_ticker_missing_from_bounded_fuzzy_page(
+        self, db, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXTEST"
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol=symbol,
+            canonical_symbol=symbol,
+            name="Exact lookup test issuer",
+            currency="USD",
+            quote_type="ETF",
+            exchange="XNAS",
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="figi",
+                    identifier_value="BBG00QXTEST01",
+                    is_primary=True,
+                )
+            ],
+            listings=[
+                ListingRecord(
+                    provider_symbol=symbol,
+                    exchange_code="XNAS",
+                    currency="USD",
+                    provider_instrument_type="ETF",
+                    is_primary=True,
+                )
+            ],
+        )
+        first_page = [
+            {
+                "symbol": f"A{i}TEST",
+                "name": "Fuzzy result outside exact symbol",
+                "exchange": "XNAS",
+                "type": "ETF",
+                "provider": "massive",
+            }
+            for i in range(10)
+        ]
+
+        async def _search(_db, query, *, source_outcomes=None):
+            assert query == symbol
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": len(first_page),
+                }
+            )
+            return first_page
+
+        async def _no_status(_db):
+            return []
+
+        async def _exact_profile(_db, capability, operation, **kwargs):
+            scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+            assert scope is not None
+            assert scope.request_id == "exact-profile-beyond-fuzzy-page"
+            assert scope.symbol == symbol
+            assert scope.operations == frozenset(
+                {(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}
+            )
+            assert scope.provider_names is None
+            assert capability == ProviderCapability.INSTRUMENT_METADATA
+            assert operation == "get_instrument_profile"
+            assert kwargs["provider_name"] is None
+            assert kwargs["provider_symbol"] == symbol
+            assert kwargs["usage_identity"] == symbol
+            assert kwargs["treat_empty_as_failure"] is True
+
+            class FakeProvider:
+                def get_instrument_profile(self, requested):
+                    assert requested == symbol
+                    return profile
+
+            assert kwargs["invoke"](FakeProvider(), symbol) is profile
+            assert kwargs["response_items"](profile) == 1
+            return SimpleNamespace(provider_name="massive", result=profile)
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.list_provider_status", _no_status)
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", _exact_profile)
+        monkeypatch.setattr(
+            "app.routers.instruments.ensure_external_identifier",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("exact profile acquisition must not infer identifiers")
+            ),
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol=symbol,
+                request_id="exact-profile-beyond-fuzzy-page",
+            ),
+            async_db,
+        )
+
+        assert response.status == "resolved"
+        assert response.instrument is not None
+        assert response.instrument.symbol == symbol
+        assert response.instrument.domain_key == "figi:BBG00QXTEST01"
+        assert any(
+            item.operation == "get_instrument_profile" and item.status == "returned"
+            for item in response.source_outcomes
+        )
+        binding = db.query(InstrumentProviderSymbol).filter_by(
+            instrument_id=response.instrument.instrument_id,
+            data_source_id=db.query(DataSource.id).filter_by(name="massive").scalar(),
+            provider_symbol=symbol,
+            provider_exchange_code="XNAS",
+        )
+        assert binding.one_or_none() is not None
+
+    @pytest.mark.asyncio
+    async def test_exact_profile_absence_stays_no_match(self, db, monkeypatch):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXABSENT"
+
+        async def _search(_db, query, *, source_outcomes=None):
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 10,
+                }
+            )
+            return [{"symbol": f"A{i}", "provider": "massive"} for i in range(10)]
+
+        async def _no_exact_profile(*_args, **_kwargs):
+            raise ProviderNoDataError("exact ticker profile absent")
+
+        async def _no_status(_db):
+            return []
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.list_provider_status", _no_status)
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", _no_exact_profile)
+        monkeypatch.setattr(
+            "app.routers.instruments.ingest_provider_profile",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("an absent exact profile must not be ingested")
+            ),
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol=symbol, request_id="exact-profile-absent"),
+            async_db,
+        )
+
+        assert response.status == "no_match"
+        assert response.reason_code == "exact_symbol_profile_not_found"
+        assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("mismatch", "expected_status", "expected_reason"),
+        [
+            ("provider", "identity_conflict", "exact_profile_provider_mismatch"),
+            ("symbol", "failed", "provider_profile_unavailable_or_mismatched"),
+            ("listing", "identity_conflict", "exact_profile_listing_mismatch"),
+            ("domain", "identity_conflict", "existing_placeholder_identity_conflict"),
+            (
+                "empty_listing",
+                "identity_conflict",
+                "stable_identity_or_listing_authority_missing",
+            ),
+        ],
+    )
+    async def test_exact_profile_rejects_identity_and_listing_mismatches(
+        self,
+        db,
+        instrument_type,
+        monkeypatch,
+        mismatch,
+        expected_status,
+        expected_reason,
+    ):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXSAFE"
+        provider = "other" if mismatch == "provider" else "massive"
+        profile_symbol = "QXOTHER" if mismatch == "symbol" else symbol
+        listing_symbol = "QXOTHER" if mismatch == "listing" else profile_symbol
+        listing_exchange = "XNYS" if mismatch == "listing" else "XNAS"
+        profile = InstrumentProfile(
+            provider=provider,
+            symbol=profile_symbol,
+            canonical_symbol=profile_symbol,
+            name="Exact profile identity regression",
+            currency="USD",
+            quote_type="ETF",
+            exchange=None if mismatch == "empty_listing" else listing_exchange,
+            identifiers=[
+                IdentifierRecord(
+                    identifier_type="figi",
+                    identifier_value="BBG00QXSAFE01",
+                    is_primary=True,
+                )
+            ],
+            listings=[]
+            if mismatch == "empty_listing"
+            else [
+                ListingRecord(
+                    provider_symbol=listing_symbol,
+                    exchange_code=listing_exchange,
+                    currency="USD",
+                    provider_instrument_type="ETF",
+                    is_primary=True,
+                )
+            ],
+        )
+        if mismatch == "domain":
+            db.add(
+                Instrument(
+                    symbol=symbol,
+                    name="Existing provisional instrument",
+                    currency="USD",
+                    instrument_type_id=instrument_type.id,
+                    is_active=True,
+                    identity_status="provisional",
+                    domain_key="figi:BBG00QXSAFE99",
+                    primary_identifier_type="figi",
+                    primary_identifier_value="BBG00QXSAFE99",
+                )
+            )
+            db.flush()
+
+        async def _search(_db, query, *, source_outcomes=None):
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 10,
+                }
+            )
+            return [{"symbol": f"A{i}", "provider": "massive"} for i in range(10)]
+
+        async def _exact_profile(_db, _capability, _operation, **kwargs):
+            assert kwargs["provider_name"] == "massive"
+            return SimpleNamespace(provider_name="massive", result=profile)
+
+        async def _no_status(_db):
+            return []
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.list_provider_status", _no_status)
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", _exact_profile)
+        monkeypatch.setattr(
+            "app.routers.instruments.ingest_provider_profile",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("mismatched exact profile must not be ingested")
+            ),
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol=symbol,
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive",
+                    symbol=symbol,
+                    exchange=None if mismatch in {"symbol", "empty_listing"} else "XNAS",
+                ),
+                request_id=f"exact-profile-mismatch-{mismatch}",
+            ),
+            async_db,
+        )
+
+        assert response.status == expected_status
+        assert response.reason_code == expected_reason
+        if mismatch == "domain":
+            existing = db.query(Instrument).filter_by(symbol=symbol).one()
+            assert existing.domain_key == "figi:BBG00QXSAFE99"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("lookup_error", "expected_reason"),
+        [
+            (
+                ProviderRequestScopeDeniedError("exact_profile_scope_expired"),
+                "exact_profile_scope_expired",
+            ),
+            (ProviderRateLimitError("massive", "rate limit"), "provider_capacity_unavailable"),
+            (
+                ProviderQuotaAdmissionError("quota admission denied"),
+                "provider_quota_admission_denied",
+            ),
+            (
+                ProviderQuotaUnknownError("quota contract unknown"),
+                "provider_quota_contract_unknown",
+            ),
+        ],
+    )
+    async def test_exact_profile_runtime_holds_remain_held(
+        self, db, monkeypatch, lookup_error, expected_reason
+    ):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXHELD"
+
+        async def _search(_db, _query, *, source_outcomes=None):
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 10,
+                }
+            )
+            return [{"symbol": f"A{i}", "provider": "massive"} for i in range(10)]
+
+        async def _held_exact(_db, capability, operation, **kwargs):
+            scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+            assert scope is not None
+            assert scope.request_id == "exact-profile-runtime-hold"
+            assert scope.symbol == symbol
+            assert capability == ProviderCapability.INSTRUMENT_METADATA
+            assert operation == "get_instrument_profile"
+            raise lookup_error
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr(
+            "app.routers.instruments.list_provider_status", lambda _db: asyncio.sleep(0, result=[])
+        )
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", _held_exact)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol=symbol, request_id="exact-profile-runtime-hold"),
+            async_db,
+        )
+
+        assert response.status == "held"
+        assert response.reason_code == expected_reason
+        held = next(
+            item for item in response.source_outcomes if item.operation == "get_instrument_profile"
+        )
+        assert held.status == "held"
+        assert held.error_type == type(lookup_error).__name__
+
+    @pytest.mark.asyncio
+    async def test_search_hold_does_not_fall_through_to_exact_profile(self, db, monkeypatch):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXHELD"
+
+        async def _search(_db, query, *, source_outcomes=None):
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "held",
+                    "reason_code": "reviewed_source_hold",
+                }
+            )
+            return [{"symbol": f"A{i}", "provider": "massive"} for i in range(10)]
+
+        async def _forbidden_exact(*_args, **_kwargs):
+            raise AssertionError("a held search must not be bypassed by profile lookup")
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", _forbidden_exact)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol=symbol, request_id="exact-profile-held"),
+            async_db,
+        )
+
+        assert response.status == "held"
+        assert response.reason_code == "candidate_not_found_or_not_admitted"
+
+    @pytest.mark.asyncio
+    async def test_metadata_hold_prevents_exact_profile_lookup(self, db, monkeypatch):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXMETAHOLD"
+        metadata_status = [
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": False,
+                "checkpoint_hold_reason": "reviewed_metadata_hold",
+                "entitlement_admission": {},
+            }
+        ]
+
+        async def _search(_db, _query, *, source_outcomes=None):
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 10,
+                }
+            )
+            return [{"symbol": f"A{i}", "provider": "massive"} for i in range(10)]
+
+        async def _status(_db):
+            return metadata_status
+
+        async def _forbidden_exact(*_args, **_kwargs):
+            raise AssertionError("a metadata hold must prevent exact profile transport")
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+        monkeypatch.setattr("app.routers.instruments.execute_provider_call", _forbidden_exact)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(symbol=symbol, request_id="exact-profile-metadata-held"),
+            async_db,
+        )
+
+        assert response.status == "held"
+        assert response.reason_code == "exact_profile_not_admitted"
+        assert any(
+            item.capability == ProviderCapability.INSTRUMENT_METADATA.value
+            and item.status == "held"
+            for item in response.source_outcomes
+        )
+
+    @pytest.mark.asyncio
+    async def test_profile_identifier_owned_by_another_instrument_stays_quarantined(
+        self, db, instrument_type, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        scaffold = Instrument(
+            symbol="OIH",
+            name="OIH industry proxy ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="provisional",
+        )
+        owner = Instrument(
+            symbol="OTHER",
+            name="Existing owner",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="resolved",
+            domain_key="composite-figi:BBG000D02J82",
+            primary_identifier_type="composite_figi",
+            primary_identifier_value="BBG000D02J82",
+        )
+        arca = Exchange(mic="ARCX", name="NYSE Arca")
+        db.add_all([scaffold, owner, arca])
+        db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=scaffold.id,
+                exchange_id=arca.id,
+                ticker="OIH",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                source="massive",
+            )
+        )
+        db.add(
+            InstrumentIdentifier(
+                instrument_id=owner.id,
+                identifier_type=InstrumentIdentifierType.COMPOSITE_FIGI,
+                identifier_value="BBG000D02J82",
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        db.flush()
+
+        async def _search(*_args, **_kwargs):
+            return [
+                {
+                    "symbol": "OIH",
+                    "name": "VanEck Oil Services ETF",
+                    "exchange": "ARCX",
+                    "type": "ETF",
+                    "provider": "massive",
+                }
+            ]
+
+        async def _profile(*_args, **_kwargs):
+            return InstrumentProfile(
+                provider="massive",
+                symbol="OIH",
+                canonical_symbol="OIH",
+                name="VanEck Oil Services ETF",
+                currency="USD",
+                quote_type="ETF",
+                exchange="ARCX",
+                identifiers=[
+                    IdentifierRecord(
+                        identifier_type="composite_figi",
+                        identifier_value="BBG000D02J82",
+                        is_primary=True,
+                    )
+                ],
+                listings=[
+                    ListingRecord(
+                        provider_symbol="OIH",
+                        exchange_code="ARCX",
+                        currency="USD",
+                        provider_instrument_type="ETF",
+                        is_primary=True,
+                    )
+                ],
+            )
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+        monkeypatch.setattr(
+            "app.services.instrument_mastering.ensure_external_identifier",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("explicit acquisition must not run fallback identifier lookup")
+            ),
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol="OIH",
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol="OIH", exchange="ARCX"
+                ),
+                request_id="test-oih-colliding-profile",
+            ),
+            async_db,
+        )
+
+        db.refresh(scaffold)
+        assert response.status == "identity_conflict"
+        assert response.reason_code == "canonical_identity_not_fully_qualified"
+        assert scaffold.identity_status == "quarantined"
+        assert scaffold.domain_key is None
+        assert owner.domain_key == "composite-figi:BBG000D02J82"
+        assert (
+            db.query(InstrumentIdentityQuarantine)
+            .filter(
+                InstrumentIdentityQuarantine.instrument_id == scaffold.id,
+                InstrumentIdentityQuarantine.proposed_domain_key == "composite-figi:BBG000D02J82",
+                InstrumentIdentityQuarantine.status == "pending",
+            )
+            .one_or_none()
+            is not None
+        )
+
+    @pytest.mark.asyncio
+    async def test_existing_conflicting_domain_key_is_preserved_before_ingestion(
+        self, db, instrument_type, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        scaffold = Instrument(
+            symbol="OIH",
+            name="OIH industry proxy ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="provisional",
+            domain_key="composite-figi:BBG000OLDKEY01",
+        )
+        arca = Exchange(mic="ARCX", name="NYSE Arca")
+        db.add_all([scaffold, arca])
+        db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=scaffold.id,
+                exchange_id=arca.id,
+                ticker="OIH",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                source="massive",
+            )
+        )
+        db.flush()
+
+        async def _search(*_args, **_kwargs):
+            return [
+                {
+                    "symbol": "OIH",
+                    "name": "VanEck Oil Services ETF",
+                    "exchange": "ARCX",
+                    "type": "ETF",
+                    "provider": "massive",
+                }
+            ]
+
+        async def _profile(*_args, **_kwargs):
+            return InstrumentProfile(
+                provider="massive",
+                symbol="OIH",
+                canonical_symbol="OIH",
+                name="VanEck Oil Services ETF",
+                currency="USD",
+                quote_type="ETF",
+                exchange="ARCX",
+                identifiers=[
+                    IdentifierRecord(
+                        identifier_type="composite_figi",
+                        identifier_value="BBG000D02J82",
+                        is_primary=True,
+                    )
+                ],
+                listings=[
+                    ListingRecord(
+                        provider_symbol="OIH",
+                        exchange_code="ARCX",
+                        provider_instrument_type="ETF",
+                        is_primary=True,
+                    )
+                ],
+            )
+
+        async def _forbid_ingestion(*_args, **_kwargs):
+            raise AssertionError("a conflicting canonical key must stop before profile ingestion")
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+        monkeypatch.setattr("app.routers.instruments.ingest_provider_profile", _forbid_ingestion)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol="OIH",
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol="OIH", exchange="ARCX"
+                ),
+                request_id="test-oih-existing-domain-conflict",
+            ),
+            async_db,
+        )
+
+        db.refresh(scaffold)
+        assert response.status == "identity_conflict"
+        assert response.reason_code == "existing_placeholder_identity_conflict"
+        assert scaffold.domain_key == "composite-figi:BBG000OLDKEY01"
+        assert scaffold.identity_status == "provisional"
+
+    @pytest.mark.asyncio
+    async def test_missing_profile_listing_authority_does_not_promote_provisional_identity(
+        self, db, instrument_type, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        scaffold = Instrument(
+            symbol="OIH",
+            name="OIH industry proxy ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="provisional",
+        )
+        db.add(scaffold)
+        db.flush()
+
+        async def _search(*_args, **_kwargs):
+            return [
+                {
+                    "symbol": "OIH",
+                    "name": "VanEck Oil Services ETF",
+                    "exchange": "ARCX",
+                    "type": "ETF",
+                    "provider": "massive",
+                }
+            ]
+
+        async def _profile(*_args, **_kwargs):
+            return InstrumentProfile(
+                provider="massive",
+                symbol="OIH",
+                canonical_symbol="OIH",
+                name="VanEck Oil Services ETF",
+                currency="USD",
+                quote_type="ETF",
+                exchange="ARCX",
+                identifiers=[
+                    IdentifierRecord(
+                        identifier_type="composite_figi",
+                        identifier_value="BBG000D02J82",
+                        is_primary=True,
+                    )
+                ],
+                listings=[],
+            )
+
+        async def _forbid_ingestion(*_args, **_kwargs):
+            raise AssertionError("a profile without listing authority must not be ingested")
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+        monkeypatch.setattr("app.routers.instruments.ingest_provider_profile", _forbid_ingestion)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol="OIH",
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol="OIH", exchange="ARCX"
+                ),
+                request_id="test-oih-missing-listing-authority",
+            ),
+            async_db,
+        )
+
+        db.refresh(scaffold)
+        assert response.status == "identity_conflict"
+        assert response.reason_code == "stable_identity_or_listing_authority_missing"
+        assert scaffold.identity_status == "provisional"
+        assert scaffold.domain_key is None
 
 
 def test_search_exchange_prefers_active_primary_listing_mic(instrument_type):

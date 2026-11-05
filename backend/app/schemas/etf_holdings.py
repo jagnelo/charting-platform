@@ -144,17 +144,23 @@ class ETFProfileAcquireRequest(BaseModel):
 
     request_id: UUID
     refresh: bool = False
+    # New selected-instrument clients bind the user action to the exact
+    # canonical result they displayed. The path symbol remains for backwards
+    # compatibility and is checked against this ID before any profile work.
+    instrument_id: int | None = Field(default=None, gt=0)
 
 
 class ETFProfileAcquireOut(BaseModel):
     """Selected-fund result with stored evidence kept distinct from refresh."""
 
     request_id: UUID
-    outcome: Literal["cached", "no_data", "acquired", "held", "failed"]
+    outcome: Literal["cached", "no_data", "acquired", "held", "failed", "unavailable"]
+    instrument_id: int | None = None
+    symbol: str | None = None
     refresh: bool
     refresh_attempted: bool
     refresh_succeeded: bool
-    profile: ETFProfileOut
+    profile: ETFProfileOut | None = None
     snapshot: "ETFHoldingsSnapshotOut | None" = None
     capability: ETFHoldingsCapabilityOut | None = None
     source_provider: str | None = None
@@ -760,6 +766,42 @@ class ETFHoldingsSECBackfillRequest(BaseModel):
     start_date: date | None = None
     end_date: date | None = None
     max_filings: int = Field(default=20, ge=1, le=200)
+
+
+class ETFHoldingsVanEckQualificationRecoveryRequest(BaseModel):
+    """Audited request linked to a proven pretransport qualification failure."""
+
+    predecessor_job_id: int = Field(gt=0)
+    # A bounded audit identifier only: the server never reads a supplied path or URL.
+    review_evidence_reference: str = Field(
+        min_length=6,
+        max_length=180,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9:_.-]{5,179}$",
+    )
+    review_evidence_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
+    operator_reason: str = Field(min_length=20, max_length=500)
+
+
+class ETFHoldingsVanEckPostTransportContinuationRequest(BaseModel):
+    """Reviewed one-shot successor to a specifically supported OIH predecessor contract."""
+
+    predecessor_job_id: int = Field(gt=0)
+    request_id: UUID
+    # Omission preserves existing job3 clients and the old idempotency fingerprint.
+    predecessor_contract: Literal[
+        "job3_posttransport_linkage_v1",
+        "job4_settlement_projection_v1",
+        "job5_canonical_redirect_v1",
+        "job6_body_identity_v1",
+    ] = "job3_posttransport_linkage_v1"
+    predecessor_extra_data_sha256: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{64}$")
+    # These values are audit attestations only; the server never reads caller paths.
+    review_evidence_reference: str = Field(
+        min_length=6,
+        max_length=180,
+        pattern=r"^[A-Za-z0-9][A-Za-z0-9:_.-]{5,179}$",
+    )
+    review_evidence_sha256: str = Field(pattern=r"^[0-9a-fA-F]{64}$")
 
 
 class ETFHoldingsSECBulkBackfillRequest(BaseModel):

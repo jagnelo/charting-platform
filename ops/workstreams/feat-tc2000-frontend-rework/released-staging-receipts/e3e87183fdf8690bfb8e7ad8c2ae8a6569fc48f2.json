@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-28T10:09:58.977393+00:00",
+  "starting_staging_sha": "173745205692acd3fca650eeeafcd6de38f29fed",
+  "staging_sha": "e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2",
+  "sources": [
+    {
+      "branch": "feat/tc2000-frontend-rework",
+      "sha": "addd41731b2be9b740b3c4bab624118ba2371029"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/40656688915",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2: https://github.com/jagnelo/charting-platform/actions/runs/40656688915 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/40656688915', 'status': 'in_progress', 'conclusion': None}]"
+}

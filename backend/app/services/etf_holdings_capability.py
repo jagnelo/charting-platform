@@ -8,6 +8,7 @@ snapshots remain visible but never become current issuer support implicitly.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, timedelta
@@ -496,7 +497,9 @@ def _source_provider(
 
 
 def _identity_verified(
-    snapshot: ETFHoldingsSnapshot | None, state: ETFHoldingsAdapterState | None
+    profile: ETFProfile,
+    snapshot: ETFHoldingsSnapshot | None,
+    state: ETFHoldingsAdapterState | None,
 ) -> bool:
     for value in (
         _metadata(snapshot.extra_data if snapshot else None),
@@ -505,9 +508,178 @@ def _identity_verified(
         validation = value.get("artifact_identity_validation")
         if not validation:
             validation = _metadata(value.get("legal_metadata")).get("artifact_identity_validation")
-        if _metadata(validation).get("status") in {"matched", "matched_inferred"}:
+        validation = _metadata(validation)
+        if validation.get("status") in {"matched", "matched_inferred"}:
             return True
-    return False
+    return _native_identity_evidence_matches_snapshot(profile, snapshot)
+
+
+def _native_identity_evidence_matches_snapshot(
+    profile: ETFProfile, snapshot: ETFHoldingsSnapshot | None
+) -> bool:
+    """Read native identity only when its persisted fund and payload bindings agree.
+
+    Retained-evidence qualification snapshots predate the explicit identity
+    projection consumed by ordinary analysis. Their stored qualification
+    evidence is still sufficient, but only when every source, canonical-fund,
+    date, parser/schema, and complete-payload binding agrees with the snapshot.
+    """
+
+    instrument = getattr(profile, "instrument", None)
+    if snapshot is None or instrument is None:
+        return False
+    instrument_id = getattr(instrument, "id", None)
+    symbol = str(getattr(instrument, "symbol", "") or "").strip().upper()
+    adapter_key = str(getattr(profile, "adapter_key", "") or "").strip().lower()
+    if (
+        isinstance(instrument_id, bool)
+        or not isinstance(instrument_id, int)
+        or instrument_id <= 0
+        or not symbol
+        or not adapter_key
+    ):
+        return False
+
+    snapshot_metadata = _metadata(snapshot.extra_data)
+    legal = _metadata(snapshot_metadata.get("legal_metadata"))
+    evidence = legal.get("native_initial_qualification_evidence")
+    if not isinstance(evidence, dict):
+        return False
+
+    provider = str(evidence.get("provider") or "").strip().lower()
+    identity = evidence.get("fund_identity")
+    completeness = evidence.get("composition_completeness")
+    expected_bases = {
+        "spdr": {"spdr_fund_workbook_preamble"},
+        "invesco": {"invesco_product_catalog"},
+        "ishares": {
+            "issuer_product_catalog",
+            "ishares_holdings_response",
+            "ishares_holdings_product_metadata",
+        },
+        "amplify": {"amplify_selected_account_csv"},
+    }
+    if (
+        provider not in expected_bases
+        or provider != str(snapshot.source_provider or "").strip().lower()
+        or adapter_key != str(evidence.get("adapter_key") or "").strip().lower()
+        or isinstance(evidence.get("instrument_id"), bool)
+        or not isinstance(evidence.get("instrument_id"), int)
+        or evidence.get("instrument_id") != instrument_id
+        or str(evidence.get("symbol") or "").strip().upper() != symbol
+        or not isinstance(identity, dict)
+        or identity.get("basis") not in expected_bases[provider]
+        or not isinstance(completeness, dict)
+    ):
+        return False
+
+    # Each supported native adapter provides its canonical ticker through a
+    # different source-native field. Reject any contradictory identity field,
+    # even when another field happens to match.
+    identity_symbols = [
+        str(identity[key]).strip().upper()
+        for key in ("symbol", "ticker", "account")
+        if identity.get(key) not in (None, "")
+    ]
+    fund_tickers = identity.get("fund_tickers")
+    if isinstance(fund_tickers, list):
+        if not fund_tickers:
+            return False
+        identity_symbols.extend(str(value).strip().upper() for value in fund_tickers)
+    if not identity_symbols or any(value != symbol for value in identity_symbols):
+        return False
+    identity_instrument_id = identity.get("instrument_id")
+    if identity_instrument_id is not None and (
+        isinstance(identity_instrument_id, bool)
+        or not isinstance(identity_instrument_id, int)
+        or identity_instrument_id != instrument_id
+    ):
+        return False
+
+    native_date = evidence.get("composition_date")
+    raw_hash = evidence.get("raw_payload_hash")
+    schema = evidence.get("schema_fingerprint")
+    source_identifier = evidence.get("source_identifier")
+    if (
+        evidence.get("source_url") != snapshot.source_url
+        or native_date != snapshot.composition_date.isoformat()
+        or evidence.get("parser_version") != snapshot.parser_version
+        or snapshot.source_artifact_id is None
+        or not isinstance(schema, str)
+        or re.fullmatch(r"[0-9a-f]{64}", schema) is None
+        or schema != snapshot_metadata.get("schema_fingerprint")
+        or not isinstance(raw_hash, str)
+        or re.fullmatch(r"[0-9a-f]{64}", raw_hash) is None
+        or snapshot.completeness_status != "complete"
+        or snapshot.row_count <= 0
+        or completeness.get("status") != "complete"
+        or completeness.get("verified") is not True
+        or completeness.get("all_reported_rows_parsed") is not True
+        or isinstance(completeness.get("reported_rows"), bool)
+        or not isinstance(completeness.get("reported_rows"), int)
+        or completeness.get("reported_rows") != snapshot.row_count
+        or isinstance(completeness.get("parsed_rows"), bool)
+        or not isinstance(completeness.get("parsed_rows"), int)
+        or completeness.get("parsed_rows") != snapshot.row_count
+        or completeness.get("source_payload_hash") != raw_hash
+        or legal.get("native_composition_completeness_evidence") != completeness
+    ):
+        return False
+    if source_identifier is not None and source_identifier != snapshot.source_identifier:
+        return False
+    if source_identifier is None and provider not in {"spdr", "amplify"}:
+        return False
+
+    body_witness = evidence.get("holdings_response_body_witness")
+    continuation = evidence.get("retained_evidence_continuation")
+    if isinstance(body_witness, dict):
+        capture = _metadata(body_witness.get("provider_capture"))
+        if (
+            body_witness.get("normalized_payload_sha256") != raw_hash
+            or body_witness.get("parser_input_sha256") != capture.get("response_body_sha256")
+            or re.fullmatch(r"[0-9a-f]{64}", str(capture.get("response_body_sha256") or "")) is None
+        ):
+            return False
+    elif isinstance(continuation, dict):
+        request_ids = continuation.get("provider_request_log_ids")
+        request_urls = continuation.get("request_urls")
+        recovery = continuation.get("recovery_input")
+        physical = continuation.get("physical_body_capture")
+        if (
+            continuation.get("version") != 1
+            or continuation.get("source_provider") != provider
+            or isinstance(continuation.get("predecessor_job_id"), bool)
+            or not isinstance(continuation.get("predecessor_job_id"), int)
+            or not str(continuation.get("account_scope") or "").strip()
+            or isinstance(continuation.get("review_revision"), bool)
+            or not isinstance(continuation.get("review_revision"), int)
+            or re.fullmatch(
+                r"[0-9a-f]{64}",
+                str(continuation.get("provider_review_fingerprint") or ""),
+            )
+            is None
+            or not isinstance(request_ids, list)
+            or not request_ids
+            or any(
+                isinstance(value, bool) or not isinstance(value, int) or value <= 0
+                for value in request_ids
+            )
+            or not isinstance(request_urls, list)
+            or len(request_urls) != len(request_ids)
+            or any(not isinstance(value, str) or not value for value in request_urls)
+            or continuation.get("physical_http_requests") != 0
+            or continuation.get("quota_reservations") != 0
+            or not isinstance(recovery, dict)
+            or not isinstance(physical, dict)
+            or physical.get("request_log_id") not in request_ids
+            or re.fullmatch(r"[0-9a-f]{64}", str(physical.get("response_body_sha256") or ""))
+            is None
+            or recovery.get("normalized_payload_sha256") != raw_hash
+        ):
+            return False
+    else:
+        return False
+    return True
 
 
 def infer_expected_cadence(
@@ -2074,6 +2246,19 @@ def symbol_audit_for_profile(profile: ETFProfile) -> ETFHoldingsSymbolAudit:
     )
 
 
+def current_symbol_route_audit(symbol: str) -> ETFHoldingsSymbolAudit | None:
+    """Return exact current symbol evidence usable to prepare one native route.
+
+    This is deliberately a symbol-scoped lookup, not an adapter/catalog scan.
+    Historical, unavailable, identity-only and unknown audit entries do not
+    become executable routes.
+    """
+
+    normalized = str(symbol or "").strip().upper()
+    audit = _TIER_0_SYMBOL_AUDITS.get(normalized) or _NON_TIER_0_SYMBOL_AUDITS.get(normalized)
+    return audit if audit is not None and audit.outcome == CURRENT else None
+
+
 def evaluate_tier0_shadow_gate(
     observations_by_symbol: Mapping[str, Sequence[Mapping[str, Any]]],
     *,
@@ -2259,9 +2444,24 @@ def evaluate_capability(
     state_metadata = _metadata(state.extra_data if state else None)
     source_tier = _source_tier(snapshot, state)
     future_snapshot_reason = _future_snapshot_reason(snapshot, now=now)
+    snapshot_metadata = _metadata(snapshot.extra_data if snapshot else None)
+    snapshot_metadata = {
+        **snapshot_metadata,
+        **_metadata(snapshot_metadata.get("legal_metadata")),
+    }
+    cadence_metadata = {**snapshot_metadata, **state_metadata}
+    source_access = " ".join(
+        str(value)
+        for value in (state_metadata.get("source_access"), snapshot_metadata.get("source_access"))
+        if value
+    )
+    if str(cadence_metadata.get("expected_cadence") or "").strip().lower() == "unspecified" and any(
+        cadence in source_access.lower() for cadence in _CADENCE_WINDOWS if cadence != "unspecified"
+    ):
+        cadence_metadata.pop("expected_cadence", None)
     cadence = infer_expected_cadence(
-        source_access=state_metadata.get("source_access"),
-        metadata=state_metadata,
+        source_access=source_access,
+        metadata=cadence_metadata,
         source_tier=source_tier,
     )
     composition_date = snapshot.composition_date if snapshot else None
@@ -2285,7 +2485,7 @@ def evaluate_capability(
     circuit_open_until = _metadata_datetime(state_metadata, "circuit_open_until")
     complete = bool(snapshot and snapshot.completeness_status in _COMPLETE_STATUSES)
     has_snapshot = snapshot is not None
-    identity_verified = _identity_verified(snapshot, state)
+    identity_verified = _identity_verified(profile, snapshot, state)
     state_status = str(state.status if state else "").lower()
     failure_reason = state.failure_reason if state else None
     failure_class = None

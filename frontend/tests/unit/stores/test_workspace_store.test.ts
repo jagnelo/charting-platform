@@ -635,6 +635,82 @@ describe('workspace store layout tabs', () => {
     expect(store.etfHoldings.SPY).toBeUndefined()
   })
 
+  it('clears the prior holdings context synchronously and ignores its late response', async () => {
+    const stale = deferred<unknown>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/OIH/holdings') return stale.promise
+      if (path === '/etf-holdings/IGV/holdings') return Promise.reject(Object.assign(new Error('not found'), { status: 404 }))
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    store.setConstituentETF('OIH')
+    const oldRequest = store.loadETFHoldings('OIH')
+
+    store.setConstituentETF(null)
+    expect(store.constituentETF).toBeNull()
+    expect(store.selectedIndustry).toBeNull()
+    await store.loadETFHoldings('IGV')
+    stale.resolve({ snapshot: { etf_symbol: 'OIH' }, holdings: [{ constituent_symbol: 'XLE' }], total: 1 })
+    await oldRequest
+
+    expect(store.constituentETF).toBeNull()
+    expect(store.etfHoldings.IGV).toBeNull()
+    expect(store.etfHoldings.OIH).toBeUndefined()
+  })
+
+  it('keeps the selected ETF identity while reporting an unavailable local holdings read', async () => {
+    apiGet.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }))
+    const store = useWorkspaceStore()
+    store.setConstituentETF('OIH')
+
+    await store.loadETFHoldings('OIH')
+
+    expect(store.etfHoldings.OIH).toBeNull()
+    expect(store.constituentETF).toBe('OIH')
+    expect(store.selectedIndustry).toBeNull()
+    expect(store.selectedIndustryProxy).toBeNull()
+  })
+
+  it('preserves a saved ETF snapshot when a later local holdings read returns not found', async () => {
+    const saved = {
+      snapshot: { id: 44, etf_symbol: 'OIH', composition_date: '2026-10-01', provenance: 'last-known' },
+      holdings: [{ id: 45, reported_symbol: 'XLE', is_resolved: false }],
+      total: 1,
+    }
+    apiGet.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }))
+    const store = useWorkspaceStore()
+    store.etfHoldings = { OIH: saved as any }
+    store.setConstituentETF('OIH')
+
+    await store.loadETFHoldings('OIH')
+
+    expect(store.etfHoldings.OIH).toEqual(saved)
+    expect(store.etfHoldings.OIH?.snapshot).toMatchObject({ id: 44, etf_symbol: 'OIH', provenance: 'last-known' })
+  })
+
+  it('does not clear a newer holdings context when an older symbol returns unavailable', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/OIH/holdings') return Promise.reject(Object.assign(new Error('not found'), { status: 404 }))
+      if (path === '/etf-holdings/IGV/holdings') return Promise.resolve({
+        snapshot: { etf_symbol: 'IGV', composition_date: '2026-08-01', known_at: null, provenance: 'test', source_provider: 'test', completeness_status: 'complete' },
+        holdings: [],
+        total: 0,
+      })
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    store.setConstituentETF('OIH')
+    const oldRequest = store.loadETFHoldings('OIH')
+    store.setConstituentETF(null)
+    store.setConstituentETF('IGV')
+    const currentRequest = store.loadETFHoldings('IGV')
+    await Promise.all([oldRequest, currentRequest])
+
+    expect(store.constituentETF).toBe('IGV')
+    expect(store.etfHoldings.OIH).toBeUndefined()
+    expect(store.etfHoldings.IGV?.snapshot.etf_symbol).toBe('IGV')
+  })
+
   it('does not let a late technical snapshot overwrite the newer symbol', async () => {
     const stale = deferred<unknown>()
     apiGet.mockImplementation((path: string) => {
@@ -671,6 +747,53 @@ describe('workspace store layout tabs', () => {
     await store.loadETFHoldings('XLK')
     await vi.waitFor(() => expect(store.etfConstituentSnapshots.XLK?.rows[0]?.relative_to_market?.value).toBe(1.5))
     expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/constituents/snapshot', { benchmark: 'XLK', market_benchmark: 'SPY' })
+  })
+
+  it('keeps expected stale-holdings analysis unavailable state scoped to its ETF context', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/analysis/etf/IGV/constituents/snapshot') {
+        return Promise.reject(Object.assign(
+          new Error('API GET /analysis/etf/IGV/constituents/snapshot → 409: {"code":"etf_holdings_not_current"}'),
+          { status: 409 },
+        ))
+      }
+      if (path === '/analysis/etf/USMV/constituents/snapshot') {
+        return Promise.resolve({
+          benchmark: 'USMV', market_benchmark: 'SPY', coverage: 1,
+          rows: [{ instrument_id: 690, symbol: 'EXAMPLE', relative_to_benchmark: { value: 1.1 } }],
+        })
+      }
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    store.setConstituentETF('IGV')
+
+    await store.loadETFConstituentSnapshot('IGV')
+
+    expect(store.etfConstituentSnapshots.IGV).toBeNull()
+    expect(store.etfConstituentSnapshotErrors.IGV).toContain('IGV')
+    expect(store.error).toBeNull()
+
+    store.setConstituentETF('USMV')
+    await store.loadETFConstituentSnapshot('USMV')
+
+    expect(store.etfConstituentSnapshots.USMV?.rows[0]?.instrument_id).toBe(690)
+    expect(store.etfConstituentSnapshotErrors.USMV).toBeNull()
+    expect(store.etfConstituentSnapshotErrors.IGV).toContain('IGV')
+    expect(store.error).toBeNull()
+  })
+
+  it('keeps non-capability analysis conflicts on the shared workspace error channel', async () => {
+    apiGet.mockRejectedValueOnce(Object.assign(
+      new Error('API GET /analysis/etf/IGV/constituents/snapshot → 409: {"code":"workspace_conflict"}'),
+      { status: 409 },
+    ))
+    const store = useWorkspaceStore()
+
+    await store.loadETFConstituentSnapshot('IGV')
+
+    expect(store.etfConstituentSnapshotErrors.IGV).toBeNull()
+    expect(store.error).toContain('workspace_conflict')
   })
 
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {

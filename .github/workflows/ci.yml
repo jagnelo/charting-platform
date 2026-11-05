@@ -15,11 +15,61 @@ permissions:
 
 jobs:
 
+  changed-scope:
+    name: Changed-path validation scope
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Classify exact changed paths
+        id: scope
+        env:
+          BEFORE: ${{ github.event.before }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          GH_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          base="$BEFORE"
+          if [ -n "$PR_BASE" ]; then base="$PR_BASE"; fi
+          if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+            base_sha="$(git merge-base HEAD origin/staging)" || base_sha=""
+          else
+            base_sha="$(git rev-parse --verify "${base}^{commit}")" || base_sha=""
+          fi
+          if [ -z "$base_sha" ]; then
+            python scripts/ci-change-scope.py --base "$GITHUB_SHA" --github-output "$GITHUB_OUTPUT"
+          else
+            candidate="$(python scripts/ci-change-scope.py --base "$base_sha" --candidate)" || candidate="broad"
+            if [ "$candidate" != "broad" ] && python scripts/verify-prior-qualification.py --sha "$base_sha"; then
+              python scripts/ci-change-scope.py --base "$base_sha" --prior-qualified --github-output "$GITHUB_OUTPUT"
+            else
+              fallback_sha="$(git merge-base HEAD origin/staging)" || fallback_sha=""
+              if [ -n "$fallback_sha" ] && [ "$fallback_sha" != "$base_sha" ]; then
+                fallback_candidate="$(python scripts/ci-change-scope.py --base "$fallback_sha" --candidate)" || fallback_candidate="broad"
+                if [ "$fallback_candidate" != "broad" ] && python scripts/verify-prior-qualification.py --sha "$fallback_sha"; then
+                  python scripts/ci-change-scope.py --base "$fallback_sha" --prior-qualified --github-output "$GITHUB_OUTPUT"
+                else
+                  python scripts/ci-change-scope.py --base "$fallback_sha" --github-output "$GITHUB_OUTPUT"
+                fi
+              else
+                python scripts/ci-change-scope.py --base "$base_sha" --github-output "$GITHUB_OUTPUT"
+              fi
+            fi
+          fi
+
   # ── Backend tests ─────────────────────────────────────────────────────────────
   backend:
     name: Backend Tests
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    needs: [changed-scope]
+    if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
+    timeout-minutes: 45
 
     steps:
       - uses: actions/checkout@v4
@@ -88,6 +138,8 @@ jobs:
   frontend-unit:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
+    needs: [changed-scope]
+    if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
     timeout-minutes: 15
 
     steps:
@@ -117,8 +169,12 @@ jobs:
 
   branch-declared:
     name: Branch-declared Tests
-    if: github.event_name == 'push' && github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging'
-    needs: [backend]
+    needs: [changed-scope, backend]
+    if: >-
+      always() && needs.changed-scope.result == 'success' &&
+      ((github.event_name == 'push' && github.ref != 'refs/heads/master' &&
+      github.ref != 'refs/heads/staging') || github.event_name == 'pull_request') &&
+      (needs.changed-scope.outputs.scope != 'broad' || needs.backend.result == 'success')
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -138,28 +194,42 @@ jobs:
           cache-dependency-glob: backend/uv.lock
 
       - uses: actions/setup-node@v4
+        if: needs.changed-scope.outputs.scope == 'broad'
         with:
           node-version: "20"
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install locked dependencies
+      - name: Install backend dependencies
         run: |
           bash scripts/ci-retry.sh -- bash -c 'cd backend && uv sync --frozen --dev'
-          bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
+      - name: Install frontend dependencies
+        if: needs.changed-scope.outputs.scope == 'broad'
+        run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npm ci'
 
       - name: Run tests declared by this branch
-        run: make branch-tests INTEGRATION_BRANCH="$GITHUB_REF_NAME"
+        if: needs.changed-scope.outputs.scope == 'broad'
+        run: make branch-tests INTEGRATION_BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
         env:
           BRANCH_TESTS_CI_COVERED_COMMANDS: full-backend-suite
           INTEGRATION_BASE_SHA: origin/master
+      - name: Validate workstream records
+        if: needs.changed-scope.outputs.scope != 'broad'
+        run: uv run --project backend python scripts/validate-workstream.py ops/workstreams
+      - name: Check workstream narrative inputs
+        if: needs.changed-scope.outputs.scope != 'broad'
+        run: uv run --project backend python -m pytest --no-cov backend/tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers -q
+      - name: Check workflow behavior
+        if: needs.changed-scope.outputs.scope == 'workflow'
+        run: uv run --project backend python -m pytest tests/workflow -q
 
   # ── E2E tests ─────────────────────────────────────────────────────────────────
   e2e:
     name: E2E Tests (Playwright)
     runs-on: ubuntu-latest
     timeout-minutes: 45
-    needs: [backend, frontend-unit]
+    needs: [changed-scope]
+    if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
 
     steps:
       - uses: actions/checkout@v4
@@ -179,9 +249,20 @@ jobs:
       - name: Install Playwright browsers
         run: bash scripts/ci-retry.sh -- bash -c 'cd frontend && npx playwright install --with-deps chromium'
 
+      - name: Build stack images
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci build
+        env:
+          SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key-not-used-in-production' }}
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chartingdb
+          CORS_ORIGINS: '["http://localhost"]'
+          E2E_SEED_INSTRUMENTS: "true"
+          E2E_SEED_MARKET_DATA: "true"
+
       - name: Start stack
         # Vars are provided inline — no .env file needed
-        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci up -d --wait
+        run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci up -d --wait --no-build
         timeout-minutes: 5
         env:
           SECRET_KEY: ${{ secrets.SECRET_KEY || 'ci-secret-key-not-used-in-production' }}
@@ -217,18 +298,17 @@ jobs:
         if: always()
         run: docker compose -f docker-compose.yml -f docker-compose.e2e.yml -p charting-platform-ci down -v
 
-  # Staging is the integration authority. Master independently replays the same
-  # architecture-neutral gate after an exact green staging SHA is promoted.
+  # Staging owns the full integration gate. Master reuses exact same-SHA evidence.
   platform-gate:
     name: Exhaustive Integration Gate
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/staging' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-latest
     # Keep the exhaustive gate authoritative while preventing a hung
     # container build or browser process from occupying the integration lane
     # indefinitely. This is above the previously observed green replay time;
     # timeout failure remains red and preserves the diagnostics step.
     timeout-minutes: 180
-    needs: [backend, frontend-unit]
+    needs: [changed-scope]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
 
     steps:
       - uses: actions/checkout@v4
@@ -279,3 +359,20 @@ jobs:
             frontend/test-results/
             backend/coverage-combined.xml
           retention-days: 7
+
+  master-release:
+    name: Master Release Provenance
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify exact green staging evidence and release identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/verify-master-promotion.py

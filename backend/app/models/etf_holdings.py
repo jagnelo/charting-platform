@@ -106,6 +106,50 @@ class ETFHoldingsRawArtifact(Base, TimestampMixin):
     )
 
 
+class ETFIssuerCatalogCache(Base, TimestampMixin):
+    """Content-addressed, provenance-checked issuer product catalog response."""
+
+    __tablename__ = "etf_issuer_catalog_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    provider_name: Mapped[str] = mapped_column(String(80), nullable=False, index=True)
+    catalog_key: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    data_source_id: Mapped[int] = mapped_column(
+        Integer, ForeignKey("data_source.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    source_url: Mapped[str] = mapped_column(String(800), nullable=False)
+    final_url: Mapped[str] = mapped_column(String(800), nullable=False)
+    content_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    response_bytes: Mapped[int] = mapped_column(Integer, nullable=False)
+    response_encoding: Mapped[str] = mapped_column(String(40), nullable=False)
+    raw_body_base64: Mapped[str] = mapped_column(Text, nullable=False)
+    parsed_entries: Mapped[list] = mapped_column(JSON, nullable=False)
+    reported_total: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    catalog_complete: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    requested_symbol: Mapped[str] = mapped_column(String(20), nullable=False)
+    provider_request_log_ids: Mapped[list] = mapped_column(JSON, nullable=False)
+    request_urls: Mapped[list] = mapped_column(JSON, nullable=False)
+    fetched_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+
+    data_source: Mapped["DataSource"] = relationship()
+
+    __table_args__ = (
+        UniqueConstraint(
+            "catalog_key",
+            "content_sha256",
+            name="uq_etf_issuer_catalog_cache_content",
+        ),
+        Index(
+            "ix_etf_issuer_catalog_cache_latest",
+            "provider_name",
+            "catalog_key",
+            "fetched_at",
+        ),
+    )
+
+
 class ETFHoldingsSnapshot(Base, TimestampMixin):
     """A dated ETF composition snapshot with source/provenance timing metadata."""
 

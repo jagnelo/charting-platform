@@ -6,6 +6,7 @@ import csv
 import hashlib
 import html
 import json
+import posixpath
 import re
 import shutil
 import ssl
@@ -27,10 +28,56 @@ import requests as _requests
 
 from app.config import settings
 from app.services.etf_holdings_provider_bridge import (
+    ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION,
+    VANECK_OIH_CANONICAL_DOWNLOAD_URL,
+    VANECK_OIH_INITIAL_REQUEST_URL,
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
+    _canonical_request_url,
+    etf_holdings_request_is_bound,
     require_bound_etf_holdings_adapter,
 )
+from app.services.etf_issuer_catalog import (
+    ISHARES_US_CATALOG_KEY,
+    ISHARES_US_CATALOG_MAX_REDIRECTS,
+    ISHARES_US_CATALOG_URL,
+    IssuerCatalogError,
+    catalog_product_matches_canonical_fund,
+    is_ishares_canonical_name_hint,
+    load_cached_ishares_catalog,
+    store_ishares_catalog_response,
+)
+
+
+def _native_json_continuation_is_clear(payload: dict[str, Any]) -> bool:
+    """Reject JSON pages that explicitly advertise more holdings to retrieve."""
+
+    containers = [payload]
+    for key in ("pagination", "paging", "pageInfo", "page_info", "meta"):
+        value = payload.get(key)
+        if isinstance(value, dict):
+            containers.append(value)
+    for container in containers:
+        for key in ("hasMore", "has_more", "hasNext", "has_next"):
+            if container.get(key) is True:
+                return False
+        for key in ("next", "nextPage", "next_page", "nextCursor", "next_cursor", "nextLink"):
+            value = container.get(key)
+            if value not in (None, "", False, []):
+                return False
+        current = container.get("currentPage", container.get("page"))
+        total_pages = container.get("totalPages", container.get("total_pages"))
+        if current is not None or total_pages is not None:
+            if (
+                isinstance(current, bool)
+                or not isinstance(current, int)
+                or isinstance(total_pages, bool)
+                or not isinstance(total_pages, int)
+                or total_pages <= 0
+                or current != total_pages
+            ):
+                return False
+    return True
 
 
 class _HTTPXNamespace:
@@ -134,6 +181,115 @@ class HoldingsFetchResult:
     source_url: str | None = None
     source_identifier: str | None = None
     legal_metadata: dict[str, Any] | None = None
+
+
+class ETFNativeSourceEvidenceError(ValueError):
+    """A native issuer response failed an expected identity/schema proof."""
+
+
+def _native_holdings_parse_witness(
+    adapter: Any,
+    response: Any,
+    *,
+    parser_input: bytes | str,
+    normalized_payload: Any,
+    parser_name: str,
+    parsed_json: Any | None = None,
+) -> dict[str, Any] | None:
+    """Bind the native adapter's parser input to its captured Provider body."""
+
+    if not etf_holdings_request_is_bound():
+        return None
+    binding = require_bound_etf_holdings_adapter(adapter)
+    if binding.native_initial_qualification_job_id is None:
+        return None
+    if response is None or not isinstance(getattr(response, "extensions", None), dict):
+        raise ETFHoldingsRouteHeldError(
+            "Native qualification adapter did not receive a captured HTTP response"
+        )
+    capture = response.extensions.get(ETF_NATIVE_RESPONSE_BODY_WITNESS_EXTENSION)
+    if not isinstance(capture, dict) or capture not in binding.response_body_witnesses:
+        raise ETFHoldingsRouteHeldError(
+            "Native qualification parser input has no admitted Provider body capture"
+        )
+    body = bytes(getattr(response, "content", b"") or b"")
+    input_bytes = parser_input if isinstance(parser_input, bytes) else parser_input.encode("utf-8")
+    response_url = str(getattr(response, "url", "") or "")
+    if (
+        input_bytes != body
+        or capture.get("response_body_sha256") != hashlib.sha256(body).hexdigest()
+        or capture.get("response_body_bytes") != len(body)
+        or capture.get("request_log_id") not in binding.request_urls_by_log_id
+        or _canonical_request_url(response_url)
+        != _canonical_request_url(binding.request_urls_by_log_id[capture["request_log_id"]])
+        or capture.get("provider") != str(getattr(adapter, "source_provider", "")).strip().lower()
+        or capture.get("operation") != binding.operation
+        or capture.get("profile_id") != binding.profile_id
+        or capture.get("instrument_id") != binding.instrument_id
+        or capture.get("provider_symbol") != binding.provider_symbol.strip().upper()
+    ):
+        raise ETFHoldingsRouteHeldError(
+            "Native holdings parser input does not match its captured Provider response body"
+        )
+    if parsed_json is not None:
+        try:
+            decoded_body = json.loads(body)
+        except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+            raise ETFHoldingsRouteHeldError(
+                "Native JSON parser input is not the captured response body"
+            ) from exc
+        if decoded_body != parsed_json:
+            raise ETFHoldingsRouteHeldError(
+                "Native JSON parser output differs from the captured response body"
+            )
+    payload_text = json.dumps(
+        normalized_payload, sort_keys=True, separators=(",", ":"), default=str
+    )
+    return {
+        "provider_capture": dict(capture),
+        "parser": parser_name,
+        "parser_input_sha256": hashlib.sha256(input_bytes).hexdigest(),
+        "parser_input_bytes": len(input_bytes),
+        "normalized_payload_sha256": hashlib.sha256(payload_text.encode("utf-8")).hexdigest(),
+        "normalized_payload_kind": "json" if isinstance(normalized_payload, dict) else "text",
+    }
+
+
+def _native_holdings_parse_witness_from_capture(
+    adapter: Any,
+    capture: Any,
+    *,
+    parser_input: bytes | str,
+    normalized_payload: Any,
+    parser_name: str,
+) -> dict[str, Any] | None:
+    """Bind a second format-specific parse of the already checked raw text."""
+
+    if not etf_holdings_request_is_bound():
+        return None
+    binding = require_bound_etf_holdings_adapter(adapter)
+    if binding.native_initial_qualification_job_id is None:
+        return None
+    if not isinstance(capture, dict) or capture not in binding.response_body_witnesses:
+        raise ETFHoldingsRouteHeldError("Native parser has no admitted response-body witness")
+    input_bytes = parser_input if isinstance(parser_input, bytes) else parser_input.encode("utf-8")
+    if hashlib.sha256(input_bytes).hexdigest() != capture.get("response_body_sha256") or len(
+        input_bytes
+    ) != capture.get("response_body_bytes"):
+        raise ETFHoldingsRouteHeldError(
+            "Native format-specific parser input differs from the captured response body"
+        )
+    payload_text = json.dumps(
+        normalized_payload, sort_keys=True, separators=(",", ":"), default=str
+    )
+    return {
+        "provider_capture": dict(capture),
+        "parser": parser_name,
+        "parser_input_sha256": hashlib.sha256(input_bytes).hexdigest(),
+        "parser_input_bytes": len(input_bytes),
+        "normalized_payload_sha256": hashlib.sha256(payload_text.encode("utf-8")).hexdigest(),
+        "normalized_payload_kind": "json" if isinstance(normalized_payload, dict) else "text",
+    }
 
 
 class ETFHoldingsAdapter(Protocol):
@@ -2532,6 +2688,7 @@ class PublicCsvHoldingsAdapter:
     ) -> HoldingsFetchResult:
         if not source_url:
             raise ValueError(f"{self.adapter_key} needs a configured source_url for {symbol}.")
+        response = None
         if source_url.lower().startswith("data:"):
             content_type, raw_content, response_text = _parse_data_url(source_url)
         else:
@@ -2593,31 +2750,46 @@ class PublicCsvHoldingsAdapter:
             raw_text = response_text
             if not rows and self.adapter_key == "ishares":
                 rows = _parse_ishares_inline_top_holdings(response_text)
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=(
+                raw_content if source_format in {"zip", "xlsx", "xls"} else response_text
+            ),
+            normalized_payload=raw_json if raw_json is not None else raw_text,
+            parser_name=f"{self.adapter_key}:{source_format}:v1",
+        )
+        metadata = {
+            "source_access": "configured_public_csv_url",
+            "adapter_key": self.adapter_key,
+            "source_format": source_format,
+            **(
+                {
+                    key: value
+                    for key, value in (raw_json or {}).items()
+                    if key
+                    in {
+                        "selected_archive_file",
+                        "selected_archive_file_format",
+                        "archive_files",
+                    }
+                }
+                if source_format == "zip"
+                else {}
+            ),
+            **({"native_holdings_response_witness": native_witness} if native_witness else {}),
+        }
         return HoldingsFetchResult(
             rows=rows,
             raw_text=raw_text,
             raw_json=raw_json,
-            source_url=source_url,
+            source_url=(
+                str(response.url)
+                if native_witness is not None and response is not None
+                else source_url
+            ),
             source_identifier=issuer_product_id,
-            legal_metadata={
-                "source_access": "configured_public_csv_url",
-                "adapter_key": self.adapter_key,
-                "source_format": source_format,
-                **(
-                    {
-                        key: value
-                        for key, value in (raw_json or {}).items()
-                        if key
-                        in {
-                            "selected_archive_file",
-                            "selected_archive_file_format",
-                            "archive_files",
-                        }
-                    }
-                    if source_format == "zip"
-                    else {}
-                ),
-            },
+            legal_metadata=metadata,
         )
 
     async def fetch_for_date(
@@ -3314,6 +3486,8 @@ class IssuerCsvHoldingsAdapter(PublicCsvHoldingsAdapter):
         return values
 
 
+# Static IDs remain for existing reviewed routes. New products are resolved
+# from the issuer's governed catalog; do not add ticker-specific IDs here.
 ISHARES_PRODUCT_IDS_BY_SYMBOL: dict[str, str] = {
     "EEM": "239637",
     "IVV": "239726",
@@ -3650,8 +3824,22 @@ for _vaneck_symbol, _vaneck_product_slug in {
     )
 
 
-def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
-    """Return provider-specific route metadata we can safely seed by ticker."""
+def known_etf_route_metadata(
+    symbol: str,
+    *,
+    canonical_issuer: Any | None = None,
+    canonical_fund_name: str | None = None,
+    allow_catalog_route: bool = False,
+) -> dict[str, Any]:
+    """Return exact curated/current routes or an explicit selected-fund hint.
+
+    Current symbol audits are resolved directly to the same registered native
+    adapter identity; the function never scans adapters or treats a candidate
+    name match as source evidence. Only the deliberate selected-fund acquire
+    path may enable core-publisher nomination from canonical issuer/name hints;
+    each selected native adapter must independently prove the fund before data
+    can be accepted.
+    """
 
     normalized_symbol = symbol.strip().upper()
     known_metadata = KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.get(normalized_symbol)
@@ -3669,7 +3857,141 @@ def known_etf_route_metadata(symbol: str) -> dict[str, Any]:
                 "issuer_product_id": ishares_product_id,
             },
         }
-    return {}
+    # Resolve a no-profile selection from the existing exact symbol audit
+    # ledger. This lets audited current successor routes (for example BWET and
+    # BDRY) use the native adapter without adding a second per-symbol routing
+    # table. Product IDs and per-operation admission are still checked by the
+    # adapter and shared Provider bridge respectively.
+    from app.services.etf_holdings_capability import current_symbol_route_audit
+
+    audit = current_symbol_route_audit(normalized_symbol)
+    if audit is None:
+        if not allow_catalog_route:
+            return {}
+        return _selected_fund_native_adapter_hint(
+            canonical_issuer=canonical_issuer,
+            canonical_fund_name=canonical_fund_name,
+        )
+
+    provider_identity = str(audit.provider_identity or "").strip().lower() if audit else ""
+    adapter = get_holdings_adapter(provider_identity) if provider_identity else None
+    if (
+        adapter is None
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != provider_identity
+        or not audit.evidence_refs
+    ):
+        return {}
+    return {
+        "issuer": None,
+        "provider_aliases": {
+            "holdings_adapter": str(getattr(adapter, "adapter_key", "")).strip().lower(),
+            "holdings_source_provider": provider_identity,
+            "holdings_route_evidence": {
+                "evidence_state": audit.evidence_state,
+                "investigated_at": audit.investigated_at.isoformat()
+                if audit.investigated_at
+                else None,
+                "evidence_refs": list(audit.evidence_refs),
+            },
+        },
+    }
+
+
+_CORE_NATIVE_ISSUER_KEYS = {
+    "ishares": "ishares",
+    "blackrock": "ishares",
+    "spdr": "spdr",
+    "statestreet": "spdr",
+    "statestreetglobaladvisors": "spdr",
+    "ssga": "spdr",
+    "invesco": "invesco",
+    "amplify": "amplify",
+    "amplifyetfs": "amplify",
+}
+
+
+def _canonical_fund_name_native_issuer_hint(name: str | None) -> str | None:
+    words = re.findall(r"[a-z0-9]+", str(name or "").casefold())
+    word_set = set(words)
+    matches: set[str] = set()
+    if is_ishares_canonical_name_hint(name) or "blackrock" in word_set:
+        matches.add("ishares")
+    if "spdr" in word_set or {"state", "street"} <= word_set:
+        matches.add("spdr")
+    if "invesco" in word_set:
+        matches.add("invesco")
+    if "amplify" in word_set:
+        matches.add("amplify")
+    return next(iter(matches)) if len(matches) == 1 else None
+
+
+def _selected_fund_native_adapter_hint(
+    *, canonical_issuer: Any | None, canonical_fund_name: str | None
+) -> dict[str, Any]:
+    """Nominate one registered core native adapter from trusted issuer metadata.
+
+    This is deliberately available only to explicit selected-fund acquisition.
+    The issuer/name is a route hint, never fund/product proof; each adapter must
+    validate the exact selected fund in its response before persistence.
+    """
+
+    raw_issuer_key = str(getattr(canonical_issuer, "domain_key", "") or "").strip().casefold()
+    issuer_key = re.sub(r"[^a-z0-9]+", "", raw_issuer_key)
+    name_hint = _canonical_fund_name_native_issuer_hint(canonical_fund_name)
+    issuer_provider = _CORE_NATIVE_ISSUER_KEYS.get(issuer_key)
+    provenance = getattr(canonical_issuer, "provenance", None)
+    trusted_issuer = bool(
+        issuer_provider
+        and getattr(canonical_issuer, "status", None) == "active"
+        and isinstance(provenance, dict)
+        and provenance
+    )
+    if raw_issuer_key and not trusted_issuer:
+        # An explicit but stale/unknown issuer row cannot be overridden by a
+        # name substring. The selected canonical identity remains unavailable.
+        return {}
+    if trusted_issuer and name_hint and issuer_provider != name_hint:
+        return {}
+    provider = issuer_provider if trusted_issuer else name_hint
+    if provider is None:
+        return {}
+    adapter = get_holdings_adapter(provider)
+    if (
+        adapter is None
+        or str(getattr(adapter, "adapter_key", "")).strip().lower() != provider
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != provider
+    ):
+        return {}
+    hint_basis = "trusted_canonical_issuer" if trusted_issuer else "canonical_fund_name"
+    aliases = {
+        "holdings_adapter": provider,
+        "holdings_source_provider": provider,
+    }
+    if provider == "ishares":
+        aliases.update(
+            {
+                "issuer_product_catalog_key": ISHARES_US_CATALOG_KEY,
+                "issuer_catalog_discovery_hint": (
+                    "trusted_canonical_issuer" if trusted_issuer else "canonical_iShares_fund_name"
+                ),
+            }
+        )
+    else:
+        aliases["native_adapter_discovery_hint"] = hint_basis
+    issuer_labels = {
+        "ishares": "iShares",
+        "spdr": "State Street Global Advisors",
+        "invesco": "Invesco",
+        "amplify": "Amplify",
+    }
+    return {
+        "issuer": (
+            str(getattr(canonical_issuer, "display_name", "") or issuer_labels[provider]).strip()
+            if trusted_issuer
+            else None
+        ),
+        "provider_aliases": aliases,
+    }
 
 
 class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
@@ -3684,6 +4006,21 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         "dated_source_url_template",
         "ishares_dated_holdings_url_template",
     )
+
+    def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
+        if identifiers.get("issuer_product_catalog_key") == ISHARES_US_CATALOG_KEY:
+            return HoldingsAdapterProbe(
+                adapter_key=self.adapter_key,
+                confidence=Decimal("0.8500"),
+                status="ready",
+                reason=(
+                    "The selected-fund catalog route is a discovery hint only; the official "
+                    "row must match the canonical ticker and name before holdings retrieval."
+                ),
+                source_url=ISHARES_US_CATALOG_URL,
+                required_identifiers=["exact_catalog_ticker_and_product_id"],
+            )
+        return super().probe(symbol=symbol, name=name, identifiers=identifiers)
 
     def resolve_source_url(
         self,
@@ -3727,7 +4064,13 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         source_url: str | None = None,
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
+        normalized_symbol = symbol.strip().upper()
+        identifiers = dict(identifiers or {})
         if source_url:
+            if identifiers.get("issuer_product_catalog_key") == ISHARES_US_CATALOG_KEY:
+                raise ETFHoldingsRouteHeldError(
+                    "Catalog-discovered iShares routes cannot use a supplied holdings URL."
+                )
             return await super().fetch_latest(
                 symbol=symbol,
                 issuer_product_id=issuer_product_id,
@@ -3735,10 +4078,105 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 identifiers=identifiers,
             )
 
-        resolved_source_url = self.resolve_source_url(
+        normalized = self._normalized_identifiers(
             symbol=symbol,
             issuer_product_id=issuer_product_id,
-            identifiers=identifiers or {},
+            identifiers=identifiers,
+        )
+        catalog_route = identifiers.get("issuer_product_catalog_key") == ISHARES_US_CATALOG_KEY
+        # A catalog route must verify the selected canonical fund against the
+        # current official row even if a stale profile carries an old ID.
+        resolved_product_id = None if catalog_route else normalized.get("issuer_product_id")
+        catalog_metadata: dict[str, Any] | None = None
+        if not resolved_product_id:
+            if not catalog_route:
+                return await super().fetch_latest(
+                    symbol=symbol,
+                    issuer_product_id=issuer_product_id,
+                    identifiers=identifiers,
+                )
+            binding = require_bound_etf_holdings_adapter(self)
+            cached_catalog = await load_cached_ishares_catalog(
+                binding.db,
+                ticker=normalized_symbol,
+            )
+            cache_hit = cached_catalog is not None
+            if cached_catalog is not None:
+                catalog = cached_catalog.catalog
+                product = catalog.product_for(normalized_symbol)
+                if product is None and not catalog.complete:
+                    cached_catalog = None
+            if cached_catalog is None:
+                async with httpx.AsyncClient(
+                    timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS,
+                    max_redirects=ISHARES_US_CATALOG_MAX_REDIRECTS,
+                ) as catalog_client:
+                    request_start = len(binding.request_log_ids)
+                    catalog_response = await catalog_client.get(
+                        ISHARES_US_CATALOG_URL,
+                        headers=_holdings_request_headers(accept="text/html,application/xhtml+xml"),
+                        follow_redirects=True,
+                        max_redirects=ISHARES_US_CATALOG_MAX_REDIRECTS,
+                    )
+                catalog_response.raise_for_status()
+                catalog_request_log_ids = binding.request_log_ids[request_start:]
+                catalog_request_urls = [
+                    binding.request_urls_by_log_id[request_log_id]
+                    for request_log_id in catalog_request_log_ids
+                    if request_log_id in binding.request_urls_by_log_id
+                ]
+                try:
+                    cached_catalog = await store_ishares_catalog_response(
+                        binding.db,
+                        response=catalog_response,
+                        ticker=normalized_symbol,
+                        request_log_ids=catalog_request_log_ids,
+                        request_urls=catalog_request_urls,
+                    )
+                except IssuerCatalogError:
+                    raise
+                catalog = cached_catalog.catalog
+                product = catalog.product_for(normalized_symbol)
+                cache_hit = False
+            if product is None:
+                raise ETFHoldingsRouteHeldError(
+                    "The current iShares catalog response contains no exact selected ticker row; "
+                    "absence is not inferred from partial catalog content."
+                )
+            if not catalog_product_matches_canonical_fund(
+                product=product,
+                ticker=normalized_symbol,
+                canonical_name=identifiers.get("canonical_fund_name"),
+            ):
+                raise ETFHoldingsRouteHeldError(
+                    "The official iShares catalog row does not exactly match the canonical "
+                    "fund ticker and name; no holdings product request was made."
+                )
+            resolved_product_id = product.product_id
+            catalog_metadata = {
+                "catalog_key": ISHARES_US_CATALOG_KEY,
+                "catalog_source_url": cached_catalog.source_url,
+                "catalog_final_url": cached_catalog.final_url,
+                "catalog_content_sha256": cached_catalog.content_sha256,
+                "catalog_retrieved_at": cached_catalog.retrieved_at.isoformat(),
+                "catalog_request_log_ids": list(cached_catalog.request_log_ids),
+                "catalog_cache_id": cached_catalog.cache_id,
+                "catalog_cache_hit": cache_hit,
+                "ticker": product.ticker,
+                "name": product.name,
+                "issuer_product_id": product.product_id,
+                "product_url": product.product_url,
+                "catalog_complete": catalog.complete,
+                "catalog_reported_total": catalog.reported_total,
+            }
+            identifiers["issuer_product_id"] = product.product_id
+            identifiers["issuer_product_url"] = product.product_url
+            identifiers["issuer_product_name"] = product.name
+
+        resolved_source_url = self.resolve_source_url(
+            symbol=symbol,
+            issuer_product_id=resolved_product_id,
+            identifiers=identifiers,
         )
         if not resolved_source_url:
             return await super().fetch_latest(
@@ -3763,12 +4201,21 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         rows = self._parse_blackrock_holdings_payload(payload)
+        completeness = self._holdings_all_completeness(payload, rows=rows)
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=bytes(response.content),
+            normalized_payload=payload,
+            parser_name="ishares:holdings-json-v1",
+            parsed_json=payload,
+        )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=response.text,
             raw_json=payload,
-            source_url=resolved_source_url,
-            source_identifier=symbol.strip().upper(),
+            source_url=(str(response.url) if native_witness is not None else resolved_source_url),
+            source_identifier=normalized_symbol,
             legal_metadata={
                 "source_access": self.config.source_access,
                 "source_provider": self.source_provider,
@@ -3777,6 +4224,16 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "route_resolution": "issuer_public_json_api",
                 "source_format": "json",
                 "composition_date": self._composition_date_from_payload(payload),
+                "native_composition_completeness": completeness,
+                **({"native_holdings_response_witness": native_witness} if native_witness else {}),
+                **(
+                    {
+                        "issuer_product_id": resolved_product_id,
+                        "issuer_product_catalog": catalog_metadata,
+                    }
+                    if catalog_metadata is not None
+                    else {}
+                ),
             },
         )
 
@@ -3906,6 +4363,90 @@ class IsharesHoldingsAdapter(IssuerCsvHoldingsAdapter):
             if row.symbol or row.name or row.cusip or row.isin:
                 rows.append(row)
         return rows
+
+    @classmethod
+    def _holdings_all_completeness(
+        cls, payload: dict[str, Any], *, rows: list[CanonicalHoldingRow]
+    ) -> dict[str, Any]:
+        """Validate BlackRock's explicit ``holdings.all`` container row vectors."""
+
+        data_points = cls._blackrock_holdings_data_points(payload)
+        ticker_values = cls._blackrock_values(data_points, "ticker")
+        issue_values = cls._blackrock_values(data_points, "issueName")
+        reported_rows = len(ticker_values)
+        aligned_core = reported_rows > 0 and len(issue_values) == reported_rows
+        aligned_columns = bool(data_points)
+        for key, data_point in data_points.items():
+            if not isinstance(data_point, dict):
+                continue
+            # BlackRock's holdings.all response includes a non-row date selector
+            # alongside the row vectors. It is explicitly inactive and hidden;
+            # all other value/formattedValue arrays participate in row alignment.
+            if (
+                key == "dateList"
+                and data_point.get("fullName") == "holdings.dateList"
+                and data_point.get("active") is False
+                and data_point.get("visible") is False
+            ):
+                continue
+            for vector_key in ("value", "formattedValue"):
+                vector = data_point.get(vector_key)
+                if isinstance(vector, list) and len(vector) != reported_rows:
+                    aligned_columns = False
+                    break
+            if not aligned_columns:
+                break
+        components = payload.get("componentsByNameMap")
+        holdings = components.get("holdings") if isinstance(components, dict) else None
+        containers = holdings.get("containersByNameMap") if isinstance(holdings, dict) else None
+        all_container = containers.get("all") if isinstance(containers, dict) else None
+        reported_totals = [
+            container[key]
+            for container in (payload, holdings, all_container)
+            if isinstance(container, dict)
+            for key in ("totalNumberOfHoldings", "totalHoldings", "totalRows")
+            if key in container
+        ]
+        total_present = bool(reported_totals)
+        reported_total = reported_totals[0] if reported_totals else None
+        total_valid = (
+            isinstance(reported_total, int)
+            and not isinstance(reported_total, bool)
+            and reported_total > 0
+            and all(value == reported_total for value in reported_totals)
+        )
+        total_matches = reported_total == reported_rows if total_valid else not total_present
+        continuation_clear = bool(
+            isinstance(all_container, dict)
+            and _native_json_continuation_is_clear(all_container)
+            and isinstance(holdings, dict)
+            and _native_json_continuation_is_clear(holdings)
+            and _native_json_continuation_is_clear(payload)
+        )
+        complete = bool(
+            isinstance(all_container, dict)
+            and aligned_core
+            and aligned_columns
+            and len(rows) == reported_rows
+            and total_matches
+            and continuation_clear
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "blackrock_holdings_all_container",
+            "reason": None
+            if complete
+            else "all-container row vectors are incomplete or misaligned",
+            "reported_rows": reported_rows,
+            "parsed_rows": len(rows),
+            "all_reported_rows_parsed": complete,
+            "core_columns_aligned": aligned_core,
+            "all_list_columns_aligned": aligned_columns,
+            "authoritative_total": reported_total if total_valid else None,
+            "authoritative_total_present": total_present,
+            "authoritative_total_matches": total_matches,
+            "continuation_clear": continuation_clear,
+        }
 
     @staticmethod
     def _blackrock_holdings_data_points(payload: dict[str, Any]) -> dict[str, Any]:
@@ -4162,16 +4703,32 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             symbol=normalized_symbol,
         )
         if fund_symbol != normalized_symbol:
-            raise ValueError(
+            raise ETFNativeSourceEvidenceError(
                 f"SPDR workbook identity did not match requested ETF {normalized_symbol}."
             )
         if not rows:
-            raise ValueError(f"SPDR workbook did not expose holdings for {normalized_symbol}.")
+            raise ETFNativeSourceEvidenceError(
+                f"SPDR workbook did not expose holdings for {normalized_symbol}."
+            )
         workbook_rows = parse_xlsx_table(response.content)
+        completeness = self._workbook_completeness(
+            workbook_rows,
+            rows=rows,
+            fund_symbol=fund_symbol,
+            composition_date=composition_date,
+        )
+        normalized_payload = {"source_format": "xlsx", "workbook_rows": workbook_rows}
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=bytes(response.content),
+            normalized_payload=normalized_payload,
+            parser_name="spdr:xlsx-workbook-v1",
+        )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
-            raw_json={"source_format": "xlsx", "workbook_rows": workbook_rows},
+            raw_json=normalized_payload,
             # httpx supplies ``response.url`` in production; keeping the
             # requested URL when a lightweight transport/fake omits it makes
             # the adapter deterministic without losing provenance.
@@ -4184,7 +4741,9 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "source_format": "xlsx",
                 "route_resolution": "spdr_symbol_daily_holdings_workbook",
                 "snapshot_provenance": "spdr_native_daily_holdings_workbook",
+                "native_composition_completeness": completeness,
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+                **({"native_holdings_response_witness": native_witness} if native_witness else {}),
             },
         )
 
@@ -4212,7 +4771,9 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 compact_layout = True
                 break
         if header_index is None:
-            raise ValueError("SPDR workbook did not expose the expected holdings schema.")
+            raise ETFNativeSourceEvidenceError(
+                "SPDR workbook did not expose the expected holdings schema."
+            )
         fund_symbol = next(
             (
                 (_clean(row[1]) or "").upper()
@@ -4240,14 +4801,9 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
             identifier = _clean(raw.get("Identifier"))
             if not any((name, source_ticker, identifier)):
                 continue
-            holding_type, row_type = cls._classify_row(name=name, source_ticker=source_ticker)
-            # SPDR appends legal/disclaimer text below the holdings table. Those
-            # rows contain only a long name-like string and no ticker or stable
-            # identifier; treating them as securities both pollutes the snapshot
-            # and can overflow the canonical holding-name column. Keep genuine
-            # cash/derivative rows (which are classified separately) intact.
-            if len(name or "") > 300:
+            if cls._is_legal_footer(raw, name=name, ticker=source_ticker, identifier=identifier):
                 continue
+            holding_type, row_type = cls._classify_row(name=name, source_ticker=source_ticker)
             if not source_ticker and not identifier and row_type != "cash":
                 continue
             row_symbol = source_ticker if row_type == "security" else None
@@ -4279,6 +4835,82 @@ class SpdrHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 )
             )
         return rows, composition_date, fund_symbol
+
+    @staticmethod
+    def _is_legal_footer(
+        raw: dict[str, Any], *, name: str | None, ticker: str | None, identifier: str | None
+    ) -> bool:
+        """Ignore only recognizable issuer boilerplate outside the holdings rows."""
+
+        if ticker or identifier or not name:
+            return False
+        if sum(1 for value in raw.values() if _clean(value)) != 1:
+            return False
+        normalized = " ".join(name.casefold().split())
+        return (
+            "please click" in normalized
+            or "should not be considered a recommendation" in normalized
+            or len(name) > 300
+        )
+
+    @classmethod
+    def _workbook_completeness(
+        cls,
+        workbook_rows: list[list[Any]],
+        *,
+        rows: list[CanonicalHoldingRow],
+        fund_symbol: str | None,
+        composition_date: date | None,
+    ) -> dict[str, Any]:
+        """Account for every nonblank row in the fund-scoped holdings table."""
+
+        header_index: int | None = None
+        for index, row in enumerate(workbook_rows[:20]):
+            headers = {_clean(value) or "" for value in row}
+            if cls._REQUIRED_HEADERS.issubset(headers) or cls._COMPACT_HEADERS.issubset(headers):
+                header_index = index
+                break
+        reported_rows = 0
+        ignored_footer_rows = 0
+        malformed_rows = 0
+        if header_index is not None:
+            header = workbook_rows[header_index]
+            for raw_row in workbook_rows[header_index + 1 :]:
+                if not any(_clean(value) for value in raw_row):
+                    continue
+                raw = _row_dict(header, raw_row)
+                name = _clean(raw.get("Name"))
+                ticker = _clean(raw.get("Ticker"))
+                identifier = _clean(raw.get("Identifier"))
+                if cls._is_legal_footer(raw, name=name, ticker=ticker, identifier=identifier):
+                    ignored_footer_rows += 1
+                    continue
+                reported_rows += 1
+                if any(_clean(value) for value in raw_row[len(header) :]):
+                    malformed_rows += 1
+        parsed_rows = len(rows)
+        complete = bool(
+            header_index is not None
+            and fund_symbol
+            and composition_date
+            and reported_rows > 0
+            and reported_rows == parsed_rows
+            and malformed_rows == 0
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "spdr_fund_scoped_daily_holdings_workbook",
+            "reason": None
+            if complete
+            else "workbook identity/date/header or table row accounting is incomplete",
+            "reported_rows": reported_rows,
+            "parsed_rows": parsed_rows,
+            "all_reported_rows_parsed": complete,
+            "fund_identity_present": bool(fund_symbol),
+            "provider_date_present": bool(composition_date),
+            "ignored_known_footer_rows": ignored_footer_rows,
+            "malformed_rows": malformed_rows,
+        }
 
     @staticmethod
     def _parse_as_of_date(value: str | None) -> date | None:
@@ -4810,13 +5442,62 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             f"{cusip}/holdings/fund?idType=cusip&interval=monthly&productType=ETF"
         )
 
-    async def _resolve_cusip(self, client: httpx.AsyncClient, symbol: str) -> str | None:
+    @classmethod
+    def _holdings_json_completeness(
+        cls, payload: Any, *, rows: list[CanonicalHoldingRow]
+    ) -> dict[str, Any]:
+        holdings = payload.get("holdings") if isinstance(payload, dict) else None
+        reported_total = payload.get("totalNumberOfHoldings") if isinstance(payload, dict) else None
+        valid_total = (
+            isinstance(reported_total, int)
+            and not isinstance(reported_total, bool)
+            and reported_total > 0
+        )
+        well_formed_rows = isinstance(holdings, list) and all(
+            isinstance(item, dict)
+            and any(
+                item.get(key) not in (None, "")
+                for key in ("ticker", "issuerName", "securityName", "cusip")
+            )
+            for item in holdings
+        )
+        complete = bool(
+            valid_total
+            and isinstance(holdings, list)
+            and reported_total == len(holdings) == len(rows)
+            and well_formed_rows
+            and isinstance(payload, dict)
+            and _native_json_continuation_is_clear(payload)
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "invesco_total_number_of_holdings",
+            "reason": None if complete else "holdings array total or continuation checks failed",
+            "reported_rows": reported_total if valid_total else None,
+            "response_rows": len(holdings) if isinstance(holdings, list) else None,
+            "parsed_rows": len(rows),
+            "all_reported_rows_parsed": complete,
+            "authoritative_total_matches": bool(
+                valid_total and isinstance(holdings, list) and reported_total == len(holdings)
+            ),
+            "continuation_clear": bool(
+                isinstance(payload, dict) and _native_json_continuation_is_clear(payload)
+            ),
+        }
+
+    async def _resolve_cusip_with_evidence(
+        self,
+        client: httpx.AsyncClient,
+        symbol: str,
+        *,
+        force_catalog: bool = False,
+    ) -> tuple[str | None, dict[str, Any] | None]:
         normalized_symbol = symbol.strip().upper()
         if not normalized_symbol:
-            return None
+            return None, None
         cached = self._cusip_cache.get(normalized_symbol)
-        if cached:
-            return cached
+        if cached and not force_catalog:
+            return cached, None
         response = await client.get(
             self._PRODUCT_CATALOG_URL,
             headers=_invesco_holdings_request_headers(),
@@ -4825,15 +5506,40 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         response.raise_for_status()
         payload = response.json()
         docs = payload.get("response", {}).get("docs", []) if isinstance(payload, dict) else []
-        for document in docs if isinstance(docs, list) else []:
-            if not isinstance(document, dict):
-                continue
-            ticker = _clean(document.get("ticker"))
-            cusip = _clean(document.get("cusip"))
-            if ticker and cusip and ticker.upper() == normalized_symbol:
-                self._cusip_cache[normalized_symbol] = cusip
-                return cusip
-        return None
+        matches = (
+            [
+                document
+                for document in docs
+                if isinstance(document, dict)
+                and (_clean(document.get("ticker")) or "").upper() == normalized_symbol
+            ]
+            if isinstance(docs, list)
+            else []
+        )
+        if len(matches) != 1:
+            return None, None
+        document = matches[0]
+        ticker = (_clean(document.get("ticker")) or "").upper()
+        cusip = _clean(document.get("cusip"))
+        account_name = _clean(document.get("accountName"))
+        if not cusip or (force_catalog and not account_name):
+            return None, None
+        self._cusip_cache[normalized_symbol] = cusip
+        body = bytes(response.content)
+        return cusip, {
+            "request_url": self._PRODUCT_CATALOG_URL,
+            "response_body_base64": base64.b64encode(body).decode("ascii"),
+            "response_sha256": hashlib.sha256(body).hexdigest(),
+            "matched_product": {
+                "ticker": ticker,
+                "cusip": cusip,
+                "account_name": account_name,
+            },
+        }
+
+    async def _resolve_cusip(self, client: httpx.AsyncClient, symbol: str) -> str | None:
+        cusip, _evidence = await self._resolve_cusip_with_evidence(client, symbol)
+        return cusip
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -4926,6 +5632,17 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
         identifiers: dict[str, str] | None = None,
     ) -> HoldingsFetchResult:
         identifiers = identifiers or {}
+        ordinary_bound = False
+        try:
+            binding = require_bound_etf_holdings_adapter(self)
+            native_qualification = binding.native_initial_qualification_scope is not None
+            ordinary_bound = not native_qualification
+        except ETFHoldingsRouteHeldError:
+            native_qualification = False
+        has_custom_product_page = bool(_identifier(identifiers, *self.product_page_aliases))
+        require_catalog_identity = native_qualification or (
+            ordinary_bound and not has_custom_product_page
+        )
         explicit_source_url = source_url or _identifier(identifiers, *self.source_url_aliases)
         cusip = _identifier(identifiers, "cusip")
         # Older persisted route metadata used the ticker form, which Invesco's
@@ -4942,6 +5659,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             not explicit_source_url
             and not cusip
             and _identifier(identifiers, *self.product_page_aliases)
+            and not require_catalog_identity
         ):
             return await super().fetch_latest(
                 symbol=symbol,
@@ -4949,11 +5667,26 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 identifiers=identifiers,
             )
         route_resolution = "issuer_profile_metadata"
+        catalog_evidence: dict[str, Any] | None = None
         try:
             async with httpx.AsyncClient(
                 timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS
             ) as client:
-                if explicit_source_url:
+                if require_catalog_identity:
+                    # A warm symbol→CUSIP cache or caller URL is not source
+                    # evidence for an identity-bound fetch. Resolve the exact
+                    # ticker row from this operation's catalog response.
+                    catalog_cusip, catalog_evidence = await self._resolve_cusip_with_evidence(
+                        client, symbol, force_catalog=True
+                    )
+                    if not catalog_cusip or (cusip and cusip != catalog_cusip):
+                        raise ValueError(
+                            f"Invesco product catalog does not uniquely identify {symbol}."
+                        )
+                    cusip = catalog_cusip
+                    resolved_source_url = self._holdings_url(cusip)
+                    route_resolution = "issuer_public_json_catalog_cusip"
+                elif explicit_source_url:
                     resolved_source_url = explicit_source_url
                 else:
                     if not cusip:
@@ -4970,7 +5703,7 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
             response.raise_for_status()
             payload = response.json()
         except (httpx.HTTPError, requests.RequestException, ValueError) as route_error:
-            if self.config.supports_sec_filing_fallback:
+            if self.config.supports_sec_filing_fallback and not native_qualification:
                 sec_result = await self._fetch_latest_sec_filing_holdings(
                     symbol=symbol,
                     issuer_product_id=issuer_product_id,
@@ -5013,11 +5746,21 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        completeness = self._holdings_json_completeness(payload, rows=rows)
+        raw_text = response.text
+        native_witness = _native_holdings_parse_witness(
+            self,
+            response,
+            parser_input=bytes(response.content),
+            normalized_payload=payload,
+            parser_name="invesco:holdings-json-v1",
+            parsed_json=payload,
+        )
         return HoldingsFetchResult(
             rows=rows,
-            raw_text=response.text,
+            raw_text=raw_text,
             raw_json=payload,
-            source_url=resolved_source_url,
+            source_url=(str(response.url) if native_witness is not None else resolved_source_url),
             source_identifier=cusip or issuer_product_id or symbol.strip().upper(),
             legal_metadata={
                 "source_access": self.config.source_access,
@@ -5034,7 +5777,10 @@ class InvescoHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "total_number_of_holdings": (
                     payload.get("totalNumberOfHoldings") if isinstance(payload, dict) else None
                 ),
+                "native_composition_completeness": completeness,
                 "terms_note": self.config.terms_note,
+                **({"native_holdings_response_witness": native_witness} if native_witness else {}),
+                **({"issuer_product_catalog": catalog_evidence} if catalog_evidence else {}),
             },
         )
 
@@ -5670,9 +6416,36 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
     class InitialQualificationRedirect(ValueError):
         """A first-probe redirect was recorded but deliberately not followed."""
 
-        def __init__(self, location: str | None):
+        def __init__(self, location: str | None, diagnostic: dict[str, Any]):
             super().__init__("VanEck initial qualification stopped at an unreviewed redirect.")
             self.location = location
+            self.vaneck_initial_response_diagnostic = diagnostic
+
+    class InitialQualificationResponseError(ValueError):
+        """A rejected initial response with bounded, explicitly attributed metadata."""
+
+        def __init__(self, message: str, diagnostic: dict[str, Any]):
+            super().__init__(message)
+            self.vaneck_initial_response_diagnostic = diagnostic
+
+    @staticmethod
+    def _initial_response_diagnostic(response: Any) -> dict[str, Any]:
+        body = response.content
+        allowlisted_headers: dict[str, str] = {}
+        for name in ("content-type", "content-length"):
+            value = response.headers.get(name)
+            if (
+                isinstance(value, str)
+                and len(value) <= 160
+                and not any(ord(character) < 32 for character in value)
+            ):
+                allowlisted_headers[name] = value
+        return {
+            "upstream_http_status": int(response.status_code),
+            "response_body_bytes": len(body),
+            "response_body_sha256": hashlib.sha256(body).hexdigest(),
+            "allowlisted_response_headers": allowlisted_headers,
+        }
 
     def probe(self, *, symbol: str, name: str, identifiers: dict[str, str]) -> HoldingsAdapterProbe:
         del name
@@ -5719,7 +6492,13 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if not normalized_symbol or not product_slug:
             raise ValueError("VanEck holdings require an ETF symbol and issuer product slug.")
-        holdings_url = source_url or self._holdings_url(product_slug)
+        if normalized_symbol == "OIH" and product_slug == "oil-services-etf-oih":
+            # The OIH profile may still carry the original ?cken=true route.
+            # After the reviewed redirect, ordinary admitted acquisition uses
+            # the exact canonical URL; other VanEck routes keep their template.
+            holdings_url = VANECK_OIH_CANONICAL_DOWNLOAD_URL
+        else:
+            holdings_url = source_url or self._holdings_url(product_slug)
         async with httpx.AsyncClient(timeout=settings.ETF_HOLDINGS_FETCH_TIMEOUT_SECONDS) as client:
             response = await self._get_with_timeout_retry(
                 client,
@@ -5731,6 +6510,23 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         if not rows:
             raise ValueError(f"VanEck workbook did not expose holdings for {normalized_symbol}.")
         workbook_rows = parse_xlsx_table(response.content)
+        body_identity_status: str | None = None
+        body_identity_evidence: list[str] = []
+        if normalized_symbol == "OIH":
+            if composition_date is None:
+                raise ValueError("VanEck OIH workbook has no valid composition date.")
+            if composition_date > datetime.now(UTC).date():
+                raise ValueError("VanEck OIH workbook composition date is in the future.")
+            body_identity_status, body_identity_evidence = self._initial_workbook_identity(
+                response.content,
+                workbook_rows,
+                composition_date=composition_date,
+            )
+            if body_identity_status != "matched":
+                raise ValueError(
+                    "VanEck OIH workbook body identity is "
+                    f"{body_identity_status}; ordinary holdings acquisition denied."
+                )
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -5746,6 +6542,25 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "product_slug": product_slug,
                 "snapshot_provenance": "vaneck_native_daily_holdings_workbook",
                 **({"composition_date": composition_date.isoformat()} if composition_date else {}),
+                **(
+                    {
+                        "body_identity_status": body_identity_status,
+                        "body_identity_evidence": body_identity_evidence,
+                    }
+                    if body_identity_status is not None
+                    else {}
+                ),
+                **(
+                    {
+                        "source_quality": "issuer_reported_dated_complete_holdings",
+                        "completeness_status": "complete",
+                    }
+                    if normalized_symbol == "OIH"
+                    and body_identity_status == "matched"
+                    and composition_date is not None
+                    and rows
+                    else {}
+                ),
             },
         )
 
@@ -5755,6 +6570,7 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         symbol: str,
         issuer_product_id: str | None = None,
         identifiers: dict[str, str] | None = None,
+        reviewed_request_url: str | None = None,
     ) -> HoldingsFetchResult:
         """Fetch one exact OIH workbook attempt with no retry or redirect follow."""
 
@@ -5765,7 +6581,13 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         if normalized_symbol != "OIH" or product_slug != "oil-services-etf-oih":
             raise ValueError("VanEck first qualification is restricted to the reviewed OIH route.")
-        request_url = self._holdings_url(product_slug)
+        request_url = reviewed_request_url or self._holdings_url(product_slug)
+        if request_url not in {VANECK_OIH_INITIAL_REQUEST_URL, VANECK_OIH_CANONICAL_DOWNLOAD_URL}:
+            raise ValueError("VanEck initial qualification URL is not a reviewed OIH destination.")
+        if request_url == VANECK_OIH_CANONICAL_DOWNLOAD_URL and (
+            normalized_symbol != "OIH" or product_slug != "oil-services-etf-oih"
+        ):
+            raise ValueError("VanEck canonical download qualification is restricted to OIH.")
         async with httpx.AsyncClient(
             timeout=120.0,
             follow_redirects=False,
@@ -5776,22 +6598,40 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 headers=self._request_headers(product_slug=product_slug),
                 follow_redirects=False,
             )
+        response_diagnostic = self._initial_response_diagnostic(response)
         if response.status_code in {301, 302, 303, 307, 308}:
-            raise self.InitialQualificationRedirect(response.headers.get("location"))
-        response.raise_for_status()
-        raw_workbook = response.content
-        if not raw_workbook or len(raw_workbook) > self.INITIAL_QUALIFICATION_MAX_BODY_BYTES:
-            raise ValueError("VanEck OIH workbook is empty or exceeds the reviewed 5 MiB limit.")
-        rows, composition_date = self._parse_workbook(raw_workbook)
-        if composition_date is None:
-            raise ValueError("VanEck OIH workbook has no valid composition date.")
-        if composition_date > datetime.now(UTC).date():
-            raise ValueError("VanEck OIH workbook composition date is in the future.")
-        workbook_rows = parse_xlsx_table(raw_workbook)
-        body_identity_status, body_identity_evidence = self._initial_workbook_identity(
-            raw_workbook, workbook_rows
-        )
-        raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
+            raise self.InitialQualificationRedirect(
+                response.headers.get("location"), response_diagnostic
+            )
+        try:
+            response.raise_for_status()
+            raw_workbook = response.content
+            if not raw_workbook or len(raw_workbook) > self.INITIAL_QUALIFICATION_MAX_BODY_BYTES:
+                raise ValueError(
+                    "VanEck OIH workbook is empty or exceeds the reviewed 5 MiB limit."
+                )
+            rows, composition_date = self._parse_workbook(raw_workbook)
+            if composition_date is None:
+                raise ValueError("VanEck OIH workbook has no valid composition date.")
+            if composition_date > datetime.now(UTC).date():
+                raise ValueError("VanEck OIH workbook composition date is in the future.")
+            workbook_rows = parse_xlsx_table(raw_workbook)
+            body_identity_status, body_identity_evidence = self._initial_workbook_identity(
+                raw_workbook, workbook_rows, composition_date=composition_date
+            )
+            raw_sha256 = hashlib.sha256(raw_workbook).hexdigest()
+        except _httpx.HTTPStatusError as exc:
+            raise self.InitialQualificationResponseError(
+                "VanEck initial qualification returned a non-success HTTP status.",
+                response_diagnostic,
+            ) from exc
+        except ValueError as exc:
+            raise self.InitialQualificationResponseError(str(exc), response_diagnostic) from exc
+        except (ET.ParseError, OSError, zipfile.BadZipFile, StopIteration) as exc:
+            raise self.InitialQualificationResponseError(
+                "VanEck initial qualification response could not be parsed as the reviewed workbook.",
+                response_diagnostic,
+            ) from exc
         return HoldingsFetchResult(
             rows=rows,
             raw_text=_table_to_text(workbook_rows),
@@ -5818,6 +6658,7 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                 "initial_qualification": True,
                 "body_identity_status": body_identity_status,
                 "body_identity_evidence": body_identity_evidence,
+                "upstream_response_diagnostic": response_diagnostic,
                 **(
                     {
                         "source_quality": "issuer_reported_dated_complete_holdings",
@@ -5831,14 +6672,21 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
     @classmethod
     def _initial_workbook_identity(
-        cls, raw_workbook: bytes, workbook_rows: list[list[Any]]
+        cls,
+        raw_workbook: bytes,
+        workbook_rows: list[list[Any]],
+        *,
+        composition_date: date | None,
     ) -> tuple[str, list[str]]:
-        """Use independent workbook title metadata; the request URL is not body identity."""
+        """Use workbook-internal identity; a request URL is never body identity."""
 
         title_cells: list[str] = []
+        worksheet_names: list[str] = []
+        parsed_sheet_is_only_declared_sheet = False
         try:
             with zipfile.ZipFile(BytesIO(raw_workbook)) as workbook:
-                if "docProps/core.xml" in workbook.namelist():
+                members = set(workbook.namelist())
+                if "docProps/core.xml" in members:
                     properties = ET.fromstring(workbook.read("docProps/core.xml"))
                     allowed = {"title", "subject", "description", "keywords"}
                     title_cells.extend(
@@ -5847,6 +6695,41 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
                         if node.tag.rsplit("}", 1)[-1].lower() in allowed
                         and (value := (node.text or "").strip())
                     )
+                if "xl/workbook.xml" in members:
+                    workbook_root = ET.fromstring(workbook.read("xl/workbook.xml"))
+                    sheet_nodes = [
+                        node
+                        for node in workbook_root.iter()
+                        if node.tag.rsplit("}", 1)[-1] == "sheet"
+                    ]
+                    worksheet_names = [node.attrib.get("name", "") for node in sheet_nodes]
+                    if len(sheet_nodes) == 1:
+                        relationship_id = sheet_nodes[0].attrib.get(
+                            "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}id"
+                        )
+                        if "xl/_rels/workbook.xml.rels" in members and relationship_id:
+                            relationships = ET.fromstring(
+                                workbook.read("xl/_rels/workbook.xml.rels")
+                            )
+                            target = next(
+                                (
+                                    node.attrib.get("Target")
+                                    for node in relationships.iter()
+                                    if node.tag.rsplit("}", 1)[-1] == "Relationship"
+                                    and node.attrib.get("Id") == relationship_id
+                                ),
+                                None,
+                            )
+                            if target:
+                                sheet_path = posixpath.normpath(
+                                    target.lstrip("/")
+                                    if target.startswith("/")
+                                    else posixpath.join("xl", target)
+                                )
+                                parsed_sheet_is_only_declared_sheet = (
+                                    sheet_path == "xl/worksheets/sheet1.xml"
+                                    and sheet_path in members
+                                )
         except (ET.ParseError, OSError, zipfile.BadZipFile):
             return "unverified", []
 
@@ -5886,23 +6769,62 @@ class VanEckHoldingsAdapter(IssuerCsvHoldingsAdapter):
 
         # A known contradictory fund identity takes precedence even if a stale
         # OIH label also appears elsewhere in workbook metadata.
+        worksheet_markers: list[tuple[str, date | None, str]] = []
+        sheet_identity_pattern = re.compile(
+            r"([A-Z][A-Z0-9.-]{0,11})_asof_(\d{8})", flags=re.IGNORECASE
+        )
+        for name in worksheet_names:
+            match = sheet_identity_pattern.fullmatch(name)
+            if match is None:
+                continue
+            try:
+                sheet_date = datetime.strptime(match.group(2), "%Y%m%d").date()
+            except ValueError:
+                sheet_date = None
+            worksheet_markers.append((match.group(1).upper(), sheet_date, name))
+
+        worksheet_status = "unverified"
+        if worksheet_markers:
+            marked_tickers = {ticker for ticker, _, _ in worksheet_markers}
+            marked_dates = {sheet_date for _, sheet_date, _ in worksheet_markers}
+            if any(ticker != "OIH" for ticker in marked_tickers) or len(marked_dates) > 1:
+                worksheet_status = "mismatch"
+            elif len(worksheet_markers) > 1:
+                # Multiple same-fund sheets are ambiguous even when their labels agree.
+                worksheet_status = "unverified"
+            elif worksheet_markers[0][1] is None:
+                worksheet_status = "unverified"
+            elif not parsed_sheet_is_only_declared_sheet:
+                worksheet_status = "unverified"
+            elif composition_date is None:
+                worksheet_status = "unverified"
+            elif worksheet_markers[0][1] != composition_date:
+                worksheet_status = "mismatch"
+            else:
+                worksheet_status = "matched"
+            title_cells.extend(f"worksheet:{name}" for _, _, name in worksheet_markers)
+
         if (
             any(ticker.upper() != "OIH" for ticker in explicit_tickers)
-            or "semiconductor etf" in title_text
-            or "steel etf" in title_text
+            or re.search(r"\bsemiconductor\s+etf\b", title_text)
+            or re.search(r"\bsteel\s+etf\b", title_text)
             or re.search(r"\b(?:smh|slx)\b", title_text)
             or (
-                "vaneck" in title_text and " etf" in title_text and "oil services" not in title_text
+                re.search(r"\bvaneck\b", title_text)
+                and re.search(r"\betf\b", title_text)
+                and not re.search(r"\boil\s+services\b", title_text)
             )
+            or worksheet_status == "mismatch"
         ):
-            return "mismatch", title_cells
+            return "mismatch", title_cells[:40]
         if (
             "OIH" in {ticker.upper() for ticker in explicit_tickers}
             or re.search(r"\boih\b", title_text)
-            or "oil services etf" in title_text
+            or re.search(r"\boil\s+services\s+etf\b", title_text)
+            or worksheet_status == "matched"
         ):
-            return "matched", title_cells
-        return "unverified", title_cells
+            return "matched", title_cells[:40]
+        return "unverified", title_cells[:40]
 
     @staticmethod
     async def _get_with_timeout_retry(
@@ -39304,7 +40226,7 @@ class ThemesHoldingsAdapter(IssuerCsvHoldingsAdapter):
         for index, row in enumerate(table_rows[header_index + 1 :], start=1):
             raw = _row_dict(header, row)
             account = (_clean(_first(raw, ["account"])) or "").upper()
-            if account and account != requested_symbol:
+            if account != requested_symbol:
                 continue
             row_date = ThemesHoldingsAdapter._parse_themes_date(_first(raw, ["date"]))
             if composition_date is None:
@@ -40268,21 +41190,109 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         )
         rows, composition_date = self._parse_amplify_csv(result.raw_text or "", symbol=symbol)
         result.rows = rows
+        prior_witness = (result.legal_metadata or {}).get("native_holdings_response_witness")
+        native_witness = _native_holdings_parse_witness_from_capture(
+            self,
+            prior_witness.get("provider_capture") if isinstance(prior_witness, dict) else None,
+            parser_input=result.raw_text or "",
+            normalized_payload=result.raw_text or "",
+            parser_name="amplify:account-filtered-csv-v1",
+        )
+        completeness = self._selected_account_csv_completeness(
+            result.raw_text or "", symbol=symbol, rows=rows
+        )
         result.legal_metadata = {
             **(result.legal_metadata or {}),
             "source_format": "csv",
             "route_resolution": "issuer_multi_account_holdings_csv",
             "source_access": self.config.source_access,
+            "selected_account": symbol.strip().upper(),
+            "selected_account_row_count": len(rows),
+            "native_composition_completeness": completeness,
+            **({"native_holdings_response_witness": native_witness} if native_witness else {}),
             **(
                 {
                     "composition_date": composition_date.isoformat(),
                     "as_of_date": composition_date.isoformat(),
+                    "composition_date_source_field": "selected_account_rows.date",
                 }
                 if composition_date is not None
                 else {}
             ),
         }
         return result
+
+    @classmethod
+    def _selected_account_csv_completeness(
+        cls, raw_csv: str, *, symbol: str, rows: list[CanonicalHoldingRow]
+    ) -> dict[str, Any]:
+        """Account for every row in Amplify's full multi-account CSV export."""
+
+        try:
+            table_rows = list(csv.reader(StringIO(raw_csv), strict=True))
+        except csv.Error:
+            table_rows = []
+            malformed_csv = True
+        else:
+            malformed_csv = False
+        header_index = next(
+            (
+                index
+                for index, row in enumerate(table_rows[:20])
+                if {cell.strip().lower() for cell in row}
+                >= {"date", "account", "stockticker", "securityname"}
+            ),
+            None,
+        )
+        selected = symbol.strip().upper()
+        reported_rows = 0
+        malformed_rows = 0
+        missing_dates = 0
+        composition_dates: set[date] = set()
+        if header_index is not None:
+            header = table_rows[header_index]
+            for row in table_rows[header_index + 1 :]:
+                if not any(_clean(cell) for cell in row):
+                    continue
+                if len(row) != len(header):
+                    malformed_rows += 1
+                    continue
+                raw = _row_dict(header, row)
+                account = (_clean(_first(raw, ["account"])) or "").upper()
+                if account != selected:
+                    if not account:
+                        malformed_rows += 1
+                    continue
+                reported_rows += 1
+                parsed_date = cls._parse_amplify_date(_first(raw, ["date"]))
+                if parsed_date is None:
+                    missing_dates += 1
+                else:
+                    composition_dates.add(parsed_date)
+        complete = bool(
+            not malformed_csv
+            and header_index is not None
+            and reported_rows > 0
+            and reported_rows == len(rows)
+            and malformed_rows == 0
+            and missing_dates == 0
+            and len(composition_dates) == 1
+        )
+        return {
+            "status": "complete" if complete else "incomplete",
+            "basis": "amplify_full_multi_account_csv_selected_account",
+            "reason": None
+            if complete
+            else "CSV row accounting or selected-account date checks failed",
+            "account": selected,
+            "reported_rows": reported_rows,
+            "parsed_rows": len(rows),
+            "all_reported_rows_parsed": complete,
+            "malformed_rows": malformed_rows,
+            "missing_dates": missing_dates,
+            "composition_date_count": len(composition_dates),
+            "full_csv_parsed": not malformed_csv and header_index is not None,
+        }
 
     @staticmethod
     def _parse_amplify_csv(
@@ -40309,15 +41319,20 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
         header = table_rows[header_index]
         requested_symbol = symbol.strip().upper()
         rows: list[CanonicalHoldingRow] = []
-        composition_date: date | None = None
+        composition_dates: set[date] = set()
+        selected_account_row_count = 0
+        selected_account_has_missing_date = False
         for index, row in enumerate(table_rows[header_index + 1 :], start=1):
             raw = _row_dict(header, row)
             account = (_clean(_first(raw, ["account"])) or "").upper()
             if account and account != requested_symbol:
                 continue
+            selected_account_row_count += 1
             row_date = AmplifyHoldingsAdapter._parse_amplify_date(_first(raw, ["date"]))
-            if composition_date is None:
-                composition_date = row_date
+            if row_date is None:
+                selected_account_has_missing_date = True
+            else:
+                composition_dates.add(row_date)
             raw_symbol = _clean(_first(raw, ["stockticker"]))
             symbol_value, exchange = AmplifyHoldingsAdapter._split_symbol(raw_symbol)
             name = _clean(_first(raw, ["securityname"]))
@@ -40355,6 +41370,13 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
                     },
                 )
             )
+        composition_date = (
+            next(iter(composition_dates))
+            if selected_account_row_count > 0
+            and not selected_account_has_missing_date
+            and len(composition_dates) == 1
+            else None
+        )
         return rows, composition_date
 
     @staticmethod

@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
 from datetime import time as wall_time
 from decimal import Decimal
+from hashlib import sha256
 from typing import Any, TypeVar
 
 import httpx
@@ -33,7 +34,9 @@ from app.config import (
 )
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.listing import InstrumentListing
 from app.models.provider_runtime import (
     ProviderCapability,
     ProviderCapacityEvent,
@@ -89,6 +92,10 @@ _VANECK_INITIAL_QUALIFICATION_SEAL = object()
 _VANECK_INITIAL_QUALIFICATION_CONTEXT: contextvars.ContextVar[object | None] = (
     contextvars.ContextVar("provider_runtime_vaneck_initial_qualification", default=None)
 )
+_NATIVE_ETF_INITIAL_QUALIFICATION_SEAL = object()
+_NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT: contextvars.ContextVar[object | None] = (
+    contextvars.ContextVar("provider_runtime_native_etf_initial_qualification", default=None)
+)
 _EXPLICIT_ACQUISITION_SEAL = object()
 _EXPLICIT_ACQUISITION_CONTEXT: contextvars.ContextVar[object | None] = contextvars.ContextVar(
     "provider_runtime_explicit_acquisition", default=None
@@ -100,9 +107,69 @@ _ETF_INITIAL_QUALIFICATION_OPERATIONS = frozenset(
         "fetch_etf_holdings_sec_filing",
     }
 )
+NATIVE_ETF_INITIAL_QUALIFICATION_OPERATION = "fetch_etf_holdings_latest"
+NATIVE_ETF_INITIAL_QUALIFICATION_MAX_PHYSICAL_REQUESTS = 10
+NATIVE_ETF_INITIAL_QUALIFICATION_MAX_DURATION = timedelta(minutes=10)
 EXPLICIT_ETF_HOLDINGS_OPERATION = frozenset(
     {(ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest")}
 )
+
+_ETF_HOLDINGS_INSTRUMENT_ROUTING_PAIRS = frozenset(
+    {
+        ("equity", "etf"),
+        ("equity", "exchange_traded_fund"),
+        ("exchange_traded_product", "exchange_traded_vehicle"),
+    }
+)
+_ETV_PRICE_HISTORY_INSTRUMENT_ROUTING = ("exchange_traded_product", "exchange_traded_vehicle")
+_ETV_PRICE_HISTORY_PROVIDER = "massive"
+
+
+def _etf_holdings_instrument_routing_allowed(
+    instrument_routing: tuple[str, str] | None,
+) -> bool:
+    """Require a recognized ETF/ETV type under its matching asset class."""
+
+    if instrument_routing is None:
+        # Preserve existing scoped qualification flows that have not yet
+        # resolved a local instrument taxonomy row.
+        return True
+    normalized_pair = tuple(
+        str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+        for value in instrument_routing
+    )
+    return normalized_pair in _ETF_HOLDINGS_INSTRUMENT_ROUTING_PAIRS
+
+
+def _massive_us_etv_history_route_allowed(
+    *,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str | None,
+    instrument_routing: tuple[str, str] | None,
+    has_active_primary_usd_us_listing: bool,
+) -> bool:
+    """Admit only Massive US-listed ETV custom-bar history.
+
+    Massive documents US stock/ETF bar coverage. Keep ETV as its own stored
+    taxonomy and limit this bridge to the exact ETP/ETV pair, a primary active
+    USD listing on a US exchange, and the stock custom-bars operation. Other
+    providers and capabilities continue to use the ordinary registry map.
+    """
+
+    if instrument_routing is None or operation is None:
+        return False
+    normalized_pair = tuple(
+        str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+        for value in instrument_routing
+    )
+    return (
+        provider_name.strip().lower() == _ETV_PRICE_HISTORY_PROVIDER
+        and capability == ProviderCapability.PRICE_HISTORY
+        and _operation_family(operation) == "fetch_ohlcv"
+        and normalized_pair == _ETV_PRICE_HISTORY_INSTRUMENT_ROUTING
+        and has_active_primary_usd_us_listing
+    )
 
 
 @dataclass(frozen=True, slots=True)
@@ -253,6 +320,180 @@ class _VanEckInitialQualificationAuthority:
     started: bool = False
 
 
+@dataclass(slots=True)
+class _NativeETFInitialQualificationAuthority:
+    """One task-local, bounded native publisher qualification attempt."""
+
+    seal: object
+    attempt_id: int
+    provider_name: str
+    data_source_id: int
+    capability: ProviderCapability
+    operation: str
+    fund_profile_id: int
+    instrument_id: int
+    provider_symbol: str
+    account_scope: str
+    entitlement_revision: int
+    provider_review_fingerprint: str
+    expires_at: datetime
+    max_physical_requests: int
+    physical_requests_started: int = 0
+    started: bool = False
+    invalidated: bool = False
+
+
+def provider_native_etf_review_fingerprint(
+    source: DataSource,
+    policy: ProviderPolicy,
+    entitlement: ProviderEntitlement,
+) -> str:
+    """Hash the complete current publisher, routing and entitlement review.
+
+    The digest intentionally includes the source configuration only inside the
+    hash; callers receive no credential material. Any source endpoint/config,
+    policy, quota, or entitlement change invalidates a pending qualification.
+    """
+
+    material = {
+        "source": {
+            "id": source.id,
+            "name": source.name,
+            "base_url": source.base_url,
+            "supported_capabilities": source.supported_capabilities,
+            "is_active": source.is_active,
+            "config": source.config,
+        },
+        "policy": {
+            "is_enabled": policy.is_enabled,
+            "quota_scope": policy.quota_scope,
+            "quota_source": policy.quota_source,
+            "quota_verified_at": policy.quota_verified_at,
+            "quota_contract": policy.quota_contract,
+            "max_concurrency": policy.max_concurrency,
+            "tokens_per_minute": policy.tokens_per_minute,
+            "burst_capacity": policy.burst_capacity,
+            "cooldown_seconds": policy.cooldown_seconds,
+            "freshness_seconds": policy.freshness_seconds,
+        },
+        "entitlement": {
+            field_name: getattr(entitlement, field_name) for field_name in _ENTITLEMENT_FIELDS
+        },
+        "entitlement_revision": int(entitlement.revision or 1),
+    }
+    encoded = json.dumps(material, sort_keys=True, separators=(",", ":"), default=str)
+    return sha256(encoded.encode("utf-8")).hexdigest()
+
+
+@contextmanager
+def bind_native_etf_initial_qualification(
+    *,
+    attempt_id: int,
+    provider_name: str,
+    data_source_id: int,
+    fund_profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    operation: str,
+    account_scope: str,
+    entitlement_revision: int,
+    provider_review_fingerprint: str,
+    expires_at: datetime,
+    max_physical_requests: int,
+):
+    """Bind an exact one-attempt native ETF qualification around ETF's runner.
+
+    ETF must enter this scope only after it has claimed its durable attempt and
+    reviewed the current source/policy/entitlement. Each physical bridge hop
+    must call ``execute_provider_call`` once; that call consumes one bounded
+    request slot before resolution, quota reservation, and transport. Normal
+    free-only, terms, configuration, routing, account-scope and quota checks
+    remain in force.
+    """
+
+    normalized_provider = str(provider_name).strip().lower()
+    normalized_symbol = str(provider_symbol).strip().upper()
+    normalized_scope = str(account_scope).strip()
+    normalized_fingerprint = str(provider_review_fingerprint).strip().lower()
+    now = datetime.now(UTC)
+    if (
+        isinstance(attempt_id, bool)
+        or not isinstance(attempt_id, int)
+        or attempt_id <= 0
+        or not normalized_provider
+        or normalized_provider in {"*", "all", "any", "edgar", "sec"}
+        or len(normalized_provider) > 50
+        or any(char.isspace() for char in normalized_provider)
+        or isinstance(data_source_id, bool)
+        or not isinstance(data_source_id, int)
+        or data_source_id <= 0
+        or isinstance(fund_profile_id, bool)
+        or not isinstance(fund_profile_id, int)
+        or fund_profile_id <= 0
+        or isinstance(instrument_id, bool)
+        or not isinstance(instrument_id, int)
+        or instrument_id <= 0
+        or not normalized_symbol
+        or normalized_symbol in {"*", "ALL", "ANY"}
+        or operation != NATIVE_ETF_INITIAL_QUALIFICATION_OPERATION
+        or not normalized_scope
+        or normalized_scope.lower() in {"*", "all", "any"}
+        or len(normalized_scope) > 128
+        or not normalized_scope.isprintable()
+        or "://" in normalized_scope
+        or isinstance(entitlement_revision, bool)
+        or not isinstance(entitlement_revision, int)
+        or entitlement_revision <= 0
+        or len(normalized_fingerprint) != 64
+        or any(char not in "0123456789abcdef" for char in normalized_fingerprint)
+        or not isinstance(expires_at, datetime)
+        or expires_at.tzinfo is None
+        or expires_at.utcoffset() is None
+        or expires_at <= now
+        or expires_at > now + NATIVE_ETF_INITIAL_QUALIFICATION_MAX_DURATION
+        or isinstance(max_physical_requests, bool)
+        or not isinstance(max_physical_requests, int)
+        or not 1 <= max_physical_requests <= NATIVE_ETF_INITIAL_QUALIFICATION_MAX_PHYSICAL_REQUESTS
+    ):
+        raise ValueError("invalid native ETF initial qualification scope")
+
+    authority = _NativeETFInitialQualificationAuthority(
+        seal=_NATIVE_ETF_INITIAL_QUALIFICATION_SEAL,
+        attempt_id=attempt_id,
+        provider_name=normalized_provider,
+        data_source_id=data_source_id,
+        capability=ProviderCapability.ETF_HOLDINGS,
+        operation=NATIVE_ETF_INITIAL_QUALIFICATION_OPERATION,
+        fund_profile_id=fund_profile_id,
+        instrument_id=instrument_id,
+        provider_symbol=normalized_symbol,
+        account_scope=normalized_scope,
+        entitlement_revision=entitlement_revision,
+        provider_review_fingerprint=normalized_fingerprint,
+        expires_at=expires_at.astimezone(UTC),
+        max_physical_requests=max_physical_requests,
+    )
+    if (
+        _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None
+        or _VANECK_INITIAL_QUALIFICATION_CONTEXT.get() is not None
+        or _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None
+        or _EXPLICIT_ACQUISITION_CONTEXT.get() is not None
+    ):
+        raise ValueError("native ETF initial qualification scopes cannot be nested")
+    with bind_explicit_etf_holdings_acquisition(
+        request_id=f"native-etf-fq:{normalized_provider}:{attempt_id}",
+        instrument_id=instrument_id,
+        symbol=normalized_symbol,
+        issuer_provider_name=normalized_provider,
+    ):
+        token = _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.set(authority)
+        try:
+            # Do not expose the mutable sealed object to the executor.
+            yield None
+        finally:
+            _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.reset(token)
+
+
 @contextmanager
 def bind_vaneck_initial_etf_qualification(
     *,
@@ -361,6 +602,145 @@ def _vaneck_initial_qualification_matches(
     except Exception:  # noqa: BLE001 - an unresolved account is not an authority match.
         return False
     return actual_scope == authority.account_scope
+
+
+def _consume_native_etf_initial_qualification_request(
+    *,
+    provider_name: str | None,
+    capability: ProviderCapability,
+    operation: str,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    profile_id: int | None,
+) -> _NativeETFInitialQualificationAuthority | None:
+    """Consume one exact physical-hop slot before resolving or sending it."""
+
+    authority = _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.get()
+    if authority is None:
+        return None
+    if (
+        not isinstance(authority, _NativeETFInitialQualificationAuthority)
+        or authority.seal is not _NATIVE_ETF_INITIAL_QUALIFICATION_SEAL
+        or authority.invalidated
+    ):
+        raise ProviderRequestScopeDeniedError("native_etf_initial_qualification_scope_invalid")
+    if authority.expires_at <= datetime.now(UTC):
+        authority.invalidated = True
+        raise ProviderRequestScopeDeniedError("native_etf_initial_qualification_expired")
+    if (
+        str(provider_name or "").strip().lower() != authority.provider_name
+        or capability != authority.capability
+        or operation != authority.operation
+        or instrument_id != authority.instrument_id
+        or profile_id != authority.fund_profile_id
+        or str(provider_symbol or "").strip().upper() != authority.provider_symbol
+    ):
+        authority.invalidated = True
+        raise ProviderRequestScopeDeniedError("native_etf_initial_qualification_scope_mismatch")
+    if authority.physical_requests_started >= authority.max_physical_requests:
+        authority.invalidated = True
+        raise ProviderRequestScopeDeniedError("native_etf_initial_qualification_budget_exhausted")
+    authority.started = True
+    authority.physical_requests_started += 1
+    return authority
+
+
+def _native_etf_initial_qualification_matches(
+    *,
+    authority: _NativeETFInitialQualificationAuthority | None,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str | None,
+    instrument_id: int | None,
+    provider_symbol: str | None,
+    profile_id: int | None,
+    source: DataSource,
+    policy: ProviderPolicy,
+    entitlement: ProviderEntitlement,
+    require_started: bool = True,
+) -> bool:
+    if (
+        not isinstance(authority, _NativeETFInitialQualificationAuthority)
+        or authority.seal is not _NATIVE_ETF_INITIAL_QUALIFICATION_SEAL
+        or authority.invalidated
+        or (require_started and not authority.started)
+        or authority.expires_at <= datetime.now(UTC)
+        or (require_started and authority.physical_requests_started < 1)
+        or (
+            not require_started
+            and authority.physical_requests_started >= authority.max_physical_requests
+        )
+        or authority.physical_requests_started > authority.max_physical_requests
+        or provider_name.strip().lower() != authority.provider_name
+        or source.id != authority.data_source_id
+        or source.name.strip().lower() != authority.provider_name
+        or not source.is_active
+        or capability != ProviderCapability.ETF_HOLDINGS
+        or operation != NATIVE_ETF_INITIAL_QUALIFICATION_OPERATION
+        or operation != authority.operation
+        or instrument_id != authority.instrument_id
+        or profile_id != authority.fund_profile_id
+        or str(provider_symbol or "").strip().upper() != authority.provider_symbol
+        or policy.is_enabled
+        or str(entitlement.live_probe_status or "not_run").strip().lower() != "not_run"
+        or int(entitlement.revision or 1) != authority.entitlement_revision
+        or provider_native_etf_review_fingerprint(source, policy, entitlement)
+        != authority.provider_review_fingerprint
+    ):
+        return False
+    try:
+        from app.services.provider_quota_coordinator import (  # noqa: PLC0415
+            account_scope_for_provider,
+        )
+
+        actual_scope = account_scope_for_provider(provider_name, str(policy.quota_scope or ""))
+    except Exception:  # noqa: BLE001 - an unresolved scope fails closed.
+        return False
+    return actual_scope == authority.account_scope
+
+
+def native_etf_initial_qualification_allows_disabled_policy(
+    *,
+    provider_name: str,
+    capability: ProviderCapability,
+    operation: str,
+    profile_id: int,
+    instrument_id: int,
+    provider_symbol: str,
+    source: DataSource,
+    policy: ProviderPolicy,
+    entitlement: ProviderEntitlement,
+    adapter: Any,
+) -> bool:
+    """Check the active scope before ETF's bridge admits a disabled policy.
+
+    ETF's shared transport bridge may use this predicate only for its existing
+    initial-qualification policy gate. It does not consume a request slot or
+    qualify the source; ``execute_provider_call`` repeats the full check and
+    consumes the physical-hop budget before admission.
+    """
+
+    if (
+        str(getattr(adapter, "source_provider", "")).strip().lower()
+        != str(provider_name).strip().lower()
+        or not callable(getattr(adapter, "fetch_latest", None))
+        or not callable(getattr(adapter, "fetch_for_date", None))
+    ):
+        return False
+    authority = _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.get()
+    return _native_etf_initial_qualification_matches(
+        authority=authority,
+        provider_name=provider_name,
+        capability=capability,
+        operation=operation,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+        profile_id=profile_id,
+        source=source,
+        policy=policy,
+        entitlement=entitlement,
+        require_started=False,
+    )
 
 
 def _new_etf_initial_qualification_authority(
@@ -2904,6 +3284,21 @@ async def resolve_provider_chain(
         and profile_id == vaneck_qualification.fund_profile_id
         and str(provider_symbol or "").strip().upper() == vaneck_qualification.provider_symbol
     )
+    native_etf_qualification = _NATIVE_ETF_INITIAL_QUALIFICATION_CONTEXT.get()
+    allow_disabled_native_etf_policy = (
+        isinstance(native_etf_qualification, _NativeETFInitialQualificationAuthority)
+        and native_etf_qualification.seal is _NATIVE_ETF_INITIAL_QUALIFICATION_SEAL
+        and native_etf_qualification.started
+        and not native_etf_qualification.invalidated
+        and native_etf_qualification.expires_at > datetime.now(UTC)
+        and native_etf_qualification.physical_requests_started
+        <= native_etf_qualification.max_physical_requests
+        and capability == ProviderCapability.ETF_HOLDINGS
+        and operation == NATIVE_ETF_INITIAL_QUALIFICATION_OPERATION
+        and instrument_id == native_etf_qualification.instrument_id
+        and profile_id == native_etf_qualification.fund_profile_id
+        and str(provider_symbol or "").strip().upper() == native_etf_qualification.provider_symbol
+    )
     await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
         return []
@@ -2941,6 +3336,16 @@ async def resolve_provider_chain(
                 DataSource.name == "vaneck",
             ),
         )
+    if allow_disabled_native_etf_policy:
+        policy_enabled_filter = or_(
+            policy_enabled_filter,
+            and_(
+                ProviderPolicy.is_enabled.is_(False),
+                ProviderPolicy.capability == ProviderCapability.ETF_HOLDINGS,
+                DataSource.name == native_etf_qualification.provider_name,
+                DataSource.id == native_etf_qualification.data_source_id,
+            ),
+        )
     rows = (
         await db.execute(
             select(ProviderPolicy, ProviderHealthState, DataSource, ProviderEntitlement)
@@ -2972,6 +3377,7 @@ async def resolve_provider_chain(
         await get_provider_binding_ids(db, instrument_id) if instrument_id is not None else set()
     )
     instrument_routing: tuple[str, str] | None = None
+    has_active_primary_usd_us_listing = False
     if instrument_id is not None:
         instrument_routing = (
             await db.execute(
@@ -2981,6 +3387,34 @@ async def resolve_provider_chain(
                 .where(Instrument.id == instrument_id)
             )
         ).one_or_none()
+        if instrument_routing is not None:
+            normalized_routing = tuple(
+                str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
+                for value in instrument_routing
+            )
+            if (
+                normalized_routing == _ETV_PRICE_HISTORY_INSTRUMENT_ROUTING
+                and capability == ProviderCapability.PRICE_HISTORY
+                and _operation_family(operation or "") == "fetch_ohlcv"
+            ):
+                has_active_primary_usd_us_listing = (
+                    await db.execute(
+                        select(InstrumentListing.id)
+                        .join(Exchange, Exchange.id == InstrumentListing.exchange_id)
+                        .join(Instrument, Instrument.id == InstrumentListing.instrument_id)
+                        .where(
+                            InstrumentListing.instrument_id == instrument_id,
+                            InstrumentListing.is_active.is_(True),
+                            InstrumentListing.is_primary.is_(True),
+                            InstrumentListing.currency.is_not(None),
+                            InstrumentListing.currency.ilike("USD"),
+                            Instrument.currency.ilike("USD"),
+                            Exchange.country_code.is_not(None),
+                            Exchange.country_code.ilike("US"),
+                        )
+                        .limit(1)
+                    )
+                ).first() is not None
     resolved: list[ResolvedProvider] = []
     current_environment = settings.APP_ENV.strip().lower()
     for policy, health, data_source, entitlement in rows:
@@ -2994,7 +3428,23 @@ async def resolve_provider_chain(
             policy=policy,
             entitlement=entitlement,
         )
-        if not policy.is_enabled and not vaneck_initial_qualification:
+        native_initial_qualification = _native_etf_initial_qualification_matches(
+            authority=native_etf_qualification,
+            provider_name=data_source.name,
+            capability=capability,
+            operation=operation,
+            instrument_id=instrument_id,
+            provider_symbol=provider_symbol,
+            profile_id=profile_id,
+            source=data_source,
+            policy=policy,
+            entitlement=entitlement,
+        )
+        if (
+            not policy.is_enabled
+            and not vaneck_initial_qualification
+            and not native_initial_qualification
+        ):
             continue
         if (
             scoped_acquisition
@@ -3088,6 +3538,7 @@ async def resolve_provider_chain(
                 policy=policy,
             )
             or vaneck_initial_qualification
+            or native_initial_qualification
         )
         if not live_probe_is_positive and not initial_etf_qualification:
             continue
@@ -3134,23 +3585,33 @@ async def resolve_provider_chain(
                 continue
             if capability.value not in list_provider_capabilities(data_source.name):
                 continue
-        if uses_etf_adapter and instrument_routing is not None:
-            instrument_kinds = {
-                str(value or "").strip().lower().replace("-", "_").replace(" ", "_")
-                for value in instrument_routing
-            }
-            if not instrument_kinds.intersection({"etf", "exchange_traded_fund"}):
+        if uses_etf_adapter:
+            if not _etf_holdings_instrument_routing_allowed(instrument_routing):
                 continue
-        elif instrument_routing is not None and not provider_supports_instrument(
-            data_source.name,
-            asset_class=instrument_routing[0],
-            instrument_type=instrument_routing[1],
-        ):
-            # Method-level compatibility (for example ``fetch_ohlcv``) does
-            # not imply that the provider understands this instrument.  Keep
-            # routing class-aware so equity symbols cannot fall through to a
-            # crypto-only exchange adapter.
-            continue
+        elif instrument_routing is not None:
+            normalized_instrument_type = (
+                str(instrument_routing[1] or "").strip().lower().replace("-", "_").replace(" ", "_")
+            )
+            if normalized_instrument_type == "exchange_traded_vehicle":
+                instrument_supported = _massive_us_etv_history_route_allowed(
+                    provider_name=data_source.name,
+                    capability=capability,
+                    operation=operation,
+                    instrument_routing=instrument_routing,
+                    has_active_primary_usd_us_listing=has_active_primary_usd_us_listing,
+                )
+            else:
+                instrument_supported = provider_supports_instrument(
+                    data_source.name,
+                    asset_class=instrument_routing[0],
+                    instrument_type=instrument_routing[1],
+                )
+            if not instrument_supported:
+                # Method-level compatibility (for example ``fetch_ohlcv``) does
+                # not imply that the provider understands this instrument.  Keep
+                # routing class-aware so equity symbols cannot fall through to a
+                # crypto-only exchange adapter.
+                continue
         allowed_environments = {
             str(value).strip().lower() for value in entitlement.enabled_environments
         }
@@ -3293,7 +3754,18 @@ async def execute_provider_call(
         raise TypeError(
             "provider invoke callback must be synchronous; async callbacks are not awaited"
         )
+    native_etf_qualification = _consume_native_etf_initial_qualification_request(
+        provider_name=provider_name,
+        capability=capability,
+        operation=operation,
+        instrument_id=instrument_id,
+        provider_symbol=provider_symbol,
+        profile_id=profile_id,
+    )
     vaneck_qualification = _VANECK_INITIAL_QUALIFICATION_CONTEXT.get()
+    if native_etf_qualification is not None and vaneck_qualification is not None:
+        native_etf_qualification.invalidated = True
+        raise ProviderRequestScopeDeniedError("multiple_etf_initial_qualification_scopes_denied")
     if (
         isinstance(vaneck_qualification, _VanEckInitialQualificationAuthority)
         and vaneck_qualification.seal is _VANECK_INITIAL_QUALIFICATION_SEAL
@@ -3334,6 +3806,7 @@ async def execute_provider_call(
     if (
         _ETF_INITIAL_QUALIFICATION_CONTEXT.get() is not None
         or _VANECK_INITIAL_QUALIFICATION_CONTEXT.get() is not None
+        or native_etf_qualification is not None
     ):
         resolve_kwargs.update(provider_symbol=provider_symbol, profile_id=profile_id)
     chain = await resolve_provider_chain(db, capability, **resolve_kwargs)

@@ -1,0 +1,15 @@
+{
+  "state": "green",
+  "created_at": "2026-10-28T17:22:41.581986+00:00",
+  "starting_staging_sha": "e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2",
+  "staging_sha": "4bc50a9de9eb2453c75eda047d01466309a3a3da",
+  "sources": [
+    {
+      "branch": "feat/market-data-provider-platform",
+      "sha": "4c8950b61f863eb317fcf5369930721d2cef76de"
+    }
+  ],
+  "github_run": "https://github.com/jagnelo/charting-platform/actions/runs/40721314996",
+  "reconciled_interrupted_watch": true,
+  "previous_watch_failure": "GitHub CI is not green for exact staging commit 4bc50a9de9eb2453c75eda047d01466309a3a3da: https://github.com/jagnelo/charting-platform/actions/runs/40721314996 attempts=[{'attempt': 1, 'url': 'https://github.com/jagnelo/charting-platform/actions/runs/40721314996', 'status': 'in_progress', 'conclusion': None}]"
+}

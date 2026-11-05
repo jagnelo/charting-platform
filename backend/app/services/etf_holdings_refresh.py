@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import csv
+import hashlib
+import json
+import re
 import time
 import zipfile
 from contextlib import asynccontextmanager
@@ -17,16 +21,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.config import settings
+from app.models.asset_class import InstrumentType
 from app.models.data_source import DataSource
 from app.models.etf_holdings import (
     ETFHolding,
     ETFHoldingsAdapterState,
+    ETFHoldingsBackfillJob,
     ETFHoldingsRawArtifact,
     ETFHoldingsSnapshot,
     ETFProfile,
 )
 from app.models.instrument import Instrument
-from app.models.provider_runtime import ProviderRequestLog
+from app.models.provider_runtime import ProviderCapability, ProviderRequestLog
 from app.providers.base import IdentifierRecord
 from app.providers.errors import bounded_redact_provider_message
 from app.services.etf_consumer_types import (
@@ -47,6 +53,7 @@ from app.services.etf_holdings import (
     reconcile_snapshot_constituents,
 )
 from app.services.etf_holdings_adapters import (
+    ETFNativeSourceEvidenceError,
     HoldingsAdapterProbe,
     get_holdings_adapter,
     infer_adapter_key,
@@ -63,6 +70,7 @@ from app.services.etf_holdings_capability import (
 from app.services.etf_holdings_provider_bridge import (
     ETFHoldingsRouteHeldError,
     ProviderBackedHTTPXClient,
+    _canonical_request_url,
     bind_etf_holdings_request_context,
     require_unbound_etf_holdings_context,
 )
@@ -117,7 +125,7 @@ class ETFHoldingsBootstrapResult:
 
 @dataclass(slots=True)
 class ETFHoldingsAcquireResult:
-    profile: ETFProfile
+    profile: ETFProfile | None
     outcome: str
     refresh: bool
     refresh_attempted: bool
@@ -128,6 +136,8 @@ class ETFHoldingsAcquireResult:
     source_operation: str | None
     provider_request_log_ids: list[int]
     message: str | None = None
+    instrument_id: int | None = None
+    symbol: str | None = None
 
 
 SEC_FUND_TICKERS_URL = "https://www.sec.gov/files/company_tickers_mf.json"
@@ -163,6 +173,15 @@ def _holdings_completeness_status(
 
     metadata = result_metadata or {}
     configured_aliases = aliases or {}
+    native_completeness = metadata.get("native_composition_completeness_evidence")
+    if isinstance(native_completeness, dict):
+        if (
+            native_completeness.get("status") == "complete"
+            and native_completeness.get("verified") is True
+            and native_completeness.get("all_reported_rows_parsed") is True
+        ):
+            return "complete"
+        return "incomplete"
     explicit = metadata.get("completeness_status") or configured_aliases.get(
         "holdings_completeness_status"
     )
@@ -180,6 +199,91 @@ def _holdings_completeness_status(
     return _DECLARED_HOLDINGS_COMPLETENESS_BY_SOURCE_QUALITY.get(source_quality, "unknown")
 
 
+_NATIVE_COMPOSITION_COMPLETENESS_BASES = {
+    "spdr": "spdr_fund_scoped_daily_holdings_workbook",
+    "invesco": "invesco_total_number_of_holdings",
+    "ishares": "blackrock_holdings_all_container",
+    "amplify": "amplify_full_multi_account_csv_selected_account",
+}
+
+
+def _verified_native_composition_completeness(
+    *, profile: ETFProfile, adapter: Any, fetch_result: Any
+) -> dict[str, Any]:
+    """Validate adapter row accounting before a native snapshot can be current."""
+
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    provider = str(getattr(adapter, "source_provider", "")).strip().lower()
+    expected_basis = _NATIVE_COMPOSITION_COMPLETENESS_BASES.get(provider)
+    evidence = metadata.get("native_composition_completeness")
+    rows = fetch_result.rows if isinstance(fetch_result.rows, list) else []
+    reported_rows = evidence.get("reported_rows") if isinstance(evidence, dict) else None
+    parsed_rows = evidence.get("parsed_rows") if isinstance(evidence, dict) else None
+    counts_match = (
+        isinstance(reported_rows, int)
+        and not isinstance(reported_rows, bool)
+        and reported_rows > 0
+        and isinstance(parsed_rows, int)
+        and not isinstance(parsed_rows, bool)
+        and parsed_rows == len(rows) == reported_rows
+    )
+    checks_pass = bool(
+        expected_basis is not None
+        and isinstance(evidence, dict)
+        and evidence.get("status") == "complete"
+        and evidence.get("basis") == expected_basis
+        and evidence.get("all_reported_rows_parsed") is True
+        and counts_match
+    )
+    if provider == "spdr":
+        checks_pass = checks_pass and bool(
+            evidence.get("fund_identity_present") is True
+            and evidence.get("provider_date_present") is True
+            and evidence.get("malformed_rows") == 0
+        )
+    elif provider == "invesco":
+        checks_pass = checks_pass and bool(
+            evidence.get("authoritative_total_matches") is True
+            and evidence.get("response_rows") == parsed_rows
+            and evidence.get("continuation_clear") is True
+        )
+    elif provider == "ishares":
+        checks_pass = checks_pass and bool(
+            evidence.get("core_columns_aligned") is True
+            and evidence.get("all_list_columns_aligned") is True
+            and evidence.get("authoritative_total_matches") is True
+            and evidence.get("continuation_clear") is True
+        )
+    elif provider == "amplify":
+        expected_symbol = (
+            profile.instrument.symbol.strip().upper() if profile.instrument is not None else ""
+        )
+        checks_pass = checks_pass and bool(
+            evidence.get("account") == expected_symbol
+            and evidence.get("full_csv_parsed") is True
+            and evidence.get("malformed_rows") == 0
+            and evidence.get("missing_dates") == 0
+            and evidence.get("composition_date_count") == 1
+        )
+    if not checks_pass:
+        observed = evidence.get("status") if isinstance(evidence, dict) else "missing"
+        reason = evidence.get("reason") if isinstance(evidence, dict) else None
+        raise ETFNativeSourceEvidenceError(
+            "Native holdings composition completeness is not proven "
+            f"(provider={provider}, status={observed}, reason={reason or 'row accounting did not match'})."
+        )
+    payload = fetch_result.raw_json if fetch_result.raw_json is not None else fetch_result.raw_text
+    return {
+        **evidence,
+        "status": "complete",
+        "verified": True,
+        "all_reported_rows_parsed": True,
+        "reported_rows": reported_rows,
+        "parsed_rows": parsed_rows,
+        "source_payload_hash": _hash_payload(payload),
+    }
+
+
 _CANARY_HISTORY_KEY = "canary_history"
 _CANARY_HISTORY_LIMIT = 90
 
@@ -188,6 +292,118 @@ def _state_metadata(value: Any) -> dict[str, Any]:
     """Return persisted adapter metadata in the dictionary shape we require."""
 
     return value if isinstance(value, dict) else {}
+
+
+_VANECK_OIH_RAW_WORKBOOK_SCHEMA_FIELDS = frozenset(
+    {"raw_workbook_base64", "raw_workbook_sha256", "raw_workbook_bytes"}
+)
+_VANECK_OIH_RETAINED_WORKBOOK_COLUMNS = (
+    "Number",
+    "Ticker",
+    "Holding Name",
+    "Identifier (FIGI)",
+    "Shares",
+    "Asset Class",
+    "Market Value (US$)",
+    "Notional Value",
+    "% of Net Assets",
+)
+
+
+def _vaneck_oih_schema_fingerprints(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+    *,
+    parser_version: str,
+    verified_body_identity: list[str] | None,
+) -> tuple[str | None, str | None]:
+    """Fingerprint OIH's parsed XLSX schema independently of retained raw diagnostics.
+
+    The qualification response carries raw workbook diagnostics in its stored
+    JSON envelope; ordinary refresh carries the same parsed workbook rows
+    without those diagnostics. Only this exact, already body-verified OIH
+    adapter path may normalize that envelope difference.
+    """
+
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    instrument = getattr(profile, "instrument", None)
+    payload = fetch_result.raw_json
+    if not (
+        str(getattr(adapter, "adapter_key", "")).strip().lower() == "vaneck"
+        and str(getattr(adapter, "source_provider", "")).strip().lower() == "vaneck"
+        and instrument is not None
+        and str(getattr(instrument, "symbol", "")).strip().upper() == "OIH"
+        and fetch_result.source_identifier == "oil-services-etf-oih"
+        and metadata.get("source_provider") == "vaneck"
+        and metadata.get("adapter_key") == "vaneck"
+        and metadata.get("product_slug") == "oil-services-etf-oih"
+        and metadata.get("source_format") == "xlsx"
+        and metadata.get("body_identity_status") == "matched"
+        and isinstance(verified_body_identity, list)
+        and bool(verified_body_identity)
+        and parser_version == "vaneck-xlsx-v1"
+        and isinstance(payload, dict)
+    ):
+        return None, None
+
+    base_fields = {"source_format", "workbook_rows"}
+    payload_fields = set(payload)
+    has_diagnostics = payload_fields == base_fields | _VANECK_OIH_RAW_WORKBOOK_SCHEMA_FIELDS
+    if payload_fields != base_fields and not has_diagnostics:
+        return None, None
+    if payload.get("source_format") != "xlsx" or not isinstance(payload.get("workbook_rows"), list):
+        return None, None
+    if has_diagnostics and not (
+        isinstance(payload.get("raw_workbook_base64"), str)
+        and re.fullmatch(r"[0-9a-f]{64}", str(payload.get("raw_workbook_sha256") or ""))
+        and isinstance(payload.get("raw_workbook_bytes"), int)
+        and not isinstance(payload.get("raw_workbook_bytes"), bool)
+        and payload["raw_workbook_bytes"] > 0
+    ):
+        return None, None
+
+    workbook_rows = payload["workbook_rows"]
+    header_row_index = 2
+    header_row = (
+        workbook_rows[header_row_index]
+        if len(workbook_rows) > header_row_index
+        and isinstance(workbook_rows[header_row_index], list)
+        else None
+    )
+    parsed_schema = {
+        "source_format": payload["source_format"],
+        "workbook_rows": workbook_rows,
+        # `_payload_schema_shape` intentionally summarizes arrays by element
+        # type. Include the actual OIH column row so workbook header changes
+        # remain visible to this source-specific drift contract.
+        "workbook_header": {
+            f"row_{header_row_index}": (
+                {
+                    f"{index}:{column}": "column"
+                    for index, column in enumerate(header_row)
+                    if isinstance(column, str)
+                }
+                if header_row is not None
+                else None
+            )
+        },
+    }
+    observed = _schema_fingerprint(raw_payload_json=parsed_schema)
+    legacy_qualification = None
+    if not has_diagnostics and header_row == list(_VANECK_OIH_RETAINED_WORKBOOK_COLUMNS):
+        # Existing deployed qualification rows used this exact diagnostic-
+        # expanded shape. This is only a compatibility witness; the next
+        # successful ordinary refresh stores `observed` in adapter state.
+        legacy_payload = {
+            "source_format": payload["source_format"],
+            "workbook_rows": workbook_rows,
+            "raw_workbook_base64": "",
+            "raw_workbook_sha256": "",
+            "raw_workbook_bytes": 0,
+        }
+        legacy_qualification = _schema_fingerprint(raw_payload_json=legacy_payload)
+    return observed, legacy_qualification
 
 
 def _failure_streak(value: Any) -> int:
@@ -855,6 +1071,8 @@ async def _ensure_schema_fingerprint_is_stable(
     parser_version: str,
     raw_payload_text: str | None = None,
     raw_payload_json: dict | None = None,
+    schema_fingerprint_override: str | None = None,
+    legacy_qualification_fingerprint: str | None = None,
 ) -> None:
     """Reject an unexplained artifact-shape change before snapshot persistence.
 
@@ -869,7 +1087,7 @@ async def _ensure_schema_fingerprint_is_stable(
     execute = getattr(db, "execute", None)
     if not callable(execute):
         return
-    observed = _schema_fingerprint(
+    observed = schema_fingerprint_override or _schema_fingerprint(
         raw_payload_text=raw_payload_text,
         raw_payload_json=raw_payload_json,
     )
@@ -890,6 +1108,12 @@ async def _ensure_schema_fingerprint_is_stable(
         return
     previous_parser = str(getattr(state, "parser_version", None) or "")
     if previous_parser and previous_parser != parser_version:
+        return
+    if (
+        legacy_qualification_fingerprint is not None
+        and previous_parser == parser_version == "vaneck-xlsx-v1"
+        and str(previous) == legacy_qualification_fingerprint
+    ):
         return
     raise ETFHoldingsSchemaDriftError(
         previous=str(previous),
@@ -1336,7 +1560,10 @@ async def _resolve_canonical_fund_instrument(
     statement = (
         select(Instrument)
         .join(Instrument.instrument_type)
-        .options(selectinload(Instrument.instrument_type))
+        .options(
+            selectinload(Instrument.instrument_type).selectinload(InstrumentType.asset_class),
+            selectinload(Instrument.issuer),
+        )
         .where(func.upper(Instrument.symbol) == symbol)
         .limit(2)
     )
@@ -1344,12 +1571,21 @@ async def _resolve_canonical_fund_instrument(
     if len(matches) != 1:
         return None
     instrument = matches[0]
+    instrument_type = instrument.instrument_type
+    type_name = str(getattr(instrument_type, "name", "")).strip().casefold()
+    asset_class = getattr(instrument_type, "asset_class", None)
+    asset_class_name = str(getattr(asset_class, "name", "")).strip().casefold()
+    supported_fund_type = type_name in {
+        "etf",
+        "index etf",
+        "mutual fund",
+        "closed-end fund",
+    } or (type_name == "exchange traded vehicle" and asset_class_name == "exchange traded product")
     if (
         not instrument.is_active
         or instrument.is_synthetic
         or instrument.identity_status != "resolved"
-        or instrument.instrument_type.name.strip().casefold()
-        not in {"etf", "index etf", "mutual fund", "closed-end fund"}
+        or not supported_fund_type
     ):
         return None
     return instrument
@@ -1370,6 +1606,7 @@ async def acquire_etf_holdings_profile(
     symbol: str,
     request_id: str,
     refresh: bool,
+    instrument_id: int | None = None,
 ) -> ETFHoldingsAcquireResult | None:
     """Acquire only the selected ETF's configured issuer route through Provider.
 
@@ -1382,12 +1619,17 @@ async def acquire_etf_holdings_profile(
 
     normalized_symbol = str(symbol or "").strip().upper()
     instrument = await _resolve_canonical_fund_instrument(db, normalized_symbol)
-    if instrument is None:
+    if instrument is None or (instrument_id is not None and instrument.id != instrument_id):
         return None
 
-    route_metadata = known_etf_route_metadata(normalized_symbol)
+    route_metadata = known_etf_route_metadata(
+        normalized_symbol,
+        canonical_issuer=getattr(instrument, "issuer", None),
+        canonical_fund_name=str(getattr(instrument, "name", "") or ""),
+        allow_catalog_route=True,
+    )
     route_aliases = route_metadata.get("provider_aliases") if route_metadata else None
-    curated_adapter_key = (
+    reviewed_adapter_key = (
         str(route_aliases.get("holdings_adapter") or "").strip().lower()
         if isinstance(route_aliases, dict)
         else ""
@@ -1396,14 +1638,40 @@ async def acquire_etf_holdings_profile(
     profile_created = False
     curated_route_applied = False
     if profile is None:
-        if not refresh or not curated_adapter_key:
+        if not refresh:
             return None
+        if not reviewed_adapter_key:
+            # A deliberate user selection is still useful when this fund has
+            # no audited issuer route: return a typed unavailable result for
+            # the exact canonical instrument rather than a 404 or another
+            # fund's cached snapshot. Do not create a speculative profile.
+            return ETFHoldingsAcquireResult(
+                profile=None,
+                outcome="unavailable",
+                refresh=True,
+                refresh_attempted=False,
+                refresh_succeeded=False,
+                snapshot=None,
+                snapshot_id=None,
+                source_provider=None,
+                source_operation=None,
+                provider_request_log_ids=[],
+                message=(
+                    "No exact audited issuer route or fund-specific product identifier is "
+                    "available for this selection; no profile or source request was created."
+                ),
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+            )
         profile = await ensure_etf_profile(db, instrument)
         # The new row was created by foreign key only. Keep the already-loaded
         # canonical instrument attached so subsequent route metadata/probing
         # never triggers async lazy loading on this explicit acquire request.
         profile.instrument = instrument
-        curated_route_applied = _apply_known_route_metadata(profile)
+        curated_route_applied = _apply_known_route_metadata(
+            profile,
+            route_metadata=route_metadata,
+        )
         profile_created = True
         # The shared Provider bridge validates the committed profile identity
         # before issuing a request. Persist only this explicitly requested,
@@ -1442,14 +1710,17 @@ async def acquire_etf_holdings_profile(
 
     configured_adapter_key = str(profile.adapter_key or "").strip().lower()
     profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
-    reviewed_adapter_key = curated_adapter_key or profile_adapter_key
-    if not profile_created and curated_adapter_key:
-        curated_route_applied = _apply_known_route_metadata(profile)
+    if not profile_created and reviewed_adapter_key:
+        curated_route_applied = _apply_known_route_metadata(
+            profile,
+            route_metadata=route_metadata,
+        )
         configured_adapter_key = str(profile.adapter_key or "").strip().lower()
+        profile_adapter_key = str(_aliases(profile).get("holdings_adapter") or "").strip().lower()
     if (
         not reviewed_adapter_key
         or configured_adapter_key != reviewed_adapter_key
-        or (not curated_adapter_key and profile_adapter_key != configured_adapter_key)
+        or (profile_adapter_key and profile_adapter_key != configured_adapter_key)
     ):
         return ETFHoldingsAcquireResult(
             profile=profile,
@@ -1462,7 +1733,10 @@ async def acquire_etf_holdings_profile(
             source_provider=None,
             source_operation=None,
             provider_request_log_ids=[],
-            message="No committed issuer-only holdings route is configured; no request was made.",
+            message=(
+                "No exact current or curated issuer route matches this canonical ETF; "
+                "no source request was made."
+            ),
         )
     if curated_route_applied and not profile_created:
         # Explicit refresh may repair an older profile with current curated
@@ -1491,7 +1765,17 @@ async def acquire_etf_holdings_profile(
 
     source_provider = str(getattr(adapter, "source_provider", "")).strip().lower() or None
     operation = "fetch_etf_holdings_latest"
-    if getattr(adapter, "supports_issuer_only_acquire", False) is not True:
+    reviewed_source_provider = (
+        str(route_aliases.get("holdings_source_provider") or source_provider or "").strip().lower()
+        if isinstance(route_aliases, dict)
+        else source_provider or ""
+    )
+    if (
+        not source_provider
+        or not reviewed_source_provider
+        or source_provider != reviewed_source_provider
+        or _aliases(profile).get("holdings_source_provider") != reviewed_source_provider
+    ):
         return ETFHoldingsAcquireResult(
             profile=profile,
             outcome="held",
@@ -1503,7 +1787,10 @@ async def acquire_etf_holdings_profile(
             source_provider=source_provider,
             source_operation=operation,
             provider_request_log_ids=[],
-            message="The selected adapter is not proven issuer-only; no request was made.",
+            message=(
+                "The selected native adapter does not match the audited publisher identity; "
+                "no request was made."
+            ),
         )
 
     if source_provider == "vaneck" and not _first_alias(_string_aliases(profile), "product_slug"):
@@ -2287,7 +2574,11 @@ def _aliases(profile: ETFProfile) -> dict[str, Any]:
     return aliases if isinstance(aliases, dict) else {}
 
 
-def _apply_known_route_metadata(profile: ETFProfile) -> bool:
+def _apply_known_route_metadata(
+    profile: ETFProfile,
+    *,
+    route_metadata: dict[str, Any] | None = None,
+) -> bool:
     """Apply curated symbol-to-issuer routing to an existing ETF profile.
 
     A profile may have been created before a curated route was added, or may
@@ -2303,7 +2594,10 @@ def _apply_known_route_metadata(profile: ETFProfile) -> bool:
     if not symbol:
         return False
 
-    route_metadata = known_etf_route_metadata(symbol)
+    route_metadata = route_metadata or known_etf_route_metadata(
+        symbol,
+        canonical_issuer=getattr(instrument, "issuer", None),
+    )
     if not route_metadata:
         return False
 
@@ -2335,7 +2629,22 @@ def _apply_known_route_metadata(profile: ETFProfile) -> bool:
         )
 
         explicit_adapter = str(seeded_aliases.get("holdings_adapter") or "").strip().lower()
-        if explicit_adapter and get_holdings_adapter(explicit_adapter) is not None:
+        explicit_adapter_impl = get_holdings_adapter(explicit_adapter) if explicit_adapter else None
+        if explicit_adapter_impl is not None:
+            aliases = _aliases(profile)
+            source_provider = (
+                str(getattr(explicit_adapter_impl, "source_provider", "")).strip().lower()
+            )
+            if source_provider:
+                # The adapter registry is the native route's publisher
+                # identity. Persist it beside the curated adapter key so the
+                # shared Provider bridge can verify the exact same identity;
+                # this does not create or enable a Provider source/policy.
+                profile.provider_aliases = {
+                    **aliases,
+                    "holdings_source_provider": aliases.get("holdings_source_provider")
+                    or source_provider,
+                }
             profile.adapter_key = explicit_adapter
             profile.adapter_status = "candidate"
             profile.adapter_confidence = Decimal("0.9000")
@@ -2655,12 +2964,69 @@ def _validate_extracted_artifact_identity(
 def _validate_artifact_identity(
     profile: ETFProfile,
     raw_text: str | None,
+    *,
+    verified_body_identity: list[str] | None = None,
 ) -> dict[str, Any]:
     expectations = _artifact_identity_expectations(profile)
     extracted = _extract_artifact_identities(raw_text)
     required = bool(expectations) or _bool_alias(
         _aliases(profile), "require_artifact_identity_match"
     )
+    # A strict adapter may validate identity from a structured source artifact
+    # that is not represented in the normalized holdings table text (for
+    # example, an XLSX worksheet title). The caller supplies this only after
+    # checking the registered VanEck OIH adapter and its matched body evidence.
+    if verified_body_identity:
+        profile_expectations = _profile_identity_expectations(profile)
+        symbol_expectations = [
+            item["value"]
+            for item in (*profile_expectations, *expectations)
+            if item["type"] in {"profile_symbol", "expected_symbol"}
+        ]
+        name_expectations = [
+            item["value"]
+            for item in (*profile_expectations, *expectations)
+            if item["type"] in {"profile_name", "expected_name"}
+        ]
+        identifier_expectations = {
+            "artifact_cusip": [
+                item["value"] for item in expectations if item["type"] == "expected_cusip"
+            ],
+            "artifact_isin": [
+                item["value"] for item in expectations if item["type"] == "expected_isin"
+            ],
+        }
+        for identity in extracted:
+            expected_values = (
+                symbol_expectations
+                if identity["type"] == "artifact_symbol"
+                else name_expectations
+                if identity["type"] == "artifact_name"
+                else identifier_expectations.get(identity["type"], [])
+            )
+            if expected_values and not all(
+                _identity_matches(identity["value"], expected) for expected in expected_values
+            ):
+                return {
+                    "status": "mismatch",
+                    "required": True,
+                    "matched": [],
+                    "expected": expectations or profile_expectations,
+                    "artifact_identity": extracted,
+                    "body_identity_evidence": verified_body_identity,
+                    "reason": "Structured workbook identity conflicts with explicit fund identity.",
+                }
+        return {
+            "status": "matched",
+            "required": required,
+            "matched": [
+                {"type": "verified_body_identity", "value": evidence}
+                for evidence in verified_body_identity
+            ],
+            "expected": expectations,
+            "artifact_identity": extracted,
+            "body_identity_evidence": verified_body_identity,
+        }
     if not raw_text:
         status = "missing_raw_artifact" if required else "unverified"
         return {
@@ -2708,6 +3074,39 @@ def _validate_artifact_identity(
     }
 
 
+def _verified_vaneck_oih_body_identity(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+) -> list[str] | None:
+    """Return strict OIH workbook identity only from the registered adapter result."""
+
+    instrument = profile.instrument
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    aliases = _string_aliases(profile)
+    evidence = metadata.get("body_identity_evidence")
+    composition_date = _date_from_value(metadata.get("composition_date"))
+    if (
+        str(getattr(adapter, "adapter_key", "")).strip().lower() != "vaneck"
+        or str(getattr(adapter, "source_provider", "")).strip().lower() != "vaneck"
+        or instrument is None
+        or instrument.symbol.strip().upper() != "OIH"
+        or _first_alias(aliases, "product_slug", "issuer_product_id", "fund_slug")
+        != "oil-services-etf-oih"
+        or metadata.get("source_provider") != "vaneck"
+        or metadata.get("product_slug") != "oil-services-etf-oih"
+        or metadata.get("body_identity_status") != "matched"
+        or composition_date is None
+        or not isinstance(evidence, list)
+        or not evidence
+        or any(
+            not isinstance(item, str) or not item.strip() or len(item) > 240 for item in evidence
+        )
+    ):
+        return None
+    return [item.strip() for item in evidence]
+
+
 def _ensure_artifact_identity_is_safe(validation: dict[str, Any]) -> None:
     if validation["status"] in {"mismatch", "missing_raw_artifact"}:
         expected = ", ".join(
@@ -2730,6 +3129,8 @@ async def _refresh_adapter_route(
     vaneck_initial_qualification_job_id: int | None = None,
     vaneck_initial_qualification_budget: Any | None = None,
     vaneck_initial_qualification_authority: Any | None = None,
+    native_initial_qualification_job_id: int | None = None,
+    native_initial_qualification_scope: dict[str, Any] | None = None,
 ):
     aliases = _aliases(profile)
     if profile.instrument is None:
@@ -2741,6 +3142,11 @@ async def _refresh_adapter_route(
 
     symbol = profile.instrument.symbol
     identifiers = _string_aliases(profile)
+    if identifiers.get("issuer_product_catalog_key") == "ishares_us_etf_products_v1":
+        # This value comes from the already-resolved canonical Instrument row,
+        # never a request field or profile alias. It is an identity check for
+        # the official catalog row, not a source/product identity by itself.
+        identifiers["canonical_fund_name"] = str(profile.instrument.name or "")
     issuer_product_id = _issuer_product_identifier(identifiers)
     probe = probe or adapter.probe(
         symbol=symbol, name=profile.instrument.name, identifiers=identifiers
@@ -2761,6 +3167,8 @@ async def _refresh_adapter_route(
         vaneck_initial_qualification_budget=vaneck_initial_qualification_budget,
         vaneck_initial_qualification_job_id=vaneck_initial_qualification_job_id,
         vaneck_initial_qualification_authority=vaneck_initial_qualification_authority,
+        native_initial_qualification_job_id=native_initial_qualification_job_id,
+        native_initial_qualification_scope=native_initial_qualification_scope,
     ) as request_binding:
         try:
             if vaneck_initial_qualification_job_id is not None:
@@ -2777,6 +3185,11 @@ async def _refresh_adapter_route(
                     symbol=symbol,
                     issuer_product_id=issuer_product_id,
                     identifiers=identifiers,
+                    reviewed_request_url=(
+                        vaneck_initial_qualification_budget.expected_url
+                        if vaneck_initial_qualification_budget is not None
+                        else None
+                    ),
                 )
             else:
                 fetch_result = await adapter.fetch_latest(
@@ -2818,23 +3231,176 @@ async def _refresh_adapter_route(
             validation=_acquisition_validation(acquisition_request_id),
         )
         raise failure
-    artifact_identity_validation = _validate_artifact_identity(profile, fetch_result.raw_text)
-    try:
-        _ensure_artifact_identity_is_safe(artifact_identity_validation)
-    except ValueError as exc:
-        await _retain_rejected_fetch_artifact(
-            db,
-            profile,
-            adapter,
-            request_binding,
-            fetch_result=fetch_result,
-            failure=exc,
-            validation=_acquisition_validation(
-                acquisition_request_id,
+    verified_body_identity = _verified_vaneck_oih_body_identity(profile, adapter, fetch_result)
+    artifact_identity_validation = _validate_artifact_identity(
+        profile,
+        fetch_result.raw_text,
+        verified_body_identity=verified_body_identity,
+    )
+    native_qualification_evidence: dict[str, Any] | None = None
+    native_source_evidence: dict[str, Any] | None = None
+    if native_initial_qualification_job_id is not None:
+        try:
+            native_qualification_evidence = _native_initial_qualification_fetch_evidence(
+                profile,
+                adapter,
+                fetch_result,
+                request_binding=request_binding,
+            )
+            fund_identity = native_qualification_evidence["fund_identity"]
+            if fund_identity.get("basis") in {
+                "issuer_product_catalog",
+                "invesco_product_catalog",
+            }:
+                from app.services.etf_holdings_native_qualification import (  # noqa: PLC0415
+                    _verify_invesco_catalog_identity_evidence,
+                    _verify_issuer_catalog_identity_evidence,
+                )
+
+                qualification_job = await db.get(
+                    ETFHoldingsBackfillJob,
+                    native_initial_qualification_job_id,
+                )
+                catalog_source = await db.scalar(
+                    select(DataSource)
+                    .where(DataSource.name == adapter.source_provider)
+                    .execution_options(populate_existing=True)
+                )
+                if qualification_job is None or catalog_source is None:
+                    raise ValueError(
+                        "Native catalog qualification is missing its committed source or attempt"
+                    )
+                await db.refresh(qualification_job, attribute_names=["extra_data"])
+                verifier = (
+                    _verify_invesco_catalog_identity_evidence
+                    if fund_identity.get("basis") == "invesco_product_catalog"
+                    else _verify_issuer_catalog_identity_evidence
+                )
+                await verifier(
+                    db,
+                    evidence=fund_identity,
+                    profile=profile,
+                    source=catalog_source,
+                    job=qualification_job,
+                )
+            native_source_evidence = native_qualification_evidence
+            artifact_identity_validation = _native_artifact_identity_validation(
+                profile,
                 artifact_identity_validation,
-            ),
-        )
-        raise
+                native_qualification_evidence,
+            )
+        except (ETFHoldingsRouteHeldError, ValueError) as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=exc,
+                validation={"status": "native_initial_qualification_evidence_rejected"},
+            )
+            raise
+    else:
+        try:
+            result_provider = (
+                str((fetch_result.legal_metadata or {}).get("source_provider") or "")
+                .strip()
+                .lower()
+            )
+            route_resolution = (
+                str((fetch_result.legal_metadata or {}).get("route_resolution") or "")
+                .strip()
+                .lower()
+            )
+            if (
+                result_provider == str(getattr(adapter, "source_provider", "")).strip().lower()
+                and result_provider
+                in {
+                    "spdr",
+                    "invesco",
+                    "ishares",
+                    "amplify",
+                }
+                and route_resolution != "issuer_product_page_discovery"
+            ):
+                # Native adapter responses carry their own dated/completeness
+                # contract. Product-page discovery is the older explicit
+                # issuer-file route: keep its parser/identity behavior, but do
+                # not promote alias dates or inferred row counts to native proof.
+                native_source_evidence = _native_adapter_fetch_evidence(
+                    profile,
+                    adapter,
+                    fetch_result,
+                    request_binding=request_binding,
+                    require_body_witness=False,
+                )
+                fund_identity = native_source_evidence.get("fund_identity")
+                if isinstance(fund_identity, dict) and fund_identity.get("basis") in {
+                    "issuer_product_catalog",
+                    "invesco_product_catalog",
+                }:
+                    from types import SimpleNamespace  # noqa: PLC0415
+
+                    from app.services.etf_holdings_native_qualification import (  # noqa: PLC0415
+                        _verify_invesco_catalog_identity_evidence,
+                        _verify_issuer_catalog_identity_evidence,
+                    )
+
+                    catalog_source = await db.scalar(
+                        select(DataSource)
+                        .where(DataSource.name == adapter.source_provider)
+                        .execution_options(populate_existing=True)
+                    )
+                    lineage_ids = list(request_binding.request_log_ids)
+                    lineage_urls = [
+                        request_binding.request_urls_by_log_id.get(request_id)
+                        for request_id in lineage_ids
+                    ]
+                    if (
+                        catalog_source is None
+                        or not lineage_ids
+                        or len(lineage_ids) != len(set(lineage_ids))
+                        or any(not isinstance(url, str) or not url.strip() for url in lineage_urls)
+                    ):
+                        raise ValueError("Native catalog request lineage is incomplete")
+                    lineage_job = SimpleNamespace(
+                        extra_data={
+                            "provider_request_log_ids": lineage_ids,
+                            "request_urls": lineage_urls,
+                        }
+                    )
+                    verifier = (
+                        _verify_invesco_catalog_identity_evidence
+                        if fund_identity.get("basis") == "invesco_product_catalog"
+                        else _verify_issuer_catalog_identity_evidence
+                    )
+                    await verifier(
+                        db,
+                        evidence=fund_identity,
+                        profile=profile,
+                        source=catalog_source,
+                        job=lineage_job,
+                    )
+                artifact_identity_validation = _native_artifact_identity_validation(
+                    profile,
+                    artifact_identity_validation,
+                    native_source_evidence,
+                )
+            _ensure_artifact_identity_is_safe(artifact_identity_validation)
+        except (ETFHoldingsRouteHeldError, ValueError) as exc:
+            await _retain_rejected_fetch_artifact(
+                db,
+                profile,
+                adapter,
+                request_binding,
+                fetch_result=fetch_result,
+                failure=exc,
+                validation=_acquisition_validation(
+                    acquisition_request_id,
+                    artifact_identity_validation,
+                ),
+            )
+            raise
 
     result_metadata = {
         **(fetch_result.legal_metadata or {}),
@@ -2842,6 +3408,26 @@ async def _refresh_adapter_route(
         "provider_request_log_ids": request_binding.request_log_ids,
         "provider_request_attempts": _provider_request_attempts(request_binding),
     }
+    if native_qualification_evidence is not None:
+        # Native qualification may use an issuer's documented business-date
+        # field rather than a field literally named composition_date (for
+        # example Invesco effectiveBusinessDate). Keep that provider field in
+        # the immutable evidence and use its normalized value for persistence.
+        result_metadata["composition_date"] = native_qualification_evidence["composition_date"]
+        result_metadata["composition_date_source_field"] = native_qualification_evidence[
+            "composition_date_source_field"
+        ]
+        result_metadata["native_composition_completeness_evidence"] = native_qualification_evidence[
+            "composition_completeness"
+        ]
+    elif native_source_evidence is not None:
+        result_metadata["composition_date"] = native_source_evidence["composition_date"]
+        result_metadata["composition_date_source_field"] = native_source_evidence[
+            "composition_date_source_field"
+        ]
+        result_metadata["native_composition_completeness_evidence"] = native_source_evidence[
+            "composition_completeness"
+        ]
     if vaneck_initial_qualification_job_id is not None and (
         result_metadata.get("initial_qualification") is not True
         or result_metadata.get("source_provider") != "vaneck"
@@ -2897,7 +3483,9 @@ async def _refresh_adapter_route(
         or adapter.source_provider
     )
     composition_date = (
-        _alias_date(aliases, "holdings_composition_date")
+        _date_from_value(result_metadata.get("composition_date"))
+        if native_source_evidence is not None
+        else _alias_date(aliases, "holdings_composition_date")
         or _date_from_value(result_metadata.get("composition_date"))
         or datetime.now(UTC).date()
     )
@@ -2943,6 +3531,15 @@ async def _refresh_adapter_route(
     parser_version = str(
         result_metadata.get("parser_version") or f"{adapter.adapter_key}-{source_format}-v1"
     )
+    vaneck_oih_schema_fingerprint, legacy_qualification_fingerprint = (
+        _vaneck_oih_schema_fingerprints(
+            profile,
+            adapter,
+            fetch_result,
+            parser_version=parser_version,
+            verified_body_identity=verified_body_identity,
+        )
+    )
     try:
         await _ensure_schema_fingerprint_is_stable(
             db,
@@ -2950,6 +3547,8 @@ async def _refresh_adapter_route(
             parser_version=parser_version,
             raw_payload_text=fetch_result.raw_text,
             raw_payload_json=fetch_result.raw_json,
+            schema_fingerprint_override=vaneck_oih_schema_fingerprint,
+            legacy_qualification_fingerprint=legacy_qualification_fingerprint,
         )
     except ETFHoldingsSchemaDriftError as exc:
         await _retain_rejected_fetch_artifact(
@@ -2972,7 +3571,9 @@ async def _refresh_adapter_route(
     )
     timing_provenance = {
         "composition_date": (
-            "provider_reported"
+            f"provider_reported:{native_source_evidence['composition_date_source_field']}"
+            if native_source_evidence is not None
+            else "provider_reported"
             if _date_from_value(result_metadata.get("composition_date"))
             else "profile_alias_fallback"
             if _alias_date(aliases, "holdings_composition_date")
@@ -3007,7 +3608,11 @@ async def _refresh_adapter_route(
                 ),
                 source_provider=str(source_provider),
                 source_url=fetch_result.source_url,
-                source_identifier=fetch_result.source_identifier or issuer_product_id,
+                source_identifier=(
+                    native_qualification_evidence["source_identifier"]
+                    if native_qualification_evidence is not None
+                    else fetch_result.source_identifier or issuer_product_id
+                ),
                 source_quality=str(
                     result_metadata.get("source_quality")
                     or aliases.get("holdings_source_quality")
@@ -3017,8 +3622,14 @@ async def _refresh_adapter_route(
                 parser_version=parser_version,
                 raw_payload_text=fetch_result.raw_text,
                 raw_payload_json=fetch_result.raw_json,
+                schema_fingerprint_override=vaneck_oih_schema_fingerprint,
                 legal_metadata={
                     **(fetch_result.legal_metadata or {}),
+                    **(
+                        {"native_initial_qualification_evidence": native_qualification_evidence}
+                        if native_qualification_evidence is not None
+                        else {}
+                    ),
                     **(
                         {"application_request_id": acquisition_request_id}
                         if acquisition_request_id
@@ -3026,6 +3637,25 @@ async def _refresh_adapter_route(
                     ),
                     "provider_request_log_ids": request_binding.request_log_ids,
                     "provider_request_attempts": _provider_request_attempts(request_binding),
+                    "composition_date": composition_date.isoformat(),
+                    **(
+                        {
+                            "composition_date_source_field": native_source_evidence[
+                                "composition_date_source_field"
+                            ]
+                        }
+                        if native_source_evidence is not None
+                        else {}
+                    ),
+                    **(
+                        {
+                            "native_composition_completeness_evidence": native_source_evidence[
+                                "composition_completeness"
+                            ]
+                        }
+                        if native_source_evidence is not None
+                        else {}
+                    ),
                     "terms_note": aliases.get("terms_note"),
                     "probe_status": probe.status,
                     "probe_confidence": str(probe.confidence),
@@ -3070,6 +3700,770 @@ async def _refresh_adapter_route(
     profile.adapter_status = "success"
     profile.adapter_confidence = probe.confidence
     return snapshot
+
+
+def _native_holdings_response_parse_evidence(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+    *,
+    request_binding: Any | None,
+) -> dict[str, Any]:
+    """Require a captured physical body linked to the exact adapter parse."""
+
+    metadata = fetch_result.legal_metadata
+    witness = (
+        metadata.get("native_holdings_response_witness") if isinstance(metadata, dict) else None
+    )
+    capture = witness.get("provider_capture") if isinstance(witness, dict) else None
+    raw_payload = (
+        fetch_result.raw_json if fetch_result.raw_json is not None else fetch_result.raw_text
+    )
+    if (
+        not isinstance(witness, dict)
+        or not isinstance(capture, dict)
+        or not isinstance(fetch_result.source_url, str)
+        or not fetch_result.source_url.strip()
+        or not isinstance(raw_payload, str | dict)
+        or not raw_payload
+    ):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification has no linked holdings response body witness"
+        )
+
+    body_hash = capture.get("response_body_sha256")
+    parser_hash = witness.get("parser_input_sha256")
+    normalized_hash = witness.get("normalized_payload_sha256")
+    body_size = capture.get("response_body_bytes")
+    parser_size = witness.get("parser_input_bytes")
+    request_log_id = capture.get("request_log_id")
+    url_hash = hashlib.sha256(
+        _canonical_request_url(fetch_result.source_url).encode("utf-8")
+    ).hexdigest()
+    raw_hash = _hash_payload(raw_payload)
+    digest_pattern = re.compile(r"[0-9a-f]{64}")
+    if (
+        not isinstance(body_hash, str)
+        or not digest_pattern.fullmatch(body_hash)
+        or parser_hash != body_hash
+        or normalized_hash != raw_hash
+        or body_size != parser_size
+        or isinstance(body_size, bool)
+        or not isinstance(body_size, int)
+        or body_size <= 0
+        or capture.get("physical_request_url_sha256") != url_hash
+        or isinstance(request_log_id, bool)
+        or not isinstance(request_log_id, int)
+        or request_log_id <= 0
+        or not isinstance(witness.get("parser"), str)
+        or not witness["parser"].strip()
+    ):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification holdings body, parser input, and retained artifact do not match"
+        )
+
+    instrument = profile.instrument
+    expected_capture = {
+        "profile_id": profile.id,
+        "instrument_id": profile.instrument_id,
+        "provider": str(getattr(adapter, "source_provider", "")).strip().lower(),
+        "provider_symbol": instrument.symbol.strip().upper() if instrument is not None else None,
+        "capability": ProviderCapability.ETF_HOLDINGS.value,
+        "operation": "fetch_etf_holdings_latest",
+    }
+    if any(capture.get(field) != value for field, value in expected_capture.items()):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification body witness has a mismatched fund or operation"
+        )
+    if request_binding is not None:
+        scope = request_binding.native_initial_qualification_scope
+        bound_url = request_binding.request_urls_by_log_id.get(request_log_id)
+        if (
+            request_binding.native_initial_qualification_job_id != capture.get("attempt_id")
+            or not isinstance(scope, dict)
+            or request_log_id not in request_binding.request_log_ids
+            or capture not in request_binding.response_body_witnesses
+            or not isinstance(bound_url, str)
+            or hashlib.sha256(_canonical_request_url(bound_url).encode("utf-8")).hexdigest()
+            != capture.get("physical_request_url_sha256")
+            or capture.get("data_source_id") != scope.get("data_source_id")
+            or capture.get("account_scope") != scope.get("account_scope")
+            or capture.get("review_revision") != scope.get("review_revision")
+            or capture.get("provider_review_fingerprint")
+            != scope.get("provider_review_fingerprint")
+            or capture.get("attempt_id") != scope.get("attempt_id")
+        ):
+            raise ETFNativeSourceEvidenceError(
+                "Native qualification body witness is outside its committed request scope"
+            )
+    return {
+        **witness,
+        "logical_source_url_sha256": url_hash,
+        "normalized_payload_sha256": raw_hash,
+    }
+
+
+def _native_adapter_fetch_evidence(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+    *,
+    request_binding: Any | None = None,
+    require_body_witness: bool = True,
+) -> dict[str, Any]:
+    """Validate native fund/date evidence and optionally its sealed body witness.
+
+    Initial qualification requires the Provider-captured response-body witness.
+    Ordinary refresh reuses the same source identity and date checks while
+    relying on ordinary admission and request lineage, not qualification scope.
+    """
+
+    instrument = profile.instrument
+    if instrument is None or not isinstance(fetch_result.legal_metadata, dict):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification requires committed fund and adapter metadata"
+        )
+    metadata = fetch_result.legal_metadata
+    provider_name = str(getattr(adapter, "source_provider", "")).strip().lower()
+    adapter_key = str(getattr(adapter, "adapter_key", "")).strip().lower()
+    profile_aliases = _aliases(profile)
+    bound_provider = (
+        str(
+            profile_aliases.get("holdings_source_provider")
+            or profile_aliases.get("source_provider")
+            or ""
+        )
+        .strip()
+        .lower()
+    )
+    if (
+        not provider_name
+        or not adapter_key
+        or bound_provider != provider_name
+        or str(profile.adapter_key or "").strip().lower() != adapter_key
+        or metadata.get("source_provider", provider_name) != provider_name
+        or metadata.get("adapter_key", adapter_key) != adapter_key
+    ):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification adapter identity does not match the ETF profile"
+        )
+
+    raw_text = fetch_result.raw_text
+    raw_json = fetch_result.raw_json
+    if (not isinstance(raw_text, str) or not raw_text.strip()) and not (
+        isinstance(raw_json, dict) and bool(raw_json)
+    ):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification requires the actual nonempty raw source artifact"
+        )
+    source_identifier = str(fetch_result.source_identifier or "").strip()
+    source_url = str(fetch_result.source_url or "").strip()
+    if not source_url:
+        raise ETFNativeSourceEvidenceError("Native qualification requires the provider source URL")
+    if not source_identifier and provider_name not in {"spdr", "amplify"}:
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification requires its provider source identifier"
+        )
+
+    identity_evidence: dict[str, Any] | None = None
+    if provider_name == "invesco":
+        identity_evidence = _native_invesco_catalog_identity(
+            profile=profile,
+            adapter=adapter,
+            metadata=metadata,
+            source_url=source_url,
+            source_identifier=source_identifier,
+        )
+    elif provider_name == "amplify":
+        identity_evidence = _native_amplify_account_identity(
+            profile=profile,
+            adapter=adapter,
+            fetch_result=fetch_result,
+        )
+    elif provider_name == "spdr":
+        identity_evidence = _native_spdr_workbook_identity(
+            profile=profile,
+            adapter=adapter,
+            raw_text=raw_text,
+            source_url=source_url,
+            request_binding=request_binding,
+        )
+    raw_identity = _native_fund_preamble_identity(profile, raw_text)
+    if raw_identity is not None:
+        if raw_identity.get("status") == "mismatch":
+            raise ETFNativeSourceEvidenceError(
+                "Native qualification raw body conflicts with the selected fund identity"
+            )
+        if identity_evidence is None and provider_name not in {
+            "spdr",
+            "invesco",
+            "ishares",
+            "amplify",
+        }:
+            identity_evidence = {
+                "basis": "raw_source_identity",
+                "matched": raw_identity.get("matched"),
+                "artifact_identity": raw_identity.get("artifact_identity"),
+            }
+    if provider_name == "ishares":
+        body_identity = _native_ishares_holdings_identity(
+            profile=profile,
+            adapter=adapter,
+            raw_json=raw_json,
+            source_url=source_url,
+        )
+    else:
+        body_identity = None
+    if provider_name == "ishares" and identity_evidence is None:
+        from app.services.etf_holdings_native_qualification import (  # noqa: PLC0415
+            _issuer_catalog_identity_claim,
+        )
+
+        identity_evidence = _issuer_catalog_identity_claim(
+            profile,
+            metadata.get("issuer_product_catalog"),
+        )
+        if identity_evidence is None and (
+            not isinstance(body_identity, dict)
+            or body_identity.get("basis") != "ishares_holdings_product_metadata"
+        ):
+            identity_evidence = body_identity
+    if provider_name == "ishares" and isinstance(body_identity, dict):
+        if body_identity.get("basis") == "ishares_holdings_product_metadata":
+            if (
+                not isinstance(identity_evidence, dict)
+                or identity_evidence.get("basis") != "issuer_product_catalog"
+                or body_identity.get("product_id") != identity_evidence.get("product_id")
+                or body_identity.get("fund_name") != identity_evidence.get("name")
+            ):
+                raise ETFNativeSourceEvidenceError(
+                    "Native iShares product response does not match its exact catalog identity"
+                )
+        elif isinstance(identity_evidence, dict) and identity_evidence.get("basis") == (
+            "issuer_product_catalog"
+        ):
+            if body_identity.get("symbol") != profile.instrument.symbol.strip().upper() or any(
+                _normalize_identity_text(value)
+                != _normalize_identity_text(identity_evidence.get("name"))
+                for value in body_identity.get("fund_names", [])
+                if value
+            ):
+                raise ETFNativeSourceEvidenceError(
+                    "Native iShares holdings rows conflict with the exact catalog identity"
+                )
+    fund_identity = metadata.get("fund_identity")
+    if (
+        identity_evidence is None
+        and provider_name not in {"spdr", "invesco", "ishares", "amplify"}
+        and isinstance(fund_identity, dict)
+    ):
+        observed_id = fund_identity.get("instrument_id")
+        observed_symbol = str(fund_identity.get("symbol") or "").strip().upper()
+        observed_name = _normalize_identity_text(str(fund_identity.get("name") or ""))
+        expected_name = _normalize_identity_text(str(instrument.name or ""))
+        if (
+            isinstance(observed_id, int)
+            and not isinstance(observed_id, bool)
+            and observed_id == instrument.id
+            and observed_symbol == instrument.symbol.strip().upper()
+            and expected_name
+            and observed_name == expected_name
+        ):
+            identity_evidence = {
+                "basis": "adapter_fund_identity",
+                "instrument_id": observed_id,
+                "symbol": observed_symbol,
+                "name": str(fund_identity.get("name")),
+            }
+    if identity_evidence is None and provider_name not in {
+        "spdr",
+        "invesco",
+        "ishares",
+        "amplify",
+    }:
+        from app.services.etf_holdings_native_qualification import (  # noqa: PLC0415
+            _issuer_catalog_identity_claim,
+        )
+
+        identity_evidence = _issuer_catalog_identity_claim(
+            profile,
+            metadata.get("issuer_product_catalog"),
+        )
+    if identity_evidence is None:
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification source body does not prove the selected fund identity"
+        )
+
+    if provider_name == "amplify" and identity_evidence is not None:
+        date_field = "selected_account_rows.date"
+        date_value = identity_evidence.get("source_date")
+    else:
+        date_field = next(
+            (
+                field
+                for field in (
+                    "composition_date",
+                    "effective_business_date",
+                    "effective_date",
+                    "as_of_date",
+                )
+                if metadata.get(field) not in (None, "")
+            ),
+            None,
+        )
+        date_value = metadata.get(date_field) if date_field else None
+    try:
+        composition_date = _date_from_value(date_value) if date_field else None
+    except (TypeError, ValueError):
+        composition_date = None
+    if composition_date is None:
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification requires a provider-reported composition date"
+        )
+    cadence = metadata.get("expected_cadence") or infer_expected_cadence(
+        source_access=metadata.get("source_access"), metadata=metadata
+    )
+    freshness_limit = freshness_deadline(composition_date, str(cadence or "unspecified"))
+    if freshness_limit is not None and datetime.now(UTC).date() > freshness_limit:
+        raise ETFNativeSourceEvidenceError(
+            f"Native qualification provider-reported composition {composition_date.isoformat()} "
+            f"is stale for the reviewed {cadence} cadence."
+        )
+    if not source_identifier:
+        if not (
+            provider_name == "spdr"
+            and identity_evidence is not None
+            and identity_evidence.get("basis") == "spdr_fund_workbook_preamble"
+        ) and not (
+            provider_name == "amplify"
+            and identity_evidence is not None
+            and identity_evidence.get("basis") == "amplify_selected_account_csv"
+        ):
+            raise ETFNativeSourceEvidenceError(
+                "Native qualification requires its provider source identifier"
+            )
+    source_format = str(metadata.get("source_format") or "csv").strip()
+    composition_completeness = _verified_native_composition_completeness(
+        profile=profile,
+        adapter=adapter,
+        fetch_result=fetch_result,
+    )
+    parser_version = str(
+        metadata.get("parser_version") or f"{adapter_key}-{source_format}-v1"
+    ).strip()
+    try:
+        body_parse_evidence = (
+            _native_holdings_response_parse_evidence(
+                profile,
+                adapter,
+                fetch_result,
+                request_binding=request_binding,
+            )
+            if require_body_witness
+            else None
+        )
+    except ValueError as exc:
+        raise ETFNativeSourceEvidenceError(str(exc)) from exc
+    schema_fingerprint = _schema_fingerprint(
+        raw_payload_text=raw_text,
+        raw_payload_json=raw_json,
+    )
+    if not parser_version or not isinstance(schema_fingerprint, str) or not schema_fingerprint:
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification requires raw schema and parser evidence"
+        )
+    evidence = {
+        "provider": provider_name,
+        "adapter_key": adapter_key,
+        "instrument_id": instrument.id,
+        "symbol": instrument.symbol.strip().upper(),
+        "fund_identity": identity_evidence,
+        "source_identifier": (
+            None if provider_name in {"spdr", "amplify"} else source_identifier or None
+        ),
+        "source_identifier_basis": (
+            "fund_scoped_spdr_workbook_route"
+            if provider_name == "spdr"
+            else "selected_account_rows"
+            if provider_name == "amplify"
+            else "adapter_reported"
+        ),
+        "source_url": source_url,
+        "composition_date": composition_date.isoformat(),
+        "composition_date_source_field": (
+            metadata.get("composition_date_source_field") or date_field
+        ),
+        "composition_completeness": composition_completeness,
+        "source_format": source_format,
+        "parser_version": parser_version,
+        "schema_fingerprint": schema_fingerprint,
+        "raw_payload_hash": _hash_payload(raw_json if raw_json is not None else raw_text),
+    }
+    if body_parse_evidence is not None:
+        evidence["holdings_response_body_witness"] = body_parse_evidence
+    return evidence
+
+
+def _native_initial_qualification_fetch_evidence(
+    profile: ETFProfile,
+    adapter: Any,
+    fetch_result: Any,
+    *,
+    request_binding: Any | None = None,
+) -> dict[str, Any]:
+    """Require strict source evidence plus the sealed initial response witness."""
+
+    return _native_adapter_fetch_evidence(
+        profile,
+        adapter,
+        fetch_result,
+        request_binding=request_binding,
+        require_body_witness=True,
+    )
+
+
+def _native_artifact_identity_validation(
+    profile: ETFProfile,
+    prior_validation: dict[str, Any],
+    native_evidence: dict[str, Any],
+) -> dict[str, Any]:
+    """Promote only independently checked native fund evidence to identity proof."""
+
+    instrument = profile.instrument
+    identity = native_evidence.get("fund_identity")
+    symbol = str(instrument.symbol or "").strip().upper() if instrument is not None else ""
+    if (
+        instrument is None
+        or not symbol
+        or not isinstance(identity, dict)
+        or identity.get("basis")
+        not in {
+            "spdr_fund_workbook_preamble",
+            "invesco_product_catalog",
+            "issuer_product_catalog",
+            "ishares_holdings_response",
+            "amplify_selected_account_csv",
+        }
+        or native_evidence.get("instrument_id") != instrument.id
+        or native_evidence.get("symbol") != symbol
+    ):
+        return prior_validation
+    return {
+        "status": "matched",
+        "required": True,
+        "matched": [{"type": "verified_native_fund_identity", "value": symbol}],
+        "expected": _artifact_identity_expectations(profile),
+        "artifact_identity": prior_validation.get("artifact_identity", []),
+        "native_fund_identity_evidence": identity,
+    }
+
+
+def _native_ishares_holdings_identity(
+    *, profile: ETFProfile, adapter: Any, raw_json: Any, source_url: str
+) -> dict[str, Any] | None:
+    """Prove iShares fund identity from the actual holdings response arrays."""
+
+    instrument = profile.instrument
+    if instrument is None or not isinstance(raw_json, dict):
+        return None
+    data_points_reader = getattr(adapter, "_blackrock_holdings_data_points", None)
+    values_reader = getattr(adapter, "_blackrock_values", None)
+    if not callable(data_points_reader) or not callable(values_reader):
+        return None
+    data_points = data_points_reader(raw_json)
+    tickers = [str(value).strip().upper() for value in values_reader(data_points, "fundTicker")]
+    names = [str(value).strip() for value in values_reader(data_points, "fundName")]
+    expected_symbol = instrument.symbol.strip().upper()
+    expected_name = _normalize_identity_text(str(instrument.name or ""))
+    product_id_raw = raw_json.get("productId")
+    product_id = str(product_id_raw).strip() if product_id_raw not in (None, "") else None
+    product_name = str(raw_json.get("fundName") or "").strip()
+    has_product_metadata = product_id is not None or product_name != ""
+    if has_product_metadata:
+        if (
+            not product_id
+            or not product_id.isdigit()
+            or int(product_id) <= 0
+            or not product_name
+            or not expected_name
+            or _normalize_identity_text(product_name) != expected_name
+        ):
+            raise ETFNativeSourceEvidenceError(
+                "Native qualification raw body conflicts with the selected iShares product identity"
+            )
+    normalized_names = {_normalize_identity_text(value) for value in names if value}
+    supplied_tickers = [ticker for ticker in tickers if ticker]
+    supplied_names = [name for name in normalized_names if name]
+    if any(ticker != expected_symbol for ticker in supplied_tickers) or (
+        supplied_names and (not expected_name or supplied_names != [expected_name])
+    ):
+        raise ETFNativeSourceEvidenceError(
+            "Native qualification raw body conflicts with the selected iShares fund identity"
+        )
+    if not source_url or not expected_symbol:
+        return None
+    if has_product_metadata:
+        if supplied_tickers and any(ticker != expected_symbol for ticker in supplied_tickers):
+            raise ETFNativeSourceEvidenceError(
+                "Native qualification raw body conflicts with the selected iShares fund identity"
+            )
+        if supplied_names and supplied_names != [expected_name]:
+            raise ETFNativeSourceEvidenceError(
+                "Native qualification raw body conflicts with the selected iShares fund identity"
+            )
+        return {
+            "basis": "ishares_holdings_product_metadata",
+            "instrument_id": instrument.id,
+            "symbol": expected_symbol,
+            "product_id": product_id,
+            "fund_name": product_name,
+            "source_url": source_url,
+        }
+    if not supplied_names or not supplied_tickers or len(supplied_names) != 1:
+        return None
+    return {
+        "basis": "ishares_holdings_response",
+        "instrument_id": instrument.id,
+        "symbol": expected_symbol,
+        "fund_tickers": tickers,
+        "fund_names": names,
+        "source_url": source_url,
+    }
+
+
+def _native_fund_preamble_identity(
+    profile: ETFProfile, raw_text: str | None
+) -> dict[str, Any] | None:
+    """Read fund-level key/value preamble fields, excluding holdings rows."""
+
+    instrument = profile.instrument
+    if instrument is None or not raw_text:
+        return None
+    allowed = {
+        "fundticker",
+        "fundsymbol",
+        "etfticker",
+        "etfsymbol",
+        "productticker",
+        "productsymbol",
+        "tickersymbol",
+        "fundname",
+        "fundfullname",
+        "etfname",
+        "etffullname",
+        "productname",
+        "portfolioname",
+    }
+    found: list[dict[str, str]] = []
+    for row in csv.reader(StringIO(raw_text)):
+        if len(row) != 2:
+            continue
+        key = _identity_key(row[0])
+        value = row[1].strip()
+        if key not in allowed or not value:
+            continue
+        identity_type = "artifact_symbol" if "ticker" in key or "symbol" in key else "artifact_name"
+        found.append({"type": identity_type, "value": value})
+    if not found:
+        return None
+    expected_symbol = instrument.symbol.strip().upper()
+    expected_name = _normalize_identity_text(str(instrument.name or ""))
+    conflicts = [
+        value
+        for item in found
+        for value in [item["value"]]
+        if (
+            item["type"] == "artifact_symbol"
+            and _normalize_identity_text(value) != _normalize_identity_text(expected_symbol)
+        )
+        or (
+            item["type"] == "artifact_name"
+            and expected_name
+            and _normalize_identity_text(value) != expected_name
+        )
+    ]
+    if conflicts:
+        return {"status": "mismatch", "artifact_identity": found, "conflicts": conflicts}
+    return {
+        "status": "matched",
+        "matched": found,
+        "artifact_identity": found,
+    }
+
+
+def _native_spdr_workbook_identity(
+    *,
+    profile: ETFProfile,
+    adapter: Any,
+    raw_text: str | None,
+    source_url: str,
+    request_binding: Any | None = None,
+) -> dict[str, Any] | None:
+    instrument = profile.instrument
+    if instrument is None or not callable(getattr(adapter, "_workbook_url", None)):
+        return None
+    expected_url = adapter._workbook_url(instrument.symbol.strip().upper())
+    identity = _native_fund_preamble_identity(profile, raw_text)
+    from urllib.parse import urlparse
+
+    expected = urlparse(expected_url)
+    observed = urlparse(source_url)
+    bound_urls = (
+        set(request_binding.request_urls_by_log_id.values())
+        if request_binding is not None
+        else set()
+    )
+    source_is_bound_redirect = bool(
+        request_binding is not None
+        and expected_url in bound_urls
+        and source_url in bound_urls
+        and observed.scheme == "https"
+        and observed.hostname == expected.hostname == "www.ssga.com"
+        and observed.path.rsplit("/", 1)[-1] == expected.path.rsplit("/", 1)[-1]
+        and not observed.username
+        and not observed.password
+        and not observed.port
+        and not observed.query
+        and not observed.fragment
+    )
+    if (
+        (source_url != expected_url and not source_is_bound_redirect)
+        or identity is None
+        or identity.get("status") != "matched"
+    ):
+        return None
+    symbol_rows = [
+        row
+        for row in identity["matched"]
+        if row["type"] == "artifact_symbol"
+        and _normalize_identity_text(row["value"]) == _normalize_identity_text(instrument.symbol)
+    ]
+    if not symbol_rows:
+        return None
+    return {
+        "basis": "spdr_fund_workbook_preamble",
+        "symbol": instrument.symbol.strip().upper(),
+        "source_url": source_url,
+        "requested_source_url": expected_url,
+        "matched": symbol_rows,
+    }
+
+
+def _native_invesco_catalog_identity(
+    *,
+    profile: ETFProfile,
+    adapter: Any,
+    metadata: dict[str, Any],
+    source_url: str,
+    source_identifier: str,
+) -> dict[str, Any] | None:
+    instrument = profile.instrument
+    catalog = metadata.get("issuer_product_catalog")
+    if instrument is None or not isinstance(catalog, dict):
+        return None
+    request_url = catalog.get("request_url")
+    body_base64 = catalog.get("response_body_base64")
+    body_hash = catalog.get("response_sha256")
+    matched = catalog.get("matched_product")
+    if (
+        request_url != getattr(adapter, "_PRODUCT_CATALOG_URL", None)
+        or not isinstance(body_base64, str)
+        or not isinstance(body_hash, str)
+        or not isinstance(matched, dict)
+    ):
+        return None
+    try:
+        body = base64.b64decode(body_base64, validate=True)
+        if hashlib.sha256(body).hexdigest() != body_hash:
+            return None
+        payload = json.loads(body)
+    except (ValueError, TypeError, json.JSONDecodeError):
+        return None
+    docs = payload.get("response", {}).get("docs") if isinstance(payload, dict) else None
+    symbol = instrument.symbol.strip().upper()
+    products = (
+        [
+            item
+            for item in docs
+            if isinstance(item, dict) and str(item.get("ticker") or "").strip().upper() == symbol
+        ]
+        if isinstance(docs, list)
+        else []
+    )
+    if len(products) != 1:
+        return None
+    product = products[0]
+    cusip = str(product.get("cusip") or "").strip()
+    account_name = str(product.get("accountName") or "").strip()
+    if (
+        not cusip
+        or not account_name
+        or matched.get("ticker") != symbol
+        or matched.get("cusip") != cusip
+        or matched.get("account_name") != account_name
+        or source_identifier != cusip
+        or source_url != adapter._holdings_url(cusip)
+        or not isinstance(getattr(profile, "instrument_id", None), int)
+    ):
+        return None
+    return {
+        "basis": "invesco_product_catalog",
+        "ticker": symbol,
+        "cusip": cusip,
+        "source_identifier": cusip,
+        "account_name": account_name,
+        "catalog_request_url": request_url,
+        "catalog_response_body_base64": body_base64,
+        "catalog_response_sha256": body_hash,
+        "holdings_source_url": source_url,
+    }
+
+
+def _native_amplify_account_identity(
+    *, profile: ETFProfile, adapter: Any, fetch_result: Any
+) -> dict[str, Any] | None:
+    instrument = profile.instrument
+    metadata = fetch_result.legal_metadata if isinstance(fetch_result.legal_metadata, dict) else {}
+    if instrument is None or not isinstance(fetch_result.raw_text, str):
+        return None
+    symbol = instrument.symbol.strip().upper()
+    selected_account = str(metadata.get("selected_account") or "").strip().upper()
+    if selected_account != symbol or not callable(getattr(adapter, "_parse_amplify_csv", None)):
+        return None
+    rows, parsed_date = adapter._parse_amplify_csv(fetch_result.raw_text, symbol=symbol)
+    if not rows:
+        return None
+    expected_ids = [str(row.source_row_id) for row in rows]
+    actual_ids = [str(row.source_row_id) for row in fetch_result.rows]
+    if (
+        expected_ids != actual_ids
+        or any(
+            str(
+                next(
+                    (
+                        value
+                        for key, value in (row.extra_data or {}).items()
+                        if str(key).strip().casefold() == "account"
+                    ),
+                    "",
+                )
+                or ""
+            )
+            .strip()
+            .upper()
+            != symbol
+            for row in fetch_result.rows
+        )
+        or metadata.get("selected_account_row_count") != len(rows)
+    ):
+        return None
+    return {
+        "basis": "amplify_selected_account_csv",
+        "account": symbol,
+        "row_count": len(rows),
+        "source_date": parsed_date.isoformat() if parsed_date is not None else None,
+        "source_url": str(fetch_result.source_url or "").strip(),
+    }
 
 
 async def _retain_rejected_fetch_artifact(
@@ -3142,6 +4536,13 @@ async def _retain_rejected_fetch_artifact_in_session(
     logs = [logs_by_id[log_id] for log_id in request_log_ids if log_id in logs_by_id]
     raw_text = getattr(fetch_result, "raw_text", None)
     raw_json = getattr(fetch_result, "raw_json", None)
+    upstream_response_diagnostic = _vaneck_initial_response_diagnostic(failure)
+    if upstream_response_diagnostic is None:
+        fetch_metadata = getattr(fetch_result, "legal_metadata", None)
+        if isinstance(fetch_metadata, dict):
+            upstream_response_diagnostic = _vaneck_initial_response_diagnostic(
+                fetch_metadata.get("upstream_response_diagnostic")
+            )
     response_evidence = [
         {
             "request_log_id": row.id,
@@ -3169,6 +4570,19 @@ async def _retain_rejected_fetch_artifact_in_session(
         elif isinstance(last_response, dict | list):
             raw_json = last_response
     content_payload = raw_json if raw_json is not None else raw_text
+    if upstream_response_diagnostic is not None and content_payload in (None, ""):
+        # Keep status/body facts attributed to the adapter's actual response and
+        # make this attempt's diagnostic content-addressed without changing an
+        # older identical empty-body artifact's metadata.
+        content_payload = {
+            "failure_type": type(failure).__name__,
+            "failure_message": bounded_redact_provider_message(failure, max_length=1000),
+            "validation": validation,
+            "upstream_response_diagnostic": upstream_response_diagnostic,
+            "request_log_id": request_log_ids[-1] if request_log_ids else None,
+        }
+        raw_text = None
+        raw_json = content_payload
     if content_payload is None:
         # When no response body exists (for example a connect timeout), retain
         # a compact diagnostic as an explicit JSON evidence payload. Attempt
@@ -3197,6 +4611,16 @@ async def _retain_rejected_fetch_artifact_in_session(
             for log_id in request_log_ids
         ],
         "request_attempts": response_evidence,
+        "upstream_response_diagnostics": (
+            [
+                {
+                    "request_log_id": request_log_ids[-1] if request_log_ids else None,
+                    **upstream_response_diagnostic,
+                }
+            ]
+            if upstream_response_diagnostic is not None
+            else []
+        ),
     }
     if existing is not None:
         # Keep the content-addressed payload/provenance stable, but do not lose
@@ -3224,6 +4648,19 @@ async def _retain_rejected_fetch_artifact_in_session(
                 if item.get("request_log_id") is not None
             }
         )
+        prior_diagnostics = list(metadata.get("upstream_response_diagnostics") or [])
+        diagnostics_by_id = {
+            item.get("request_log_id"): item
+            for item in prior_diagnostics
+            if isinstance(item, dict) and item.get("request_log_id") is not None
+        }
+        diagnostics_by_id.update(
+            {
+                item["request_log_id"]: item
+                for item in current_attempt_evidence["upstream_response_diagnostics"]
+                if item.get("request_log_id") is not None
+            }
+        )
         merged_ids = list(dict.fromkeys([*prior_ids, *request_log_ids]))
         metadata.update(
             {
@@ -3231,6 +4668,11 @@ async def _retain_rejected_fetch_artifact_in_session(
                 "request_urls": [urls_by_id.get(log_id) for log_id in merged_ids],
                 "request_attempts": [
                     attempts_by_id[log_id] for log_id in merged_ids if log_id in attempts_by_id
+                ],
+                "upstream_response_diagnostics": [
+                    diagnostics_by_id[log_id]
+                    for log_id in merged_ids
+                    if log_id in diagnostics_by_id
                 ],
             }
         )
@@ -3287,6 +4729,52 @@ async def _retain_rejected_fetch_artifact_in_session(
     db.add(artifact)
     await db.flush()
     return artifact
+
+
+def _vaneck_initial_response_diagnostic(value: object) -> dict[str, Any] | None:
+    """Accept only the adapter's bounded, allowlisted initial-response metadata."""
+
+    if isinstance(value, BaseException):
+        value = getattr(value, "vaneck_initial_response_diagnostic", None)
+    if not isinstance(value, dict) or set(value) != {
+        "upstream_http_status",
+        "response_body_bytes",
+        "response_body_sha256",
+        "allowlisted_response_headers",
+    }:
+        return None
+    status = value.get("upstream_http_status")
+    body_bytes = value.get("response_body_bytes")
+    digest = value.get("response_body_sha256")
+    headers = value.get("allowlisted_response_headers")
+    if (
+        isinstance(status, bool)
+        or not isinstance(status, int)
+        or not 100 <= status <= 599
+        or isinstance(body_bytes, bool)
+        or not isinstance(body_bytes, int)
+        or body_bytes < 0
+        or not isinstance(digest, str)
+        or not re.fullmatch(r"[0-9a-f]{64}", digest)
+        or not isinstance(headers, dict)
+        or set(headers) - {"content-type", "content-length"}
+    ):
+        return None
+    normalized_headers = {}
+    for key, header_value in headers.items():
+        if (
+            not isinstance(header_value, str)
+            or len(header_value) > 160
+            or any(ord(character) < 32 for character in header_value)
+        ):
+            return None
+        normalized_headers[key] = header_value
+    return {
+        "upstream_http_status": status,
+        "response_body_bytes": body_bytes,
+        "response_body_sha256": digest,
+        "allowlisted_response_headers": normalized_headers,
+    }
 
 
 async def _record_skip(

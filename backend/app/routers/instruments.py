@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import math
+import re
 from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
@@ -51,6 +52,7 @@ from app.schemas.instrument_acquisition import (
 )
 from app.services.bulk_fetch import get_fetch_progress
 from app.services.evaluator_preflight import preflight_ohlcv
+from app.services.exchange_catalog import normalize_exchange_mic
 from app.services.expression_engine import (
     ExpressionError,
     extract_tickers,
@@ -59,8 +61,11 @@ from app.services.expression_engine import (
 )
 from app.services.instrument_events import ensure_instrument_events_loaded
 from app.services.instrument_mastering import (
+    build_profile_snapshot_payload,
     ensure_external_identifier,
     ingest_provider_profile,
+    reconcile_instrument_profile,
+    reconcile_instrument_type_from_profile,
 )
 from app.services.market_data import (
     _coverage_calendar,
@@ -70,14 +75,20 @@ from app.services.market_data import (
     get_provider_profile_async,
     search_provider_instruments_async,
 )
-from app.services.market_data_identity import choose_domain_key
+from app.services.market_data_identity import apply_domain_identity, choose_domain_key
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaAdmissionError,
+    ProviderQuotaCoordinatorError,
+)
 from app.services.provider_runtime import (
     ProviderCapability,
     ProviderNoDataError,
+    ProviderQuotaUnknownError,
     ProviderRateLimitError,
     ProviderRequestScopeDeniedError,
     bind_explicit_provider_acquisition,
+    execute_provider_call,
     list_provider_status,
 )
 
@@ -209,9 +220,11 @@ async def _qualified_identity(
         )
         if binding.scalar_one_or_none() is None:
             return None
+    instrument_type = await db.get(InstrumentType, instrument.instrument_type_id)
     return QualifiedInstrumentIdentity(
         instrument_id=instrument.id,
         symbol=instrument.symbol,
+        instrument_type=instrument_type.name if instrument_type is not None else None,
         identity_status=instrument.identity_status,
         domain_key=instrument.domain_key,
         primary_identifier_type=instrument.primary_identifier_type,
@@ -321,15 +334,159 @@ async def discover_instruments(
             not allowed_types
             or _matches_search_type_filter(str(row.get("type") or ""), allowed_types)
         )
-    ][: body.limit]
+    ]
+
+    # The provider search endpoint is a bounded fuzzy page. For a ticker-shaped
+    # local miss only, use at most one exact profile lookup from a provider that
+    # participated in this admitted search. Do not expand pagination or create
+    # canonical state: the returned profile is only a selectable candidate.
+    query_symbol = _normalized_symbol_key(body.query)
+    exact_candidate: InstrumentDiscoveryCandidate | None = None
+    if not _search_results_exact_match(rows, query_symbol) and _is_ticker_shaped_query(
+        query_symbol
+    ):
+        searched_providers = list(
+            dict.fromkeys(
+                str(item.get("provider") or "").strip().lower()
+                for item in raw_outcomes
+                if item.get("capability") == ProviderCapability.INSTRUMENT_SEARCH.value
+                and item.get("operation") == "search_instruments"
+                and item.get("status") in {"returned", "no_match", "cache_hit"}
+                and str(item.get("provider") or "").strip()
+            )
+        )
+        if searched_providers:
+            metadata_rows = [
+                row
+                for row in await list_provider_status(db)
+                if row.get("capability") == ProviderCapability.INSTRUMENT_METADATA.value
+                and str(row.get("provider") or "").strip().lower() in searched_providers
+            ]
+            metadata_by_provider = {
+                str(row.get("provider") or "").strip().lower(): row for row in metadata_rows
+            }
+            selected_provider = next(
+                (
+                    provider
+                    for provider in searched_providers
+                    if (status := metadata_by_provider.get(provider))
+                    and status.get("routing_eligible")
+                ),
+                None,
+            )
+            if selected_provider is None:
+                for provider in searched_providers:
+                    status = metadata_by_provider.get(provider)
+                    admission = (status or {}).get("entitlement_admission") or {}
+                    reason = (
+                        (status or {}).get("checkpoint_hold_reason")
+                        or admission.get("reason_code")
+                        or (status or {}).get("quota_state")
+                        or "provider_capability_not_routable"
+                    )
+                    raw_outcomes.append(
+                        {
+                            "provider": provider,
+                            "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                            "operation": "get_instrument_profile",
+                            "status": "held",
+                            "reason_code": str(reason),
+                        }
+                    )
+            else:
+                try:
+                    with bind_explicit_provider_acquisition(
+                        request_id=body.request_id,
+                        operations=frozenset(
+                            {
+                                (
+                                    ProviderCapability.INSTRUMENT_METADATA,
+                                    "get_instrument_profile",
+                                )
+                            }
+                        ),
+                        symbol=query_symbol,
+                        provider_names=frozenset({selected_provider}),
+                    ):
+                        execution = await execute_provider_call(
+                            db,
+                            ProviderCapability.INSTRUMENT_METADATA,
+                            "get_instrument_profile",
+                            provider_symbol=query_symbol,
+                            usage_identity=query_symbol,
+                            provider_name=selected_provider,
+                            invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
+                                actual_symbol or query_symbol
+                            ),
+                            response_items=lambda result: 1 if result is not None else 0,
+                            treat_empty_as_failure=True,
+                        )
+                except Exception as exc:
+                    outcome_status, reason_code = _discovery_profile_error(exc)
+                    profile = None
+                    raw_outcomes.append(
+                        _discovery_profile_outcome(
+                            selected_provider,
+                            outcome_status,
+                            reason_code,
+                            error_type=type(exc).__name__,
+                        )
+                    )
+                else:
+                    profile = execution.result
+                    exact_candidate, identity_valid = _exact_discovery_profile_candidate(
+                        profile,
+                        execution_provider=execution.provider_name,
+                        selected_provider=selected_provider,
+                        requested_symbol=query_symbol,
+                        allowed_types=allowed_types,
+                    )
+                    if profile is None:
+                        raw_outcomes.append(
+                            _discovery_profile_outcome(
+                                selected_provider,
+                                "no_match",
+                                "exact_profile_not_found",
+                                result_count=0,
+                            )
+                        )
+                    elif identity_valid:
+                        raw_outcomes.append(
+                            _discovery_profile_outcome(
+                                selected_provider,
+                                "returned" if exact_candidate is not None else "no_match",
+                                None
+                                if exact_candidate is not None
+                                else "exact_profile_excluded_by_type_filter",
+                                result_count=1,
+                            )
+                        )
+                    else:
+                        raw_outcomes.append(
+                            _discovery_profile_outcome(
+                                selected_provider,
+                                "failed",
+                                "exact_profile_identity_or_listing_mismatch",
+                            )
+                        )
+
+    if exact_candidate is not None:
+        candidates.insert(0, exact_candidate)
+    candidates = candidates[: body.limit]
     outcomes = [InstrumentAcquisitionSourceOutcome(**item) for item in raw_outcomes]
     if not candidates and not outcomes:
         outcomes = await _held_provider_outcomes(
             db, ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"
         )
     if candidates:
-        status = "partial" if any(item.status == "failed" for item in outcomes) else "complete"
-    elif outcomes and all(item.status == "held" for item in outcomes):
+        status = (
+            "partial" if any(item.status in {"failed", "held"} for item in outcomes) else "complete"
+        )
+    elif (
+        outcomes
+        and any(item.status == "held" for item in outcomes)
+        and all(item.status in {"held", "no_match"} for item in outcomes)
+    ):
         status = "held"
     elif any(item.status == "no_match" for item in outcomes):
         status = "no_match"
@@ -355,6 +512,14 @@ async def acquire_instrument(
     symbol = body.symbol.strip().upper()
     existing = await _local_instrument_by_symbol(db, symbol)
     if existing is not None and body.provider_candidate is None:
+        # A previously resolved row may predate support for a provider's
+        # explicit security-type code. Reconcile from retained profile
+        # snapshots only; this path makes no additional provider request and
+        # leaves canonical identity and lineage untouched.
+        retained_profile = await reconcile_instrument_profile(db, existing)
+        if retained_profile is not None and retained_profile.quote_type:
+            await reconcile_instrument_type_from_profile(db, existing, retained_profile)
+            await db.commit()
         identity = await _qualified_identity(db, existing)
         if identity is not None:
             return InstrumentAcquireResponse(
@@ -395,38 +560,216 @@ async def acquire_instrument(
         ),
         None,
     )
+    profile: InstrumentProfile | None = None
+    profile_outcome: InstrumentAcquisitionSourceOutcome
+    exact_exchange_code: str | None = None
     if matched is None:
         if not outcomes:
             outcomes = await _held_provider_outcomes(
                 db, ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"
             )
-        return InstrumentAcquireResponse(
-            request_id=body.request_id,
-            status=(
-                "held"
-                if outcomes and all(item.status == "held" for item in outcomes)
-                else "no_match"
-            ),
-            reason_code="candidate_not_found_or_not_admitted",
-            source_outcomes=outcomes,
-        )
+        if outcomes and all(item.status == "held" for item in outcomes):
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="held",
+                reason_code="candidate_not_found_or_not_admitted",
+                source_outcomes=outcomes,
+            )
 
-    provider_name = str(matched.get("provider") or "").strip().lower()
-    provider_symbol = str(matched.get("symbol") or "").strip()
-    with bind_explicit_provider_acquisition(
-        request_id=body.request_id,
-        operations=frozenset({(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}),
-        symbol=provider_symbol,
-        provider_names=frozenset({provider_name}),
-    ):
-        profile = await get_provider_profile_async(
-            db, provider_symbol, provider_name=provider_name, persist=False
+        # Provider search is a bounded fuzzy catalogue.  If its first page
+        # omits the requested ticker, use the provider's existing exact
+        # single-symbol profile contract rather than expanding pagination or
+        # accepting a fuzzy candidate.  The normal metadata resolver and
+        # execute_provider_call still enforce review, entitlement, quota and
+        # physical-request accounting.  A selected candidate, when present,
+        # keeps this exact lookup bound to that same provider.
+        provider_names = frozenset({selected_provider}) if selected_provider else None
+        profile_status = [
+            row
+            for row in await list_provider_status(db)
+            if row.get("capability") == ProviderCapability.INSTRUMENT_METADATA.value
+            and (selected_provider is None or row.get("provider") == selected_provider)
+        ]
+        if profile_status and all(not row.get("routing_eligible") for row in profile_status):
+            held_profiles = await _held_provider_outcomes(
+                db,
+                ProviderCapability.INSTRUMENT_METADATA,
+                "get_instrument_profile",
+            )
+            if selected_provider is not None:
+                held_profiles = [
+                    item for item in held_profiles if item.provider == selected_provider
+                ]
+            if held_profiles:
+                outcomes.extend(held_profiles)
+                return InstrumentAcquireResponse(
+                    request_id=body.request_id,
+                    status="held",
+                    reason_code="exact_profile_not_admitted",
+                    source_outcomes=outcomes,
+                )
+        with bind_explicit_provider_acquisition(
+            request_id=body.request_id,
+            operations=frozenset(
+                {(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}
+            ),
+            symbol=symbol,
+            provider_names=provider_names,
+        ):
+
+            def _held_exact_profile_response(reason_code: str, error: Exception):
+                held_outcome = InstrumentAcquisitionSourceOutcome(
+                    provider=selected_provider or "provider_chain",
+                    capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                    operation="get_instrument_profile",
+                    status="held",
+                    reason_code=reason_code,
+                    error_type=type(error).__name__,
+                )
+                outcomes.append(held_outcome)
+                return InstrumentAcquireResponse(
+                    request_id=body.request_id,
+                    status="held",
+                    reason_code=reason_code,
+                    source_outcomes=outcomes,
+                )
+
+            try:
+                exact_profile = await execute_provider_call(
+                    db,
+                    ProviderCapability.INSTRUMENT_METADATA,
+                    "get_instrument_profile",
+                    provider_symbol=symbol,
+                    usage_identity=symbol,
+                    provider_name=selected_provider,
+                    invoke=lambda provider, actual_symbol: provider.get_instrument_profile(
+                        actual_symbol or symbol
+                    ),
+                    response_items=lambda result: 1 if result is not None else 0,
+                    treat_empty_as_failure=True,
+                )
+            except ProviderRequestScopeDeniedError as exc:
+                return _held_exact_profile_response(exc.reason_code, exc)
+            except ProviderRateLimitError as exc:
+                return _held_exact_profile_response("provider_capacity_unavailable", exc)
+            except ProviderQuotaAdmissionError as exc:
+                return _held_exact_profile_response("provider_quota_admission_denied", exc)
+            except ProviderQuotaCoordinatorError as exc:
+                return _held_exact_profile_response("provider_quota_coordinator_unavailable", exc)
+            except ProviderQuotaUnknownError as exc:
+                return _held_exact_profile_response("provider_quota_contract_unknown", exc)
+            except ProviderNoDataError:
+                exact_profile = None
+            except Exception as exc:
+                profile_outcome = InstrumentAcquisitionSourceOutcome(
+                    provider=selected_provider or "provider_chain",
+                    capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                    operation="get_instrument_profile",
+                    status="failed",
+                    reason_code="exact_symbol_profile_lookup_failed",
+                    error_type=type(exc).__name__,
+                )
+                outcomes.append(profile_outcome)
+                return InstrumentAcquireResponse(
+                    request_id=body.request_id,
+                    status="failed",
+                    reason_code=profile_outcome.reason_code,
+                    source_outcomes=outcomes,
+                )
+        profile = exact_profile.result if exact_profile is not None else None
+        provider_name = exact_profile.provider_name if exact_profile is not None else None
+        provider_symbol = symbol
+        profile_outcome = InstrumentAcquisitionSourceOutcome(
+            provider=provider_name or selected_provider or "provider_chain",
+            capability=ProviderCapability.INSTRUMENT_METADATA.value,
+            operation="get_instrument_profile",
+            status="attempted" if profile is not None else "no_match",
+            reason_code=None if profile is not None else "exact_symbol_profile_not_found",
         )
-    profile_outcome = InstrumentAcquisitionSourceOutcome(
-        provider=provider_name,
-        capability=ProviderCapability.INSTRUMENT_METADATA.value,
-        operation="get_instrument_profile",
-        status="attempted",
+        if profile is None:
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="no_match",
+                reason_code="exact_symbol_profile_not_found",
+                source_outcomes=outcomes,
+            )
+        if selected_provider is not None and provider_name != selected_provider:
+            profile_outcome.status = "failed"
+            profile_outcome.reason_code = "exact_profile_provider_mismatch"
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="identity_conflict",
+                reason_code=profile_outcome.reason_code,
+                source_outcomes=outcomes,
+            )
+        if profile.provider.strip().lower() != provider_name:
+            profile_outcome.status = "failed"
+            profile_outcome.reason_code = "exact_profile_provider_mismatch"
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="identity_conflict",
+                reason_code=profile_outcome.reason_code,
+                source_outcomes=outcomes,
+            )
+        requested_exchange = (
+            body.provider_candidate.exchange.strip().upper()
+            if body.provider_candidate is not None and body.provider_candidate.exchange
+            else None
+        )
+        if requested_exchange is not None and not any(
+            _normalized_symbol_key(listing.provider_symbol) == symbol
+            and str(listing.exchange_code or "").strip().upper() == requested_exchange
+            for listing in (profile.listings or [])
+        ):
+            profile_outcome.status = "failed"
+            profile_outcome.reason_code = "exact_profile_listing_mismatch"
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="identity_conflict",
+                reason_code=profile_outcome.reason_code,
+                source_outcomes=outcomes,
+            )
+        exact_exchange_code = requested_exchange or str(profile.exchange or "").strip() or None
+    else:
+        provider_name = str(matched.get("provider") or "").strip().lower()
+        provider_symbol = str(matched.get("symbol") or "").strip()
+        exact_exchange_code = str(matched.get("exchange") or "").strip() or None
+        with bind_explicit_provider_acquisition(
+            request_id=body.request_id,
+            operations=frozenset(
+                {(ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile")}
+            ),
+            symbol=provider_symbol,
+            provider_names=frozenset({provider_name}),
+        ):
+            profile = await get_provider_profile_async(
+                db, provider_symbol, provider_name=provider_name, persist=False
+            )
+        profile_outcome = InstrumentAcquisitionSourceOutcome(
+            provider=provider_name,
+            capability=ProviderCapability.INSTRUMENT_METADATA.value,
+            operation="get_instrument_profile",
+            status="attempted",
+        )
+    profile_listings = (
+        [
+            listing
+            for listing in (profile.listings or [])
+            if _normalized_symbol_key(listing.provider_symbol) == provider_symbol
+        ]
+        if profile is not None
+        else []
+    )
+    requested_exchange_code = (
+        body.provider_candidate.exchange.strip().upper()
+        if body.provider_candidate is not None and body.provider_candidate.exchange
+        else exact_exchange_code.strip().upper()
+        if exact_exchange_code
+        else None
     )
     if profile is None or not _profile_exact_match(profile, symbol):
         profile_outcome.status = "failed"
@@ -438,11 +781,52 @@ async def acquire_instrument(
             reason_code=profile_outcome.reason_code,
             source_outcomes=outcomes,
         )
+    if not profile_listings:
+        profile_outcome.status = "no_match"
+        profile_outcome.reason_code = (
+            "provider_profile_listing_mismatch"
+            if profile.listings
+            else "stable_identity_or_listing_authority_missing"
+        )
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    if (
+        profile is not None
+        and profile.listings
+        and (
+            not profile_listings
+            or requested_exchange_code is not None
+            and not any(
+                str(listing.exchange_code or "").strip().upper() == requested_exchange_code
+                for listing in profile_listings
+            )
+        )
+    ):
+        profile_outcome.status = "failed"
+        profile_outcome.reason_code = "provider_profile_listing_mismatch"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="identity_conflict",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    if exact_exchange_code is None:
+        primary_profile_listing = next(
+            (listing for listing in profile_listings if listing.is_primary), profile_listings[0]
+        )
+        exact_exchange_code = primary_profile_listing.exchange_code
     profile_domain_key = choose_domain_key(
         {item.identifier_type: item.identifier_value for item in profile.identifiers}
     )
     if (
-        profile.provider.strip().lower() != provider_name
+        not provider_name
+        or profile.provider.strip().lower() != provider_name
         or (profile.canonical_symbol or "").strip().upper() != symbol
         or not profile_domain_key
         or not profile.listings
@@ -481,6 +865,23 @@ async def acquire_instrument(
         canonical = await ingest_provider_profile(
             db, profile, instrument=canonical or existing, allow_external_identifier=False
         )
+        # This exact provider profile was fetched only after the selected
+        # provider/symbol matched and its stable external identifier plus
+        # listing authority were validated above.  The ingestion flag prevents
+        # fallback identifier discovery; apply only the profile's explicit
+        # identifiers here so a valid scaffold can be resolved without
+        # weakening collision quarantine or trusting inferred identifiers.
+        await apply_domain_identity(
+            db,
+            canonical,
+            identifiers={
+                item.identifier_type: item.identifier_value for item in profile.identifiers
+            },
+            provider_name=provider_name,
+            provider_symbol=provider_symbol,
+            exchange_mic=normalize_exchange_mic(profile.exchange),
+            candidate_payload=build_profile_snapshot_payload(profile),
+        )
         await db.commit()
     except IntegrityError:
         await db.rollback()
@@ -499,7 +900,7 @@ async def acquire_instrument(
         canonical,
         provider_name,
         provider_symbol,
-        str(matched.get("exchange") or "").strip() or None,
+        str(exact_exchange_code or "").strip() or None,
     )
     if identity is None or canonical.symbol.strip().upper() != symbol:
         profile_outcome.status = "failed"
@@ -619,10 +1020,25 @@ async def acquire_instrument_history(
         except ProviderRateLimitError:
             execution_status = "held"
             reason_code = "provider_capacity_unavailable"
+        except ProviderQuotaAdmissionError:
+            execution_status = "held"
+            reason_code = "provider_quota_admission_denied"
+        except ProviderQuotaCoordinatorError:
+            execution_status = "held"
+            reason_code = "provider_quota_coordinator_unavailable"
+        except ProviderQuotaUnknownError:
+            execution_status = "held"
+            reason_code = "provider_quota_contract_unknown"
         except ProviderNoDataError:
             execution_status = "no_data"
             reason_code = "no_admitted_provider_data"
-        except Exception:
+        except Exception as exc:
+            logger.error(
+                "Unexpected history acquisition error request_id=%s instrument_id=%s error_type=%s",
+                body.request_id,
+                instrument.id,
+                type(exc).__name__,
+            )
             execution_status = "failed"
             reason_code = "history_acquisition_failed"
 
@@ -2089,6 +2505,94 @@ async def _enqueue_bulk_fetch(instrument_id: int):
 
 def _normalized_symbol_key(value: str | None) -> str:
     return (value or "").strip().upper()
+
+
+def _is_ticker_shaped_query(value: str) -> bool:
+    return re.fullmatch(r"[A-Z0-9][A-Z0-9./_-]{0,31}", _normalized_symbol_key(value)) is not None
+
+
+def _discovery_profile_outcome(
+    provider: str,
+    status: str,
+    reason_code: str | None = None,
+    *,
+    result_count: int | None = None,
+    error_type: str | None = None,
+) -> dict:
+    outcome = {
+        "provider": provider,
+        "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+        "operation": "get_instrument_profile",
+        "status": status,
+    }
+    if reason_code is not None:
+        outcome["reason_code"] = reason_code
+    if result_count is not None:
+        outcome["result_count"] = result_count
+    if error_type is not None:
+        outcome["error_type"] = error_type
+    return outcome
+
+
+def _discovery_profile_error(exc: Exception) -> tuple[str, str]:
+    if isinstance(exc, ProviderRequestScopeDeniedError):
+        return "held", exc.reason_code
+    if isinstance(exc, ProviderRateLimitError):
+        return "held", "provider_capacity_unavailable"
+    if isinstance(exc, ProviderQuotaAdmissionError):
+        return "held", "provider_quota_admission_denied"
+    if isinstance(exc, ProviderQuotaCoordinatorError):
+        return "held", "provider_quota_coordinator_unavailable"
+    if isinstance(exc, ProviderQuotaUnknownError):
+        return "held", "provider_quota_contract_unknown"
+    if isinstance(exc, ProviderNoDataError):
+        return "no_match", "exact_profile_not_found"
+    return "failed", "exact_symbol_profile_lookup_failed"
+
+
+def _exact_discovery_profile_candidate(
+    profile: object,
+    *,
+    execution_provider: str | None,
+    selected_provider: str,
+    requested_symbol: str,
+    allowed_types: set[str],
+) -> tuple[InstrumentDiscoveryCandidate | None, bool]:
+    if not isinstance(profile, InstrumentProfile):
+        return None, False
+    listing_matches = [
+        listing
+        for listing in (profile.listings or [])
+        if _normalized_symbol_key(listing.provider_symbol) == requested_symbol
+    ]
+    identifiers = {
+        identifier.identifier_type: identifier.identifier_value
+        for identifier in (profile.identifiers or [])
+    }
+    if (
+        str(profile.provider or "").strip().lower() != selected_provider
+        or str(execution_provider or "").strip().lower() != selected_provider
+        or _normalized_symbol_key(profile.symbol) != requested_symbol
+        or _normalized_symbol_key(profile.canonical_symbol) != requested_symbol
+        or not _profile_exact_match(profile, requested_symbol)
+        or not listing_matches
+        or choose_domain_key(identifiers) is None
+    ):
+        return None, False
+    listing = sorted(listing_matches, key=lambda item: not item.is_primary)[0]
+    candidate_type = str(profile.quote_type or listing.provider_instrument_type or "")
+    if allowed_types and not _matches_search_type_filter(candidate_type, allowed_types):
+        return None, True
+    return (
+        InstrumentDiscoveryCandidate(
+            symbol=requested_symbol,
+            name=str(profile.name or ""),
+            exchange=str(listing.exchange_code or profile.exchange or ""),
+            type=candidate_type,
+            provider=selected_provider,
+        ),
+        True,
+    )
 
 
 def _profile_exact_match(profile: InstrumentProfile, requested_symbol: str) -> bool:

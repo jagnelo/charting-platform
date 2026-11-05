@@ -151,7 +151,10 @@ async function onInput() {
     if (!mounted || seq !== searchSeq) return
     loading.value = true
     try {
-      const loaded = await api.get<SearchResult[]>('/instruments/search', { q: trimmedQuery.value })
+      const loaded = await api.get<SearchResult[]>('/instruments/search', {
+        q: trimmedQuery.value,
+        canonical_only: true,
+      })
       if (mounted && seq === searchSeq) {
         results.value = loaded
         highlightIdx.value = 0
@@ -175,7 +178,7 @@ async function selectSymbol(symbol: string) {
   const seq = ++resolveSeq
   loading.value = true
   try {
-    const resolved = await ensureKnownInstrumentSymbol(symbol)
+    const resolved = await ensureKnownInstrumentSymbol(symbol, 'Instrument', { canonicalOnly: true })
     if (mounted && seq === resolveSeq) commit(resolved)
   } catch (e) {
     if (mounted && seq === resolveSeq) {
@@ -192,7 +195,7 @@ async function selectExpression() {
   loading.value = true
   const expression = trimmedQuery.value
   try {
-    const resolved = await ensureKnownInstrumentSymbol(expression)
+    const resolved = await ensureKnownInstrumentSymbol(expression, 'Instrument', { canonicalOnly: true })
     if (mounted && seq === resolveSeq) commit(resolved)
   } catch (e) {
     if (mounted && seq === resolveSeq) {

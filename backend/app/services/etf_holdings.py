@@ -1158,6 +1158,7 @@ async def ingest_holdings_snapshot(
     parser_version: str = "v1",
     raw_payload_text: str | None = None,
     raw_payload_json: dict | None = None,
+    schema_fingerprint_override: str | None = None,
     legal_metadata: dict | None = None,
     notes: str | None = None,
     allow_provider_enrichment: bool = True,
@@ -1246,7 +1247,8 @@ async def ingest_holdings_snapshot(
             legal_metadata=legal_metadata,
         ),
         "expected_cadence": legal_metadata.get("expected_cadence"),
-        "schema_fingerprint": _schema_fingerprint(
+        "schema_fingerprint": schema_fingerprint_override
+        or _schema_fingerprint(
             raw_payload_text=raw_payload_text,
             raw_payload_json=raw_payload_json,
         ),
@@ -1290,9 +1292,9 @@ async def ingest_holdings_snapshot(
         await db.execute(
             _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
             .options(
-                selectinload(ETFHoldingsSnapshot.rows).selectinload(
-                    ETFHolding.constituent_instrument
-                )
+                selectinload(ETFHoldingsSnapshot.rows)
+                .selectinload(ETFHolding.constituent_instrument)
+                .selectinload(Instrument.equity_detail)
             )
             .where(
                 ETFHoldingsSnapshot.etf_profile_id == profile.id,
@@ -1304,6 +1306,11 @@ async def ingest_holdings_snapshot(
         )
     ).scalar_one_or_none()
     if existing is not None:
+        if schema_fingerprint_override is not None:
+            existing.extra_data = {
+                **(existing.extra_data if isinstance(existing.extra_data, dict) else {}),
+                "schema_fingerprint": schema_fingerprint_override,
+            }
         return await _reconcile_existing_snapshot_rows(
             db,
             snapshot=existing,
@@ -1801,13 +1808,13 @@ async def holdings_capability_for_profile(
     db: AsyncSession,
     profile: ETFProfile,
     *,
-    snapshot: ETFHoldingsSnapshotOut | None = None,
+    snapshot: ETFHoldingsSnapshot | None = None,
 ) -> dict[str, Any]:
     """Return operational capability without contacting an external source."""
 
-    latest = snapshot or await get_latest_snapshot(
+    latest = snapshot or await _latest_snapshot_record_for_profile(
         db,
-        profile.instrument_id,
+        profile.id,
         include_holdings=False,
         include_controlled_fixture=False,
     )
@@ -1857,6 +1864,25 @@ async def get_latest_snapshot(
     profile = await get_etf_profile_for_instrument(db, instrument.id)
     if profile is None:
         return None
+    snapshot = await _latest_snapshot_record_for_profile(
+        db,
+        profile.id,
+        include_holdings=include_holdings,
+        include_controlled_fixture=include_controlled_fixture,
+    )
+    if snapshot is None:
+        return None
+    return snapshot_to_out(snapshot, instrument=instrument, include_holdings=include_holdings)
+
+
+async def _latest_snapshot_record_for_profile(
+    db: AsyncSession,
+    profile_id: int,
+    *,
+    include_holdings: bool,
+    include_controlled_fixture: bool,
+) -> ETFHoldingsSnapshot | None:
+    """Load the visible latest ORM row for internal evidence evaluation."""
     options = [selectinload(ETFHoldingsSnapshot.etf_profile)]
     if include_holdings:
         options.append(
@@ -1865,7 +1891,7 @@ async def get_latest_snapshot(
     statement = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(*options)
-        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        .where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
     )
     if not include_controlled_fixture:
         statement = statement.where(
@@ -1874,7 +1900,7 @@ async def get_latest_snapshot(
                 ETFHoldingsSnapshot.source_provider != "e2e_reference",
             )
         )
-    snapshot = (
+    return (
         await db.execute(
             statement.order_by(
                 ETFHoldingsSnapshot.composition_date.desc(),
@@ -1883,9 +1909,6 @@ async def get_latest_snapshot(
             ).limit(1)
         )
     ).scalar_one_or_none()
-    if snapshot is None:
-        return None
-    return snapshot_to_out(snapshot, instrument=instrument, include_holdings=include_holdings)
 
 
 async def get_snapshot_by_id(
