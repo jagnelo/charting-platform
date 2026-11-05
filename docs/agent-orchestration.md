@@ -286,7 +286,14 @@ the retired workflow and must never receive a new candidate.
    tests/workstream, pushes it, and starts a new attempt. It never experiments
    with several alternative merge commits or leaves a combined repository copy.
 3. The exact pushed `staging` SHA must pass the GitHub job named `Exhaustive
-   Integration Gate`. Failure writes `.ai/staging-degraded.json`; ordinary
+   Integration Gate`. On staging, changed-scope is followed by this one
+   authoritative full gate; standalone backend, frontend-unit, and E2E jobs
+   are skipped to avoid replaying phases already run by `make
+   validate-integration`. Its receipt profile is `full_staging_single_gate_v1`
+   and records those standalone jobs as skipped, never passed. Feature branches
+   retain their broad standalone checks. Legacy staging receipts remain
+   readable only when the complete legacy product matrix and exhaustive gate
+   succeeded (with or without the older changed-scope job). Failure writes `.ai/staging-degraded.json`; ordinary
    integration and promotion stop. Only an explicitly authorized repair branch
    based directly on that exact degraded SHA may use `REMEDIATE_DEGRADED=1`.
    A source worktree can be removed only after a green staging receipt names
@@ -296,10 +303,14 @@ the retired workflow and must never receive a new candidate.
    synchronized, green staging SHA and fast-forwards `master`. The same exact
    successful staging Exhaustive Integration Gate qualifies that identical SHA
    on master. Master runs identity, provenance, synchronized-ref, and release
-   checks against the trusted staging push run and unique required jobs. A
+   checks against the trusted staging push run and unique required jobs. The
+   verifier accepts either legacy standalone product jobs all successful or
+   the `full_staging_single_gate_v1` profile with all three standalone jobs
+   skipped and changed-scope plus the exhaustive job successful. Mixed,
+   missing, duplicate, failed, or wrong-source evidence is rejected. A
    master workflow requires only the unique `Master Release Provenance` job;
    it has no duplicate alias for the staging integration job. The verifier
-   checks the full successful staging job set, exact run identity, event, SHA,
+   checks the supported complete staging profile, exact run identity, event, SHA,
    and synchronized refs before master release checks pass. Reused product
    suites are recorded as unexecuted on master.
    Failed or unavailable checks mark master degraded and block deployment/new

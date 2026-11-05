@@ -23,23 +23,50 @@ def require_trusted_run(
         or run.get("workflow_id") != workflow_id
     ):
         raise ValueError("staging run identity or conclusion is not trusted")
-    required = (
-        "Changed-path validation scope",
-        "Backend Tests",
-        "Frontend Unit Tests",
-        "E2E Tests (Playwright)",
-        "Exhaustive Integration Gate",
-    )
-    for name in required:
+
+    def require(name: str, conclusion: str = "success") -> None:
         matches = [job for job in jobs if job.get("name") == name]
         if (
             len(matches) != 1
             or matches[0].get("status") != "completed"
-            or matches[0].get("conclusion") != "success"
+            or matches[0].get("conclusion") != conclusion
         ):
             raise ValueError(
-                f"staging run lacks one completed successful required job: {name}"
+                f"staging run lacks exactly one completed {conclusion} job: {name}"
             )
+
+    require("Exhaustive Integration Gate")
+    product_jobs = ("Backend Tests", "Frontend Unit Tests", "E2E Tests (Playwright)")
+    product_conclusions = []
+    for name in product_jobs:
+        matches = [job for job in jobs if job.get("name") == name]
+        if len(matches) != 1 or matches[0].get("status") != "completed":
+            raise ValueError(
+                f"staging run lacks exactly one completed product job: {name}"
+            )
+        product_conclusions.append(matches[0].get("conclusion"))
+    # Read both the legacy full-replay contract and the explicit single-gate
+    # profile. Skipped standalone suites are truthful only when the full gate
+    # succeeded on this exact trusted staging push.
+    if all(value == "success" for value in product_conclusions):
+        scope = [
+            job for job in jobs if job.get("name") == "Changed-path validation scope"
+        ]
+        if len(scope) > 1 or (
+            scope
+            and (
+                scope[0].get("status") != "completed"
+                or scope[0].get("conclusion") != "success"
+            )
+        ):
+            raise ValueError(
+                "legacy staging changed-path job is duplicate or unsuccessful"
+            )
+        return
+    if all(value == "skipped" for value in product_conclusions):
+        require("Changed-path validation scope")
+        return
+    raise ValueError("staging product jobs do not match a supported full-gate profile")
 
 
 def api(path: str, token: str) -> dict:

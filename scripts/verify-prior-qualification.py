@@ -15,6 +15,7 @@ PRODUCT_JOBS = {
     "Frontend Unit Tests",
     "E2E Tests (Playwright)",
 }
+SINGLE_GATE_PROFILE = "full_staging_single_gate_v1"
 STAGING_JOB = "Exhaustive Integration Gate"
 BRANCH_JOB = "Branch-declared Tests"
 
@@ -32,11 +33,66 @@ def qualifies(run: dict, jobs: list[dict], sha: str, workflow_id: int) -> bool:
         )
     ):
         return False
-    required = PRODUCT_JOBS | (
-        {STAGING_JOB}
-        if run.get("head_branch") in {"staging", "master"}
-        else {BRANCH_JOB}
-    )
+    if run.get("head_branch") == "staging":
+        required = PRODUCT_JOBS | {STAGING_JOB}
+        matches_by_name = {
+            name: [job for job in jobs if job.get("name") == name] for name in required
+        }
+        if any(len(matches_by_name[name]) != 1 for name in required):
+            return False
+        if any(
+            matches_by_name[name][0].get("status") != "completed"
+            or matches_by_name[name][0].get("conclusion") != "success"
+            for name in (STAGING_JOB,)
+        ):
+            return False
+        changed_scope = [
+            job for job in jobs if job.get("name") == "Changed-path validation scope"
+        ]
+        if len(changed_scope) > 1 or (
+            changed_scope
+            and (
+                changed_scope[0].get("status") != "completed"
+                or changed_scope[0].get("conclusion") != "success"
+            )
+        ):
+            return False
+        product_results = [matches_by_name[name][0] for name in PRODUCT_JOBS]
+        legacy_full = all(
+            job.get("status") == "completed" and job.get("conclusion") == "success"
+            for job in product_results
+        )
+        single_gate_full = bool(changed_scope) and all(
+            job.get("status") == "completed" and job.get("conclusion") == "skipped"
+            for job in product_results
+        )
+        return legacy_full or single_gate_full
+    if run.get("head_branch") == "master":
+        # Old master full-replay runs did not include changed-scope and
+        # Branch-declared was skipped by the master workflow. Require the actual
+        # product matrix and exhaustive gate; provenance-only master runs fail.
+        required = PRODUCT_JOBS | {STAGING_JOB}
+        for name in required:
+            matches = [job for job in jobs if job.get("name") == name]
+            if (
+                len(matches) != 1
+                or matches[0].get("status") != "completed"
+                or matches[0].get("conclusion") != "success"
+            ):
+                return False
+        changed_scope = [
+            job for job in jobs if job.get("name") == "Changed-path validation scope"
+        ]
+        if len(changed_scope) > 1 or (
+            changed_scope
+            and (
+                changed_scope[0].get("status") != "completed"
+                or changed_scope[0].get("conclusion") != "success"
+            )
+        ):
+            return False
+        return True
+    required = PRODUCT_JOBS | {BRANCH_JOB}
     for name in required:
         matches = [job for job in jobs if job.get("name") == name]
         if (

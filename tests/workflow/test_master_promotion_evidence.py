@@ -27,22 +27,87 @@ def run_payload(**updates):
 
 
 def test_only_exact_trusted_green_staging_gate_is_accepted():
-    required = [
-        "Changed-path validation scope",
-        "Backend Tests",
-        "Frontend Unit Tests",
-        "E2E Tests (Playwright)",
-        "Exhaustive Integration Gate",
-    ]
     MODULE.require_trusted_run(
         run_payload(),
         [
-            {"name": name, "status": "completed", "conclusion": "success"}
-            for name in required
+            {
+                "name": "Changed-path validation scope",
+                "status": "completed",
+                "conclusion": "success",
+            },
+            {
+                "name": "Exhaustive Integration Gate",
+                "status": "completed",
+                "conclusion": "success",
+            },
+            *[
+                {"name": name, "status": "completed", "conclusion": "skipped"}
+                for name in (
+                    "Backend Tests",
+                    "Frontend Unit Tests",
+                    "E2E Tests (Playwright)",
+                )
+            ],
         ],
         "a" * 40,
         123,
     )
+
+
+def test_master_verifier_reads_legacy_full_staging_runs():
+    jobs = [
+        {"name": name, "status": "completed", "conclusion": "success"}
+        for name in (
+            "Changed-path validation scope",
+            "Backend Tests",
+            "Frontend Unit Tests",
+            "E2E Tests (Playwright)",
+            "Exhaustive Integration Gate",
+        )
+    ]
+    MODULE.require_trusted_run(run_payload(), jobs, "a" * 40, 123)
+
+
+def test_master_verifier_reads_legacy_four_job_staging_run_without_changed_scope():
+    jobs = [
+        {"name": name, "status": "completed", "conclusion": "success"}
+        for name in (
+            "Backend Tests",
+            "Frontend Unit Tests",
+            "E2E Tests (Playwright)",
+            "Exhaustive Integration Gate",
+        )
+    ]
+    MODULE.require_trusted_run(run_payload(), jobs, "a" * 40, 123)
+
+
+@pytest.mark.parametrize("bad_product", ["failure", "success"])
+def test_master_verifier_rejects_mixed_or_failed_single_gate_evidence(bad_product):
+    jobs = [
+        {
+            "name": "Changed-path validation scope",
+            "status": "completed",
+            "conclusion": "success",
+        },
+        {
+            "name": "Exhaustive Integration Gate",
+            "status": "completed",
+            "conclusion": "success",
+        },
+        {"name": "Backend Tests", "status": "completed", "conclusion": "skipped"},
+        {
+            "name": "Frontend Unit Tests",
+            "status": "completed",
+            "conclusion": bad_product,
+        },
+        {
+            "name": "E2E Tests (Playwright)",
+            "status": "completed",
+            "conclusion": "skipped",
+        },
+    ]
+    with pytest.raises(ValueError, match="supported full-gate profile"):
+        MODULE.require_trusted_run(run_payload(), jobs, "a" * 40, 123)
 
 
 def test_workflow_display_names_are_unique_and_master_has_only_release_provenance():
@@ -57,6 +122,54 @@ def test_workflow_display_names_are_unique_and_master_has_only_release_provenanc
     assert workflow["jobs"]["master-release"]["name"] == "Master Release Provenance"
     assert workflow["jobs"]["master-release"]["permissions"]["actions"] == "read"
     assert "master-gate-compatibility" not in workflow["jobs"]
+
+
+def test_staging_runs_only_the_authoritative_single_full_gate():
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    jobs = workflow["jobs"]
+    for job_id in ("backend", "frontend-unit", "e2e"):
+        condition = jobs[job_id]["if"]
+        assert "github.ref != 'refs/heads/staging'" in condition
+        assert "needs.changed-scope.outputs.scope == 'broad'" in condition
+        assert "github.ref != 'refs/heads/master'" in condition
+    assert jobs["platform-gate"]["needs"] == ["changed-scope"]
+    assert "refs/heads/staging" in jobs["platform-gate"]["if"]
+    assert any(
+        step.get("run") == "make validate-integration"
+        for step in jobs["platform-gate"]["steps"]
+    )
+
+    makefile = (ROOT / "Makefile").read_text()
+    target = makefile.split("validate-integration:", 1)[1].split(
+        "validate-focused-integration:", 1
+    )[0]
+    phases = (
+        "workstream",
+        "backend-dependencies",
+        "migration-head",
+        "migration-compatibility",
+        "frontend-dependencies",
+        "lint",
+        "backend-coverage",
+        "frontend-tests",
+        "frontend-build",
+        "compose-contract",
+        "provider-probes",
+        "stack-up",
+        "research-runner-probes",
+        "e2e-functional",
+        "e2e-visual",
+    )
+    assert all(target.count(f"stage={phase};") == 1 for phase in phases)
+    assert "RUN_BOARD_VISUAL_PARITY=1" in target
+    assert "tc2000_visual.spec.ts --retries=0" in target
+    assert target.count("$(MAKE) test-e2e") == 1
+    functional = makefile.split("test-e2e:\n", 1)[1].split("test-e2e-headed:", 1)[0]
+    assert "npx playwright test --retries=0" in functional
+    assert target.count("test-backend-coverage") == 1
+    assert target.count("$(MAKE) test-fe") == 1
 
 
 def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
@@ -77,12 +190,15 @@ def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
             "event": "push",
             "run_id": 123,
             "required_job": "Exhaustive Integration Gate",
+            "validation_profile": "full_staging_single_gate_v1",
             "verified_required_jobs": [
                 "Changed-path validation scope",
+                "Exhaustive Integration Gate",
+            ],
+            "unexecuted_product_jobs": [
                 "Backend Tests",
                 "Frontend Unit Tests",
                 "E2E Tests (Playwright)",
-                "Exhaustive Integration Gate",
             ],
             "conclusion": "success",
         },
@@ -98,6 +214,51 @@ def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
         "master_product_suite_replay": "not_run; exact staging product qualification reused",
     }
     assert rpi.receipt_has_ci_qualification(receipt, sha)
+    missing_skip_record = {**receipt, "staging_ci": dict(receipt["staging_ci"])}
+    missing_skip_record["staging_ci"].pop("unexecuted_product_jobs")
+    assert not rpi.receipt_has_ci_qualification(missing_skip_record, sha)
+    false_pass_record = {**receipt, "staging_ci": dict(receipt["staging_ci"])}
+    false_pass_record["staging_ci"]["unexecuted_product_jobs"] = []
+    assert not rpi.receipt_has_ci_qualification(false_pass_record, sha)
+    legacy_receipt = {
+        **receipt,
+        "staging_ci": {
+            **receipt["staging_ci"],
+            "verified_required_jobs": [
+                "Changed-path validation scope",
+                "Backend Tests",
+                "Frontend Unit Tests",
+                "E2E Tests (Playwright)",
+                "Exhaustive Integration Gate",
+            ],
+        },
+    }
+    legacy_receipt["staging_ci"].pop("validation_profile")
+    assert rpi.receipt_has_ci_qualification(legacy_receipt, sha)
+    explicit_legacy_receipt = {
+        **legacy_receipt,
+        "staging_ci": {
+            **legacy_receipt["staging_ci"],
+            "validation_profile": "full_staging_integration",
+        },
+    }
+    assert rpi.receipt_has_ci_qualification(explicit_legacy_receipt, sha)
+    explicit_legacy_four_job_receipt = {
+        **explicit_legacy_receipt,
+        "staging_ci": {
+            **explicit_legacy_receipt["staging_ci"],
+            "verified_required_jobs": [
+                "Backend Tests",
+                "Frontend Unit Tests",
+                "E2E Tests (Playwright)",
+                "Exhaustive Integration Gate",
+            ],
+        },
+    }
+    assert rpi.receipt_has_ci_qualification(explicit_legacy_four_job_receipt, sha)
+    unversioned_new_job_list = {**receipt, "staging_ci": dict(receipt["staging_ci"])}
+    unversioned_new_job_list["staging_ci"].pop("validation_profile")
+    assert not rpi.receipt_has_ci_qualification(unversioned_new_job_list, sha)
     old_schema2_receipt = {
         **receipt,
         "master_release_ci": {
@@ -109,7 +270,9 @@ def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
         },
     }
     assert rpi.receipt_has_ci_qualification(old_schema2_receipt, sha)
-    receipt["staging_ci"]["verified_required_jobs"].remove("E2E Tests (Playwright)")
+    receipt["staging_ci"]["verified_required_jobs"].remove(
+        "Exhaustive Integration Gate"
+    )
     assert not rpi.receipt_has_ci_qualification(receipt, sha)
     assert not rpi.receipt_has_ci_qualification(
         {**receipt, "validation_mode": "replay"}, sha
@@ -149,5 +312,5 @@ def test_missing_or_skipped_exhaustive_job_is_not_relabelled_green(jobs):
         for name in required
         if name != "Exhaustive Integration Gate"
     ] + jobs
-    with pytest.raises(ValueError, match="lacks one completed successful"):
+    with pytest.raises(ValueError, match="lacks exactly one completed success job"):
         MODULE.require_trusted_run(run_payload(), jobs, "a" * 40, 123)

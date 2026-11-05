@@ -68,7 +68,7 @@ jobs:
     name: Backend Tests
     runs-on: ubuntu-latest
     needs: [changed-scope]
-    if: github.ref != 'refs/heads/master' && (needs.changed-scope.outputs.scope == 'broad' || github.ref == 'refs/heads/staging')
+    if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
     timeout-minutes: 45
 
     steps:
@@ -139,7 +139,7 @@ jobs:
     name: Frontend Unit Tests
     runs-on: ubuntu-latest
     needs: [changed-scope]
-    if: github.ref != 'refs/heads/master' && (needs.changed-scope.outputs.scope == 'broad' || github.ref == 'refs/heads/staging')
+    if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
     timeout-minutes: 15
 
     steps:
@@ -229,7 +229,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     needs: [changed-scope, backend, frontend-unit]
-    if: github.ref != 'refs/heads/master' && (needs.changed-scope.outputs.scope == 'broad' || github.ref == 'refs/heads/staging')
+    if: github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging' && needs.changed-scope.outputs.scope == 'broad'
 
     steps:
       - uses: actions/checkout@v4
@@ -307,7 +307,7 @@ jobs:
     # indefinitely. This is above the previously observed green replay time;
     # timeout failure remains red and preserves the diagnostics step.
     timeout-minutes: 180
-    needs: [changed-scope, backend, frontend-unit]
+    needs: [changed-scope]
     if: github.event_name == 'push' && github.ref == 'refs/heads/staging'
 
     steps:

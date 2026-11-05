@@ -91,3 +91,39 @@ The accepted workflow-file hash was `b7b50f28…`; `git diff --check` exposed on
 extra blank line at EOF, which was removed without logic changes. The final
 workflow-file hash is `ff8bab6a…`; exact CI on the new published SHA is the
 authority for that final file.
+
+## AC10 staging single-gate follow-up
+
+Human authorized this bounded throughput follow-up before Root's canonical
+adoption. Root reviewed the first draft and requested legacy four-job
+qualification compatibility, explicit receipt profile round-tripping, and a
+stronger staging exclusion check; those corrections are included. Staging now
+runs changed-scope and then the unchanged `make validate-integration` gate.
+Standalone backend, frontend-unit, and E2E jobs are skipped on staging and are
+not prerequisites of the full gate. Broad feature branch checks remain.
+
+The baseline staging path spends about 28-32 minutes waiting on standalone
+backend tests before starting the gate, while frontend-unit and standalone E2E
+also run separately. The single-gate path removes that backend lead time and
+separate runner jobs; expected critical-path reduction is at least 28-32
+minutes, plus any frontend/E2E time extending beyond it. The complete existing
+backend, frontend, functional browser, strict visual, provider-safe, migration,
+workstream, and cleanup phases remain in the Makefile gate and run once.
+
+Focused regressions cover staging routing, unchanged Makefile phases, broad
+feature behavior, strict new-profile job statuses, legacy four/five-job full
+evidence, prior qualification on staging/master, receipt read/write profile
+semantics, and rejection of scoped master evidence. The final focused run is
+99 passed in 1.80 seconds. Root's final review verified the current source
+hashes and accepted AC10 under the human's standing delegation; durable
+acceptance is in `workflow-AC10-implementation-technical-acceptance.json`. All
+AC1-AC9 acceptance and history are preserved. No Makefile, product source,
+collector, other worktree, protected branch, integration, promotion, or
+deployment was changed. The independent 45cc release remains untouched.
+
+## AC10 closure
+
+All ten criteria are complete and the branch is ready for integration. The
+only remaining gates are exact CI on this new pushed SHA and Root's protected
+canonical staging/master adoption. `integration_capture: exact branch HEAD`.
+Root retains integration, promotion, and deployment ownership.

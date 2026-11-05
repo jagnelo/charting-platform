@@ -156,6 +156,35 @@ def receipt_has_ci_qualification(data: dict, commit: str) -> bool:
         return True
     staging = data.get("staging_ci") or {}
     master_release = data.get("master_release_ci") or {}
+    legacy_staging_jobs = {
+        "Backend Tests",
+        "Frontend Unit Tests",
+        "E2E Tests (Playwright)",
+        "Exhaustive Integration Gate",
+    }
+    legacy_scoped_staging_jobs = legacy_staging_jobs | {"Changed-path validation scope"}
+    single_gate_jobs = {
+        "Changed-path validation scope",
+        "Exhaustive Integration Gate",
+    }
+    staging_profile = staging.get("validation_profile")
+    recorded_staging_jobs = set(staging.get("verified_required_jobs") or [])
+    if staging_profile in (None, "full_staging_integration"):
+        staging_jobs_match = recorded_staging_jobs in (
+            legacy_staging_jobs,
+            legacy_scoped_staging_jobs,
+        )
+    elif staging_profile == "full_staging_single_gate_v1":
+        staging_jobs_match = recorded_staging_jobs == single_gate_jobs
+        staging_jobs_match = staging_jobs_match and set(
+            staging.get("unexecuted_product_jobs") or []
+        ) == {
+            "Backend Tests",
+            "Frontend Unit Tests",
+            "E2E Tests (Playwright)",
+        }
+    else:
+        staging_jobs_match = False
     return bool(
         data.get("receipt_schema") == 2
         and data.get("validation_mode") == "same_sha_staging_evidence_reuse"
@@ -165,14 +194,7 @@ def receipt_has_ci_qualification(data: dict, commit: str) -> bool:
         and str(staging.get("run_id", "")).isdigit()
         and int(staging.get("run_id", 0)) > 0
         and staging.get("required_job") == "Exhaustive Integration Gate"
-        and set(staging.get("verified_required_jobs") or [])
-        == {
-            "Changed-path validation scope",
-            "Backend Tests",
-            "Frontend Unit Tests",
-            "E2E Tests (Playwright)",
-            "Exhaustive Integration Gate",
-        }
+        and staging_jobs_match
         and staging.get("conclusion") == "success"
         and master_release.get("sha") == commit
         and master_release.get("workflow_path") == ".github/workflows/ci.yml"

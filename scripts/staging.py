@@ -57,9 +57,18 @@ BRANCH_PRODUCT_JOBS = (
 )
 STAGING_PROMOTION_JOBS = (
     "Changed-path validation scope",
+    "Exhaustive Integration Gate",
+)
+LEGACY_STAGING_PROMOTION_JOBS = (
     *BRANCH_PRODUCT_JOBS,
     "Exhaustive Integration Gate",
 )
+LEGACY_SCOPED_STAGING_PROMOTION_JOBS = (
+    "Changed-path validation scope",
+    *LEGACY_STAGING_PROMOTION_JOBS,
+)
+STAGING_VALIDATION_MODE = "full_staging_single_gate_v1"
+LEGACY_STAGING_VALIDATION_MODE = "full_staging_integration"
 MASTER_RELEASE_JOBS = ("Master Release Provenance",)
 
 
@@ -572,23 +581,47 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
             )
 
     if exhaustive and branch == "staging":
-        for name in (
-            "Changed-path validation scope",
-            "Backend Tests",
-            "Frontend Unit Tests",
-            "E2E Tests (Playwright)",
-            "Exhaustive Integration Gate",
-        ):
-            require_success(name)
-        selected["validation_mode"] = "full_staging_integration"
-        selected["verified_required_jobs"] = [
-            "Changed-path validation scope",
-            "Backend Tests",
-            "Frontend Unit Tests",
-            "E2E Tests (Playwright)",
-            "Exhaustive Integration Gate",
+        require_success("Exhaustive Integration Gate")
+        scope_matches = [
+            job for job in jobs if job.get("name") == "Changed-path validation scope"
         ]
-        selected["unexecuted_product_jobs"] = []
+        if len(scope_matches) > 1 or (
+            scope_matches
+            and (
+                scope_matches[0].get("status") != "completed"
+                or scope_matches[0].get("conclusion") != "success"
+            )
+        ):
+            raise SystemExit("staging changed-path job is duplicate or unsuccessful")
+        product_results = []
+        for name in BRANCH_PRODUCT_JOBS:
+            matches = [job for job in jobs if job.get("name") == name]
+            if len(matches) != 1 or matches[0].get("status") != "completed":
+                raise SystemExit(
+                    f"staging profile requires exactly one completed standalone product job: {name}"
+                )
+            product_results.append(matches[0].get("conclusion"))
+        if all(result == "success" for result in product_results):
+            selected["validation_mode"] = LEGACY_STAGING_VALIDATION_MODE
+            legacy_jobs = (
+                LEGACY_SCOPED_STAGING_PROMOTION_JOBS
+                if scope_matches
+                else LEGACY_STAGING_PROMOTION_JOBS
+            )
+            selected["verified_required_jobs"] = list(legacy_jobs)
+            selected["unexecuted_product_jobs"] = []
+        elif all(result == "skipped" for result in product_results):
+            if not scope_matches:
+                raise SystemExit(
+                    "single-gate staging profile requires successful changed-path validation scope"
+                )
+            selected["validation_mode"] = STAGING_VALIDATION_MODE
+            selected["verified_required_jobs"] = list(STAGING_PROMOTION_JOBS)
+            selected["unexecuted_product_jobs"] = list(BRANCH_PRODUCT_JOBS)
+        else:
+            raise SystemExit(
+                "staging standalone product jobs do not match a supported full-gate profile"
+            )
     elif exhaustive:
         require_success("Master Release Provenance")
         selected["validation_mode"] = (
@@ -859,8 +892,8 @@ def reconcile(commit: str) -> None:
             ci,
             branch="staging",
             commit=commit,
-            mode="full_staging_integration",
-            required_jobs=STAGING_PROMOTION_JOBS,
+            mode=str(ci.get("validation_mode")),
+            required_jobs=tuple(ci.get("verified_required_jobs") or ()),
         )
         fetch_branch("staging", cwd=STAGING_PATH)
         if synchronized(STAGING_PATH, "staging") != commit:
@@ -958,7 +991,9 @@ def promote(commit: str, confirm: str) -> None:
                         "run_id": ci.get("databaseId"),
                         "url": ci.get("url"),
                         "required_job": "Exhaustive Integration Gate",
+                        "validation_profile": ci.get("validation_mode"),
                         "verified_required_jobs": ci.get("verified_required_jobs"),
+                        "unexecuted_product_jobs": ci.get("unexecuted_product_jobs"),
                         "conclusion": "success",
                     },
                     "master_release_ci": {

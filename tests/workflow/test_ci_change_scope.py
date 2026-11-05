@@ -227,3 +227,55 @@ def test_actual_ci_scope_sequence_uses_qualified_merge_base_and_direct_tree_diff
             check=True,
         )
         assert candidate.stdout.strip() == "broad"
+
+
+def test_prior_qualification_accepts_single_gate_and_legacy_but_not_scoped_staging():
+    spec = importlib.util.spec_from_file_location(
+        "prior_qualification", ROOT / "scripts" / "verify-prior-qualification.py"
+    )
+    assert spec and spec.loader
+    verifier = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(verifier)
+    sha = "a" * 40
+    run = {
+        "head_sha": sha,
+        "head_branch": "staging",
+        "event": "push",
+        "status": "completed",
+        "conclusion": "success",
+        "workflow_id": 123,
+    }
+
+    def job(name, conclusion="success"):
+        return {"name": name, "status": "completed", "conclusion": conclusion}
+
+    common = [job("Changed-path validation scope"), job("Exhaustive Integration Gate")]
+    standalone = ["Backend Tests", "Frontend Unit Tests", "E2E Tests (Playwright)"]
+    single_gate = common + [job(name, "skipped") for name in standalone]
+    legacy_full = common + [job(name) for name in standalone]
+    legacy_four_job = [job("Exhaustive Integration Gate")] + [
+        job(name) for name in standalone
+    ]
+    assert verifier.qualifies(run, single_gate, sha, 123)
+    assert verifier.qualifies(run, legacy_full, sha, 123)
+    assert verifier.qualifies(run, legacy_four_job, sha, 123)
+    assert not verifier.qualifies(run, common, sha, 123)
+    assert not verifier.qualifies(
+        run,
+        common + [job(name, "skipped") for name in standalone[:2]],
+        sha,
+        123,
+    )
+    assert not verifier.qualifies(
+        {**run, "event": "pull_request"}, single_gate, sha, 123
+    )
+    assert not verifier.qualifies(
+        run, single_gate + [job("Exhaustive Integration Gate")], sha, 123
+    )
+    master = {**run, "head_branch": "master"}
+    assert verifier.qualifies(master, legacy_four_job, sha, 123)
+    scoped_master = [
+        job("Changed-path validation scope"),
+        job("Branch-declared Tests"),
+    ]
+    assert not verifier.qualifies(master, scoped_master, sha, 123)

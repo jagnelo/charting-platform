@@ -73,6 +73,13 @@ acceptance_criteria:
     text: "Every GitHub workflow job has a unique display name regardless of whether it runs or is skipped; master requires only Master Release Provenance, and the verifier still validates all unique successful staging jobs. The schema-2 reader accepts prior compatibility receipts and legacy github_replay receipts."
   - id: AC9
     text: "After a scoped immediate parent, fallback is allowed only when a direct two-tree diff from the exact branch/staging merge-base classifies the entire delta eligible and genuine full CI is verified for that same SHA; an unqualified runtime-bearing parent remains broad."
+  - id: AC10
+    text: "Staging runs changed-scope followed by one successful authoritative make validate-integration gate; standalone backend/frontend/E2E jobs are skipped and removed from the gate prerequisites. The full Makefile recipe and all phases remain unchanged, while feature branch broad checks remain. New full_staging_single_gate_v1 evidence is exact-source and explicitly records skipped standalone jobs; prior-full and master verification accept that profile plus legacy successful four/five-job full-run evidence, fail closed on scoped/partial/duplicate/wrong-source runs, and receipts distinguish new from legacy profiles."
+follow_up_history:
+  authorization: "Human's 2026-11-05 explicit urgent development-throughput mandate authorizes this bounded AC10 follow-up before Root's canonical adoption; Root owns delegated technical acceptance. Preserve the 3423e29b56df220269c97ddb7a26ccd7dd8d5a39 checkpoint and all AC1-AC9 history. Do not modify Makefile, product paths, protected branches, or the independent 45cc release."
+  measured_baseline: "Current staging serializes standalone Backend Tests (~28-32 minutes), Frontend Unit and standalone E2E before the authoritative Exhaustive Integration Gate, whose unchanged make validate-integration recipe repeats backend coverage/unit/integration, frontend tests/build, functional browser and strict visual phases."
+  expected_effect: "Removing the prerequisite jobs lets the single full gate start immediately after changed-scope, avoiding a repeated standalone backend run and separate frontend/E2E runner jobs. Expected staging critical-path reduction is at least the observed 28-32 minute backend lead time, plus any standalone frontend/E2E time extending beyond it; the complete product matrix still runs once in the authoritative gate."
+  status: "Root accepted AC10 under the human's standing delegation in workflow-AC10-implementation-technical-acceptance.json after final source review and focused workflow evidence. All ten criteria are complete; exact new-source CI and protected adoption remain Root-owned."
 branch_tests:
   - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python -m pytest tests/workflow -q"
   - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python -m pytest backend/tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers --no-cov -q"
@@ -81,14 +88,16 @@ branch_tests_reason: "Workflow-only regression suite and complete workstream/has
 live_test_impact: none
 migration_impact: none
 deployment_impact: none
+ac10_closure_authorization: "Human's standing delegation and explicit urgent development-throughput mandate authorize Root's technical acceptance. Root's 2026-11-05 workflow-AC10-implementation-technical-acceptance.json states: 'Root technically accepts AC10 staging-only deduplication after actual98affectedtests and final source review; final records/push/exactCI mandatory' and explicitly authorizes bounded AC10 closure in this coherent publication, preserving AC1-AC9 and published predecessors 3423e29b56df220269c97ddb7a26ccd7dd8d5a39 and 26cf65de."
+ac10_closure_summary: "AC10 uses the unchanged Makefile full integration recipe once per staging SHA, after changed-scope; standalone backend/frontend/E2E jobs are skipped and no longer gate the full job. Root verified all current implementation hashes; Makefile, product code, collector, and product inputs are unchanged. Root inspected 98 focused workflow tests passing; this worktree's final affected set passed 99 tests in 1.80s. Changed-file Ruff, format, own-record validator, and diff checks pass. The measured baseline includes 28-32 minutes of standalone backend wait before the same full backend/frontend/browser phases repeat in the exhaustive gate; the single-gate path removes at least that lead time plus separate frontend/E2E runner time beyond it while retaining all full-gate phases and truthful skipped statuses. Remaining: exact CI for the new pushed SHA and Root's protected canonical adoption. integration_capture: exact branch HEAD. Root owns integration, promotion, and deployment."
 status: ready_for_integration
 remaining_gaps:
-  - "Exact CI for the new clean corrective SHA is pending and Root-owned."
-  - "Root owns canonical staging/master adoption and must invoke the qualified helper from persistent staging with Root coordinator cwd; no integration/promotion/deployment occurs in this worktree."
+  - "Exact CI for this new clean source SHA remains Root-owned."
+  - "Root owns protected canonical staging/master adoption and must use the accepted helper from persistent staging with Root coordinator cwd. No integration, promotion, or deployment occurs in this worktree."
 progress:
-  completed: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9]
-  total: 9
+  completed: [AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10]
+  total: 10
   current_phase: ready_for_integration
-  current_blocker: none
-  next_action: complete affected Ruff/diff and workstream validation, append the 90-test receipt, then commit/push without amending 26cf65de
+  current_blocker: Exact pushed-source CI and Root protected adoption remain pending
+  next_action: Root monitors exact CI and performs canonical adoption after independent product release gates
 bootstrap_exception: "Root-authorized 2026-11-05: skip the plan-only commit/push and old plan-ready remote prerequisite as a demonstrated bottleneck. Keep this reviewed ready plan local under the active goal and exclusive claim. Require clean synchronized source at normal integration gates."

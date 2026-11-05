@@ -46,7 +46,17 @@ def load_script(name: str):
 
 
 @pytest.mark.parametrize(
-    "jobs_mode", ["success", "skipped", "missing", "duplicate", "run_failure"]
+    "jobs_mode",
+    [
+        "success",
+        "legacy_4",
+        "single_gate",
+        "single_gate_no_scope",
+        "skipped",
+        "missing",
+        "duplicate",
+        "run_failure",
+    ],
 )
 def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
     monkeypatch: pytest.MonkeyPatch,
@@ -85,8 +95,14 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
                         "status": "completed",
                         "conclusion": (
                             "skipped"
-                            if jobs_mode == "skipped"
-                            and name == "Exhaustive Integration Gate"
+                            if (
+                                jobs_mode in {"single_gate", "single_gate_no_scope"}
+                                and name in staging.BRANCH_PRODUCT_JOBS
+                            )
+                            or (
+                                jobs_mode == "skipped"
+                                and name == "Exhaustive Integration Gate"
+                            )
                             else "success"
                         ),
                     }
@@ -96,6 +112,10 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
                         "Frontend Unit Tests",
                         "E2E Tests (Playwright)",
                         "Exhaustive Integration Gate",
+                    )
+                    if not (
+                        jobs_mode in {"legacy_4", "single_gate_no_scope"}
+                        and name == "Changed-path validation scope"
                     )
                 ]
             }
@@ -124,13 +144,27 @@ def test_public_ci_watch_fetches_jobs_only_at_terminal_and_polls_conservatively(
 
     monkeypatch.setattr(staging.urllib.request, "urlopen", urlopen)
     monkeypatch.setattr(staging.time, "sleep", sleeps.append)
-    if jobs_mode == "success":
+    if jobs_mode in {"success", "legacy_4", "single_gate"}:
         result = staging.github_run("staging", sha, exhaustive=True)
         assert result["conclusion"] == "success"
+        if jobs_mode == "single_gate":
+            assert result["validation_mode"] == staging.STAGING_VALIDATION_MODE
+            assert result["verified_required_jobs"] == list(
+                staging.STAGING_PROMOTION_JOBS
+            )
+            assert result["unexecuted_product_jobs"] == list(
+                staging.BRANCH_PRODUCT_JOBS
+            )
+        else:
+            assert result["validation_mode"] == staging.LEGACY_STAGING_VALIDATION_MODE
+            if jobs_mode == "legacy_4":
+                assert result["verified_required_jobs"] == list(
+                    staging.LEGACY_STAGING_PROMOTION_JOBS
+                )
     else:
         with pytest.raises(
             SystemExit,
-            match="not green|integration/release job|required job successfully",
+            match="not green|integration/release job|required job successfully|supported full-gate profile|requires successful changed-path",
         ):
             staging.github_run("staging", sha, exhaustive=True)
     assert len(calls) == 4  # discovery, two run reads, one terminal jobs read
@@ -388,7 +422,7 @@ def test_first_policy_promotion_requires_explicit_staging_and_reuse_run_identity
         "event": "push",
         "workflowPath": ".github/workflows/ci.yml",
         "databaseId": 123,
-        "validation_mode": "full_staging_integration",
+        "validation_mode": staging.STAGING_VALIDATION_MODE,
         "verified_required_jobs": list(staging.STAGING_PROMOTION_JOBS),
     }
     master = {
@@ -404,7 +438,7 @@ def test_first_policy_promotion_requires_explicit_staging_and_reuse_run_identity
         stage,
         branch="staging",
         commit=sha,
-        mode="full_staging_integration",
+        mode=staging.STAGING_VALIDATION_MODE,
         required_jobs=staging.STAGING_PROMOTION_JOBS,
     )
     staging.require_promotion_evidence(
@@ -427,7 +461,7 @@ def test_first_policy_promotion_requires_explicit_staging_and_reuse_run_identity
             {**stage, "databaseId": None},
             branch="staging",
             commit=sha,
-            mode="full_staging_integration",
+            mode=staging.STAGING_VALIDATION_MODE,
             required_jobs=staging.STAGING_PROMOTION_JOBS,
         )
 
@@ -528,7 +562,7 @@ def test_interrupted_watch_reconciliation_is_exact_and_fail_closed(
             "event": "push",
             "workflowPath": ".github/workflows/ci.yml",
             "databaseId": 123,
-            "validation_mode": "full_staging_integration",
+            "validation_mode": staging.STAGING_VALIDATION_MODE,
             "verified_required_jobs": list(staging.STAGING_PROMOTION_JOBS),
             "url": "https://github.com/example/repo/actions/runs/123",
         }
@@ -1051,6 +1085,7 @@ def test_bootstrap_recovers_after_branch_and_remote_were_already_created(
 
     monkeypatch.setattr(staging, "STAGING_PATH", target)
     monkeypatch.setattr(staging, "root_master_ready", lambda: None)
+    monkeypatch.setattr(staging, "require_healthy_master", lambda: None)
     monkeypatch.setattr(staging, "fetch_branch", lambda branch, cwd: None)
     monkeypatch.setattr(staging, "synchronized", lambda path, branch: current)
 
