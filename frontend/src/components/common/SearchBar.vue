@@ -198,6 +198,7 @@ const optionExplicitlyNavigated = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
 let searchGeneration = 0
+let pendingSearch: { generation: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
 
 const showRecentResults = computed(() => props.showRecent)
 const showScreenerShortcut = computed(() =>
@@ -246,6 +247,10 @@ watch(() => props.modelValue, value => {
 
 async function onInput() {
   const generation = ++searchGeneration
+  finishPendingSearch()
+  let resolvePending!: () => void
+  const promise = new Promise<void>(resolve => { resolvePending = resolve })
+  pendingSearch = { generation, query: query.value.trim(), promise, resolve: resolvePending }
   optionExplicitlyNavigated.value = false
   expressionSelected.value = false
   dropdownDismissed.value = false
@@ -264,14 +269,14 @@ async function onInput() {
   // from updating this query.
   discoveryLoading.value = false
   resolvingCandidate.value = false
-  if (props.readonly) { results.value = []; return }
-  if (query.value.length < 1) { results.value = []; return }
+  if (props.readonly) { results.value = []; finishSearch(generation); return }
+  if (query.value.length < 1) { results.value = []; finishSearch(generation); return }
   // Don't hit search API for expressions
-  if (isExpression.value) { results.value = []; return }
+  if (isExpression.value) { results.value = []; finishSearch(generation); return }
   const requested = query.value.trim()
   if (props.sourceDiscoveryOnly) {
     results.value = []
-    scheduleDiscovery(requested, generation)
+    if (!scheduleDiscovery(requested, generation)) finishSearch(generation)
     return
   }
   debounceTimer = setTimeout(async () => {
@@ -286,13 +291,16 @@ async function onInput() {
       results.value = loaded.filter(matchesResultTypeScope)
       highlightIdx.value = results.value.length ? 0 : -1
       if (props.allowSourceDiscovery && shouldDiscoverTicker(requested, results.value)) {
-        scheduleDiscovery(requested, generation)
+        if (!scheduleDiscovery(requested, generation)) finishSearch(generation)
+      } else {
+        finishSearch(generation)
       }
     } catch {
       if (generation === searchGeneration && query.value.trim() === requested) {
         results.value = []
         errorMessage.value = 'Unable to search canonical instruments. Ticker availability was not checked.'
       }
+      finishSearch(generation)
     } finally {
       if (generation === searchGeneration) loading.value = false
     }
@@ -300,14 +308,17 @@ async function onInput() {
 }
 
 function scheduleDiscovery(requested: string, generation: number) {
-  if (!props.allowSourceDiscovery || !requested || isExpression.value || !shouldDiscoverTicker(requested, [])) return
+  if (!props.allowSourceDiscovery || !requested || isExpression.value || !shouldDiscoverTicker(requested, [])) return false
   if (discoveryTimer) clearTimeout(discoveryTimer)
   discoveryScheduled.value = true
   discoveryTimer = scheduleTickerDiscovery(() => {
     if (generation === searchGeneration && query.value.trim() === requested) {
       void discoverTicker(requested, generation)
+    } else {
+      finishSearch(generation)
     }
   })
+  return true
 }
 
 async function discoverTicker(requested: string, generation: number) {
@@ -330,7 +341,22 @@ async function discoverTicker(requested: string, generation: number) {
     }
   } finally {
     if (generation === searchGeneration) discoveryLoading.value = false
+    finishSearch(generation)
   }
+}
+
+function finishSearch(generation: number) {
+  if (!pendingSearch || pendingSearch.generation !== generation) return
+  const pending = pendingSearch
+  pendingSearch = null
+  pending.resolve()
+}
+
+function finishPendingSearch() {
+  if (!pendingSearch) return
+  const pending = pendingSearch
+  pendingSearch = null
+  pending.resolve()
 }
 
 async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
@@ -448,17 +474,41 @@ function commitSelection(
   errorMessage.value = ''
 }
 
-function selectFirst() {
+async function selectFirst() {
   if (isExpression.value) { void selectExpression(); return }
   if (query.value.trim()) {
     if (props.mode === 'chart' && !optionExplicitlyNavigated.value) {
+      const submittedQuery = query.value.trim()
       const exact = results.value.find(result =>
-        result.symbol.trim().toUpperCase() === query.value.trim().toUpperCase(),
+        result.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
       )
       if (exact) {
         select(exact)
+        return
+      }
+      const generation = searchGeneration
+      const pending = pendingSearch
+      if (props.allowSourceDiscovery && pending?.generation === generation && pending.query === submittedQuery) {
+        await pending.promise
+        if (generation !== searchGeneration || query.value.trim() !== submittedQuery) return
+      }
+      if (optionExplicitlyNavigated.value) {
+        if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length) {
+          select(results.value[highlightIdx.value])
+        } else if (highlightIdx.value >= results.value.length && discoveryCandidates.value.length) {
+          void resolveCandidate(discoveryCandidates.value[highlightIdx.value - results.value.length])
+        }
+        return
+      }
+      const exactCandidates = discoveryCandidates.value.filter(candidate =>
+        candidate.symbol.trim().toUpperCase() === submittedQuery.toUpperCase(),
+      )
+      if (exactCandidates.length === 1) {
+        void resolveCandidate(exactCandidates[0])
+      } else if (exactCandidates.length > 1) {
+        discoveryMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
       } else {
-        commitSelection(query.value.trim())
+        commitSelection(submittedQuery)
       }
       return
     }
@@ -529,6 +579,7 @@ function handleEscape() {
 }
 
 function invalidateSearch() {
+  finishPendingSearch()
   searchGeneration += 1
   optionExplicitlyNavigated.value = false
   if (debounceTimer) clearTimeout(debounceTimer)

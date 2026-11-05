@@ -112,13 +112,15 @@ describe('SearchBar', () => {
     expect(wrapper.text()).toContain('TechnipFMC plc')
     await wrapper.find('.result-item').trigger('mouseenter')
     await wrapper.find('input').trigger('keydown.enter')
+    vi.advanceTimersByTime(300)
     await flushPromises()
     await nextTick()
 
     expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'F', canonical_only: true })
     expect(wrapper.emitted('update:modelValue')).toEqual([['F']])
     expect(wrapper.emitted('select')).toEqual([['F', undefined]])
-    expect(api.post).not.toHaveBeenCalled()
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'F' }))
   })
 
   it('submits the exact local ticker even when it is not the first fuzzy result', async () => {
@@ -473,6 +475,92 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({
       status: 'resolved', instrument: { instrument_id: 31, symbol: 'C', identity_status: 'verified' },
     })
+  })
+
+  it('resolves the exact remote ticker on ordinary Enter without arrow navigation', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        status: 'complete',
+        candidates: [{ symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        status: 'resolved', instrument: { instrument_id: 83, symbol: 'F', identity_status: 'verified', instrument_type: 'Common Stock' }, source_outcomes: [],
+      })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await enter
+    await flushPromises()
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
+      symbol: 'F', provider_candidate: { provider: 'fixture', symbol: 'F', exchange: 'XNYS' },
+    }))
+    expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', instrument_id: 83, explicitlyResolved: true })
+    expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({ status: 'resolved', instrument: { instrument_id: 83, symbol: 'F' } })
+  })
+
+  it('does not resolve ambiguous exact remote listings on ordinary Enter', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post).mockResolvedValueOnce({
+      status: 'complete', candidates: [
+        { symbol: 'F', name: 'Ford XNYS', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture-a', instrument_id: null, identity_status: 'provider_candidate' },
+        { symbol: 'F', name: 'Ford BATS', exchange: 'BATS', type: 'Common Stock', provider: 'fixture-b', instrument_id: null, identity_status: 'provider_candidate' },
+      ], source_outcomes: [],
+    })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await enter
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.text()).toContain('More than one listing matches F')
+  })
+
+  it('does not submit a pending discovered ticker after the user changes the query', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValue([])
+    let finishDiscovery!: (value: unknown) => void
+    vi.mocked(api.post).mockReturnValueOnce(new Promise(resolve => { finishDiscovery = resolve }) as ReturnType<typeof api.post>)
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(1)
+
+    await input.setValue('NVDA')
+    await enter
+    finishDiscovery({
+      status: 'complete',
+      candidates: [{ symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+      source_outcomes: [],
+    })
+    await flushPromises()
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(api.post).toHaveBeenCalledTimes(1)
   })
 
   it('does not resolve or emit a candidate whose provider-verified symbol differs from the reported ticker', async () => {

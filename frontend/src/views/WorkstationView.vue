@@ -287,7 +287,7 @@
     <footer v-if="!isPopout" class="workstation__footer">
       <span>{{ activeSymbol }}</span>
       <span>{{ chartStore.timeframe }}</span>
-      <span role="status" aria-live="polite" aria-atomic="true" :title="workspaceStore.error ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
+      <span role="status" aria-live="polite" aria-atomic="true" :title="footerError ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
       <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
     </footer>
   </div>
@@ -430,6 +430,9 @@ const selectionHoldingsError = ref('')
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
 let searchRequest = 0
+let pendingSymbolSearch: { requestId: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
+let symbolSubmissionInFlight = false
+let lastSymbolSelectionError: string | null = null
 let lastDiscoveryQuery = ''
 const symbolSearchEnabled = ref(false)
 const searchPanelVisible = computed(() => symbolSearchEnabled.value && Boolean(symbolDraft.value.trim()))
@@ -482,6 +485,7 @@ function closeSymbolSearch() {
     discoveryTimer = null
   }
   searchRequest += 1
+  finishPendingSymbolSearch()
   searchResults.value = []
   searchIndex.value = -1
   searchLoading.value = false
@@ -902,7 +906,11 @@ const dataState = computed(() => {
     hasBars: chartStore.bars.length > 0,
   })
 })
-const footerMessage = computed(() => symbolProxyNotice.value ?? humanizeWorkspaceError(workspaceStore.error))
+const footerError = computed(() => {
+  const selectedETF = workspaceStore.constituentETF
+  return (selectedETF ? workspaceStore.etfConstituentSnapshotErrors[selectedETF] : null) ?? workspaceStore.error
+})
+const footerMessage = computed(() => symbolProxyNotice.value ?? humanizeWorkspaceError(footerError.value))
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 const popoutLabel = computed(() => {
   const title = popoutTool.value?.title?.trim() || 'workstation tool'
@@ -1117,6 +1125,7 @@ async function selectSymbol(
 ) {
   const requested = raw.trim()
   if (!requested) return
+  clearSupersededSymbolSelectionError()
   const generation = ++symbolSelectionGeneration
   if (!preserveETFContext) {
     const requestedSymbol = requested.toUpperCase()
@@ -1180,11 +1189,11 @@ async function selectSymbol(
           symbolProxyNotice.value = `SPX official series unavailable; using tradable proxy ${symbol}`
         } catch (proxyCause: any) {
           if (generation !== symbolSelectionGeneration) return
-          workspaceStore.error = proxyCause?.message ?? cause?.message ?? 'Unable to resolve S&P 500 benchmark'
+          setSymbolSelectionError(proxyCause?.message ?? cause?.message ?? 'Unable to resolve S&P 500 benchmark')
           return
         }
       } else {
-        workspaceStore.error = cause?.message ?? 'Unable to resolve symbol'
+        setSymbolSelectionError(cause?.message ?? 'Unable to resolve symbol')
         return
       }
     }
@@ -1479,14 +1488,18 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
 function scheduleSymbolSearch(value: string) {
   if (!symbolSearchEnabled.value) return
   searchOptionExplicitlyNavigated.value = false
+  finishPendingSymbolSearch()
   if (searchTimer) clearTimeout(searchTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
   const requestId = ++searchRequest
+  const query = value.trim()
+  let resolvePending!: () => void
+  const promise = new Promise<void>(resolve => { resolvePending = resolve })
+  pendingSymbolSearch = { requestId, query, promise, resolve: resolvePending }
   sourceDiscoveryLoading.value = false
   sourceResolving.value = false
   sourceDiscoverySettled.value = false
   sourceCandidates.value = []
-  const query = value.trim()
   if (!query) {
     searchResults.value = []
     searchIndex.value = -1
@@ -1495,6 +1508,7 @@ function scheduleSymbolSearch(value: string) {
     searchError.value = ''
     sourceDiscoverySettled.value = false
     lastDiscoveryQuery = ''
+    finishSymbolSearch(requestId)
     return
   }
   searchLoading.value = true
@@ -1525,11 +1539,14 @@ function scheduleSymbolSearch(value: string) {
       if (shouldDiscoverTicker(query, results)) {
         discoveryTimer = scheduleTickerDiscovery(() => {
           if (requestId === searchRequest && symbolDraft.value.trim() === query) {
-            void discoverSymbolDraft(query, requestId)
+            void discoverSymbolDraft(query, requestId).finally(() => finishSymbolSearch(requestId))
+          } else {
+            finishSymbolSearch(requestId)
           }
         })
       } else {
         sourceDiscoverySettled.value = true
+        finishSymbolSearch(requestId)
       }
     } catch {
       if (componentMounted && requestId === searchRequest) {
@@ -1539,8 +1556,32 @@ function scheduleSymbolSearch(value: string) {
         searchSettled.value = true
         searchError.value = 'Unable to search canonical instruments. Try again.'
       }
+      finishSymbolSearch(requestId)
     }
   }, 120)
+}
+
+function finishSymbolSearch(requestId?: number) {
+  if (!pendingSymbolSearch || (requestId != null && pendingSymbolSearch.requestId !== requestId)) return
+  const pending = pendingSymbolSearch
+  pendingSymbolSearch = null
+  pending.resolve()
+}
+
+function finishPendingSymbolSearch() {
+  finishSymbolSearch()
+}
+
+function setSymbolSelectionError(message: string) {
+  lastSymbolSelectionError = message
+  workspaceStore.error = message
+}
+
+function clearSupersededSymbolSelectionError() {
+  if (lastSymbolSelectionError && workspaceStore.error === lastSymbolSelectionError) {
+    workspaceStore.error = null
+  }
+  lastSymbolSelectionError = null
 }
 
 async function discoverSymbolDraft(rawQuery = symbolDraft.value, requestGeneration = searchRequest) {
@@ -1617,12 +1658,59 @@ function selectSearchResult(
   void selectSymbol(symbol, undefined, false, instrumentId, true, false, instrumentType, true, confirmedIdentity)
 }
 
-function goToSymbolDraft() {
+async function goToSymbolDraft() {
+  await submitSymbolDraft()
+}
+
+async function submitSymbolDraft() {
   const symbol = symbolDraft.value.trim()
-  const exact = searchResults.value.find(result => result.symbol.trim().toUpperCase() === symbol.toUpperCase())
-  recentSymbolsOpen.value = false
-  closeSymbolSearch()
-  void selectSymbol(symbol, undefined, false, exact?.instrument_id, true, false, exact?.type ?? '', true)
+  if (!symbol || symbolSubmissionInFlight) return
+  symbolSubmissionInFlight = true
+  const requestId = searchRequest
+  try {
+    const immediateLocal = searchOptionExplicitlyNavigated.value
+      ? searchResults.value[searchIndex.value]
+      : searchResults.value.find(result => result.symbol.trim().toUpperCase() === symbol.toUpperCase())
+    if (immediateLocal) {
+      recentSymbolsOpen.value = false
+      selectSearchResult(immediateLocal.symbol, immediateLocal.instrument_id, immediateLocal.type)
+      return
+    }
+    const pending = pendingSymbolSearch
+    if (pending && pending.requestId === requestId && pending.query === symbol) {
+      await pending.promise
+    }
+    if (requestId !== searchRequest || symbolDraft.value.trim() !== symbol) return
+
+    const navigatedLocal = searchOptionExplicitlyNavigated.value ? searchResults.value[searchIndex.value] : undefined
+    const local = navigatedLocal
+    if (local) {
+      recentSymbolsOpen.value = false
+      selectSearchResult(local.symbol, local.instrument_id, local.type)
+      return
+    }
+
+    if (!searchOptionExplicitlyNavigated.value) {
+      const exactCandidates = sourceCandidates.value.filter(candidate =>
+        candidate.symbol.trim().toUpperCase() === symbol.toUpperCase(),
+      )
+      if (exactCandidates.length === 1) {
+        recentSymbolsOpen.value = false
+        void resolveSourceCandidate(exactCandidates[0])
+        return
+      }
+      if (exactCandidates.length > 1) {
+        sourceDiscoveryMessage.value = `More than one listing matches ${symbol.toUpperCase()}. Choose the correct exchange listing.`
+        return
+      }
+    }
+
+    recentSymbolsOpen.value = false
+    closeSymbolSearch()
+    void selectSymbol(symbol, undefined, false, undefined, true, false, '', true)
+  } finally {
+    symbolSubmissionInFlight = false
+  }
 }
 
 function selectRecentSymbol(symbol: string) {
@@ -1643,18 +1731,7 @@ function handleSymbolInputKeydown(event: KeyboardEvent) {
     searchIndex.value = (searchIndex.value - 1 + searchResults.value.length) % searchResults.value.length
   } else if (event.key === 'Enter') {
     event.preventDefault()
-    const typedSymbol = symbolDraft.value.trim()
-    const exactResult = searchResults.value.find(result =>
-      result.symbol.trim().toUpperCase() === typedSymbol.toUpperCase(),
-    )
-    const result = searchOptionExplicitlyNavigated.value
-      ? searchResults.value[searchIndex.value]
-      : exactResult
-    if (result) {
-      selectSearchResult(result.symbol, result.instrument_id, result.type)
-    } else {
-      goToSymbolDraft()
-    }
+    void submitSymbolDraft()
   } else if (event.key === 'Escape') {
     closeSymbolSearch()
   }
@@ -2920,6 +2997,7 @@ onBeforeUnmount(() => {
   symbolSelectionGeneration += 1
   drilldownSelectionGeneration += 1
   searchRequest += 1
+  finishPendingSymbolSearch()
   resolveWorkspaceReady?.()
   resolveWorkspaceReady = null
   endTabDrag()
