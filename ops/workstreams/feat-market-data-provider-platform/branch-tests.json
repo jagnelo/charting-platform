@@ -4,7 +4,7 @@
   "plan_tests": [
     "backend/app/routers/instruments.py::acquire_instrument (authoritative exact profile fallback only after no exact bounded-fuzzy result; existing runtime admission/accounting retained)",
     "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/test_provider_explicit_acquisition.py (exact hit beyond fuzzy page, exact absence, provider/profile/symbol/listing/domain conflicts, empty listing authority, and search/profile/quota/rate holds)",
-    "Complete backend/DDL coverage and exact-source branch CI remain mandatory; Root-owned combined release qualification remains pending. No live provider request or target change."
+    "Complete backend/DDL coverage and exact-source branch CI remain mandatory; the shared calendar-readiness E2E test change is limited to the Root-reviewed one-file barrier. Root-owned combined release qualification remains pending. No live provider request or target change."
   ],
   "commands": [
     {

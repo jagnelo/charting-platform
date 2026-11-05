@@ -27,7 +27,7 @@
   ],
   "active_checkpoint_id": "provider-exact-symbol-acquisition-20261105",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "Exact closing-tip backend/DDL and branch CI are pending; Root owns observation and protected integration.",
+  "blocker": "Final exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending; Root owns observation and integration. The ddcb predecessor CI failure remains preserved.",
   "branch": "feat/market-data-provider-platform",
   "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
   "canonical_bridge_cleanup_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb",
@@ -35,10 +35,10 @@
   "canonical_bridge_local_result_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
   "canonical_bridge_root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
   "canonical_bridge_root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
-  "checkpoint_acceptance_decision": "Root delegated conditional acceptance is satisfied for the expanded bounded ETV issuer-and-history checkpoint after the accepted 126-case module, normal static/workstream checks, and Root-reviewed real PostgreSQL resolver boundary; exact closing-tip CI remains mandatory.",
-  "checkpoint_acceptance_receipt": null,
-  "checkpoint_acceptance_receipt_sha256": null,
-  "checkpoint_acceptance_status": "pending_root_review; no acceptance claimed",
+  "checkpoint_acceptance_decision": "Root delegated conditional acceptance under standing human authorization; no failed CI is relabeled green.",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json",
+  "checkpoint_acceptance_receipt_sha256": "f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d",
+  "checkpoint_acceptance_status": "Root conditionally accepted bounded software checkpoint; final exact-tip CI pending",
   "checkpoint_authorization_state": "Root accepted this bounded checkpoint under the existing human standing delegation for ready_for_integration; Root will integrate only after all required exact final-tip CI jobs are terminal green.",
   "checkpoint_history": [
     {
@@ -230,7 +230,7 @@
       }
     }
   ],
-  "checkpoint_status": "in_progress",
+  "checkpoint_status": "ready_for_integration",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -247,30 +247,24 @@
     "source_sha": "exact branch HEAD (captured by integration_capture; no self-reference)",
     "status": "pending; Root observes the exact corrected tip; no CI result is claimed"
   },
-  "closing_tip_ci_status": "Exact closing-tip CI for the canonical fixture correction is mandatory and pending; predecessor reds 41784665584 and 41786842390 remain separately preserved. Root owns exact-tip observation and protected integration.",
+  "closing_tip_ci_status": "Final exact-tip backend/DDL/frontend/branch/browser CI is mandatory and pending; Root owns observation. The predecessor ddcb run remains red for the calendar-phase E2E race.",
   "corrected_source_exact_ci": {
     "run_id": 41376711568,
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "docker_integration minimum; focused route and explicit-acquisition unit modules passed 49/49; no DB/full-backend or combined release run yet",
+  "current_checkpoint_local_profile": "docker_integration minimum: focused 49-unit suite plus bounded exact-profile PostgreSQL proof 3/3, native exit0, six mocked calls, zero external requests. Exact source pins stable; only exact owned PG/network removed.",
   "current_exact_ci": {
-    "backend": "5697 passed, 1 failed, 1 skipped; 79% coverage; failure was the mock tuple described in fixture_correction_predecessor_ci",
-    "backend_job_id": 126423952265,
-    "next_exact_tip_ci": "pending; Root owns observation and protected integration",
-    "prior_exact_ci": {
-      "backend": "success: 5676 unit-like + 617 integration passed, 3 configured skips, 84% coverage",
-      "branch_declared": "failed before tests because full-backend-suite alias was missing; historical failure preserved",
-      "frontend": "success: 1495 passed",
-      "run_id": 41691823546,
-      "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd"
-    },
-    "run_id": 41784665584,
-    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
-    "status": "failed; preserved, test fixture only",
-    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584"
+    "run_id": 41943375613,
+    "source_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
+    "status": "overall failure preserved; exact backend and frontend jobs green; one E2E calendar-phase race remains red",
+    "e2e_job_id": 126982140537,
+    "e2e_result": "198 passed, 110 configured skips, 1 failure at on_demand_acquisition.spec.ts:578; calendarReads expected 0 but observed 1 after mocked history completed",
+    "e2e_root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ddcb-E2E-calendar-phase-failure-root-review-20261105.json",
+    "shared_test_patch": "Root-reviewed only; separate oracle 1/1 does not qualify final branch CI",
+    "next_exact_tip_ci": "pending; Root owns observation"
   },
-  "current_gate_checkpoint": "Focused 49/49 and static/workstream/manifest checks passed; exact backend/DDL, exact-source branch CI and Root combined release qualification remain pending.",
+  "current_gate_checkpoint": "R10 PostgreSQL proof passed exact-profile persistence and wrong-symbol/domain conflict non-mutation on frozen ddcb source. Root conditionally accepted the bounded checkpoint. ddcb CI 41943375613 remains red for E2E calendar timing only; the Root-reviewed shared test barrier separately passed 1/1, but final exact-tip CI remains pending.",
   "current_native_goal_created_at": 1793836530,
   "current_native_goal_token_budget": null,
   "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
@@ -295,7 +289,7 @@
     "skipped": 0,
     "source_http_calls": 0
   },
-  "current_source_base_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
+  "current_source_base_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
   "current_source_hashes": {
     "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
     "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
@@ -383,7 +377,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
+  "head": "ddcb343691d158e73ec148d1214df651d840a4bd",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -400,7 +394,7 @@
     "run": "95357",
     "visual_passed": 104
   },
-  "implementation_sha": "captured as exact branch HEAD in closure_summary integration_capture; no self-referential SHA",
+  "implementation_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
   "integration_capture": "exact branch HEAD",
   "interrupted": false,
   "last_checkpoint": "2026-11-02T02:14:51.835172+00:00",
@@ -469,11 +463,11 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "docker_integration",
-  "next_action": "Publish one focused-green exact-symbol candidate; Root owns combined qualification and exact final CI.",
+  "next_action": "Publish one coherent source-plus-records checkpoint with the Root-reviewed one-file calendar barrier, then freeze the exact tip for Root-owned final CI observation.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
-  "plan_hash": "56e1a50d52cd1559034f9a2b2710b2ab2f2e8c46e3f1c3e10151e1345580369b",
+  "plan_hash": "3513e6994f1f1aa681d6ccd0dd20962b9038f86d0b84de928a69a4e0b7f7c1da",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -979,8 +973,8 @@
   "roadmap_goal_request": {
     "objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.. Acceptance criteria: AC-IDENTITY: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.; AC-SERIES: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.; AC-CALENDAR: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.; AC-ROUTING: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.; AC-REFRESH: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.; AC-DATA: Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance.; AC-OPTIONS: Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases.; AC-OPS: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports.; AC-SHADOW: New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence.; AC-COMPAT: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.; AC-TEST: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified.; AC-QUOTA-SAFETY: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions.; AC-RATE-FAILURE: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.; AC-LIVE-EVIDENCE: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.; AC-SECRET-DISTRIBUTION: Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes.; AC-PROVIDER-CONTRACT-AUDIT: Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated.; AC-DURABLE-CROSS-SESSION-USAGE: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.; AC-UNIVERSE-COMPLETE: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use a currently documented and authorized complete source (FINRA otcSecurityMaster only if its availability/current status and use rights are established) plus Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.; AC-SEC-PRELISTING-POLICY: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.; AC-INTEGRATION-WORKFLOW: External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy.; AC-DINARI-SANDBOX-ISOLATION: Dinari Sandbox may run as a live-environment canary only through a separate non-persisting path; sandbox payloads never enter canonical production data, usage, alert, or analytics tables, and Dinari production routing remains disabled under the approved free-only budget.; AC-SHADOW-FINAL-PHASE: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
-  "root_acceptance_receipt": null,
-  "root_acceptance_receipt_sha256": null,
+  "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json",
+  "root_acceptance_receipt_sha256": "f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d",
   "root_full_profile": {
     "backend_coverage_percent": 84,
     "backend_passed": 6128,
@@ -1041,7 +1035,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "in_progress",
+  "status": "ready_for_integration",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
