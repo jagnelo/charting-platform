@@ -85,15 +85,8 @@ archived_prior_accepted_f8y_20261028_closure_summary: 'integration_capture: exac
   comparison passed. The new closing records tip still requires its own exact branch CI before Root-supported
   integration. AC1-AC9, official REF-HELP-V25, broader product work, genuine Provider/issuer proof, target
   acceptance, and deployment remain open or Root-owned; this is not full feature-roadmap completion.'
-human_closure_authorization: No new checkpoint closure or acceptance is claimed for the 2026-11-05 ordinary
-  typed-ticker Enter repair. The user activated implementation under the existing standing authority;
-  Root owns final profile review and integration.
-closure_summary: 'integration_capture: exact branch HEAD. This is an in-progress ordinary typed-ticker
-  Enter repair. Focused source checks passed before the separately authorized UNXQ response-barrier change;
-  afterward the focused suite remained 90/90, type-check passed, seven E2E cases were discovered, and
-  Root verified the barrier case passed 1/1. The new-source full local profile and exact-source CI are
-  still pending. Protected integration, genuine-source evidence, deployment, and the full roadmap remain
-  Root-owned or open.'
+human_closure_authorization: "Root accepted the bounded ordinary typed-ticker Enter software/profile checkpoint under the existing standing human delegation. Acceptance receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json (SHA256 ad17e6696f8b26cd574a2a69bbfb9b59934b5792c9a6eb249dabcc86ae741bcd). This records Root's delegated checkpoint acceptance and does not claim a new human reply or full-roadmap completion."
+closure_summary: "integration_capture: exact branch HEAD. Root accepted the bounded ordinary typed-ticker Enter checkpoint under the existing standing delegation (receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json, SHA256 ad17e6696f8b26cd574a2a69bbfb9b59934b5792c9a6eb249dabcc86ae741bcd). Tested implementation 6e1ed68d2e1c10968716cb362fd56fda9f83ec75, frontend tree d292e856b06c40c1beeb20f9633900914bab72e4, served frontend image sha256:fc1275ff4014a354ae56cb06e9968bdc52ed5eb17182897a1a69e3a942784de0. Local evidence: functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects, zero retries; served-bundle F typed-Enter probe 1/1. Logs: .ai/runtime/tc-ordinary-journey-fe856918-dev-20261104/attempt21/artifacts/full-functional.log (SHA256 ef41a2831757596c9e07909a4323092e97de0ca102bbae001516d26e41143378), .ai/runtime/tc-ordinary-journey-fe856918-dev-20261104/attempt21/artifacts/strict-visual.log (SHA256 740d76fa155c9bece1071e0d952e25ad268f757ff9e6395b53907a5f2b5bcdf2); owned-runner cleanup receipt: .ai/runtime/tc-ordinary-journey-fe856918-dev-20261104/attempt21/artifacts/profile-browser-cleanup-receipt.json (SHA256 bf18f4f242c1619ad3eabc5abf4f9ab9877ca80c161cdc814b89fd0fa16ebfe0). The probe used controlled local API responses, not genuine Provider/issuer proof. Exact closing-tip CI, protected integration, deployment, genuine-source validation, official V25 parity, and the wider nine-item roadmap remain pending or Root-owned. The retained 52fa backend was the already-qualified fixture component, not a newly combined Provider/ETF release."
 validation_tier: full_integration
 human_validation_authorization: The human explicitly approved implementation of the TC2000 roadmap from
   the synchronized staging baseline; all application/workstation changes use the complete integration
@@ -350,13 +343,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   has the identical application tree and passed its full required CI40656688915. This feature-branch adoption
   records ancestry only; its exact branch CI is pending Root. Controlled tests are not genuine Provider/issuer
   proof; target/deployment and the complete roadmap remain open.'
-current_blocker: No implementation blocker. Focused frontend tests and type-check passed, and Root accepted
-  the exact UNXQ calendar response barrier at 1/1. The coherent local implementation commit is next; Root
-  owns the immutable frontend build/profile and exact-source CI. No full-profile acceptance is claimed.
-current_checkpoint_status: The ordinary typed-ticker Enter checkpoint is in progress. Focused tests passed
-  90/90, frontend type-check passed, all seven E2E cases are discovered, and Root accepted the separate
-  calendar-barrier case at 1/1. This source has not yet completed Root's full local profile or exact-source
-  CI. Earlier accepted F8Y/b8 checkpoints, nine roadmap criteria, and all historical failures remain preserved.
+current_blocker: "No implementation or local-profile blocker. Exact closing-tip branch CI and Root-owned protected integration/deployment and genuine Provider/issuer proof remain pending; the retained 52fa backend was a qualified test component, not a newly combined Provider/ETF release."
+current_checkpoint_status: "Root accepted the bounded ordinary typed-ticker Enter software/profile checkpoint under the existing standing delegation. Source 6e1ed68d2e1c10968716cb362fd56fda9f83ec75 (frontend tree d292e856b06c40c1beeb20f9633900914bab72e4) passed the complete local profile: functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects, 0 retries; the served-bundle F Enter probe passed 1/1. Root acceptance is recorded at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json (SHA256 ad17e6696f8b26cd574a2a69bbfb9b59934b5792c9a6eb249dabcc86ae741bcd). Exact closing-tip CI, protected integration, deployment, and genuine Provider/issuer proof remain pending Root. The nine-item roadmap and prior accepted checkpoints remain open/preserved."
 ordinary_ticker_latest_update: 'Workstation and shared chart SearchBar now submit the typed ticker or
   exact local result on Enter unless the user deliberately arrow-navigated; hover changes only highlight.
   Expression, picker, candidate identity, stale-search, click, and normal event-arity behavior remain
@@ -1537,7 +1525,7 @@ integration_checkpoint:
     protected integration, and deployment remain open or Root-owned.
 current_software_checkpoint:
   id: tc-ordinary-ticker-enter-selection-20261105
-  status: in_progress
+  status: "ready_for_integration"
   criteria_ids:
   - TCENTER1
   - TCENTER2
@@ -1550,17 +1538,13 @@ current_software_checkpoint:
   - TCENTER2
   - TCENTER3
   - TCENTER4
-  local_evidence: Workstation and SearchBar regressions cover absent exact matches with partial local
-    hits, exact matches not first, deliberate keyboard navigation, hover without intent, picker scope,
-    and stale local responses. Focused Vitest passed 90/90, frontend type-check passed, and seven Playwright
-    cases are discovered. Root accepted and ran the UNXQ calendar barrier test 1/1. No full TC local profile
-    or new-source browser qualification is claimed.
+  - TCENTER5
+  local_evidence: "Root accepted implementation 6e1ed68d2e1c10968716cb362fd56fda9f83ec75, frontend tree d292e856b06c40c1beeb20f9633900914bab72e4, and served image sha256:fc1275ff4014a354ae56cb06e9968bdc52ed5eb17182897a1a69e3a942784de0 under receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json (SHA256 ad17e6696f8b26cd574a2a69bbfb9b59934b5792c9a6eb249dabcc86ae741bcd). Functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects, zero retries. The served-bundle F typed-Enter probe passed 1/1 using controlled local API responses, not genuine Provider evidence. Evidence hashes are in closure_summary and the closing journal row. TCENTER1-5 are complete for this bounded checkpoint; exact closing-tip CI and Root-owned forward gates remain pending."
   source_base: dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2
-  acceptance: Pending; no new human or Root acceptance is claimed.
+  acceptance: "Root accepted this bounded software/profile checkpoint under the existing standing human delegation; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json (SHA256 ad17e6696f8b26cd574a2a69bbfb9b59934b5792c9a6eb249dabcc86ae741bcd). This is not full-roadmap acceptance."
   planning_authority: Human activation in the original TC session on 2026-11-05 under standing authority.
   integration_capture: exact branch HEAD
-  pending: Root builds and qualifies this immutable frontend against the retained compatible52fa backend
-    fixture; full local profile remains required.
+  pending: "Root owns exact closing-tip CI observation, protected integration/deployment, and genuine Provider/issuer validation. The nine-item roadmap and official REF-HELP-V25 remain open. The 52fa backend was the retained qualified fixture component, not a newly combined Provider/ETF release."
 acceptance_criteria:
 - id: TCENTER1
   text: In Workstation, Enter on typed text submits that exact ticker unless the user deliberately arrow-navigated;
@@ -1575,9 +1559,7 @@ acceptance_criteria:
 - id: TCENTER4
   text: Clear stale local options on query changes and ignore late results from older searches.
 - id: TCENTER5
-  text: Focused regression checks, type-check and normal scope/workstream validation pass; publish one
-    coherent implementation commit for Root artifact/profile qualification. Exact-source CI and the complete
-    local profile remain pending.
+  text: "Focused regression checks, type-check and normal scope/workstream validation pass; publish one coherent implementation commit for Root artifact/profile qualification. The complete local profile has passed for this checkpoint; exact-source CI remains pending."
 scope:
 - 'R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved
   historical gate receipt durable in this workstream.'
@@ -3275,23 +3257,18 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   the final fixture-only correction or closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and
   private-target/deployment acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: in_progress
+status: "ready_for_integration"
 progress:
   completed:
   - TCENTER1
   - TCENTER2
   - TCENTER3
   - TCENTER4
+  - TCENTER5
   total: 5
-  current_phase: Typed-ticker Enter repair is implemented in Workstation and shared chart SearchBar. Focused
-    tests passed 90/90, type-check passed, seven E2E cases are discovered, and Root accepted the UNXQ
-    calendar-barrier case at 1/1. Plan reconstruction preserved the exact HEAD archive, prior accepted
-    checkpoint fields and all nine roadmap criteria; workstream and scope guards have passed. Local implementation
-    commit is next; Root profile and exact-source CI remain pending.
-  current_blocker: No source implementation blocker. Root-owned immutable frontend build/profile and exact-source
-    CI remain pending; no full-profile acceptance is claimed.
-  next_action: Make the coherent local implementation commit without pushing, then give Root the exact
-    SHA and frontend tree for its allocated artifact/profile.
+  current_phase: "Root accepted source 6e1ed68d2e1c10968716cb362fd56fda9f83ec75: functional 203 passed with 2 configured live-source skips and 0 failures; strict visual 104/104 across four projects at zero retries; served-bundle F Enter probe 1/1. The coherent closing-record publication is next. Exact-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending."
+  current_blocker: "No implementation or local-profile blocker. Exact closing-tip CI and Root-owned protected integration/deployment and genuine Provider/issuer proof remain pending."
+  next_action: "Publish this single coherent bounded-checkpoint closure with integration_capture: exact branch HEAD; Root observes exact closing-tip CI and owns protected forward gates."
   updated_at: '2026-11-05'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review.
