@@ -1,6 +1,7 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
-status: ready_for_integration
+previously_accepted_provider_etv_routing_status: ready_for_integration
+status: in_progress
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -822,9 +823,9 @@ status: ready_for_integration
 # browser matrix. Provider quota-held operations remain disabled; ICP2/ICP6 and
 # checkpoint review remain open.
 branch: feat/market-data-provider-platform
-base_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+base_sha: dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2
 parent_branch: staging
-parent_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
+parent_sha: dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2
 dependency_authorization: "not applicable: independent staging-based topic"
 previously_accepted_native_etf_authority_human_intent_authorization: "Direct human activation on 2026-11-03 for a disjoint Provider-owned generic sealed native ETF initial-qualification runtime authority. Reconcile only this feature branch to exact green staging f8323af179922193f4dcf3c9f0a5d9001282455f; preserve prior claims, accepted checkpoints, completed goal history, and all 24 Provider/14 ETF roadmap criteria. Provider owns provider_runtime.py, its directly relevant tests, and this workstream only. ETF owns the publisher executor and bridge use of the callable contract; Root owns review/configuration/execution and protected integration/deployment. No source HTTP, real policy/quota/ledger mutation, paid/trial activation, heavy fixture/full matrix before Root allocation, or edits to ETF acquisition/adapters/routers or TC."
 previously_accepted_provider_on_demand_integration_checkpoint_authorization: "Human direction on 2026-10-27 authorized implementation of provider-on-demand-acquisition-20261027 under the standing four-feature authority. The central staging coordinator's acceptance at /home/m920q/charting-platform/.ai/staging-attempts/provider-on-demand-software-checkpoint-acceptance-20261027.md accepts only its six software-contract criteria after the recorded exact-source CI and full local profile. Root alone owns protected staging integration and all later master/deployment gates."
@@ -2761,7 +2762,8 @@ previously_accepted_provider_vjl_migration_impact: No migration is anticipated o
   establishes necessity.
 previously_accepted_provider_vjl_deployment_impact: None in this checkpoint; Root retains production and release ownership.
 previously_accepted_active_checkpoint_id: provider-generic-etv-taxonomy-reconciliation-20261103
-active_checkpoint_id: provider-canonical-etv-issuer-routing-parity-20261104
+previously_accepted_provider_etv_routing_active_checkpoint_id: provider-canonical-etv-issuer-routing-parity-20261104
+active_checkpoint_id: provider-exact-symbol-acquisition-20261105
 previously_accepted_provider_cached_search_context:
   goal: 'Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached
     fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching.
@@ -14161,30 +14163,30 @@ previously_accepted_provider_generic_etv_current_gate_checkpoint: >-
 previously_accepted_provider_generic_etv_validated_implementation_source_sha: 144580d0cd1a72fb9ff2793f377deba2e87b43fd
 previously_accepted_provider_generic_etv_integration_capture: exact branch HEAD
 # Current human-activated Provider follow-up; earlier accepted checkpoints remain above.
-goal: >-
+previously_accepted_provider_etv_routing_goal: >-
   Make legitimate canonical exchange-traded vehicles usable in the ordinary ticker journey: preserve exact
   ETV/ETP admission to registered ETF issuer adapters and narrowly admit reviewed exchange-listed ETV candle
   history through Massive US stock custom bars. Keep ETV distinct from ETF and ETN; reject mismatched/unclassified
   taxonomy and all other provider, capability, or operation routes. Preserve canonical identity and every existing
   policy, entitlement, cost, quota, adjustment, history-window, host, redirect, one-shot and physical-hop gate.
-scope: &etvroute001
+previously_accepted_provider_etv_routing_scope: &etvroute001
 - Continue in the same Provider branch, assigned worktree and claim, preserving the current unbudgeted native goal createdAt 1793767481 and all previous goal accounting, accepted checkpoints, and 24 Provider/14 ETF roadmap criteria.
 - Preserve ETF holdings admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through the matching registered ETF issuer adapter, with unchanged explicit operation and request-scope checks.
 - For ordinary PRICE_HISTORY only, admit the exact Exchange Traded Product/Exchange Traded Vehicle pair to Massive fetch_ohlcv custom bars only when an active primary USD listing joins to a US exchange. Keep ETV distinct; do not widen shared provider-registry data or infer product type from ticker/name.
 - Reject ETN, generic/unclassified ETP, ETV under a wrong asset class, non-US/non-USD/missing primary listing, all other providers/capabilities/operations, and held sources. Existing ETF/stock routing remains unchanged.
 - Preserve enabled policy, free-only entitlement and storage rights, positive probe/sealed one-shot qualification, account/profile/instrument/symbol, operation cost, quota, adjustment/history-window, configuration, routing controls, and all pre-send/physical-hop gates.
 - No live issuer/SEC/source request, production or target mutation, quota/hold/policy operation, deployment, protected-branch mutation, or sibling worktree change. No provider registry, endpoint, adapter, policy, or quota-contract change.
-owned_paths: &etvroute002
+previously_accepted_provider_etv_routing_owned_paths: &etvroute002
 - backend/app/services/provider_runtime.py
 - backend/tests/unit/services/test_provider_runtime.py
 - backend/tests/integration/api/test_on_demand_history_postgres.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
-branch_tests:
+previously_accepted_provider_etv_routing_branch_tests:
   - "backend/app/services/provider_runtime.py::resolve_provider_chain (exact ETF issuer route and Massive-only US-listed ETV PRICE_HISTORY/fetch_ohlcv route; no generic registry widening)"
   - "backend/tests/unit/services/test_provider_runtime.py and backend/tests/unit/services/test_provider_explicit_acquisition.py plus backend/tests/integration/api/test_on_demand_history_postgres.py and backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (registered resolver, canonical taxonomy fixtures, and complete real PostgreSQL/Redis bridge compatibility checks)"
   - "Previously accepted selected-acquire taxonomy/schema continuity remains a compatibility gate; no source request or identity mutation"
   - "Complete backend/DDL coverage and exact-source branch CI remain required for this Provider checkpoint; no live provider request or target change"
-branch_tests_reason: >-
+previously_accepted_provider_etv_routing_branch_tests_reason: >-
   The Provider runtime preserves exact ETF issuer-adapter routing and admits ETV history only for
   Massive PRICE_HISTORY/fetch_ohlcv with an active primary USD US listing. The 126-case runtime
   module and 23-case focused resolver selection passed on the pinned hashes. After exact-tip CI exposed a noncanonical
@@ -14194,7 +14196,7 @@ branch_tests_reason: >-
   listing, missing/non-US listings, and a held Massive operation. Ruff/format/workstream/manifest/
   closure checks passed. Exact closing-tip backend/DDL and branch CI remain mandatory; Root owns
   combined consumer qualification, protected integration and deployment. No source HTTP occurred.
-acceptance_criteria: &etvroute003
+previously_accepted_provider_etv_routing_acceptance_criteria: &etvroute003
 - id: ETV-ROUTE-1
   text: The real provider resolver preserves ETF holdings admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through the matching registered issuer adapter; no other issuer type is widened.
 - id: ETV-ROUTE-2
@@ -14228,11 +14230,11 @@ expanded_scope_postgres_test_root_acceptance: /home/m920q/charting-platform/.ai/
 expanded_scope_postgres_test_root_acceptance_sha256: cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08
 canonical_bridge_fixture_root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json
 canonical_bridge_fixture_root_acceptance_sha256: b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea
-next_action: Freeze this one coherent fixture-only correction publication; Root observes its exact closing-tip CI and owns persistent-staging integration.
-human_intent_authorization: >-
+previously_accepted_provider_etv_routing_next_action: Freeze this one coherent fixture-only correction publication; Root observes its exact closing-tip CI and owns persistent-staging integration.
+previously_accepted_provider_etv_routing_human_intent_authorization: >-
   Human directly activated the canonical ETV ordinary ticker journey repair in this original Provider session. The initial issuer-only checkpoint and this narrowly expanded history-route scope continue under the standing human delegation; all previous checkpoints and goals remain preserved.
-checkpoint_status: ready_for_integration
-progress:
+previously_accepted_provider_etv_routing_checkpoint_status: ready_for_integration
+previously_accepted_provider_etv_routing_progress:
   completed:
   - ETV-ROUTE-1
   - ETV-ROUTE-2
@@ -14242,17 +14244,97 @@ progress:
   total: 6
   current_phase: exact_closing_tip_backend_ddl_and_branch_ci_pending
   current_blocker: Exact closing-tip backend/DDL/branch CI remains mandatory before Root integration.
-human_closure_authorization: >-
+previously_accepted_provider_etv_routing_human_closure_authorization: >-
   Root conditionally accepted the expanded ETV issuer-and-history routing scope under the standing human authorization; the exact 126-case module and normal static/closure checks passed on the reviewed hashes. This records delegated technical acceptance, not a fabricated direct human quotation. Receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-issuer-history-software-conditional-acceptance-20261104.json.
-integration_checkpoint_authorization: >-
+previously_accepted_provider_etv_routing_integration_checkpoint_authorization: >-
   Root accepted the expanded Provider ETV route checkpoint under the existing human activation. Exact closing-tip backend/DDL and branch CI remain mandatory; Root owns observation and persistent staging integration after every required job is terminal green. Root retains deployment, live issuer operation and combined consumer validation ownership.
-local_validation_reason: >-
+previously_accepted_provider_etv_routing_local_validation_reason: >-
   Provider pre-hop routing queries InstrumentListing, Exchange, and Instrument to establish the exact US/USD active-primary listing. The focused resolver selection passed 23/23 and the complete provider_runtime module passed 126/126 on the accepted source hashes. One bounded real PostgreSQL integration exercises that ORM query and its positive, mismatched, missing/non-US listing, and held-provider cases. The complete 108-case bridge integration module also passed on capped private PostgreSQL/Redis after correcting only two positive fixtures to canonical Equity/ETF and Equity/Stock; the explicit-acquisition unit module passed 14/14. Runtime source is unchanged. Ruff, formatting, workstream, manifest and closure checks pass; no full backend collector or browser fixture is part of this Provider-owned minimum. Exact-source backend/DDL and branch CI remain mandatory.
-current_gate_checkpoint: >-
+previously_accepted_provider_etv_routing_current_gate_checkpoint: >-
   Root accepted the resolver/ORM source and the canonical bridge fixture reconciliation under the standing bounded checkpoint. The accepted 126-case provider_runtime module and focused 23-case resolver selection remain unchanged; the prior real PostgreSQL resolver/listing case passed 1/1. The complete bridge integration module passed 108/108 on capped private PostgreSQL/Redis, and the explicit-acquisition unit module passed 14/14. Exact d5 CI 41786842390 remains red and preserved: Backend job 126430820691 had 58 failed, 560 passed, 2 skipped, all bridge integration fixture taxonomy failures from suffixed AssetClass rows; runtime admission was correct. Setup attempts R1/R2/R3 are preserved with wrong-cwd, sync/async DSN, and 256 MiB PGDATA tmpfs exhaustion diagnoses. R4 used one exact owned disk-backed volume; cleanup removed only the owned PG/Redis/network/volume and all 42/33/13/57 pre-existing Docker resources match baseline. Exact new closing-tip CI remains mandatory and pending; Root owns observation and integration. No source HTTP, production, real-ledger, policy/quota/hold, or target action occurred.
-closure_summary: >-
+previously_accepted_provider_etv_routing_closure_summary: >-
   Root conditionally accepted this expanded Provider ETV issuer-and-history routing checkpoint under the standing human delegation. The real resolver preserves exact ETF issuer admission and adds only Massive PRICE_HISTORY/fetch_ohlcv for exact ETP/ETV with an active primary USD listing joined to a US exchange; all other provider/capability/operation and mismatched-taxonomy routes remain denied. Evidence: 23 focused resolver cases, the complete 126-case runtime module, and the added isolated PostgreSQL resolver/listing case (1 passed in 9.87s); Ruff, formatting, workstream and exact-environment manifest checks passed. Root accepted the PostgreSQL delta and cleanup; only the exact test-owned PG container/network were removed, and all pre-existing resources remained, with the one additional exited TC attempt15 container separately identified and untouched. No provider HTTP, real-ledger access, migration, target/policy/quota/hold action, deployment, or sibling edit occurred. The first exact closing-tip run 41784665584 on 6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb is preserved as red: Backend job 126423952265 reported 5,697 passed, 1 failed, 1 skipped and 79% coverage because the explicit-acquisition FakeDB returned the reversed/noncanonical tuple ("etf", "exchange_traded_fund") for the (AssetClass.name, InstrumentType.name) query. Only that mock tuple was corrected to canonical ("Equity", "ETF"); runtime admission and all policy/quota assertions are unchanged. The full 14-case explicit-acquisition module passed and the affected 12-case issuer-route/hold selection passed. A new exact-tip backend/DDL and branch CI remains mandatory and pending; Root owns observation and protected integration. All 24 Provider and 14 ETF roadmaps and every prior accepted/failure history remain preserved. integration_capture: exact branch HEAD.
   The final bridge-fixture correction changes only the two positive integration factories to reuse canonical Equity/ETF and Equity/Stock rows; runtime source and negative assertions are unchanged. Exact d5 CI run 41786842390 remains red and preserved (Backend job 126430820691: 58 failed, 560 passed, 2 skipped) because those factories previously used suffixed noncanonical AssetClass names. Root accepted the correction after the complete capped PostgreSQL/Redis bridge module passed 108/108 in 1103.87s; the explicit-acquisition unit module passed 14/14. R1/R2/R3 setup failures remain recorded and are not green evidence. The new exact closing-tip backend/DDL/branch CI is mandatory and pending; Root owns observation and integration. All prior 24 Provider/14 ETF roadmaps and accepted/failure history remain preserved.
-migration_impact: None; no database schema or migration changes.
-live_test_impact: No provider, issuer, or SEC transport was executed or is authorized in this checkpoint.
-deployment_impact: None; Root retains protected integration, deployment, and genuine issuer operation ownership.
+previously_accepted_provider_etv_routing_migration_impact: None; no database schema or migration changes.
+previously_accepted_provider_etv_routing_live_test_impact: No provider, issuer, or SEC transport was executed or is authorized in this checkpoint.
+previously_accepted_provider_etv_routing_deployment_impact: None; Root retains protected integration, deployment, and genuine issuer operation ownership.
+
+# Current human-activated Provider follow-up; the accepted ETV routing checkpoint is archived immediately above.
+# Current human-activated Provider follow-up; the accepted ETV routing checkpoint is archived immediately above.
+goal: >-
+  Repair generic exact-symbol acquisition when a selected ticker is absent from the bounded fuzzy search page.
+  Resolve only through the existing exact provider profile contract and normal metadata runtime; preserve exact
+  provider, symbol, listing, exchange and stable-domain identity checks, existing admission/accounting, and all
+  provider holds. This is not ticker-specific handling and does not widen search pagination.
+scope:
+- Continue in this Provider worktree and existing claim after adopting exact synchronized green staging dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2; preserve all prior goal accounting, accepted checkpoints, history, and the full 24 Provider/14 ETF roadmaps. The current unbudgeted goal was created at 1793836530.
+- When bounded fuzzy search returns no exact requested symbol and search/profile admission permits routing, use the provider's existing get_instrument_profile(symbol) operation through execute_provider_call under the ordinary explicit-acquisition request scope; do not increase fuzzy page size, paginate until a hit, invent candidates, infer identity, or special-case a ticker.
+- Resolve only when authoritative profile provider and canonical/requested symbol match and the exact requested provider listing/exchange plus stable domain identifier are verified; preserve existing canonical identity conflicts and collision quarantine.
+- Exact profile absence remains no_match. Search/profile holds remain held and cannot be bypassed. The fallback consumes the normal capability, entitlement, quota, physical-request and runtime accounting for the exact metadata operation.
+- No provider, issuer, or SEC HTTP; credentials, policy, quotas, native limits, holds, target, production, protected refs, and sibling worktrees remain untouched. Root owns later combined qualification, acceptance, integration, and deployment.
+owned_paths:
+- backend/app/routers/instruments.py
+- backend/tests/unit/routers/test_instruments_router.py
+- ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
+branch_tests:
+  - "backend/app/routers/instruments.py::acquire_instrument (authoritative exact profile fallback only after no exact bounded-fuzzy result; existing runtime admission/accounting retained)"
+  - "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/test_provider_explicit_acquisition.py (exact hit beyond fuzzy page, exact absence, provider/profile/symbol/listing/domain conflicts, empty listing authority, and search/profile/quota/rate holds)"
+  - "Complete backend/DDL coverage and exact-source branch CI remain mandatory; Root-owned combined release qualification remains pending. No live provider request or target change."
+branch_tests_reason: >-
+  The ordinary selected-instrument acquire route previously checked only the first bounded fuzzy search page for an
+  exact ticker. The fallback uses the provider's existing exact single-symbol profile operation through the normal
+  provider runtime. After the two focused review corrections, both acquisition unit modules passed 49/49 with no
+  provider transport. Ruff, formatting, diff, workstream and exact-environment branch-manifest checks passed for the
+  focused candidate. The changed backend route implies the normal docker_integration profile for final qualification;
+  this bounded candidate does not run a heavy fixture. Complete backend/DDL and exact-source CI, plus Root's combined
+  release qualification, remain pending.
+acceptance_criteria:
+- id: EXACT-ACQUIRE-1
+  text: If the requested ticker is absent from the bounded fuzzy results, an admitted exact get_instrument_profile lookup can resolve the authoritative exact provider/symbol/listing profile without broadening fuzzy search.
+- id: EXACT-ACQUIRE-2
+  text: Exact profile provider, requested/canonical symbol, listing/exchange, and stable domain identity are checked before ingestion; mismatch or conflict never creates or mutates a canonical identity from inferred data.
+- id: EXACT-ACQUIRE-3
+  text: Exact profile absence stays no_match, and existing search/profile holds, explicit request scope, metadata capability, entitlement, quota and physical-request accounting cannot be bypassed; runtime quota, rate, and scope denials remain held outcomes.
+- id: EXACT-ACQUIRE-4
+  text: The focused router and explicit-acquisition unit modules plus Ruff, formatting, workstream and exact-environment branch-manifest checks pass; no provider HTTP occurs.
+- id: EXACT-ACQUIRE-5
+  text: Complete backend/DDL, exact-source branch CI and Root-owned combined qualification remain required before checkpoint acceptance or integration; none is claimed by focused tests.
+next_action: >-
+  Publish one coherent focused-green candidate and hand its exact source tip to Root for the separately allocated combined
+  qualification; do not start heavy local profiles or source transport.
+human_intent_authorization: >-
+  Human directly activated the general selected-ticker acquisition repair in the original Provider session. Root released
+  accepted source a56d97899f6d0194a7eead572b3edc70c355ddee for continuation and authorized adoption of its exact synchronized
+  green staging descendant dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2. No live provider request, quota/hold change, target
+  mutation, protected-ref operation, or sibling-worktree edit is authorized by this checkpoint.
+checkpoint_status: in_progress
+progress:
+  completed:
+  - EXACT-ACQUIRE-1
+  - EXACT-ACQUIRE-2
+  - EXACT-ACQUIRE-3
+  - EXACT-ACQUIRE-4
+  total: 5
+  current_phase: focused_green_candidate_ready_pending_publication
+  current_blocker: Complete backend/DDL, exact-source CI, and Root combined release qualification remain pending; this bounded task does not authorize a heavy local profile.
+  next_action: Publish the coherent focused candidate and hand its exact source tip to Root.
+human_closure_authorization: >-
+  Pending. The human authorized implementation and candidate publication; no separate checkpoint closure or technical acceptance is claimed. Root owns technical acceptance and protected integration after all required final-source gates pass.
+integration_checkpoint_authorization: >-
+  No integration authorization is claimed for this follow-up. Root retains acceptance, combined qualification, persistent-staging integration, promotion, and deployment ownership.
+local_validation_reason: >-
+  This backend route change implies the repository's docker_integration minimum. The focused router and explicit-acquisition
+  unit modules passed 49/49 after the missing-listing and typed quota/rate/scope-hold corrections, with zero provider HTTP.
+  This candidate does not claim real integration or complete-backend qualification; Root will allocate the combined gates
+  after reviewing the pushed focused source.
+current_gate_checkpoint: >-
+  The focused acquisition router and explicit-acquisition unit modules passed 49/49; Ruff check, Ruff format check and
+  git diff --check passed. The normal workstream and exact-environment branch-manifest checks passed. Exact backend/DDL,
+  exact-source branch CI and Root combined qualification remain pending. No source HTTP, credential use, quota/hold/policy
+  mutation, production, target, protected-ref, or sibling change occurred.
+closure_summary: >-
+  This is an in-progress focused implementation candidate, not an accepted or closed checkpoint. Exact backend/DDL and
+  final-source CI plus Root combined qualification remain mandatory. integration_capture: exact branch HEAD.
+migration_impact: None; no database migration or schema change.
+live_test_impact: No provider, issuer, or SEC transport was executed; none is authorized in this checkpoint.
+deployment_impact: None; Root owns acceptance, integration, promotion, deployment, and genuine provider calls.

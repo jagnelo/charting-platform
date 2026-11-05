@@ -32926,3 +32926,12 @@ Checkpoint status is `ready_for_integration`; `integration_capture` is the exact
 - The complete bridge module passed `108/108`, zero skips/errors/failures, in 1103.87s on private capped PostgreSQL/Redis; the explicit-acquisition unit module passed `14/14`; Ruff and formatting passed. R1 (wrong cwd, zero cases), R2 (asyncpg URL passed to sync setup), and R3 (256 MiB PGDATA tmpfs filled; 19 passed before setup errors) remain recorded as setup diagnostics.
 - Cleanup removed only the exact owned PG/Redis containers, named private PG volume, and internal network. All original 42 container IDs, 33 image IDs, 13 network IDs, and 57 volume names match the saved baseline. No provider HTTP or real-ledger access occurred.
 - One coherent closing publication is ready with `integration_capture: exact branch HEAD`. New exact-tip backend/DDL and branch CI is mandatory and pending; Root owns observation and protected integration. Full Provider/ETF roadmaps remain open.
+
+
+## 2026-11-05 — exact-symbol selected-acquisition repair
+
+- Resumed the existing Provider claim and active unbudgeted goal after fast-forward adopting exact synchronized green staging `dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2`; earlier accepted ETV checkpoint and roadmap history remain archived and unchanged.
+- `backend/app/routers/instruments.py::acquire_instrument` now uses the existing exact `get_instrument_profile(symbol)` operation through `execute_provider_call` only when bounded fuzzy search yields no exact requested symbol and normal search/profile admission permits. It does not enlarge fuzzy pages, paginate until a match, infer identity, or special-case QQQ.
+- Exact profile provider, symbol, listing/exchange and stable-domain identity are checked before ingestion. Missing listing authority is rejected before indexing; runtime scope/rate/quota denials remain held. Exact absence remains `no_match`.
+- Current route and explicit-acquisition unit modules passed `49/49`; Ruff, formatting, `git diff --check`, workstream validation, and exact-environment branch-manifest listing passed. No provider HTTP or heavy fixture ran.
+- The complete backend/DDL, exact-source CI and Root combined qualification remain pending. Root owns later combined resource release, acceptance and integration. No policy, quota, native limit, hold, target, production, protected ref or sibling change occurred.

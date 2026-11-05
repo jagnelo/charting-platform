@@ -2,36 +2,43 @@
   "acceptance_criteria": [
     {
       "id": "ETV-ROUTE-1",
-      "text": "The real provider resolver preserves ETF issuer admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through a matching registered issuer adapter; generic provider support remains unchanged."
+      "text": "The real provider resolver preserves ETF holdings admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through the matching registered issuer adapter; no other issuer type is widened."
     },
     {
       "id": "ETV-ROUTE-2",
-      "text": "Resolver-bound tests use actual registered Amplify/Massive routes and reject ETN, unsupported/generic ETP, wrong-class, stock, future, crypto, malformed/mismatched taxonomy, unsupported providers, markets, operations, capabilities and holds without transport."
+      "text": "Resolver-bound regressions using the actual registered Amplify adapter and explicit issuer scope retain ETF compatibility and reject ETN, generic/unclassified ETP, wrong-class ETV, stock, derivatives/futures, crypto, malformed taxonomy, and unsupported issuer routes without transport."
     },
     {
       "id": "ETV-HISTORY-1",
-      "text": "Ordinary PRICE_HISTORY admits ETV only as Exchange Traded Product/Exchange Traded Vehicle through Massive fetch_ohlcv when an active primary USD listing joins to a US exchange; no shared registry widening occurs."
-    },
-    {
-      "id": "ETV-ROUTE-3",
-      "text": "Identity, capability/operation, explicit scope, policy, entitlement, live-probe/one-shot, cost/quota, configuration, provider controls, host/redirect and physical-hop gates remain unchanged; no live provider call or target mutation occurs."
-    },
-    {
-      "id": "ETV-ROUTE-4",
-      "text": "The focused resolver cases, complete 126-case runtime module, Ruff/format/workstream/manifest/closure checks, complete backend/DDL and exact-source branch CI pass before protected integration; Root owns exact closing-tip CI observation and integration."
+      "text": "Ordinary PRICE_HISTORY admits ETV only as Exchange Traded Product/Exchange Traded Vehicle through Massive fetch_ohlcv when an active primary USD listing joins to a US exchange; other providers, capabilities, operations, non-US/non-USD/missing listings, and held Massive sources remain excluded. Shared provider-registry data is unchanged."
     },
     {
       "id": "ETV-HISTORY-2",
-      "text": "A real isolated PostgreSQL case exercises the actual resolver listing query: exact active-primary US/USD ETV routes only to Massive; mismatched, missing and non-US listing cases plus a held-provider case are denied without transport."
+      "text": "A real isolated PostgreSQL case exercises the actual resolver listing query: exact active-primary US/USD ETV routes only to Massive, while ETN and wrong-class, missing and non-US listing cases plus a held Massive operation are denied; no provider transport occurs."
+    },
+    {
+      "id": "ETV-ROUTE-3",
+      "text": "Existing canonical identity, operation/request scope, policy, free entitlement/storage rights, probe/one-shot, operation cost/quota, adjustment/history-window, configuration, host/redirect and physical-hop gates remain unchanged; no live source call or target mutation occurs."
+    },
+    {
+      "id": "ETV-ROUTE-4",
+      "text": "The focused resolver cases, complete current 126-case runtime module, isolated PostgreSQL resolver/listing test, Ruff and workstream/manifest/closure checks pass for this checkpoint. Exact closing-tip backend/DDL/branch CI remains mandatory before Root integration."
     }
   ],
-  "active_checkpoint_id": "provider-canonical-etv-issuer-routing-parity-20261104",
+  "active_checkpoint_id": "provider-exact-symbol-acquisition-20261105",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "blocker": "Exact closing-tip backend/DDL and branch CI are pending; Root owns observation and protected integration.",
   "branch": "feat/market-data-provider-platform",
+  "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
+  "canonical_bridge_cleanup_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb",
+  "canonical_bridge_local_result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
+  "canonical_bridge_local_result_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
+  "canonical_bridge_root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
+  "canonical_bridge_root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
   "checkpoint_acceptance_decision": "Root delegated conditional acceptance is satisfied for the expanded bounded ETV issuer-and-history checkpoint after the accepted 126-case module, normal static/workstream checks, and Root-reviewed real PostgreSQL resolver boundary; exact closing-tip CI remains mandatory.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-issuer-history-software-conditional-acceptance-20261104.json",
-  "checkpoint_acceptance_receipt_sha256": "f3b59acc74fcec3a44f94f6c31e89be2b139cd01c0d216d783fe8099dd3d8461",
+  "checkpoint_acceptance_receipt": null,
+  "checkpoint_acceptance_receipt_sha256": null,
+  "checkpoint_acceptance_status": "pending_root_review; no acceptance claimed",
   "checkpoint_authorization_state": "Root accepted this bounded checkpoint under the existing human standing delegation for ready_for_integration; Root will integrate only after all required exact final-tip CI jobs are terminal green.",
   "checkpoint_history": [
     {
@@ -207,23 +214,23 @@
       "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd"
     },
     {
-      "checkpoint_id": "provider-canonical-etv-issuer-routing-parity-20261104",
-      "goal_objective": "Restore ETF holdings routing parity for canonical ETF and ETV instruments by allowing only the exact Equity/ETF, legacy Equity/Exchange Traded Fund, and Exchange Traded Product/Exchange Traded Vehicle pairs through the existing registered ETF issuer adapter route. Keep ETNs, generic ETPs, equities, derivatives, futures, crypto, malformed and mismatched taxonomy held; preserve all adapter identity, fund/profile/symbol/operation, policy, entitlement, cost, quota, host, redirect, one-shot and hop gates. Add resolver-bound offline tests and preserve prior checkpoints and the full roadmaps.",
-      "source_base_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
+      "acceptance_decision": "Root delegated technical acceptance under standing human authorization for exact canonical ETF/ETV routing parity; final exact-source CI remains required.",
       "adoption_merge_commit": "ca81b9b08be5d970510d75678b290dafaaf94275",
+      "checkpoint_id": "provider-canonical-etv-issuer-routing-parity-20261104",
+      "exact_source_ci": "pending on coherent closing source tip; Root owns observation",
+      "focused_tests": "12/12 focused resolver and held-route cases; 115/115 complete provider_runtime unit module",
+      "goal_objective": "Restore ETF holdings routing parity for canonical ETF and ETV instruments by allowing only the exact Equity/ETF, legacy Equity/Exchange Traded Fund, and Exchange Traded Product/Exchange Traded Vehicle pairs through the existing registered ETF issuer adapter route. Keep ETNs, generic ETPs, equities, derivatives, futures, crypto, malformed and mismatched taxonomy held; preserve all adapter identity, fund/profile/symbol/operation, policy, entitlement, cost, quota, host, redirect, one-shot and hop gates. Add resolver-bound offline tests and preserve prior checkpoints and the full roadmaps.",
+      "integration_capture": "exact branch HEAD",
       "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-routing-software-checkpoint-acceptance-20261104.json",
       "root_acceptance_receipt_sha256": "b0f9374ea4fd2521bb0e0ecfd6cfbe60cba87a1f7fceb82dedcb1257adae0127",
-      "acceptance_decision": "Root delegated technical acceptance under standing human authorization for exact canonical ETF/ETV routing parity; final exact-source CI remains required.",
+      "source_base_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
       "source_hashes": {
         "backend/app/services/provider_runtime.py": "7cb021817f3175a18310cad3aeed493d0ec62ec77db095aa5e7cd50b1ced5cf0",
         "backend/tests/unit/services/test_provider_runtime.py": "600354cdf56ed34420a2ce49531ab4125afd7ff640e866a932701083a894583b"
-      },
-      "focused_tests": "12/12 focused resolver and held-route cases; 115/115 complete provider_runtime unit module",
-      "exact_source_ci": "pending on coherent closing source tip; Root owns observation",
-      "integration_capture": "exact branch HEAD"
+      }
     }
   ],
-  "checkpoint_status": "ready_for_integration",
+  "checkpoint_status": "in_progress",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -246,31 +253,58 @@
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "docker_integration: accepted exact source proof remains 126/126 provider_runtime cases, 23/23 focused resolver cases, and the prior real PostgreSQL listing-admission case 1/1. The complete 108-case ETF bridge integration module passed 108/108 (zero failures/errors/skips, 1103.87s) on capped private PostgreSQL/Redis after changing only its two positive fixture factories to canonical Equity/ETF and Equity/Stock rows. The explicit-acquisition unit module passed 14/14. Ruff/format and workstream/manifest/closure checks pass. No provider HTTP, real ledger, full backend collector, image/build, or browser run occurred.",
+  "current_checkpoint_local_profile": "docker_integration minimum; focused route and explicit-acquisition unit modules passed 49/49; no DB/full-backend or combined release run yet",
   "current_exact_ci": {
-    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
-    "status": "failed; preserved, test fixture only",
-    "run_id": 41784665584,
-    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584",
-    "backend_job_id": 126423952265,
     "backend": "5697 passed, 1 failed, 1 skipped; 79% coverage; failure was the mock tuple described in fixture_correction_predecessor_ci",
+    "backend_job_id": 126423952265,
     "next_exact_tip_ci": "pending; Root owns observation and protected integration",
     "prior_exact_ci": {
-      "run_id": 41691823546,
-      "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd",
       "backend": "success: 5676 unit-like + 617 integration passed, 3 configured skips, 84% coverage",
+      "branch_declared": "failed before tests because full-backend-suite alias was missing; historical failure preserved",
       "frontend": "success: 1495 passed",
-      "branch_declared": "failed before tests because full-backend-suite alias was missing; historical failure preserved"
-    }
+      "run_id": 41691823546,
+      "source_sha": "144580d0cd1a72fb9ff2793f377deba2e87b43fd"
+    },
+    "run_id": 41784665584,
+    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
+    "status": "failed; preserved, test fixture only",
+    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584"
   },
-  "current_native_goal_created_at": 1793767481,
+  "current_gate_checkpoint": "Focused 49/49 and static/workstream/manifest checks passed; exact backend/DDL, exact-source branch CI and Root combined release qualification remain pending.",
+  "current_native_goal_created_at": 1793836530,
   "current_native_goal_token_budget": null,
-  "current_source_base_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
+  "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
+  "current_postgres_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
+  "current_postgres_result": {
+    "cleanup": "exact owned PG container and internal network removed; no volume created; Root-attributed TC attempt15 container untouched",
+    "elapsed_seconds": 9.87,
+    "execution_receipt": "/tmp/provider-etv-us-history-pg-20261104/execution.json",
+    "execution_receipt_sha256": "39fdac82e49be4a0e317af086262413c92d7201e50e8e5312157f2dc950337d5",
+    "exit_code": 0,
+    "failed": 0,
+    "node": "backend/tests/integration/api/test_on_demand_history_postgres.py::test_massive_us_etv_history_resolver_requires_real_primary_listing",
+    "passed": 1,
+    "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
+    "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
+    "pytest_log": "/tmp/provider-etv-us-history-pg-20261104/pytest.log",
+    "pytest_log_sha256": "b19fe149c33f9c7fc67903dceb64afaf0dc034c33f5cdee16e8f4f6c316736ba",
+    "real_ledger_access": false,
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
+    "root_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
+    "selected": 1,
+    "skipped": 0,
+    "source_http_calls": 0
+  },
+  "current_source_base_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
+  "current_source_hashes": {
+    "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
+    "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
+  },
   "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
-    "build_cache_bytes": 3613000000,
+    "build_cache_bytes": 6063000000,
     "container_count": 8,
     "containers": [
       "charting-stack-feat-market-data-provider-platform-c6e40c66-host-port-relay-1",
@@ -282,8 +316,8 @@
       "charting-stack-feat-market-data-provider-platform-c6e40c66-provider-egress-deny-1",
       "charting-stack-feat-market-data-provider-platform-c6e40c66-research-runner-1"
     ],
-    "known_bytes": 3811350208,
-    "over_budget": false,
+    "known_bytes": 6261726208,
+    "over_budget": true,
     "projects": [
       "charting-dev-feat-market-data-provider-platform-c6e40c66",
       "charting-stack-feat-market-data-provider-platform-c6e40c66"
@@ -298,7 +332,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 192828800,
+    "volume_bytes": 193204800,
     "volume_count": 4,
     "worktree_id": "feat-market-data-provider-platform-c6e40c6608"
   },
@@ -314,21 +348,42 @@
   },
   "finished": false,
   "finished_at": null,
+  "fixture_correction_current_exact_ci": {
+    "backend": "58 failed, 560 passed, 2 skipped in 1168.07s; all failures in bridge integration positive factories with noncanonical suffixed AssetClass values",
+    "backend_job_id": 126430820691,
+    "run_id": 41786842390,
+    "source_sha": "d5d4c31e6816bfb6e14f3233ee909c178903a164",
+    "status": "failed; preserved, fixture-only correction follows"
+  },
+  "fixture_correction_predecessor_ci": {
+    "backend_job_id": 126423952265,
+    "cause": "FakeDB.one_or_none returned (etf, exchange_traded_fund) although the selected query is (AssetClass.name, InstrumentType.name); the strict issuer gate correctly denied it.",
+    "correction": "Only the mock tuple changed to canonical (Equity, ETF); runtime and policy/quota/entitlement assertions unchanged.",
+    "coverage_percent": 79,
+    "failed": 1,
+    "failed_test": "tests/unit/services/test_provider_explicit_acquisition.py::test_vaneck_qualification_can_resolve_disabled_policy_only_in_exact_context",
+    "local_followup": {
+      "explicit_acquisition_module": "14 passed, 0 failed/skipped",
+      "issuer_route_hold_selection": "12 passed, 0 failed/skipped"
+    },
+    "next_exact_tip_ci": "pending; Root owns observation",
+    "passed": 5697,
+    "run_id": 41784665584,
+    "skipped": 1,
+    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
+    "status": "failure",
+    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584"
+  },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Restore ETF holdings and candle-history routing parity for canonical ETF/ETV instruments. Preserve exact Equity/ETF, legacy Equity/Exchange Traded Fund, and Exchange Traded Product/Exchange Traded Vehicle pairs through the existing registered ETF issuer route; allow ordinary PRICE_HISTORY only for exact ETP/ETV via Massive fetch_ohlcv with an active primary USD listing on a US exchange. Keep ETV distinct from ETN and deny mismatched/unclassified types and every other provider/capability/operation route. Preserve identity and all policy, entitlement, cost, quota, adjustment, history-window, host, redirect, one-shot, and physical-hop gates.",
+  "goal_objective": "Repair exact-symbol discovery for ordinary selected-instrument acquisition in the Provider worktree: use authoritative exact provider lookup/profile contracts when the exact ticker is absent from bounded fuzzy results; preserve provider/account/symbol/listing/domain identity checks, admission, physical-request accounting, free-only and hold controls. Add deterministic regressions for exact hit beyond first fuzzy page, exact absence, provider/profile/symbol/listing/domain mismatches and holds. Preserve history; do not issue live provider calls. Stop at focused-green coherent candidate for Root review and later combined release qualification.",
   "goal_recorded_at": "2026-11-03T18:08:44+00:00",
   "goal_request": {
-    "authorization": "Human direct activation on 2026-11-04 in the original visible Provider session for canonical ETV ETF-holdings admission parity; preserve the existing claim/history, all roadmaps and holds, and make no live source or target changes.",
-    "objective": "Restore ETF holdings and candle-history routing parity for canonical ETF/ETV instruments. Preserve exact Equity/ETF, legacy Equity/Exchange Traded Fund, and Exchange Traded Product/Exchange Traded Vehicle pairs through the existing registered ETF issuer route; allow ordinary PRICE_HISTORY only for exact ETP/ETV via Massive fetch_ohlcv with an active primary USD listing on a US exchange. Keep ETV distinct from ETN and deny mismatched/unclassified types and every other provider/capability/operation route. Preserve identity and all policy, entitlement, cost, quota, adjustment, history-window, host, redirect, one-shot, and physical-hop gates.",
-    "source_base_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97",
-    "adoption_merge_commit": "ca81b9b08be5d970510d75678b290dafaaf94275",
-    "new_unbudgeted_goal_created_at": 1793767481,
-    "budget": null
+    "objective": "Repair exact-symbol discovery for ordinary selected-instrument acquisition in the Provider worktree: use authoritative exact provider lookup/profile contracts when the exact ticker is absent from bounded fuzzy results; preserve provider/account/symbol/listing/domain identity checks, admission, physical-request accounting, free-only and hold controls. Add deterministic regressions for exact hit beyond first fuzzy page, exact absence, provider/profile/symbol/listing/domain mismatches and holds. Preserve history; do not issue live provider calls. Stop at focused-green coherent candidate for Root review and later combined release qualification."
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "exact branch HEAD (captured by integration_capture; no self-reference)",
+  "head": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -349,7 +404,7 @@
   "integration_capture": "exact branch HEAD",
   "interrupted": false,
   "last_checkpoint": "2026-11-02T02:14:51.835172+00:00",
-  "last_human_progress_update": "2026-11-03T18:10:25.318885+00:00",
+  "last_human_progress_update": "2026-11-05T00:37:30.524836+00:00",
   "latest_degraded_staging_remediation_adoption": {
     "accepted": false,
     "merge_commit": "cef7b9c96791a8c6885d792a1254049cf4baba4b",
@@ -414,7 +469,7 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "docker_integration",
-  "next_action": "Freeze this one coherent fixture-only correction publication; Root observes its exact closing-tip CI and owns protected integration.",
+  "next_action": "Publish one focused-green exact-symbol candidate; Root owns combined qualification and exact final CI.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
@@ -805,22 +860,21 @@
   },
   "progress": {
     "completed": [
-      "ETV-ROUTE-1",
-      "ETV-ROUTE-2",
-      "ETV-HISTORY-1",
-      "ETV-HISTORY-2",
-      "ETV-ROUTE-3"
+      "EXACT-ACQUIRE-1",
+      "EXACT-ACQUIRE-2",
+      "EXACT-ACQUIRE-3",
+      "EXACT-ACQUIRE-4"
     ],
-    "total": 6,
-    "current_phase": "fixture_mock_corrected_waiting_for_new_exact_tip_ci",
-    "current_blocker": "The prior exact-tip CI failed only because the test mock used a noncanonical/reversed taxonomy tuple; the fixture correction passed focused local tests. New exact-tip backend/DDL and branch CI are mandatory and pending.",
-    "next_action": "Freeze tracked inputs and hand the exact publication tip to Root for closing-tip CI observation.",
-    "updated_at": "2026-11-04T06:13:38.941086+00:00"
+    "current_blocker": "Exact backend/DDL, exact-source branch CI, and Root combined release qualification remain pending; no heavy local phase is released for this candidate.",
+    "current_phase": "focused_green_candidate_ready_pending_publication",
+    "next_action": "Finish one coherent workstream publication, commit and push the focused candidate, then hand the exact source tip to Root.",
+    "total": 5,
+    "updated_at": "2026-11-05T00:37:30.524790+00:00"
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
-  "remote": "917c84dddbed8836e63574d1118acbf4806b25cc",
-  "remote_sha": "exact branch HEAD after push (captured by integration_capture; no self-reference)",
-  "remote_synchronized": true,
+  "remote": "a56d97899f6d0194a7eead572b3edc70c355ddee",
+  "remote_sha": "a56d97899f6d0194a7eead572b3edc70c355ddee",
+  "remote_synchronized": false,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
   ],
@@ -925,6 +979,8 @@
   "roadmap_goal_request": {
     "objective": "Advance feat/market-data-provider-platform: Implement the approved US-first multi-provider market-data platform plan: canonical FIGI-based identity and issuer model; exchange/session calendars; market-series scoped raw/canonical OHLCV with local rollups and adjustments; provider capability/entitlement/quota routing; US universe/lifecycle, events, SEC fundamentals, FINRA short interest, current options with local high-fidelity Greeks, optional futures and crypto providers; backend admin/diagnostic APIs; and disabled 30-day shadow monitoring. Backend/data only; do not modify frontend or ETF constituent provider work.. Acceptance criteria: AC-IDENTITY: New and reconciled US-listed securities use stable FIGI-domain keys where applicable, issuer identity is separate from security identity, effective-dated listing/provider-symbol history is retained, and unresolved candidates are quarantined without silent merges.; AC-SERIES: Canonical bars distinguish instrument, market/feed scope, session, timeframe, adjustment basis/version, and provenance; existing OHLCV reads remain compatible through a default series mapping.; AC-CALENDAR: Exchange sessions, timezones, holidays, early closes, overnight trade-date rules, and user-local projections are versioned and used by freshness and daily-completion logic.; AC-ROUTING: Provider routing filters by capability, asset/venue/session/interval/history/feed/terms entitlement, health, quota, and workload budget; quota reservations are safe across workers and every decision is observable.; AC-REFRESH: Whole-universe core-session D1 refresh, tiered intraday polling, local rollups, exact missing-slice repair, request coalescing, deferred broad-evaluator runs, and automatic retry are implemented without provider calls inside evaluation loops.; AC-DATA: Provider adapters cover the approved practical roster, with US identity/lifecycle, OHLCV, corporate actions, market events, SEC facts/core fundamentals, earnings, FINRA short interest, crypto, current options, and optional futures paths represented honestly by capability and provenance.; AC-OPTIONS: Current option chains and quotes are retained; QuantLib-backed American-option Greeks and the existing fallback are labeled with model/version/input provenance and tested against numerical edge cases.; AC-OPS: Backend-only admin and diagnostic APIs expose capabilities, entitlements, quota/cost usage, routing decisions, coverage, identity quarantine, sessions, queue/degradation state, anomalies, and detailed shadow reports.; AC-SHADOW: New routing defaults remain disabled until a separately approved deployed 30-day shadow run produces automated daily/final reports, at least 99% eligible core-session D1 coverage before the next regular session, no silent identity/license/quota violations, and AI-readable discrepancy evidence.; AC-COMPAT: Existing symbol-based API aliases and legacy yfinance-dependent paths remain functional only through explicit compatibility behavior; yfinance is absent from default and acceptance routing.; AC-TEST: Focused unit, adapter-fixture, migration, PostgreSQL/Redis integration, worker, API, numerical, point-in-time, and full backend integration validation pass; every live-enabled provider has either bounded keyless evidence or an explicit credential preflight failure; no frontend files are modified.; AC-QUOTA-SAFETY: No provider policy contains a generic 60/min, 15-burst, 2-concurrency, or 30-second fallback. Unknown limits are represented as NULL/unknown, excluded from routing, and surfaced with the exact missing contract dimensions.; AC-RATE-FAILURE: 429/418/quota responses parse provider reset headers where present, stop the affected provider scope, persist a typed capacity event, defer work until the reset (or operator decision), and do not create a retry storm or unsafe fallback.; AC-LIVE-EVIDENCE: The manifest-driven live matrix covers keyless and credentialed providers separately. Missing credentials identify exact environment variables and block ready-for-review; no live skip is represented as proof.; AC-SECRET-DISTRIBUTION: Local development, GitHub staging validation, GitHub master validation, and live/production each use separate explicit secret stores; current local keys are never copied to CI; no credential is tracked or exposed in routine PR CI/artifacts/logs; provider credentials reach only trusted backend/worker processes.; AC-PROVIDER-CONTRACT-AUDIT: Every registered external provider capability has a source-backed, versioned contract for plan, authentication scope, exact quota units/windows/resets/shared pools, operation costs, pagination, response bytes, history/venue/freshness, and data-use rights; provider documentation, account endpoints, and live headers are reconciled, and verified limits are not left unknown or incorrectly gated.; AC-DURABLE-CROSS-SESSION-USAGE: Provider usage reservations survive process/session restart and coordinate all workers sharing the same account scope; local worktrees share an owner-only local ledger, deployments use shared durable runtime storage, and CI attempts reconcile prior redacted receipts and worst-case interrupted usage before spending shared credentials.; AC-UNIVERSE-COMPLETE: Complete US NMS snapshots use official Nasdaq Trader files with daily conditional requests; complete OTC snapshots use a currently documented and authorized complete source (FINRA otcSecurityMaster only if its availability/current status and use rights are established) plus Daily List lifecycle deltas; totals, venue coverage, cursor completion, duplicate detection, identifier ambiguity, ticker changes, and three-complete-day deactivation evidence are reported and tested.; AC-SEC-PRELISTING-POLICY: SEC directory scans first stage a complete report with issuer creation disabled; after that clean scan, only validated missing CIK/name issuers may be created, while likely future listings become inactive provisional instruments only on strong unambiguous evidence and all ambiguous evidence is quarantined.; AC-INTEGRATION-WORKFLOW: External-service code changes are enforced by repository workflow checks requiring provider/capability declaration, contract evidence, fixture tests, bounded current-source live tests, secret scope, usage impact, and explicit deferral status; future changes cannot silently bypass the live-validation policy.; AC-DINARI-SANDBOX-ISOLATION: Dinari Sandbox may run as a live-environment canary only through a separate non-persisting path; sandbox payloads never enter canonical production data, usage, alert, or analytics tables, and Dinari production routing remains disabled under the approved free-only budget.; AC-SHADOW-FINAL-PHASE: The 30-day deployed shadow run remains disabled and is not part of the current implementation phase; after every other controllable acceptance gate is complete, it will be planned and authorized as the final gate before human closure and staging integration.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree."
   },
+  "root_acceptance_receipt": null,
+  "root_acceptance_receipt_sha256": null,
   "root_full_profile": {
     "backend_coverage_percent": 84,
     "backend_passed": 6128,
@@ -985,7 +1041,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "ready_for_integration",
+  "status": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -1152,69 +1208,32 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform",
   "worktree_id": "feat-market-data-provider-platform-c6e40c6608",
-  "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-routing-software-checkpoint-acceptance-20261104.json",
-  "root_acceptance_receipt_sha256": "b0f9374ea4fd2521bb0e0ecfd6cfbe60cba87a1f7fceb82dedcb1257adae0127",
-  "checkpoint_acceptance_status": "accepted_bounded_software_checkpoint; exact-source CI pending",
-  "current_gate_checkpoint": "Root accepted the canonical bridge fixture reconciliation under the bounded checkpoint receipt. Exact d5 CI 41786842390 remains red and preserved: Backend job 126430820691 had 58 failed, 560 passed, 2 skipped, all failures in the bridge integration module because positive fixtures used suffixed noncanonical AssetClass values rejected by correct runtime admission. The corrected full module passed 108/108 on PostgreSQL/Redis with only canonical fixture changes; explicit-acquisition units passed 14/14. R1/R2/R3 setup attempts are separately preserved. Exact CI for the new coherent tip remains mandatory and pending; Root owns observation and integration. No runtime, policy, quota, provider, target, real-ledger, sibling, staging or production change occurred.",
-  "current_source_hashes": {
-    "backend/app/services/provider_runtime.py": "cceb0a6684a4113617eadb9d2f8d883fe1088cc1f70bcde111148732d6a1698e",
-    "backend/tests/unit/services/test_provider_runtime.py": "df41e5ddc674730bc69b9e6c1b02a49de7572eca739368713c7baffae7b8bc10",
-    "backend/tests/integration/api/test_on_demand_history_postgres.py": "357af6a81c7ddff8049abb7e538473cc5ddab590ad60a7e24126f007e22bd91b",
-    "backend/tests/unit/services/test_provider_explicit_acquisition.py": "9014d522463e2076203b307367f94d53842354bea81465915ea13e047d5a18cb",
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py": "81808e74138816a6a59b255b6621349f2bf732757c10970f58309af588b0e29c"
-  },
-  "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
-  "current_postgres_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
-  "current_postgres_result": {
-    "node": "backend/tests/integration/api/test_on_demand_history_postgres.py::test_massive_us_etv_history_resolver_requires_real_primary_listing",
-    "selected": 1,
-    "passed": 1,
-    "failed": 0,
-    "skipped": 0,
-    "exit_code": 0,
-    "elapsed_seconds": 9.87,
-    "source_http_calls": 0,
-    "real_ledger_access": false,
-    "execution_receipt": "/tmp/provider-etv-us-history-pg-20261104/execution.json",
-    "execution_receipt_sha256": "39fdac82e49be4a0e317af086262413c92d7201e50e8e5312157f2dc950337d5",
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
-    "root_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
-    "pytest_log": "/tmp/provider-etv-us-history-pg-20261104/pytest.log",
-    "pytest_log_sha256": "b19fe149c33f9c7fc67903dceb64afaf0dc034c33f5cdee16e8f4f6c316736ba",
-    "postrun_inventory": "/tmp/provider-etv-us-history-pg-20261104/postrun-inventory.json",
-    "postrun_inventory_sha256": "2d1e0270faa2339fb92fdb453388504e4c567529d95e40cd6c7f0a881fe6899f",
-    "cleanup": "exact owned PG container and internal network removed; no volume created; Root-attributed TC attempt15 container untouched"
-  },
-  "fixture_correction_predecessor_ci": {
-    "run_id": 41784665584,
-    "source_sha": "6222f4f6e3a0532c1ebb4d9f8f3e465149727ddb",
-    "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584",
-    "backend_job_id": 126423952265,
-    "status": "failure",
-    "passed": 5697,
-    "failed": 1,
-    "skipped": 1,
-    "coverage_percent": 79,
-    "failed_test": "tests/unit/services/test_provider_explicit_acquisition.py::test_vaneck_qualification_can_resolve_disabled_policy_only_in_exact_context",
-    "cause": "FakeDB.one_or_none returned (etf, exchange_traded_fund) although the selected query is (AssetClass.name, InstrumentType.name); the strict issuer gate correctly denied it.",
-    "correction": "Only the mock tuple changed to canonical (Equity, ETF); runtime and policy/quota/entitlement assertions unchanged.",
-    "local_followup": {
-      "explicit_acquisition_module": "14 passed, 0 failed/skipped",
-      "issuer_route_hold_selection": "12 passed, 0 failed/skipped"
+  "previously_accepted_provider_etv_followup_session_state": {
+    "status": "ready_for_integration",
+    "active_checkpoint_id": "provider-canonical-etv-issuer-routing-parity-20261104",
+    "checkpoint_status": "ready_for_integration",
+    "checkpoint_acceptance_status": "accepted_bounded_software_checkpoint; exact-source CI pending",
+    "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-issuer-history-software-conditional-acceptance-20261104.json",
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-ETV-routing-software-checkpoint-acceptance-20261104.json",
+    "root_acceptance_receipt_sha256": "b0f9374ea4fd2521bb0e0ecfd6cfbe60cba87a1f7fceb82dedcb1257adae0127",
+    "current_checkpoint_local_profile": "docker_integration: accepted exact source proof remains 126/126 provider_runtime cases, 23/23 focused resolver cases, and the prior real PostgreSQL listing-admission case 1/1. The complete 108-case ETF bridge integration module passed 108/108 (zero failures/errors/skips, 1103.87s) on capped private PostgreSQL/Redis after changing only its two positive fixture factories to canonical Equity/ETF and Equity/Stock rows. The explicit-acquisition unit module passed 14/14. Ruff/format and workstream/manifest/closure checks pass. No provider HTTP, real ledger, full backend collector, image/build, or browser run occurred.",
+    "current_gate_checkpoint": "Root accepted the canonical bridge fixture reconciliation under the bounded checkpoint receipt. Exact d5 CI 41786842390 remains red and preserved: Backend job 126430820691 had 58 failed, 560 passed, 2 skipped, all failures in the bridge integration module because positive fixtures used suffixed noncanonical AssetClass values rejected by correct runtime admission. The corrected full module passed 108/108 on PostgreSQL/Redis with only canonical fixture changes; explicit-acquisition units passed 14/14. R1/R2/R3 setup attempts are separately preserved. Exact CI for the new coherent tip remains mandatory and pending; Root owns observation and integration. No runtime, policy, quota, provider, target, real-ledger, sibling, staging or production change occurred.",
+    "current_source_base_sha": "eb74b439319ad32006a3d68fc7b6e98959148af7",
+    "current_native_goal_created_at": 1793767481,
+    "current_native_goal_token_budget": null,
+    "goal_objective": "Advance feat/market-data-provider-platform: Make legitimate canonical exchange-traded vehicles usable in the ordinary ticker journey: preserve exact ETV/ETP admission to registered ETF issuer adapters and narrowly admit reviewed exchange-listed ETV candle history through Massive US stock custom bars. Keep ETV distinct from ETF and ETN; reject mismatched/unclassified taxonomy and all other provider, capability, or operation routes. Preserve canonical identity and every existing policy, entitlement, cost, quota, adjustment, history-window, host, redirect, one-shot and physical-hop gate.. Acceptance criteria: ETV-ROUTE-1: The real provider resolver preserves ETF holdings admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through the matching registered issuer adapter; no other issuer type is widened.; ETV-ROUTE-2: Resolver-bound regressions using the actual registered Amplify adapter and explicit issuer scope retain ETF compatibility and reject ETN, generic/unclassified ETP, wrong-class ETV, stock, derivatives/futures, crypto, malformed taxonomy, and unsupported issuer routes without transport.; ETV-HISTORY-1: Ordinary PRICE_HISTORY admits ETV only as Exchange Traded Product/Exchange Traded Vehicle through Massive fetch_ohlcv when an active primary USD listing joins to a US exchange; other providers, capabilities, operations, non-US/non-USD/missing listings, and held Massive sources remain excluded. Shared provider-registry data is unchanged.; ETV-HISTORY-2: A real isolated PostgreSQL case exercises the actual resolver listing query: exact active-primary US/USD ETV routes only to Massive, while ETN and wrong-class, missing and non-US listing cases plus a held Massive operation are denied; no provider transport occurs.; ETV-ROUTE-3: Existing canonical identity, operation/request scope, policy, free entitlement/storage rights, probe/one-shot, operation cost/quota, adjustment/history-window, configuration, host/redirect and physical-hop gates remain unchanged; no live source call or target mutation occurs.; ETV-ROUTE-4: The focused resolver cases, complete current 126-case runtime module, isolated PostgreSQL resolver/listing test, Ruff and workstream/manifest/closure checks pass for this checkpoint. Exact closing-tip backend/DDL/branch CI remains mandatory before Root integration.. Required local profile: docker_integration. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+    "goal_request": {
+      "adoption_merge_commit": "ca81b9b08be5d970510d75678b290dafaaf94275",
+      "authorization": "Human direct activation on 2026-11-04 in the original visible Provider session for canonical ETV ETF-holdings admission parity; preserve the existing claim/history, all roadmaps and holds, and make no live source or target changes.",
+      "budget": null,
+      "new_unbudgeted_goal_created_at": 1793767481,
+      "objective": "Restore ETF holdings and candle-history routing parity for canonical ETF/ETV instruments. Preserve exact Equity/ETF, legacy Equity/Exchange Traded Fund, and Exchange Traded Product/Exchange Traded Vehicle pairs through the existing registered ETF issuer route; allow ordinary PRICE_HISTORY only for exact ETP/ETV via Massive fetch_ohlcv with an active primary USD listing on a US exchange. Keep ETV distinct from ETN and deny mismatched/unclassified types and every other provider/capability/operation route. Preserve identity and all policy, entitlement, cost, quota, adjustment, history-window, host, redirect, one-shot, and physical-hop gates.",
+      "source_base_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97"
     },
-    "next_exact_tip_ci": "pending; Root owns observation"
-  },
-  "fixture_correction_current_exact_ci": {
-    "run_id": 41786842390,
-    "source_sha": "d5d4c31e6816bfb6e14f3233ee909c178903a164",
-    "backend_job_id": 126430820691,
-    "status": "failed; preserved, fixture-only correction follows",
-    "backend": "58 failed, 560 passed, 2 skipped in 1168.07s; all failures in bridge integration positive factories with noncanonical suffixed AssetClass values"
-  },
-  "canonical_bridge_root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
-  "canonical_bridge_root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
-  "canonical_bridge_local_result_receipt": "/tmp/provider-etf-bridge-runtime-20261104/integration-r4-result.json",
-  "canonical_bridge_local_result_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
-  "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
-  "canonical_bridge_cleanup_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb"
+    "goal_request_state": "active",
+    "head": "a56d97899f6d0194a7eead572b3edc70c355ddee",
+    "remote": "a56d97899f6d0194a7eead572b3edc70c355ddee",
+    "remote_sha": "a56d97899f6d0194a7eead572b3edc70c355ddee",
+    "remote_synchronized": true
+  }
 }
