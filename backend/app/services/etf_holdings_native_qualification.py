@@ -2292,6 +2292,7 @@ async def continue_native_etf_fund_from_retained_evidence(
             }
             from app.services.etf_holdings_refresh import (  # noqa: PLC0415
                 _holdings_completeness_status,
+                _native_artifact_identity_validation,
             )
 
             completeness_status = _holdings_completeness_status(result_metadata, {})
@@ -2299,6 +2300,16 @@ async def continue_native_etf_fund_from_retained_evidence(
                 raise ETFNativeSourceEvidenceError(
                     "retained native response is not verified complete"
                 )
+            artifact_identity_validation = _native_artifact_identity_validation(
+                profile,
+                {"status": "unverified"},
+                evidence,
+            )
+            if artifact_identity_validation.get("status") != "matched":
+                raise ETFNativeSourceEvidenceError(
+                    "retained native fund identity cannot be projected to the selected profile"
+                )
+            result_metadata["artifact_identity_validation"] = artifact_identity_validation
             if not isinstance(fetch_result.source_url, str) or not fetch_result.source_url.strip():
                 raise ETFNativeSourceEvidenceError("retained holdings URL is absent")
             captured_at = request_logs[
