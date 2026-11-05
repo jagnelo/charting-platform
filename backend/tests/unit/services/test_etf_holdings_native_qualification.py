@@ -20,6 +20,7 @@ from app.services.etf_holdings_adapters import (
     get_holdings_adapter,
     parse_xlsx_table,
 )
+from app.services.etf_holdings_capability import _native_identity_evidence_matches_snapshot
 from app.services.etf_holdings_native_qualification import (
     NATIVE_ETF_INITIAL_QUALIFICATION_JOB_TYPE,
     _attempt_scope,
@@ -961,6 +962,25 @@ async def test_retained_native_failure_reparse_uses_exact_settled_evidence_witho
     assert rebuilt.rows
     assert evidence["composition_completeness"]["status"] == "complete"
     assert evidence["raw_payload_hash"] == artifact.content_hash
+    capability_snapshot = SimpleNamespace(
+        source_artifact_id=artifact.id,
+        source_provider=provider,
+        source_url=rebuilt.source_url,
+        source_identifier=rebuilt.source_identifier,
+        composition_date=date.fromisoformat(evidence["composition_date"]),
+        parser_version=evidence["parser_version"],
+        completeness_status="complete",
+        row_count=len(rebuilt.rows),
+        extra_data={
+            "schema_fingerprint": evidence["schema_fingerprint"],
+            "legal_metadata": {
+                "native_initial_qualification_evidence": evidence,
+                "native_composition_completeness_evidence": evidence["composition_completeness"],
+                "composition_date": evidence["composition_date"],
+            },
+        },
+    )
+    assert _native_identity_evidence_matches_snapshot(profile, capability_snapshot) is True
     assert continuation["physical_http_requests"] == 0
     assert continuation["quota_reservations"] == 0
     assert len(_OfflineAdapterClient.requested) == request_count
@@ -1139,7 +1159,16 @@ async def test_native_qualification_accepts_actual_offline_adapter_result_and_ke
         row_count=len(result.rows),
         resolved_count=len(result.rows),
         unresolved_count=0,
-        extra_data={"artifact_identity_validation": persisted_validation},
+        extra_data={
+            "artifact_identity_validation": persisted_validation,
+            "schema_fingerprint": ordinary_evidence["schema_fingerprint"],
+            "legal_metadata": {
+                "composition_date": ordinary_evidence["composition_date"],
+                "native_composition_completeness_evidence": ordinary_evidence[
+                    "composition_completeness"
+                ],
+            },
+        },
         source_url=result.source_url,
     )
     state = SimpleNamespace(

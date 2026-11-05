@@ -387,9 +387,13 @@ previously_accepted_unresolved_holding_drilldown_closure_summary_2026_10_30: >-
 previously_accepted_unxq_calendar_closure_pending_2026_10_31: false
 previously_accepted_unxq_calendar_human_closure_authorization_2026_10_31: "Root accepted `etf-unresolved-calendar-side-read-fixture-20261031` under the existing human standing checkpoint delegation. Acceptance receipt: `/home/m920q/charting-platform/.ai/staging-attempts/etf-802ef5b-checkpoint-acceptance-root-review-20261031.json` (SHA256 `ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827`). This records Root's delegated decision and does not invent a new human quote or accept the full AC1-AC14 roadmap."
 previously_accepted_unxq_calendar_closure_summary_2026_10_31: "Root accepted the bounded etf-unresolved-calendar-side-read-fixture-20261031 checkpoint under the existing human-delegated authority (receipt SHA256 ab642427f0536ce06a6b3b52bb76ebb0813ce4879bfa61e5062112bf65e5b827). Tested implementation is 802ef5b1e6a4246cc27f29da90950984878df947; exact implementation-source CI41186532340 is terminal green. Frontend passed1495; backend accounted for5614 unit and597 integration cases at84% combined coverage. The current-source local full_stack_browser profile passed all required phases: functional201 passed/2 configured skips across all five acquisition cases, strict visual104 passed across four projects, zero retries, and exact-owned cleanup with protected inventory equal at29 containers,32 images,10 networks,51 volumes; the private10000-row smoke passed. Product/runtime build provenance remains distinct from tested source; this test-fixture checkpoint makes no runtime, migration, provider-policy, paid-source or production change. The four-record closing tip has its own CI gate after publication; no self-referential CI claim is made. integration_capture: exact branch HEAD. AC1-AC14, 15 Tier-0 and156 Tier-1, genuine OIH holdings and returned-uncached-constituent proof, source/account acceptance, target/deployment work and all other roadmap gates remain open; Root owns integration, promotion and deployment."
-closure_pending: false
-human_closure_authorization: "Root accepted the bounded native retained-evidence continuation software under the existing human-delegated authority; acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-native-recovery-software-conditional-acceptance-20261105.json SHA256 3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5. Shared-test condition receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json SHA256 0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86. This records Root's delegated technical decision, not personal human verification or a new human quote."
-closure_summary: "Root accepted the bounded SPDR/iShares native retained-evidence continuation software under existing delegated authority. Exact implementation source is b6d67ce93104a0a2cf83b1c41f385513b3c230f8; Root conditionally accepted the eight backend/test file hashes at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-native-recovery-software-conditional-acceptance-20261105.json (SHA256 3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5), and the exact TC-owned shared-test barrier is accepted at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json (SHA256 0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86; resulting test file SHA256 ab419373397abc84d656c18b5178178a2faafddbb33f3d27ec85894292c03b2f). Authentic actual retained job8/job9 chains reparsed offline to 505/110 complete rows dated 2026-11-03, with binary and normalized iShares body hashes kept distinct. The isolated PostgreSQL continuation test passed 2/2 with disabled policy, repeat/concurrent denial and zero transport/reservations; focused nine-unit and one narrative guard passed, Ruff check/format and workstream/manifest guards passed. Failed production jobs8/9 and all receipts remain unchanged; no new Source HTTP, production ledger/policy/data mutation or deployment is claimed. The exact final-tip full backend/DDL/branch/browser CI is pending and mandatory before actual integration; no pending or red CI is described as green. The wider AC1-AC14 roadmap, 15 Tier-0/156 Tier-1, all holds, histories and genuine deployed user-flow gates remain open. integration_capture: exact branch HEAD."
+previously_accepted_native_retained_continuation_closure_2026_11_05:
+  closure_pending: false
+  human_closure_authorization: "Root accepted the bounded native retained-evidence continuation software under the existing human-delegated authority; acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-native-recovery-software-conditional-acceptance-20261105.json SHA256 3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5. Shared-test condition receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json SHA256 0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86. This records Root's delegated technical decision, not personal human verification or a new human quote."
+  closure_summary: "Root accepted the bounded SPDR/iShares native retained-evidence continuation software under existing delegated authority. Exact implementation source is b6d67ce93104a0a2cf83b1c41f385513b3c230f8; Root conditionally accepted the eight backend/test file hashes at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-native-recovery-software-conditional-acceptance-20261105.json (SHA256 3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5), and the exact TC-owned shared-test barrier is accepted at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json (SHA256 0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86; resulting test file SHA256 ab419373397abc84d656c18b5178178a2faafddbb33f3d27ec85894292c03b2f). Authentic actual retained job8/job9 chains reparsed offline to 505/110 complete rows dated 2026-11-03, with binary and normalized iShares body hashes kept distinct. The isolated PostgreSQL continuation test passed 2/2 with disabled policy, repeat/concurrent denial and zero transport/reservations; focused nine-unit and one narrative guard passed, Ruff check/format and workstream/manifest guards passed. Failed production jobs8/9 and all receipts remain unchanged; no new Source HTTP, production ledger/policy/data mutation or deployment is claimed. The exact final-tip full backend/DDL/branch/browser CI is pending and mandatory before actual integration; no pending or red CI is described as green. The wider AC1-AC14 roadmap, 15 Tier-0/156 Tier-1, all holds, histories and genuine deployed user-flow gates remain open. integration_capture: exact branch HEAD."
+closure_pending: true
+human_closure_authorization: "No new closure authorization is recorded for the active native capability-projection follow-up; the prior accepted continuation is preserved in previously_accepted_native_retained_continuation_closure_2026_11_05."
+closure_summary: "The prior bounded native retained-evidence continuation remains accepted and archived. The current read-only capability projection follow-up is active and not yet closed; exact-source CI and the Root-owned combined backend/frontend functional, strict-visual and protected-inventory profile remain pending. No existing snapshot/job/raw artifact was rewritten, and no Source HTTP, policy/ledger or production mutation was performed. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and genuine deployed-flow gates remain open. integration_capture: exact branch HEAD."
 previously_accepted_odc_active_changeset_2026_10_27:
   name: explicit selected-fund ETF issuer acquisition
   baseline: 498dd546383bc79f9ac6114ea5ab8f08f86e9585
@@ -2583,7 +2587,7 @@ integration_checkpoint:
     proof.
   full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all accepted history, failures, holds, quotas, and datasets
     remain open/preserved; this bounded checkpoint does not claim genuine deployed source acceptance or product completion.
-status: "ready_for_integration"
+status: "in_progress"
 previously_accepted_erf_progress:
   completed: [ERF1, ERF2, ERF3]
   total: 3
@@ -2608,13 +2612,8 @@ progress:
   - OSA4
   - OSA5
   total: 5
-  current_phase: The bounded native retained-evidence continuation NRC1-NRC3 is Root-accepted.
-    The records-only closure is ready for integration; exact closing-tip full CI remains
-    pending and mandatory before integration.
-  current_blocker: Exact final-source CI remains pending and mandatory before integration.
-    Root owns exact CI observation and the combined full_stack_browser functional/strict-visual/protected-inventory
-    profile. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, history and
-    genuine production workflows remain open.
+  current_phase: Strict capability derivation from immutable persisted native qualification evidence is implemented and focused-green; publish this follow-up once, then Root owns exact-source CI and the joint profile.
+  current_blocker: Exact-source CI has not run for this candidate. Root owns exact CI and the single combined backend/frontend functional, strict-visual and protected-inventory profile after both owner runtime tips are available. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, history and genuine production workflows remain open.
 
 historical_execution_context_sec_shared_accounting_2026_10_23: >-
   CURRENT RECONCILIATION 2026-10-23T18:12:56Z: the dirty SEC candidate is based
@@ -2861,7 +2860,7 @@ backend_runner_timeout_remediation:
     issuer, SEC, target, quota, production, staging, sibling or deployment
     operation is authorized by this runner-only repair.
 
-current_blocker: "Root accepted the narrow SPDR expected-provenance fixture correction; its isolated PostgreSQL node passed 1/1. Exact final-tip CI remains pending and mandatory before integration. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, histories and genuine production gates remain open."
+current_blocker: "Capability now derives current identity from verified persisted native evidence without rewriting historical snapshots. Root observed 192 focused tests and Ruff/format green. Exact-source CI and the Root-owned joint runtime profile remain pending. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, histories and genuine production gates remain open."
 integration_capture: "exact branch HEAD"
 
 remaining_gaps:
@@ -4030,7 +4029,7 @@ latest_sec_first_use_candidate:
     filing and series/class match, mandatory live validation, full_stack_browser,
     and exact-source CI remain open. Preserve all disabled routes and holds.
 
-next_action: "Root observes the exact final-tip CI. Do not integrate until every required job is terminal green. Root owns the combined protected profile, staging/master, deployment and genuine publisher/ordinary-user verification; preserve all roadmaps and holds."
+next_action: "Publish the focused capability-projection implementation and tests once. Root owns exact-source CI observation and the single combined backend/frontend functional, strict-visual and protected-inventory profile after both runtime tips are available; no integration/deployment or genuine-flow completion is claimed here."
 historical_job3_evidence_durability_checkpoint_preacceptance_2026_10_30:
   id: etf-job3-evidence-durability-20261030
   status: in_progress
@@ -4823,3 +4822,32 @@ previously_accepted_ordinary_selected_acquisition_checkpoint_2026_11_04:
     - Root-owned protected integration/master/deployment and genuine, positively qualified publisher holdings plus
       returned-uncached-constituent proof; preserve all source/account/policy/quota holds and AC1-AC14.
     closure_pending: false
+
+active_native_capability_projection_followup_2026_11_05:
+  status: in_progress
+  implementation_parent: e1a6ad12e163cb8002bf3f233954abc663c5cda2
+  source_paths:
+  - backend/app/services/etf_holdings_capability.py
+  - backend/app/services/etf_holdings_native_qualification.py
+  - backend/tests/unit/services/test_etf_holdings_capability.py
+  - backend/tests/unit/services/test_etf_holdings_native_qualification.py
+  contract: >-
+    Derive identity_verified/current capability from immutable persisted native
+    qualification evidence only after exact canonical instrument/provider/adapter,
+    source URL and identifier, composition date, parser/schema, complete row count,
+    payload hash, and body or retained-continuation lineage all match the selected
+    snapshot. Existing SPY/IGV snapshots and failed jobs remain unchanged. A future
+    retained-evidence continuation stores the verified identity projection only
+    when creating its new snapshot. Daily cadence is inferred only from explicit
+    SPDR daily-workbook source metadata; iShares remains conservative when its
+    source metadata does not specify cadence.
+  validation:
+    focused_unit: Root observed 192 focused backend tests passed; Ruff check and format passed.
+    source_http: 0
+    existing_snapshot_or_job_mutation: false
+    exact_source_ci: pending_after_publication
+    joint_runtime_profile: Root-owned; pending both owner runtime tips
+  scope_note: >-
+    This follow-up does not change ordinary refresh deduplication, source transport,
+    persisted historical snapshot/job/raw evidence, policy, quota, or deployment.
+    AC1-AC14, 15 Tier-0 and 156 Tier-1 remain open.
