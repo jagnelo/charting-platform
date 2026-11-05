@@ -320,4 +320,112 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     wrapper.unmount()
     queryClient.clear()
   })
+
+  it('keeps an unresolved reported-row picker across same-snapshot refreshes and clears it for a new snapshot', async () => {
+    const holding = {
+      id: 991601,
+      snapshot_id: 991203,
+      constituent_instrument_id: null,
+      constituent_symbol: null,
+      constituent_name: null,
+      reported_symbol: 'UNXQ',
+      reported_name: 'Unlisted Example Software Corp',
+      position: 1,
+      weight: '0.125',
+      holding_type: 'equity',
+      row_type: 'security',
+      source_row_id: 'igv-controlled-row-991601',
+      is_resolved: false,
+    }
+    const snapshot = {
+      id: 991203,
+      etf_symbol: 'IGV',
+      etf_name: 'Controlled fixture fund',
+      composition_date: '2026-11-02',
+      known_at: '2026-11-03T08:15:00Z',
+      provenance: 'controlled_fixture_only',
+      source_provider: 'test-fixture',
+    }
+    const holdingsPage = (snapshotId: number) => ({
+      snapshot: { ...snapshot, id: snapshotId },
+      holdings: [{ ...holding, snapshot_id: snapshotId }],
+      total: 1,
+      limit: 500,
+      offset: 0,
+      has_next: false,
+    })
+
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/etf-holdings/IGV/holdings') return Promise.resolve(holdingsPage(snapshot.id))
+      return Promise.resolve([])
+    })
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.setConstituentETF('IGV')
+    workspaceStore.etfHoldings = { IGV: holdingsPage(snapshot.id) as never }
+    const tool: WorkspaceWindowState = {
+      id: 31,
+      instance_key: 'constituent-list',
+      tool_type: 'watchlist',
+      title: 'Constituents',
+      link_group: 'blue',
+      configuration: {},
+      style: {},
+      state_schema_version: 1,
+      position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: { template: '<div />' },
+          ChartTemplateControl: { template: '<div />' },
+          DrawingToolbar: { template: '<div />' },
+          ToolWindow: ToolWindowShell,
+          RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+    await flushPromises()
+
+    await wrapper.get('.watchlist__row').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(true)
+    expect((wrapper.get('input[role="combobox"]').element as HTMLInputElement).value).toBe('UNXQ')
+
+    // A same-snapshot API refresh replaces the holdings page object but must
+    // keep the exact reported-row action and its discovery component mounted.
+    await workspaceStore.loadETFHoldings('IGV')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(true)
+    expect((wrapper.get('input[role="combobox"]').element as HTMLInputElement).value).toBe('UNXQ')
+
+    // A genuinely different snapshot must still invalidate that row action.
+    workspaceStore.etfHoldings = { ...workspaceStore.etfHoldings, IGV: holdingsPage(snapshot.id + 1) as never }
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(false)
+
+    await wrapper.get('.watchlist__row').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(true)
+    workspaceStore.selectedIndustry = 'Technology'
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(false)
+
+    workspaceStore.selectedIndustry = null
+    await flushPromises()
+    await wrapper.get('.watchlist__row').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(true)
+    workspaceStore.setConstituentETF('XHB')
+    await flushPromises()
+    expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(false)
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
 })

@@ -87,8 +87,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Closing records-only tip requires exact-source CI; pending Root observation after push.",
-  "current_checkpoint_status": "Accepted bounded ordinary remote-ticker Enter/Go and selection-error isolation software checkpoint; the exact closing-tip CI and Root-owned forward-release/genuine-source gates remain pending.",
+  "current_candidate_ci_status": "Exact closing-tip CI is pending Root observation after this corrective publication; exact-bundle browser proof remains Root-owned.",
+  "current_checkpoint_status": "Root accepted the same-snapshot reported-holding picker correction under the existing ordinary-ticker checkpoint; focused suite 4/4 and frontend type-check passed. Exact published-bundle browser proof and closing-tip CI remain pending Root.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -96,8 +96,19 @@
     "status": "pending Root observation after publication"
   },
   "current_software_checkpoint": {
-    "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
-    "status": "ready_for_integration",
+    "ETF_runtime_CI_evidence": {
+      "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json",
+      "sha256": "70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1"
+    },
+    "acceptance": "Root accepted this bounded software checkpoint under the existing human-delegated authority; acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json (SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). This records Root acceptance, not a new human quote or personal human testing.",
+    "adoption_receipt": "/home/m920q/charting-platform/.ai/validation/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.json",
+    "adoption_receipt_sha256": "fa0009d50ca5fdd5e79fc2a813f8e719dd1c411ead879f89466df1878680f97e",
+    "criteria_completed": [
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9"
+    ],
     "criteria_ids": [
       "TCENTER6",
       "TCENTER7",
@@ -106,46 +117,35 @@
       "TCENTER10"
     ],
     "criteria_total": 5,
-    "criteria_completed": [
-      "TCENTER6",
-      "TCENTER7",
-      "TCENTER8",
-      "TCENTER9"
-    ],
-    "local_evidence": "Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774 / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects, 0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases: 2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation. This is bounded software/profile acceptance only.",
-    "source_base": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
-    "acceptance": "Root accepted this bounded software checkpoint under the existing human-delegated authority; acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json (SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). This records Root acceptance, not a new human quote or personal human testing.",
-    "planning_authority": "Root checkpoint acceptance under the existing human delegation; no new human quote.",
-    "integration_capture": "exact branch HEAD",
-    "pending": "Exact closing-tip CI is mandatory and pending Root observation. Root owns the accepted ETF→TC staging batch, staging and independent master gates, preserved-data rollout, and genuine deployed Enter/Go, SPY/IGV, rapid/failure/late-response and cached-flow proof. Official REF-HELP-V25 parity and the full nine-item roadmap remain open.",
-    "adoption_receipt": "/home/m920q/charting-platform/.ai/validation/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.json",
-    "adoption_receipt_sha256": "fa0009d50ca5fdd5e79fc2a813f8e719dd1c411ead879f89466df1878680f97e",
     "frozen_import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.yaml",
     "frozen_import_manifest_sha256": "4e9bf239a3a1a520e75bdd44dcd2663cce1e450ffb0730be8ac5cf2ebf647d01",
-    "tested_frontend_source": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
-    "tested_backend_source": "6eae00eb8380438da771fed0c42d19587e9520ce",
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-    "root_acceptance_receipt_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
     "functional_evidence": {
       "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/functional-root-review.json",
       "sha256": "c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a"
     },
-    "strict_visual_evidence": {
-      "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/profile/artifacts/strict-visual-receipt.json",
-      "sha256": "265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e"
-    },
-    "served_enter_go_evidence": {
-      "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/profile/served-probe-artifacts/profile-summary.json",
-      "sha256": "c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7"
-    },
+    "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
+    "integration_capture": "exact branch HEAD",
+    "local_evidence": "Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774 / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects, 0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases: 2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation. This is bounded software/profile acceptance only.",
+    "pending": "Exact closing-tip CI is mandatory and pending Root observation. Root owns the accepted ETF\u2192TC staging batch, staging and independent master gates, preserved-data rollout, and genuine deployed Enter/Go, SPY/IGV, rapid/failure/late-response and cached-flow proof. Official REF-HELP-V25 parity and the full nine-item roadmap remain open.",
+    "planning_authority": "Root checkpoint acceptance under the existing human delegation; no new human quote.",
     "retained_inputs_evidence": {
       "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json",
       "sha256": "26d724cd47335e9c745cd89618c9d527214b0d75887871626792b308be82cbb4"
     },
-    "ETF_runtime_CI_evidence": {
-      "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json",
-      "sha256": "70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1"
-    }
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+    "root_acceptance_receipt_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+    "served_enter_go_evidence": {
+      "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/profile/served-probe-artifacts/profile-summary.json",
+      "sha256": "c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7"
+    },
+    "source_base": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+    "status": "ready_for_integration",
+    "strict_visual_evidence": {
+      "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/profile/artifacts/strict-visual-receipt.json",
+      "sha256": "265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e"
+    },
+    "tested_backend_source": "6eae00eb8380438da771fed0c42d19587e9520ce",
+    "tested_frontend_source": "36e7ad2cb08c769a242773ab2b6be69fcc350774"
   },
   "dirty_paths": [],
   "docker": {
@@ -248,7 +248,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
+  "head": "45cc8206602d7823ca29e132d991d88b0bcbbc25",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -317,12 +317,14 @@
   },
   "implementation_sha": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
   "integration_checkpoint": {
-    "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
-    "objective": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.",
-    "status": "ready_for_integration",
     "acceptance": "Root accepted this bounded software checkpoint under the existing human-delegated authority; acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json (SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). This records Root acceptance, not a new human quote or personal human testing.",
-    "planning_authority": "Human activation in original TC session under standing authority; Root coordinates exact CI and shared full profile.",
-    "source_capture": "exact branch HEAD",
+    "bounded_checkpoint_evidence": "Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774 / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects, 0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases: 2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation. This is bounded software/profile acceptance only.",
+    "criteria_completed": [
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9"
+    ],
     "criteria_ids": [
       "TCENTER6",
       "TCENTER7",
@@ -331,15 +333,13 @@
       "TCENTER10"
     ],
     "criteria_total": 5,
-    "criteria_completed": [
-      "TCENTER6",
-      "TCENTER7",
-      "TCENTER8",
-      "TCENTER9"
-    ],
-    "required_next_gate": "Exact closing-tip CI is mandatory and pending Root observation; only after green CI may Root proceed with its protected integration/release gates.",
     "full_roadmap": "All nine AC1-AC9, official REF-HELP-V25, genuine Provider/issuer proof, protected integration, and deployment remain open or Root-owned.",
-    "bounded_checkpoint_evidence": "Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774 / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects, 0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases: 2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation. This is bounded software/profile acceptance only."
+    "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
+    "objective": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.",
+    "planning_authority": "Human activation in original TC session under standing authority; Root coordinates exact CI and shared full profile.",
+    "required_next_gate": "Exact closing-tip CI is mandatory and pending Root observation; only after green CI may Root proceed with its protected integration/release gates.",
+    "source_capture": "exact branch HEAD",
+    "status": "ready_for_integration"
   },
   "interrupted": false,
   "last_checkpoint": "2026-11-04T16:24:18Z",
@@ -362,7 +362,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Root observes exact closing-tip CI and owns the subsequent integration/release gates; no further TC product work is part of this bounded handoff.",
+  "next_action": "Publish the coherent accepted correction. Root builds the exact published frontend and owns focused browser proof, closing-tip CI, and subsequent release gates.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -393,7 +393,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "479c02b484fcda53bbf890e96e1832d0e799abb182292c58f0f12599bdbca6a1",
+  "plan_hash": "e3956e79f00b362179000c53677b012f2dc2d455a04b61d12f461cb155472076",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -427,22 +427,22 @@
       "TCENTER8",
       "TCENTER9"
     ],
-    "total": 5,
-    "current_phase": "Root-accepted bounded software/profile checkpoint; closing records-only publication. Exact closing-tip CI remains pending Root.",
     "current_blocker": "Exact closing-tip CI is pending Root observation; integration, rollout, genuine deployed proof, official V25 parity and the wider roadmap remain Root-owned/open.",
+    "current_phase": "Root-accepted bounded software/profile checkpoint; closing records-only publication. Exact closing-tip CI remains pending Root.",
     "next_action": "Root observes exact closing-tip CI and owns the subsequent integration/release gates; no further TC product work is part of this bounded handoff.",
+    "total": 5,
     "updated_at": "2026-11-05"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "remote": "origin",
     "current_pending_range": "Records-only closure for accepted TC ordinary remote-ticker Enter/Go and selection-error isolation checkpoint.",
     "failure_category": null,
+    "remote": "origin",
     "status": "one coherent closing publication pending push; exact closing-tip CI pending Root"
   },
-  "remote": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
-  "remote_sha": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
-  "remote_synchronized": true,
+  "remote": "51066876586e323d6a09be9df973e8a661575031",
+  "remote_sha": "51066876586e323d6a09be9df973e8a661575031",
+  "remote_synchronized": false,
   "remote_tracking_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
@@ -621,7 +621,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-05T11:46:29+00:00",
+  "updated_at": "2026-11-05T18:40:00+00:00",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
