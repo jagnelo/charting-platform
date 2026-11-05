@@ -32963,3 +32963,11 @@ Checkpoint status is `ready_for_integration`; `integration_capture` is the exact
 - This follow-up made no Source HTTP requests, canonical instrument writes, real-ledger access, policy/quota/hold mutation, or heavy fixture launch. Prior exact-acquire checkpoints, red CI attempts, and all 24 Provider/14 ETF roadmap criteria remain preserved.
 - Status: ready_for_integration under Root's delegated conditional acceptance. Final exact closing-tip CI and Root's combined full-stack/release gates are pending and Root-owned. integration_capture: exact branch HEAD.
 - Files changed by this follow-up: backend/app/routers/instruments.py, backend/app/services/market_data.py, backend/tests/unit/routers/test_instruments_router.py, and the current Provider workstream records. Ready for one coherent commit/push; do not create an intermediate metadata commit.
+
+
+## 2026-11-05 — portable branch-test command correction
+
+- Exact CI `41961103850` on source `314528777893f320f6e898085da3180561843f0c` passed Backend; Branch-declared job `127037609000` failed before tests because the stored focused command invoked host-only `rtk` and a `/tmp` UV cache path. Root review: `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json`.
+- Changed only the current `focused-exact-ticker-discovery` command in `branch-tests.json` to `uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q`. Command selection, 67-test evidence, `full-backend-suite` ID and CI-covered mapping are unchanged.
+- The actual branch runner executed the corrected command under CI-like coverage variables with `rtk` absent from its child PATH: 67 passed, zero failures/errors/skips. It recognized `full-backend-suite` as covered by Backend CI and left external acceptance gates NOT RUN. The prior bounded software checkpoint acceptance remains; this command correction does not make the failed branch job green.
+- The corrected closing-tip CI is pending and Root-owned. Source remains frozen at `314528777893f320f6e898085da3180561843f0c`; no provider HTTP, database, quota, policy, hold, target, sibling, or protected-ref action occurred. All earlier CI failures and roadmap criteria remain preserved.

@@ -10,7 +10,7 @@
   "commands": [
     {
       "id": "focused-exact-ticker-discovery",
-      "command": "UV_CACHE_DIR=/tmp/provider-exact-discovery-uv-cache rtk uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q",
+      "command": "uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q",
       "covers": [
         1,
         2,

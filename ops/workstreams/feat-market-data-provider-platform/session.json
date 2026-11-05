@@ -487,7 +487,7 @@
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
-  "plan_hash": "e4f8f6d8b912fd32cf54d8493da1a96b5010d061fc116325684a40012a47edfb",
+  "plan_hash": "ca2119f13e6cb6e3881a7c271c16ad0cd6c7f3bd07cf529c6ef37745b24e65f1",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -1330,5 +1330,15 @@
     "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json",
     "checkpoint_acceptance_receipt_sha256": "f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d",
     "checkpoint_authorization_state": "Root accepted this bounded checkpoint under the existing human standing delegation for ready_for_integration; Root will integrate only after all required exact final-tip CI jobs are terminal green."
+  },
+  "manifest_portability_followup": {
+    "native_goal_created_at": 1793851457,
+    "objective": "Repair the branch-declared focused exact ticker discovery command so it runs portably without host-only RTK or /tmp UV cache dependencies; prove the corrected stored command through the existing runner under CI-like environment with RTK unavailable, preserve branch coverage mappings/history, and publish one coherent records-only correction while Root owns final exact-tip CI observation.",
+    "source_sha": "314528777893f320f6e898085da3180561843f0c",
+    "prior_ci": "Run 41961103850 Backend passed; Branch-declared job 127037609000 failed before tests because the stored command required host-only rtk. Failure preserved.",
+    "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json",
+    "existing_checkpoint_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json",
+    "corrected_runner_result": "67 passed, 0 failed/errors/skips with GITHUB_ACTIONS=true, BRANCH_TESTS_CI_COVERED_COMMANDS=full-backend-suite, INTEGRATION_BASE_SHA=origin/master, and rtk unavailable in the child PATH.",
+    "closing_tip_ci": "pending; Root owns observation"
   }
 }

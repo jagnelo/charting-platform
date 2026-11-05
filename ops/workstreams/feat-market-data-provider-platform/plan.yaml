@@ -14425,3 +14425,17 @@ closure_summary: >-
 migration_impact: None; no database schema or migration changes.
 live_test_impact: No provider, issuer, or SEC transport was executed; none is authorized by this checkpoint.
 deployment_impact: None; Root owns protected integration, promotion, deployment and genuine provider operations.
+
+manifest_portability_followup:
+  source_sha: 314528777893f320f6e898085da3180561843f0c
+  previous_exact_ci:
+    run_id: 41961103850
+    branch_declared_job_id: 127037609000
+    backend: passed
+    branch_declared: failed before tests because rtk was unavailable in the hosted runner
+    root_review: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json
+  correction: Only the active focused-exact-ticker-discovery command was made portable; selection, full-backend-suite command ID and CI-covered mapping are unchanged.
+  corrected_command: uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q
+  runner_validation: 67 passed, 0 failed, 0 errors, 0 skipped; executed through the existing branch runner with CI coverage variables and rtk absent from PATH.
+  prior_checkpoint_acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json
+  closing_tip_ci: pending; Root owns observation
