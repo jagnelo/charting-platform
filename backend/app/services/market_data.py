@@ -370,7 +370,12 @@ def _search_results_from_payload(payload: dict, *, provider_name: str | None = N
     ]
 
 
-async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] | None:
+async def _fresh_search_from_cache(
+    db: AsyncSession,
+    query: str,
+    *,
+    source_outcomes: list[dict[str, Any]] | None = None,
+) -> list[dict] | None:
     now = datetime.now(UTC)
     merged: list[dict] = []
     seen: set[str] = set()
@@ -395,9 +400,21 @@ async def _fresh_search_from_cache(db: AsyncSession, query: str) -> list[dict] |
         ).scalar_one_or_none()
         if snapshot is None:
             return None
-        for item in _search_results_from_payload(
+        provider_rows = _search_results_from_payload(
             snapshot.payload, provider_name=resolved.provider_name
-        ):
+        )
+        if source_outcomes is not None:
+            source_outcomes.append(
+                {
+                    "provider": resolved.provider_name,
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "cache_hit",
+                    "reason_code": "fresh_search_snapshot",
+                    "result_count": len(provider_rows),
+                }
+            )
+        for item in provider_rows:
             symbol = item.get("symbol", "")
             if not symbol or symbol in seen:
                 continue
@@ -1770,26 +1787,8 @@ async def search_provider_instruments_async(
     *,
     source_outcomes: list[dict[str, Any]] | None = None,
 ) -> list[dict]:
-    cached = await _fresh_search_from_cache(db, query)
+    cached = await _fresh_search_from_cache(db, query, source_outcomes=source_outcomes)
     if cached is not None:
-        if source_outcomes is not None:
-            source_outcomes.extend(
-                {
-                    "provider": str(item.get("provider") or "unknown"),
-                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
-                    "operation": "search_instruments",
-                    "status": "cache_hit",
-                    "reason_code": "fresh_search_snapshot",
-                    "result_count": sum(
-                        1
-                        for candidate in cached
-                        if candidate.get("provider") == item.get("provider")
-                    ),
-                }
-                for item in {
-                    row.get("provider"): row for row in cached if row.get("provider")
-                }.values()
-            )
         return sorted(cached, key=lambda item: _search_priority(query, item))[:10]
 
     chain = await resolve_provider_chain(

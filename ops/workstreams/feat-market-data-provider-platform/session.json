@@ -1,33 +1,29 @@
 {
   "acceptance_criteria": [
     {
-      "id": "ETV-ROUTE-1",
-      "text": "The real provider resolver preserves ETF holdings admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through the matching registered issuer adapter; no other issuer type is widened."
+      "id": "DISCOVERY-1",
+      "text": "When a ticker-shaped query is absent from fixed bounded fuzzy results, discovery performs at most one exact get_instrument_profile call through an actually admitted provider that participated in search; it never expands or paginates the fuzzy page."
     },
     {
-      "id": "ETV-ROUTE-2",
-      "text": "Resolver-bound regressions using the actual registered Amplify adapter and explicit issuer scope retain ETF compatibility and reject ETN, generic/unclassified ETP, wrong-class ETV, stock, derivatives/futures, crypto, malformed taxonomy, and unsupported issuer routes without transport."
+      "id": "DISCOVERY-2",
+      "text": "Search and metadata capability, explicit request scope, current routing eligibility, entitlement, quota, rate and provider holds remain enforced; held search or metadata paths cannot trigger exact transport and runtime admission denials remain held outcomes."
     },
     {
-      "id": "ETV-HISTORY-1",
-      "text": "Ordinary PRICE_HISTORY admits ETV only as Exchange Traded Product/Exchange Traded Vehicle through Massive fetch_ohlcv when an active primary USD listing joins to a US exchange; other providers, capabilities, operations, non-US/non-USD/missing listings, and held Massive sources remain excluded. Shared provider-registry data is unchanged."
+      "id": "DISCOVERY-3",
+      "text": "The exact candidate is exposed only after provider, profile symbol, canonical symbol, exact provider listing and stable domain identifier match; requested type filters remain active and discovery creates no canonical instrument before deliberate selection."
     },
     {
-      "id": "ETV-HISTORY-2",
-      "text": "A real isolated PostgreSQL case exercises the actual resolver listing query: exact active-primary US/USD ETV routes only to Massive, while ETN and wrong-class, missing and non-US listing cases plus a held Massive operation are denied; no provider transport occurs."
+      "id": "DISCOVERY-4",
+      "text": "Fresh empty fuzzy-search snapshots retain their actual admitted provider provenance for the bounded exact fallback; an empty or held provider chain never fabricates a provider or makes an extra request."
     },
     {
-      "id": "ETV-ROUTE-3",
-      "text": "Existing canonical identity, operation/request scope, policy, free entitlement/storage rights, probe/one-shot, operation cost/quota, adjustment/history-window, configuration, host/redirect and physical-hop gates remain unchanged; no live source call or target mutation occurs."
-    },
-    {
-      "id": "ETV-ROUTE-4",
-      "text": "The focused resolver cases, complete current 126-case runtime module, isolated PostgreSQL resolver/listing test, Ruff and workstream/manifest/closure checks pass for this checkpoint. Exact closing-tip backend/DDL/branch CI remains mandatory before Root integration."
+      "id": "DISCOVERY-5",
+      "text": "The focused router/provider-search suite and normal static checks pass with no provider HTTP. The cumulative branch remains full_stack_browser; exact closing-tip CI and Root's combined local/runtime and protected release gates remain mandatory."
     }
   ],
-  "active_checkpoint_id": "provider-exact-symbol-acquisition-20261105",
+  "active_checkpoint_id": "provider-exact-symbol-discovery-20261105",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "Final exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending; Root owns observation and integration. The ddcb predecessor CI failure remains preserved.",
+  "blocker": "Final exact closing-tip backend/DDL/frontend/branch/browser CI and Root combined full_stack_browser release gates remain pending; Root owns observation.",
   "branch": "feat/market-data-provider-platform",
   "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
   "canonical_bridge_cleanup_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb",
@@ -35,11 +31,11 @@
   "canonical_bridge_local_result_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
   "canonical_bridge_root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
   "canonical_bridge_root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
-  "checkpoint_acceptance_decision": "Root delegated conditional acceptance under standing human authorization; no failed CI is relabeled green.",
-  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json",
-  "checkpoint_acceptance_receipt_sha256": "f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d",
-  "checkpoint_acceptance_status": "Root conditionally accepted bounded software checkpoint; final exact-tip CI pending",
-  "checkpoint_authorization_state": "Root accepted this bounded checkpoint under the existing human standing delegation for ready_for_integration; Root will integrate only after all required exact final-tip CI jobs are terminal green.",
+  "checkpoint_acceptance_decision": "Root delegated conditional acceptance under standing human authorization; exact reviewed source hashes, focused tests and cache/identity/hold behavior verified. Exact closing-tip CI remains mandatory.",
+  "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json",
+  "checkpoint_acceptance_receipt_sha256": "7ead5de22793ab366822286cb4fecf4fb05472d29b307f7dad6d2b700ede6ad6",
+  "checkpoint_acceptance_status": "Root conditionally accepted bounded exact-symbol discovery software checkpoint; final exact-tip CI and combined gates pending.",
+  "checkpoint_authorization_state": "Root accepted this bounded checkpoint under standing human delegation. Exact closing-tip CI and combined release gates remain mandatory before integration.",
   "checkpoint_history": [
     {
       "acceptance_decision": "Root delegated acceptance for the named OIH checkpoint remains valid; closing metadata repair is required after the first closing-tip branch-declared mapping failure.",
@@ -228,6 +224,32 @@
         "backend/app/services/provider_runtime.py": "7cb021817f3175a18310cad3aeed493d0ec62ec77db095aa5e7cd50b1ced5cf0",
         "backend/tests/unit/services/test_provider_runtime.py": "600354cdf56ed34420a2ce49531ab4125afd7ff640e866a932701083a894583b"
       }
+    },
+    {
+      "checkpoint_id": "provider-exact-symbol-acquisition-20261105",
+      "goal_objective": "Exact selected-acquire fallback when bounded fuzzy search omitted the chosen ticker.",
+      "source_base_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
+      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json",
+      "root_acceptance_receipt_sha256": "f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d",
+      "exact_source_ci": "ddcb CI 41943375613 preserved red for E2E calendar phase race; new final tip was pending.",
+      "status": "preserved prior bounded checkpoint; shared calendar test proof and three-case PG proof remain scoped",
+      "integration_capture": "exact branch HEAD"
+    },
+    {
+      "checkpoint_id": "provider-exact-symbol-discovery-20261105",
+      "goal_objective": "Repair ordinary ticker discovery so a valid admitted exact ticker omitted from the bounded fuzzy candidates is exposed as a user-selectable result through at most one authoritative exact-profile fallback per query.",
+      "source_base_sha": "c102c1cf640e2a0821e2f396be0e5ceda189d436",
+      "source_hashes": {
+        "backend/app/routers/instruments.py": "0424332617b9eb188ac413f2d077da3794b77e0f7b7a5a47c1b969aab55bf818",
+        "backend/app/services/market_data.py": "b4a3ef40aa6c620ae1447921da28d1f1cb16d04b5db641508348b4b2e85f0b13",
+        "backend/tests/unit/routers/test_instruments_router.py": "e1158c55bb26052adf5af3c0c845b18f9c4a1f8815e0a76b40ae4e3f0a4d6699"
+      },
+      "focused_tests": "67/67 router and provider-search persistence tests passed in 27.67s; Ruff and format checks pass; no provider HTTP.",
+      "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json",
+      "root_acceptance_receipt_sha256": "7ead5de22793ab366822286cb4fecf4fb05472d29b307f7dad6d2b700ede6ad6",
+      "exact_source_ci": "pending on coherent closing tip; Root owns observation",
+      "status": "conditionally accepted bounded software checkpoint; full roadmap remains open",
+      "integration_capture": "exact branch HEAD"
     }
   ],
   "checkpoint_status": "ready_for_integration",
@@ -244,28 +266,23 @@
   },
   "closing_commit_ci": {
     "run_id": null,
-    "source_sha": "exact branch HEAD (captured by integration_capture; no self-reference)",
-    "status": "pending; Root observes the exact corrected tip; no CI result is claimed"
+    "source_sha": "exact branch HEAD (integration_capture; no self-reference)",
+    "status": "pending; Root observes the published exact tip"
   },
-  "closing_tip_ci_status": "Final exact-tip backend/DDL/frontend/branch/browser CI is mandatory and pending; Root owns observation. The predecessor ddcb run remains red for the calendar-phase E2E race.",
+  "closing_tip_ci_status": "Mandatory final exact-source CI is pending on the new coherent closing tip; Root owns observation.",
   "corrected_source_exact_ci": {
     "run_id": 41376711568,
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "full_stack_browser category: focused acquisition units passed 49/49; exact-profile PostgreSQL proof passed 3/3 with six mocked calls and zero external requests; Root's one affected pinned browser case passed 1/1 with one worker and zero retries on the reviewed file hash. No full local browser matrix is claimed. Final exact-source full CI and Root's full TC functional/visual and protected staging/master gates remain required.",
+  "current_checkpoint_local_profile": "full_stack_browser remains the cumulative required category due to the prior Root-reviewed shared E2E test file. Current discovery evidence: 67/67 focused router/provider-persistence tests, mocked provider transport, no canonical writes; prior PostgreSQL and one-case browser proofs remain scoped. No full local browser matrix is claimed; Root combined profile pending.",
   "current_exact_ci": {
-    "run_id": 41943375613,
-    "source_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
-    "status": "overall failure preserved; exact backend and frontend jobs green; one E2E calendar-phase race remains red",
-    "e2e_job_id": 126982140537,
-    "e2e_result": "198 passed, 110 configured skips, 1 failure at on_demand_acquisition.spec.ts:578; calendarReads expected 0 but observed 1 after mocked history completed",
-    "e2e_root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ddcb-E2E-calendar-phase-failure-root-review-20261105.json",
-    "shared_test_patch": "Root-reviewed only; separate oracle 1/1 does not qualify final branch CI",
-    "next_exact_tip_ci": "pending; Root owns observation"
+    "run_id": null,
+    "source_sha": "exact branch HEAD after the coherent closing publication",
+    "status": "pending; Root owns observation; no exact-tip CI is claimed"
   },
-  "current_gate_checkpoint": "Full_stack_browser is the correct category because the bounded publication includes one Root-reviewed shared frontend test synchronization change. Scoped evidence is 49/49 focused units, R10 PostgreSQL 3/3 on frozen ddcb with stable source pins, and Root's pinned browser case 1/1 on the reviewed file hash; no full local browser matrix is claimed. ddcb CI 41943375613 remains red for E2E calendar timing. Final exact-tip full CI and Root's full TC functional/visual and protected staging/master gates remain pending.",
-  "current_native_goal_created_at": 1793836530,
+  "current_gate_checkpoint": "Root conditionally accepted exact discovery on the reviewed three source hashes. Focused tests 67/67; Ruff/format/diff pass. Final exact-tip CI and combined release qualification remain pending. integration_capture: exact branch HEAD.",
+  "current_native_goal_created_at": 1793846565,
   "current_native_goal_token_budget": null,
   "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
   "current_postgres_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
@@ -289,10 +306,11 @@
     "skipped": 0,
     "source_http_calls": 0
   },
-  "current_source_base_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
+  "current_source_base_sha": "c102c1cf640e2a0821e2f396be0e5ceda189d436",
   "current_source_hashes": {
-    "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
-    "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
+    "backend/app/routers/instruments.py": "0424332617b9eb188ac413f2d077da3794b77e0f7b7a5a47c1b969aab55bf818",
+    "backend/app/services/market_data.py": "b4a3ef40aa6c620ae1447921da28d1f1cb16d04b5db641508348b4b2e85f0b13",
+    "backend/tests/unit/routers/test_instruments_router.py": "e1158c55bb26052adf5af3c0c845b18f9c4a1f8815e0a76b40ae4e3f0a4d6699"
   },
   "dirty_paths": [],
   "docker": {
@@ -369,10 +387,12 @@
     "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Repair exact-symbol discovery for ordinary selected-instrument acquisition in the Provider worktree: use authoritative exact provider lookup/profile contracts when the exact ticker is absent from bounded fuzzy results; preserve provider/account/symbol/listing/domain identity checks, admission, physical-request accounting, free-only and hold controls. Add deterministic regressions for exact hit beyond first fuzzy page, exact absence, provider/profile/symbol/listing/domain mismatches and holds. Preserve history; do not issue live provider calls. Stop at focused-green coherent candidate for Root review and later combined release qualification.",
-  "goal_recorded_at": "2026-11-03T18:08:44+00:00",
+  "goal_objective": "Repair ordinary ticker discovery so a valid admitted exact ticker omitted from the bounded fuzzy candidates is exposed as a user-selectable result through at most one authoritative exact-profile fallback per query.",
+  "goal_recorded_at": "2026-11-05T02:42:45Z",
   "goal_request": {
-    "objective": "Repair exact-symbol discovery for ordinary selected-instrument acquisition in the Provider worktree: use authoritative exact provider lookup/profile contracts when the exact ticker is absent from bounded fuzzy results; preserve provider/account/symbol/listing/domain identity checks, admission, physical-request accounting, free-only and hold controls. Add deterministic regressions for exact hit beyond first fuzzy page, exact absence, provider/profile/symbol/listing/domain mismatches and holds. Preserve history; do not issue live provider calls. Stop at focused-green coherent candidate for Root review and later combined release qualification."
+    "objective": "Repair ordinary ticker discovery so a valid admitted exact ticker omitted from the bounded fuzzy candidates is exposed as a user-selectable result through at most one authoritative exact-profile fallback per query.",
+    "human_authorization_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-exact-discovery-gap-root-activation-20261105.json",
+    "created_at": "2026-11-05T02:42:45Z"
   },
   "goal_request_state": "active",
   "goal_state": "active",
@@ -463,7 +483,7 @@
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Freeze the corrected records-only tip for Root-owned exact-source CI observation; no full local browser matrix is claimed and all stated final gates remain mandatory.",
+  "next_action": "Commit and push this one coherent checkpoint; freeze the exact published tip for Root-owned CI observation. No duplicate full backend, PostgreSQL, build, browser or provider run.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
@@ -854,16 +874,17 @@
   },
   "progress": {
     "completed": [
-      "EXACT-ACQUIRE-1",
-      "EXACT-ACQUIRE-2",
-      "EXACT-ACQUIRE-3",
-      "EXACT-ACQUIRE-4"
+      "DISCOVERY-1",
+      "DISCOVERY-2",
+      "DISCOVERY-3",
+      "DISCOVERY-4",
+      "DISCOVERY-5"
     ],
-    "current_blocker": "Exact backend/DDL, exact-source branch CI, and Root combined release qualification remain pending; no heavy local phase is released for this candidate.",
-    "current_phase": "focused_green_candidate_ready_pending_publication",
-    "next_action": "Finish one coherent workstream publication, commit and push the focused candidate, then hand the exact source tip to Root.",
     "total": 5,
-    "updated_at": "2026-11-05T00:37:30.524790+00:00"
+    "current_phase": "bounded_software_checkpoint_accepted_final_tip_ci_pending",
+    "current_blocker": "Final exact closing-tip CI and Root combined full_stack_browser release gates remain pending; Root owns observation.",
+    "next_action": "Commit and push the coherent checkpoint, then freeze for Root CI.",
+    "updated_at": "2026-11-05T03:17:57Z"
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
   "remote": "a56d97899f6d0194a7eead572b3edc70c355ddee",
@@ -1229,5 +1250,85 @@
     "remote": "a56d97899f6d0194a7eead572b3edc70c355ddee",
     "remote_sha": "a56d97899f6d0194a7eead572b3edc70c355ddee",
     "remote_synchronized": true
+  },
+  "previously_accepted_provider_exact_acquire_session_state": {
+    "active_checkpoint_id": "provider-exact-symbol-acquisition-20261105",
+    "goal_objective": "Repair exact-symbol discovery for ordinary selected-instrument acquisition in the Provider worktree: use authoritative exact provider lookup/profile contracts when the exact ticker is absent from bounded fuzzy results; preserve provider/account/symbol/listing/domain identity checks, admission, physical-request accounting, free-only and hold controls. Add deterministic regressions for exact hit beyond first fuzzy page, exact absence, provider/profile/symbol/listing/domain mismatches and holds. Preserve history; do not issue live provider calls. Stop at focused-green coherent candidate for Root review and later combined release qualification.",
+    "goal_recorded_at": "2026-11-03T18:08:44+00:00",
+    "goal_request": {
+      "objective": "Repair exact-symbol discovery for ordinary selected-instrument acquisition in the Provider worktree: use authoritative exact provider lookup/profile contracts when the exact ticker is absent from bounded fuzzy results; preserve provider/account/symbol/listing/domain identity checks, admission, physical-request accounting, free-only and hold controls. Add deterministic regressions for exact hit beyond first fuzzy page, exact absence, provider/profile/symbol/listing/domain mismatches and holds. Preserve history; do not issue live provider calls. Stop at focused-green coherent candidate for Root review and later combined release qualification."
+    },
+    "goal_request_state": "active",
+    "current_native_goal_created_at": 1793836530,
+    "current_native_goal_token_budget": null,
+    "status": "ready_for_integration",
+    "checkpoint_status": "ready_for_integration",
+    "current_checkpoint_local_profile": "full_stack_browser category: focused acquisition units passed 49/49; exact-profile PostgreSQL proof passed 3/3 with six mocked calls and zero external requests; Root's one affected pinned browser case passed 1/1 with one worker and zero retries on the reviewed file hash. No full local browser matrix is claimed. Final exact-source full CI and Root's full TC functional/visual and protected staging/master gates remain required.",
+    "acceptance_criteria": [
+      {
+        "id": "ETV-ROUTE-1",
+        "text": "The real provider resolver preserves ETF holdings admission only for Equity/ETF, legacy Equity/Exchange Traded Fund, and exact Exchange Traded Product/Exchange Traded Vehicle pairs through the matching registered issuer adapter; no other issuer type is widened."
+      },
+      {
+        "id": "ETV-ROUTE-2",
+        "text": "Resolver-bound regressions using the actual registered Amplify adapter and explicit issuer scope retain ETF compatibility and reject ETN, generic/unclassified ETP, wrong-class ETV, stock, derivatives/futures, crypto, malformed taxonomy, and unsupported issuer routes without transport."
+      },
+      {
+        "id": "ETV-HISTORY-1",
+        "text": "Ordinary PRICE_HISTORY admits ETV only as Exchange Traded Product/Exchange Traded Vehicle through Massive fetch_ohlcv when an active primary USD listing joins to a US exchange; other providers, capabilities, operations, non-US/non-USD/missing listings, and held Massive sources remain excluded. Shared provider-registry data is unchanged."
+      },
+      {
+        "id": "ETV-HISTORY-2",
+        "text": "A real isolated PostgreSQL case exercises the actual resolver listing query: exact active-primary US/USD ETV routes only to Massive, while ETN and wrong-class, missing and non-US listing cases plus a held Massive operation are denied; no provider transport occurs."
+      },
+      {
+        "id": "ETV-ROUTE-3",
+        "text": "Existing canonical identity, operation/request scope, policy, free entitlement/storage rights, probe/one-shot, operation cost/quota, adjustment/history-window, configuration, host/redirect and physical-hop gates remain unchanged; no live source call or target mutation occurs."
+      },
+      {
+        "id": "ETV-ROUTE-4",
+        "text": "The focused resolver cases, complete current 126-case runtime module, isolated PostgreSQL resolver/listing test, Ruff and workstream/manifest/closure checks pass for this checkpoint. Exact closing-tip backend/DDL/branch CI remains mandatory before Root integration."
+      }
+    ],
+    "blocker": "Final exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending; Root owns observation and integration. The ddcb predecessor CI failure remains preserved.",
+    "current_gate_checkpoint": "Full_stack_browser is the correct category because the bounded publication includes one Root-reviewed shared frontend test synchronization change. Scoped evidence is 49/49 focused units, R10 PostgreSQL 3/3 on frozen ddcb with stable source pins, and Root's pinned browser case 1/1 on the reviewed file hash; no full local browser matrix is claimed. ddcb CI 41943375613 remains red for E2E calendar timing. Final exact-tip full CI and Root's full TC functional/visual and protected staging/master gates remain pending.",
+    "current_source_base_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
+    "current_source_hashes": {
+      "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
+      "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
+    },
+    "current_exact_ci": {
+      "run_id": 41943375613,
+      "source_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
+      "status": "overall failure preserved; exact backend and frontend jobs green; one E2E calendar-phase race remains red",
+      "e2e_job_id": 126982140537,
+      "e2e_result": "198 passed, 110 configured skips, 1 failure at on_demand_acquisition.spec.ts:578; calendarReads expected 0 but observed 1 after mocked history completed",
+      "e2e_root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ddcb-E2E-calendar-phase-failure-root-review-20261105.json",
+      "shared_test_patch": "Root-reviewed only; separate oracle 1/1 does not qualify final branch CI",
+      "next_exact_tip_ci": "pending; Root owns observation"
+    },
+    "closing_tip_ci_status": "Final exact-tip backend/DDL/frontend/branch/browser CI is mandatory and pending; Root owns observation. The predecessor ddcb run remains red for the calendar-phase E2E race.",
+    "closing_commit_ci": {
+      "run_id": null,
+      "source_sha": "exact branch HEAD (captured by integration_capture; no self-reference)",
+      "status": "pending; Root observes the exact corrected tip; no CI result is claimed"
+    },
+    "progress": {
+      "completed": [
+        "EXACT-ACQUIRE-1",
+        "EXACT-ACQUIRE-2",
+        "EXACT-ACQUIRE-3",
+        "EXACT-ACQUIRE-4"
+      ],
+      "current_blocker": "Exact backend/DDL, exact-source branch CI, and Root combined release qualification remain pending; no heavy local phase is released for this candidate.",
+      "current_phase": "focused_green_candidate_ready_pending_publication",
+      "next_action": "Finish one coherent workstream publication, commit and push the focused candidate, then hand the exact source tip to Root.",
+      "total": 5,
+      "updated_at": "2026-11-05T00:37:30.524790+00:00"
+    },
+    "checkpoint_acceptance_status": "Root conditionally accepted bounded software checkpoint; final exact-tip CI pending",
+    "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json",
+    "checkpoint_acceptance_receipt_sha256": "f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d",
+    "checkpoint_authorization_state": "Root accepted this bounded checkpoint under the existing human standing delegation for ready_for_integration; Root will integrate only after all required exact final-tip CI jobs are terminal green."
   }
 }

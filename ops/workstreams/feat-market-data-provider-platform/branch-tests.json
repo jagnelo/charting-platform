@@ -2,37 +2,40 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/routers/instruments.py::acquire_instrument (authoritative exact profile fallback only after no exact bounded-fuzzy result; existing runtime admission/accounting retained)",
-    "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/test_provider_explicit_acquisition.py (exact hit beyond fuzzy page, exact absence, provider/profile/symbol/listing/domain conflicts, empty listing authority, and search/profile/quota/rate holds)",
-    "Complete backend/DDL coverage and exact-source branch CI remain mandatory; the shared calendar-readiness E2E test change is limited to the Root-reviewed one-file barrier. Root-owned combined release qualification remains pending. No live provider request or target change."
+    "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)",
+    "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)",
+    "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)",
+    "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
   ],
   "commands": [
     {
-      "id": "focused-exact-symbol-acquisition",
-      "command": "cd backend && UV_CACHE_DIR=/tmp/provider-exact-acquire-uv-cache uv run --no-sync --project . pytest tests/unit/routers/test_instruments_router.py tests/unit/services/test_provider_explicit_acquisition.py -q",
+      "id": "focused-exact-ticker-discovery",
+      "command": "UV_CACHE_DIR=/tmp/provider-exact-discovery-uv-cache rtk uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q",
       "covers": [
         1,
-        2
+        2,
+        3
       ],
-      "scope_note": "Focused acquisition route/explicit-acquisition regressions; mocked provider adapters only, no source HTTP.",
-      "selected": 49,
-      "passed": 49,
+      "scope_note": "Focused router/provider-search regression suite with mocked providers; includes exact fallback, cached empty page, identity/filter/hold and no-write checks. No Source HTTP or full fixture.",
+      "selected": 67,
+      "passed": 67,
       "failed": 0,
       "errors": 0,
       "skipped": 0,
-      "elapsed_seconds": 12.45,
+      "elapsed_seconds": 27.67,
       "source_sha256": {
-        "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
-        "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
+        "backend/app/routers/instruments.py": "0424332617b9eb188ac413f2d077da3794b77e0f7b7a5a47c1b969aab55bf818",
+        "backend/app/services/market_data.py": "b4a3ef40aa6c620ae1447921da28d1f1cb16d04b5db641508348b4b2e85f0b13",
+        "backend/tests/unit/routers/test_instruments_router.py": "e1158c55bb26052adf5af3c0c845b18f9c4a1f8815e0a76b40ae4e3f0a4d6699"
       }
     },
     {
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
-        3
+        4
       ],
-      "scope_note": "Complete backend/DDL/coverage gate remains required on the exact final source; not run in this bounded candidate."
+      "scope_note": "Complete backend/DDL/coverage gate remains required on the exact published source; not run in this bounded checkpoint."
     }
   ],
   "ci_covered_commands": {
@@ -42,16 +45,16 @@
     {
       "id": "exact-source-backend-and-branch-ci",
       "covers": [
-        3
+        4
       ],
-      "reason": "Complete backend/DDL and branch-declared CI must be terminal green on the exact published source SHA."
+      "reason": "Complete backend/DDL, frontend, branch-declared, and browser jobs must be terminal green on the exact coherent closing source tip."
     },
     {
-      "id": "root-combined-release-qualification",
+      "id": "root-combined-full-stack-browser-release",
       "covers": [
-        3
+        4
       ],
-      "reason": "Root owns combined consumer qualification, acceptance, protected integration, promotion, deployment, and genuine provider operations."
+      "reason": "Root owns the combined full_stack_browser profile, protected staging/master integration, promotion, deployment, and genuine ordinary ticker/provider flow checks."
     }
   ],
   "fixture_correction_local_proof": {
@@ -221,6 +224,61 @@
           4
         ],
         "reason": "Root owns combined consumer browser qualification, protected staging/master integration, deployment, and genuine-source checks; none is claimed as performed in this Provider local profile."
+      }
+    ]
+  },
+  "previously_published_provider_exact_acquire_manifest": {
+    "plan_tests": [
+      "backend/app/routers/instruments.py::acquire_instrument (authoritative exact profile fallback only after no exact bounded-fuzzy result; existing runtime admission/accounting retained)",
+      "backend/tests/unit/routers/test_instruments_router.py and backend/tests/unit/services/test_provider_explicit_acquisition.py (exact hit beyond fuzzy page, exact absence, provider/profile/symbol/listing/domain conflicts, empty listing authority, and search/profile/quota/rate holds)",
+      "Complete backend/DDL coverage and exact-source branch CI remain mandatory; the shared calendar-readiness E2E test change is limited to the Root-reviewed one-file barrier. Root-owned combined release qualification remains pending. No live provider request or target change."
+    ],
+    "commands": [
+      {
+        "id": "focused-exact-symbol-acquisition",
+        "command": "cd backend && UV_CACHE_DIR=/tmp/provider-exact-acquire-uv-cache uv run --no-sync --project . pytest tests/unit/routers/test_instruments_router.py tests/unit/services/test_provider_explicit_acquisition.py -q",
+        "covers": [
+          1,
+          2
+        ],
+        "scope_note": "Focused acquisition route/explicit-acquisition regressions; mocked provider adapters only, no source HTTP.",
+        "selected": 49,
+        "passed": 49,
+        "failed": 0,
+        "errors": 0,
+        "skipped": 0,
+        "elapsed_seconds": 12.45,
+        "source_sha256": {
+          "backend/app/routers/instruments.py": "6ac63ebb984feb36ccd75005c5a3915908e017a1aad268f66aec9a3f20711f25",
+          "backend/tests/unit/routers/test_instruments_router.py": "6ad97d1b2602f38c9ff41caa2415ccd58796c403cdba2efb1ce609fe7d16b8aa"
+        }
+      },
+      {
+        "id": "full-backend-suite",
+        "command": "make test-backend-coverage",
+        "covers": [
+          3
+        ],
+        "scope_note": "Complete backend/DDL/coverage gate remains required on the exact final source; not run in this bounded candidate."
+      }
+    ],
+    "ci_covered_commands": {
+      "full-backend-suite": "Backend Tests"
+    },
+    "external_gates": [
+      {
+        "id": "exact-source-backend-and-branch-ci",
+        "covers": [
+          3
+        ],
+        "reason": "Complete backend/DDL and branch-declared CI must be terminal green on the exact published source SHA."
+      },
+      {
+        "id": "root-combined-release-qualification",
+        "covers": [
+          3
+        ],
+        "reason": "Root owns combined consumer qualification, acceptance, protected integration, promotion, deployment, and genuine provider operations."
       }
     ]
   }
