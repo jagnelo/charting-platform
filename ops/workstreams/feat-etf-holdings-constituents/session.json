@@ -184,9 +184,9 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Exact final-source CI remains pending and mandatory before integration. Root owns exact CI observation and the combined full_stack_browser functional/strict-visual/protected-inventory profile. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, history and genuine production workflows remain open.",
-  "current_checkpoint_objective": "Close the Root-accepted ordinary native retained-failure continuation software checkpoint with one records-only publication; exact closing-tip CI remains mandatory before integration.",
-  "current_local_delta": "Implementation b6d67ce93104a0a2cf83b1c41f385513b3c230f8 is conditionally accepted by Root. Authentic retained SPDR/iShares chains were reparsed offline; the isolated PostgreSQL continuation passed 2/2. Root accepted the focused shared-test barrier oracle 1/1. This is not a complete local full_stack_browser matrix; final exact-tip CI and Root/TC combined functional, strict-visual and protected-inventory gates remain pending.",
+  "current_blocker_latest": "The prior exact source CI41952652528 is red on b6d67ce (1 failed, 5838 passed, 1 configured skip); its positive IGV test fixture omitted the retained response productId239771. The fixture-only correction is validated locally; exact corrected-source CI is pending and mandatory. Root owns CI observation and combined full_stack_browser functional/strict-visual/protected-inventory gates. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, history and genuine production workflows remain open.",
+  "current_checkpoint_objective": "Publish one coherent IGV success-fixture correction with the accepted native continuation records; exact corrected-source CI remains mandatory before integration.",
+  "current_local_delta": "Implementation b6d67ce93104a0a2cf83b1c41f385513b3c230f8 is conditionally accepted by Root. Authentic retained SPDR/iShares chains were reparsed offline; the isolated PostgreSQL continuation passed 2/2. Root accepted the focused shared-test barrier oracle 1/1. Exact CI41952652528 exposed one IGV positive-fixture omission; adding the authentic productId239771 makes the issuer-catalog module pass43/43 without runtime changes. This is not a complete local full_stack_browser matrix; corrected exact-tip CI and Root/TC combined functional, strict-visual and protected-inventory gates remain pending.",
   "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
@@ -766,6 +766,26 @@
     "shared_test_condition_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json",
     "shared_test_condition_sha256": "0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86",
     "tested_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8",
+    "ci_fixture_correction_2026_11_05": {
+      "prior_exact_source_ci": {
+        "source_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8",
+        "run": 41952652528,
+        "backend_job": 126999985550,
+        "result": "red: 1 failed, 5838 passed, 1 configured skip",
+        "failing_case": "tests/unit/services/test_etf_issuer_catalog.py::test_selected_acquire_from_null_issuer_igv_requires_official_catalog_identity[success]",
+        "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-b6-IGV-success-fixture-CI-root-review-20261105.json"
+      },
+      "diagnosis_and_correction": "The controlled positive iShares response had the correct catalog fundName but omitted productId. The retained authentic IGV response has productId 239771 and the same fundName. Added that matching productId to the positive test fixture only; production identity checks and the canonical-name mismatch negative remain unchanged.",
+      "focused_validation": {
+        "exact_parameterized_case": "2 passed",
+        "full_issuer_catalog_module": "43 passed",
+        "ruff_check_and_format": "passed"
+      },
+      "current_source_ci": {"state": "pending_after_fixture_correction_publication", "green_claimed": false},
+      "product_runtime_changed": false,
+      "local_profile_classification": "full_stack_browser",
+      "local_profile_scope": "Existing local evidence is PostgreSQL 2/2 plus Root pinned browser oracle 1/1, not a complete local matrix. Full combined functional, strict-visual and protected-inventory gates remain required."
+    },
     "acceptance_criteria": [
       {
         "id": "NRC1",
@@ -787,7 +807,7 @@
         "NRC3"
       ],
       "total": 3,
-      "current_phase": "Bounded software accepted; exact final-source CI is mandatory and pending before integration."
+      "current_phase": "IGV success-fixture correction is focused-green; publish this coherent candidate, then exact-source CI must pass before integration."
     },
     "focused_validation": {
       "authentic_retained_chains": "SPDR job8/artifact14/logs33-35: 505 complete rows, 2026-11-03; exact 54467-byte binary response SHA256 1b1638c6da707cdb2c2ee45141c0db87c5287253404ce30520e4802edb249882. iShares job9/artifact15/logs36-37: 110 complete rows, 2026-11-03; normalized JSON object SHA256 b64e3f9e055f538dbce1bf772599a1929db031b877332d5e19b7f1e46f88a147 kept distinct from physical response SHA256 a492b1fd7c24187455c00a8538b682feaa716c0645a3f6c6c4533c3bcc502239. Full evidence is /tmp/etf-native-retained-continuation-evidence-20261105.json SHA256 ec732fdbc84c99bf870694fd16f8ee8522f3a93a2250e1cadf6a796f4970e4d1.",
@@ -796,7 +816,7 @@
       "branch_manifest": "Clean-env list-only command exited0 and listed12 mappings; no tests were run. The make-wrapper quota-directory/env-path warning is retained separately and not counted as the manifest result."
     },
     "exact_final_source_CI": {
-      "state": "pending_after_records_only_closing_publication",
+      "state": "pending_after_fixture_correction_publication",
       "required_jobs": [
         "Backend Tests including full backend and DDL",
         "Frontend Unit Tests",
@@ -950,7 +970,7 @@
     },
     "tests": "130 focused catalog/native qualification/refresh/router tests passed; Ruff check/format passed"
   },
-  "plan_hash": "fcc3446cf6e244215ed5482ff80ec57bcc19bdca394e7570edfdfa63af65cc2e",
+  "plan_hash": "91c31b01c051dae4b0fa829f9f7fc5ad80cb394cbf12fd7ba730328435b998b4",
   "plan_sha256": "1c6ce2b86a344b6c2c3e83449fc2da55a1b2078a438d899f7eb52b7b6b2984a7",
   "planning_required": false,
   "planning_state": "ready",

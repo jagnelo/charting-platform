@@ -2510,6 +2510,32 @@ integration_checkpoint:
   shared_test_condition_receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json
   shared_test_condition_sha256: 0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86
   tested_implementation_sha: b6d67ce93104a0a2cf83b1c41f385513b3c230f8
+  ci_fixture_correction_2026_11_05:
+    prior_exact_source_ci:
+      source_sha: b6d67ce93104a0a2cf83b1c41f385513b3c230f8
+      run: 41952652528
+      backend_job: 126999985550
+      result: "red: 1 failed, 5838 passed, 1 configured skip"
+      failing_case: tests/unit/services/test_etf_issuer_catalog.py::test_selected_acquire_from_null_issuer_igv_requires_official_catalog_identity[success]
+      root_review: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-b6-IGV-success-fixture-CI-root-review-20261105.json
+    diagnosis_and_correction: >-
+      The controlled positive iShares response had the correct catalog fundName but omitted productId. The retained
+      authentic IGV response in ordinary-journey-native-retained-full-lineage-export-20261105.private.json has
+      productId 239771 and the same fundName. Added that matching productId to the positive test fixture only;
+      production identity checks and the canonical-name mismatch negative remain unchanged.
+    focused_validation:
+      exact_parameterized_case: "2 passed"
+      full_issuer_catalog_module: "43 passed"
+      ruff_check_and_format: passed
+    current_source_ci:
+      state: pending_after_fixture_correction_publication
+      green_claimed: false
+    product_runtime_changed: false
+    local_profile_classification: full_stack_browser
+    local_profile_scope: >-
+      Existing local evidence remains the ETF PostgreSQL proof 2/2 plus Root pinned browser oracle 1/1; neither is
+      represented as a complete local matrix. Full combined functional, strict-visual and protected-inventory gates
+      remain required.
   acceptance_criteria:
   - id: NRC1
     text: Reparse the exact server-retained SPDR/iShares failed-job chains offline with immutable request-log/body/catalog
@@ -2528,7 +2554,7 @@ integration_checkpoint:
     - NRC2
     - NRC3
     total: 3
-    current_phase: Bounded software accepted; exact final-source CI is mandatory and pending before integration.
+    current_phase: IGV success-fixture correction is focused-green; publish this coherent candidate, then exact-source CI must pass before integration.
   focused_validation:
     authentic_retained_chains: 'SPDR job8/artifact14/logs33-35: 505 complete rows, 2026-11-03; exact 54467-byte binary
       response SHA256 1b1638c6da707cdb2c2ee45141c0db87c5287253404ce30520e4802edb249882. iShares job9/artifact15/logs36-37:
@@ -2543,7 +2569,7 @@ integration_checkpoint:
     branch_manifest: Clean-env list-only command exited0 and listed12 mappings; no tests were run. The make-wrapper
       quota-directory/env-path warning is retained separately and not counted as the manifest result.
   exact_final_source_CI:
-    state: pending
+    state: pending_after_fixture_correction_publication
     required_jobs:
     - Backend Tests including full backend and DDL
     - Frontend Unit Tests
