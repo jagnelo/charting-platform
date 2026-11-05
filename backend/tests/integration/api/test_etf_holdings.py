@@ -326,7 +326,6 @@ def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, d
     from app.models.instrument import Instrument
 
     assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
-
     response = client.get("/api/v1/etf-holdings/ZZZ/capability", headers=auth_headers)
 
     assert response.status_code == 200, response.text
@@ -335,6 +334,175 @@ def test_capability_read_does_not_hydrate_unknown_symbol(client, auth_headers, d
     assert body["usable_for_current_analysis"] is False
     assert body["symbol_audit"]["outcome"] == "unknown"
     assert db.query(Instrument).filter_by(symbol="ZZZ").count() == 0
+
+
+def test_capability_endpoint_uses_persisted_native_snapshot_and_requires_artifact(
+    client, auth_headers, instrument_type, db
+):
+    """Native evidence is evaluated against the ORM row, never the public snapshot DTO."""
+    import hashlib
+    from datetime import UTC, date, datetime
+
+    from app.models.etf_holdings import (
+        ETFHolding,
+        ETFHoldingsAdapterState,
+        ETFHoldingsRawArtifact,
+        ETFHoldingsSnapshot,
+        ETFProfile,
+    )
+    from app.models.instrument import Instrument
+
+    next_instrument_id = (db.query(Instrument.id).order_by(Instrument.id.desc()).first() or (0,))[
+        0
+    ] + 1
+    next_profile_id = (db.query(ETFProfile.id).order_by(ETFProfile.id.desc()).first() or (0,))[
+        0
+    ] + 1
+    if next_profile_id == next_instrument_id:
+        next_profile_id += 1
+    instrument = Instrument(
+        id=next_instrument_id,
+        symbol="NCPX",
+        name="Native Capability Projection Test ETF",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+    )
+    db.add(instrument)
+    db.flush()
+    profile = ETFProfile(
+        id=next_profile_id,
+        instrument_id=instrument.id,
+        issuer="SPDR",
+        adapter_key="spdr",
+        adapter_status="ready",
+        legal_metadata={"source_access": "spdr_fund_scoped_daily_holdings_xlsx"},
+    )
+    db.add(profile)
+    db.flush()
+    assert profile.id != profile.instrument_id
+
+    now = datetime.now(UTC)
+    composition_date = date.today()
+    source_url = "https://issuer.example/NCPX-holdings.xlsx"
+    payload_hash = hashlib.sha256(b"normalized native payload").hexdigest()
+    body_hash = hashlib.sha256(b"captured workbook bytes").hexdigest()
+    parser_version = "spdr-native-test-v1"
+    schema_fingerprint = "c" * 64
+    completeness = {
+        "status": "complete",
+        "verified": True,
+        "all_reported_rows_parsed": True,
+        "reported_rows": 1,
+        "parsed_rows": 1,
+        "source_payload_hash": payload_hash,
+    }
+    artifact = ETFHoldingsRawArtifact(
+        etf_profile_id=profile.id,
+        source_kind="issuer_holdings",
+        source_url=source_url,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        content_hash=body_hash,
+        composition_date=composition_date,
+        fetched_at=now,
+        parser_version=parser_version,
+        payload_text="captured workbook fixture bytes",
+        legal_metadata={},
+    )
+    db.add(artifact)
+    db.flush()
+    snapshot = ETFHoldingsSnapshot(
+        etf_profile_id=profile.id,
+        source_artifact_id=artifact.id,
+        composition_date=composition_date,
+        as_of_date=composition_date,
+        known_at=now,
+        provenance="issuer_self_snapshotted_holdings",
+        source_provider="spdr",
+        source_url=source_url,
+        source_quality="verified",
+        completeness_status="complete",
+        row_count=1,
+        resolved_count=0,
+        unresolved_count=1,
+        parser_version=parser_version,
+        snapshot_hash=hashlib.sha256(b"snapshot").hexdigest(),
+        extra_data={
+            "schema_fingerprint": schema_fingerprint,
+            "legal_metadata": {
+                "source_tier": "issuer_native",
+                "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
+                "native_composition_completeness_evidence": completeness,
+                "native_initial_qualification_evidence": {
+                    "provider": "spdr",
+                    "adapter_key": "spdr",
+                    "instrument_id": profile.instrument_id,
+                    "symbol": "NCPX",
+                    "fund_identity": {
+                        "basis": "spdr_fund_workbook_preamble",
+                        "symbol": "NCPX",
+                    },
+                    "source_identifier": None,
+                    "source_url": source_url,
+                    "composition_date": composition_date.isoformat(),
+                    "composition_completeness": completeness,
+                    "parser_version": parser_version,
+                    "schema_fingerprint": schema_fingerprint,
+                    "raw_payload_hash": payload_hash,
+                    "holdings_response_body_witness": {
+                        "parser_input_sha256": body_hash,
+                        "normalized_payload_sha256": payload_hash,
+                        "provider_capture": {"response_body_sha256": body_hash},
+                    },
+                },
+            },
+        },
+    )
+    db.add(snapshot)
+    db.flush()
+    db.add(
+        ETFHolding(
+            snapshot_id=snapshot.id,
+            position=1,
+            reported_symbol="UNRESOLVED_TEST_ROW",
+            reported_name="Unresolved test constituent",
+            holding_type="equity",
+            row_type="security",
+            source_row_hash=hashlib.sha256(b"row").hexdigest(),
+            is_resolved=False,
+        )
+    )
+    db.add(
+        ETFHoldingsAdapterState(
+            etf_profile_id=profile.id,
+            adapter_key="spdr",
+            status="success",
+            last_checked_at=now,
+            last_success_at=now,
+            source_url=source_url,
+            row_count=1,
+            resolved_count=0,
+            unresolved_count=1,
+            composition_date=composition_date,
+            completeness_status="complete",
+            extra_data={"expected_cadence": "daily"},
+        )
+    )
+    db.flush()
+
+    valid = client.get("/api/v1/etf-holdings/NCPX/capability", headers=auth_headers)
+    assert valid.status_code == 200, valid.text
+    assert valid.json()["identity_verified"] is True
+    assert valid.json()["availability"] == "current"
+    assert valid.json()["usable_for_current_analysis"] is True
+
+    snapshot.source_artifact_id = None
+    db.flush()
+    missing_artifact = client.get("/api/v1/etf-holdings/NCPX/capability", headers=auth_headers)
+    assert missing_artifact.status_code == 200, missing_artifact.text
+    assert missing_artifact.json()["identity_verified"] is False
+    assert missing_artifact.json()["availability"] == "degraded"
+    assert missing_artifact.json()["usable_for_current_analysis"] is False
 
 
 @pytest.mark.parametrize(

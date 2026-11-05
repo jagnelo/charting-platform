@@ -1,3 +1,13 @@
+# Current handoff — capability GET persisted snapshot — 2026-11-05
+
+The original owner session and claim are unchanged. Root released the branch at `45cc8206602d7823ca29e132d991d88b0bcbbc25` for this bounded follow-up. The capability GET path previously evaluated native identity against `ETFHoldingsSnapshotOut`; the strict verifier requires ORM-only `source_artifact_id`. The service now shares one latest-snapshot ORM query between capability and DTO rendering, preserving existing visibility, controlled-fixture exclusion, ordering, and eager loading. The optional snapshot keyword remains but is typed as the ORM model. No public DTO fields or native checks changed.
+
+A real endpoint regression seeds a complete SPDR-shaped qualified snapshot and raw artifact with deliberately distinct profile/instrument IDs, asserts current/identity/usable on GET, then removes the artifact link and asserts fail-closed capability. It does not mutate production or call sources. Local validation: capability unit module 130/130; the endpoint regression passed 1/1 in 21.65s with distinct profile/instrument IDs and both valid-current and missing-artifact fail-closed assertions; Ruff and format pass. The initial sandbox Docker denial occurred before setup and was superseded by the successful narrow Docker-authorized test run. OIH's retained analytics response remains an honest stale 409 with identity verified, daily deadline 2026-11-04 and composition date 2026-10-30.
+
+**Next action:** Root reviews this coherent candidate and owns the exact hosted/staging gate. No local heavy Docker/browser matrix, source calls, production writes, integration, promotion or deployment are performed here. AC1-AC14, `15 Tier-0 and 156 Tier-1`, all holds and genuine deployed-flow gates remain open.
+
+---
+
 # Current accepted checkpoint — strict native capability projection (2026-11-05)
 
 Root accepted `etf-native-capability-projection-20261105` under the existing human-delegated authority. Receipt `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json` (SHA256 `1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40`). Tested runtime source `6eae00eb8380438da771fed0c42d19587e9520ce`; runtime CI `42009540648` is terminal green on that implementation only. Root accepted the exact paired served profile: 203 functional passed/2 configured skips, 104 strict visuals across four projects, and 2 served Enter/Go cases; zero retries and no reference/tolerance changes. The exact SPY7/IGV8 retained-input proof passed with 16 negative bindings and no historical mutation. Protected inventory is preserved.
