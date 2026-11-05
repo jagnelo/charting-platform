@@ -114,10 +114,10 @@ def ensure_operator_ready(*, allow_degraded: bool = False) -> None:
         except json.JSONDecodeError:
             data = {}
         sha = data.get("master_sha", "unknown")
-        reason = data.get("reason", "the independent master CI replay did not pass")
+        reason = data.get("reason", "master release provenance checks did not pass")
         raise SystemExit(
             f"master is marked degraded at {sha}: {reason}; "
-            "repair or rerun the exact master replay before creating new work"
+            "repair or rerun exact master release checks before creating new work"
         )
 
 

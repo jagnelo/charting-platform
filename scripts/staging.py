@@ -37,12 +37,92 @@ AI = COMMON_ROOT / ".ai"
 STAGING_PATH = AI / "worktrees" / "staging"
 DEGRADED = AI / "staging-degraded.json"
 MASTER_DEGRADED = AI / "master-degraded.json"
-CI_DISCOVERY_ATTEMPTS = 12
+CI_DISCOVERY_ATTEMPTS = 6
 CI_DISCOVERY_DELAY_SECONDS = 5.0
-CI_RETRY_DISCOVERY_ATTEMPTS = 36
+CI_RETRY_DISCOVERY_ATTEMPTS = 12
 CI_RETRY_DISCOVERY_DELAY_SECONDS = 5.0
-CI_API_WATCH_ATTEMPTS = 30
-CI_API_POLL_SECONDS = 120.0
+CI_API_WATCH_ATTEMPTS = 81
+CI_API_POLL_SECONDS = 180.0
+RETRYABLE_SETUP_STEPS = {
+    "Install dependencies",
+    "Install frontend deps",
+    "Install Playwright browsers",
+    "Install frontend dependencies and browsers",
+    "Install locked dependencies",
+}
+BRANCH_PRODUCT_JOBS = (
+    "Backend Tests",
+    "Frontend Unit Tests",
+    "E2E Tests (Playwright)",
+)
+STAGING_PROMOTION_JOBS = (
+    "Changed-path validation scope",
+    "Exhaustive Integration Gate",
+)
+LEGACY_STAGING_PROMOTION_JOBS = (
+    *BRANCH_PRODUCT_JOBS,
+    "Exhaustive Integration Gate",
+)
+LEGACY_SCOPED_STAGING_PROMOTION_JOBS = (
+    "Changed-path validation scope",
+    *LEGACY_STAGING_PROMOTION_JOBS,
+)
+STAGING_VALIDATION_MODE = "full_staging_single_gate_v1"
+LEGACY_STAGING_VALIDATION_MODE = "full_staging_integration"
+MASTER_RELEASE_JOBS = ("Master Release Provenance",)
+
+
+def require_promotion_evidence(
+    run: dict[str, object],
+    *,
+    branch: str,
+    commit: str,
+    mode: str,
+    required_jobs: tuple[str, ...],
+) -> None:
+    run_id = run.get("databaseId")
+    if (
+        run.get("headSha") != commit
+        or run.get("headBranch") != branch
+        or run.get("event") != "push"
+        or run.get("workflowPath") != ".github/workflows/ci.yml"
+        or not str(run_id or "").isdigit()
+        or int(run_id or 0) <= 0
+        or run.get("validation_mode") != mode
+        or set(run.get("verified_required_jobs") or []) != set(required_jobs)
+    ):
+        raise SystemExit(
+            f"exact {branch} promotion run lacks explicit trusted source identity and {mode} evidence"
+        )
+
+
+def branch_ci_mode(jobs: list[dict[str, object]]) -> tuple[str, list[str]]:
+    """Validate exact-source branch checks without promoting skips to passes."""
+    for required in ("Changed-path validation scope", "Branch-declared Tests"):
+        matches = [job for job in jobs if job.get("name") == required]
+        if (
+            len(matches) != 1
+            or matches[0].get("status") != "completed"
+            or matches[0].get("conclusion") != "success"
+        ):
+            raise SystemExit(
+                f"exact branch CI did not complete required job successfully: {required}"
+            )
+    results: dict[str, dict[str, object]] = {}
+    for name in BRANCH_PRODUCT_JOBS:
+        matches = [job for job in jobs if job.get("name") == name]
+        if len(matches) != 1 or matches[0].get("status") != "completed":
+            raise SystemExit(
+                f"exact branch CI is missing a completed product suite result: {name}"
+            )
+        results[name] = matches[0]
+    if all(job.get("conclusion") == "success" for job in results.values()):
+        return "full_branch_suites", []
+    if all(job.get("conclusion") == "skipped" for job in results.values()):
+        return "scoped_guards_with_exact_prior_full_qualification", list(
+            BRANCH_PRODUCT_JOBS
+        )
+    raise SystemExit("branch CI has a partial or failed product-suite result set")
 
 
 def run(
@@ -113,17 +193,17 @@ def root_master_ready() -> None:
 
 
 def require_healthy_master() -> None:
-    """Refuse staging bootstrap while the last master replay is unresolved."""
+    """Refuse staging bootstrap while master release checks are unresolved."""
     if MASTER_DEGRADED.exists():
         try:
             data = json.loads(MASTER_DEGRADED.read_text())
         except json.JSONDecodeError:
             data = {}
         sha = data.get("master_sha", "unknown")
-        reason = data.get("reason", "the independent master CI replay did not pass")
+        reason = data.get("reason", "master release provenance checks did not pass")
         raise SystemExit(
             f"master is marked degraded at {sha}: {reason}; "
-            "repair or rerun the exact master replay before bootstrapping staging"
+            "repair or rerun exact master release checks before bootstrapping staging"
         )
 
 
@@ -267,14 +347,8 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
 
     def api_run(run_id: str) -> dict[str, object]:
         payload = api_json(f"repos/{repository}/actions/runs/{run_id}")
-        # The public API has a small shared anonymous allowance. Job details
-        # are acceptance evidence only once the run is terminal; fetching both
-        # endpoints every five seconds exhausts that allowance before CI ends.
-        jobs = (
-            api_json(f"repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
-            if payload.get("status") == "completed"
-            else {}
-        )
+        # Status polling is one lightweight request. Detailed jobs are fetched
+        # once, only after the run reaches a terminal state.
         return {
             "databaseId": payload.get("id"),
             "headSha": payload.get("head_sha"),
@@ -283,8 +357,18 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
             "conclusion": payload.get("conclusion"),
             "url": payload.get("html_url"),
             "runAttempt": payload.get("run_attempt") or 1,
-            "jobs": jobs.get("jobs", []) if isinstance(jobs, dict) else [],
+            "event": payload.get("event"),
+            "workflowId": payload.get("workflow_id"),
         }
+
+    def job_details(run_id: str) -> list[dict[str, object]]:
+        if use_gh:
+            result = gh_json("run", "view", run_id, "--json", "jobs")
+            return result.get("jobs", []) if isinstance(result, dict) else []
+        payload = api_json(
+            f"repos/{repository}/actions/runs/{run_id}/jobs?per_page=100"
+        )
+        return payload.get("jobs", []) if isinstance(payload, dict) else []
 
     use_gh = bool(shutil_which("gh"))
     runs: list[dict[str, object]] = []
@@ -304,7 +388,7 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                 "--limit",
                 "10",
                 "--json",
-                "databaseId,headSha,headBranch,status,conclusion,url,runAttempt",
+                "databaseId,headSha,headBranch,status,conclusion,url,runAttempt,event,workflowDatabaseId",
             )
             if payload is None:
                 use_gh = False
@@ -313,7 +397,9 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                 {"branch": branch, "event": "push", "head_sha": commit, "per_page": 10}
             )
             try:
-                payload = api_json(f"repos/{repository}/actions/runs?{query}")
+                payload = api_json(
+                    f"repos/{repository}/actions/workflows/ci.yml/runs?{query}"
+                )
             except RuntimeError as exc:
                 raise SystemExit(
                     f"cannot inspect exact GitHub CI run: {exc}; gh: {gh_error}"
@@ -322,10 +408,20 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
             payload = []
         if isinstance(payload, dict):
             payload = payload.get("workflow_runs", [])
+        if use_gh:
+            payload = [
+                {
+                    **item,
+                    "workflowId": item.get("workflowDatabaseId"),
+                }
+                for item in payload
+            ]
         runs = [
             item
             for item in payload
-            if item.get("headSha") == commit and item.get("headBranch") == branch
+            if item.get("headSha") == commit
+            and item.get("headBranch") == branch
+            and item.get("event") == "push"
         ]
         if not runs and not use_gh:
             runs = [
@@ -337,9 +433,13 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                     "conclusion": item.get("conclusion"),
                     "url": item.get("html_url"),
                     "runAttempt": item.get("run_attempt") or 1,
+                    "event": item.get("event"),
+                    "workflowId": item.get("workflow_id"),
                 }
                 for item in payload
-                if item.get("head_sha") == commit and item.get("head_branch") == branch
+                if item.get("head_sha") == commit
+                and item.get("head_branch") == branch
+                and item.get("event") == "push"
             ]
         if runs:
             break
@@ -353,6 +453,14 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
             f"no GitHub CI push run exists for exact {branch} commit {commit}"
         )
     selected = runs[0]
+    selected.setdefault("workflowPath", ".github/workflows/ci.yml")
+    if selected.get("event") != "push":
+        raise SystemExit("exact CI evidence must come from a push event")
+    if (
+        selected.get("workflowPath", ".github/workflows/ci.yml")
+        != ".github/workflows/ci.yml"
+    ):
+        raise SystemExit("exact CI evidence came from an unexpected workflow")
     run_id = str(selected["databaseId"])
     first_attempt = int(selected.get("runAttempt") or 1)
 
@@ -363,10 +471,13 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                 "view",
                 run_id,
                 "--json",
-                "status,conclusion,url,jobs,runAttempt,headSha,headBranch",
+                "status,conclusion,url,runAttempt,headSha,headBranch,event,workflowDatabaseId",
             )
             if isinstance(detail, dict):
-                return detail
+                return {
+                    **detail,
+                    "workflowId": detail.get("workflowDatabaseId"),
+                }
             raise SystemExit(f"cannot inspect exact GitHub CI run {run_id}: {gh_error}")
         return api_run(run_id)
 
@@ -384,6 +495,8 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                 time.sleep(CI_API_POLL_SECONDS)
     else:
         selected.update(refresh())
+    if selected.get("status") == "completed":
+        selected["jobs"] = job_details(run_id)
     ci_attempts: dict[int, dict[str, object]] = {
         first_attempt: {
             "attempt": first_attempt,
@@ -392,7 +505,22 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
             "conclusion": selected.get("conclusion"),
         }
     }
-    if selected.get("conclusion") != "success" and first_attempt == 1:
+    jobs = selected.get("jobs", [])
+    retry_candidate = any(
+        job.get("conclusion") == "failure"
+        and any(
+            step.get("conclusion") == "failure"
+            and step.get("name") in RETRYABLE_SETUP_STEPS
+            for step in job.get("steps", [])
+        )
+        for job in jobs
+    )
+    if (
+        selected.get("status") == "completed"
+        and selected.get("conclusion") == "failure"
+        and retry_candidate
+        and first_attempt == 1
+    ):
         # The trusted workflow_run coordinator may schedule one rerun of
         # allowlisted infrastructure failures. Wait for that same run ID to
         # advance to attempt 2 before declaring the exact SHA degraded.
@@ -418,6 +546,8 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
                         if selected.get("status") == "completed":
                             break
                         time.sleep(CI_API_POLL_SECONDS)
+            if selected.get("status") == "completed":
+                selected["jobs"] = job_details(run_id)
             ci_attempts[latest_attempt] = {
                 "attempt": latest_attempt,
                 "url": selected.get("url"),
@@ -426,27 +556,93 @@ def github_run(branch: str, commit: str, *, exhaustive: bool) -> dict[str, objec
             }
             break
     selected["ci_attempts"] = [ci_attempts[key] for key in sorted(ci_attempts)]
+    if selected.get("status") != "completed":
+        raise SystemExit(
+            f"CI observation expired after {CI_API_WATCH_ATTEMPTS * CI_API_POLL_SECONDS // 60} minutes while exact {branch} run is still "
+            f"{selected.get('status')}; tests are pending, evidence is incomplete: "
+            f"{selected.get('url')}"
+        )
     if selected.get("conclusion") != "success":
         raise SystemExit(
             f"GitHub CI is not green for exact {branch} commit {commit}: "
             f"{selected.get('url')} attempts={selected.get('ci_attempts')}"
         )
-    if exhaustive:
-        jobs = selected.get("jobs", [])
-        matches = [
-            job for job in jobs if job.get("name") == "Exhaustive Integration Gate"
+    jobs = selected.get("jobs", [])
+
+    def require_success(name: str) -> None:
+        matches = [job for job in jobs if job.get("name") == name]
+        if (
+            len(matches) != 1
+            or matches[0].get("status") != "completed"
+            or matches[0].get("conclusion") != "success"
+        ):
+            raise SystemExit(
+                f"exact {branch} CI did not complete required job successfully: {name}"
+            )
+
+    if exhaustive and branch == "staging":
+        require_success("Exhaustive Integration Gate")
+        scope_matches = [
+            job for job in jobs if job.get("name") == "Changed-path validation scope"
         ]
-        if len(matches) != 1 or matches[0].get("conclusion") != "success":
-            raise SystemExit(
-                f"exact {branch} run did not pass the Exhaustive Integration Gate"
+        if len(scope_matches) > 1 or (
+            scope_matches
+            and (
+                scope_matches[0].get("status") != "completed"
+                or scope_matches[0].get("conclusion") != "success"
             )
+        ):
+            raise SystemExit("staging changed-path job is duplicate or unsuccessful")
+        product_results = []
+        for name in BRANCH_PRODUCT_JOBS:
+            matches = [job for job in jobs if job.get("name") == name]
+            if len(matches) != 1 or matches[0].get("status") != "completed":
+                raise SystemExit(
+                    f"staging profile requires exactly one completed standalone product job: {name}"
+                )
+            product_results.append(matches[0].get("conclusion"))
+        if all(result == "success" for result in product_results):
+            selected["validation_mode"] = LEGACY_STAGING_VALIDATION_MODE
+            legacy_jobs = (
+                LEGACY_SCOPED_STAGING_PROMOTION_JOBS
+                if scope_matches
+                else LEGACY_STAGING_PROMOTION_JOBS
+            )
+            selected["verified_required_jobs"] = list(legacy_jobs)
+            selected["unexecuted_product_jobs"] = []
+        elif all(result == "skipped" for result in product_results):
+            if not scope_matches:
+                raise SystemExit(
+                    "single-gate staging profile requires successful changed-path validation scope"
+                )
+            selected["validation_mode"] = STAGING_VALIDATION_MODE
+            selected["verified_required_jobs"] = list(STAGING_PROMOTION_JOBS)
+            selected["unexecuted_product_jobs"] = list(BRANCH_PRODUCT_JOBS)
+        else:
+            raise SystemExit(
+                "staging standalone product jobs do not match a supported full-gate profile"
+            )
+    elif exhaustive:
+        require_success("Master Release Provenance")
+        selected["validation_mode"] = (
+            "exact_staging_evidence_reuse_with_master_release_checks"
+        )
+        selected["verified_required_jobs"] = ["Master Release Provenance"]
+        selected["unexecuted_product_jobs"] = [
+            "Backend Tests",
+            "Frontend Unit Tests",
+            "E2E Tests (Playwright)",
+            "Exhaustive Integration Gate",
+        ]
     else:
-        jobs = selected.get("jobs", [])
-        matches = [job for job in jobs if job.get("name") == "Branch-declared Tests"]
-        if len(matches) != 1 or matches[0].get("conclusion") != "success":
-            raise SystemExit(
-                f"exact {branch} run did not pass its Branch-declared Tests job"
-            )
+        mode, unexecuted = branch_ci_mode(jobs)
+        selected["validation_mode"] = mode
+        selected["verified_required_jobs"] = [
+            "Changed-path validation scope",
+            "Branch-declared Tests",
+            *BRANCH_PRODUCT_JOBS,
+        ]
+        selected["unexecuted_product_jobs"] = unexecuted
     return selected
 
 
@@ -692,6 +888,13 @@ def reconcile(commit: str) -> None:
         # Exactly the same mandatory hosted gate as normal integration. Pending,
         # unavailable, red or non-exhaustive evidence cannot release the marker.
         ci = github_run("staging", commit, exhaustive=True)
+        require_promotion_evidence(
+            ci,
+            branch="staging",
+            commit=commit,
+            mode=str(ci.get("validation_mode")),
+            required_jobs=tuple(ci.get("verified_required_jobs") or ()),
+        )
         fetch_branch("staging", cwd=STAGING_PATH)
         if synchronized(STAGING_PATH, "staging") != commit:
             raise SystemExit("staging advanced during CI reconciliation")
@@ -741,6 +944,13 @@ def promote(commit: str, confirm: str) -> None:
             raise SystemExit(push.stderr.strip() or "master push failed")
         try:
             master_ci = github_run("master", commit, exhaustive=True)
+            require_promotion_evidence(
+                master_ci,
+                branch="master",
+                commit=commit,
+                mode="exact_staging_evidence_reuse_with_master_release_checks",
+                required_jobs=MASTER_RELEASE_JOBS,
+            )
         except BaseException as exc:
             MASTER_DEGRADED.parent.mkdir(parents=True, exist_ok=True)
             MASTER_DEGRADED.write_text(
@@ -760,26 +970,54 @@ def promote(commit: str, confirm: str) -> None:
             git("rev-parse", "HEAD") != commit
             or git("rev-parse", "origin/master") != commit
         ):
-            raise SystemExit("master advanced while its exact CI replay was evaluated")
+            raise SystemExit(
+                "master advanced while exact release checks were evaluated"
+            )
         MASTER_DEGRADED.unlink(missing_ok=True)
         receipt = AI / "validation" / f"{commit}.json"
         receipt.parent.mkdir(parents=True, exist_ok=True)
         receipt.write_text(
             json.dumps(
                 {
+                    "receipt_schema": 2,
                     "candidate_sha": commit,
                     "tree": git("rev-parse", f"{commit}^{{tree}}"),
                     "source": "green-staging-promotion",
-                    "staging_github_replay": ci.get("url"),
-                    "master_github_replay": master_ci.get("url"),
-                    "github_replay": "pass",
+                    "validation_mode": "same_sha_staging_evidence_reuse",
+                    "staging_ci": {
+                        "sha": ci.get("headSha", commit),
+                        "workflow_path": ci.get("workflowPath"),
+                        "event": ci.get("event"),
+                        "run_id": ci.get("databaseId"),
+                        "url": ci.get("url"),
+                        "required_job": "Exhaustive Integration Gate",
+                        "validation_profile": ci.get("validation_mode"),
+                        "verified_required_jobs": ci.get("verified_required_jobs"),
+                        "unexecuted_product_jobs": ci.get("unexecuted_product_jobs"),
+                        "conclusion": "success",
+                    },
+                    "master_release_ci": {
+                        "sha": master_ci.get("headSha", commit),
+                        "workflow_path": master_ci.get("workflowPath"),
+                        "event": master_ci.get("event"),
+                        "run_id": master_ci.get("databaseId"),
+                        "url": master_ci.get("url"),
+                        "required_job": "Master Release Provenance",
+                        "verified_required_jobs": master_ci.get(
+                            "verified_required_jobs"
+                        ),
+                        "conclusion": "success",
+                    },
+                    "master_product_suite_replay": "not_run; exact staging product qualification reused",
                     "recorded_at": timestamp(),
                 },
                 indent=2,
             )
             + "\n"
         )
-        print(f"master promoted and independently replayed green at {commit}")
+        print(
+            f"master promoted with exact green staging evidence and release checks at {commit}"
+        )
 
 
 def status() -> None:
