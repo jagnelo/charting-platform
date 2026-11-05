@@ -24,6 +24,42 @@ def minimum_profile(values: dict[str, Any]) -> str:
     text = _text(values)
     if not text.strip():
         return "unit"
+    paths = [str(path) for path in values.get("owned_paths", []) or []]
+    workflow_only = {
+        ".github/workflows/ci.yml",
+        "docs/agent-orchestration.md",
+        "docs/development.md",
+        "docs/worktree-lifecycle.md",
+        "scripts/ci-change-scope.py",
+        "scripts/staging.py",
+        "scripts/agent-session.py",
+        "scripts/worktree.py",
+        "scripts/verify-master-promotion.py",
+        "scripts/verify-prior-qualification.py",
+        "scripts/validation_profile.py",
+        "scripts/rpi.py",
+    }
+    workflow_paths = [
+        path
+        for path in paths
+        if path not in {"docs/agent-orchestration.md", "docs/development.md"}
+    ]
+    if workflow_paths and all(
+        path in workflow_only
+        or path.startswith("tests/workflow/")
+        or (
+            path.startswith("ops/workstreams/")
+            and path.rsplit("/", 1)[-1]
+            in {
+                "plan.yaml",
+                "handoff.md",
+                "validation.jsonl",
+                "session.json",
+            }
+        )
+        for path in paths
+    ):
+        return "unit"
     if any(
         marker in text
         for marker in (

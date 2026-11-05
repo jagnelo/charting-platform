@@ -41,11 +41,13 @@
   once on the source branch with documented combined behaviour and affected tests, then retested.
 - GitHub runs the exhaustive gate on the exact pushed staging SHA. A red gate marks staging
   degraded and blocks ordinary integration/promotion; an exact-base remediation is required.
-- If master's independent replay is red or unresolved, the recorded `master-degraded.json`
+- If master's release identity/provenance checks are red or unresolved, the recorded `master-degraded.json`
   marker blocks staging bootstrap and new ordinary work. The exact master revision must first
   be repaired or replayed green; agents must never create staging from a known-broken master.
 - `make promote-staging COMMIT=<sha> CONFIRM=<sha>` fast-forwards master only to the current green
-  staging SHA. Master independently replays the exhaustive gate and remains the deployable line.
+  staging SHA. Master reuses that exact gate result after verifying the workflow,
+  event, source SHA, required jobs, and synchronized refs, then runs release
+  identity/provenance checks. The full product matrix is not rerun on the identical SHA.
 - No normal workflow creates `.ai/integration` candidates or retains alternate merge results.
 
 ## Storage and cleanup
@@ -88,7 +90,8 @@
 ## CI and deployment architecture
 
 - Work branches run deterministic application checks plus their declared tests.
-- Staging and master run the exhaustive architecture-neutral gate on GitHub Linux runners.
+- Staging runs the exhaustive architecture-neutral gate on GitHub Linux runners.
+  Master verifies and reuses the exact successful staging evidence for the same SHA.
 - Normal CI must not install QEMU or build ARM images.
 - Target architecture belongs to the explicit deployment workflow. RPi operations require
   `RPI_DOCKER_PLATFORM=linux/arm/v7` or `linux/arm64`, verified by preflight against the actual Pi.
