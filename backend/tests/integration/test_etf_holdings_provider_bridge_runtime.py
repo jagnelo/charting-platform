@@ -3084,6 +3084,7 @@ async def test_native_spdr_qualification_persists_then_ordinary_refreshes_same_s
             "basis": "spdr_fund_workbook_preamble",
             "symbol": symbol,
             "source_url": workbook_url,
+            "requested_source_url": workbook_url,
             "matched": [{"type": "artifact_symbol", "value": symbol}],
         }
         persisted_witnesses = [

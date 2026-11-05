@@ -174,7 +174,7 @@
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "closure_pending": false,
-  "closure_summary": "Root accepted the bounded SPDR/iShares native retained-evidence continuation software under existing delegated authority. Exact implementation source is b6d67ce93104a0a2cf83b1c41f385513b3c230f8; Root conditionally accepted the eight backend/test file hashes at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-native-recovery-software-conditional-acceptance-20261105.json (SHA256 3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5), and the exact TC-owned shared-test barrier is accepted at /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json (SHA256 0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86; resulting test file SHA256 ab419373397abc84d656c18b5178178a2faafddbb33f3d27ec85894292c03b2f). Authentic actual retained job8/job9 chains reparsed offline to 505/110 complete rows dated 2026-11-03, with binary and normalized iShares body hashes kept distinct. The isolated PostgreSQL continuation test passed 2/2 with disabled policy, repeat/concurrent denial and zero transport/reservations; focused nine-unit and one narrative guard passed, Ruff check/format and workstream/manifest guards passed. Root's pinned shared-test oracle passed 1/1; that focused test is not a complete local matrix. Local validation is categorized full_stack_browser; the required combined full functional/strict-visual/protected-inventory profile remains pending under Root/TC. Failed production jobs8/9 and all receipts remain unchanged; no new Source HTTP, production ledger/policy/data mutation or deployment is claimed. Exact closing-tip full CI is pending and mandatory before actual integration; no pending or red CI is described as green. The wider AC1-AC14 roadmap, 15 Tier-0/156 Tier-1, all holds, histories and genuine deployed user-flow gates remain open. integration_capture: exact branch HEAD.",
+  "closure_summary": "Root accepted the bounded SPDR/iShares native retained-evidence continuation software under existing delegated authority. The earlier tested source b6d67ce93104a0a2cf83b1c41f385513b3c230f8 and exact prior red CI are preserved. The accepted IGV fixture correction was published at3b18ee20c706429f63397fb87aa5dd331fe9b7fe; its exact CI41956681710 remains red solely because the SPDR test expected fund_identity omitted requested_source_url. Added that genuine workbook URL to the exact expected dictionary without weakening equality or runtime checks. The corrected isolated PostgreSQL node passed1/1 in24.92s; log SHA256 0487264854c8032b554e0f656de2540c6116c114b448d50782fbf1a6632c4317 and JUnit SHA256 6c2a3999142f1ab6c1ab4f32282c66d4acf0ffb10b0c8e4555572bb51a3ae37c. Root verified preserved original containers/networks/volumes; the exact Ryuk image was already absent at current inspection. Ruff/format pass. Exact final-tip CI remains pending and mandatory before integration; Root owns observation. All source jobs, quota and policy holds, datasets and full AC1-AC14 roadmap remain preserved/open. integration_capture: exact branch HEAD.",
   "continuation_goal": {
     "accounting_note": "This is the same unbudgeted ordinary ticker-selection goal in the original thread. Prior completed goal accounting and accepted checkpoints remain archived unchanged.",
     "created_at_epoch": 1793705535,
@@ -184,9 +184,9 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "The prior exact source CI41952652528 is red on b6d67ce (1 failed, 5838 passed, 1 configured skip); its positive IGV test fixture omitted the retained response productId239771. The fixture-only correction is validated locally; exact corrected-source CI is pending and mandatory. Root owns CI observation and combined full_stack_browser functional/strict-visual/protected-inventory gates. Preserve all AC1-AC14; 15 Tier-0 and 156 Tier-1; all holds, history and genuine production workflows remain open.",
-  "current_checkpoint_objective": "Publish one coherent IGV success-fixture correction with the accepted native continuation records; exact corrected-source CI remains mandatory before integration.",
-  "current_local_delta": "Implementation b6d67ce93104a0a2cf83b1c41f385513b3c230f8 is conditionally accepted by Root. Authentic retained SPDR/iShares chains were reparsed offline; the isolated PostgreSQL continuation passed 2/2. Root accepted the focused shared-test barrier oracle 1/1. Exact CI41952652528 exposed one IGV positive-fixture omission; adding the authentic productId239771 makes the issuer-catalog module pass43/43 without runtime changes. This is not a complete local full_stack_browser matrix; corrected exact-tip CI and Root/TC combined functional, strict-visual and protected-inventory gates remain pending.",
+  "current_blocker_latest": "CI41956681710 remains red on parent3b18: its SPDR exact fund_identity expectation omitted requested_source_url. The test-only correction is Root-accepted and its PostgreSQL node passed1/1. Final exact-tip CI is pending and mandatory; Root owns observation.",
+  "current_checkpoint_objective": "Publish the Root-accepted SPDR expected-provenance fixture correction with its focused PostgreSQL evidence; preserve CI41956681710 as red and leave exact final-tip CI pending.",
+  "current_local_delta": "One test-only field was added to the exact expected SPDR fund_identity dictionary: requested_source_url equals the workbook URL. The focused isolated PostgreSQL node passed 1/1 in24.92s; Ruff check/format pass. Root verified original40 container IDs,13 networks and55 volumes preserved. No runtime/source behavior changed.",
   "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
@@ -869,7 +869,7 @@
   },
   "last_checkpoint": "2026-10-31T09:51:12Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "Root accepted the bounded backend software/artifact checkpoint. Current 110-case isolated PostgreSQL qualification passed; exact-owned cleanup reconciled and Root accepted protected inventory; backend image52fa was independently reviewed. Exact closing-tip CI and the Root/TC joint functional/104-strict-visual profile remain pending. No live publisher success, policy enablement, production mutation, deployment or AC1-AC14 completion is claimed.",
+  "latest_checkpoint": "Root accepted the narrow SPDR provenance-fixture correction after CI41956681710 exposed that the exact expected fund_identity omitted requested_source_url. The corrected isolated PostgreSQL node passed 1/1 in24.92s. Exact final-tip CI is pending and mandatory; Root owns observation. Earlier red CI and failed one-shot/source histories remain preserved; full roadmaps and holds remain open.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
     "result": "Exact implementation push CI41186532340 is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947; Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive Integration Gate was skipped as configured.",
@@ -970,8 +970,8 @@
     },
     "tests": "130 focused catalog/native qualification/refresh/router tests passed; Ruff check/format passed"
   },
-  "plan_hash": "91c31b01c051dae4b0fa829f9f7fc5ad80cb394cbf12fd7ba730328435b998b4",
-  "plan_sha256": "1c6ce2b86a344b6c2c3e83449fc2da55a1b2078a438d899f7eb52b7b6b2984a7",
+  "plan_hash": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
+  "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3198,6 +3198,38 @@
     "root_closure_authorization_sha256": "3dc87045bac64c62fa7ddf1829275c2a126a4da4d15a3a41b3d3640305263ea5",
     "final_source_CI": "pending; mandatory before integration; no result inferred.",
     "integration_capture": "exact branch HEAD"
+  },
+  "spdr_provenance_expected_fixture_correction_2026_11_05": {
+    "source_parent": "3b18ee20c706429f63397fb87aa5dd331fe9b7fe",
+    "root_accepted_fixture_correction": true,
+    "test_path": "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "test_node": "test_native_spdr_qualification_persists_then_ordinary_refreshes_same_schema",
+    "expected_field": "requested_source_url equals workbook_url; exact fund_identity equality and subsequent assertions retained",
+    "prior_ci": {
+      "run": 41956681710,
+      "backend_job": 127013159961,
+      "state": "red",
+      "integration": "624 passed,2 configured skips,1 failed; sole failure was expected-dictionary omission"
+    },
+    "postgres": {
+      "result": "1 passed in24.92s",
+      "prelaunch": "/tmp/etf-spdr-provenance-postgres-20261105/attempt002/prelaunch.json",
+      "prelaunch_sha256": "b4c3c59592b3f8651ca456b069d461d9e46d4fec351771527ed67b30bc48a44d",
+      "log": "/tmp/etf-spdr-provenance-postgres-20261105/attempt002/pytest.log",
+      "log_sha256": "0487264854c8032b554e0f656de2540c6116c114b448d50782fbf1a6632c4317",
+      "junit": "/tmp/etf-spdr-provenance-postgres-20261105/attempt002/junit.xml",
+      "junit_sha256": "6c2a3999142f1ab6c1ab4f32282c66d4acf0ffb10b0c8e4555572bb51a3ae37c"
+    },
+    "cleanup": {
+      "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-SPDR-provenance-correction-root-acceptance-20261105.json",
+      "preservation": "Root verified all40 original container IDs,13 networks and55 volumes preserved",
+      "ryuk_image": "sha256:bcbee39cd601396958ba1bd06ea14ad64ce0ea709de29a427d741d1f5262080a",
+      "ryuk_state": "image inspect returned No such image; already absent, zero consumers; no removal attempted"
+    },
+    "ruff_check_and_format": "passed",
+    "diff_check": "passed",
+    "final_exact_tip_ci": "pending; Root owns observation",
+    "full_roadmap": "AC1-AC14,15 Tier-0/156 Tier-1, all holds and prior history preserved/open"
   },
   "previously_accepted_ordinary_selected_acquisition_checkpoint_2026_11_04": {
     "status": "ready_for_human_review",
