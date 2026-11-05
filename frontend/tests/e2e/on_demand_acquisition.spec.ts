@@ -372,6 +372,10 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   const identityRequests: InstrumentRequestBody[] = []
   const historyRequests: HistoryRequestBody[] = []
   const localReadBars: OHLCVBar[][] = []
+  let signalHistoryRequest!: () => void
+  let releaseHistoryResponse!: () => void
+  const historyRequestArrived = new Promise<void>(resolve => { signalHistoryRequest = resolve })
+  const historyResponseGate = new Promise<void>(resolve => { releaseHistoryResponse = resolve })
   const bar: OHLCVBar = {
     ts: '2026-10-29T00:00:00Z', open: 24, high: 26, low: 23, close: 25,
     volume: 12000, is_adjusted: true, is_derived: false,
@@ -528,6 +532,8 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
     const body = route.request().postDataJSON() as HistoryRequestBody
     historyRequests.push(body)
     expect(body.timeframe).toBe('D1')
+    signalHistoryRequest()
+    await historyResponseGate
     historyCompleted = true
     const response: HistoryAcquisitionResponse = {
       request_id: body.request_id, status: 'complete', instrument_id: instrumentId,
@@ -569,13 +575,22 @@ test('an unresolved ETF holding row explicitly resolves its reported equity and 
   await page.getByRole('option', { name: /Use UNXQ · XNYS/ }).click()
   await expect(page).toHaveURL(/\/legacy\/chart\/UNXQ\?/)
   expect(identityRequests).toHaveLength(1)
+  await historyRequestArrived
+  expect(historyRequests).toHaveLength(1)
+  expectBoundedD1Request(historyRequests[0]!)
+  await expect.poll(() => localReadCount).toBeGreaterThan(0)
+  expect(localReadBars[0]).toEqual([])
+  expect(calendarReads).toHaveLength(0)
+
+  // Keep the initial empty-chart assertions ahead of the acquired response.
+  // Bars make the bounded calendar side-read eligible, so release only after
+  // the no-bars/no-calendar state has been observed.
+  releaseHistoryResponse()
   const historyResponse = await historyResponseReady
   expect(historyResponse.status()).toBe(200)
   expect(historyRequests).toHaveLength(1)
   expectBoundedD1Request(historyRequests[0]!)
   expect(localReadCount).toBeGreaterThan(0)
-  expect(localReadBars[0]).toEqual([])
-  expect(calendarReads).toHaveLength(0)
 
   const lineageUrl = new URL(page.url())
   expect(lineageUrl.searchParams.get('holding_snapshot_id')).toBe(String(snapshotId))
