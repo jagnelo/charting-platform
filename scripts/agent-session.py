@@ -27,6 +27,9 @@ import yaml
 PREFIXES = ("feat/", "fix/", "chore/", "docs/", "test/")
 TERMINAL = {"integrated", "closed", "superseded", "blocked"}
 DOCKER_LIMIT_BYTES = 5_000_000_000
+LOCAL_PLAN_BOOTSTRAP_AUTHORIZATION = (
+    "Root-authorized 2026-11-05: skip the plan-only commit/push"
+)
 DOCKER_READY_TIMEOUT_SECONDS = 180
 DOCKER_READY_POLL_SECONDS = 3
 
@@ -187,6 +190,36 @@ def plan_ready(plan: dict[str, Any]) -> bool:
         return False
     tests = plan.get("branch_tests")
     return bool(tests) or bool(str(plan.get("branch_tests_reason", "")).strip())
+
+
+def plan_bootstrap_ready(plan: dict[str, Any]) -> bool:
+    """A complete local schema-4 plan can bootstrap under its active claim.
+
+    Publication and exact-source checks remain required at integration. This
+    avoids a plan-only remote commit while retaining the durable plan locally.
+    """
+    return plan_ready(plan)
+
+
+def local_bootstrap_changes_allowed(
+    branch: str, plan: dict[str, Any], changed_paths: list[str]
+) -> bool:
+    """Allow only the reviewed plan/session checkpoint before first push."""
+    if not plan_bootstrap_ready(plan):
+        return False
+    exception = plan.get("bootstrap_exception")
+    if (
+        not isinstance(exception, str)
+        or not exception.startswith(LOCAL_PLAN_BOOTSTRAP_AUTHORIZATION)
+        or not changed_paths
+    ):
+        return False
+    slugged = slug(branch)
+    allowed = {
+        f"ops/workstreams/{slugged}/plan.yaml",
+        f"ops/workstreams/{slugged}/session.json",
+    }
+    return set(changed_paths) <= allowed
 
 
 def acceptance_criteria(plan: dict[str, Any]) -> list[dict[str, str]]:
@@ -986,7 +1019,8 @@ def start(expected_branch: str | None) -> None:
             f"assigned branch mismatch: expected {expected_branch}, found {branch}"
         )
     stream, plan = workstream(branch, path)
-    if dirty_paths(path):
+    changed = dirty_paths(path)
+    if changed and not local_bootstrap_changes_allowed(branch, plan, changed):
         raise SystemExit(
             "implementation session requires a clean bootstrap boundary; use explicit takeover for interrupted dirty work"
         )
@@ -1100,12 +1134,20 @@ def plan_ready_command(session_id: str) -> None:
             "workstream plan is incomplete; fill scope, owned paths, acceptance criteria, "
             "tests, and local validation profile before creating a goal"
         )
-    if dirty_paths(path):
-        raise SystemExit("plan-ready requires the planning checkpoint to be committed")
+    changed = dirty_paths(path)
+    local_bootstrap = local_bootstrap_changes_allowed(branch, plan, changed)
+    if changed and not local_bootstrap:
+        raise SystemExit("plan-ready requires a clean planning checkpoint")
     head = git("rev-parse", "HEAD", cwd=path)
     remote = git("rev-parse", f"origin/{branch}", cwd=path, check=False)
-    if not remote or head != remote:
-        raise SystemExit("plan-ready requires local and remote branch heads to match")
+    if not remote or (head != remote and not local_bootstrap):
+        raise SystemExit(
+            "plan-ready requires a remote ref or the scoped local bootstrap exception"
+        )
+        if not plan_bootstrap_ready(plan):
+            raise SystemExit(
+                "local bootstrap exception requires a complete schema-4 plan"
+            )
     validator = run(
         "uv",
         "run",

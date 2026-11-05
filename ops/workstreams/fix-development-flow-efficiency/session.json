@@ -1,0 +1,121 @@
+{
+  "acceptance_criteria": [
+    {
+      "id": "AC1",
+      "text": "A tested exact-path classifier selects metadata guards for explicit eligible workstream records and affected workflow tests with product-input equivalence for workflow-only changes; direct tree comparison uses the same exact SHA whose full prior qualification is trusted, including first pushes behind a newer staging head; product, test, dependency, lock, configuration, unknown, and unproven paths select broad validation. Skipped suites are never reported as newly passed."
+    },
+    {
+      "id": "AC2",
+      "text": "The metadata lane validates workstream/hash/scope and runtime narrative guards, including test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers when metadata is changed."
+    },
+    {
+      "id": "AC3",
+      "text": "CI observation allows 243 minutes for bounded prerequisite-plus-gate observation, distinguishes pending expiry, failed tests, and unavailable evidence; it fetches jobs only after terminal status and avoids retry discovery for non-eligible terminal failures."
+    },
+    {
+      "id": "AC4",
+      "text": "Master reuses only trusted successful exact-SHA staging gate evidence after synchronized-ref checks, then passes actual master release identity/provenance checks; the promotion helper requires exact staging/master run IDs and explicit schema-2 reuse mode without relabeling unexecuted tests."
+    },
+    {
+      "id": "AC5",
+      "text": "The Root-authorized local bootstrap exception allows a complete ready plan under the verified exclusive claim without a plan-only push; clean synchronized integration checks remain mandatory."
+    },
+    {
+      "id": "AC6",
+      "text": "Guidance records observed and expected cost implications, focused checks, one coherent publication, compact current handoffs, and all existing authorization, access, paid/provider/quota, data, and evidence safeguards."
+    },
+    {
+      "id": "AC7",
+      "text": "Focused workflow regressions and relevant workstream guards pass; Root's delegated acceptance allows ready_for_integration after one coherent checkpoint, while exact pushed-source CI and Root-owned integration, promotion, and deployment remain mandatory."
+    },
+    {
+      "id": "AC8",
+      "text": "Every GitHub workflow job has a unique display name regardless of whether it runs or is skipped; master requires only Master Release Provenance, and the verifier still validates all unique successful staging jobs. The schema-2 reader accepts prior compatibility receipts and legacy github_replay receipts."
+    },
+    {
+      "id": "AC9",
+      "text": "After a scoped immediate parent, fallback is allowed only when a direct two-tree diff from the exact branch/staging merge-base classifies the entire delta eligible and genuine full CI is verified for that same SHA; an unqualified runtime-bearing parent remains broad."
+    },
+    {
+      "id": "AC10",
+      "text": "Staging runs changed-scope followed by one successful authoritative make validate-integration gate; standalone backend/frontend/E2E jobs are skipped and removed from the gate prerequisites. The full Makefile recipe and all phases remain unchanged, while feature branch broad checks remain. New full_staging_single_gate_v1 evidence is exact-source and explicitly records skipped standalone jobs; prior-full and master verification accept that profile plus legacy successful four/five-job full-run evidence, fail closed on scoped/partial/duplicate/wrong-source runs, and receipts distinguish new from legacy profiles."
+    }
+  ],
+  "active_session_id": "b07dfe18-088a-42fa-8e1e-941127583d52",
+  "branch": "fix/development-flow-efficiency",
+  "claim": {
+    "branch": "fix/development-flow-efficiency",
+    "host": "m920q",
+    "session_id": "b07dfe18-088a-42fa-8e1e-941127583d52",
+    "started_at": "2026-11-05T12:30:02.368191+00:00",
+    "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency",
+    "worktree_id": "fix-development-flow-efficiency-164d68b654"
+  },
+  "dirty_paths": [
+    ".github/workflows/ci.yml",
+    "docs/agent-orchestration.md",
+    "ops/workstreams/fix-development-flow-efficiency/handoff.md",
+    "ops/workstreams/fix-development-flow-efficiency/plan.yaml",
+    "ops/workstreams/fix-development-flow-efficiency/session.json",
+    "scripts/rpi.py",
+    "scripts/staging.py",
+    "scripts/verify-master-promotion.py",
+    "scripts/verify-prior-qualification.py",
+    "tests/workflow/test_ci_change_scope.py",
+    "tests/workflow/test_master_promotion_evidence.py",
+    "tests/workflow/test_staging_workflow.py"
+  ],
+  "docker": {
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+  },
+  "goal_budget_policy": "unbounded_unless_human_authorized",
+  "goal_objective": "Advance fix/development-flow-efficiency: Implement and qualify the authorized development-throughput fixes in fix/development-flow-efficiency: proportionate metadata/workflow validation with meaningful affected guards and honest reused product evidence; trusted exact same-SHA staging evidence reuse for master promotion; correct efficient CI observation; and local-plan bootstrap without plan-only remote publication. Preserve human intent, exclusive claims, meaningful regression coverage, exact evidence, user data, provider/paid/quota controls, original VS Code visibility and model/effort choices. Use focused workflow tests, one coherent code/test/record publication, and leave integration/promotion/deployment to Root. Do not delay the independently progressing ticker repair release.. Acceptance criteria: AC1: A tested exact-path classifier selects metadata guards for explicit eligible workstream records and affected workflow tests with product-input equivalence for workflow-only changes; direct tree comparison uses the same exact SHA whose full prior qualification is trusted, including first pushes behind a newer staging head; product, test, dependency, lock, configuration, unknown, and unproven paths select broad validation. Skipped suites are never reported as newly passed.; AC2: The metadata lane validates workstream/hash/scope and runtime narrative guards, including test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers when metadata is changed.; AC3: CI observation allows 243 minutes for bounded prerequisite-plus-gate observation, distinguishes pending expiry, failed tests, and unavailable evidence; it fetches jobs only after terminal status and avoids retry discovery for non-eligible terminal failures.; AC4: Master reuses only trusted successful exact-SHA staging gate evidence after synchronized-ref checks, then passes actual master release identity/provenance checks; the promotion helper requires exact staging/master run IDs and explicit schema-2 reuse mode without relabeling unexecuted tests.; AC5: The Root-authorized local bootstrap exception allows a complete ready plan under the verified exclusive claim without a plan-only push; clean synchronized integration checks remain mandatory.; AC6: Guidance records observed and expected cost implications, focused checks, one coherent publication, compact current handoffs, and all existing authorization, access, paid/provider/quota, data, and evidence safeguards.; AC7: Focused workflow regressions and relevant workstream guards pass; Root's delegated acceptance allows ready_for_integration after one coherent checkpoint, while exact pushed-source CI and Root-owned integration, promotion, and deployment remain mandatory.; AC8: Every GitHub workflow job has a unique display name regardless of whether it runs or is skipped; master requires only Master Release Provenance, and the verifier still validates all unique successful staging jobs. The schema-2 reader accepts prior compatibility receipts and legacy github_replay receipts.; AC9: After a scoped immediate parent, fallback is allowed only when a direct two-tree diff from the exact branch/staging merge-base classifies the entire delta eligible and genuine full CI is verified for that same SHA; an unqualified runtime-bearing parent remains broad.; AC10: Staging runs changed-scope followed by one successful authoritative make validate-integration gate; standalone backend/frontend/E2E jobs are skipped and removed from the gate prerequisites. The full Makefile recipe and all phases remain unchanged, while feature branch broad checks remain. New full_staging_single_gate_v1 evidence is exact-source and explicitly records skipped standalone jobs; prior-full and master verification accept that profile plus legacy successful four/five-job full-run evidence, fail closed on scoped/partial/duplicate/wrong-source runs, and receipts distinguish new from legacy profiles.. Required local profile: unit. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_request": {
+    "objective": "Implement and qualify the authorized development-throughput fixes in fix/development-flow-efficiency: proportionate metadata/workflow validation with meaningful affected guards and honest reused product evidence; trusted exact same-SHA staging evidence reuse for master promotion; correct efficient CI observation; and local-plan bootstrap without plan-only remote publication. Preserve human intent, exclusive claims, meaningful regression coverage, exact evidence, user data, provider/paid/quota controls, original VS Code visibility and human model/effort choices. Use focused workflow tests, one coherent code/test/record publication, and leave integration/promotion/deployment to Root. Do not delay the independently progressing ordinary-ticker repair release."
+  },
+  "goal_request_state": "active",
+  "goal_state": "active",
+  "head": "3423e29b56df220269c97ddb7a26ccd7dd8d5a39",
+  "implementation_sha": "working-tree",
+  "local_validation_profile": "unit",
+  "next_action": "Implementation and records are ready for integration; Root owns exact CI and protected adoption",
+  "parent_branch": "staging",
+  "plan_hash": "387f18340a98506d5f8caff175f65fa5e6fe166117f250c6056df91d4b47775a",
+  "planning_required": false,
+  "planning_state": "ready",
+  "previous_session_ids": [],
+  "progress": {
+    "completed": [
+      "AC1",
+      "AC2",
+      "AC3",
+      "AC4",
+      "AC5",
+      "AC6",
+      "AC7",
+      "AC8",
+      "AC9",
+      "AC10"
+    ],
+    "current_blocker": "Exact pushed-source CI and Root protected adoption remain pending",
+    "current_phase": "ready_for_integration",
+    "total": 10
+  },
+  "remote": "3423e29b56df220269c97ddb7a26ccd7dd8d5a39",
+  "remote_sha": "3423e29b56df220269c97ddb7a26ccd7dd8d5a39",
+  "remote_synchronized": true,
+  "retained_docker_resources": [],
+  "schema": 2,
+  "session_id": "b07dfe18-088a-42fa-8e1e-941127583d52",
+  "validation_tier": "full_integration",
+  "workstream": "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency",
+  "workstream_files": [
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/plan.yaml",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/handoff.md",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/validation.jsonl",
+    "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency/ops/workstreams/fix-development-flow-efficiency/session.json"
+  ],
+  "worktree": "/home/m920q/charting-platform/.ai/worktrees/fix-development-flow-efficiency",
+  "worktree_id": "fix-development-flow-efficiency-164d68b654"
+}

@@ -90,8 +90,68 @@ def test_schema_four_plan_readiness_and_profiles() -> None:
         "local_validation_profile": "unit",
     }
     assert module.plan_ready(ready) is True
+    assert module.plan_bootstrap_ready(ready) is True
+    assert module.plan_bootstrap_ready({**ready, "planning_state": "draft"}) is False
+    assert module.plan_bootstrap_ready(ready) is True
+    assert module.plan_bootstrap_ready({**ready, "planning_state": "draft"}) is False
     assert module.profile_requires_docker("docker_integration") is True
     assert module.profile_requires_docker("unit") is False
+
+
+def test_local_bootstrap_exception_still_requires_complete_plan():
+    session = importlib.util.spec_from_file_location(
+        "agent_session_bootstrap",
+        Path(__file__).parents[2] / "scripts" / "agent-session.py",
+    )
+    assert session and session.loader
+    module = importlib.util.module_from_spec(session)
+    session.loader.exec_module(module)
+    plan = {
+        "schema": 4,
+        "planning_state": "ready",
+        "scope": ["workflow"],
+        "owned_paths": ["scripts/"],
+        "acceptance_criteria": [{"id": "AC1", "text": "works"}],
+        "branch_tests": ["make test"],
+        "local_validation_profile": "unit",
+        "bootstrap_exception": "Root-authorized 2026-11-05: skip the plan-only commit/push",
+    }
+    assert module.plan_bootstrap_ready(plan)
+    assert not module.plan_bootstrap_ready({**plan, "scope": []})
+    assert module.local_bootstrap_changes_allowed(
+        "fix/example",
+        plan,
+        [
+            "ops/workstreams/fix-example/plan.yaml",
+            "ops/workstreams/fix-example/session.json",
+        ],
+    )
+    assert not module.local_bootstrap_changes_allowed(
+        "fix/example", plan, ["scripts/product.py"]
+    )
+
+
+def test_workflow_only_local_profile_stays_focused_and_unknown_paths_fail_closed():
+    profile_path = Path(__file__).parents[2] / "scripts" / "validation_profile.py"
+    profile = importlib.util.spec_from_file_location("workflow_profile", profile_path)
+    assert profile and profile.loader
+    module = importlib.util.module_from_spec(profile)
+    profile.loader.exec_module(module)
+    values = {
+        "scope": ["workflow-only controls", "provider/quota policy preserved"],
+        "owned_paths": [
+            ".github/workflows/ci.yml",
+            "scripts/staging.py",
+            "tests/workflow/test_staging_workflow.py",
+        ],
+    }
+    assert module.minimum_profile(values) == "unit"
+    assert (
+        module.minimum_profile(
+            {**values, "owned_paths": [*values["owned_paths"], "backend/app/main.py"]}
+        )
+        == "docker_integration"
+    )
 
 
 def test_goal_budget_and_current_validation_are_explicit() -> None:
