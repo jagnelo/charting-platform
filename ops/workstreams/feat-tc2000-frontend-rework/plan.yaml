@@ -74,19 +74,8 @@ archived_prior_accepted_f8y_20261028_closure_summary: 'integration_capture: exac
   structured protected-resource comparison passed. The new closing records tip still requires its own exact branch CI before
   Root-supported integration. AC1-AC9, official REF-HELP-V25, broader product work, genuine Provider/issuer proof, target
   acceptance, and deployment remain open or Root-owned; this is not full feature-roadmap completion.'
-human_closure_authorization: Root accepted this bounded software checkpoint under the existing human-delegated authority;
-  acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json
-  (SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). This records Root acceptance, not a new human
-  quote or personal human testing.
-closure_summary: 'Root accepted the bounded tc-ordinary-remote-ticker-selection-errors-20261105 software checkpoint under
-  existing delegation (receipt SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). Tested TC frontend
-  source 36e7ad2cb08c769a242773ab2b6be69fcc350774; combined served backend source 6eae00eb8380438da771fed0c42d19587e9520ce;
-  images sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 and sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a.
-  Accepted evidence: functional 203 passed/2 configured opt-in skips/0 failed/0 retries, all seven acquisition cases; strict
-  visual 104/104 across four projects with unchanged references/tolerance and zero retries; served Enter/Go 2/2; retained
-  SPY7/IGV8 and 16 negative bindings. The exact closing-tip CI remains pending Root. Root also owns the ETF→TC staging batch,
-  staging/master gates, preserved-data rollout and genuine deployed UI/source checks. The nine-item roadmap and official REF-HELP-V25
-  parity remain open. integration_capture: exact branch HEAD.'
+human_closure_authorization: "The human standing delegation covers technical checkpoint acceptance and promotion. Root accepted this exact corrective implementation on 2026-11-05 in /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json (SHA256 768cfc9a3ecca80fb392d08896a406f8a7849be049671a23eb1c5e84fad7e7f8). This is delegated technical acceptance, not a claim of personal human testing. Root retains exact published CI, correct-bundle browser/full profile, integration, promotion and deployment gates."
+closure_summary: "Corrective same-snapshot holding-action followup: one destructive array-returning watcher now compares ETF, snapshot ID and industry as separate sources. Mounted regression reproduced the defect before the fix; the corrected component suite passed 4/4, frontend type-check and diff checks passed. Real snapshot/industry/fund changes still clear selection. No E2E assertion, timeout, retry, reference, tolerance, source policy or dataset changed. Root accepted exact file hashes. Exact committed-bundle focused browser, closing-tip CI and final combined full functional/strict-visual release proof remain Root-owned and mandatory; the unchanged 18.2s browser baseline is not fixed-source proof. Prior accepted checkpoints and complete roadmaps remain preserved. integration_capture: exact branch HEAD."
 validation_tier: full_integration
 human_validation_authorization: The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging
   baseline; all application/workstation changes use the complete integration gate.
@@ -651,9 +640,7 @@ previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 roadmap_goal: Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and
   ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after
   staging promotion, and stopping at ready_for_human_review.
-goal: Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection
-  errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards,
-  picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.
+goal: "Repair ordinary ticker selection, including exact discovered Enter/Go, superseded error isolation, and reported-holding action stability across same-snapshot refreshes; preserve genuine context invalidation and all existing roadmaps."
 historical_checkpoint_archive:
   recorded_from_commit: 74b854d93a2e6853e2c59db1ea29293504b65071
   recorded_at: '2026-10-27T22:28:35Z'
@@ -5380,3 +5367,32 @@ prior_accepted_typed_enter_checkpoint_archive:
   status: ready_for_integration
   archived_at: '2026-11-05'
   archive_reason: Accepted 6e1 typed-Enter checkpoint retained before the bounded remote-candidate and error-isolation repair.
+corrective_closure_authorization: 'Root accepted this bounded corrective followup under the existing human-delegated
+  ordinary-ticker checkpoint authority. Receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json
+  (SHA256 768cfc9a3ecca80fb392d08896a406f8a7849be049671a23eb1c5e84fad7e7f8). This appends a correction to the existing
+  checkpoint; it does not replan the roadmap or claim a new human response.'
+correction_summary:
+  checkpoint: tc-ordinary-remote-ticker-selection-errors-20261105
+  cause: A watcher returned a newly allocated array as one source, so Vue treated same-fund/same-snapshot holdings
+    refreshes as identity changes and cleared the active unresolved-row picker before discovery.
+  change: Watch the fund, snapshot ID, and selected industry as separate getter sources. Same-snapshot refresh preserves
+    the selected reported-row picker; actual snapshot, industry, or fund changes still clear it.
+  source_base: 45cc8206602d7823ca29e132d991d88b0bcbbc25
+  source_files:
+    frontend/src/components/workstation/WorkstationToolContent.vue: 3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2
+    frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts: b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e
+  focused_evidence: Mounted WorkstationToolContent suite passed 4/4, including same-snapshot picker preservation
+    and snapshot/industry/fund invalidation; frontend type-check passed. Root directly reviewed source and test
+    output.
+  preserved_failure: Staging workflow 05d98eae75a0e17f7317b135cdbf1455d9e8cddf, CI 42070691181, E2E job 127397741368
+    remains preserved as historical red evidence (201 passed, 1 failed, 107 configured skips).
+  browser_and_release_gates: The earlier 1/1 browser run used unchanged source and is not fixed-source proof. Root
+    will build the exact published frontend and run the focused browser case and remaining release gates; those
+    are pending.
+  integration_capture: exact branch HEAD
+  status: bounded corrective implementation accepted by Root; exact published-bundle browser proof and closing-tip
+    CI pending Root
+  roadmap: All nine original roadmap criteria and prior accepted archives remain unchanged and open as previously
+    recorded.
+
+ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}

@@ -2763,7 +2763,7 @@ previously_accepted_provider_vjl_migration_impact: No migration is anticipated o
 previously_accepted_provider_vjl_deployment_impact: None in this checkpoint; Root retains production and release ownership.
 previously_accepted_active_checkpoint_id: provider-generic-etv-taxonomy-reconciliation-20261103
 previously_accepted_provider_etv_routing_active_checkpoint_id: provider-canonical-etv-issuer-routing-parity-20261104
-active_checkpoint_id: provider-exact-symbol-acquisition-20261105
+active_checkpoint_id: provider-history-acquisition-quota-outcomes-20261105
 previously_accepted_provider_cached_search_context:
   goal: 'Close only the bounded provider-on-demand-cached-search-outcome-reuse-20261028 repair: cached
     fresh search snapshots must return correct selected-provider outcomes/counts without crashing or re-fetching.
@@ -14333,109 +14333,189 @@ previously_accepted_provider_exact_acquire_migration_impact: None; no database m
 previously_accepted_provider_exact_acquire_live_test_impact: No provider, issuer, or SEC transport was executed; none is authorized in this checkpoint.
 previously_accepted_provider_exact_acquire_deployment_impact: None; Root owns acceptance, integration, promotion, deployment, and genuine provider calls.
 
-# Current human-activated exact-symbol discovery follow-up; prior acquisition and ETV checkpoints remain archived.
+previously_accepted_provider_exact_symbol_discovery_followup:
+  # Current human-activated exact-symbol discovery follow-up; prior acquisition and ETV checkpoints remain archived.
+  goal: >-
+    Repair ordinary ticker discovery so a valid admitted exact ticker omitted from the bounded fuzzy candidates is exposed as a user-selectable result through at most one authoritative exact-profile fallback per query.
+  scope:
+  - Continue the same Provider branch, worktree, session claim and original visible session. The bounded unbudgeted native goal was created at 1793846565; preserve all completed goal accounting and the full 24 Provider/14 ETF roadmaps.
+  - The reviewed c102 checkpoint is the source base. On a ticker-shaped local discovery miss, use at most one exact provider profile fallback from a provider admitted in the current fuzzy search, through the ordinary explicit request scope and provider runtime; keep the provider fuzzy limit fixed and do not page until a result appears.
+  - Preserve free-text discovery, active type filters, and all search/metadata routing, entitlement, quota, physical-request, scope, rate and hold gates. Do not invent a provider when search is empty or held.
+  - Expose only an exact profile whose selected provider, profile and canonical symbols, exact provider listing, and stable domain identifier match. Return a provider candidate only; do not create or mutate canonical instruments before the user selects it.
+  - Preserve admitted provider provenance from a fresh cached fuzzy page even when that page contains zero rows, allowing the same bounded exact fallback without repeating fuzzy transport.
+  - No source HTTP, real-ledger or policy/quota/hold mutation, full/heavy fixture, production/target change, staging/master operation, or sibling worktree edit. Root owns final exact CI, combined qualification, integration and deployment.
+  owned_paths:
+  - backend/app/routers/instruments.py
+  - backend/app/services/market_data.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
+  branch_tests:
+    - "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)"
+    - "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)"
+    - "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)"
+    - "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
+  branch_tests_reason: >-
+    Root reviewed the exact three source/test hashes in the conditional acceptance receipt. The focused router and provider
+    search-persistence command passed 67/67 in 27.67 seconds, including fuzzy omission, cached empty-page provenance,
+    exact identity/listing/domain checks, type/free-text filters, search/metadata/runtime holds and no canonical writes.
+    Ruff and format checks plus git diff --check pass. The prior selected-acquire runtime and three-case PostgreSQL proof
+    remain separately scoped and unchanged. No provider HTTP occurred. The cumulative branch local profile is
+    full_stack_browser because it includes the earlier Root-reviewed shared calendar test; no full local browser matrix
+    is claimed here. Exact closing-tip CI and Root's combined release profile remain pending.
+  acceptance_criteria:
+  - id: DISCOVERY-1
+    text: When a ticker-shaped query is absent from fixed bounded fuzzy results, discovery performs at most one exact get_instrument_profile call through an actually admitted provider that participated in search; it never expands or paginates the fuzzy page.
+  - id: DISCOVERY-2
+    text: Search and metadata capability, explicit request scope, current routing eligibility, entitlement, quota, rate and provider holds remain enforced; held search or metadata paths cannot trigger exact transport and runtime admission denials remain held outcomes.
+  - id: DISCOVERY-3
+    text: The exact candidate is exposed only after provider, profile symbol, canonical symbol, exact provider listing and stable domain identifier match; requested type filters remain active and discovery creates no canonical instrument before deliberate selection.
+  - id: DISCOVERY-4
+    text: Fresh empty fuzzy-search snapshots retain their actual admitted provider provenance for the bounded exact fallback; an empty or held provider chain never fabricates a provider or makes an extra request.
+  - id: DISCOVERY-5
+    text: The focused router/provider-search suite and normal static checks pass with no provider HTTP. The cumulative branch remains full_stack_browser; exact closing-tip CI and Root's combined local/runtime and protected release gates remain mandatory.
+  next_action: >-
+    Freeze the single coherent closing publication for Root-owned observation of the exact closing-tip CI. Do not
+    repeat the backend collector, PostgreSQL proof, build, or browser matrix; Root retains the final combined release
+    profile and protected integration.
+  human_intent_authorization: >-
+    Human directly activated this same-topic exact-symbol discovery correction in the original visible Provider session,
+    releasing the clean c102 checkpoint for this continuation. Activation receipt:
+    /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-exact-discovery-gap-root-activation-20261105.json.
+    No provider HTTP, target/policy/quota/hold change, sibling edit, or protected-ref operation is authorized.
+  checkpoint_status: ready_for_integration
+  progress:
+    completed:
+    - DISCOVERY-1
+    - DISCOVERY-2
+    - DISCOVERY-3
+    - DISCOVERY-4
+    - DISCOVERY-5
+    total: 5
+    current_phase: bounded_software_checkpoint_accepted_final_tip_ci_pending
+    current_blocker: Exact closing-tip backend/DDL/frontend/branch/browser CI and Root's combined local/runtime/release gates remain mandatory and pending.
+    next_action: Root owns observation of the new exact published tip and integration only after all required jobs and combined gates pass.
+  human_closure_authorization: >-
+    Root conditionally accepted the bounded software checkpoint under standing human delegation; this is delegated
+    technical acceptance, not a direct human quotation. Receipt:
+    /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json (SHA-256 7ead5de22793ab366822286cb4fecf4fb05472d29b307f7dad6d2b700ede6ad6).
+  integration_checkpoint_authorization: >-
+    Root authorized this bounded checkpoint for ready_for_integration under standing human delegation. Root owns exact
+    closing-tip CI observation, combined qualification, persistent staging integration, promotion, deployment and genuine
+    provider/UI checks. Integration remains gated on all exact final-tip and combined release evidence.
+  local_validation_reason: >-
+    The required cumulative local profile is full_stack_browser because this branch includes the previously approved
+    shared calendar-readiness E2E test file. This follow-up passed 67 focused router/provider-search tests with mocked
+    provider transport; the earlier exact-acquire PostgreSQL proof and Root's one-case pinned browser proof remain scoped
+    to their original boundaries. No complete local browser matrix is claimed. Root's combined full_stack_browser
+    qualification and final exact-tip CI remain pending.
+  current_gate_checkpoint: >-
+    Root conditionally accepted the discovery behavior on the exact source pins in the acceptance receipt. The focused
+    router/provider-persistence suite passed 67/67 in 27.67 seconds; Ruff/format and diff checks passed. Exact-source CI
+    has not yet been observed for the closing tip. Root owns that observation and all combined functional/visual and
+    protected integration gates. Earlier acquisition CI/failures and the c102 checkpoint remain preserved in the archived
+    checkpoint block and validation journal.
+  closure_summary: >-
+    The bounded exact-symbol discovery correction is conditionally accepted by Root on the reviewed source hashes. It
+    adds one admitted exact-profile fallback to ticker-shaped fuzzy misses, preserves the fixed fuzzy result limit,
+    filters and runtime holds, validates exact provider/symbol/listing/domain evidence, and retains provider provenance for
+    fresh empty search caches. Focused evidence is 67/67 router/provider-persistence tests; no source HTTP or canonical
+    writes occurred. The cumulative local profile remains full_stack_browser, with no full local matrix claimed. Final
+    exact-tip CI and Root's combined release qualification remain mandatory and pending. All prior accepted checkpoints,
+    CI failures and 24 Provider/14 ETF roadmaps remain. integration_capture: exact branch HEAD.
+  migration_impact: None; no database schema or migration changes.
+  live_test_impact: No provider, issuer, or SEC transport was executed; none is authorized by this checkpoint.
+  deployment_impact: None; Root owns protected integration, promotion, deployment and genuine provider operations.
+
+  manifest_portability_followup:
+    source_sha: 314528777893f320f6e898085da3180561843f0c
+    previous_exact_ci:
+      run_id: 41961103850
+      branch_declared_job_id: 127037609000
+      backend: passed
+      branch_declared: failed before tests because rtk was unavailable in the hosted runner
+      root_review: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json
+    correction: Only the active focused-exact-ticker-discovery command was made portable; selection, full-backend-suite command ID and CI-covered mapping are unchanged.
+    corrected_command: uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q
+    runner_validation: 67 passed, 0 failed, 0 errors, 0 skipped; executed through the existing branch runner with CI coverage variables and rtk absent from PATH.
+    prior_checkpoint_acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json
+    closing_tip_ci: pending; Root owns observation
+
+
+# Current human-activated history acquisition quota-outcome repair; prior accepted checkpoints remain archived.
 goal: >-
-  Repair ordinary ticker discovery so a valid admitted exact ticker omitted from the bounded fuzzy candidates is exposed as a user-selectable result through at most one authoritative exact-profile fallback per query.
+  Ensure ordinary history acquisition reports expected quota admission, coordinator, and unknown-contract failures as explicit held outcomes, while unexpected errors remain failed and are logged with safe request context.
 scope:
-- Continue the same Provider branch, worktree, session claim and original visible session. The bounded unbudgeted native goal was created at 1793846565; preserve all completed goal accounting and the full 24 Provider/14 ETF roadmaps.
-- The reviewed c102 checkpoint is the source base. On a ticker-shaped local discovery miss, use at most one exact provider profile fallback from a provider admitted in the current fuzzy search, through the ordinary explicit request scope and provider runtime; keep the provider fuzzy limit fixed and do not page until a result appears.
-- Preserve free-text discovery, active type filters, and all search/metadata routing, entitlement, quota, physical-request, scope, rate and hold gates. Do not invent a provider when search is empty or held.
-- Expose only an exact profile whose selected provider, profile and canonical symbols, exact provider listing, and stable domain identifier match. Return a provider candidate only; do not create or mutate canonical instruments before the user selects it.
-- Preserve admitted provider provenance from a fresh cached fuzzy page even when that page contains zero rows, allowing the same bounded exact fallback without repeating fuzzy transport.
-- No source HTTP, real-ledger or policy/quota/hold mutation, full/heavy fixture, production/target change, staging/master operation, or sibling worktree edit. Root owns final exact CI, combined qualification, integration and deployment.
+- Continue in the existing Provider worktree, original session and claim; preserve all completed goal accounting and the complete Provider and ETF roadmaps.
+- Map ProviderQuotaAdmissionError, ProviderQuotaCoordinatorError, and ProviderQuotaUnknownError to the established held status and corresponding reason codes used by provider discovery; preserve existing rate-limit, scope, no-data, success and persistence behavior.
+- Log unexpected history-acquisition exceptions with request ID, instrument ID and exception type only; do not log exception messages, credentials, or response bodies, and keep the public result failed with the established generic reason.
+- Add endpoint regressions for each typed hold, unexpected-error safe logging, and unchanged successful history behavior. No provider HTTP, real quota-ledger access/write, policy/hold mutation, fixture, target, sibling, staging, or deployment action.
 owned_paths:
 - backend/app/routers/instruments.py
-- backend/app/services/market_data.py
-- backend/tests/unit/routers/test_instruments_router.py
-- backend/tests/unit/services/test_provider_persistence.py
+- backend/tests/unit/services/test_provider_explicit_acquisition.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
 branch_tests:
   - "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)"
   - "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)"
   - "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)"
+  - "backend/tests/unit/services/test_provider_explicit_acquisition.py (typed quota holds, safe unexpected-error logging, and successful history regression)"
   - "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
 branch_tests_reason: >-
-  Root reviewed the exact three source/test hashes in the conditional acceptance receipt. The focused router and provider
-  search-persistence command passed 67/67 in 27.67 seconds, including fuzzy omission, cached empty-page provenance,
-  exact identity/listing/domain checks, type/free-text filters, search/metadata/runtime holds and no canonical writes.
-  Ruff and format checks plus git diff --check pass. The prior selected-acquire runtime and three-case PostgreSQL proof
-  remain separately scoped and unchanged. No provider HTTP occurred. The cumulative branch local profile is
-  full_stack_browser because it includes the earlier Root-reviewed shared calendar test; no full local browser matrix
-  is claimed here. Exact closing-tip CI and Root's combined release profile remain pending.
+  The focused explicit-acquisition endpoint module passed 18/18 in 2.96s on the exact reviewed source hashes. Ruff check,
+  Ruff format check, and git diff --check passed. A prior collection attempt failed before executing tests because the
+  test module omitted an import; that setup failure is preserved in validation.jsonl and was corrected without changing
+  product behavior. No provider requests, real-ledger access, quota or policy mutation, or heavy fixtures occurred.
+  Root's read-only production quota evidence supports a pre-send hold but does not identify the exact swallowed exception;
+  the fix handles the known typed hold classes and safely exposes only non-sensitive context for other failures.
 acceptance_criteria:
-- id: DISCOVERY-1
-  text: When a ticker-shaped query is absent from fixed bounded fuzzy results, discovery performs at most one exact get_instrument_profile call through an actually admitted provider that participated in search; it never expands or paginates the fuzzy page.
-- id: DISCOVERY-2
-  text: Search and metadata capability, explicit request scope, current routing eligibility, entitlement, quota, rate and provider holds remain enforced; held search or metadata paths cannot trigger exact transport and runtime admission denials remain held outcomes.
-- id: DISCOVERY-3
-  text: The exact candidate is exposed only after provider, profile symbol, canonical symbol, exact provider listing and stable domain identifier match; requested type filters remain active and discovery creates no canonical instrument before deliberate selection.
-- id: DISCOVERY-4
-  text: Fresh empty fuzzy-search snapshots retain their actual admitted provider provenance for the bounded exact fallback; an empty or held provider chain never fabricates a provider or makes an extra request.
-- id: DISCOVERY-5
-  text: The focused router/provider-search suite and normal static checks pass with no provider HTTP. The cumulative branch remains full_stack_browser; exact closing-tip CI and Root's combined local/runtime and protected release gates remain mandatory.
+- id: HISTORY-HOLD-1
+  text: "ProviderQuotaAdmissionError, ProviderQuotaCoordinatorError, and ProviderQuotaUnknownError return status held with the established reason code; existing rate-limit, scope, and no-data outcomes remain unchanged."
+- id: HISTORY-HOLD-2
+  text: "Unexpected exceptions remain failed with the established generic reason, and safe logs include request ID, instrument ID, and exception type without exception text or secrets."
+- id: HISTORY-HOLD-3
+  text: "Focused tests prove all typed holds, unexpected-error logging, and unchanged successful history readback; no provider HTTP or real quota-ledger operation occurs."
+- id: HISTORY-HOLD-4
+  text: "The checkpoint records exact source/test hashes, preserves prior accepted checkpoints and all roadmaps, and leaves exact closing-tip CI plus Root-owned combined release gates mandatory and pending."
 next_action: >-
-  Freeze the single coherent closing publication for Root-owned observation of the exact closing-tip CI. Do not
-  repeat the backend collector, PostgreSQL proof, build, or browser matrix; Root retains the final combined release
-  profile and protected integration.
+  Freeze this coherent publication for Root-owned exact closing-tip CI observation; Root owns combined release qualification,
+  protected integration, production checks, and deployment. Do not launch full local fixtures or make provider requests.
 human_intent_authorization: >-
-  Human directly activated this same-topic exact-symbol discovery correction in the original visible Provider session,
-  releasing the clean c102 checkpoint for this continuation. Activation receipt:
-  /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-exact-discovery-gap-root-activation-20261105.json.
-  No provider HTTP, target/policy/quota/hold change, sibling edit, or protected-ref operation is authorized.
+  Human directly activated the bounded ordinary history-acquisition outcome repair in the existing Provider worktree.
+  Root confirmed the existing claim and authorized continuation from exact deployed source 45cc8206602d7823ca29e132d991d88b0bcbbc25.
 checkpoint_status: ready_for_integration
 progress:
   completed:
-  - DISCOVERY-1
-  - DISCOVERY-2
-  - DISCOVERY-3
-  - DISCOVERY-4
-  - DISCOVERY-5
-  total: 5
-  current_phase: bounded_software_checkpoint_accepted_final_tip_ci_pending
-  current_blocker: Exact closing-tip backend/DDL/frontend/branch/browser CI and Root's combined local/runtime/release gates remain mandatory and pending.
-  next_action: Root owns observation of the new exact published tip and integration only after all required jobs and combined gates pass.
+  - HISTORY-HOLD-1
+  - HISTORY-HOLD-2
+  - HISTORY-HOLD-3
+  - HISTORY-HOLD-4
+  total: 4
+  current_phase: bounded_checkpoint_ready_for_root_review_exact_tip_ci_pending
+  current_blocker: Exact closing-tip backend/DDL/frontend/branch/browser CI and Root-owned combined release qualification remain pending.
+  next_action: Root owns exact published-tip CI observation and protected integration only after all required gates pass.
 human_closure_authorization: >-
-  Root conditionally accepted the bounded software checkpoint under standing human delegation; this is delegated
-  technical acceptance, not a direct human quotation. Receipt:
-  /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json (SHA-256 7ead5de22793ab366822286cb4fecf4fb05472d29b307f7dad6d2b700ede6ad6).
+  Root accepted the exact implementation and focused test evidence under standing human delegation; no direct human quotation
+  is attributed. Acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json
+  (SHA-256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398).
 integration_checkpoint_authorization: >-
-  Root authorized this bounded checkpoint for ready_for_integration under standing human delegation. Root owns exact
-  closing-tip CI observation, combined qualification, persistent staging integration, promotion, deployment and genuine
-  provider/UI checks. Integration remains gated on all exact final-tip and combined release evidence.
+  Root authorized one coherent ready_for_integration publication. Root owns exact closing-tip CI, combined full_stack_browser
+  qualification, protected staging integration and downstream production checks; integration remains gated on those results.
+local_validation_profile: full_stack_browser
 local_validation_reason: >-
-  The required cumulative local profile is full_stack_browser because this branch includes the previously approved
-  shared calendar-readiness E2E test file. This follow-up passed 67 focused router/provider-search tests with mocked
-  provider transport; the earlier exact-acquire PostgreSQL proof and Root's one-case pinned browser proof remain scoped
-  to their original boundaries. No complete local browser matrix is claimed. Root's combined full_stack_browser
-  qualification and final exact-tip CI remain pending.
+  The changed route and unit-test files classify as docker_integration, while the cumulative branch profile remains
+  full_stack_browser because of the previously approved shared calendar-readiness E2E test change. This bounded checkpoint
+  ran the focused explicit-acquisition module only (18/18); no full local matrix is claimed. Root owns the combined profile.
 current_gate_checkpoint: >-
-  Root conditionally accepted the discovery behavior on the exact source pins in the acceptance receipt. The focused
-  router/provider-persistence suite passed 67/67 in 27.67 seconds; Ruff/format and diff checks passed. Exact-source CI
-  has not yet been observed for the closing tip. Root owns that observation and all combined functional/visual and
-  protected integration gates. Earlier acquisition CI/failures and the c102 checkpoint remain preserved in the archived
-  checkpoint block and validation journal.
+  Root accepted the exact current implementation hashes. The focused module passed 18/18, Ruff check and format check passed,
+  and git diff --check passed. The previous exact discovery checkpoint and its CI history remain archived. Exact closing-tip
+  CI and combined release qualification are mandatory and pending; Root owns observation and integration.
 closure_summary: >-
-  The bounded exact-symbol discovery correction is conditionally accepted by Root on the reviewed source hashes. It
-  adds one admitted exact-profile fallback to ticker-shaped fuzzy misses, preserves the fixed fuzzy result limit,
-  filters and runtime holds, validates exact provider/symbol/listing/domain evidence, and retains provider provenance for
-  fresh empty search caches. Focused evidence is 67/67 router/provider-persistence tests; no source HTTP or canonical
-  writes occurred. The cumulative local profile remains full_stack_browser, with no full local matrix claimed. Final
-  exact-tip CI and Root's combined release qualification remain mandatory and pending. All prior accepted checkpoints,
-  CI failures and 24 Provider/14 ETF roadmaps remain. integration_capture: exact branch HEAD.
+  This bounded Provider checkpoint maps expected quota admission, quota coordinator, and unknown-contract errors in ordinary
+  history acquisition to explicit held outcomes, while unexpected exceptions remain failed and are safely logged with request
+  ID, instrument ID and exception type. Focused endpoint tests passed 18/18 on the exact reviewed source hashes. No provider
+  HTTP or real-ledger operation occurred. The previous exact-discovery checkpoint, all prior failures, and all 24 Provider/
+  14 ETF roadmap criteria remain preserved and open. Exact closing-tip CI and Root's combined release gates remain mandatory
+  and pending. integration_capture: exact branch HEAD.
 migration_impact: None; no database schema or migration changes.
-live_test_impact: No provider, issuer, or SEC transport was executed; none is authorized by this checkpoint.
-deployment_impact: None; Root owns protected integration, promotion, deployment and genuine provider operations.
-
-manifest_portability_followup:
-  source_sha: 314528777893f320f6e898085da3180561843f0c
-  previous_exact_ci:
-    run_id: 41961103850
-    branch_declared_job_id: 127037609000
-    backend: passed
-    branch_declared: failed before tests because rtk was unavailable in the hosted runner
-    root_review: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json
-  correction: Only the active focused-exact-ticker-discovery command was made portable; selection, full-backend-suite command ID and CI-covered mapping are unchanged.
-  corrected_command: uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q
-  runner_validation: 67 passed, 0 failed, 0 errors, 0 skipped; executed through the existing branch runner with CI coverage variables and rtk absent from PATH.
-  prior_checkpoint_acceptance: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-discovery-software-conditional-acceptance-20261105.json
-  closing_tip_ci: pending; Root owns observation
+live_test_impact: No provider, issuer, or SEC transport was executed; none was authorized in this checkpoint.
+deployment_impact: None; Root owns protected integration, promotion, deployment, and genuine provider operations.

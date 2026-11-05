@@ -1808,13 +1808,13 @@ async def holdings_capability_for_profile(
     db: AsyncSession,
     profile: ETFProfile,
     *,
-    snapshot: ETFHoldingsSnapshotOut | None = None,
+    snapshot: ETFHoldingsSnapshot | None = None,
 ) -> dict[str, Any]:
     """Return operational capability without contacting an external source."""
 
-    latest = snapshot or await get_latest_snapshot(
+    latest = snapshot or await _latest_snapshot_record_for_profile(
         db,
-        profile.instrument_id,
+        profile.id,
         include_holdings=False,
         include_controlled_fixture=False,
     )
@@ -1864,6 +1864,25 @@ async def get_latest_snapshot(
     profile = await get_etf_profile_for_instrument(db, instrument.id)
     if profile is None:
         return None
+    snapshot = await _latest_snapshot_record_for_profile(
+        db,
+        profile.id,
+        include_holdings=include_holdings,
+        include_controlled_fixture=include_controlled_fixture,
+    )
+    if snapshot is None:
+        return None
+    return snapshot_to_out(snapshot, instrument=instrument, include_holdings=include_holdings)
+
+
+async def _latest_snapshot_record_for_profile(
+    db: AsyncSession,
+    profile_id: int,
+    *,
+    include_holdings: bool,
+    include_controlled_fixture: bool,
+) -> ETFHoldingsSnapshot | None:
+    """Load the visible latest ORM row for internal evidence evaluation."""
     options = [selectinload(ETFHoldingsSnapshot.etf_profile)]
     if include_holdings:
         options.append(
@@ -1872,7 +1891,7 @@ async def get_latest_snapshot(
     statement = (
         _apply_snapshot_visibility(select(ETFHoldingsSnapshot))
         .options(*options)
-        .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
+        .where(ETFHoldingsSnapshot.etf_profile_id == profile_id)
     )
     if not include_controlled_fixture:
         statement = statement.where(
@@ -1881,7 +1900,7 @@ async def get_latest_snapshot(
                 ETFHoldingsSnapshot.source_provider != "e2e_reference",
             )
         )
-    snapshot = (
+    return (
         await db.execute(
             statement.order_by(
                 ETFHoldingsSnapshot.composition_date.desc(),
@@ -1890,9 +1909,6 @@ async def get_latest_snapshot(
             ).limit(1)
         )
     ).scalar_one_or_none()
-    if snapshot is None:
-        return None
-    return snapshot_to_out(snapshot, instrument=instrument, include_holdings=include_holdings)
 
 
 async def get_snapshot_by_id(

@@ -5,6 +5,7 @@
     "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)",
     "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)",
     "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)",
+    "backend/tests/unit/services/test_provider_explicit_acquisition.py (typed quota holds, safe unexpected-error logging, and successful history regression)",
     "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
   ],
   "commands": [
@@ -30,10 +31,28 @@
       }
     },
     {
+      "id": "focused-history-acquisition-outcomes",
+      "command": "uv run --no-sync --project backend pytest backend/tests/unit/services/test_provider_explicit_acquisition.py -q",
+      "covers": [
+        4
+      ],
+      "scope_note": "Focused ordinary history endpoint regressions for typed quota holds, safe unexpected-error logging, and unchanged successful history behavior.",
+      "selected": 18,
+      "passed": 18,
+      "failed": 0,
+      "errors": 0,
+      "skipped": 0,
+      "elapsed_seconds": 2.96,
+      "source_sha256": {
+        "backend/app/routers/instruments.py": "c11663d3c6438400bf59891ff5c92b5cc6786e9af784f0d776015b57291e56eb",
+        "backend/tests/unit/services/test_provider_explicit_acquisition.py": "ae581413007f5237f0cd0122b2d65f1d8b8c14b2e52fe2fc03df4527b7559619"
+      }
+    },
+    {
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
-        4
+        5
       ],
       "scope_note": "Complete backend/DDL/coverage gate remains required on the exact published source; not run in this bounded checkpoint."
     }
@@ -45,14 +64,14 @@
     {
       "id": "exact-source-backend-and-branch-ci",
       "covers": [
-        4
+        5
       ],
       "reason": "Complete backend/DDL, frontend, branch-declared, and browser jobs must be terminal green on the exact coherent closing source tip."
     },
     {
       "id": "root-combined-full-stack-browser-release",
       "covers": [
-        4
+        5
       ],
       "reason": "Root owns the combined full_stack_browser profile, protected staging/master integration, promotion, deployment, and genuine ordinary ticker/provider flow checks."
     }
