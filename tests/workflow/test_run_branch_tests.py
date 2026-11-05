@@ -74,6 +74,24 @@ def test_manifest_maps_plan_descriptions_to_commands_and_external_gates(tmp_path
     assert result["ci_covered_commands"] == {"unit": "Backend Tests"}
 
 
+def test_current_workstream_ci_commands_are_repository_portable():
+    plan = ROOT / "ops/workstreams/fix-development-flow-efficiency/plan.yaml"
+    commands = RUNNER.declared_tests(plan)
+
+    assert len(commands) == 3
+    assert all(command.startswith("uv run --project backend ") for command in commands)
+    forbidden = (
+        "rtk ",
+        "/home/",
+        "UV_PROJECT_ENVIRONMENT=",
+        "UV_CACHE_DIR=",
+        "UV_NO_SYNC=",
+        "UV_OFFLINE=",
+        "PYTHONDONTWRITEBYTECODE=",
+    )
+    assert not any(token in command for command in commands for token in forbidden)
+
+
 def test_github_ci_only_reuses_the_backend_job_after_declaring_dependency():
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text())
     branch_job = workflow["jobs"]["branch-declared"]
