@@ -1,24 +1,24 @@
 {
   "acceptance_criteria": [
     {
-      "id": "TCENTER1",
-      "text": "In Workstation, Enter on typed text submits that exact ticker unless the user deliberately arrow-navigated; an exact local ticker match is chosen even when it is not the first fuzzy result."
+      "id": "TCENTER6",
+      "text": "Workstation Enter/Go submits one exact discovered remote ticker through existing identity verification and canonical acquisition; exact local matches win and fuzzy prefixes are never implicitly selected."
     },
     {
-      "id": "TCENTER2",
-      "text": "In shared chart SearchBar, typed Enter submits the exact ticker or exact local result; hover changes only the highlight, while arrow navigation and direct suggestion clicks retain explicit selection behavior."
+      "id": "TCENTER7",
+      "text": "Matching pending discovery can complete deliberate submission; query changes and stale/late results cannot submit another ticker. Duplicate exact listings remain ambiguous."
     },
     {
-      "id": "TCENTER3",
-      "text": "Preserve expression selection, resolved candidate identity verification, restricted picker result/type behavior, and ordinary select-event compatibility."
+      "id": "TCENTER8",
+      "text": "Shared chart SearchBar uses the same exact remote submission while preserving picker/type restrictions, expressions, explicit arrows/clicks, event compatibility, and source-request bounds."
     },
     {
-      "id": "TCENTER4",
-      "text": "Clear stale local options on query changes and ignore late results from older searches."
+      "id": "TCENTER9",
+      "text": "New deliberate selections clear only superseded selection-owned errors. Expected ETF current-analysis unavailability is fund-scoped; stale failures cannot repaint a newer selection, and genuine workspace conflicts remain visible."
     },
     {
-      "id": "TCENTER5",
-      "text": "Focused regression checks, type-check and normal scope/workstream validation pass; publish one coherent implementation commit for Root artifact/profile qualification. Exact-source CI and the complete local profile remain pending."
+      "id": "TCENTER10",
+      "text": "Focused regressions, type-check, normal workstream/scope validation, one coherent publication and exact-source CI are required. Root owns the retained-fixture full functional/strict-visual profile; none is newly claimed."
     }
   ],
   "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
@@ -44,7 +44,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_candidate_ci_status": "Closing publication is the exact-source CI candidate; CI is pending Root observation after push.",
-  "current_checkpoint_status": "Root accepted the bounded ordinary typed-ticker Enter software/profile checkpoint under the existing standing delegation. Functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects at zero retries; served-bundle F Enter probe 1/1. Root acceptance receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json. Exact closing-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending.",
+  "current_checkpoint_status": "Current bounded remote-candidate Enter/Go and selection-error isolation repair in progress. 185 focused frontend tests and vue-tsc passed. Exact-source CI and shared retained-fixture profile pending Root; no new checkpoint acceptance claimed.",
   "current_exact_ci": {
     "conclusion": null,
     "head_sha": null,
@@ -53,45 +53,61 @@
     "status": "pending"
   },
   "current_software_checkpoint": {
-    "id": "tc-ordinary-ticker-enter-selection-20261105",
-    "status": "ready_for_integration",
+    "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
+    "status": "in_progress",
     "criteria_ids": [
-      "TCENTER1",
-      "TCENTER2",
-      "TCENTER3",
-      "TCENTER4",
-      "TCENTER5"
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9",
+      "TCENTER10"
     ],
     "criteria_total": 5,
     "criteria_completed": [
-      "TCENTER1",
-      "TCENTER2",
-      "TCENTER3",
-      "TCENTER4",
-      "TCENTER5"
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9"
     ],
-    "local_evidence": "Root accepted the complete local profile at source 6e1ed68d2e1c10968716cb362fd56fda9f83ec75: functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104 across four projects, zero retries; served-bundle F Enter probe 1/1. Controlled local API responses are not genuine Provider/issuer proof. Exact evidence and cleanup receipts are linked in the plan and validation journal.",
-    "source_base": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2",
-    "acceptance": "Root accepted the bounded software/profile checkpoint under standing delegated authority; exact receipt is /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-TC-6e1-complete-local-profile-root-acceptance-20261105.json. This is not full-roadmap acceptance.",
-    "planning_authority": "Human activation in the original TC session on 2026-11-05 under standing authority.",
+    "local_evidence": "Focused Vitest: SearchBar 23 passed, workspace store 86 passed, Workstation 76 passed; frontend type-check passed. Root-reported deployed USMV, QQQ, and returned-AAPL behavior is separate evidence, not the pending current-source profile.",
+    "source_base": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+    "acceptance": "Pending Root acceptance after exact CI and retained-fixture profile.",
+    "planning_authority": "Human activation in original TC session under standing authority.",
     "integration_capture": "exact branch HEAD",
-    "pending": "Exact closing-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending. The nine-item roadmap remains open; retained backend 52fa was not a newly combined Provider/ETF release."
+    "pending": "Normal publication, exact CI, Root-owned full functional/strict-visual profile, protected integration/deployment, genuine Provider/issuer proof.",
+    "adoption_receipt": "/home/m920q/charting-platform/.ai/validation/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.json",
+    "adoption_receipt_sha256": "fa0009d50ca5fdd5e79fc2a813f8e719dd1c411ead879f89466df1878680f97e",
+    "frozen_import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.yaml",
+    "frozen_import_manifest_sha256": "5ce64747f24948fb58ab4679f244cdae57d3e57fa0723680a1c9c14900d19997"
   },
-  "dirty_paths": [
-    "frontend/src/components/common/SearchBar.vue",
-    "frontend/src/views/WorkstationView.vue",
-    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/components/test_search_bar.test.ts",
-    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl",
-    "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.json"
-  ],
+  "dirty_paths": [],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 6,
+    "containers": [
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-frontend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-worker-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-backend-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-postgres-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
+    ],
+    "known_bytes": 1346474592,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
+      "charting-stack-feat-tc2000-frontend-rework-f63d60ae"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 1343406688,
+    "volume_count": 12,
+    "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
   "docker_before_cleanup": {
     "accounting_complete": true,
@@ -181,7 +197,7 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Repair ordinary typed-ticker Enter behavior in Workstation and shared chart SearchBar: submit the exact typed ticker or its exact local match instead of implicitly selecting a fuzzy prefix, while deliberate arrow navigation and suggestion clicks retain their chosen-option behavior. Preserve expressions, candidate identity verification, picker/type restrictions, and stale-search fencing.",
+  "goal_objective": "Advance feat/tc2000-frontend-rework: Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery. Acceptance criteria: TCENTER6: Workstation Enter/Go submits one exact discovered remote ticker through existing identity verification and canonical acquisition; exact local matches win and fuzzy prefixes are never implicitly selected.; TCENTER7: Matching pending discovery can complete deliberate submission; query changes and stale/late results cannot submit another ticker. Duplicate exact listings remain ambiguous.; TCENTER8: Shared chart SearchBar uses the same exact remote submission while preserving picker/type restrictions, expressions, explicit arrows/clicks, event compatibility, and source-request bounds.; TCENTER9: New deliberate selections clear only superseded selection-owned errors. Expected ETF current-analysis unavailability is fund-scoped; stale failures cannot repaint a newer selection, and genuine workspace conflicts remain visible.; TCENTER10: Focused regressions, type-check, normal workstream/scope validation, one coherent publication and exact-source CI are required. Root owns the retained-fixture full functional/strict-visual profile; none is newly claimed.",
   "goal_recorded_at": "2026-10-23T05:19:32.501383+00:00",
   "goal_request": {
     "objective": "Repair ordinary typed-ticker Enter behavior in Workstation and shared chart SearchBar: submit the exact typed ticker or its exact local match instead of implicitly selecting a fuzzy prefix, while deliberate arrow navigation and suggestion clicks retain their chosen-option behavior. Preserve expressions, candidate identity verification, picker/type restrictions, and stale-search fencing."
@@ -189,7 +205,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "6e1ed68d2e1c10968716cb362fd56fda9f83ec75",
+  "head": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -256,59 +272,53 @@
     },
     "recorded_at": "2026-10-27T22:28:35Z"
   },
-  "implementation_sha": "6e1ed68d2e1c10968716cb362fd56fda9f83ec75",
+  "implementation_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
   "integration_checkpoint": {
-    "id": "tc-ordinary-ticker-enter-selection-20261105",
-    "objective": "Make typed Enter submit the exact ticker or exact local match in Workstation and shared chart SearchBar; preserve explicit arrow/click selection, expressions, identity checks, picker scopes, and stale-search fencing.",
+    "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
+    "objective": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.",
     "status": "in_progress",
-    "acceptance": "Pending. No new checkpoint acceptance is claimed.",
-    "planning_authority": "Human activation in the original TC session on 2026-11-05 under standing authority; Root coordinates final profile and integration.",
-    "source_capture": "Current source is the TC branch after adoption of exact green staging dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2; capture exact branch HEAD at publication.",
+    "acceptance": "Pending; no new checkpoint acceptance claimed.",
+    "planning_authority": "Human activation in original TC session under standing authority; Root coordinates exact CI and shared full profile.",
+    "source_capture": "Capture exact branch HEAD at publication.",
     "criteria_ids": [
-      "TCENTER1",
-      "TCENTER2",
-      "TCENTER3",
-      "TCENTER4",
-      "TCENTER5"
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9",
+      "TCENTER10"
     ],
     "criteria_total": 5,
     "criteria_completed": [
-      "TCENTER1",
-      "TCENTER2",
-      "TCENTER3",
-      "TCENTER4"
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9"
     ],
-    "required_next_gate": "Complete one local implementation commit; Root then qualifies the immutable frontend with the compatible backend and owns exact-source CI before any closure or integration.",
-    "full_roadmap": "All nine original AC1-AC9 criteria, official REF-HELP-V25, genuine Provider/issuer proof, protected integration, and deployment remain open or Root-owned."
+    "required_next_gate": "Complete normal checks and one source+records publication; Root runs exact CI and shared retained-fixture full profile.",
+    "full_roadmap": "All nine AC1-AC9, official REF-HELP-V25, genuine Provider/issuer proof, protected integration, and deployment remain open or Root-owned."
   },
   "interrupted": false,
   "last_checkpoint": "2026-11-04T16:24:18Z",
   "last_human_progress_update": "2026-10-17T03:56:02+00:00",
-  "latest_exact_ci_audit": {
-    "head_sha": "9473062c7aeab1c9f21d2564c1041bbda0a78dc6",
-    "receipt": ".ai/staging-attempts/tc-f8y-root-checkpoint-acceptance-20261028.json",
-    "result": "Exact F8Y implementation-source CI terminal success; E2E196 passed/110 configured skips, required branch jobs green, Exhaustive skipped by feature-branch policy.",
-    "run_id": 40752914676
-  },
+  "latest_exact_ci_audit": "Pending for the new ordinary remote-candidate/error-isolation source; Root owns observation.",
   "latest_staging_adoption": {
-    "canonical_receipt": "ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.json",
-    "checkpoint": "The new ordinary typed-ticker Enter repair is active and unaccepted. Prior accepted checkpoints and the full roadmap remain intact.",
-    "component_proof": "Frontend tree eacb29643e4dd3e95721188bcb76c1d39b4983f2 remained identical to accepted b11. Backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c is the exact released staging tree.",
-    "import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.yaml",
-    "import_manifest_sha256": "39d9f839ff0fe4eac5b487a934d915b450b42c85e37fc595034bf1e042fedbbc",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/validation/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.json",
+    "receipt_sha256": "fa0009d50ca5fdd5e79fc2a813f8e719dd1c411ead879f89466df1878680f97e",
+    "staging_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+    "staging_ci_run": 41973253654,
+    "staging_ci_status": "Terminal green; staging and independent master runs succeeded per canonical promotion receipt.",
+    "premerge_feature_head": "b8452294ca24bb7f4c52f3b0fd07a2c9d63d27c2",
+    "merge_result": "Exact Root-released e9 staging ancestry is present in the TC branch; no conflicts.",
     "imported_paths": 891,
-    "local_validation": "Adoption only. Exact receipt and manifest are copied/pinned; final normal scope/workstream validation is part of this candidate. No new full profile is claimed.",
-    "manifest_sha256": "9cc483ee9aafee6e8d999a1e28d822b83dbb4e3ae60ab4424a53bce1fa86427c",
-    "merge_result": "Exact Root-released green staging fast-forwarded into the original TC branch. No conflict or sibling worktree mutation.",
-    "premerge_feature_head": "b11d9d1a722a19d234a166a000becea582993fce",
-    "receipt_sha256": "af0903527a29c5c8792ebe9cab881b3944596bac0c9028bced8d772d626de09a",
-    "staging_ci_run": 41879969933,
-    "staging_ci_status": "Terminal green per exact canonical receipt; supported reconciliation completed and degraded marker absent.",
-    "staging_sha": "dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2"
+    "import_manifest": "ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.yaml",
+    "import_manifest_sha256": "4e9bf239a3a1a520e75bdd44dcd2663cce1e450ffb0730be8ac5cf2ebf647d01",
+    "component_proof": "Imported staging producer files are pinned to the exact e9 tree; TC-owned frontend work remains in this worktree.",
+    "local_validation": "Focused source tests/type-check passed; current workstream/scope guards run at publication.",
+    "checkpoint": "Current ordinary exact-candidate/error-isolation checkpoint remains in progress; full profile and exact-source CI pending Root."
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Make the coherent local implementation commit without pushing, then give Root the exact SHA and frontend tree for its allocated artifact/profile.",
+  "next_action": "Run normal workstream/scope/hash checks; publish once, then Root owns exact CI and shared full profile.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -339,7 +349,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "4d52e3c4c8fe5bff547e7574c94e102e5a220981c02a23d361fcfa067bfcd116",
+  "plan_hash": "b5d70b9dff18dee3a71b25ebad68088188c877b92dbb26f5231d539812619c33",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -368,16 +378,15 @@
   },
   "progress": {
     "completed": [
-      "TCENTER1",
-      "TCENTER2",
-      "TCENTER3",
-      "TCENTER4",
-      "TCENTER5"
+      "TCENTER6",
+      "TCENTER7",
+      "TCENTER8",
+      "TCENTER9"
     ],
     "total": 5,
-    "current_phase": "Root-accepted bounded typed-Enter software/profile checkpoint; one coherent closing-record publication is being finalized. Exact-tip CI and Root-owned protected integration/deployment/genuine-source gates remain pending.",
-    "current_blocker": "No implementation or local-profile blocker. Exact closing-tip CI and Root-owned protected integration/deployment and genuine Provider/issuer proof remain pending.",
-    "next_action": "Root observes exact closing-tip CI for the single closing publication; Root owns protected integration/deployment and genuine Provider/issuer proof. Preserve the wider roadmap as open.",
+    "current_phase": "Focused implementation and affected tests/type-check are green; finishing current records and normal validation before one coherent publication.",
+    "current_blocker": "Normal workstream/scope validation and coherent publication remain; no product blocker is known.",
+    "next_action": "Run normal workstream/scope/hash checks; publish once, then Root owns exact CI and shared full profile.",
     "updated_at": "2026-11-05"
   },
   "push_status": {
@@ -387,8 +396,8 @@
     "remote": "origin",
     "status": "local candidate unpublished"
   },
-  "remote": "b11d9d1a722a19d234a166a000becea582993fce",
-  "remote_sha": "b11d9d1a722a19d234a166a000becea582993fce",
+  "remote": "b8452294ca24bb7f4c52f3b0fd07a2c9d63d27c2",
+  "remote_sha": "b8452294ca24bb7f4c52f3b0fd07a2c9d63d27c2",
   "remote_synchronized": false,
   "remote_tracking_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
   "retained_docker_resources": [
@@ -529,7 +538,7 @@
       "staging_sha": "4d4a278b1b086745b22aab05d3d960539ad02c97"
     }
   ],
-  "state": "ready_for_integration",
+  "state": "active",
   "takeover_history": [
     {
       "at": "2026-09-09T12:31:34.588751+00:00",
@@ -610,5 +619,49 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
+  "approved_frontend_consumer_adaptations": [
+    {
+      "path": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
+      "source_sha": "f80995c3ed680263ca0db405d4dd03c9aafc1646",
+      "accepted_blob": "6cf1e43892058d2516e7c95f039375702f66c57a",
+      "delta": "Keep the Dashboard's watchlist and widget symbol picker on canonical-only local search and identity lookup. It does not expose source discovery or acquire chart history; those require the dedicated ordinary chart action.",
+      "rationale": "This exact TC-owned user-flow adaptation prevents picker typeahead and selection from reaching provider search in legacy mode. The historical whole-frontend presentation source/blob pin remains recorded at f80995c3. The exact consumer pin extends only that same presentation file and confines executable drift to this one path. No backend route, provider policy, identity rule, acquisition action, or other dashboard component is changed."
+    },
+    {
+      "path": "frontend/src/views/ETFHoldingsView.vue",
+      "source_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+      "accepted_blob": "a4315349cf36d9658e2b3d6e0ded024ddbb597a7",
+      "delta": "On deliberate canonical ETF or Exchange Traded Vehicle profile-card or picker selection, reuse the existing producer-qualified capability and acquire APIs to load or refresh only that selected fund's holdings. Include both the provider's raw \"ETV\" discovery type and the persisted \"Exchange Traded Vehicle\" type in the existing picker scope; preserve Index ETF eligibility and do not admit ETNs or infer issuer eligibility from a ticker or stale local type. Keep mount/list selection and browsing interactions read-only.",
+      "rationale": "Root's 2026-11-03 ordinary-journey approval explicitly extends this exact imported consumer path beyond its existing presentation and optional-instrument-ID guards. It changes no backend route, provider policy, identity/admission decision, persisted data, ETF source implementation, or other imported path. Current/stale semantics remain server-owned; stale or unknown selection outcomes preserve labelled snapshots. A confirmed ETV candidate uses its resolved canonical ID; unavailable issuer outcomes remain visible and do not claim a stored profile. Holding chart navigation carries the exact snapshot/row lineage, selected-history intent and confirmed identity through a one-shot router handoff; the live selected profile, snapshot and row membership are rechecked before navigation. URL-only hydration remains passive."
+    },
+    {
+      "path": "frontend/src/components/etf/ETFHoldingResolutionAction.vue",
+      "source_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+      "accepted_blob": "6b363d0d9d4c80ca9dbec9f66275ffb9461bd7a9",
+      "delta": "TC's ordinary selected-holding workflow starts the existing canonical picker immediately and replaces producer-implementation wording with user-facing selection language.",
+      "rationale": "Root's 2026-11-03 review explicitly authorized functional consumer adaptation of this exact imported UI seam for the human-activated ordinary ticker journey, including generic user-facing copy and immediate activation of the existing picker after a deliberate row click. This is not presentation-only authority. It changes no ETF API, identity/admission policy, holdings data, or source behavior; every other frontend/src/components/etf path remains excluded."
+    },
+    {
+      "path": "frontend/tests/unit/components/test_etf_holdings_panel.test.ts",
+      "source_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+      "accepted_blob": "734706f9d9718c5963bcd2dfb2e6eaafd1cbc7e5",
+      "delta": "Update only the existing selected-row resolver event fixture with its actual resolved UNXQ response and assert that same response is emitted with the existing symbol/context. All prior event, context, and selection expectations remain.",
+      "rationale": "Root's exact 2026-11-04 approval authorizes this one frozen imported test path because the consumer event now carries actual confirmation to avoid resolving the same gesture twice. The frozen manifest remains intact; every other imported test path stays byte-pinned."
+    },
+    {
+      "path": "frontend/src/lib/etfHoldingDrilldown.ts",
+      "source_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+      "accepted_blob": "45a896bdd6034d77986776c9de716796e3a8bffc",
+      "delta": "TC-owned ordinary constituent flow validates reported equity eligibility and preserves the exact parent instrument, snapshot, holding row, source and known-at lineage through chart navigation.",
+      "rationale": "This source-only UI consumer helper adds no ETF identity decision, persisted data mutation, backend policy, source call, automatic constituent fan-out, or current-analysis eligibility override."
+    },
+    {
+      "path": "frontend/tests/e2e/helpers.ts",
+      "source_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc",
+      "accepted_blob": "17c365ee481da314902cb67bd252dc4853e977c1",
+      "delta": "Add one explicitly armed controlled-API-fault attribution in the existing BrowserDiagnostics class. A single 503 is expected only when its observed POST URL and request_id match the armed values, and at most one resource console entry is attributed only when msg.location().url matches that URL. Unarmed, mismatched, duplicate, and unrelated 503 diagnostics remain fatal.",
+      "rationale": "Root's exact 2026-11-04 disposition authorizes this minimal adaptation of the imported helper for the existing delayed OIH failure test. The frozen import remains pinned to its exact green 4d source/blob; no global 503 allow-list or suppression of unrelated browser diagnostics is introduced."
+    }
+  ]
 }

@@ -1097,6 +1097,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const pythonBreadthRunIds = ref<Record<string, number>>({})
   const etfHoldings = ref<Record<string, ETFHoldingsPageState | null>>({})
   const etfConstituentSnapshots = ref<Record<string, ETFConstituentSnapshotState | null>>({})
+  const etfConstituentSnapshotErrors = ref<Record<string, string | null>>({})
   const etfIndustries = ref<Record<string, ETFIndustryCompositionState | null>>({})
   const industryConstituents = ref<Record<string, ETFIndustryConstituentsState | null>>({})
   const industryProxies = ref<Record<string, ETFIndustryProxyState | null>>({})
@@ -2727,6 +2728,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     const requestKey = 'top-down:constituent-snapshot'
     const generation = beginAnalysisRequest(requestKey)
     if (!documentIsVisible()) return null
+    etfConstituentSnapshotErrors.value = { ...etfConstituentSnapshotErrors.value, [normalized]: null }
     try {
       const snapshot = await api.get<ETFConstituentSnapshotState>(
         `/analysis/etf/${encodeURIComponent(normalized)}/constituents/snapshot`,
@@ -2734,11 +2736,20 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       )
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: snapshot }
+      etfConstituentSnapshotErrors.value = { ...etfConstituentSnapshotErrors.value, [normalized]: null }
       return snapshot
     } catch (cause: any) {
       if (!isCurrentAnalysisRequest(requestKey, generation)) return null
       if (cause?.status === 404) {
         etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: null }
+        return null
+      }
+      if (cause?.status === 409 && /etf_holdings_not_current/i.test(String(cause?.code ?? cause?.message ?? ''))) {
+        etfConstituentSnapshots.value = { ...etfConstituentSnapshots.value, [normalized]: null }
+        etfConstituentSnapshotErrors.value = {
+          ...etfConstituentSnapshotErrors.value,
+          [normalized]: `Current constituent analysis for ${normalized} is unavailable because its holdings are not current.`,
+        }
         return null
       }
       error.value = cause?.message ?? `Unable to calculate ${normalized} constituent strength`
@@ -3484,6 +3495,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     pythonBreadthRunIds,
     etfHoldings,
     etfConstituentSnapshots,
+    etfConstituentSnapshotErrors,
     etfIndustries,
     industryConstituents,
     industryProxies,

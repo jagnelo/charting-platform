@@ -749,6 +749,53 @@ describe('workspace store layout tabs', () => {
     expect(apiGet).toHaveBeenCalledWith('/analysis/etf/XLK/constituents/snapshot', { benchmark: 'XLK', market_benchmark: 'SPY' })
   })
 
+  it('keeps expected stale-holdings analysis unavailable state scoped to its ETF context', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/analysis/etf/IGV/constituents/snapshot') {
+        return Promise.reject(Object.assign(
+          new Error('API GET /analysis/etf/IGV/constituents/snapshot → 409: {"code":"etf_holdings_not_current"}'),
+          { status: 409 },
+        ))
+      }
+      if (path === '/analysis/etf/USMV/constituents/snapshot') {
+        return Promise.resolve({
+          benchmark: 'USMV', market_benchmark: 'SPY', coverage: 1,
+          rows: [{ instrument_id: 690, symbol: 'EXAMPLE', relative_to_benchmark: { value: 1.1 } }],
+        })
+      }
+      return Promise.resolve({})
+    })
+    const store = useWorkspaceStore()
+    store.setConstituentETF('IGV')
+
+    await store.loadETFConstituentSnapshot('IGV')
+
+    expect(store.etfConstituentSnapshots.IGV).toBeNull()
+    expect(store.etfConstituentSnapshotErrors.IGV).toContain('IGV')
+    expect(store.error).toBeNull()
+
+    store.setConstituentETF('USMV')
+    await store.loadETFConstituentSnapshot('USMV')
+
+    expect(store.etfConstituentSnapshots.USMV?.rows[0]?.instrument_id).toBe(690)
+    expect(store.etfConstituentSnapshotErrors.USMV).toBeNull()
+    expect(store.etfConstituentSnapshotErrors.IGV).toContain('IGV')
+    expect(store.error).toBeNull()
+  })
+
+  it('keeps non-capability analysis conflicts on the shared workspace error channel', async () => {
+    apiGet.mockRejectedValueOnce(Object.assign(
+      new Error('API GET /analysis/etf/IGV/constituents/snapshot → 409: {"code":"workspace_conflict"}'),
+      { status: 409 },
+    ))
+    const store = useWorkspaceStore()
+
+    await store.loadETFConstituentSnapshot('IGV')
+
+    expect(store.etfConstituentSnapshotErrors.IGV).toBeNull()
+    expect(store.error).toContain('workspace_conflict')
+  })
+
   it('clones the active serializable layout with remapped tool identities and saves it', async () => {
     const store = useWorkspaceStore()
     store.workspace = {
