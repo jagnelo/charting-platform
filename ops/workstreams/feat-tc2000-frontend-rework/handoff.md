@@ -1,3 +1,7 @@
+## 2026-11-05 — Root-accepted remote ticker checkpoint closure
+
+Root accepted this bounded software checkpoint under the existing delegation; receipt `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json` SHA256 `1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40`. Tested runtime sources: TC frontend `36e7ad2cb08c769a242773ab2b6be69fcc350774` and backend `6eae00eb8380438da771fed0c42d19587e9520ce`; served images `sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076` and `sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a`. Accepted shared profile: 203 functional passed, 2 configured opt-in skips, 0 failures/retries, all seven acquisition cases; 104 strict visuals passed across four projects, no skips/failures/retries, unchanged references/tolerances; separate served Enter/Go cases 2/2. Root also accepted retained SPY7/IGV8 inputs and 16 negative bindings without historical-data mutation. Exact closing-tip CI remains mandatory and pending Root observation. Root owns the ETF→TC staging batch, staging/master gates, preserved-data rollout and genuine deployed UI/source proof. The nine-item roadmap and official REF-HELP-V25 parity remain open. `integration_capture: exact branch HEAD`. No product/test files changed in this closure.
+
 # Current exact-source E2E assertion repairs — 2026-11-03
 
 ## Current continuation — rendered-readout isolation and seven-flow selector audit
