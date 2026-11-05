@@ -253,7 +253,7 @@
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "docker_integration minimum: focused 49-unit suite plus bounded exact-profile PostgreSQL proof 3/3, native exit0, six mocked calls, zero external requests. Exact source pins stable; only exact owned PG/network removed.",
+  "current_checkpoint_local_profile": "full_stack_browser category: focused acquisition units passed 49/49; exact-profile PostgreSQL proof passed 3/3 with six mocked calls and zero external requests; Root's one affected pinned browser case passed 1/1 with one worker and zero retries on the reviewed file hash. No full local browser matrix is claimed. Final exact-source full CI and Root's full TC functional/visual and protected staging/master gates remain required.",
   "current_exact_ci": {
     "run_id": 41943375613,
     "source_sha": "ddcb343691d158e73ec148d1214df651d840a4bd",
@@ -264,7 +264,7 @@
     "shared_test_patch": "Root-reviewed only; separate oracle 1/1 does not qualify final branch CI",
     "next_exact_tip_ci": "pending; Root owns observation"
   },
-  "current_gate_checkpoint": "R10 PostgreSQL proof passed exact-profile persistence and wrong-symbol/domain conflict non-mutation on frozen ddcb source. Root conditionally accepted the bounded checkpoint. ddcb CI 41943375613 remains red for E2E calendar timing only; the Root-reviewed shared test barrier separately passed 1/1, but final exact-tip CI remains pending.",
+  "current_gate_checkpoint": "Full_stack_browser is the correct category because the bounded publication includes one Root-reviewed shared frontend test synchronization change. Scoped evidence is 49/49 focused units, R10 PostgreSQL 3/3 on frozen ddcb with stable source pins, and Root's pinned browser case 1/1 on the reviewed file hash; no full local browser matrix is claimed. ddcb CI 41943375613 remains red for E2E calendar timing. Final exact-tip full CI and Root's full TC functional/visual and protected staging/master gates remain pending.",
   "current_native_goal_created_at": 1793836530,
   "current_native_goal_token_budget": null,
   "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
@@ -462,12 +462,12 @@
     "sha": "8173ce8ef34369a02183706fd18210506bd20202",
     "state": "terminal_green_exact_staging_adopted_locally; full VQS backend/profile and exact owner CI pending"
   },
-  "local_validation_profile": "docker_integration",
-  "next_action": "Publish one coherent source-plus-records checkpoint with the Root-reviewed one-file calendar barrier, then freeze the exact tip for Root-owned final CI observation.",
+  "local_validation_profile": "full_stack_browser",
+  "next_action": "Freeze the corrected records-only tip for Root-owned exact-source CI observation; no full local browser matrix is claimed and all stated final gates remain mandatory.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
-  "plan_hash": "3513e6994f1f1aa681d6ccd0dd20962b9038f86d0b84de928a69a4e0b7f7c1da",
+  "plan_hash": "e4f8f6d8b912fd32cf54d8493da1a96b5010d061fc116325684a40012a47edfb",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {

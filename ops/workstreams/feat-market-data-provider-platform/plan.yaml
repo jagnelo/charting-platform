@@ -880,7 +880,7 @@ previous_checkpoint_closure_summary: >-
   HEAD
 validation_tier: full_integration
 human_validation_authorization: agent_default_full_integration
-local_validation_profile: docker_integration
+local_validation_profile: full_stack_browser
 previously_accepted_provider_vjl_local_validation_reason: The change is a backend persisted-lineage admission repair. Focused no-network unit tests and static checks run first; the actual PostgreSQL/SQLite route regression and complete backend/full_stack_browser profile require the current Root-owned isolated resource release. Prior profile evidence is not rebound to this source. Exact-source branch CI remains required; no provider transport or protected-resource mutation is authorized.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
@@ -14287,9 +14287,9 @@ branch_tests_reason: >-
   exact ticker. The fallback uses the provider's existing exact single-symbol profile operation through the normal
   provider runtime. After the two focused review corrections, both acquisition unit modules passed 49/49 with no
   provider transport. Ruff, formatting, diff, workstream and exact-environment branch-manifest checks passed for the
-  focused candidate. The changed backend route implies the normal docker_integration profile for final qualification;
-  this bounded candidate does not run a heavy fixture. Complete backend/DDL and exact-source CI, plus Root's combined
-  release qualification, remain pending.
+  focused candidate. The shared calendar-readiness test barrier is the only frontend change; Root's pinned one-case
+  browser proof is recorded separately. This is not a full local browser-matrix result. Complete backend/DDL and
+  exact-source CI, plus Root's combined release qualification, remain pending.
 acceptance_criteria:
 - id: EXACT-ACQUIRE-1
   text: If the requested ticker is absent from the bounded fuzzy results, an admitted exact get_instrument_profile lookup can resolve the authoritative exact provider/symbol/listing profile without broadening fuzzy search.
@@ -14302,7 +14302,7 @@ acceptance_criteria:
 - id: EXACT-ACQUIRE-5
   text: Root conditionally accepted this bounded software checkpoint; final exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending before Root integration. The earlier ddcb CI remains red only for the calendar-phase E2E race; the reviewed shared-test patch separately passed its Root-run oracle, not the complete CI gate.
 next_action: >-
-  Publish one coherent accepted checkpoint with this evidence and the Root-reviewed one-file shared-test patch, then freeze the exact tip for Root-owned final CI observation. Do not start another heavy local profile or source transport.
+  Freeze the corrected records-only tip for Root-owned exact-source CI observation. Do not start another local matrix or source transport; Root retains final CI and combined release gates.
 human_intent_authorization: >-
   Human directly activated the general selected-ticker acquisition repair in the original Provider session. Root released
   accepted source a56d97899f6d0194a7eead572b3edc70c355ddee for continuation and authorized adoption of its exact synchronized
@@ -14318,20 +14318,17 @@ progress:
   total: 5
   current_phase: bounded_software_checkpoint_accepted_final_tip_ci_pending
   current_blocker: Final exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending; Root owns observation and protected integration. The failed predecessor CI remains red.
-  next_action: Publish one coherent source-plus-records checkpoint, then freeze it for Root-owned final CI.
+  next_action: Freeze the corrected records-only tip for Root-owned exact-source CI observation; preserve all final backend/DDL/frontend/branch/browser and combined release gates.
 human_closure_authorization: >-
   Root conditionally accepted this bounded software checkpoint under standing human authorization in `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json` (SHA-256 `f69df61e8b9032b5d734636dd81713d38cee75bc24c7eb0ad8a52e5209a8981d`). This does not claim the failed predecessor CI is green or waive the mandatory final exact-tip CI.
 integration_checkpoint_authorization: >-
   Root authorized ready_for_integration for this bounded checkpoint. Root retains final exact-tip CI observation, combined qualification, persistent-staging integration, promotion, and deployment; actual integration requires all mandatory final-tip jobs green.
-local_validation_exception: >-
-  Human-authorized remote-only exception, delegated by Root under the standing authorization recorded in
-  `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json`, applies only to omitting a duplicate local full_stack_browser profile for the Root-reviewed shared E2E synchronization patch. Its separate Root oracle passed 1/1. The complete exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending before integration; this exception does not waive that gate.
 local_validation_reason: >-
-  This backend route change implies the repository's docker_integration minimum. The focused route and explicit-acquisition units passed 49/49. The bounded isolated PostgreSQL proof passed all three cases on frozen source `ddcb343691d158e73ec148d1214df651d840a4bd`: an exact profile absent from the first fuzzy page persisted canonical identity/listing, while wrong-symbol and domain-conflict responses left existing records unchanged. Six provider calls were mocked; external requests and real-ledger access were zero. Proof `/tmp/provider-ddcb3436-pg-qualification-20261105/attempt-r10-result.json` (SHA-256 `39a60ee5332519ced38c6f3618f9bd29a1d6ae41be2b44da1158caba01dcc973`); cleanup receipt `/tmp/provider-ddcb3436-pg-qualification-20261105/final-proof-and-cleanup-r10.json` (SHA-256 `a33783aaecb0234ec320a6a5c129f62bd466801e8e5cb362caf13693f3dd87b3`). Complete backend/DDL/final exact-tip CI remain separate gates.
+  The declared category is full_stack_browser because this bounded publication includes one Root-reviewed shared frontend test synchronization change. The focused route and explicit-acquisition units passed 49/49. The bounded isolated PostgreSQL proof passed all three cases on frozen source `ddcb343691d158e73ec148d1214df651d840a4bd`: an exact profile absent from the first fuzzy page persisted canonical identity/listing, while wrong-symbol and domain-conflict responses left existing rows unchanged. Six provider calls were mocked; external requests and real-ledger access were zero. Proof `/tmp/provider-ddcb3436-pg-qualification-20261105/attempt-r10-result.json` (SHA-256 `39a60ee5332519ced38c6f3618f9bd29a1d6ae41be2b44da1158caba01dcc973`); cleanup receipt `/tmp/provider-ddcb3436-pg-qualification-20261105/final-proof-and-cleanup-r10.json` (SHA-256 `a33783aaecb0234ec320a6a5c129f62bd466801e8e5cb362caf13693f3dd87b3`). Root's one affected browser case passed 1/1 on the pinned runner with one worker, zero retries, and the reviewed file hash `ab419373397abc84d656c18b5178178a2faafddbb33f3d27ec85894292c03b2f`; receipt `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json` (SHA-256 `0b89d85af403cb3f62d4d93c2a49ed73222dc320057835fa6e178eb85da5cd86`). These are scoped checks, not a full local matrix. Final exact-source backend/DDL/frontend/branch/browser CI and Root's full TC functional/visual and protected staging/master gates remain required.
 current_gate_checkpoint: >-
-  The focused route and explicit-acquisition unit modules passed 49/49. The bounded private PostgreSQL proof passed 3/3 with zero external requests and stable source pins; only its exact owned container/network were removed. Root conditionally accepted the checkpoint under `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json`. Exact ddcb CI `41943375613` remains red only because E2E job `126982140537` observed a calendar read before mocked history completed (198 passed, 110 skipped, 1 failed); the Root-reviewed one-file barrier patch `76a69bbf61625619379a8583f428edcb42a1d7418e4043c5c2705acdf0408673` passed the separate 1/1 Root oracle `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-shared-calendar-barrier-root-acceptance-20261105.json`. Neither result makes the failed CI green. Final exact-tip full CI remains pending. No quota, policy, real-ledger, target, production, or sibling operation occurred.
+  The declared full_stack_browser category is supported by the 49/49 focused acquisition unit modules, the 3/3 isolated PostgreSQL proof with zero external requests, and Root's 1/1 pinned browser case for the single shared test change. No full local browser matrix is claimed. Root conditionally accepted the checkpoint under `/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-exact-acquire-checkpoint-conditional-acceptance-20261105.json`. Exact ddcb CI `41943375613` remains red because E2E job `126982140537` observed a calendar read before mocked history completed (198 passed, 110 skipped, 1 failed); the separate Root oracle does not make that CI green. Final exact-tip backend/DDL/frontend/branch/browser CI and Root's full TC functional/visual and protected staging/master gates remain required. No quota, policy, real-ledger, target, production, or sibling operation occurred.
 closure_summary: >-
-  Root conditionally accepted this bounded exact-symbol software checkpoint. Final exact-tip backend/DDL/frontend/branch/browser CI remains mandatory and pending; the red ddcb run is preserved, and the separate shared-test oracle is not a substitute for final CI. Full Provider/ETF roadmaps remain open. integration_capture: exact branch HEAD.
+  Root conditionally accepted this bounded exact-symbol software checkpoint. Local evidence is scoped to focused units, the three-case PostgreSQL proof, and Root's one-case pinned browser check; no full local matrix is claimed. Final exact-tip backend/DDL/frontend/branch/browser CI and Root's full TC functional/visual and protected staging/master gates remain mandatory and pending. The red ddcb run is preserved; the separate shared-test oracle is not a substitute for final CI. Full Provider/ETF roadmaps remain open. integration_capture: exact branch HEAD.
 migration_impact: None; no database migration or schema change.
 live_test_impact: No provider, issuer, or SEC transport was executed; none is authorized in this checkpoint.
 deployment_impact: None; Root owns acceptance, integration, promotion, deployment, and genuine provider calls.
