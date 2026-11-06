@@ -1,5 +1,5 @@
 <template>
-  <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="activeSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
     <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
@@ -382,6 +382,9 @@
         />
         <div v-if="chartStore.isLoading" class="tool-state chart-tool__status" role="status" aria-live="polite" aria-atomic="true">Loading {{ activeSymbol }}…</div>
         <div v-else-if="chartStore.error" class="tool-state tool-state--error chart-tool__status" role="alert" aria-live="assertive" aria-atomic="true">{{ chartStore.error }}</div>
+        <div v-if="chartStore.isLoadingMore" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage || `Loading older ${chartStore.timeframe} history…` }}</div>
+        <div v-else-if="chartStore.historyBoundaryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ chartStore.historyBoundaryMessage }}</div>
+        <div v-if="timeframeHistoryMessage" class="chart-tool__history-boundary" role="status" aria-live="polite">{{ timeframeHistoryMessage }}</div>
         <div v-if="!chartStore.symbol" class="tool-state" role="status" aria-live="polite" aria-atomic="true">Select a canonical instrument.</div>
       </div>
     </div>
@@ -1039,6 +1042,7 @@ import { RouterLink } from 'vue-router'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
 import { fetchCanonicalInstrument } from '@/lib/workstation/instrumentQueries'
+import { acquireSelectedHistory, defaultHistoryRange, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { calculateCustomDateSortValue, customDateSortListColumn, parseCustomDateSortListColumn, type CustomDateSortListColumn, type CustomDateSortMode, type CustomDateSortPriceRange, type CustomDateSortRange, type CustomDateSortValue } from '@/lib/workstation/customDateSort'
 import { loadCustomDateSortLocalEvidence, loadCustomDateSortLocalListValues } from '@/lib/workstation/customDateSortData'
@@ -1047,7 +1051,7 @@ import DrawingToolbar from '@/components/chart/DrawingToolbar.vue'
 import HistoryAcquisitionControl from '@/components/chart/HistoryAcquisitionControl.vue'
 import ChartTemplateControl from './ChartTemplateControl.vue'
 import ChartPlotLibrary from './ChartPlotLibrary.vue'
-import { registerWorkstationPanelChartRefresh, usePanelStore } from '@/stores/chart'
+import { refreshMountedWorkstationChartPanels, registerWorkstationPanelChartRefresh, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
@@ -1181,7 +1185,7 @@ let personalMutationSequence = 0
 let benchmarkFamilyReadinessSequence = 0
 let familyAnalyticsSequence = 0
 let familyOverviewSequence = 0
-const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null, preserveConstituentContext?: boolean]; holdingDrilldown: [symbol: string, context: ETFHoldingDrilldownContext, confirmedIdentity?: InstrumentAcquireResponse]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
+const emit = defineEmits<{ activate: []; select: [symbol: string, instrumentId?: number | null, preserveConstituentContext?: boolean]; holdingSelect: [symbol: string, context: ETFHoldingDrilldownContext, confirmedIdentity?: InstrumentAcquireResponse]; compare: [symbols: string[]]; ratio: [symbols: string[]]; marketMap: [sourceId: string]; reorder: [watchlistId: number, itemIds: number[]]; rowAction: [action: 'chart' | 'compare' | 'ratio' | 'note' | 'alert' | 'copy', row: { symbol: string; instrumentId: number | null }]; occurrence: [symbol: string, timestamp: string, instrumentId?: number | null]; selectIndustry: [industry: string, etf: string]; selectProxy: [symbol: string, instrumentId?: number | null]; columns: [windowKey: string, keys: string[]]; filter: [windowKey: string, value: string]; conditionFilter: [windowKey: string, screenerId: number | null]; conditionFilterMode: [windowKey: string, mode: 'active' | 'inactive' | 'off']; pinnedBooleanKeys: [windowKey: string, keys: string[]]; columnGroups: [windowKey: string, groups: Record<string, string>]; stackedColumnKeys: [windowKey: string, keys: string[]]; configuration: [windowKey: string, configuration: Record<string, unknown>]; publishAnalysis: [payload: { target: 'breadth' | 'study_lab'; sourceId: string; selectedIds: number[]; selectedSymbols: string[]; scope: 'full' | 'selection' }]; openStudy: [payload: { name: string; versionId: number; source: string; outputContract: string; parameterSchema: Record<string, unknown>; defaultParameters: Record<string, unknown> }]; timeframe: [value: string, group: LinkGroup]; float: [windowKey: string]; maximize: [windowKey: string]; close: [windowKey: string]; updateLinkGroup: [windowKey: string, group: LinkGroup, displayedSymbol?: string] }>()
 // Inputs in dense breadth authoring can emit several configuration updates before
 // Golden Layout delivers the parent prop patch. Keep a local draft so a rapid
 // select/edit/evaluate sequence cannot serialize a stale sibling value.
@@ -1215,6 +1219,9 @@ watch(() => props.tool.configuration, nextConfiguration => {
 // accidentally render the shell's blue/default data.
 const chartPanelId = `workstation-${props.tool.instance_key}`
 const localLinkGroup = ref<LinkGroup>(props.tool.link_group)
+const timeframeHistoryMessage = ref('')
+let timeframeHistoryGeneration = 0
+let timeframeHistoryAbortController: AbortController | null = null
 watch(() => props.tool.link_group, group => { localLinkGroup.value = group })
 function handleLinkGroupChange(group: LinkGroup) {
   localLinkGroup.value = group
@@ -2179,7 +2186,7 @@ function selectConstituentRow(row: WatchlistRow) {
 
   selectedConstituentRowKey.value = row.rowKey ?? null
   if (!isResolvedCanonicalEquityHolding(holding)) return
-  emit('holdingDrilldown', holding.constituent_symbol, createETFHoldingDrilldownContext(
+  emit('holdingSelect', holding.constituent_symbol, createETFHoldingDrilldownContext(
     snapshot,
     holding,
     holding.constituent_instrument_id,
@@ -2199,7 +2206,7 @@ function openResolvedConstituentHolding(
     || context.canonicalSymbol.trim().toUpperCase() !== symbol.trim().toUpperCase()
     || String(holding.reported_symbol || '').trim().toUpperCase() !== symbol.trim().toUpperCase()
     || !isConfirmedETFHoldingIdentity(confirmedIdentity, context)) return
-  emit('holdingDrilldown', symbol, context, confirmedIdentity)
+  emit('holdingSelect', symbol, context, confirmedIdentity)
 }
 
 function reportedHoldingLabel(row: ETFHolding) {
@@ -2221,7 +2228,87 @@ function selectRotationSymbol(symbol: string, instrumentId?: number | null) {
 }
 
 function setTimeframe(timeframe: string) {
+  timeframeHistoryAbortController?.abort()
   workspaceStore.updateToolTimeframe(props.tool.instance_key, timeframe)
+  if (props.tool.tool_type === 'chart' && ['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN'].includes(timeframe)) {
+    void acquireExplicitTimeframeHistory(timeframe as Timeframe)
+  }
+}
+
+async function acquireExplicitTimeframeHistory(timeframe: Timeframe) {
+  timeframeHistoryAbortController?.abort()
+  const controller = new AbortController()
+  timeframeHistoryAbortController = controller
+  const symbol = activeSymbol.value.trim().toUpperCase()
+  if (!symbol || /^BASKET:/i.test(symbol)) return
+  const generation = ++timeframeHistoryGeneration
+  const isCurrent = () => generation === timeframeHistoryGeneration
+    && !controller.signal.aborted
+    && activeSymbol.value.trim().toUpperCase() === symbol
+    && activeTimeframe.value === timeframe
+  const range = defaultHistoryRange(timeframe)
+  const stageMessage = (stage: SelectedHistoryStage, retryAt?: string) => {
+    if (!isCurrent()) return
+    timeframeHistoryMessage.value = stage === 'waiting'
+      ? `Waiting to retry ${timeframe} history for ${symbol} after ${new Date(retryAt!).toLocaleTimeString()}…`
+      : stage === 'coverage'
+        ? `Checking saved ${timeframe} history for ${symbol}…`
+        : stage === 'identity'
+          ? `Confirming ${symbol} for ${timeframe} history…`
+          : `Loading admitted ${timeframe} history for ${symbol}…`
+  }
+  timeframeHistoryMessage.value = `Checking saved ${timeframe} history for ${symbol}…`
+  try {
+    const outcome = await acquireSelectedHistory(symbol, timeframe, true,
+      { ...range, timeframe, adjusted: true }, stageMessage, isCurrent, undefined,
+      { signal: controller.signal, onRetryWait: retryAt => {
+        if (isCurrent()) timeframeHistoryMessage.value = `Waiting to retry ${timeframe} history for ${symbol} after ${new Date(retryAt).toLocaleTimeString()}…`
+      } })
+    if (!isCurrent() || outcome.kind === 'superseded') return
+    if (outcome.kind === 'already-covered') {
+      timeframeHistoryMessage.value = `Saved ${timeframe} history is available for ${symbol}.`
+      return
+    }
+    if (outcome.kind === 'identity-unavailable') {
+      timeframeHistoryMessage.value = outcome.status === 'held'
+        ? `The ${timeframe} history request for ${symbol} is temporarily held${outcome.retryAt ? `; try again after ${new Date(outcome.retryAt).toLocaleTimeString()}` : ''}.`
+        : `The identity for ${symbol} could not be confirmed; ${timeframe} history was not requested.`
+      return
+    }
+    if (outcome.kind === 'admission-held') {
+      timeframeHistoryMessage.value = `The ${timeframe} history request for ${symbol} is temporarily held.`
+      return
+    }
+    if (outcome.kind === 'admission-unavailable') {
+      timeframeHistoryMessage.value = `The allowed ${timeframe} history window for ${symbol} could not be confirmed.`
+      return
+    }
+    if (outcome.kind === 'at-earliest-bound') {
+      timeframeHistoryMessage.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
+      return
+    }
+    const result = outcome.result
+    const heldSource = result.source_outcomes.find(source => source.status === 'held')
+    const retryAt = result.retry_at ?? heldSource?.retry_at
+    timeframeHistoryMessage.value = result.status === 'complete'
+      ? `Loaded ${result.coverage.bar_count} ${timeframe} bars for ${symbol}.`
+      : result.status === 'partial'
+        ? `Some ${timeframe} history loaded for ${symbol}; the remainder is unavailable right now.`
+        : result.status === 'held'
+          ? `The ${timeframe} history request for ${symbol} is temporarily held${retryAt ? `; try again after ${new Date(retryAt).toLocaleTimeString()}` : ''}.`
+          : result.status === 'no_data'
+            ? `No ${timeframe} history is available for ${symbol}.`
+            : `The ${timeframe} history request for ${symbol} failed; saved bars remain visible.`
+    if (result.status === 'complete' || result.status === 'partial') {
+      await Promise.all([
+        chartStore.refreshLocalBars(),
+        refreshMountedWorkstationChartPanels(symbol, timeframe, isCurrent),
+        workspaceStore.loadTechnical(symbol),
+      ])
+    }
+  } catch {
+    if (isCurrent()) timeframeHistoryMessage.value = `The ${timeframe} history request for ${symbol} failed; saved bars remain visible.`
+  }
 }
 
 function setTimeframeLinkGroup(group: LinkGroup) {
@@ -2483,10 +2570,17 @@ watch([activeSymbol, activeTimeframe, syntheticExpression, chartBarType, chartTr
   )
 }, { immediate: true, deep: true })
 
+watch([activeSymbol, activeTimeframe], () => {
+  timeframeHistoryAbortController?.abort()
+  timeframeHistoryGeneration += 1
+}, { flush: 'sync' })
+
 watch([configuredPythonPlots, activeSymbol, activeTimeframe], () => { void loadPythonPlots() }, { deep: true, immediate: true })
 watch([configuredScanPlots, activeTimeframe], () => { void loadScanPlots() }, { deep: true, immediate: true })
 
 onBeforeUnmount(() => {
+  timeframeHistoryAbortController?.abort()
+  timeframeHistoryAbortController = null
   unregisterWorkstationPanelRefresh?.()
   unregisterWorkstationPanelRefresh = null
   disposed = true
@@ -3423,6 +3517,12 @@ async function saveGenericBreadthDefinition() {
 }
 const technical = computed(() => workspaceStore.technicals[activeSymbol.value])
 const selectedETF = computed(() => workspaceStore.constituentETF ?? '')
+const isConstituentTool = computed(() => props.tool.instance_key === 'constituent-list'
+  || (props.tool.title ?? '').toLowerCase().includes('constituent'))
+const showsETFCompositionContext = computed(() => isConstituentTool.value || isIndustryTool.value)
+const toolHeaderSymbol = computed(() => showsETFCompositionContext.value && selectedETF.value
+  ? selectedETF.value
+  : activeSymbol.value)
 const selectedConstituentRowKey = ref<string | null>(null)
 function holdingWatchlistRowKey(etfSymbol: string, snapshotId: number, holdingId: number) {
   return etfHoldingWatchlistRowKey(etfSymbol, snapshotId, holdingId)

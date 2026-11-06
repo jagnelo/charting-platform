@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { OHLCVBar, Timeframe, Instrument, IndicatorConfig, ChartBarType } from '@/types'
 import { api } from '@/lib/api'
+import { acquireSelectedHistory, defaultHistoryRange, olderHistoryRange } from '@/lib/onDemandAcquisition'
 import { dedupeOhlcvRequest } from '@/lib/workstation/ohlcvRequests'
 import { hasActiveAnalysisDrag } from '@/lib/workstation/plotDrag'
 
@@ -81,6 +82,8 @@ function createChartStore(storeId: string) {
     const error          = ref<string | null>(null)
     const isLoadingMore  = ref(false)
     const hasReachedStart   = ref(false)
+    const historyBoundaryMessage = ref('')
+    const historyRetryAt = ref<string | null>(null)
     const isFetchingHistory = ref(false)
     // Workstation charts are local-canonical. Legacy charts may opt into the
     // provider-hydrating route, so retain the mode across pagination/refreshes.
@@ -93,6 +96,7 @@ function createChartStore(storeId: string) {
     let _coveragePoller: ReturnType<typeof setInterval> | null = null
     let _loadGeneration = 0
     let inFlightLoad: { key: string; promise: Promise<void> } | null = null
+    let olderHistoryAbortController: AbortController | null = null
     let renderedLoadScopeKey: string | null = null
     // A chart can finish its initial indicator request after the user has
     // already added/edited a plot. Never let that late hydration replace the
@@ -220,6 +224,9 @@ function createChartStore(storeId: string) {
 
     async function performLoadBars(sym: string, tf: Timeframe, nextBarType: ChartBarType, localOnly: boolean, normalizedTransformParams: ChartTransformParams, forceFresh = false) {
       if (!sym || !tf) return
+      olderHistoryAbortController?.abort()
+      olderHistoryAbortController = null
+      isLoadingMore.value = false
       cancelPendingIndicatorSave()
       const generation = ++_loadGeneration
       const transformKey = JSON.stringify(normalizedTransformParams)
@@ -231,6 +238,8 @@ function createChartStore(storeId: string) {
       // may keep the currently rendered chart alive during a settled refresh.
       const refreshesRenderedSelection = forceFresh || (renderedLoadScopeKey === requestScopeKey && bars.value.length > 0)
       if (!sameSelection) {
+        historyBoundaryMessage.value = ''
+        historyRetryAt.value = null
         indicatorsDirty = false
         if (pendingIndicatorSaveSymbol !== sym) {
           pendingIndicatorSave = false
@@ -426,6 +435,10 @@ function createChartStore(storeId: string) {
 
     async function loadMoreBars() {
       if (isLoadingMore.value || hasReachedStart.value || !symbol.value || !timeframe.value) return
+      if (historyRetryAt.value && Date.parse(historyRetryAt.value) > Date.now()) {
+        historyBoundaryMessage.value = `Older history is temporarily held; try again after ${new Date(historyRetryAt.value).toLocaleTimeString()}.`
+        return
+      }
       if (!bars.value.length) return
       if (basketIdFromSymbol(symbol.value) != null) {
         hasReachedStart.value = true
@@ -433,6 +446,11 @@ function createChartStore(storeId: string) {
       }
 
       isLoadingMore.value = true
+      historyBoundaryMessage.value = ''
+      historyRetryAt.value = null
+      const historyController = new AbortController()
+      olderHistoryAbortController?.abort()
+      olderHistoryAbortController = historyController
       const oldestTs = bars.value[0].ts
       const sym = symbol.value
       const tf  = timeframe.value
@@ -440,18 +458,112 @@ function createChartStore(storeId: string) {
       const currentTransformParams = transformParams.value
       const generation = _loadGeneration
       try {
-        const mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value, type, transformParams: currentTransformParams })
+        let mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value, type, transformParams: currentTransformParams })
+        if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type) return
+        if (!mapped.length && localOnlyMode.value) {
+          isFetchingHistory.value = true
+          historyBoundaryMessage.value = `Checking older ${tf} history for ${sym}…`
+          const defaultWindow = defaultHistoryRange(tf)
+          const range = olderHistoryRange(tf, oldestTs, undefined, defaultWindow.start)
+          const outcome = await acquireSelectedHistory(
+            sym,
+            tf,
+            true,
+            { ...range, timeframe: tf, adjusted: true },
+            (stage, retryAt) => {
+              if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf) return
+              historyBoundaryMessage.value = stage === 'waiting'
+                ? `Waiting to retry older ${tf} history for ${sym} after ${new Date(retryAt!).toLocaleTimeString()}…`
+                : stage === 'coverage'
+                  ? `Checking saved ${tf} history for ${sym}…`
+                  : stage === 'identity'
+                    ? `Confirming ${sym} before loading older history…`
+                    : `Requesting older ${tf} history for ${sym}…`
+            },
+            () => _loadGeneration === generation && symbol.value === sym && timeframe.value === tf && barType.value === type,
+            undefined,
+            { signal: historyController.signal },
+          )
+          if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type
+            || outcome.kind === 'superseded') return
+          if (outcome.kind === 'identity-unavailable') {
+            historyRetryAt.value = outcome.retryAt ?? null
+            historyBoundaryMessage.value = outcome.status === 'held'
+              ? `Older ${tf} history for ${sym} is temporarily held${outcome.retryAt ? `; try again after ${new Date(outcome.retryAt).toLocaleTimeString()}` : ''}. The current chart remains available.`
+              : `Older ${tf} history for ${sym} is unavailable because its identity could not be confirmed.`
+            hasReachedStart.value = false
+            return
+          }
+          if (outcome.kind === 'admission-held') {
+            historyBoundaryMessage.value = `Older ${tf} history for ${sym} is temporarily held; the current chart remains available.`
+            hasReachedStart.value = false
+            return
+          }
+          if (outcome.kind === 'admission-unavailable') {
+            historyBoundaryMessage.value = `The allowed older ${tf} history window for ${sym} could not be confirmed.`
+            hasReachedStart.value = false
+            return
+          }
+          if (outcome.kind === 'at-earliest-bound') {
+            historyRetryAt.value = null
+            historyBoundaryMessage.value = `The available ${tf} history for ${sym} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
+            hasReachedStart.value = true
+            return
+          }
+          if (outcome.kind === 'already-covered') {
+            historyBoundaryMessage.value = `Saved ${tf} history before ${sym}'s oldest bar is unavailable.`
+            hasReachedStart.value = false
+            return
+          }
+          if (outcome.result.status === 'held' || outcome.result.status === 'failed' || outcome.result.status === 'no_data') {
+            historyRetryAt.value = outcome.result.retry_at
+              ?? outcome.result.source_outcomes.find(source => source.retry_at)?.retry_at
+              ?? null
+            historyBoundaryMessage.value = outcome.result.status === 'held'
+              ? `Older ${tf} history for ${sym} is temporarily held${historyRetryAt.value ? `; try again after ${new Date(historyRetryAt.value).toLocaleTimeString()}` : ''}. The current chart remains available.`
+              : outcome.result.status === 'no_data'
+                ? `No older ${tf} history is available for ${sym}.`
+                : `Older ${tf} history for ${sym} could not be loaded.`
+            hasReachedStart.value = outcome.result.status === 'no_data'
+            return
+          }
+          mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: true, type, transformParams: currentTransformParams, fresh: true })
+          if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type) return
+          if (!mapped.length) {
+            historyBoundaryMessage.value = `The older ${tf} request completed, but no additional saved bars were returned for ${sym}.`
+            hasReachedStart.value = true
+            return
+          }
+          historyBoundaryMessage.value = outcome.result.status === 'partial'
+            ? `Older ${tf} history is partially available for ${sym}; more may be requested as you navigate.`
+            : `Loaded older ${tf} history for ${sym}.`
+        }
         if (!mapped.length) {
-          if (!isFetchingHistory.value) hasReachedStart.value = true
+          hasReachedStart.value = !localOnlyMode.value
           return
         }
-        if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type) return
-        bars.value = [...mapped, ...bars.value]
-        if (mapped.length < PAGE_SIZE) {
-          if (!isFetchingHistory.value) hasReachedStart.value = true
+        const existingTimestamps = new Set(bars.value.map(bar => bar.ts))
+        const distinctOlderBars = mapped.filter(bar => !existingTimestamps.has(bar.ts))
+        if (!distinctOlderBars.length) {
+          historyBoundaryMessage.value ||= `No additional older ${tf} bars are available for ${sym}.`
+          hasReachedStart.value = true
+          return
         }
-      } catch { /* silent */ } finally {
-        isLoadingMore.value = false
+        bars.value = [...distinctOlderBars, ...bars.value]
+        // A short local page means the next explicit pan may cross into a
+        // provider-admitted older slice. Do not treat page size as exhaustion.
+        hasReachedStart.value = false
+      } catch {
+        if (_loadGeneration === generation && symbol.value === sym && timeframe.value === tf && barType.value === type) {
+          historyBoundaryMessage.value = `Older ${tf} history for ${sym} could not be checked; the current chart remains available.`
+          hasReachedStart.value = false
+        }
+      } finally {
+        if (_loadGeneration === generation && symbol.value === sym && timeframe.value === tf && barType.value === type) {
+          isFetchingHistory.value = false
+          isLoadingMore.value = false
+        }
+        if (olderHistoryAbortController === historyController) olderHistoryAbortController = null
       }
     }
 
@@ -533,7 +645,7 @@ function createChartStore(storeId: string) {
       barType,
       transformParams,
       localOnlyMode,
-      isLoading, loading: isLoading, isLoadingMore, hasReachedStart, error, isFetchingHistory, uplotData,
+      isLoading, loading: isLoading, isLoadingMore, hasReachedStart, historyBoundaryMessage, historyRetryAt, error, isFetchingHistory, uplotData,
       selectedIndicatorIndex, editRequestIndicatorIndex,
       indicatorEditGeneration,
       loadBars, refreshLocalBars, loadMoreBars, loadInstrument,

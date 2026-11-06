@@ -24,11 +24,6 @@
         </select>
         <div ref="menuRoot" class="tool-window__menu-wrap">
           <button ref="menuTrigger" type="button" title="Tool menu" aria-label="Open tool menu" aria-haspopup="menu" :aria-expanded="menuOpen" :aria-controls="menuId" @click.stop="toggleMenu" @keydown="handleMenuTriggerKeydown"><span class="tool-window__menu-glyph" aria-hidden="true" /></button>
-          <div v-if="menuOpen" :id="menuId" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
-            <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">Maximize</button>
-            <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('float')">Float</button>
-            <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('close')">Close</button>
-          </div>
         </div>
         <button type="button" title="Maximize" aria-label="Maximize tool" @click="emit('maximize')"><span class="tool-window__maximize-glyph" aria-hidden="true" /></button>
         <button type="button" title="Float" aria-label="Float tool" @click="emit('float')"><span class="tool-window__float-glyph" aria-hidden="true" /></button>
@@ -38,6 +33,13 @@
     <div class="tool-window__body">
       <slot />
     </div>
+    <Teleport to="body">
+      <div v-if="menuOpen" :id="menuId" ref="menuElement" class="tool-window__menu" role="menu" :aria-label="`${title} tool menu`" :style="menuStyle" @click.stop @keydown="handleMenuKeydown">
+        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('maximize')">Maximize</button>
+        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('float')">Float</button>
+        <button type="button" role="menuitem" tabindex="-1" @click="runMenuAction('close')">Close</button>
+      </div>
+    </Teleport>
   </section>
 </template>
 
@@ -86,11 +88,12 @@ const titleId = `tool-window-title-${getCurrentInstance()?.uid ?? 0}`
 const menuId = `${titleId}-menu`
 const menuOpen = ref(false)
 const menuRoot = ref<HTMLElement | null>(null)
+const menuElement = ref<HTMLElement | null>(null)
 const menuTrigger = ref<HTMLButtonElement | null>(null)
 const menuStyle = ref<Record<string, string>>({})
 
 function menuItems() {
-  return Array.from(menuRoot.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
+  return Array.from(menuElement.value?.querySelectorAll<HTMLButtonElement>('[role="menuitem"]') ?? [])
 }
 
 function focusMenuItem(index: number) {
@@ -177,7 +180,8 @@ function handleMenuKeydown(event: KeyboardEvent) {
 
 function dismissMenuOnOutsidePointer(event: PointerEvent) {
   const target = event.target
-  if (!(target instanceof Node) || !menuRoot.value?.contains(target)) setMenuOpen(false)
+  if (!(target instanceof Node)
+    || (!menuRoot.value?.contains(target) && !menuElement.value?.contains(target))) setMenuOpen(false)
 }
 
 onMounted(() => {
@@ -223,8 +227,9 @@ const groups: LinkGroup[] = WORKSTATION_LINK_GROUPS.map(group => group.id)
 .tool-window__symbol { min-width: 0; max-width: 22%; color: #9fc2e0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .tool-window__actions { min-width: 0; margin-left: auto; display: flex; align-items: center; flex: 0 1 auto; overflow: visible; }
 .tool-window__menu-wrap { position: relative; }
-.tool-window__menu { z-index: 20; display: grid; min-width: 110px; overflow: auto; padding: 3px; border: 1px solid var(--tc-border-strong); background: #1a2025; box-shadow: 0 5px 14px rgba(0, 0, 0, .45); }
-.tool-window__menu button { width: 100%; padding: 4px 7px; text-align: left; }
+.tool-window__menu { z-index: 200; display: grid; min-width: 110px; overflow: auto; padding: 3px; border: 1px solid var(--tc-border-strong); background: var(--tc-panel-bg); box-shadow: var(--tc-shadow); color: var(--tc-text); font: 10px/1.25 var(--tc-font-family); }
+.tool-window__menu button { width: 100%; border: 1px solid transparent; padding: 4px 7px; background: transparent; color: var(--tc-text-muted); font: inherit; text-align: left; cursor: pointer; }
+.tool-window__menu button:hover, .tool-window__menu button:focus-visible { border-color: var(--tc-border); background: var(--tc-control-bg); color: var(--tc-text); outline: none; }
 .tool-window__link { width: 54px; height: 18px; flex: 0 1 54px; min-width: 28px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }
 .tool-window__link-swatch { width: 8px; height: 8px; flex: 0 0 8px; border: 1px solid #0b0f12; border-radius: 50%; box-shadow: 0 0 0 1px #65737d; }
 .tool-window__timeframe { width: 27px; flex: 0 1 27px; min-width: 24px; height: 18px; color: var(--tc-text); border: 1px solid var(--tc-border-strong); background: var(--tc-input-bg); font: 10px var(--tc-font-family); }

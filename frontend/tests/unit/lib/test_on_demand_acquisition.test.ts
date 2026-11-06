@@ -6,18 +6,21 @@ import {
   acquireETFHoldings,
   acquireInstrumentHistory,
   acquireSelectedHistory,
+  createKnownTemporaryRetryLifecycle,
   defaultHistoryRange,
   discoverInstruments,
   HISTORY_ACQUISITION_MAX_REQUESTED_BARS,
-  HISTORY_RANGE_LIMIT_DAYS,
+  HISTORY_DEFAULT_RANGE_DAYS,
   HISTORY_TIMEFRAME_SECONDS,
   historyRangeFitsBarBudget,
   historyRangeIsAllowed,
   isEligibleETFHoldingsInstrumentType,
   isCurrentETFHoldingsCapability,
   makeAcquisitionRequestId,
+  olderHistoryRange,
   requestedHistoryBarSlots,
   readETFHoldingsCapability,
+  resolveExistingInstrumentWithRetry,
   resolveDiscoveredInstrument,
   type InstrumentDiscoveryCandidate,
 } from '@/lib/onDemandAcquisition'
@@ -33,6 +36,69 @@ beforeEach(() => {
 })
 
 describe('explicit acquisition API contracts', () => {
+  it('shares retry-aware identity and history waits, rechecks availability, and completes only for the current selection', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-06T12:00:00.000Z'))
+    const identityRetryAt = new Date(Date.now() + 1_000).toISOString()
+    const historyRetryAt = new Date(Date.now() + 2_000).toISOString()
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] })
+      .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
+      .mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] })
+      .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ request_id: 'identity-held', status: 'held', instrument: null, source_outcomes: [{ provider: 'massive', capability: 'instrument_search', operation: 'resolve', status: 'held', retry_at: identityRetryAt }] })
+      .mockResolvedValueOnce({ request_id: 'identity-ready', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
+      .mockResolvedValueOnce({ request_id: 'history-held', status: 'held', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z', coverage: { status: 'missing', bar_count: 0, missing_slices: [] }, bars: [], source_outcomes: [{ provider: 'massive', capability: 'price_history', operation: 'history', status: 'held', retry_at: historyRetryAt }] })
+      .mockResolvedValueOnce({ request_id: 'history-ready', status: 'complete', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z', coverage: { status: 'ready', bar_count: 2, missing_slices: [] }, bars: [], source_outcomes: [] })
+
+    const isCurrent = vi.fn(() => true)
+    const stageReads: Array<{ stage: string; retryAt?: string }> = []
+    const retryLifecycle = createKnownTemporaryRetryLifecycle(isCurrent, retryAt => stageReads.push({ stage: 'waiting', retryAt }))
+    const identityPromise = resolveExistingInstrumentWithRetry('IGV', retryLifecycle, isCurrent)
+    const acquisition = acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true, start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z',
+    }, (stage, retryAt) => stageReads.push({ stage, retryAt }), isCurrent, identityPromise, { retryLifecycle })
+
+    await vi.advanceTimersByTimeAsync(1_000)
+    await vi.advanceTimersByTimeAsync(1_000)
+    const result = await acquisition
+    expect(result).toMatchObject({ kind: 'acquired', result: { status: 'complete' } })
+    expect(api.post.mock.calls.map(([path]) => path)).toEqual([
+      '/instruments/acquire', '/instruments/acquire',
+      '/instruments/82/history-acquisitions', '/instruments/82/history-acquisitions',
+    ])
+    expect(api.get.mock.calls.map(([path]) => path)).toEqual([
+      '/coverage/instruments/IGV/ohlcv', '/instruments/82/history-availability',
+      '/coverage/instruments/IGV/ohlcv', '/instruments/82/history-availability',
+    ])
+    expect(stageReads.filter(stage => stage.stage === 'waiting').map(stage => stage.retryAt)).toEqual([identityRetryAt, historyRetryAt])
+    vi.useRealTimers()
+  })
+
+  it('cancels a superseded known hold without sending its obsolete retry request', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-06T12:00:00.000Z'))
+    const retryAt = new Date(Date.now() + 30_000).toISOString()
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] })
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'identity-held', status: 'held', instrument: null, source_outcomes: [{ provider: 'massive', capability: 'instrument_search', operation: 'resolve', status: 'held', retry_at: retryAt }] })
+    const controller = new AbortController()
+    let current = true
+    const lifecycle = createKnownTemporaryRetryLifecycle(() => current, undefined, controller.signal)
+    const identityPromise = resolveExistingInstrumentWithRetry('IGV', lifecycle, () => current)
+    const acquisition = acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true, start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z',
+    }, undefined, () => current, identityPromise, { retryLifecycle: lifecycle, signal: controller.signal })
+    await vi.advanceTimersByTimeAsync(0)
+    current = false
+    controller.abort()
+    const result = await acquisition
+    expect(result.kind).toBe('superseded')
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledTimes(1)
+    vi.useRealTimers()
+  })
+
   it('admits issuer holdings only for confirmed ETF vehicle types and keeps ETN distinct', () => {
     expect(isEligibleETFHoldingsInstrumentType('ETF')).toBe(true)
     expect(isEligibleETFHoldingsInstrumentType('Index ETF')).toBe(true)
@@ -135,16 +201,17 @@ describe('explicit acquisition API contracts', () => {
     expect(api.post).not.toHaveBeenCalled()
   })
 
-  it('provides timeframe-sized recent presets and rejects future or over-limit ranges', () => {
+  it('defaults daily and slower charts to the admitted long-history window without a lifetime day ceiling', () => {
     const now = new Date('2026-10-27T12:00:00.000Z')
     const daily = defaultHistoryRange('D1', now)
     const intraday = defaultHistoryRange('M5', now)
     expect(Date.parse(daily.end)).toBe(now.getTime())
-    expect(Date.parse(daily.end) - Date.parse(daily.start)).toBe(180 * 24 * 60 * 60 * 1000)
+    expect(Date.parse(daily.end) - Date.parse(daily.start)).toBe(728 * 24 * 60 * 60 * 1000)
     expect(Date.parse(intraday.end) - Date.parse(intraday.start)).toBe(6 * 24 * 60 * 60 * 1000)
     expect(historyRangeIsAllowed('D1', daily.start, daily.end, now)).toBe(true)
-    expect(historyRangeIsAllowed('D1', '2025-10-01T00:00:00.000Z', daily.end, now)).toBe(false)
+    expect(historyRangeIsAllowed('D1', '2025-06-01T00:00:00.000Z', daily.end, now)).toBe(true)
     expect(historyRangeIsAllowed('D1', daily.start, '2026-10-28T00:00:00.000Z', now)).toBe(false)
+    expect(historyRangeIsAllowed('M1', '2026-01-01T00:00:00.000Z', daily.end, now)).toBe(false)
   })
 
   it('keeps every timeframe default below the Provider inclusive 2,000-slot budget', () => {
@@ -154,10 +221,10 @@ describe('explicit acquisition API contracts', () => {
       H4: 14400, H12: 43200, D1: 86400, W1: 604800, MN: 2592000,
     }
     expect(HISTORY_TIMEFRAME_SECONDS).toEqual(expectedSeconds)
-    expect(HISTORY_RANGE_LIMIT_DAYS).toMatchObject({ M1: 1, M5: 6, M15: 20, W1: 700, MN: 700 })
+    expect(HISTORY_DEFAULT_RANGE_DAYS).toMatchObject({ M1: 1, M5: 6, M15: 20, D1: 728, W1: 728, MN: 728 })
     expect(HISTORY_ACQUISITION_MAX_REQUESTED_BARS).toBe(2000)
 
-    for (const [timeframe, days] of Object.entries(HISTORY_RANGE_LIMIT_DAYS) as [keyof typeof expectedSeconds, number][]) {
+    for (const [timeframe, days] of Object.entries(HISTORY_DEFAULT_RANGE_DAYS) as [keyof typeof expectedSeconds, number][]) {
       const range = defaultHistoryRange(timeframe, now)
       const expectedSlots = Math.ceil((days * 86400) / expectedSeconds[timeframe]) + 1
       expect(requestedHistoryBarSlots(timeframe, range.start, range.end)).toBe(expectedSlots)
@@ -176,6 +243,20 @@ describe('explicit acquisition API contracts', () => {
     expect(historyRangeFitsBarBudget('M1', withinStart, end)).toBe(true)
     expect(requestedHistoryBarSlots('M1', overStart, end)).toBe(2001)
     expect(historyRangeFitsBarBudget('M1', overStart, end)).toBe(false)
+  })
+
+  it('clamps the first older request to the admitted default window and keeps each slice within 2,000 slots', () => {
+    const now = new Date('2026-11-06T12:00:00.000Z')
+    const cachedStart = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString()
+    const defaultStart = defaultHistoryRange('D1', now).start
+    const gap = olderHistoryRange('D1', cachedStart, undefined, defaultStart)
+    expect(gap.start).toBe(defaultStart)
+    expect(Date.parse(gap.end)).toBeLessThan(Date.parse(cachedStart))
+    expect(historyRangeIsAllowed('D1', gap.start, gap.end, now)).toBe(true)
+    expect(requestedHistoryBarSlots('D1', gap.start, gap.end)).toBeLessThanOrEqual(HISTORY_ACQUISITION_MAX_REQUESTED_BARS)
+
+    const beyondDefault = olderHistoryRange('W1', defaultStart, undefined, defaultStart)
+    expect(requestedHistoryBarSlots('W1', beyondDefault.start, beyondDefault.end)).toBe(HISTORY_ACQUISITION_MAX_REQUESTED_BARS)
   })
 
   it('keeps ETF acquire refresh semantics explicit and distinct', async () => {
@@ -226,8 +307,72 @@ describe('explicit acquisition API contracts', () => {
     })
   })
 
+  it('fails closed when an eligible availability response has no reviewed lower bound', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2025-01-01T00:00:00Z', end: '2026-01-01T00:00:00Z' }] })
+      .mockResolvedValueOnce({
+        instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible',
+        earliest_start: null, max_requested_bars: 2000, reason_code: null,
+      })
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'identity', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
+
+    const result = await acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2025-01-01T00:00:00.000Z', end: '2026-01-01T00:00:00.000Z',
+    })
+
+    expect(result.kind).toBe('admission-unavailable')
+    expect(api.get).toHaveBeenNthCalledWith(2, '/instruments/82/history-availability', { timeframe: 'D1', adjusted: true })
+    expect(api.post).toHaveBeenCalledTimes(1)
+  })
+
+  it('keeps a held availability response retryable and does not submit history', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 2, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: '2025-01-01T00:00:00Z' }] })
+      .mockResolvedValueOnce({
+        instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'held',
+        earliest_start: null, max_requested_bars: 2000, reason_code: 'provider_quota_admission_denied',
+      })
+    vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'identity', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
+
+    const result = await acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2024-01-01T00:00:00.000Z', end: '2025-01-01T00:00:00.000Z',
+    })
+
+    expect(result.kind).toBe('admission-held')
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).not.toHaveBeenCalledWith('/instruments/82/history-acquisitions', expect.anything())
+  })
+
+  it('clamps older history to the reviewed rolling bound plus a transport margin and the server slot limit', async () => {
+    const availabilityStart = '2024-01-01T00:00:00.000Z'
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ status: 'missing', bar_count: 10, missing_slices: [{ start: '2020-01-01T00:00:00Z', end: '2024-01-02T00:00:00Z' }] })
+      .mockResolvedValueOnce({
+        instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible',
+        earliest_start: availabilityStart, max_requested_bars: 120, reason_code: null,
+      })
+      .mockResolvedValueOnce({ status: 'partial', bar_count: 10, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: '2024-01-02T00:00:00Z' }] })
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ request_id: 'identity', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
+      .mockResolvedValueOnce({ request_id: 'history', status: 'partial', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: availabilityStart, requested_end: '2024-01-02T00:00:00Z', coverage: { status: 'partial', bar_count: 1, missing_slices: [] }, bars: [], source_outcomes: [] })
+
+    const result = await acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2020-01-01T00:00:00.000Z', end: '2024-01-02T00:00:00.000Z',
+    })
+
+    expect(result.kind).toBe('acquired')
+    const request = vi.mocked(api.post).mock.calls.find(([path]) => String(path).includes('/history-acquisitions'))
+    const payload = request?.[1] as { start: string; end: string }
+    expect(Date.parse(payload.start)).toBeGreaterThanOrEqual(Date.parse(availabilityStart) + 60_000)
+    expect(Date.parse(payload.end) - Date.parse(payload.start)).toBeLessThanOrEqual(119 * 86_400_000)
+    expect(payload.end).toBe('2024-01-02T00:00:00.000Z')
+  })
+
   it('acquires only the selected canonical ticker and selected bounded interval', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+      .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
     vi.mocked(api.post)
       .mockResolvedValueOnce({ request_id: 'identity', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
       .mockResolvedValueOnce({ request_id: 'history', status: 'partial', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-10-01T00:00:00Z', requested_end: '2026-10-20T00:00:00Z', coverage: { status: 'partial', bar_count: 3, missing_slices: [] }, bars: [], source_outcomes: [] })
@@ -248,7 +393,9 @@ describe('explicit acquisition API contracts', () => {
   })
 
   it('reuses an identity promise supplied by the deliberate selection instead of resolving twice', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-10-20T00:00:00Z' }] })
+      .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
     vi.mocked(api.post).mockResolvedValueOnce({ request_id: 'history', status: 'partial', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-10-01T00:00:00Z', requested_end: '2026-10-20T00:00:00Z', coverage: { status: 'partial', bar_count: 3, missing_slices: [] }, bars: [], source_outcomes: [] })
     const selectedIdentity = Promise.resolve({
       request_id: 'selection-identity', status: 'resolved' as const,

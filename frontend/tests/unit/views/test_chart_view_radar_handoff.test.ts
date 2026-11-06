@@ -215,6 +215,7 @@ describe('ChartView radar handoff', () => {
       expect.any(Function),
       expect.any(Function),
       expect.any(Promise),
+      expect.objectContaining({ signal: expect.any(Object) }),
     ))
     await expect(vi.mocked(acquireSelectedHistory).mock.calls.at(-1)![6]).resolves.toEqual(confirmedIdentity)
     await vi.waitFor(() => expect(refreshLocalBars).toHaveBeenCalledOnce())

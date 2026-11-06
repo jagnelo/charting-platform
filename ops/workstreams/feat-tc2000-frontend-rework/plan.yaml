@@ -74,8 +74,10 @@ archived_prior_accepted_f8y_20261028_closure_summary: 'integration_capture: exac
   structured protected-resource comparison passed. The new closing records tip still requires its own exact branch CI before
   Root-supported integration. AC1-AC9, official REF-HELP-V25, broader product work, genuine Provider/issuer proof, target
   acceptance, and deployment remain open or Root-owned; this is not full feature-roadmap completion.'
-human_closure_authorization: "The human standing delegation covers technical checkpoint acceptance and promotion. Root accepted this exact corrective implementation on 2026-11-05 in /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json (SHA256 768cfc9a3ecca80fb392d08896a406f8a7849be049671a23eb1c5e84fad7e7f8). This is delegated technical acceptance, not a claim of personal human testing. Root retains exact published CI, correct-bundle browser/full profile, integration, promotion and deployment gates."
-closure_summary: "Corrective same-snapshot holding-action followup: one destructive array-returning watcher now compares ETF, snapshot ID and industry as separate sources. Mounted regression reproduced the defect before the fix; the corrected component suite passed 4/4, frontend type-check and diff checks passed. Real snapshot/industry/fund changes still clear selection. No E2E assertion, timeout, retry, reference, tolerance, source policy or dataset changed. Root accepted exact file hashes. Exact committed-bundle focused browser, closing-tip CI and final combined full functional/strict-visual release proof remain Root-owned and mandatory; the unchanged 18.2s browser baseline is not fixed-source proof. Prior accepted checkpoints and complete roadmaps remain preserved. integration_capture: exact branch HEAD."
+human_closure_authorization: "The human explicitly delegated acceptance, reconciliation, promotion and private m920q deployment of these checkpoints without routine confirmation. Under that standing authority, Root accepts the delivered history/dashboard implementation checkpoint in tc-delivered-integration-checkpoint-acceptance.json. Exact closing-tip CI and committed visual-input binding must pass before integration; this is not genuine deployment acceptance."
+
+closure_summary: "Delivered shared bounded acquisition for preset/search/constituent selection, deeper admitted daily/weekly/monthly history and known-window recovery/cancellation; same-dashboard holding context; corrected shared tab/title geometry, TC settings and visible ToolWindow menus. Application source 5f24fee12e912849dab1ba1dbb7f7b19ec2901ff; frozen test source 5180f97b7edba8910f779ebaea0ca312f96be98d plus one reviewed partial-coverage PNG (SHA256 b504ea29e80a0bb06a3db9750e3846b853283f5347c5b6d98d2d1450c9c77ffb). Root evidence: 7 controlled acquisition stories; 203 functional passes/2 genuine-source-only skips on prior unchanged acquisition inputs; later portal delta 11 mounted tests, 16 browser passes and corrected narrow-menu pass; 104 visual case inputs pass across frozen zero-retry batches, tolerance0.005, binding to final commit pending. Historical failed runs remain preserved; Exact source CI 42157099350 for 5180f97b7edba8910f779ebaea0ca312f96be98d completed successfully; receipt /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/ci/tc-5180-terminal-green.json (SHA256 8ded4f21cc7c0767bf5d9117352977ec79dceca70c66fc812681fb23a4104cbe). Exact closing-tip CI remains pending Root observation. No migration/default-policy/Source/quota/data changes. All original9roadmap criteria and10repairjourney texts remain; genuine user journeys, exact closing CI, staging/master, deployment, guide and cleanup stay Root-owned pending. integration_capture: exact branch HEAD"
+
 validation_tier: full_integration
 human_validation_authorization: The human explicitly approved implementation of the TC2000 roadmap from the synchronized staging
   baseline; all application/workstation changes use the complete integration gate.
@@ -328,11 +330,9 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: Exact closing-tip CI is mandatory and pending Root observation. Root owns the accepted ETF→TC staging batch,
-  staging and independent master gates, preserved-data rollout, and genuine deployed Enter/Go, SPY/IGV, rapid/failure/late-response
-  and cached-flow proof. Official REF-HELP-V25 parity and the full nine-item roadmap remain open.
-current_checkpoint_status: Accepted bounded ordinary remote-ticker Enter/Go and selection-error isolation software checkpoint;
-  the exact closing-tip CI and Root-owned forward-release/genuine-source gates remain pending.
+current_blocker: "Root-owned exact-source CI and corrected full strict104 visual profile remain pending. The prior visual run and focused menu failures are retained as evidence; no broader roadmap or deployment completion is claimed."
+current_checkpoint_status: "Root-accepted delivered implementation checkpoint, subject to exact closing CI and committed104visualinput binding before integration. Local scope/evidence asclosure_summary. All genuine deployment acceptance remains Root-owned; no full-roadmap completion."
+
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
   / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured opt-in
@@ -640,7 +640,11 @@ previous_tip: 8a9c26a872ce02e69817b119885a0dfe0aedcb0d
 roadmap_goal: Deliver the frontend-led TC2000 V25-inspired workstation by consuming the market-data-provider-platform and
   ETF-holdings-constituents contracts, retaining TC-owned Study/Strategy capabilities, reconciling upstream overlaps after
   staging promotion, and stopping at ready_for_human_review.
-goal: "Repair ordinary ticker selection, including exact discovered Enter/Go, superseded error isolation, and reported-holding action stability across same-snapshot refreshes; preserve genuine context invalidation and all existing roadmaps."
+goal: Repair general dashboard ticker selection, admitted historical depth, bounded
+  older-history acquisition and current-context recovery; keep reported-holding selection
+  and dated lineage in the dashboard, align shared panel chrome, and style dashboard-accessible
+  settings consistently.
+
 historical_checkpoint_archive:
   recorded_from_commit: 74b854d93a2e6853e2c59db1ea29293504b65071
   recorded_at: '2026-10-27T22:28:35Z'
@@ -1344,109 +1348,69 @@ historical_checkpoint_archive:
     canonical W1/MN route may locally materialize derived bars from D1. A trustworthy existing sub-industry/industry comparison
     series remains open, so relative modes stay unavailable. No deployment, live provider/ETF test, paid access, or visual
     reference change is claimed.'
-integration_checkpoint:
-  id: tc-ordinary-remote-ticker-selection-errors-20261105
-  objective: Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection
-    errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards,
-    picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.
-  status: ready_for_integration
-  acceptance: Root accepted this bounded software checkpoint under the existing human-delegated authority; acceptance receipt
-    /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json
-    (SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). This records Root acceptance, not a new human
-    quote or personal human testing.
-  planning_authority: Human activation in original TC session under standing authority; Root coordinates exact CI and shared
-    full profile.
-  source_capture: exact branch HEAD
-  criteria_ids:
-  - TCENTER6
-  - TCENTER7
-  - TCENTER8
-  - TCENTER9
-  - TCENTER10
-  criteria_total: 5
-  criteria_completed: &id001
-  - TCENTER6
-  - TCENTER7
-  - TCENTER8
-  - TCENTER9
-  required_next_gate: Exact closing-tip CI is mandatory and pending Root observation; only after green CI may Root proceed
-    with its protected integration/release gates.
-  full_roadmap: All nine AC1-AC9, official REF-HELP-V25, genuine Provider/issuer proof, protected integration, and deployment
-    remain open or Root-owned.
-  bounded_checkpoint_evidence: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
-    / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
-    / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured
-    opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects,
-    0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases:
-    2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation.
-    This is bounded software/profile acceptance only.'
+integration_checkpoint: null
 current_software_checkpoint:
-  id: tc-ordinary-remote-ticker-selection-errors-20261105
-  status: ready_for_integration
+  id: tc-history-dashboard-repair-20261106
+  status: "ready_for_integration"
+  source_capture: exact branch HEAD at publication
   criteria_ids:
-  - TCENTER6
-  - TCENTER7
-  - TCENTER8
-  - TCENTER9
-  - TCENTER10
-  criteria_total: 5
-  criteria_completed: *id001
-  local_evidence: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
-    / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
-    / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured
-    opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects,
-    0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases:
-    2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation.
-    This is bounded software/profile acceptance only.'
-  source_base: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  acceptance: Root accepted this bounded software checkpoint under the existing human-delegated authority; acceptance receipt
-    /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json
-    (SHA256 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40). This records Root acceptance, not a new human
-    quote or personal human testing.
-  planning_authority: Root checkpoint acceptance under the existing human delegation; no new human quote.
+  - A1
+  - A2
+  - H1
+  - H2
+  - R1
+  - N1
+  - N2
+  - V1
+  - V2
+  - C1
+  criteria_total: 10
+  focused_validation: 232 affected unit tests passed; frontend type-check passed;
+    all seven on-demand E2E cases discovered. No combined browser/visual profile claimed.
+  provider_dependency: Root reports exact Provider run 42141483157 with three existing
+    VanEck integration failures; ETF owner diagnoses. No TC backend change or dependency
+    repair is included.
+  pending: "Exact closing-tip CI remains mandatory and pending Root observation. Root owns canonical staging/master, private cutover, genuine user-flow proof, official REF-HELP-V25 parity and the wider roadmap; none is claimed complete."
+  root_scope_approval: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/tc-repair-scope-checkpoint-approval.json
+  scope_archive:
+    path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
+    sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
   integration_capture: exact branch HEAD
-  pending: Exact closing-tip CI is mandatory and pending Root observation. Root owns the accepted ETF→TC staging batch, staging
-    and independent master gates, preserved-data rollout, and genuine deployed Enter/Go, SPY/IGV, rapid/failure/late-response
-    and cached-flow proof. Official REF-HELP-V25 parity and the full nine-item roadmap remain open.
-  adoption_receipt: /home/m920q/charting-platform/.ai/validation/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.json
-  adoption_receipt_sha256: fa0009d50ca5fdd5e79fc2a813f8e719dd1c411ead879f89466df1878680f97e
-  frozen_import_manifest: ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.yaml
-  frozen_import_manifest_sha256: 4e9bf239a3a1a520e75bdd44dcd2663cce1e450ffb0730be8ac5cf2ebf647d01
-  tested_frontend_source: 36e7ad2cb08c769a242773ab2b6be69fcc350774
-  tested_backend_source: 6eae00eb8380438da771fed0c42d19587e9520ce
-  root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json
-  root_acceptance_receipt_sha256: 1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40
-  functional_evidence:
-    path: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/functional-root-review.json
-    sha256: c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a
-  strict_visual_evidence:
-    path: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/profile/artifacts/strict-visual-receipt.json
-    sha256: 265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e
-  served_enter_go_evidence:
-    path: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/profile/served-probe-artifacts/profile-summary.json
-    sha256: c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7
-  retained_inputs_evidence:
-    path: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json
-    sha256: 26d724cd47335e9c745cd89618c9d527214b0d75887871626792b308be82cbb4
-  ETF_runtime_CI_evidence:
-    path: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json
-    sha256: 70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1
 acceptance_criteria:
-- id: TCENTER6
-  text: Workstation Enter/Go submits one exact discovered remote ticker through existing identity verification and canonical
-    acquisition; exact local matches win and fuzzy prefixes are never implicitly selected.
-- id: TCENTER7
-  text: Matching pending discovery can complete deliberate submission; query changes and stale/late results cannot submit
-    another ticker. Duplicate exact listings remain ambiguous.
-- id: TCENTER8
-  text: Shared chart SearchBar uses the same exact remote submission while preserving picker/type restrictions, expressions,
-    explicit arrows/clicks, event compatibility, and source-request bounds.
-- id: TCENTER9
-  text: New deliberate selections clear only superseded selection-owned errors. Expected ETF current-analysis unavailability
-    is fund-scoped; stale failures cannot repaint a newer selection, and genuine workspace conflicts remain visible.
-- id: TCENTER10
-  text: Focused regressions, type-check, normal workstream/scope validation, one coherent publication and exact-source CI
-    are required. Root owns the retained-fixture full functional/strict-visual profile; none is newly claimed.
+- id: A1
+  text: Select multiple never-resolved preset sector ETFs from S&P500 Sectors; identity
+    metadata history and supported holdings appear in the same dashboard; empty placeholders
+    cannot be mistaken for source absence.
+- id: A2
+  text: Search an uncached ordinary stock and an uncached supported issuer ETF with
+    Enter/Go; automatic acquisition works as for preset selection.
+- id: H1
+  text: Daily chart offers useful admitted historical depth; pan earlier requests
+    older chunks; cache reload avoids duplicate external acquisition.
+- id: H2
+  text: Switch Daily -> Weekly -> Monthly; needed older source history acquired, derived
+    periods show correct chronology and actual provider boundary honestly, never hidden
+    application lifetime cap.
+- id: R1
+  text: Reach native per-minute request budget while exploring; show waiting/retry
+    timing, resume current selection, superseded selection must not repaint or issue
+    obsolete retries.
+- id: N1
+  text: Click a chartable constituent; stay on dashboard, update same active chart/tool
+    context consistently with sector/benchmark selection, retain snapshot/row/asof
+    provenance.
+- id: N2
+  text: Cash/derivative/unresolved unsupported holding has honest non-chartable feedback,
+    no fabricated instrument or chart.
+- id: V1
+  text: Inspect panel tab/title and internal heading separation across chart/constituents/benchmarks/sectors/other
+    tool shells at1920x1080 and narrower viewport; no overlap.
+- id: V2
+  text: Open chart settings and dashboard-accessible menus/dialogs; same TC theme,
+    readable controls, keyboard/accessibility retained.
+- id: C1
+  text: Rapid ETF->stock->ETF switches plus delayed and failed history/holdings response;
+    no stale context, correct own-cache/held/unavailable feedback.
 scope:
 - 'R0: make TC ownership, upstream dependencies, shared-path exceptions, scope guard, and the preserved historical gate receipt
   durable in this workstream.'
@@ -1616,16 +1580,18 @@ excluded_paths:
 - docs/project-todos.md
 shared_path_exceptions:
 - path: backend/app/main.py
-  reason: Register the TC-owned authenticated Favorites router only; do not add provider, ETF, or generic service behavior.
+  reason: Register the TC-owned authenticated Favorites router only; do not add provider,
+    ETF, or generic service behavior.
 - path: backend/app/models/__init__.py
-  reason: Register the TC-owned FavoriteInstrument model only; preserve upstream model ownership and reconcile this shared
-    import path after staging.
+  reason: Register the TC-owned FavoriteInstrument model only; preserve upstream model
+    ownership and reconcile this shared import path after staging.
 - path: backend/app/routers/analysis.py
   owners:
   - TC
   - market-data-provider-platform
   - etf-holdings-constituents
-  reason: TC analysis/readiness aggregation only; keep provider and ETF authority upstream.
+  reason: TC analysis/readiness aggregation only; keep provider and ETF authority
+    upstream.
 - path: backend/app/routers/research.py
   owners:
   - TC
@@ -1636,12 +1602,14 @@ shared_path_exceptions:
   owners:
   - TC
   - market-data-provider-platform
-  reason: TC aggregate response fields only; preserve upstream provider evidence as source of truth.
+  reason: TC aggregate response fields only; preserve upstream provider evidence as
+    source of truth.
 - path: backend/app/schemas/market_map.py
   owners:
   - TC
   - market-data-provider-platform
-  reason: TC Market Map consumer/read contract only; no provider policy or capability ownership.
+  reason: TC Market Map consumer/read contract only; no provider policy or capability
+    ownership.
 - path: backend/app/services/market_map.py
   owners:
   - TC
@@ -1652,7 +1620,8 @@ shared_path_exceptions:
   owners:
   - TC
   - market-data-provider-platform
-  reason: TC analytics over persisted inputs only; no generic bar fetch or provider routing.
+  reason: TC analytics over persisted inputs only; no generic bar fetch or provider
+    routing.
 - path: backend/app/services/research_jobs.py
   owners:
   - TC
@@ -1662,12 +1631,14 @@ shared_path_exceptions:
   owners:
   - TC
   - market-data-provider-platform
-  reason: TC Research/Study/Strategy behavior tests only; do not expand provider coverage ownership.
+  reason: TC Research/Study/Strategy behavior tests only; do not expand provider coverage
+    ownership.
 - path: backend/tests/unit/services/test_visual_manifest.py
   owners:
   - TC
-  reason: TC's REF-HELP-V25 manifest-gap consistency regression for the human-approved local-only interim Help oracle; no
-    official V25 state, threshold, or upstream behavior is changed.
+  reason: TC's REF-HELP-V25 manifest-gap consistency regression for the human-approved
+    local-only interim Help oracle; no official V25 state, threshold, or upstream
+    behavior is changed.
 - path: backend/app/services/strategy_lab.py
   owners:
   - TC
@@ -1684,26 +1655,28 @@ shared_path_exceptions:
   - TC
   - market-data-provider-platform
   - etf-holdings-constituents
-  reason: only adapt TC workstation startup to upstream readiness/enqueue contracts; remove direct provider/ETF acquisition.
+  reason: only adapt TC workstation startup to upstream readiness/enqueue contracts;
+    remove direct provider/ETF acquisition.
 - path: backend/tests/integration/api/test_strategy_lab.py
   owners:
   - TC
   - market-data-provider-platform
   - etf-holdings-constituents
-  reason: preserve TC Strategy Lab API tests while keeping provider and holdings setup under upstream owners.
+  reason: preserve TC Strategy Lab API tests while keeping provider and holdings setup
+    under upstream owners.
 - path: backend/tests/integration/api/test_watchlists.py
   owners:
   - TC
   - market-data-provider-platform
   - etf-holdings-constituents
-  reason: TC Market Map and ETF/family source-read consumer contracts, including current-versus-PIT fixture evidence and raw
-    snapshot counts; no provider or ETF acquisition coverage.
+  reason: TC Market Map and ETF/family source-read consumer contracts, including current-versus-PIT
+    fixture evidence and raw snapshot counts; no provider or ETF acquisition coverage.
 - path: backend/tests/unit/routers/test_analysis_router.py
   owners:
   - TC
   - market-data-provider-platform
-  reason: TC derived-bar cutoff consumer tests plus released Provider freshness-precedence assertions only; no Provider route,
-    source, or acquisition behavior.
+  reason: TC derived-bar cutoff consumer tests plus released Provider freshness-precedence
+    assertions only; no Provider route, source, or acquisition behavior.
 - path: backend/app/models/strategy.py
   owners:
   - TC
@@ -1733,33 +1706,37 @@ shared_path_exceptions:
 - path: frontend/src/lib/uplot/plugins/ohlc-bars.ts
   owners:
   - TC
-  reason: TC V25 HLC plot rendering only; use existing OHLCV without data acquisition or upstream policy.
+  reason: TC V25 HLC plot rendering only; use existing OHLCV without data acquisition
+    or upstream policy.
 - path: frontend/src/stores/userSettings.ts
   owners:
   - TC
-  reason: accept HLC in existing chart preferences for the TC workstation; no provider or ETF settings.
+  reason: accept HLC in existing chart preferences for the TC workstation; no provider
+    or ETF settings.
 - path: frontend/src/stores/chart.ts
   owners:
   - TC
   - market-data-provider-platform
-  reason: Overlap only the TC workstation's already local-only OHLC read with canonical instrument resolution; keep provider-capable
-    reads gated on successful identity resolution and do not change provider routing, acquisition, fallback, quota, or entitlement
-    behavior.
+  reason: Overlap only the TC workstation's already local-only OHLC read with canonical
+    instrument resolution; keep provider-capable reads gated on successful identity
+    resolution and do not change provider routing, acquisition, fallback, quota, or
+    entitlement behavior.
 - path: frontend/src/views/ChartView.vue
   owners:
   - TC
-  reason: 'TC legacy chart-route initialization and layout handoff only: preserve a URL symbol across the proven delayed-presets
-    single-to-multi transition; no provider routing, ETF behavior, or general application-shell ownership.'
+  reason: 'TC legacy chart-route initialization and layout handoff only: preserve
+    a URL symbol across the proven delayed-presets single-to-multi transition; no
+    provider routing, ETF behavior, or general application-shell ownership.'
 - path: frontend/index.html
   owners:
   - TC
-  reason: Remove only the unconditional OneSignal CDN bootstrap so push notifications remain strictly opt-in; no unrelated
-    shell or provider behavior.
+  reason: Remove only the unconditional OneSignal CDN bootstrap so push notifications
+    remain strictly opt-in; no unrelated shell or provider behavior.
 - path: frontend/src/views/SettingsView.vue
   owners:
   - TC
-  reason: Load the OneSignal SDK only after a configured explicit user action while preserving the existing push-notification
-    settings contract.
+  reason: Load the OneSignal SDK only after a configured explicit user action while
+    preserving the existing push-notification settings contract.
 - path: frontend/src/components/workstation/MarketMapTool.vue
   owners:
   - TC
@@ -1779,31 +1756,49 @@ shared_path_exceptions:
   owners:
   - TC
   - staging-coordinator
-  reason: TC may update only keyboard_help interim_oracle and its four local Help baselines under the human's 2026-10-15 authorization.
-    Preserve keyboard_help state/review as required_missing, all official V25 evidence gaps, every other manifest state, and
-    unchanged thresholds. This is a local staging reference, not V25 approval; coordinator reconciles the shared manifest
-    during integration.
+  reason: TC may update only keyboard_help interim_oracle and its four local Help
+    baselines under the human's 2026-10-15 authorization. Preserve keyboard_help state/review
+    as required_missing, all official V25 evidence gaps, every other manifest state,
+    and unchanged thresholds. This is a local staging reference, not V25 approval;
+    coordinator reconciles the shared manifest during integration.
 - path: Makefile
-  reason: Common staging integration workflow target carried by the released 0145 common-repair merge; TC does not own changes
-    to its behavior.
+  reason: Common staging integration workflow target carried by the released 0145
+    common-repair merge; TC does not own changes to its behavior.
 - path: backend/tests/unit/services/test_research_runner.py
-  reason: Common staging research-runner isolation regression test carried by the released 0145 common-repair merge; Provider/runner
-    behavior remains upstream-owned.
+  reason: Common staging research-runner isolation regression test carried by the
+    released 0145 common-repair merge; Provider/runner behavior remains upstream-owned.
 - path: docs/agent-orchestration.md
-  reason: Canonical repository-wide agent workflow guidance carried by the released 0145 common-repair merge; coordinator-owned
-    shared documentation.
+  reason: Canonical repository-wide agent workflow guidance carried by the released
+    0145 common-repair merge; coordinator-owned shared documentation.
 - path: docs/feature-integration-coordination.md
-  reason: Coordinator-owned cross-feature merge sequencing guidance carried by the released 0145 common-repair merge.
+  reason: Coordinator-owned cross-feature merge sequencing guidance carried by the
+    released 0145 common-repair merge.
 - path: docs/feature-integration-reconciliation.md
-  reason: Coordinator-owned cross-feature reconciliation guidance carried by the released 0145 common-repair merge.
+  reason: Coordinator-owned cross-feature reconciliation guidance carried by the released
+    0145 common-repair merge.
 - path: ops/workstreams/fix-staging-popup-validation/validation.jsonl
-  reason: Coordinator-owned staging-popup CI validation journal carried by the released 0145 common-repair merge.
+  reason: Coordinator-owned staging-popup CI validation journal carried by the released
+    0145 common-repair merge.
 - path: scripts/staging.py
-  reason: Shared staging integration implementation carried by the released 0145 common-repair merge; coordinator-owned workflow
-    behavior.
+  reason: Shared staging integration implementation carried by the released 0145 common-repair
+    merge; coordinator-owned workflow behavior.
 - path: tests/workflow/test_staging_workflow.py
-  reason: Shared staging workflow regression tests carried by the released 0145 common-repair merge; coordinator-owned test
-    infrastructure.
+  reason: Shared staging workflow regression tests carried by the released 0145 common-repair
+    merge; coordinator-owned test infrastructure.
+- path: frontend/src/components/common/SearchBar.vue
+  reason: Exact shared chart-search consumer path for the human-authorized ordinary
+    ticker/history repair; preserve picker/type restrictions, expression semantics,
+    event compatibility, and current-intent retry cancellation. No directory-wide
+    ownership is granted.
+- path: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  reason: Exact test-only shared dependency adopted from clean synchronized ETF source
+    b25fc814ef301103337f343d57b859545fa5bb8f, blob
+    c75d410ea18854db6179f0d2ba608ef62e4350c2 (SHA256
+    a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d).
+    The reviewed test-clock-only correction stabilizes the existing VanEck
+    qualification cases; no ETF workstream, product source, policy, payload,
+    ledger, data, or runtime resource is adopted. This grants no directory
+    ownership.
 dependencies:
 - Prior accepted green staging 173745205692acd3fca650eeeafcd6de38f29fed imports the accepted Provider/ETF on-demand contracts
   from producer source95a93f0b932f58018d4f0d40f17f8fdb9eecdb20. Provider owns candidate discovery, canonical identity, bounded
@@ -1830,1174 +1825,25 @@ dependencies:
   Vehicle reconciliation and selected instrument-type response. TC consumes the returned identity/type before issuer holdings
   eligibility; ETF and Index ETF remain eligible, ETN remains excluded. No Provider source implementation was copied into
   this branch.
-scope_guard_baseline_sha: 2b92c642237ce2abde40a84ee98383d4ee4285d1
-frozen_upstream_import_manifests:
-- ops/workstreams/feat-tc2000-frontend-rework/frozen-upstream-imports/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.yaml
-frontend_presentation_handoff:
-  human_authorization: The goal was for, on merge/reconciliation between the all the ongoing features, the tc2000 one (the
-    main, visual makeover feature) would take over, look & feel wise, and ensure the whole frontend remains consistent; “The
-    whole dashboard/UI MUST have consistent look & feel, anything else is unacceptable”.
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  status: implementation_in_progress
-  latest_candidate_parent_sha: 157a51501963625905422a999b8f48a377291b9c
-  latest_candidate_source_diff_sha256: f07780bdfb077dbfa83d9bbf0378d835258bfb5ff2eca29d7b7a580b8752add5
-  latest_candidate_validation: On published157a the one-time full functional suite was stopped by Root after12 workstation-layout
-    failures (F3/F5 and ten chart flows; all failed loggedIn readiness at helpers.ts:416 because workspace-layout-host stayed
-    hidden);3 passed,1 interrupted,182 not run, browser exit130/noOOM. No visual matrix ran. Root's post-stop34/52/11/all-eight-service/image
-    preservation checks passed. Cause is the conditional-only tc-legacy-app class leaving canonical workstation/popout/login's
-    inner App root auto-height while its children require definite height:100%. Candidate adds permanent tc-application-root
-    height:100% and a mounted route-mode regression. Focused app-shell tests passed6/6; npm run build passed vue-tsc/Vite
-    (530 modules,13.28s). No candidate browser proof or full matrix has run. Root must verify actual /chart dock/chart-tools
-    at1280x720,1920x1080 and 390x800 before the unchanged full functional/strict-visual profiles. No whole-frontend acceptance
-    is claimed.
-  domain_review_index: /home/m920q/charting-platform/.ai/staging-attempts/whole-frontend-domain-review-index-20261026.json
-  accepted_domain_reviews:
-    provider:
-      source: 57b4b1d7ea502726dec8da9ce29c38d15edc97c3
-      handoff: /home/m920q/charting-platform/.ai/worktrees/feat-market-data-provider-platform/ops/workstreams/feat-market-data-provider-platform/handoff.md
-    etf:
-      source: 3b09233e7e8aa36db3217fdf65bf87b75460877d
-      handoff: /home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/handoff.md
-    strategy:
-      source: e50198fa055cc3a980a491dcd572f6581b8baf13
-      handoff: /home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/handoff.md
-  contracts_to_preserve:
-  - Provider usage/quota null is unknown or unreported, never numeric zero; retain quota versus estimate versus unknown, admin-only
-    writes, redacted errors and no appearance-triggered acquisition.
-  - Provider-selected/default series and coverage remain server-owned; the UI does not merge alternate-series rows or turn
-    coverage into acquisition.
-  - ETF retains all 1,946 IWM rows, actual observation and knowledge times, unresolved identities, PIT/current distinctions
-    and same-date parser-correction audit semantics.
-  - Strategy Results-to-V2 navigation keeps owner-scoped GET-only selected Study identity and all ten pinned lineage fields
-    across reload/back/forward; native execution remains unavailable.
-  route_inventory:
-  - path: /login
-    entry: LoginView
-    surface: Public authentication; no signed-in navigation shell.
-  - path: /
-    entry: WorkstationView
-    surface: Authenticated TC workstation and persisted tools.
-  - path: /chart
-    entry: WorkstationView
-    surface: Authenticated workstation chart.
-  - path: /chart/:symbol(.*)
-    entry: WorkstationView
-    surface: Authenticated workstation chart by symbol.
-  - path: /popout/:windowKey
-    entry: WorkstationView
-    surface: Standalone popout; preserve popout chrome and controls.
-  - path: /study-lab
-    entry: redirect to /?tab=study-lab
-    surface: Study tool deep link into the workstation.
-  - path: /legacy/dashboard
-    entry: DashboardView
-    surface: Dashboard widgets and loading/empty/error states.
-  - path: /legacy/chart
-    entry: ChartView
-    surface: Legacy chart workflow and dialogs.
-  - path: /legacy/chart/:symbol(.*)
-    entry: ChartView
-    surface: Legacy chart by symbol.
-  - path: /legacy/alerts
-    entry: AlertsView
-    surface: Alert list/create/edit and states.
-  - path: /legacy/radar
-    entry: RadarView
-    surface: Radar filters and detail preview.
-  - path: /legacy/strategy-lab
-    entry: StrategyLabView
-    surface: Strategy Lab v1; saved artifacts and workflow.
-  - path: /legacy/strategy-lab-v2
-    entry: StrategyLabV2View
-    surface: Strategy Lab v2; immutable inspector/navigation.
-  - path: /legacy/baskets
-    entry: BasketsView
-    surface: Basket management and states.
-  - path: /legacy/etf-holdings
-    entry: ETFHoldingsView
-    surface: ETF holdings; preserve current/unavailable/PIT/lineage.
-  - path: /legacy/screener
-    entry: ScreenerView
-    surface: Screener filters, results and states.
-  - path: /legacy/watchlist
-    entry: WatchlistView
-    surface: Watchlists, tags, favorites and states.
-  - path: /legacy/settings
-    entry: SettingsView
-    surface: Settings/provider controls; preserve disabled/unknown states.
-  - path: /dashboard
-    entry: redirect to /legacy/dashboard
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /alerts
-    entry: redirect to /legacy/alerts
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /radar
-    entry: redirect to /legacy/radar
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /strategy-lab
-    entry: redirect to /legacy/strategy-lab
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /strategy-lab-v2
-    entry: redirect to /legacy/strategy-lab-v2
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /baskets
-    entry: redirect to /legacy/baskets
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /etf-holdings
-    entry: redirect to /legacy/etf-holdings
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /screener
-    entry: redirect to /legacy/screener
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /watchlist
-    entry: redirect to /legacy/watchlist
-    surface: Compatibility alias; preserve URL and behavior.
-  - path: /settings
-    entry: redirect to /legacy/settings
-    surface: Compatibility alias; preserve URL and behavior.
-  route_view_paths:
-  - frontend/src/views/AlertsView.vue
-  - frontend/src/views/BasketsView.vue
-  - frontend/src/views/ChartView.vue
-  - frontend/src/views/DashboardView.vue
-  - frontend/src/views/ETFHoldingsView.vue
-  - frontend/src/views/LoginView.vue
-  - frontend/src/views/RadarView.vue
-  - frontend/src/views/ScreenerView.vue
-  - frontend/src/views/SettingsView.vue
-  - frontend/src/views/StrategyLabV2View.vue
-  - frontend/src/views/StrategyLabView.vue
-  - frontend/src/views/WatchlistView.vue
-  - frontend/src/views/WorkstationView.vue
-  reachable_vue_component_paths:
-  - frontend/src/App.vue
-  - frontend/src/components/alerts/AlertForm.vue
-  - frontend/src/components/chart/ChartPanel.vue
-  - frontend/src/components/chart/DrawingToolbar.vue
-  - frontend/src/components/chart/IndicatorPanel.vue
-  - frontend/src/components/chart/InstrumentInfoPanel.vue
-  - frontend/src/components/chart/LayoutPicker.vue
-  - frontend/src/components/chart/MultiChartLayout.vue
-  - frontend/src/components/chart/TimeframeSelector.vue
-  - frontend/src/components/chart/UPlotChart.vue
-  - frontend/src/components/common/HoverTooltip.vue
-  - frontend/src/components/common/Notification.vue
-  - frontend/src/components/common/ProvenanceHint.vue
-  - frontend/src/components/common/ResizeHandle.vue
-  - frontend/src/components/common/SearchBar.vue
-  - frontend/src/components/common/SparkTfSelector.vue
-  - frontend/src/components/common/Sparkline.vue
-  - frontend/src/components/common/StatusBar.vue
-  - frontend/src/components/common/TagPicker.vue
-  - frontend/src/components/common/TechnicalConditionEditor.vue
-  - frontend/src/components/common/TextPromptModal.vue
-  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
-  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
-  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
-  - frontend/src/components/dashboard/DashboardGexWidget.vue
-  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
-  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
-  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
-  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
-  - frontend/src/components/dashboard/DashboardNotesWidget.vue
-  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
-  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
-  - frontend/src/components/dashboard/DashboardRadarWidget.vue
-  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
-  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
-  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
-  - frontend/src/components/etf/ETFHoldingsPanel.vue
-  - frontend/src/components/options/OptionsChainPanel.vue
-  - frontend/src/components/options/exposure/DexLadder.vue
-  - frontend/src/components/options/exposure/GexLadder.vue
-  - frontend/src/components/options/exposure/IvSkew.vue
-  - frontend/src/components/options/exposure/OiDistribution.vue
-  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
-  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
-  - frontend/src/components/radar/RadarDetailPreviewChart.vue
-  - frontend/src/components/strategy/DistributionBars.vue
-  - frontend/src/components/strategy/ExcursionBars.vue
-  - frontend/src/components/strategy/OptimizationLeaderboard.vue
-  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
-  - frontend/src/components/strategy/ReturnsHeatmap.vue
-  - frontend/src/components/strategy/RunComparisonTable.vue
-  - frontend/src/components/strategy/SignalReplayBreakdown.vue
-  - frontend/src/components/strategy/StrategyCoveragePanel.vue
-  - frontend/src/components/strategy/StrategyResultChart.vue
-  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
-  - frontend/src/components/strategy/SweepValueInput.vue
-  - frontend/src/components/strategy/SymbolPerformanceBars.vue
-  - frontend/src/components/strategy/WalkForwardSegments.vue
-  - frontend/src/components/watchlist/WatchlistPanel.vue
-  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
-  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
-  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
-  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
-  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
-  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
-  - frontend/src/components/workstation/ChartPlotLibrary.vue
-  - frontend/src/components/workstation/ChartTemplateControl.vue
-  - frontend/src/components/workstation/CodeLibraryTool.vue
-  - frontend/src/components/workstation/ConditionGroupEditor.vue
-  - frontend/src/components/workstation/CoverageSummaryTool.vue
-  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
-  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
-  - frontend/src/components/workstation/EasyScanTool.vue
-  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
-  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
-  - frontend/src/components/workstation/InstrumentAlertsTool.vue
-  - frontend/src/components/workstation/InstrumentNoteTool.vue
-  - frontend/src/components/workstation/MarketGaugeTool.vue
-  - frontend/src/components/workstation/MarketMapTool.vue
-  - frontend/src/components/workstation/PythonSourceEditor.vue
-  - frontend/src/components/workstation/RatioUPlot.vue
-  - frontend/src/components/workstation/RelativeRotationTool.vue
-  - frontend/src/components/workstation/ResearchResultsTool.vue
-  - frontend/src/components/workstation/StudyBarsUPlot.vue
-  - frontend/src/components/workstation/StudyDashboard.vue
-  - frontend/src/components/workstation/StudyHeatmap.vue
-  - frontend/src/components/workstation/StudyHistogramUPlot.vue
-  - frontend/src/components/workstation/StudyLabTool.vue
-  - frontend/src/components/workstation/StudyRangeUPlot.vue
-  - frontend/src/components/workstation/StudyScatterUPlot.vue
-  - frontend/src/components/workstation/StudySeriesUPlot.vue
-  - frontend/src/components/workstation/ToolWindow.vue
-  - frontend/src/components/workstation/UnknownToolRecovery.vue
-  - frontend/src/components/workstation/VirtualWatchlistTool.vue
-  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
-  - frontend/src/components/workstation/WorkstationGlyph.vue
-  - frontend/src/components/workstation/WorkstationToolContent.vue
-  - frontend/src/views/AlertsView.vue
-  - frontend/src/views/BasketsView.vue
-  - frontend/src/views/ChartView.vue
-  - frontend/src/views/DashboardView.vue
-  - frontend/src/views/ETFHoldingsView.vue
-  - frontend/src/views/LoginView.vue
-  - frontend/src/views/RadarView.vue
-  - frontend/src/views/ScreenerView.vue
-  - frontend/src/views/SettingsView.vue
-  - frontend/src/views/StrategyLabV2View.vue
-  - frontend/src/views/StrategyLabView.vue
-  - frontend/src/views/WatchlistView.vue
-  - frontend/src/views/WorkstationView.vue
-  shell_theme_paths:
-  - frontend/src/router/index.ts
-  - frontend/src/styles/workstation-tokens.css
-  exact_adaptation_paths:
-  - frontend/src/App.vue
-  - frontend/src/components/alerts/AlertForm.vue
-  - frontend/src/components/chart/ChartPanel.vue
-  - frontend/src/components/chart/DrawingToolbar.vue
-  - frontend/src/components/chart/IndicatorPanel.vue
-  - frontend/src/components/chart/InstrumentInfoPanel.vue
-  - frontend/src/components/chart/LayoutPicker.vue
-  - frontend/src/components/chart/MultiChartLayout.vue
-  - frontend/src/components/chart/TimeframeSelector.vue
-  - frontend/src/components/chart/UPlotChart.vue
-  - frontend/src/components/common/HoverTooltip.vue
-  - frontend/src/components/common/Notification.vue
-  - frontend/src/components/common/ProvenanceHint.vue
-  - frontend/src/components/common/ResizeHandle.vue
-  - frontend/src/components/common/SearchBar.vue
-  - frontend/src/components/common/SparkTfSelector.vue
-  - frontend/src/components/common/Sparkline.vue
-  - frontend/src/components/common/StatusBar.vue
-  - frontend/src/components/common/TagPicker.vue
-  - frontend/src/components/common/TechnicalConditionEditor.vue
-  - frontend/src/components/common/TextPromptModal.vue
-  - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
-  - frontend/src/components/dashboard/DashboardAlertsWidget.vue
-  - frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
-  - frontend/src/components/dashboard/DashboardGexWidget.vue
-  - frontend/src/components/dashboard/DashboardHeatMapWidget.vue
-  - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
-  - frontend/src/components/dashboard/DashboardInstrumentSearch.vue
-  - frontend/src/components/dashboard/DashboardLineChartWidget.vue
-  - frontend/src/components/dashboard/DashboardNotesWidget.vue
-  - frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
-  - frontend/src/components/dashboard/DashboardQuoteWidget.vue
-  - frontend/src/components/dashboard/DashboardRadarWidget.vue
-  - frontend/src/components/dashboard/DashboardScreenerWidget.vue
-  - frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
-  - frontend/src/components/dashboard/DashboardWatchlistWidget.vue
-  - frontend/src/components/etf/ETFHoldingsPanel.vue
-  - frontend/src/components/options/OptionsChainPanel.vue
-  - frontend/src/components/options/exposure/DexLadder.vue
-  - frontend/src/components/options/exposure/GexLadder.vue
-  - frontend/src/components/options/exposure/IvSkew.vue
-  - frontend/src/components/options/exposure/OiDistribution.vue
-  - frontend/src/components/options/exposure/OptionsExposurePanel.vue
-  - frontend/src/components/options/exposure/OptionsKeyMetrics.vue
-  - frontend/src/components/radar/RadarDetailPreviewChart.vue
-  - frontend/src/components/strategy/DistributionBars.vue
-  - frontend/src/components/strategy/ExcursionBars.vue
-  - frontend/src/components/strategy/OptimizationLeaderboard.vue
-  - frontend/src/components/strategy/PaperForwardMonitorPanel.vue
-  - frontend/src/components/strategy/ReturnsHeatmap.vue
-  - frontend/src/components/strategy/RunComparisonTable.vue
-  - frontend/src/components/strategy/SignalReplayBreakdown.vue
-  - frontend/src/components/strategy/StrategyCoveragePanel.vue
-  - frontend/src/components/strategy/StrategyResultChart.vue
-  - frontend/src/components/strategy/StrategyRuleTreeEditor.vue
-  - frontend/src/components/strategy/SweepValueInput.vue
-  - frontend/src/components/strategy/SymbolPerformanceBars.vue
-  - frontend/src/components/strategy/WalkForwardSegments.vue
-  - frontend/src/components/watchlist/WatchlistPanel.vue
-  - frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
-  - frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
-  - frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
-  - frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
-  - frontend/src/components/workstation/BreadthConditionTreeEditor.vue
-  - frontend/src/components/workstation/BreadthHistoryUPlot.vue
-  - frontend/src/components/workstation/ChartPlotLibrary.vue
-  - frontend/src/components/workstation/ChartTemplateControl.vue
-  - frontend/src/components/workstation/CodeLibraryTool.vue
-  - frontend/src/components/workstation/ConditionGroupEditor.vue
-  - frontend/src/components/workstation/CoverageSummaryTool.vue
-  - frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
-  - frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
-  - frontend/src/components/workstation/EasyScanTool.vue
-  - frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
-  - frontend/src/components/workstation/IndicatorSettingsDialog.vue
-  - frontend/src/components/workstation/InstrumentAlertsTool.vue
-  - frontend/src/components/workstation/InstrumentNoteTool.vue
-  - frontend/src/components/workstation/MarketGaugeTool.vue
-  - frontend/src/components/workstation/MarketMapTool.vue
-  - frontend/src/components/workstation/PythonSourceEditor.vue
-  - frontend/src/components/workstation/RatioUPlot.vue
-  - frontend/src/components/workstation/RelativeRotationTool.vue
-  - frontend/src/components/workstation/ResearchResultsTool.vue
-  - frontend/src/components/workstation/StudyBarsUPlot.vue
-  - frontend/src/components/workstation/StudyDashboard.vue
-  - frontend/src/components/workstation/StudyHeatmap.vue
-  - frontend/src/components/workstation/StudyHistogramUPlot.vue
-  - frontend/src/components/workstation/StudyLabTool.vue
-  - frontend/src/components/workstation/StudyRangeUPlot.vue
-  - frontend/src/components/workstation/StudyScatterUPlot.vue
-  - frontend/src/components/workstation/StudySeriesUPlot.vue
-  - frontend/src/components/workstation/ToolWindow.vue
-  - frontend/src/components/workstation/UnknownToolRecovery.vue
-  - frontend/src/components/workstation/VirtualWatchlistTool.vue
-  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
-  - frontend/src/components/workstation/WorkstationGlyph.vue
-  - frontend/src/components/workstation/WorkstationToolContent.vue
-  - frontend/src/router/index.ts
-  - frontend/src/styles/workstation-tokens.css
-  - frontend/src/views/AlertsView.vue
-  - frontend/src/views/BasketsView.vue
-  - frontend/src/views/ChartView.vue
-  - frontend/src/views/DashboardView.vue
-  - frontend/src/views/ETFHoldingsView.vue
-  - frontend/src/views/LoginView.vue
-  - frontend/src/views/RadarView.vue
-  - frontend/src/views/ScreenerView.vue
-  - frontend/src/views/SettingsView.vue
-  - frontend/src/views/StrategyLabV2View.vue
-  - frontend/src/views/StrategyLabView.vue
-  - frontend/src/views/WatchlistView.vue
-  - frontend/src/views/WorkstationView.vue
-  allowed_delta: 'Presentation: shared shell, navigation, typography, spacing, surface colors, controls, tables, dialogs,
-    status language and responsive layout. Preserve route targets, API/data contracts, provenance, identity, availability,
-    provider policy, ETF parsing/PIT and Strategy execution. Exact UPlotChart adaptation may clear its OHLC overlay when instrument/timeframe/bar-type
-    scope changes or the current series is empty, preventing prior-context values from being presented as current; it does
-    not alter selection, chart data, or acquisition behavior. Separately, Root authorized the exact ChartPanel consumer handoff
-    to carry SearchBar''s actual confirmed canonical identity response through the existing selected-history helper; this
-    adds no identity authority or acquisition policy.'
-  preserved_contracts:
-  - all public/authenticated route URLs and redirects
-  - Workstation and popout behavior
-  - feature workflows and persisted data
-  - keyboard/focus/accessibility and responsive/mobile behavior
-  - ETF historical/PIT/current-unavailable/identity/freshness/lineage and unknown-state semantics
-  - Provider capability, selected-default and routing contracts
-  - Strategy immutable Study/CodeVersion identity, inspector and Research-results navigation
-  - all assertions, timeouts, references, masks, tolerances and zero-retry policy
-  - official V25 parity and original AC1-AC9/full roadmap remain open
-approved_presentation_adaptations:
-- path: frontend/src/App.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d6c8bd945d5866bb43ed54d879a4d512eb6ddec4
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/alerts/AlertForm.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: e07e87bce5b1f711865c4218d89b0ad841a64c18
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/ChartPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 4f4568a23ac7fccc888f5c46a3eb665a3556fa7f
-  delta: TC shell/theme/navigation presentation adaptation; additionally carry only SearchBar's actual confirmed identity
-    response through the existing selected-history helper, as explicitly authorized by Root for this ordinary ticker selection
-    flow. Preserve all routes, local-identity resolution, Synthetic exclusion, and acquisition policy.
-- path: frontend/src/components/chart/DrawingToolbar.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: f5489eb8e7a22e6b21b218cb80e2bb5b9271a485
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/IndicatorPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 716595caa5db86533bf09fd48ccd1b764c733362
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/InstrumentInfoPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 763e147de43576c9b79b640b5a86d56a3b624b16
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/LayoutPicker.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: f89d7173224bce2769e61ed67f3df184590d2451
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/MultiChartLayout.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 0c97469cd3e0315bdb81281407f25ddf7decf750
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/TimeframeSelector.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 3570cd366d2f3d18c2714bba1121b1cb7eb0b441
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/chart/UPlotChart.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 4f79b1ab6e67c8a7b4032769794d97572bb3f82a
-  delta: TC presentation adaptation; also clear the OHLC readout on instrument/timeframe/bar-type scope change or empty series
-    so values from a previous chart context cannot appear current; preserve chart selection, data and acquisition behavior
-- path: frontend/src/components/common/HoverTooltip.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: bcfc16aab3f217f14625e436902a223347269f2a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/Notification.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 1d5e8b015fc139f501165efb1cfe4607d5c73e7c
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/ProvenanceHint.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: b2e7f36119f25b8f09b7ece292a6f0a2ed4acf87
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/ResizeHandle.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 50b0eae419b255b03227260a34a5c1487dac3b3a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/SearchBar.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 01e787347c88f9010640afa6030b19b87239bbe0
-  delta: TC shell/theme/navigation plus separately authorized explicit source-discovery and canonical-resolution actions;
-    ordinary typeahead remains local and candidates are not identity authority
-- path: frontend/src/components/common/SparkTfSelector.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: b06d5a7751149479f11f13bec42e24bfcad3e439
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/Sparkline.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 3cb2e8c1f092fd78c12b01ec9785a00d4270c6bf
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/StatusBar.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 3a85462a1a46c91882f9ef997a77284f4631c444
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/TagPicker.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: ca9c196f43227b967677510dd5b720ca6c053d2a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/TechnicalConditionEditor.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 1d6a39995d80b006d94be0169d334a4073739dea
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/common/TextPromptModal.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 1f3db52272eb1086703529b7ac3f0a0de26a586a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: ef95d8dcbf7a19dd0a70c0f893cd03ee59d73a36
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardAlertsWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: bec651c411f54e67cb1d0805c1e91afb12c875a3
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardEconomicCalendarWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: c6d85d2486dd8120e79c3781bfe647215c0d7d79
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardGexWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 87a227e1e7cb51a57712f485b311f8e01775aeea
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardHeatMapWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: afec6591bc3db82cd0283d7855bd82e4783a3d00
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 47bd1d58e2b2ba79852814b53501aee434cd70e7
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardInstrumentSearch.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 6cf1e43892058d2516e7c95f039375702f66c57a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardLineChartWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d9e0be483b4731d0e5efe25850164a7195b27bd2
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardNotesWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 881bf8f498593452f53a3f6fc334d5d529fb2a3e
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardOptionsChainWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 5933e7b97b20f1859064a3c0ebd101d303d605c5
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardQuoteWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 7912b14ace3cb56d03a99e5c784cfe76dcaea1e8
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardRadarWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 9512a2b78c24e8e42dc887c57eed2e52972b9a9f
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardScreenerWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: eb3daa443815f8740452a3f8cf4d7e365d089a49
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardSeasonalityWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 7d722c42f74703fdf4a2c74d64f8607081034e96
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/dashboard/DashboardWatchlistWidget.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 5e5d9010a45fa179feb1b15438f4a6d9e60623b3
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/etf/ETFHoldingsPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: fce872445d8a6e8b2687658ac326a6d04f79a139
-  delta: TC presentation adaptation; additionally forward only the actual resolved holding identity with its existing exact
-    snapshot/row context to the chart consumer. Preserve current-analysis eligibility, stale-context rejection, reporting
-    and lineage semantics; add no identity authority.
-- path: frontend/src/components/options/OptionsChainPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: f9c42ca3aafe4f4a0f759b1f99497b791747fdbc
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/options/exposure/DexLadder.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 8fa59405d33dd6fa0c3052456307d1e8901af479
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/options/exposure/GexLadder.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: e04429eeffc791eb0275a86b78bf2c85a2dfaccf
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/options/exposure/IvSkew.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 2775f0a50f85ee7d2dce095448b079e8a59ed0f7
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/options/exposure/OiDistribution.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 8485a838375f6056762961d2a03208c25a0efbc2
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/options/exposure/OptionsExposurePanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 9b208390042826a0e05fee7e1b88fbc35d1092df
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/options/exposure/OptionsKeyMetrics.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 74bc4a02d23b8ad5ec393b66bd9957e5ae8ef711
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/radar/RadarDetailPreviewChart.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 90077f6c10019a66d20dc9691fd251681a6ee164
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/DistributionBars.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: da4696eb5c372ca825f044c82bd0207b3a7f662d
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/ExcursionBars.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: ab08ee3e646c71b7c8b61623f89a4eb24151c6ba
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/OptimizationLeaderboard.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 8e617a4ce52977eba13d11af29c9969bbb3e66cd
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/PaperForwardMonitorPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: f2b4f0d60907d64d22a362475a6accd9593981b0
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/ReturnsHeatmap.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 4b1ddfb878de66dbb00c516889363f358f3a3b37
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/RunComparisonTable.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 8b4e34933999f8314feb555469532c6d907be124
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/SignalReplayBreakdown.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d37a87b5145d45130438b674691d627c7f9bd3a9
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/StrategyCoveragePanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 681546cb77fbf71d5171a43bf89d557f763bdf23
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/StrategyResultChart.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: b37ccaec01b0df02c209a305b0585e9b843d201c
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/StrategyRuleTreeEditor.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 80a65dfdda6377428ab178288820398ec1220d04
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/SweepValueInput.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d3d96bf972dcbd4233ca8ef9b28d9cbf92fb8ec0
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/SymbolPerformanceBars.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 31d781ee36e4f2016a9f5dff9e280b42a8d9e98a
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/strategy/WalkForwardSegments.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: bac4d28a6a4e5ccbeb2e1ebe8e38d05b9fbe861b
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/watchlist/WatchlistPanel.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: aeb16b057c60eb19f6c8a3d55c4a86a11bc6296e
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/BenchmarkFamilyBreadthHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: b74a17fbc0bb8728522eea48eb0579ed82cef3a8
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/BenchmarkFamilyConcentrationHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 3018ba4058f2458b7dc9ccc0090f499fa92d9a1d
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/BenchmarkFamilyConcentrationMetricsHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 5794ee449ff06e5e48b4a782e0d4085f6a2c7e1c
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/BenchmarkFamilyRatioHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d38177ff71020c45ec34d55a970814c73f293a33
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/BreadthConditionTreeEditor.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 1c1fbccaca9b55aa44740097de017bcd848c82f7
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/BreadthHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 2821e71ee4aaa20dc07a37c5b4dfef9a53eb63ff
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/ChartPlotLibrary.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: fd99000019961398c85f663b2ec92d6fc1a614d1
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/ChartTemplateControl.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 564068d88946e97d0552a4568c594543d753b745
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/CodeLibraryTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 7cb269e629b4f9cb3ef655d05de97ff0636fff79
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/ConditionGroupEditor.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: a77be4b170f13bbcabe823966895c1ebd5104030
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/CoverageSummaryTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: ed05b822c41304e4d863f5d6cec741c70e69d670
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/CrossFamilyRankHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d81118b16a710be5da553ade74ebc5fa6f7a2100
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/CrossFamilyRankingHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d4feb88ee4c496da4e62b8269cfc29563d0cd2db
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/EasyScanTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 811d169bab192afb3c6fd2671c01dc49a23996e2
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/GenericBreadthHistoryUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: cfe833b65dba1a9f2d9186c3d6c2f87a09082d78
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/IndicatorSettingsDialog.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 55c9b07956141bbfce744dbcad8c78102219ccfa
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/InstrumentAlertsTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: f8bf82c7feed054019248c39513d59f2afabc77b
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/InstrumentNoteTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 07831c7ae6415ccdc8b7bd51e7a7d4294a564a4b
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/MarketGaugeTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: e8ef5e87480da8580094742874570bc1c2183713
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/MarketMapTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 98de99fd027fa3ae7e73e47c66cf29ed47cb9334
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/PythonSourceEditor.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 9f5dd8447a40a17da75527b64217688ce845342f
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/RatioUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d94f5a029d56e4c738389ef8f2b5d22eeae38211
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/RelativeRotationTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 410a9e16cf1e7d04ee15c7846fbcaa6289780394
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/ResearchResultsTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 1736df677b0306e062b2c4d0b3478929a8e6ba84
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyBarsUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: eb29d1753d2acbbec4211f74eee9a4ee6f03b1b4
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyDashboard.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 3f31ef8ea99d74bbcc69e71ba4b00f35612f1107
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyHeatmap.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 923c5e980e7f7db4453a6e1f5b57439300d08ff3
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyHistogramUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 5f9158ab4e3198292f762edda89bf93a7f2237f4
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyLabTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 97c9cffdb4ecadbcc1d0e132c366f6aaad666402
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyRangeUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 2c0eedc109cec911a24aed2df6ecfc57464b8107
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudyScatterUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 453ff547823fae106eeeb93d6171cbe2c5a09282
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/StudySeriesUPlot.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: d28780f678748bd5c11edcbc214c5920a7565494
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/ToolWindow.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 6a19db7ae8b21906c0c68e9f4cef9dfb019963da
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/UnknownToolRecovery.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: a95c02ffffcda75090a478a3788987953d1523c0
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/VirtualWatchlistTool.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 22750c92c7439b7240934abf935c2061f28c96a8
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/WorkspaceLayoutHost.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 8531de54a1c23437c5cf95d356d7fd22d3dd3b79
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/WorkstationGlyph.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 936bf11ed986c862d1f8e47717b2385fc3334be9
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/components/workstation/WorkstationToolContent.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 9f079cdfb745e7d259c6e062b802b61e08a5a1bc
-  delta: TC workstation presentation adaptation with a bounded focused-chart history action and post-acquisition local refresh
-    of only matching mounted chart panels; preserve routes, local-only reads, selection fencing, and no acquisition before
-    user intent
-- path: frontend/src/router/index.ts
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: c32384da24c053776b94c22e55a5b38ad54a35bc
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/styles/workstation-tokens.css
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 68b463367522e5de7f15c7c753b7cc18e6902241
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/AlertsView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 21da9d3fb9cd71696badf21601b6a5a1f407e5cf
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/BasketsView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 34ccb0954dfcbbd1c2c421a4088c2a1672dea148
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/ChartView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 7f429a368b73e7c717cfff749859fae601131b28
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/DashboardView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 10427b2b12370ecbb790e0e3b4acffaf4ae839ee
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/ETFHoldingsView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 83626c8ed79eb934cd2b0e4bce8ac812c9746fd8
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/LoginView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 419000f480a3de36da7b027f3f487cfa105258d4
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/RadarView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 21c76641a59a68f6c9fdd360452a1e63782aee43
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/ScreenerView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: f75bee925ce154d91b2f468b6411726b9dc9228b
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/SettingsView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 65e872681009006f3ce27801606daa851bbfc5db
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/StrategyLabV2View.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 4526c31af8181ed3b096c402084d03146cfa2059
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/StrategyLabView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 0ab361e2fb10c829355d0ef41d88b5624da647fa
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/WatchlistView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 9240d3265096edad01959df04a9831008aa7fb7b
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-- path: frontend/src/views/WorkstationView.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 3cd504e4f64128fa60939a3a0d89b47bab6725fa
-  delta: presentation-only TC shell/theme/navigation adaptation; preserve route and feature behavior
-approved_provider_contract_adaptations:
-- path: backend/app/models/ohlcv.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: b1d66b8486f6a0bd6757aff1e16c79b80f933d08
-  delta: Restore TC derived-lineage ORM projection over existing columns from ff0a1b2c3d4e.
-  rationale: Provider provenance JSON has no equivalent typed cutoff/materializer contract. Preserve existing populated lineage
-    and null unknowns without adding duplicate schema columns.
-- path: backend/app/models/instrument_event.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 42dfea448845153067e7cc61bfa46d606f532e69
-  delta: Restore nullable typed adjustment_factor ORM field from existing ff2a3b4c5d6e column.
-  rationale: TC adjustment-factor observations consume only validated explicit factor evidence; retain nullable unknowns and
-    do not derive this field from split ratios, dividends or raw payloads.
-- path: backend/app/providers/base.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 8d7cd346a907ebfc922483c03e90e5c4b72ed549
-  delta: Add an optional finite-positive Decimal adjustment_factor to InstrumentEventRecord.
-  rationale: The TC typed event consumer needs explicit normalized factor evidence; validation rejects non-finite/non-positive
-    values and no generic raw-payload inference is introduced.
-- path: backend/app/services/instrument_events.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: b06efe25fafc78f08f780ed4afa45266f008c37b
-  delta: Persist the typed adjustment_factor on normalized event insert and conflict update.
-  rationale: The existing TC observation/version materializer already consumes InstrumentEvent.factor; this reconnects typed
-    evidence to it without altering Provider identity or governance.
-- path: backend/app/providers/alpaca.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 3b6e759dffcd91e26f342197e40064030694480a
-  delta: Restore parsing of only the two explicit Alpaca cash-dividend factor keys already recognized by the pre-merge TC
-    adapter, validating supplied values as finite and positive.
-  rationale: The accepted adapter treats cash_dividends rows as dictionaries and preserves the original page payload, while
-    Alpaca's public endpoint reference does not declare an adjustment-factor response field. This retains only the two exact
-    optional keys recognized by the prior TC parser if they are explicitly present; it does not claim the native endpoint
-    emits them. Missing factors remain unknown, and dividend amounts or split rates are never used to infer a factor. This
-    path is specifically Alpaca compatibility and does not imply Massive support.
-- path: backend/tests/unit/providers/test_new_providers.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: ad2fa24c1e019d0561a35b26920abfc50d98eb37
-  delta: Add explicit Alpaca factor parser, absent-factor, and invalid-factor contract coverage.
-  rationale: Keep regression tests adjacent to the accepted current Alpaca paginated parser and prove exact named-field behavior
-    without changing page traversal, snapshots, or provider routing. The separate Massive docs name historical_adjustment_factor
-    for dividend and split rows, but that accepted adapter does not normalize it; that distinct source contract is outside
-    this approved Alpaca compatibility change.
-- path: backend/app/config.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 5d22049b11176e5701e0170d8478931099c6f53c
-  delta: Restore only the two default-off TC large-universe fixture settings.
-  rationale: Keep health/seed test mode explicit without enabling provider routing, refresh, or live work.
-- path: backend/app/routers/calendar.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: b4af083d7681da76d405eea8c8f9358e70952710
-  delta: Restore canonical UTC-Z timestamp serializers for existing calendar responses.
-  rationale: Preserve TC wire-format contract using the shared serializer; no calendar acquisition changes.
-- path: backend/app/routers/market_groups.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: fc2058d18556a2d2b0bf8e6329b374ffa1dd74ee
-  delta: Restore TC historical profile eligibility by requiring observed_at and fetched_at at or before the UTC-normalized
-    cutoff.
-  rationale: Historical classification must use profile evidence both observed and fetched by the cutoff; this is read-only
-    and does not fetch or alter upstream profiles.
-- path: backend/app/routers/ohlcv.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: c846e74d34f2af9a7b429ac9133a598dde8d607a
-  delta: Restore TC database-only local adjustment/materialization routes, canonical/provider/derived views, and local W1/MN
-    materialization while retaining all released Provider fetch/admission guards.
-  rationale: This is a TC consumer view over persisted canonical evidence; it adds no provider transport, fallback, quota
-    path, or interactive acquisition.
-- path: backend/app/schemas/etf_holdings.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 9ee6136d82524af8d175b4fc4c7ee90e47e9beb8
-  delta: Additively restore published_at, cadence, parser_version, timing_provenance and source_identifier metadata to TC-facing
-    ETF response schemas and canonical UTC serialization.
-  rationale: Keep the released ETF capability, availability, identity and source lineage authoritative.
-- path: backend/app/schemas/instrument.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: c2cdc22bad16f0495660ca2d00ba1b0eb696b59d
-  delta: Restore canonical UTC-Z serializers on TC instrument/profile subresponses.
-  rationale: Preserve every released Provider identity/listing field and serialize existing timestamps only.
-- path: backend/app/schemas/radar.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 267292196d33d68437c5b490f2a1c2e46dc63fdd
-  delta: Restore canonical UTC-Z serializers on existing Radar response timestamps.
-  rationale: Keep Provider coverage fields intact; no Radar provider or data behavior changes.
-- path: backend/app/services/alert_engine.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 8f18941e72374fc00ea7a19dcbc3667e2b0d801e
-  delta: Restore strict optional named-output selectors for indicator alerts and canonical UTC-Z event timestamps, rejecting
-    absent/ambiguous multi-output selection.
-  rationale: Preserve TC alert output identity without selecting a guessed indicator series or changing data routes.
-- path: backend/app/services/etf_holdings_refresh.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: b5dbd3581322d6d09e1236d13a44bec99d7e4e3a
-  delta: Restore row-level canonical-equity snapshot readiness with metadata-only fallback only when row detail is absent;
-    apply the same predicate at the two SEC-bootstrap checks and preserve explicit provider published/known timestamps, cadence,
-    parser, source identity and timing metadata into persisted evidence.
-  rationale: Cash/non-equity/placeholder-only detail must not suppress fallback. Retain Provider admission, refresh, settlement,
-    request holds, transport, identity validation and request evidence unchanged.
-- path: backend/app/services/indicators.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 19ea611dbf19fdf61b58d160cee72a93f9a072be
-  delta: Restore resolve_indicator_output with explicit valid selection for multi-output definitions.
-  rationale: Preserve single-output compatibility while refusing unknown, invalid and ambiguous outputs.
-- path: backend/app/services/screener_engine.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 6a740528b959cdf12c59574156e0c9ac9ae3158a
-  delta: Restore strict output-name selection for TC screener predicates, resolved output-name/adapter/series-target metadata
-    in the immutable runner job, and canonical UTC-Z alert-event time.
-  rationale: Preserve the released provider preflight and source guards; ambiguous/invalid outputs remain rejected.
-- path: backend/app/services/watchlist_sources.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 382a6f0dc600e4990a8e10f2bfbb52583f337cd4
-  delta: Restore UTC-normalized PIT comparisons/digests, combo-definition cutoffs, canonical ETF-member eligibility/counts,
-    controlled-fixture exclusion before ranked selection and resolver reads, one emitted member per canonical instrument before
-    derived equal weighting, additive cadence/parser/source/timing provenance, and cached capability lineage evaluation without
-    adapter state. Family native weights aggregate only after canonical eligibility and unique-ID derived equal weights retain
-    raw snapshot counts/hash unchanged. Raw snapshot row counts remain unchanged; optional parser/source fields absent from
-    legacy snapshot projections remain None.
-  rationale: Preserve released ETF current/stale/unknown availability and identity decisions. Cached lineage remains inspectable
-    without adapter state while current usability stays unknown; missing optional legacy metadata is not fabricated. The accepted
-    baseline remains G blob 39941d2dd0f23e103e4ffa50585be6f703fcbb2b; the staged index must equal the worktree.
-- path: backend/app/services/etf_holdings.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 04a1fb73f223e429eeaeb974499ed38c729273bd
-  delta: Normalize holding-classification case and separators only for the existing equity-kind comparison.
-  rationale: Accept legacy Security/Common Stock spellings before the unchanged narrow equity allowlist. Preserve raw input
-    labels, row hashes, audit payloads and the exact allowlist; do not restore broad REIT matching or claim Massive factor/classification
-    support.
-- path: backend/app/services/options_exposure.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 410ee89b08c233ed83b6a5255742a2d919744b90
-  delta: Use the shared UTC wire serializer for computed_at in both existing exposure response branches.
-  rationale: Keep canonical UTC-Z response formatting without adding ETF-domain coupling or changing options calculations.
-- path: backend/tests/integration/api/test_etf_holdings.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 7338e3f752e41a4e441cf3eca719df1ed506040c
-  delta: Preserve the historical plan's aware as_of value for the fake planner, keep the task argument +00:00, and independently
-    assert the exact canonical history job key.
-  rationale: Exercise the five-argument historical queue payload and verify enum-ordered D1,W1,MN identity with UTC-Z job
-    bounds without deriving the expected key from production code or changing the queued task payload.
-- path: backend/tests/integration/api/test_workspaces.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: fcf830b36c5c0008c1076550cc5c38c46038c86c
-  delta: Preserve canonical UTC-Z assertions and the point-in-time derived equal-weight history length, explicitly excluding
-    the Jan 1 bar not yet known at the Jan 2 membership cutoff.
-  rationale: Retain known_at and eligibility semantics; the 149-point result is not a blanket count waiver.
-- path: backend/tests/unit/services/test_etf_holdings_resolution.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: d56f7012cb609fc6fc1518803761111b274ac657
-  delta: Add parser-to-persistence coverage for legacy Common Stock/Security labels and unsupported kinds.
-  rationale: Assert raw labels and hashes survive both successful resolution and conservative non-equity rejection.
-- path: backend/tests/unit/test_provider_live_usage.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 30fdf2c5f80a0b2c68332a29e11dca3d3d8614bc
-  delta: Make the MarketData App current-snapshot overcount test use a fixed aware instant away from the daily reset boundary,
-    and add an immediately-preceding-window rejection test.
-  rationale: The real coordinator correctly rejects a prior reset-window snapshot; inject the same fixed instant through its
-    existing now= seam while calling the original reconciliation function. Compare read-only baseline status before/after
-    rejection to prove no ledger usage changed. Do not relax reset-window validation or invoke a live provider.
-- path: backend/app/tasks/alert_tasks.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 4d6ff93e3a592412d1470f7f780f7560933bf8ce
-  delta: Restore canonical UTC-Z serialization for existing websocket alert timestamps.
-  rationale: Wire-format preservation only; alert-task scheduling and execution remain unchanged.
-- path: backend/app/tasks/data_tasks.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 1bf6b0f12e335dcbb6fbb71920854dbdd7a005fd
-  delta: Materialize eligible W1/MN views locally after the existing D1 refresh path.
-  rationale: Reuse persisted D1 bars only; no new provider calls, schedules, quota use, or acquisition path.
-- path: backend/research_runner/runner.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 88768a772676f28105bfdd4f82f84de74841406a
-  delta: 'Restore minimal TC Study/range/event adapters and explicit output dispatch: run study_series_to_series once over
-    the full prepared universe before generic per-member batch; validate/project named range-center output; map scalar/range/event
-    batch contracts explicitly; and map only selected event artifacts to current-observation booleans.'
-  rationale: Preserve event UTC-day matching, future-event exclusion, member/symbol scope, malformed and ambiguous-output
-    rejection, released sandbox/memory/process caps, terminal controls, preflight and lineage. No acquisition or native-execution
-    claim is added.
-- path: backend/tests/unit/routers/test_coverage_router.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 7dd02d0d445a78448b65ac5da038b29aa354c3fb
-  delta: Extend existing exact coverage-response fixtures with the released lineage/evidence envelope.
-  rationale: Preserve all status/range/provider-neutral assertions and positively verify additive fields.
-- path: backend/tests/unit/routers/test_ohlcv_router.py
-  source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  accepted_blob: 43a54455835ddb60ecc0116649df7172e2a43965
-  delta: Extend the retained-bar response expectation with released derived-lineage fields.
-  rationale: Keep existing local-only and consumer-shape assertions and verify additive fields explicitly.
-approved_frontend_consumer_adaptations:
-- path: frontend/src/components/dashboard/DashboardInstrumentSearch.vue
-  source_sha: f80995c3ed680263ca0db405d4dd03c9aafc1646
-  accepted_blob: 6cf1e43892058d2516e7c95f039375702f66c57a
-  delta: Keep the Dashboard's watchlist and widget symbol picker on canonical-only local search and identity lookup. It does
-    not expose source discovery or acquire chart history; those require the dedicated ordinary chart action.
-  rationale: This exact TC-owned user-flow adaptation prevents picker typeahead and selection from reaching provider search
-    in legacy mode. The historical whole-frontend presentation source/blob pin remains recorded at f80995c3. The exact consumer
-    pin extends only that same presentation file and confines executable drift to this one path. No backend route, provider
-    policy, identity rule, acquisition action, or other dashboard component is changed.
-- path: frontend/src/views/ETFHoldingsView.vue
-  source_sha: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  accepted_blob: a4315349cf36d9658e2b3d6e0ded024ddbb597a7
-  delta: On deliberate canonical ETF or Exchange Traded Vehicle profile-card or picker selection, reuse the existing producer-qualified
-    capability and acquire APIs to load or refresh only that selected fund's holdings. Include both the provider's raw "ETV"
-    discovery type and the persisted "Exchange Traded Vehicle" type in the existing picker scope; preserve Index ETF eligibility
-    and do not admit ETNs or infer issuer eligibility from a ticker or stale local type. Keep mount/list selection and browsing
-    interactions read-only.
-  rationale: Root's 2026-11-03 ordinary-journey approval explicitly extends this exact imported consumer path beyond its existing
-    presentation and optional-instrument-ID guards. It changes no backend route, provider policy, identity/admission decision,
-    persisted data, ETF source implementation, or other imported path. Current/stale semantics remain server-owned; stale
-    or unknown selection outcomes preserve labelled snapshots. A confirmed ETV candidate uses its resolved canonical ID; unavailable
-    issuer outcomes remain visible and do not claim a stored profile. Holding chart navigation carries the exact snapshot/row
-    lineage, selected-history intent and confirmed identity through a one-shot router handoff; the live selected profile,
-    snapshot and row membership are rechecked before navigation. URL-only hydration remains passive.
-- path: frontend/src/components/etf/ETFHoldingResolutionAction.vue
-  source_sha: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  accepted_blob: 6b363d0d9d4c80ca9dbec9f66275ffb9461bd7a9
-  delta: TC's ordinary selected-holding workflow starts the existing canonical picker immediately and replaces producer-implementation
-    wording with user-facing selection language.
-  rationale: Root's 2026-11-03 review explicitly authorized functional consumer adaptation of this exact imported UI seam
-    for the human-activated ordinary ticker journey, including generic user-facing copy and immediate activation of the existing
-    picker after a deliberate row click. This is not presentation-only authority. It changes no ETF API, identity/admission
-    policy, holdings data, or source behavior; every other frontend/src/components/etf path remains excluded.
-- path: frontend/tests/unit/components/test_etf_holdings_panel.test.ts
-  source_sha: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  accepted_blob: 734706f9d9718c5963bcd2dfb2e6eaafd1cbc7e5
-  delta: Update only the existing selected-row resolver event fixture with its actual resolved UNXQ response and assert that
-    same response is emitted with the existing symbol/context. All prior event, context, and selection expectations remain.
-  rationale: Root's exact 2026-11-04 approval authorizes this one frozen imported test path because the consumer event now
-    carries actual confirmation to avoid resolving the same gesture twice. The frozen manifest remains intact; every other
-    imported test path stays byte-pinned.
-- path: frontend/src/lib/etfHoldingDrilldown.ts
-  source_sha: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  accepted_blob: 45a896bdd6034d77986776c9de716796e3a8bffc
-  delta: TC-owned ordinary constituent flow validates reported equity eligibility and preserves the exact parent instrument,
-    snapshot, holding row, source and known-at lineage through chart navigation.
-  rationale: This source-only UI consumer helper adds no ETF identity decision, persisted data mutation, backend policy, source
-    call, automatic constituent fan-out, or current-analysis eligibility override.
-- path: frontend/tests/e2e/helpers.ts
-  source_sha: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  accepted_blob: 17c365ee481da314902cb67bd252dc4853e977c1
-  delta: Add one explicitly armed controlled-API-fault attribution in the existing BrowserDiagnostics class. A single 503
-    is expected only when its observed POST URL and request_id match the armed values, and at most one resource console entry
-    is attributed only when msg.location().url matches that URL. Unarmed, mismatched, duplicate, and unrelated 503 diagnostics
-    remain fatal.
-  rationale: Root's exact 2026-11-04 disposition authorizes this minimal adaptation of the imported helper for the existing
-    delayed OIH failure test. The frozen import remains pinned to its exact green 4d source/blob; no global 503 allow-list
-    or suppression of unrelated browser diagnostics is introduced.
-approved_frozen_upstream_snapshots:
-- source_sha: 281a57bd9fb782c0f85bfb5127c713ea15037f68
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/281a57bd9fb782c0f85bfb5127c713ea15037f68.json
-  receipt_sha256: cb71f88b6df454161d373f6208ef868d2d257febb31f2f19e2ad86db795d565c
-- source_sha: 9b230ba4c97126a2937667138c6eb2a0aa297baf
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/9b230ba4c97126a2937667138c6eb2a0aa297baf.json
-  receipt_sha256: ded0df600ca37803dfbe61eadcf36b8b31ea8ed22e3f5c3b2cf4765eb18484f6
-- source_sha: 628c1634f4894403339687586adee74d45637d51
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/628c1634f4894403339687586adee74d45637d51.json
-  receipt_sha256: a70713a499032714740fc332b295a1644500e25d3c6d03a40729ed6c701146bc
-- source_sha: 0e342512e53ba2268425294d61c50e219eaafa4f
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/0e342512e53ba2268425294d61c50e219eaafa4f.json
-  receipt_sha256: 5159729a3231a658b1b7331d59f63f77f7bc41155b66698a988b880d12af5429
-- source_sha: 4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4687bd0cd21a3be2c7adbc759e9c0a5eeefc7aad.json
-  receipt_sha256: 6249c01610eda62544056b1ae00a4c9b14c6d111978be14cda822b15a1c99b49
-- source_sha: f04fb2a26c6363c6090e76c2658cfcfe7adabf61
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f04fb2a26c6363c6090e76c2658cfcfe7adabf61.json
-  receipt_sha256: 417db4c47e05f9e3119de50ef7a0d6058b790577427eff92a6c6c93bba89fa94
-- source_sha: a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e.json
-  receipt_sha256: ca0560d37c7d387295e07b90273ac9a1e07cd01b3330e628128abb892a230050
-- source_sha: cdc33442c19f5c387b9ada759607d961365993c0
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/cdc33442c19f5c387b9ada759607d961365993c0.json
-  receipt_sha256: 15cf9c17396ad9fdf706de110750d3287fc528784ac2b3e690206845e1790c96
-- source_sha: 5b29620741fd82d27db45987afb927bf91396712
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/5b29620741fd82d27db45987afb927bf91396712.json
-  receipt_sha256: bb4c641bdd5dd4f8dbd529c3e3fd2df8ff62428604707c61ca6bb4f77ce7161b
-- source_sha: 3ff96af855a49d42b1dee10cecb43bc6690f4502
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/3ff96af855a49d42b1dee10cecb43bc6690f4502.json
-  receipt_sha256: 21c6727ae86a57ce6fb11f6c81e175521f0c5e5dc00c3820d22c9a64243e77ee
-- source_sha: 15b5c22f0e689c973ee82d152d4bbad6125bf993
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/15b5c22f0e689c973ee82d152d4bbad6125bf993.json
-  receipt_sha256: 8c511f6499b87756546d30fe08ccad128c6e08bea373b8a0b8e5419bf7c21151
-- source_sha: 6d0a85da34ba276bca69c82a932a0602e783d7a1
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/6d0a85da34ba276bca69c82a932a0602e783d7a1.json
-  receipt_sha256: 5dbca7c989d0c40df22de6fd2d13bed2dec4b7690580d4bc2c3f95d6feae484b
-- source_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/02a7bae34c2aed145b9e46137ef3b8f041de4d92.json
-  receipt_sha256: fae0e2ab21f9f986b0f713e6dfad20437436e16d55441c7aa13e9dd075402bde
-- source_sha: 173745205692acd3fca650eeeafcd6de38f29fed
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/173745205692acd3fca650eeeafcd6de38f29fed.json
-  receipt_sha256: 987a3ec04e6a66bc0ff0bd538fea4febb08614063550e35248ed9e03b0cd48ad
-- source_sha: e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e3e87183fdf8690bfb8e7ad8c2ae8a6569fc48f2.json
-  receipt_sha256: ca854080d05c654845865333175bd5ca8ffd865987624f95cb72e197518a92da
-- source_sha: 4bc50a9de9eb2453c75eda047d01466309a3a3da
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4bc50a9de9eb2453c75eda047d01466309a3a3da.json
-  receipt_sha256: 0ec1ecf46e15d90c94192413bab88d329540a3d389e5509f03051ea645437b0d
-- source_sha: f8323af179922193f4dcf3c9f0a5d9001282455f
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/f8323af179922193f4dcf3c9f0a5d9001282455f.json
-  receipt_sha256: 506bf16506101e412ff8ca801d6749257217f52d7e571fcef05ad521ba99f188
-- source_sha: eb74b439319ad32006a3d68fc7b6e98959148af7
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/eb74b439319ad32006a3d68fc7b6e98959148af7.json
-  receipt_sha256: bf912cc1a01d2969fd79d763dc03826887b58578bcc19ec73e31382ef88b32eb
-- source_sha: 4d4a278b1b086745b22aab05d3d960539ad02c97
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4d4a278b1b086745b22aab05d3d960539ad02c97.json
-  receipt_sha256: c3e882521eed9f8e0bbd165890f940808e8fdf6c94543b9ff34fb865de3f1dd7
-- source_sha: 4de1365cec4bc5897c2a76d16a0004853d747f9c
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/4de1365cec4bc5897c2a76d16a0004853d747f9c.json
-  receipt_sha256: ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea
-- source_sha: dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/dae1a1f03ad3fd0fc1e9f9defb8f39ab878045d2.json
-  receipt_sha256: af0903527a29c5c8792ebe9cab881b3944596bac0c9028bced8d772d626de09a
-- source_sha: e9e1b2b08277dfb4a1e102822b089a6ff29998cc
-  receipt: ops/workstreams/feat-tc2000-frontend-rework/released-staging-receipts/e9e1b2b08277dfb4a1e102822b089a6ff29998cc.json
-  receipt_sha256: 03385df48ada3c7e866fe6b9bd389c4b3fee31a6c8fa859462dda04aef626995
+scope_guard_baseline_sha: 375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d
+
+frozen_upstream_import_manifests: []
+approved_presentation_adaptations: []
+approved_provider_contract_adaptations: []
+approved_frontend_consumer_adaptations: []
+approved_frozen_upstream_snapshots: []
 frozen_upstream_import_policy:
-  purpose: Admit coordinator-approved foreign files only as immutable bytes from an exact released green staging snapshot
-    that this branch adopted by an approved fast-forward or non-first-parent merge after the fixed 2b92c642 scope checkpoint.
-  fail_closed_boundary: Ordinary authorized(path, plan) remains unchanged. Every imported file must be listed exactly with
-    snapshot blob/mode or explicit deletion state, and both the index and worktree must still match. Wildcards, directory
-    grants, missing or duplicate paths, malformed provenance, unmerged sources, unsupported file kinds and any staged or unstaged
-    drift fail validation.
-  supersession: Referenced manifests describe the complete current frozen set. If a later accepted staging release changes
-    an already-frozen file, its new manifest must explicitly supersede the old reference and repeat every still-frozen path
-    at the new snapshot; duplicate path authority across manifests fails.
-  coordinator_review_required: Approval identity is a declarative repository policy boundary, not a cryptographic signature.
-    The guard requires a separate explicit approved snapshot allowlist and a tracked byte-for-byte canonical receipt, then
-    verifies its digest, green state, staging source, run URL/ID, starting staging ancestry and recorded source ancestry offline.
-    The coordinator must review every allowlist and receipt addition. If cryptographic issuer authentication is required,
-    the coordinator must define trusted signing material before the first Provider or ETF manifest is accepted.
+  purpose: Current history-dashboard repair comparison begins at adopted clean checkpoint
+    375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d; inherited foreign files are baseline
+    context, not new TC imports.
+  fail_closed_boundary: Ordinary authorized(path, plan) remains unchanged. Current
+    changes are limited to exact owned paths plus the explicit SearchBar.vue exception;
+    no wildcard or directory ownership is granted.
+  supersession: Historical e9 import and adaptation selectors are retained verbatim
+    in checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json and
+    are inactive only for this new comparison interval.
+  coordinator_review_required: No new foreign source import or producer adaptation
+    is claimed in this checkpoint.
 focused_browser_provenance_correction: 'The 2026-10-16 F8s/F9c retry-free runs used the existing TC worktree Vite at 127.0.0.1:15190,
   proxied to the assigned TC backend at 127.0.0.1:28008; they were not isolated Compose. Source/list/Market Map/snapshot endpoints
   were mocked by the F8s test, while authentication, account creation, and workspace persistence used the assigned backend.
@@ -3103,17 +1949,15 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and private-target/deployment
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: ready_for_integration
+status: "ready_for_integration"
+
 progress:
-  completed: *id001
-  total: 5
-  current_phase: Root-accepted bounded software/profile checkpoint; closing records-only publication. Exact closing-tip CI
-    remains pending Root.
-  current_blocker: Exact closing-tip CI is pending Root observation; integration, rollout, genuine deployed proof, official
-    V25 parity and the wider roadmap remain Root-owned/open.
-  next_action: Root observes exact closing-tip CI and owns the subsequent integration/release gates; no further TC product
-    work is part of this bounded handoff.
-  updated_at: '2026-11-05'
+  completed: []
+  total: 10
+  current_phase: "Ready for human review: approved 30-reference local successor and exact-panel menu close correction are prepared for Root qualification."
+  current_blocker: "Root-owned exact-source CI and corrected full strict104 visual profile remain pending; wider repair criteria and deployment gates remain open."
+  next_action: "Root to run exact-source CI and corrected strict104 visual qualification on the frozen candidate; preserve all remaining roadmap criteria."
+  updated_at: '2026-11-06'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
   on a7 is terminal red/flaky (190 passed,110 declared skips, one retry-passing Market Map hover failure); preserve it. The
@@ -5396,3 +4240,31 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
+next_action: "Freeze final clean synchronized closing tip; Root owns exact closing CI, canonical staging/master, private cutover and genuine user-flow verification. No additional owner source edits or full suites."
+current_exact_ci:
+  head_sha: null
+  run_id: null
+  scope: Exact source CI for the history-dashboard repair candidate after publication.
+  status: pending Root observation after publication
+closing_tip_ci:
+  head_sha: null
+  run_id: null
+  scope: Exact source CI for the history-dashboard repair candidate after publication.
+  status: pending Root observation after publication
+current_candidate_ci_status: |
+  This local history/dashboard candidate includes the measured shared tab-box sizing correction, stale browser expectation corrections, and one exact ETF test-only dependency. Current branch CI and Root-owned focused browser/full profile remain pending after publication; no acceptance is claimed.
+
+history_dashboard_scope_archive:
+  path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
+  sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
+active_repair_requirements:
+  workstation_search_recovery: Main Workstation discovery and explicit candidate identity
+    resolution use the shared known-temporary retry lifecycle. A deliberate pending
+    Enter/Go or candidate click survives advancing future retry_at values; passive
+    typing never selects; query edit, close, unmount, or superseding intent cancels
+    obsolete waits.
+  selected_history_recovery: Preset selection, selected chart history, timeframe changes,
+    older pan, and the manual Load missing history control share bounded admission,
+    current-intent recovery and context cancellation; unknown/hard holds remain terminal.
+  scope: No backend or provider ownership, per-symbol exception, source request, policy/ledger/hold
+    change, data mutation, or broad validator change.
