@@ -2,7 +2,7 @@ schema: 4
 previously_active_provider_vtr_status: ready_for_integration
 previously_accepted_provider_etv_routing_status: ready_for_integration
 previously_accepted_provider_history_hold_status: ready_for_integration
-status: ready_for_human_review
+status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -14578,7 +14578,7 @@ next_action: >-
 human_intent_authorization: >-
   Human directly activated the shared Provider ordinary acquisition/history-boundary repair in this original worktree/session. Root supplied
   the exact history-availability DTO and reviewed the implementation source hashes; the full release and deployment remain Root-owned.
-checkpoint_status: ready_for_human_review
+checkpoint_status: ready_for_integration
 progress:
   completed:
   - HISTORY-SHARED-1
@@ -14599,8 +14599,10 @@ current_gate_checkpoint: >-
   Root's conditional implementation review is /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-implementation-conditional-review.json.
   The exact reviewed product/test hashes are recorded in that receipt. The affected unit modules passed 334/334 in 204.83s; Ruff check/format and
   git diff --check passed. Exact closing-tip CI and combined release qualification are not yet run on this checkpoint and remain mandatory.
-human_closure_authorization: null
-closure_summary: null
+human_closure_authorization: >-
+  Root's acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json (SHA-256 e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681) records the human standing authorization as: "Human standing authorization to accept, reconcile, merge and deploy these development checkpoints autonomously; current explicit general history/dashboard repair activation." Root's delegated technical acceptance for this bounded Provider checkpoint is recorded in the same receipt. This is not a new human quote and does not accept the pending combined release gates or close the wider roadmap.
+closure_summary: >-
+  Accepted bounded Provider checkpoint: shared typed acquisition/history outcomes and read-only canonical instrument history availability, with exact eligibility, dry cost, bounds and per-request slot contract, plus the Root-approved immutable ETF VanEck test-clock dependency. Validated implementation SHA eb7b2a02e2ddfbb6304b3afeb036ae77b34cb445 has exact-source CI run 42148199207 green (5,908 backend unit and 626 integration cases reported); the bounded focused suite passed 334/334. The approved ETF dependency source b25fc814ef301103337f343d57b859545fa5bb8f has exact CI run 42147141948 green and its three affected nodes passed 3/3 in 29.07 seconds. No migrations or provider product-configuration changes were made in this checkpoint. Native free-only controls, quotas, holds, ledgers, datasets and all 24 Provider/14 ETF roadmap criteria remain preserved; the roadmap is not complete. TC causal-menu/visual qualification, exact CI for this closure tip, combined staging qualification, master promotion, private backup/cutover, genuine user journeys, guide and exact cleanup remain Root-owned and pending. integration_capture: exact branch HEAD.
 migration_impact: None; no schema or migration change.
 live_test_impact: No provider/issuer/SEC HTTP; no real-ledger access or quota/hold/policy mutation occurred.
 deployment_impact: None; Root owns integration, promotion, deployment and genuine user-flow verification.
