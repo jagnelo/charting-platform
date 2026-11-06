@@ -46,14 +46,10 @@
     "status": "in_progress"
   },
   "dirty_paths": [
-    "frontend/src/components/workstation/StudyLabTool.vue",
-    "frontend/tests/e2e/strategy_study_journey.spec.ts",
-    "frontend/tests/unit/components/test_study_lab_tool.test.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl",
-    "frontend/src/lib/dataPreparation.ts"
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
   ],
   "docker": {
     "accounting_complete": true,
@@ -105,14 +101,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "08faff3de7953fc8bdce4320a4da9ea9421af50c",
-  "implementation_sha": "08faff3de7953fc8bdce4320a4da9ea9421af50c",
-  "last_checkpoint": "2026-11-06T19:42:12.188686+00:00",
+  "head": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
+  "implementation_sha": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
+  "last_checkpoint": "2026-11-06T19:49:44Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Submit this coherent Study result and TC data-preparation consumer context for Root review. Keep the Study browser journey, Provider backend wiring and single combined full qualification Root-owned; then continue the remaining assigned Study journeys without activating held native/broker/capital/provider-live scope.",
+  "next_action": "Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view action review, adding focused offline regressions only for uncovered behavior. Keep the Study browser journey, Provider backend integration and single combined full qualification with Root; preserve the full local profile and deployed acceptance as pending until those exact gates pass.",
   "parent_branch": "staging",
-  "plan_hash": "bc9bc368c3ca93139a7f0d49182629f9cfe5f6181166ec47242753c8e90cfbe6",
+  "plan_hash": "cdabdee12e21defdec56b91793568f5cdc8b9bfe87c0ed07ca1ee30fec92f27c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -147,9 +143,9 @@
     "total": 6,
     "updated_at": "2026-11-06T19:39:16Z"
   },
-  "remote": "55fb5bd8498e4eb5629ae3d2b8f80b1a50c4d921",
-  "remote_sha": "55fb5bd8498e4eb5629ae3d2b8f80b1a50c4d921",
-  "remote_synchronized": false,
+  "remote": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
+  "remote_sha": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
+  "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",

@@ -1184,17 +1184,17 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    The combined full qualification suite and genuine deployed acceptance are scheduled and owned by
-    Root under /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/
-    combined-qualification-scheduling.json. Focused offline source checks continue; no duplicate
-    Strategy Compose/browser stack is to be launched. The earlier Docker-socket preflight refusal
-    remains historical and created no fixtures.
-  updated_at: "2026-11-06T19:38:55Z"
+    Exact-source branch CI run 42282239537 for 66f8ac67370026341f47bdf3b06aa9abc1f158e7 is in
+    progress. Root owns the single combined full qualification and genuine deployed acceptance under
+    /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/
+    combined-qualification-scheduling.json; no duplicate Strategy Compose/browser stack may be
+    launched. The earlier Docker-socket preflight refusal remains historical and created no fixtures.
+  updated_at: "2026-11-06T19:46:35Z"
   next_action: >-
-      Complete focused review of the TC data-preparation consumer path and Study action map, then
-      submit this coherent source context for Root review. Root owns the single combined qualification
-      and any real backend/data-preparation end-to-end proof; preserve the full local profile and
-      deployed acceptance as pending until those exact gates pass.
+      Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view
+      action review, adding focused offline regressions only for uncovered behavior. Keep the Study
+      browser journey, Provider backend integration and single combined full qualification with Root;
+      preserve the full local profile and deployed acceptance as pending until those exact gates pass.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
