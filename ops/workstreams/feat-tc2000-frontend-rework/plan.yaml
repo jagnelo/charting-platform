@@ -1825,7 +1825,7 @@ dependencies:
   Vehicle reconciliation and selected instrument-type response. TC consumes the returned identity/type before issuer holdings
   eligibility; ETF and Index ETF remain eligible, ETN remains excluded. No Provider source implementation was copied into
   this branch.
-scope_guard_baseline_sha: "16d76a8bddacffec9e8a85035cfea4e69ee0f529"
+scope_guard_baseline_sha: "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7"
 
 frozen_upstream_import_manifests: []
 approved_presentation_adaptations: []
@@ -4350,4 +4350,17 @@ calendar_sliver_followup:
   focused_validation: 89/89 affected helper/store tests passed; frontend vue-tsc --noEmit passed.
   scope: D1/W1 calendar bucket alignment only; MN and intraday behavior, admitted/native bounds, 2000-slot request limit, API, backend, references, and tolerance are unchanged.
   pending: Exact new-tip CI, Root-owned frontend runtime/browser qualification, and remaining release gates.
+  integration_capture: exact branch HEAD
+
+context_adoption_a9:
+  authority: Root-directed context adoption under the existing human four-feature integration authorization; no new product activation.
+  source_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+  local_merge_commit: exact branch HEAD (integration capture)
+  canonical_green_receipt: /home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json
+  canonical_green_receipt_sha256: acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3
+  staging_ci: "42184756530 success; full staging qualification backend/frontend 1612, functional 202, strict visual 104"
+  master_provenance_ci: 42194282702 (success; exact same source SHA)
+  imported_contracts: Provider's green history-coverage calendar and admitted-bound implementation, with its qualification and workstream evidence.
+  preserved: All nine roadmap criteria, ten repair criteria, prior accepted scope and reference history remain unchanged.
+  status: Green context adopted; deployment and genuine user-flow proof are not claimed and remain Root-owned.
   integration_capture: exact branch HEAD

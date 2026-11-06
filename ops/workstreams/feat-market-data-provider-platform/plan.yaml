@@ -14625,3 +14625,103 @@ followup_checkpoint:
     disposition: ETF owner reports the three previously failing nodes pass 3/3 in 29.07s on the exact approved test-only dependency; this Provider worktree did not rerun the bridge module.
   scope: Only the approved test file and this Provider workstream are changed. No ETF workstream, payload fixture, Provider product code, provider transport, ledger, quota, policy, hold, or runtime resource is changed.
   next_gate: Fresh exact-tip CI on this coherent Provider checkpoint, followed by Root-owned combined runtime/exhaustive/deployment gates; no prior red run is relabeled green.
+
+history_coverage_followup:
+  id: provider-history-calendar-gap-planner-20261106
+  objective: Correct shared cached-history readiness for sparse D1, W1 and MN data without changing the DTO/API or acquisition limits.
+  status: ready_for_integration
+  root_acceptance:
+    authority: Root delegated acceptance under the human standing authorization for this repair.
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-calendar-correction-root-acceptance.json
+    sha256: 48f13b3236c375be99cd392a91c1a7bcfba2a370d011a3130072402c1d62c203
+    decision: Accepted for integration subject to exact pushed-tip CI and new exact staging qualification; no gate or prior failed evidence is waived.
+  prior_accepted_checkpoint: 1cd22a256eee27181964afc3afbfe511c0441e51
+  scope:
+    - Coalesce consecutive missing XNYS D1 sessions across weekends, full-day holidays and DST while splitting at every present session.
+    - Plan XNYS W1 and MN coverage on UTC bucket boundaries aligned with derived timeframe keys; do not mark a short partial cache ready, and exclude unfinished current periods from missing tails.
+    - Use positive D1 request intervals containing the actual 04:00/05:00 UTC native bar timestamp while retaining support for canonical UTC-midnight daily labels.
+    - Preserve the existing 8 missing-slice and 2,000 inclusive-slot limits, provider entitlement/history bounds, native quotas, freshness rules and public history DTO/API shape.
+    - Record the documented NYSE Jan 9, 2025 full-day closure as a local calendar exception; do not infer closures from absent bars or add a calendar database query per day.
+  owned_paths:
+    - backend/app/services/ohlcv_coverage.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_provider_explicit_acquisition.py
+    - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json}
+  file_sha256:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+    backend/tests/unit/services/test_market_data.py: c4ff035bf826c9264db4711a97941ff2bc06043b7c208145179fc4a0c73ecca7
+    backend/tests/unit/services/test_provider_explicit_acquisition.py: 7ecefeaabe007c17d80da49bd5e1e88c00cc5c0608b83071c0dabb5deb7a5699
+  validation:
+    command: UV_CACHE_DIR=/tmp/provider-quota-hold-followup-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 ENV_FILE=/dev/null uv run --no-sync --project backend pytest backend/tests/unit/services/test_market_data.py backend/tests/unit/services/test_provider_explicit_acquisition.py -q
+    result: 64 passed, 0 failed, 0 errors, 0 skipped in 2.99 seconds.
+    focused_cases: XLB-shaped 124-session cache reduces the 87-slice pattern to one old gap and at most one completed-session tail; W1=26 and MN=7 recent bars remain PARTIAL; empty caches remain MISSING; present periods split holes; current unfinished periods do not create tails; month bounds use real month lengths; Jan 9 2025 closure and native/UTC-midnight/DST daily labels reselect without repair slices.
+    application_bound: Existing max-slice guard regression passed; source guard and configured 8/2,000 values were not changed.
+    static: Ruff check, Ruff format --check, and git diff --check passed.
+    initial_attempts: The first full module run exposed a pre-existing fixture window ending before Monday's XNYS session opened; the test window was extended through the following completed session while preserving its partial-coverage/series-isolation assertions. One new endpoint expectation was corrected to clamp at the caller's end bound.
+  provider_requests: 0
+  ledger_policy_quota_hold_changes: false
+  migrations_or_api_changes: false
+  wider_provider_etf_roadmaps_complete: false
+  pending: Exact closing-tip CI and Root combined/release gates remain pending; Root owns acceptance, integration and deployment.
+  closure_summary: >-
+    Root accepted the bounded shared XNYS D1/W1/MN coverage-gap planner correction under the recorded human standing delegation. The focused 64-test unit result and static checks are recorded above. No migration, public API, provider configuration, quota, hold, entitlement, real-ledger or source-request change occurred. Prior accepted checkpoints and all 24 Provider/14 ETF roadmap items remain preserved and open. Exact pushed-tip CI, new staging qualification, combined release, promotion, deployment and genuine user journeys remain mandatory and Root-owned. integration_capture: exact branch HEAD.
+
+coverage_router_ci_test_followup:
+  id: provider-history-coverage-router-test-contract-20261106
+  status: ready_for_integration
+  parent_checkpoint: provider-history-calendar-gap-planner-20261106
+  accepted_product_commit: 7419aee45f1e3af9cd771a3b771889d956bd1cf1
+  product_source_frozen: true
+  product_sha256:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+  preserved_ci_failure:
+    run_id: 42169503855
+    backend_job_id: 127733921845
+    result: 5,922 unit passed, 1 configured skip, 2 coverage-router test failures; product tests and prior history remain unchanged.
+    first_failure: The selected-series fixture ended before Monday's NYSE session closed, so the only completed session was Jan 2 and READY was correct. Its range now ends at 2026-01-06T00:00:00Z to include the missing completed Jan 5 session; series-exclusion and PARTIAL assertions are preserved.
+    second_failure: The coverage DTO expected zero-UTC/equal-day bounds. The accepted planner emits the positive NY-local Jan 5 bar-open bound 2026-01-05T05:00:00Z and clamps the end to the request's 2026-01-10T00:00:00Z. Only missing_slices expected timestamps changed; the rest of the response contract is unchanged.
+  test_file_sha256:
+    backend/tests/unit/routers/test_coverage_router.py: d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78
+  validation:
+    command: UV_CACHE_DIR=/tmp/provider-quota-hold-followup-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 ENV_FILE=/dev/null uv run --no-sync --project backend pytest backend/tests/unit/routers/test_coverage_router.py backend/tests/unit/services/test_market_data.py backend/tests/unit/services/test_provider_explicit_acquisition.py -q
+    result: 71 passed, 0 failed, 0 errors, 0 skipped in 8.97 seconds; five dependency deprecation warnings only.
+    static: Ruff check, Ruff format --check, and git diff --check passed.
+    product_changed: false
+    provider_requests: 0
+    fixtures_or_ledger_or_policy_mutations: false
+  root_disposition: Root accepts these corrected tests if the planner product hash remains unchanged.
+  closure_summary: >-
+    Test-only follow-up corrects two expectations against the already Root-accepted coverage planner. The first fixture now spans a completed missing exchange session while preserving alternate-series exclusion and partial readiness. The second expects the planner's positive request-bounded NY-local D1 interval and keeps all other DTO assertions. The accepted product hash c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3 is unchanged. CI 42169503855 remains red historical evidence; exact new-tip CI and new exact staging/release qualification are pending and Root-owned. All prior accepted checkpoints and 24 Provider/14 ETF roadmaps remain preserved. integration_capture: exact branch HEAD.
+
+staging16_remediation_import:
+  id: provider-staging16-known-red-visual-remediation-base-20261106
+  status: remediation_base_imported_exact_ci_pending
+  root_authorization:
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/staging16-visual-reviewed-reference-and-remediation-authorization.json
+    sha256: 2d8656dc4a7f0a1727528592de60b0173454be9695ff8fb47818a88c2883ee7c
+    authority: Root explicit remediation-base import authorization under the human standing history/dashboard repair authority.
+  imported_staging_commit: 16d76a8bddacffec9e8a85035cfea4e69ee0f529
+  provider_tip_before_import: e6db90b2dca4a2369898179062217f752e750f90
+  provider_merge_commit: e1146553b798b0788296276cdf2293c039396a29
+  merge_base_after_import: 16d76a8bddacffec9e8a85035cfea4e69ee0f529
+  classification: Known-red remediation base only; not green adoption, staging acceptance, roadmap completion, promotion or deployment.
+  staging_failure_preserved:
+    run_id: 42164203301
+    result: Red only at one stale reviewed visual reference; 103 other visual figures and prior backend/frontend/functional phases passed.
+    reviewed_reference: frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/unavailable-freshness-gap-visual-1440p-100-linux.png
+    prior_sha256: 52c2030188991af88b569aaea0776ed7d584cbe6b7f6277eb36a1128282a015e
+    approved_sha256: 5747cbb398ffb8193a95b1dc0ba6b73c423acab5c5f435d13346f08c471ac9a8
+    owner: TC owner; Provider does not edit sibling workstreams or UI assertions.
+  preserved_provider_bytes:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+    backend/tests/unit/routers/test_coverage_router.py: d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78
+  validation:
+    result: Non-fast-forward merge completed without conflict. merge-base(Provider HEAD, staging16) is exact 16d76a8bddacffec9e8a85035cfea4e69ee0f529; accepted Provider product and test hashes remain unchanged.
+    tests_run: false
+    provider_http_requests: 0
+    fixture_ledger_policy_changes: false
+    app_rebuild: false
+  pending: New exact Provider CI, TC-owned one-case visual verification, coordinated final exact-source CI and new exact staging qualification, Root-owned integration with REMEDIATE_DEGRADED=1, and all deployment/genuine-flow gates.
+  preserved: Commits 7419aee45f1e3af9cd771a3b771889d956bd1cf1 and e6db90b2dca4a2369898179062217f752e750f90, their accepted records, prior CI failures, and all 24 Provider/14 ETF roadmaps.
+  closure_summary: >-
+    Imported exact degraded staging commit 16d76a8bddacffec9e8a85035cfea4e69ee0f529 into the Provider branch with a non-fast-forward merge under Root authorization solely to establish the remediation base. This is not green adoption. The accepted planner and router test bytes are unchanged. Prior staging CI 42164203301 remains red at the reviewed visual reference. New Provider/TC exact-tip CI, the one-case visual check, and new exact staging CI remain mandatory and Root-owned. No Source request, fixture, real-ledger, quota/policy/hold, production, sibling-worktree or staging mutation occurred. All 24 Provider/14 ETF roadmaps remain open. integration_capture: exact branch HEAD.
