@@ -14625,3 +14625,43 @@ followup_checkpoint:
     disposition: ETF owner reports the three previously failing nodes pass 3/3 in 29.07s on the exact approved test-only dependency; this Provider worktree did not rerun the bridge module.
   scope: Only the approved test file and this Provider workstream are changed. No ETF workstream, payload fixture, Provider product code, provider transport, ledger, quota, policy, hold, or runtime resource is changed.
   next_gate: Fresh exact-tip CI on this coherent Provider checkpoint, followed by Root-owned combined runtime/exhaustive/deployment gates; no prior red run is relabeled green.
+
+history_coverage_followup:
+  id: provider-history-calendar-gap-planner-20261106
+  objective: Correct shared cached-history readiness for sparse D1, W1 and MN data without changing the DTO/API or acquisition limits.
+  status: ready_for_integration
+  root_acceptance:
+    authority: Root delegated acceptance under the human standing authorization for this repair.
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-calendar-correction-root-acceptance.json
+    sha256: 48f13b3236c375be99cd392a91c1a7bcfba2a370d011a3130072402c1d62c203
+    decision: Accepted for integration subject to exact pushed-tip CI and new exact staging qualification; no gate or prior failed evidence is waived.
+  prior_accepted_checkpoint: 1cd22a256eee27181964afc3afbfe511c0441e51
+  scope:
+    - Coalesce consecutive missing XNYS D1 sessions across weekends, full-day holidays and DST while splitting at every present session.
+    - Plan XNYS W1 and MN coverage on UTC bucket boundaries aligned with derived timeframe keys; do not mark a short partial cache ready, and exclude unfinished current periods from missing tails.
+    - Use positive D1 request intervals containing the actual 04:00/05:00 UTC native bar timestamp while retaining support for canonical UTC-midnight daily labels.
+    - Preserve the existing 8 missing-slice and 2,000 inclusive-slot limits, provider entitlement/history bounds, native quotas, freshness rules and public history DTO/API shape.
+    - Record the documented NYSE Jan 9, 2025 full-day closure as a local calendar exception; do not infer closures from absent bars or add a calendar database query per day.
+  owned_paths:
+    - backend/app/services/ohlcv_coverage.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_provider_explicit_acquisition.py
+    - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json}
+  file_sha256:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+    backend/tests/unit/services/test_market_data.py: c4ff035bf826c9264db4711a97941ff2bc06043b7c208145179fc4a0c73ecca7
+    backend/tests/unit/services/test_provider_explicit_acquisition.py: 7ecefeaabe007c17d80da49bd5e1e88c00cc5c0608b83071c0dabb5deb7a5699
+  validation:
+    command: UV_CACHE_DIR=/tmp/provider-quota-hold-followup-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 ENV_FILE=/dev/null uv run --no-sync --project backend pytest backend/tests/unit/services/test_market_data.py backend/tests/unit/services/test_provider_explicit_acquisition.py -q
+    result: 64 passed, 0 failed, 0 errors, 0 skipped in 2.99 seconds.
+    focused_cases: XLB-shaped 124-session cache reduces the 87-slice pattern to one old gap and at most one completed-session tail; W1=26 and MN=7 recent bars remain PARTIAL; empty caches remain MISSING; present periods split holes; current unfinished periods do not create tails; month bounds use real month lengths; Jan 9 2025 closure and native/UTC-midnight/DST daily labels reselect without repair slices.
+    application_bound: Existing max-slice guard regression passed; source guard and configured 8/2,000 values were not changed.
+    static: Ruff check, Ruff format --check, and git diff --check passed.
+    initial_attempts: The first full module run exposed a pre-existing fixture window ending before Monday's XNYS session opened; the test window was extended through the following completed session while preserving its partial-coverage/series-isolation assertions. One new endpoint expectation was corrected to clamp at the caller's end bound.
+  provider_requests: 0
+  ledger_policy_quota_hold_changes: false
+  migrations_or_api_changes: false
+  wider_provider_etf_roadmaps_complete: false
+  pending: Exact closing-tip CI and Root combined/release gates remain pending; Root owns acceptance, integration and deployment.
+  closure_summary: >-
+    Root accepted the bounded shared XNYS D1/W1/MN coverage-gap planner correction under the recorded human standing delegation. The focused 64-test unit result and static checks are recorded above. No migration, public API, provider configuration, quota, hold, entitlement, real-ledger or source-request change occurred. Prior accepted checkpoints and all 24 Provider/14 ETF roadmap items remain preserved and open. Exact pushed-tip CI, new staging qualification, combined release, promotion, deployment and genuine user journeys remain mandatory and Root-owned. integration_capture: exact branch HEAD.

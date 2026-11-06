@@ -641,7 +641,10 @@ async def test_history_readback_excludes_overlapping_alternate_series(monkeypatc
             timeframe=Timeframe.D1,
             adjusted=True,
             start=start,
-            end=start + timedelta(days=3),
+            # Include Monday's completed XNYS session. The series has no
+            # selected-source bar for that weekday; Sunday-ended UTC ranges
+            # end before Monday's exchange session opens.
+            end=start + timedelta(days=5),
             source_provider="massive",
             request_id="00000000-0000-0000-0000-000000000008",
         ),
