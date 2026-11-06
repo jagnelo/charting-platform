@@ -1170,9 +1170,10 @@ progress:
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
       distinguishing component/API evidence from exact-source browser acceptance. Consume the
-      Root-released Provider runtime successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 at the
-      exact active backend paths recorded in provider-runtime-consumption.json; 55b remains a
-      preserved historical import. The successor is released for development consumption, while
+      Root-released Provider runtime successor 99ce73bbc67689aef5fc4fcffa76bcfebfa736da at the
+      exact active 35 backend paths recorded in provider-runtime-consumption.json. Its eight
+      changed paths were imported over the archived 17d export; both 17d and 55b remain historical
+      import receipts. The 99 successor is released for development consumption, while
       the single combined full qualification remains Root-owned and pending. Strategy consumes the
       authenticated durable ensure/status contract
       through the existing shared TC data-preparation client; it does not duplicate worker,
@@ -1196,27 +1197,19 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Exact-source branch CI 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 is terminal
-    cancelled, not green. The focused Study/Results/Library and Strategy-view unit suites and Study
-    preparation fan-out typecheck passed on the local source recorded in the handoff. The Study
-    browser journey now includes a Python Library return through an immutable CodeVersion, but that
-    new path has only been typechecked and discovered by Playwright --list; browser execution remains
-    pending. Root released Provider successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 for exact
-    development consumption. All 15 paths changed since 55b and the complete 31-path active backend
-    export are recorded and hash-verified; the earlier 55b import and its Ruff/EOF-whitespace failures
-    remain historical. The successor's released Ruff check/format review resolves that style issue,
-    but full exact-source branch/combined release qualification remains pending. The focused Provider
-      boundary now passes 36/36 unit cases, Code Library passes its 16-case suite, and Results passes
-      its 62-case suite with cancel/rerun failure recovery coverage. Root retains the single combined
-      real-backend/browser qualification;
-    do not launch a duplicate Strategy stack. The earlier Docker-socket preflight refusal remains
-    historical and created no fixtures.
-  updated_at: "2026-11-06T21:26:25Z"
+    No exact-source branch CI or Root combined backend/browser acceptance exists for the current
+    99 dependency plus Results recovery story. The 99 active dependency pin contains
+    eight imported paths over 17d and all 35 exact exported files with source-derived status fields;
+    the 17d and 55b manifests and failures remain historical. Root reports focused catalogue tests
+    and exact-export Ruff check/format, not full release acceptance. The Results retry story is
+    typechecked and discovered by Playwright only; Root owns actual browser and combined backend
+    qualification. Preserve the full 18-criterion roadmap and disabled operation holds.
+  updated_at: "2026-11-06T22:31:25Z"
   next_action: >-
-      Review Strategy-owned Results promotion and delayed-response boundaries for a concrete
-      user-visible defect, then keep J10/J11/J12 browser execution in Root's single combined slot.
-      Maintain component/API versus browser evidence boundaries; do not claim authored journeys
-      passed in a real browser or close usability acceptance before exact CI and combined gates.
+    Finish the controlled-API Results failure/retry story and reconcile its action matrix with the
+    active 99 backend dependency pin. Root owns actual browser and combined backend qualification;
+    do not treat authored Playwright discovery as browser acceptance or close the usability scope
+    before the exact-source integrated gates.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -2104,20 +2097,18 @@ roadmap_progress_history:
   current_blocker: >-
     Root owns the single combined backend/browser qualification for the human-approved Study
     usability scope; local focused component checks do not establish browser lifecycle or release
-    acceptance. Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path
-    development dependency, with all 31 imported backend paths hash-verified and Ruff check/format
-    passing. Research Results now associates promotion feedback with its source run and identifies
-    the source run in delayed cancel/rerun failures. The focused ResearchResultsTool suite passes
-    65/65; Study, Library, Provider, and exposed Strategy view focused evidence remains in the dated
-    handoff. The Study browser journey and Root's combined qualification remain pending. Preserve the
-    full 18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds.
+    acceptance. Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is the active exact-path development
+    dependency; all 35 backend paths are hash-verified against the v2 manifest. Root reports focused
+    catalogue tests and Ruff check/format; exact-source full qualification remains pending. Research
+    Results keeps promotion and delayed cancel/rerun feedback attached to the source run. The focused
+    Results and Library evidence is in the handoff; the Results failure/retry browser story is
+    typechecked and discovered only. Root owns real browser and combined backend qualification.
+    Preserve the full 18-criterion roadmap and disabled native, broker, capital, paid/trial and
+    live-provider holds.
   next_action: >-
-    Continue auditing the remaining Strategy-owned Study, Results and Python Library lifecycle
-    actions for concrete context, recovery, persistence, or return-navigation gaps; add focused
-    regressions and update the owned journey matrix only for verified behavior. Keep browser and
-    combined backend qualification in Root's single assigned slot, distinguish component/API
-    evidence from browser acceptance, and do not close the named usability scope before its required
-    integrated evidence and Root review.
+    Finish the coherent 99 dependency and Results retry-story context, then deliver it to Root for
+    the single combined backend/browser slot. Treat controlled-API discovery as authored evidence
+    only and preserve all full-roadmap and disabled-operation holds.
 
 context_adoption_a9:
   source_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7

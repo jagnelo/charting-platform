@@ -180,3 +180,6 @@ class DataEnsureResponse(BaseModel):
     completed: int = Field(ge=0)
     total: int = Field(ge=0)
     last_progress_at: datetime
+    # Older persisted fixtures may not include this additive field. The API
+    # response builder always supplies the live queue-derived value.
+    has_pending_work: bool = False

@@ -123,7 +123,7 @@
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue auditing remaining Strategy-owned Study, Results and Python Library lifecycle actions for concrete context, recovery, persistence or return-navigation gaps; add focused regressions and update the owned journey matrix only for verified behavior. Keep browser and combined backend qualification in Root's single assigned slot and do not close usability acceptance before integrated evidence and Root review.",
   "parent_branch": "staging",
-  "plan_hash": "88b5f5368f6d61be9b79e2923188093ae1ccbd6f5c5ee249fd50d45e0be3ac75",
+  "plan_hash": "7c1984c2cdff88ee54bb79af872ea01e8aec11af98bd7b53b7dc273152fc4bb6",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -152,11 +152,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused component checks do not establish browser lifecycle or release acceptance. Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path development dependency, with all 31 imported backend paths hash-verified and Ruff check/format passing. Research Results associates promotion feedback with its source run and identifies the source run in delayed cancel/rerun failures. The focused ResearchResultsTool suite passes 65/65; Study, Library, Provider and exposed Strategy view evidence remains in the dated handoff. The Study browser journey and combined qualification remain pending. Preserve the full 18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds.",
+    "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused checks and controlled-API browser stories do not establish real browser lifecycle or release acceptance. Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is the active development dependency: all35 exact backend paths are verified against the v2 source-derived-status manifest, with eight imported over the preserved17d pin and 55b history. Root reports 81 focused units and exact-export Ruff check/format; full release gates remain pending. The Study and Results browser stories are authored/discovered only, and actual browser execution remains Root-owned. Preserve all18 roadmap criteria and disabled native, forward, broker, capital, paid/trial, and live-provider holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Continue auditing remaining Strategy-owned Study, Results and Python Library lifecycle actions for concrete context, recovery, persistence or return-navigation gaps; add focused regressions and update the owned journey matrix only for verified behavior. Keep browser and combined backend qualification in Root's single assigned slot and do not close usability acceptance before integrated evidence and Root review.",
+    "next_action": "Complete the controlled-API Results failure/retry story and coherently record the 99 active dependency pin; Root retains the only combined backend/browser qualification slot. Do not treat authored Playwright discovery as actual browser evidence or close the named scope before integrated evidence and Root review.",
     "total": 6,
-    "updated_at": "2026-11-06T22:03:20Z"
+    "updated_at": "2026-11-06T22:31:25Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -273,5 +273,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused component checks do not establish browser lifecycle or release acceptance. Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path development dependency, with all 31 imported backend paths hash-verified and Ruff check/format passing. Research Results associates promotion feedback with its source run and identifies the source run in delayed cancel/rerun failures. The focused ResearchResultsTool suite passes 65/65; Study, Library, Provider and exposed Strategy view evidence remains in the dated handoff. The Study browser journey and combined qualification remain pending. Preserve the full 18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds."
+  "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused checks and controlled-API browser stories do not establish real browser lifecycle or release acceptance. Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is the active development dependency: all35 exact backend paths are verified against the v2 source-derived-status manifest, with eight imported over the preserved17d pin and 55b history. Root reports 81 focused units and exact-export Ruff check/format; full release gates remain pending. The Study and Results browser stories are authored/discovered only, and actual browser execution remains Root-owned. Preserve all18 roadmap criteria and disabled native, forward, broker, capital, paid/trial, and live-provider holds."
 }

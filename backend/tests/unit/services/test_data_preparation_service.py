@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from fastapi import HTTPException
@@ -158,7 +158,24 @@ async def test_background_history_is_partial_until_durable_backfill_finishes(db,
         timeframe="D1",
         status="completed",
         next_attempt_at=now,
-        result_summary={"data_status": "ready"},
+        result_summary={
+            "data_status": "partial",
+            "chunk_coverage_status": "ready",
+            "bars_observed": 10,
+            "requested_start": "2026-10-01T00:00:00+00:00",
+            "requested_end": "2026-10-15T00:00:00+00:00",
+            "covered_start": "2026-10-01T04:00:00+00:00",
+            "covered_end": "2026-10-14T04:00:00+00:00",
+            "coverage_scopes": [
+                {
+                    "data_source_id": 1,
+                    "market_series_id": 11,
+                    "adjustment_basis": "split_adjusted",
+                    "adjustment_version": "v1",
+                    "is_adjusted": True,
+                }
+            ],
+        },
         metadata_payload={},
     )
     background = MarketRefreshJob(
@@ -178,12 +195,131 @@ async def test_background_history_is_partial_until_durable_backfill_finishes(db,
     partial = await get_data_preparation_response(async_db, parent=parent, owner_user_id=902)
     assert partial.dependencies[0].status == "partial"
     assert partial.dependencies[0].reason_code == "history_backfill_pending"
+    assert partial.has_pending_work is True
+    assert partial.dependencies[0].covered_ranges[0].market_series_id == 11
 
     background.status = "completed"
     background.result_summary = {"range_coverage_status": "ready", "data_status": "ready"}
     db.flush()
     complete = await get_data_preparation_response(async_db, parent=parent, owner_user_id=902)
     assert complete.dependencies[0].status == "ready"
+    assert complete.has_pending_work is False
+
+    # A provider wait remains real work, but the owner response exposes its
+    # actual deadline so the shared client can stop short polling.
+    retry_at = now + timedelta(minutes=20)
+    background.status = "deferred"
+    background.next_attempt_at = retry_at
+    background.metadata_payload = {"defer_reason": "provider_reset"}
+    db.flush()
+    deferred = await get_data_preparation_response(async_db, parent=parent, owner_user_id=902)
+    assert deferred.status == "partial"
+    assert deferred.has_pending_work is True
+    assert deferred.dependencies[0].reason_code == "provider_reset"
+    assert deferred.dependencies[0].retry_at == retry_at
+
+    # Older stored/fixture response payloads remain valid without the additive
+    # lifecycle bit and default fail-safe to no known pending queue work.
+    from app.schemas.data_preparation import DataEnsureResponse
+
+    legacy_response = DataEnsureResponse.model_validate(
+        complete.model_dump(exclude={"has_pending_work"})
+    )
+    assert legacy_response.has_pending_work is False
+
+
+@pytest.mark.asyncio
+async def test_partial_history_and_unavailable_holdings_have_no_pending_work(db, instrument):
+    now = datetime.now(UTC)
+    parent = MarketRefreshJob(
+        request_key="tracking-independent-datasets-test",
+        capability="data_preparation_request",
+        status="tracking",
+        next_attempt_at=now,
+        metadata_payload={
+            "data_preparation": {
+                "role": "owner_request_tracking",
+                "request_id": "independent-dataset-request",
+                "owner_user_id": 903,
+                "target": {"kind": "instrument", "instrument_id": instrument.id},
+                "version": 1,
+                "last_progress_at": now.isoformat(),
+                "dependencies": [
+                    {
+                        "dependency_id": "history-dependency",
+                        "dataset": "history",
+                        "instrument_id": instrument.id,
+                        "status": "queued",
+                        "updated_at": now.isoformat(),
+                        "job_ids": [601],
+                    },
+                    {
+                        "dependency_id": "holdings-dependency",
+                        "dataset": "holdings",
+                        "instrument_id": instrument.id,
+                        "status": "queued",
+                        "updated_at": now.isoformat(),
+                        "job_ids": [602],
+                    },
+                    {
+                        "dependency_id": "final-partial-history-dependency",
+                        "dataset": "history",
+                        "instrument_id": instrument.id,
+                        "status": "partial",
+                        "reason_code": "history_coverage_partial",
+                        "updated_at": now.isoformat(),
+                        "job_ids": [],
+                    },
+                ],
+            }
+        },
+    )
+    history = MarketRefreshJob(
+        id=601,
+        request_key="history-independent-dataset-test",
+        instrument_id=instrument.id,
+        capability="price_history",
+        timeframe="D1",
+        status="completed",
+        next_attempt_at=now,
+        result_summary={"data_status": "ready"},
+        metadata_payload={},
+    )
+    holdings = MarketRefreshJob(
+        id=602,
+        request_key="holdings-independent-dataset-test",
+        instrument_id=instrument.id,
+        capability="etf_holdings_preparation",
+        status="completed",
+        next_attempt_at=now,
+        result_summary={
+            "preparation_status": "unavailable",
+            "reason_code": "holdings_issuer_not_supported",
+        },
+        metadata_payload={},
+    )
+    db.add_all([parent, history, holdings])
+    db.flush()
+
+    response = await get_data_preparation_response(
+        AsyncSessionAdapter(db), parent=parent, owner_user_id=903
+    )
+
+    assert response.status == "partial"
+    assert response.has_pending_work is False
+    assert {item.dependency_id: item.status for item in response.dependencies} == {
+        "history-dependency": "ready",
+        "holdings-dependency": "unavailable",
+        "final-partial-history-dependency": "partial",
+    }
+    final_history = next(
+        item
+        for item in response.dependencies
+        if item.dependency_id == "final-partial-history-dependency"
+    )
+    assert final_history.status == "partial"
+    assert final_history.reason_code == "history_coverage_partial"
+    assert sum(item.status == "ready" for item in response.dependencies) == 1
 
 
 @pytest.mark.asyncio
@@ -673,6 +809,7 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
     assert set(identities) == {"LEFT", "RIGHT"}
     assert len({job_id for item in identities.values() for job_id in item["job_ids"]}) == 2
     owner_view = await get_data_preparation_response(async_db, parent=parent, owner_user_id=930)
+    assert owner_view.has_pending_work is True
     assert {
         item.symbol for item in owner_view.dependencies if item.dataset.value == "identity"
     } == {"LEFT", "RIGHT"}
