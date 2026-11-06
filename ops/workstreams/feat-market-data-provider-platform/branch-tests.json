@@ -6,7 +6,8 @@
     "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (empty-cache provenance plus typed held/no_match/failed outcomes; unknown quota has no invented retry)",
     "backend/app/routers/instruments.py::get_instrument_history_availability (exact selected instrument/symbol fetch_ohlcv scope, true request-driven resolver, reviewed dry cost and no transport/reservation/mutation)",
     "Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history bounds and no-eligible/unknown cases, no-network quota outcomes)",
-    "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration."
+    "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration.",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (Root-approved immutable ETF clock-fix dependency from b25fc814ef301103337f343d57b859545fa5bb8f; three authentic VanEck freshness cases pass without changing payload fixtures or Provider product code)"
   ],
   "commands": [
     {
@@ -44,7 +45,7 @@
       "id": "full-backend-suite",
       "command": "make test-backend-coverage",
       "covers": [
-        5
+        5, 6
       ],
       "scope_note": "Complete backend/DDL/coverage gate remains required on the exact published source; not run in this bounded checkpoint."
     }
@@ -56,14 +57,14 @@
     {
       "id": "exact-source-backend-and-branch-ci",
       "covers": [
-        5
+        5, 6
       ],
       "reason": "Complete backend/DDL, frontend, branch-declared, and browser jobs must be terminal green on the exact coherent closing source tip."
     },
     {
       "id": "root-combined-full-stack-browser-release",
       "covers": [
-        5
+        5, 6
       ],
       "reason": "Root owns the combined full_stack_browser profile, protected staging/master integration, promotion, deployment, and genuine ordinary ticker/provider flow checks."
     }

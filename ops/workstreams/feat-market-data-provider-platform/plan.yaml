@@ -14545,6 +14545,7 @@ owned_paths:
 - backend/tests/unit/services/test_provider_quota_coordinator.py
 - backend/tests/unit/services/test_provider_routing.py
 - backend/tests/unit/services/test_provider_runtime.py
+- backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
 branch_tests:
   - "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback after bounded fuzzy search; typed quota holds and known retry_at are preserved)"
@@ -14552,12 +14553,14 @@ branch_tests:
   - "backend/app/routers/instruments.py::get_instrument_history_availability (exact selected instrument/symbol fetch_ohlcv scope, true request-driven resolver, reviewed dry cost and no transport/reservation/mutation)"
   - "Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history bounds and no-eligible/unknown cases, no-network quota outcomes)"
   - "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration."
+  - "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (Root-approved immutable ETF clock-fix dependency from b25fc814ef301103337f343d57b859545fa5bb8f; three authentic VanEck freshness cases pass without changing payload fixtures or Provider product code)"
 branch_tests_reason: >-
   The affected six unit modules passed 334/334 in 204.83s on the exact source hashes recorded in Root's conditional implementation review.
   This includes the real resolver path with PROVIDER_REQUEST_DRIVEN_ONLY=true and the shared dynamic-cost estimator used by _fetch_provider;
   the history endpoint proves eligible reviewed bounds with no execute_provider_call, quota file, or policy/health mutation. The discovery
   service reports native window admission as held with the known retry_at, unknown quota contract as held without a retry, and unexpected
   TypeError as failed. Ruff check/format and git diff checks passed. No external request, real ledger access, fixture or broad backend run occurred.
+  Root approved the exact ETF-owned test-only clock dependency at b25fc814ef301103337f343d57b859545fa5bb8f; its blob and SHA are pinned in the follow-up record.
 acceptance_criteria:
 - id: HISTORY-SHARED-1
   text: "Discovery, selected identity and history expose typed held/no_match/failed outcomes; known rate/window retry times are preserved, unknown/hard holds never invent retry_at, and unexpected failures remain failed with safe diagnostics."
@@ -14601,3 +14604,22 @@ closure_summary: null
 migration_impact: None; no schema or migration change.
 live_test_impact: No provider/issuer/SEC HTTP; no real-ledger access or quota/hold/policy mutation occurred.
 deployment_impact: None; Root owns integration, promotion, deployment and genuine user-flow verification.
+
+followup_checkpoint:
+  id: provider-van-eck-fixture-clock-ci-dependency-20261106
+  objective: Adopt one Root-approved immutable test-only dependency that keeps authentic Oct 29 VanEck workbook regressions inside their reviewed freshness window, then publish one coherent Provider checkpoint for exact-tip CI.
+  status: ready_for_human_review
+  changed_provider_product_code: false
+  dependency:
+    source_commit: b25fc814ef301103337f343d57b859545fa5bb8f
+    path: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+    git_blob: c75d410ea18854db6179f0d2ba608ef62e4350c2
+    sha256: a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d
+    root_approval: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/etf-clock-fix-dependency-approval.json
+    root_approval_sha256: 1167ce41d9d257dade6c9dcd1d7a2938fd0e3bd7f92179c54e90f7c43a0e0826
+  prior_exact_ci:
+    run_id: 42141483157
+    result: Overall failure preserved. Backend unit phase 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed because the authentic Oct 29 workbook fixtures aged beyond the five-day freshness deadline; frontend and E2E jobs were green.
+    disposition: ETF owner reports the three previously failing nodes pass 3/3 in 29.07s on the exact approved test-only dependency; this Provider worktree did not rerun the bridge module.
+  scope: Only the approved test file and this Provider workstream are changed. No ETF workstream, payload fixture, Provider product code, provider transport, ledger, quota, policy, hold, or runtime resource is changed.
+  next_gate: Fresh exact-tip CI on this coherent Provider checkpoint, followed by Root-owned combined runtime/exhaustive/deployment gates; no prior red run is relabeled green.
