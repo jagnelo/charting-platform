@@ -426,6 +426,18 @@ When adding a branch test, use that same command form. Do not make a helper
 silently compatible with an older system Python instead of enforcing the
 repository's declared runtime.
 
+Before publishing a branch, validate its declared test mapping without running
+the tests:
+
+```bash
+uv run --project backend python scripts/run-branch-tests.py <branch> --validate-only
+```
+
+This checks an explicit `branch-tests.json` against `plan.yaml`; when no
+manifest exists, the existing `plan.yaml` command fallback remains valid. The
+same fail-fast check runs in the changed-path CI job before product jobs. It
+does not replace execution of the branch's declared tests or exact-source CI.
+
 ## Install / setup order
 
 1. Install and verify **Codex CLI**

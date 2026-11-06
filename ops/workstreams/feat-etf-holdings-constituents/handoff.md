@@ -1,3 +1,15 @@
+# SPDR sector route composition — 2026-11-06
+
+Root authorized the bounded repair after genuine XLE selection returned typed unavailable before any source request. The sector-family metadata initializer used whole-record `setdefault`; XLE already had compatible State Street issuer and SEC identifier metadata but no SPDR adapter aliases, so the initializer left it unroutable. The existing route is now composed additively only when issuer and any existing adapter/source aliases agree. XLE SEC identifiers remain intact; conflicts are left unchanged. The existing symbol-derived workbook URL and exact workbook fund-ticker identity check are unchanged.
+
+Focused offline validation: the sector route test covers all 11 presets; compatible alias preservation and issuer/adapter conflict negatives are covered. Five focused route cases passed; Ruff check and format passed. No live source calls, policy/quota changes, or heavy profiles were run. Workstream and scope checks pass; final exact-source CI remains pending; Root owns serialized genuine XLE acceptance and combined release gates. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, and wider roadmap remain open.
+
+# Green context adoption — a9ee26d46ca0 — 2026-11-06
+
+This owner branch now adopts exact synchronized staging/master context `a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7` through a normal non-fast-forward merge. Canonical receipt `/home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json` (SHA256 `e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681`) records staging CI `42184756530` and master provenance CI `42194282702` terminal success. Root reports 1612 backend/frontend, 202 functional, and 104 visual; the receipt’s separate unexecuted-job list is preserved as written. This adopts shared history/planner/provider controls and released dashboard/chart behavior as context only; no further ETF implementation is activated. Root’s private backup/cutover and genuine user-flow gates remain pending. Preserve the complete ETF roadmap, issuer coverage, histories, datasets and holds.
+
+---
+
 # Accepted checkpoint — VanEck authentic fixture clock — 2026-11-06
 
 Root accepted this bounded test-only checkpoint under the human standing authorization in `/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json` (SHA256 `e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681`). Validated implementation: `b25fc814ef301103337f343d57b859545fa5bb8f`; its exact-source CI `42147141948` is green. The three affected VanEck integration nodes passed with authentic workbook bytes and freshness policy unchanged. No product/configuration change or migration was made.
@@ -18205,3 +18217,7 @@ The exact three PostgreSQL/SQLite nodes passed once (`3 passed`, `29.07s`, exit 
 This is a test-only checkpoint. Exact-source CI is pending under Root coordination; no broader full-suite, staging, integration, deployment, or roadmap completion is claimed. Preserve the prior checkpoint and the full AC1–AC14, `15 Tier-0 and 156 Tier-1`, all holds, histories, and genuine user-flow obligations.
 
 ---
+
+## SPDR sector route composition — Root-accepted checkpoint — 2026-11-06 10:36 UTC
+
+Root accepted implementation `ec861fdd9d7d22df8882c67271a2d07e6f877229` under standing human-delegated checkpoint authority. Five focused route tests and the recorded lint, workstream/record and scope guards passed. The fix composes existing SPDR aliases into compatible same-issuer metadata without changing identifiers or conflicting records; workbook URL, parsing/fund identity, native contracts and quotas are unchanged. No migration, product configuration, policy/quota mutation or external source call occurred. Exact implementation CI `42199229443` is still running; Root will push this records-only closure only after that exact CI is terminal green. Combined staging/master gates and genuine deployed XLE proof remain mandatory. AC1-AC14, 15 Tier-0/156 Tier-1, holds and historical evidence remain open and preserved.
