@@ -61,6 +61,7 @@ async def enqueue_refresh_job(
     priority: int = 100,
     metadata_payload: dict | None = None,
     now: datetime | None = None,
+    preserve_deferred_deadline: bool = False,
 ) -> MarketRefreshJob:
     """Insert or coalesce a queued job, raising priority for urgent demand."""
 
@@ -88,11 +89,17 @@ async def enqueue_refresh_job(
         db.add(job)
     else:
         job.priority = min(job.priority, priority)
-        job.status = "queued" if job.status in {"failed", "deferred", "expired"} else job.status
         existing_next_attempt = job.next_attempt_at
         if existing_next_attempt.tzinfo is None or existing_next_attempt.utcoffset() is None:
             existing_next_attempt = existing_next_attempt.replace(tzinfo=UTC)
-        job.next_attempt_at = min(existing_next_attempt, current)
+        native_wait_is_live = (
+            preserve_deferred_deadline
+            and job.status == "deferred"
+            and existing_next_attempt > current
+        )
+        if not native_wait_is_live:
+            job.status = "queued" if job.status in {"failed", "deferred", "expired"} else job.status
+            job.next_attempt_at = min(existing_next_attempt, current)
         job.metadata_payload = {**(job.metadata_payload or {}), **(metadata_payload or {})}
     await db.flush()
     return job

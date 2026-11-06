@@ -60,9 +60,7 @@ async def ensure_data(
         idempotency_key=idempotency_key,
     )
     await db.commit()
-    response = await get_data_preparation_response(
-        db, parent=parent, owner_user_id=current_user.id
-    )
+    response = await get_data_preparation_response(db, parent=parent, owner_user_id=current_user.id)
     if response.status in {"queued", "partial"}:
         await _wake_refresh_worker()
     return response
@@ -74,10 +72,5 @@ async def get_data_request(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> DataEnsureResponse:
-    parent = await load_owner_request(
-        db, request_id=request_id, owner_user_id=current_user.id
-    )
-    return await get_data_preparation_response(
-        db, parent=parent, owner_user_id=current_user.id
-    )
-
+    parent = await load_owner_request(db, request_id=request_id, owner_user_id=current_user.id)
+    return await get_data_preparation_response(db, parent=parent, owner_user_id=current_user.id)

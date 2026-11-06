@@ -156,9 +156,7 @@ class PreparationDependencyResponse(BaseModel):
     instrument_id: int | None = None
     symbol: str | None = None
     dataset: PreparationDataset
-    status: Literal[
-        "queued", "running", "partial", "ready", "waiting", "unavailable", "failed"
-    ]
+    status: Literal["queued", "running", "partial", "ready", "waiting", "unavailable", "failed"]
     requested_start: datetime | None = None
     requested_end: datetime | None = None
     covered_start: datetime | None = None
@@ -173,9 +171,7 @@ class DataEnsureResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     request_id: str
-    status: Literal[
-        "queued", "running", "partial", "ready", "waiting", "unavailable", "failed"
-    ]
+    status: Literal["queued", "running", "partial", "ready", "waiting", "unavailable", "failed"]
     created_at: datetime
     updated_at: datetime
     version: int = Field(ge=1)
@@ -184,4 +180,3 @@ class DataEnsureResponse(BaseModel):
     completed: int = Field(ge=0)
     total: int = Field(ge=0)
     last_progress_at: datetime
-

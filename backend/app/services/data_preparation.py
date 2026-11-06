@@ -34,6 +34,13 @@ from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_ref
 
 _TRACKING_CAPABILITY = "data_preparation_request"
 _PRIORITY = {"visible": 10, "default": 50, "background": 100}
+_DATASET_ENQUEUE_ORDER = {
+    PreparationDataset.IDENTITY: 0,
+    PreparationDataset.PROFILE: 1,
+    PreparationDataset.HISTORY: 2,
+    PreparationDataset.HOLDINGS: 3,
+    PreparationDataset.FUNDAMENTALS: 4,
+}
 
 
 @dataclass(frozen=True)
@@ -508,6 +515,7 @@ async def _enqueue_identity_profile_job(
             }
         },
         now=now,
+        preserve_deferred_deadline=True,
     )
     for ref in [
         *prior_refs,
@@ -550,6 +558,7 @@ async def _enqueue_etf_holdings_job(
             }
         },
         now=now,
+        preserve_deferred_deadline=True,
     )
     for ref in [
         *prior_refs,
@@ -680,6 +689,7 @@ async def _enqueue_history_dependency(
             }
         },
         now=now,
+        preserve_deferred_deadline=True,
     )
     job_payload = deepcopy(job.metadata_payload or {})
     child_payload = deepcopy(job_payload.get("data_preparation_child") or {})
@@ -769,7 +779,10 @@ async def create_data_preparation_request(
         return parent
 
     dependencies: list[dict] = []
-    for symbol in unresolved_symbols:
+    # Every transaction acquires shared child locks in one global order.
+    # The request's ratio-leg order stays in normalized_request; only lock
+    # acquisition is sorted to avoid opposite-leg PostgreSQL deadlocks.
+    for symbol in sorted(set(unresolved_symbols), key=str.upper):
         identity_job = await _enqueue_identity_profile_job(
             db,
             parent_job_id=parent.id,
@@ -838,7 +851,8 @@ async def create_data_preparation_request(
                 }
             )
 
-    for instrument_id in instrument_ids:
+    ordered_datasets = sorted(datasets, key=lambda item: _DATASET_ENQUEUE_ORDER[item])
+    for instrument_id in sorted(set(instrument_ids)):
         instrument = await db.get(Instrument, instrument_id)
         identity_job = None
         identity_is_qualified = bool(
@@ -867,7 +881,7 @@ async def create_data_preparation_request(
                 priority=parent.priority,
                 now=now,
             )
-        for dataset in datasets:
+        for dataset in ordered_datasets:
             dependency_id = str(uuid4())
             current_status, reason = await _dataset_initial_state(
                 db, instrument_id, dataset, now=now
@@ -1255,6 +1269,21 @@ def _aggregate_status(dependencies: list[dict]) -> str:
     return "unavailable"
 
 
+def _deferred_job_reason(jobs: list[MarketRefreshJob]) -> str:
+    """Return the persisted safe hold reason for a deferred child, if present."""
+
+    for job in jobs:
+        payload = job.metadata_payload or {}
+        reason = payload.get("defer_reason")
+        if reason:
+            return str(reason)
+        summary = job.result_summary or {}
+        reason = summary.get("reason_code")
+        if reason:
+            return str(reason)
+    return "provider_capacity_deferred"
+
+
 async def get_data_preparation_response(
     db: AsyncSession, *, parent: MarketRefreshJob, owner_user_id: int
 ) -> DataEnsureResponse:
@@ -1301,12 +1330,13 @@ async def get_data_preparation_response(
             if any(job.status == "failed" for job in background_jobs):
                 item_status, reason = "partial", "history_backfill_failed"
             elif any(job.status == "deferred" for job in background_jobs):
-                item_status, reason = "partial", "history_backfill_held"
+                deferred_jobs = [job for job in background_jobs if job.status == "deferred"]
+                item_status, reason = "partial", _deferred_job_reason(deferred_jobs)
                 retry_at = max(
                     (
                         _as_utc(job.next_attempt_at)
-                        for job in background_jobs
-                        if job.status == "deferred" and job.next_attempt_at is not None
+                        for job in deferred_jobs
+                        if job.next_attempt_at is not None
                     ),
                     default=None,
                 )
@@ -1405,12 +1435,13 @@ async def get_data_preparation_response(
             elif "failed" in child_statuses:
                 item_status, reason = "failed", "preparation_job_failed"
             elif "deferred" in child_statuses:
-                item_status, reason = "waiting", "provider_capacity_deferred"
+                deferred_jobs = [job for job in child_jobs if job.status == "deferred"]
+                item_status, reason = "waiting", _deferred_job_reason(deferred_jobs)
                 retry_at = max(
                     (
                         _as_utc(job.next_attempt_at)
-                        for job in child_jobs
-                        if job.status == "deferred" and job.next_attempt_at is not None
+                        for job in deferred_jobs
+                        if job.next_attempt_at is not None
                     ),
                     default=None,
                 )

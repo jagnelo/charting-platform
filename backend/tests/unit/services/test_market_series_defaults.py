@@ -293,17 +293,19 @@ def test_split_adjusted_default_excludes_alpaca_total_return_series():
         session.add_all([split_bar, all_bar])
         session.flush()
 
-        rows = session.execute(
-            select(OHLCVBar).where(
-                OHLCVBar.instrument_id == 1,
-                OHLCVBar.timeframe == Timeframe.D1,
-                OHLCVBar.is_adjusted.is_(True),
-                _default_series_bar_condition(1, Timeframe.D1, True),
+        rows = (
+            session.execute(
+                select(OHLCVBar).where(
+                    OHLCVBar.instrument_id == 1,
+                    OHLCVBar.timeframe == Timeframe.D1,
+                    OHLCVBar.is_adjusted.is_(True),
+                    _default_series_bar_condition(1, Timeframe.D1, True),
+                )
             )
-        ).scalars().all()
-        assert [(row.market_series_id, row.adjustment_version) for row in rows] == [
-            (30, "v1")
-        ]
+            .scalars()
+            .all()
+        )
+        assert [(row.market_series_id, row.adjustment_version) for row in rows] == [(30, "v1")]
         assert session.get(MarketSeriesDefault, 1).market_series_id == 40
     finally:
         session.close()
@@ -374,12 +376,14 @@ def test_deeper_provider_default_switches_only_after_complete_coherent_range():
 
         def ordinary_read_series_ids():
             rows = session.execute(
-                select(OHLCVBar).where(
+                select(OHLCVBar)
+                .where(
                     OHLCVBar.instrument_id == 1,
                     OHLCVBar.timeframe == Timeframe.D1,
                     OHLCVBar.is_adjusted.is_(True),
                     _default_series_bar_condition(1, Timeframe.D1, True),
-                ).order_by(OHLCVBar.ts)
+                )
+                .order_by(OHLCVBar.ts)
             ).scalars()
             return [row.market_series_id for row in rows]
 
@@ -465,8 +469,12 @@ def test_deeper_provider_default_switches_only_after_complete_coherent_range():
             )
         ).all()
         assert len(stored) == len(recent_stamps) + len(full_stamps)
-        assert sum(series_id == 10 and source_id == 10 for series_id, source_id, _ in stored) == len(recent_stamps)
-        assert sum(series_id == 20 and source_id == 20 for series_id, source_id, _ in stored) == len(full_stamps)
+        assert sum(
+            series_id == 10 and source_id == 10 for series_id, source_id, _ in stored
+        ) == len(recent_stamps)
+        assert sum(
+            series_id == 20 and source_id == 20 for series_id, source_id, _ in stored
+        ) == len(full_stamps)
         selected_default = session.execute(select(MarketSeriesDefault)).scalar_one()
         assert selected_default.market_series_id == 20
         assert selected_default.selection_reason == "complete_admitted_range"

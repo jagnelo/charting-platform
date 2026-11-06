@@ -415,7 +415,9 @@ async def _do_fetch_and_store(
         instrument.id,
         timeframe,
         adjusted,
-        market_series_ids={bar.market_series_id for bar in bars if bar.market_series_id is not None},
+        market_series_ids={
+            bar.market_series_id for bar in bars if bar.market_series_id is not None
+        },
     )
 
     new_bars: list[OHLCVBar] = []

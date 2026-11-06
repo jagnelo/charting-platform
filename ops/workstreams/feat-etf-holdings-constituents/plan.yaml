@@ -5826,7 +5826,7 @@ root_allocated_basket_ui_lifecycle_2026_11_06:
   status: in_progress
   integration_capture: exact branch HEAD
 
-provider_runtime_dependency_55b956f40615:
+provider_runtime_dependency_55b956f40615_historical:
   authority: Root released exact Provider source for development consumption in the
     existing ETF worktree; this is not Provider acceptance, integration, deployment,
     or full release qualification.
@@ -5943,3 +5943,146 @@ provider_runtime_dependency_55b956f40615:
     narrative_and_workstream: "narrative invariant 1 passed; workstream and plan/hash/JSONL guards passed"
   full_release_gates: pending; Root owns combined qualification and release; no acceptance
     or deployment is claimed.
+
+provider_runtime_dependency_17d628296e5a:
+  authority: Root released exact Provider successor source for development consumption
+    in the existing ETF worktree; this is not Provider acceptance, integration, deployment,
+    or full release qualification.
+  source: 17d628296e5a0f3bc1dac1abd564619ac62a0298
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_source: 55b956f40615f1623a0f7d084b9fc0a355727053
+  state: released_for_exact_development_consumption_not_product_acceptance
+  contract_path: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider17d-runtime-development-consumption-contract.json
+  contract_sha256: 6a7d7cd4ecb3ef779a11bc53671e16c225a658e40324e392372f313776dabdee
+  source_description: actual authenticated preparation API, existing durable queue/worker,
+    provider/derived-series lineage integration and exact affected tests
+  successor_scope:
+  - deterministic request child-lock order preserving requested ratio direction
+  - native retry waits preserved when equivalent requests join
+  - full exact export Ruff check/format verified0.4.7
+  changed_paths_since_previous:
+  - backend/app/routers/data_preparation.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/bulk_fetch.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/data_preparation_contracts.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_history_planning.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  file_count: 31
+  files:
+  - path: backend/app/main.py
+    git_blob: bcdb5e07415c1fd84504adec4f835d824d24b8ff
+    sha256: 12df279e453e6c8fcf7e05ede9208af027fa27645eb927cd4e84fa4dc742f4ca
+  - path: backend/app/providers/alpaca.py
+    git_blob: f04bb5b13374dfe4c5683acd70250d921bfbf5f5
+    sha256: 65cf8bf722a580c8c74d5562f73e57bc495196544590be8d71a1538b0182b3e6
+  - path: backend/app/providers/massive.py
+    git_blob: 9a80bb96d3a2ec6dcefbba641d970f67efdcc086
+    sha256: a0b960e36199e58e332eeee13a0423479a536f5ecb75336012aa0de47659800b
+  - path: backend/app/routers/data_preparation.py
+    git_blob: 6a076671ad88a0e4f93ca742a644d6fa8958032d
+    sha256: 3f263b31955de71deac04cccbbeb63add7b5ac9d59d8afcf9e0a25ba344d634b
+  - path: backend/app/routers/ohlcv.py
+    git_blob: d0921270b79f2ac24419a32833f75e5f441af96e
+    sha256: 420387926e48794e48cd452c04fbd9478b68980f0162762acdd434a019407b30
+  - path: backend/app/schemas/data_preparation.py
+    git_blob: 1870d05e917a01bf2113ed94483f099f2a3cb72e
+    sha256: 2eb6c61959cb4c810afe1f94fae803fe78c7c1d0f9ddd77fe12425cf07c9f31e
+  - path: backend/app/services/bulk_fetch.py
+    git_blob: 2ccd5aa9d04e2dc1b9e6bbabc45dfed96f68cf0b
+    sha256: 91c9d3312d0b6265622b1a025135edab6dbd281a4b5bd5164eb9ff43b8ebbbd5
+  - path: backend/app/services/data_preparation.py
+    git_blob: 65297822d1b28f2050a320bba3b5aef0f61e4b0a
+    sha256: 858104a21111e6ccf1c2eb83cfe050f229011c0e19462aa87552c215226144cb
+  - path: backend/app/services/data_preparation_contracts.py
+    git_blob: c49bc33100b252eb4f523755223e0acbb43e5805
+    sha256: 03cdee95aa09144365115a3c0f005feb8863ff464bf463be551e8bdc0edb2298
+  - path: backend/app/services/derived_timeframes.py
+    git_blob: 3b2c6337ad25a533096f1a9ed213fcc7207d933f
+    sha256: d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5
+  - path: backend/app/services/etf_holdings_preparation.py
+    git_blob: f4470a83a237dc38e42680b3a45948e71dbe28b8
+    sha256: 30a9b581609d2ee584d81667afa388df62e5a9133895cc98a841015cd6eb7df1
+  - path: backend/app/services/etf_holdings_refresh.py
+    git_blob: 8ab7d7879661abb68309b668c61648cf212785cd
+    sha256: e258f61bcc7aa288897999cb421d320512439e101157ff0f91fe5be4b216fce3
+  - path: backend/app/services/market_data.py
+    git_blob: bb2e2374f5b789f9871fd83f46705b2b50a8ecff
+    sha256: b00a5e4a21c850b526cadee810d51d8dbe65a3aabb0be309e9bd50ff6d9ec72e
+  - path: backend/app/services/market_refresh_queue.py
+    git_blob: ee5f702001d0670e8d4c37a9533c5bc4809d5521
+    sha256: 3ea7b26e93ae932bd17791c5032f2d21ec789fed34b74be7c45a905665525b5f
+  - path: backend/app/services/market_series.py
+    git_blob: a971b4c3acb7856596afb77508401b4347414a89
+    sha256: eecfac599f3d6a097f282ba467271a13194f99148ea3ffff339d7c1795b73597
+  - path: backend/app/services/provider_runtime.py
+    git_blob: c8243ac3ae256cdcf2e1f0209265b542fc0d1061
+    sha256: 8d0a69a8216277ac95d5c69fa81fa04a2d42b276e331c9bfb03b180b9a1eff30
+  - path: backend/app/tasks/data_tasks.py
+    git_blob: d0ca15b40ea2b916af328c15bc1368ec1c945e7f
+    sha256: 5958217d714a5a0fdcd82e831a9898cf4027e52dbe84815a47bcd82e6c912b65
+  - path: backend/app/workers/arq_worker.py
+    git_blob: 7be6ab23520d76abec18d397d5c2e994ba6f7b15
+    sha256: 3a36dacd7ea712454ac28e46e539971efe1f3698e86ed05802d6035fc2a9dd1a
+  - path: backend/tests/integration/test_data_preparation_queue_postgres.py
+    git_blob: cc7c3fe02854b46ebfc9aa87397f13999a0294bf
+    sha256: 9be8500312b650ed87bfd17ad98087e24cd1a93a5ce6ae960bec56dfe14a19d9
+  - path: backend/tests/unit/providers/test_new_providers.py
+    git_blob: dea961137e8974516c2027d627e1e91c14a5b9c4
+    sha256: 743f26f4e9b39e9bc1fb1c7f7397f5fdb3c6ea5c01abfb08da07e9638cfd5a7c
+  - path: backend/tests/unit/routers/test_data_preparation_router.py
+    git_blob: 22ea722f21f8b7c65a6d0c312aa2b7fed9a76513
+    sha256: c24567191da090d300ee7f092bf27c7d1e698c1e514381657165aeead317fa83
+  - path: backend/tests/unit/routers/test_ohlcv_router.py
+    git_blob: 57cc0d615df4351a9a7f74ec798145f6ab9c1b0a
+    sha256: 7f676110a98ab05c8739acf0c094bc797c5486fe4298dcce5982b62027be3ede
+  - path: backend/tests/unit/services/test_data_preparation_contracts.py
+    git_blob: b37d2fde245fa747924dab9eb7f36e0b3ee311fc
+    sha256: 731915d09bf814aac95d9c1195dd27084e7bf26eeb3998c73659597ee23d8271
+  - path: backend/tests/unit/services/test_data_preparation_history_planning.py
+    git_blob: a0a6518cfe4f7175aeddff06c741b09acdb87470
+    sha256: 8d83b57c1f370d5fe1b611937c685b909382b9ce01c0db55e83ae9ebd6ad89d3
+  - path: backend/tests/unit/services/test_data_preparation_service.py
+    git_blob: ec648ed35aa066dd1249932d8b654c2c7211c103
+    sha256: f8bc39994bfaa0f3b72bedfc8adc40d3897f128468c26c941af80ddc57981ae4
+  - path: backend/tests/unit/services/test_derived_timeframes.py
+    git_blob: 85811ade209a4adfbe1b095527453fa2608e9207
+    sha256: a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a
+  - path: backend/tests/unit/services/test_etf_holdings_preparation.py
+    git_blob: 8f0a484f033fc3a9c7700a7c96d99aa4469eb8e4
+    sha256: 2d44f15dfeb27e00cb0799ab4b1ce4b61d35ff3288c9757d6e6f9638fc7ae939
+  - path: backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    git_blob: d745f4845a06708a8deaa5fd7f3a3c8a3a39b560
+    sha256: 2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0
+  - path: backend/tests/unit/services/test_market_refresh_queue.py
+    git_blob: 8f3fa448896f7c2d9a39bf86eae23a9e16e11caa
+    sha256: 5f0b94451148f877fdbfbc3c8c32664d06e355c15eebc676cd384e49cd881dae
+  - path: backend/tests/unit/services/test_market_series_defaults.py
+    git_blob: 1d80bdd386cce3232181f59b7fcae52c5423c16e
+    sha256: 45020f23deb48434a2065f8828a9e0d45577e2da982ea0ee8834443866f84c7f
+  - path: backend/tests/unit/workers/test_arq_worker.py
+    git_blob: b74e14bbc45893397e767cfd40d1966996a35e5f
+    sha256: b3e29e432709c99c8ef600058cef495b3a138bf414b0cb876762c0c9486a821b
+  producer_evidence:
+    original_focused_units: 440 passed; historical55source evidence, not fresh full
+      suite
+    original_independent_postgresql: 5passed at55; successor focused regressions reportedgreen
+      by owner; final exact CI/fullrelease pending
+    exact_export_style_review: provider17d-exact-style-review.json
+    qualification: development-only, no product acceptance
+  consumer_validation:
+    etf_preparation_and_hook: 31 passed on the 17d imported runtime
+    data_preparation_lock_and_retry_regressions: 2 focused unit cases passed
+    frontend_etf_view: 23 passed; type-check passed
+    frontend_baskets: 17 passed; type-check passed
+    combined_profile: pending; Root owns the single combined qualification
+  full_release_gates: pending; Root owns final CI, combined qualification and release;
+    no acceptance or deployment is claimed.

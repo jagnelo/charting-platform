@@ -68,20 +68,17 @@ def normalize_adjustment_basis(
         basis = AdjustmentBasis(str(getattr(basis, "value", basis)))
     if not adjusted:
         return AdjustmentBasis.RAW
-    if (
-        basis == AdjustmentBasis.PROVIDER_ADJUSTED
-        and version == "massive-split-adjusted"
-    ):
+    if basis == AdjustmentBasis.PROVIDER_ADJUSTED and version == "massive-split-adjusted":
         return AdjustmentBasis.SPLIT_ADJUSTED
     return basis or AdjustmentBasis.SPLIT_ADJUSTED
 
 
-def effective_series_adjustment_basis(series: MarketSeries | None, adjusted: bool) -> AdjustmentBasis:
+def effective_series_adjustment_basis(
+    series: MarketSeries | None, adjusted: bool
+) -> AdjustmentBasis:
     if series is None:
         return AdjustmentBasis.SPLIT_ADJUSTED if adjusted else AdjustmentBasis.RAW
-    return normalize_adjustment_basis(
-        series.adjustment_basis, series.adjustment_version, adjusted
-    )
+    return normalize_adjustment_basis(series.adjustment_basis, series.adjustment_version, adjusted)
 
 
 async def get_or_create_series(
@@ -300,8 +297,10 @@ async def select_default_series_for_complete_range(
             current_end = current_end.replace(tzinfo=UTC)
         normalized_start = start if start.tzinfo is not None else start.replace(tzinfo=UTC)
         normalized_end = end if end.tzinfo is not None else end.replace(tzinfo=UTC)
-        if current_start is not None and current_end is not None and (
-            normalized_start >= current_start or normalized_end < current_end
+        if (
+            current_start is not None
+            and current_end is not None
+            and (normalized_start >= current_start or normalized_end < current_end)
         ):
             # A narrower range must not displace a more useful existing default.
             return False

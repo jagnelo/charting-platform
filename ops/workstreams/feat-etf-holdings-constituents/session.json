@@ -77,7 +77,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -429,7 +429,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -1067,7 +1067,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "52e9eadedc68a6f3e2679355a6efa4f2b3e5d09d3c3695fba631f20e7389a25d",
+  "plan_hash": "9caa7467857b9581cd476c934244f618ac38b86a9af3fa3d8e08180df7fb085c",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -1564,7 +1564,7 @@
     },
     "remaining_gates": [
       "Exact final closing-tip CI must be terminal green before integration.",
-      "Root owns accepted compatible ETF\u2192TC staging, green staging and independent master gates.",
+      "Root owns accepted compatible ETF→TC staging, green staging and independent master gates.",
       "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
     ],
     "retained_input_proof": {
@@ -2000,7 +2000,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -3479,7 +3479,7 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider source 55b956f40615f1623a0f7d084b9fc0a355727053 is consumed locally for development, but its required green staging release is pending before final shared-runtime integration; the new ETF-only browser journey and Root-owned combined profile remain pending.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider source 17d628296e5a0f3bc1dac1abd564619ac62a0298 is consumed locally for development; its full release gates and Root-owned combined qualification remain pending. The ETF-only browser journey bodies have not been run in this worktree.",
     "current_phase": "ETF hook uses the exact Provider DTOs, exact persisted-snapshot/capability checks, and typed retry preservation; focused service/view checks pass.",
     "total": 5
   },
@@ -3788,6 +3788,80 @@
     "remaining": "Root owns combined functional/browser profile and shared API integration; full platform and ETF roadmaps remain open."
   },
   "root_released_provider_runtime_consumption": {
+    "source": "17d628296e5a0f3bc1dac1abd564619ac62a0298",
+    "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "previous_source": "55b956f40615f1623a0f7d084b9fc0a355727053",
+    "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider17d-runtime-development-consumption-contract.json",
+    "contract_sha256": "6a7d7cd4ecb3ef779a11bc53671e16c225a658e40324e392372f313776dabdee",
+    "changed_paths_since_previous": [
+      "backend/app/routers/data_preparation.py",
+      "backend/app/schemas/data_preparation.py",
+      "backend/app/services/bulk_fetch.py",
+      "backend/app/services/data_preparation.py",
+      "backend/app/services/data_preparation_contracts.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/market_refresh_queue.py",
+      "backend/app/services/market_series.py",
+      "backend/tests/integration/test_data_preparation_queue_postgres.py",
+      "backend/tests/unit/routers/test_ohlcv_router.py",
+      "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "backend/tests/unit/services/test_data_preparation_service.py",
+      "backend/tests/unit/services/test_market_refresh_queue.py",
+      "backend/tests/unit/services/test_market_series_defaults.py"
+    ],
+    "active_import_paths": [
+      "backend/app/main.py",
+      "backend/app/providers/alpaca.py",
+      "backend/app/providers/massive.py",
+      "backend/app/routers/data_preparation.py",
+      "backend/app/routers/ohlcv.py",
+      "backend/app/schemas/data_preparation.py",
+      "backend/app/services/bulk_fetch.py",
+      "backend/app/services/data_preparation.py",
+      "backend/app/services/data_preparation_contracts.py",
+      "backend/app/services/derived_timeframes.py",
+      "backend/app/services/etf_holdings_preparation.py",
+      "backend/app/services/etf_holdings_refresh.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/market_refresh_queue.py",
+      "backend/app/services/market_series.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/app/workers/arq_worker.py",
+      "backend/tests/integration/test_data_preparation_queue_postgres.py",
+      "backend/tests/unit/providers/test_new_providers.py",
+      "backend/tests/unit/routers/test_data_preparation_router.py",
+      "backend/tests/unit/routers/test_ohlcv_router.py",
+      "backend/tests/unit/services/test_data_preparation_contracts.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py",
+      "backend/tests/unit/services/test_data_preparation_service.py",
+      "backend/tests/unit/services/test_derived_timeframes.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "backend/tests/unit/services/test_market_refresh_queue.py",
+      "backend/tests/unit/services/test_market_series_defaults.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
+    ],
+    "imported_files": 31,
+    "all_git_blob_and_sha256_checks_passed": true,
+    "dirty_path_overlap": [],
+    "producer_full_release_gates": "pending; not accepted/integrated/deployed",
+    "successor_scope": [
+      "deterministic request child-lock order preserving requested ratio direction",
+      "native retry waits preserved when equivalent requests join",
+      "full exact export Ruff check/format verified0.4.7"
+    ],
+    "consumer_validation": {
+      "etf_preparation_and_hook": "31 passed",
+      "data_preparation_lock_and_retry_regressions": "2 focused unit cases passed",
+      "etf_holdings_view": "23 passed",
+      "basket_view": "17 passed",
+      "frontend_typecheck": "passed",
+      "provider_release_status": "development dependency only; full gates and Root combined profile pending"
+    }
+  },
+  "historical_provider_runtime_consumption_55b956": {
     "source": "55b956f40615f1623a0f7d084b9fc0a355727053",
     "base": "139b350238b5e1c8a170dce5af09a805301d857e",
     "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-runtime-development-consumption-contract.json",
