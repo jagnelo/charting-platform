@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
-import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, preparationStatusMessage } from '@/lib/dataPreparation'
+import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage } from '@/lib/dataPreparation'
 
 const baseTime = '2026-11-06T12:00:00.000Z'
 const request: DataEnsureRequest = { target: { kind: 'instrument', symbol: 'SPY' }, timeframe: 'D1', datasets: ['identity', 'history'] }
@@ -123,6 +123,24 @@ describe('DataPreparationCoordinator', () => {
     expect(heldMessage).toContain('entitlement')
     expect(heldMessage).not.toContain('timeframes_not_entitled')
     expect(preparationStatusMessage(unresolved, Date.parse(baseTime))).toContain('identity and listing details')
+    expect(preparationStatusMessage(response('unavailable', 1, { dependencies: [{
+      dependency_id: 'history:1:D1', depends_on: [], instrument_id: 1, dataset: 'history', status: 'unavailable',
+      requested_start: null, requested_end: null, covered_start: null, covered_end: null,
+      reason_code: 'provider_source_unavailable', retry_at: null, updated_at: baseTime,
+    }] }), Date.parse(baseTime))).toContain('reviewed data source')
+    expect(preparationStatusMessage(waiting, Date.parse(baseTime))).not.toContain('Try again')
+  })
+
+  it('accepts only the Provider-owned timeframe enum, including its supported annual period', async () => {
+    const client = { post: vi.fn().mockResolvedValue(response('ready', 1)), get: vi.fn() }
+    const service = coordinator(client)
+
+    expect(isPreparationTimeframe('Y1')).toBe(true)
+    expect(isPreparationTimeframe('Q1')).toBe(false)
+    await expect(service.ensure({ ...request, timeframe: 'Y1' })).resolves.toMatchObject({ status: 'ready' })
+    await expect(service.ensure({ ...request, timeframe: 'Q1' as any })).rejects.toThrow('timeframe is not supported')
+    expect(client.post).toHaveBeenCalledTimes(1)
+    expect(client.post).toHaveBeenCalledWith('/data/ensure', expect.objectContaining({ timeframe: 'Y1' }), expect.any(Object))
   })
 
   it('rejects ambiguous identities and invalid ranges before creating a request', async () => {

@@ -94,6 +94,8 @@ let observer: ResizeObserver | null = null
 let observedPlotHost: HTMLElement | null = null
 let points: PlotPoint[] = []
 let loadGeneration = 0
+let renderedAnalysisContext = ''
+let renderedAnalysisLabel = ''
 let mounted = false
 let activeLoadController: AbortController | null = null
 function percent(value: number | null | undefined) { return value == null ? '—' : `${(value * 100).toFixed(2)}%` }
@@ -330,62 +332,117 @@ async function load() {
   loading.value = true
   error.value = ''
   preparationMessage.value = ''
-  try {
-    const params = { ...(isFamily.value ? {} : { benchmark: benchmark.value.toUpperCase() }), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOfTimestamp() }
-    const path = isFamily.value
-      ? `/analysis/benchmark-families/${encodeURIComponent(groupKey.value)}/relative-rotation`
-      : `/analysis/groups/${encodeURIComponent(groupKey.value)}/relative-rotation`
-    const target = isFamily.value
-      ? { kind: 'family' as const, family_key: groupKey.value }
-      : { kind: 'market_group' as const, group_key: groupKey.value }
-    const preparation = await dataPreparationCoordinator.ensure({
-      target,
-      datasets: ['identity', 'history'],
-      timeframe: timeframe.value as import('@/lib/dataPreparation').PreparationTimeframe,
-      adjusted: adjusted.value,
-      end_at: asOfTimestamp() ?? null,
-      analysis: {
-        kind: 'rrg', lookback: lookback.value, sampling: sampling.value,
-        tail_length: tailLength.value, history_length: historyLength.value,
-        ...(isFamily.value ? {} : { benchmark_symbol: benchmark.value.toUpperCase() }),
-      },
-    }, {
-      signal: controller.signal,
-      onProgress: progress => {
-        if (!mounted || generation !== loadGeneration) return
-        preparationMessage.value = ['queued', 'running', 'partial'].includes(progress.response.status)
-          ? `Preparing ratio inputs (${progress.completed}/${progress.total} dependencies)…`
-          : preparationStatusMessage(progress.response)
-      },
-    })
-    if (!mounted || generation !== loadGeneration) return
-    preparationMessage.value = preparation.status === 'ready' ? '' : preparationStatusMessage(preparation)
-    const queryKey = ['workstation', 'relative-rotation', groupKey.value, params]
-    await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: 'none' })
-    const payload = await queryClient.fetchQuery<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>({
+  const params = { ...(isFamily.value ? {} : { benchmark: benchmark.value.toUpperCase() }), timeframe: timeframe.value, adjusted: adjusted.value, sampling: sampling.value, lookback: lookback.value, tail_length: tailLength.value, history_length: historyLength.value, as_of: asOfTimestamp() }
+  const selectedGroup = groupKey.value
+  const family = isFamily.value
+  const path = family
+    ? `/analysis/benchmark-families/${encodeURIComponent(selectedGroup)}/relative-rotation`
+    : `/analysis/groups/${encodeURIComponent(selectedGroup)}/relative-rotation`
+  const target = family
+    ? { kind: 'family' as const, family_key: selectedGroup }
+    : { kind: 'market_group' as const, group_key: selectedGroup }
+  const queryKey = ['workstation', 'relative-rotation', selectedGroup, params]
+  const contextKey = JSON.stringify(queryKey)
+  const contextLabel = `${selectedGroup} · ${params.timeframe}${params.benchmark ? ` vs ${params.benchmark}` : ''} · lookback ${params.lookback} · sample ${params.sampling}${params.as_of ? ` · as of ${params.as_of.slice(0, 10)}` : ''}`
+  const showingPriorContext = () => Boolean(rows.value.length && renderedAnalysisContext && renderedAnalysisContext !== contextKey)
+  const contextualize = (message: string) => showingPriorContext()
+    ? `${message} Showing ${renderedAnalysisLabel} results while ${contextLabel} loads.`
+    : message
+  let currentPreparationText = showingPriorContext() ? `Updating ${contextLabel}.` : ''
+  preparationMessage.value = contextualize(currentPreparationText)
+  const isCurrent = () => mounted && generation === loadGeneration && !controller.signal.aborted
+  const readAnalysis = async (fresh = false) => {
+    if (fresh) await queryClient.invalidateQueries({ queryKey, exact: true, refetchType: 'none' })
+    return queryClient.fetchQuery<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>({
       queryKey,
       queryFn: () => api.get<{ rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }>(path, params, { signal: controller.signal }),
-      staleTime: 0,
+      staleTime: fresh ? 0 : 30_000,
     })
-    if (!mounted || generation !== loadGeneration) return
+  }
+  const applyAnalysis = async (payload: { rows?: Row[]; roles?: Row[]; benchmark?: string; freshness?: string }) => {
+    if (!isCurrent()) return
     rows.value = (payload.roles ?? payload.rows ?? []).map(row => ({ ...row, tail: row.tail ?? [], history: row.history ?? [], symbol: row.symbol ?? row.label ?? row.role ?? 'Unavailable' }))
-    rotationBenchmark.value = payload.benchmark ?? benchmark.value.toUpperCase()
+    rotationBenchmark.value = payload.benchmark ?? (family ? rotationBenchmark.value : benchmark.value.toUpperCase())
     freshness.value = payload.freshness ?? ''
-    // The plot host is inside the loading-state branch. Restore it before
-    // drawing so timeframe/group changes update the existing chart instance.
-    loading.value = false
+    renderedAnalysisContext = contextKey
+    renderedAnalysisLabel = contextLabel
+    if (currentPreparationText.startsWith('Updating ')) currentPreparationText = ''
+    preparationMessage.value = contextualize(currentPreparationText)
+    error.value = ''
     await nextTick()
-    drawPlot()
-  } catch (cause: any) {
-    if (mounted && generation === loadGeneration && cause?.name !== 'AbortError') {
-      rows.value = []
-      error.value = 'Relative rotation data could not be loaded.'
+    if (isCurrent()) drawPlot()
+  }
+  const reportAnalysisFailure = () => {
+    if (!isCurrent()) return
+    if (!rows.value.length) error.value = 'Relative rotation data could not be loaded.'
+    else {
+      currentPreparationText = 'The latest local refresh failed; showing the available results.'
+      preparationMessage.value = contextualize(currentPreparationText)
     }
+  }
+
+  // Read the local analysis immediately. An admitted backfill can take much
+  // longer, but it must not hide a useful cached plot or erase it on a hold.
+  const initialAnalysis = readAnalysis().then(applyAnalysis).catch(cause => {
+    if (cause?.name !== 'AbortError') reportAnalysisFailure()
+  })
+  let partialRefreshQueued = false
+  let refreshChain = Promise.resolve()
+  const queueFreshAnalysis = () => {
+    refreshChain = refreshChain.then(async () => {
+      await initialAnalysis
+      if (!isCurrent()) return
+      try { await applyAnalysis(await readAnalysis(true)) } catch (cause: any) {
+        if (cause?.name !== 'AbortError') reportAnalysisFailure()
+      }
+    })
+  }
+  const preparation = dataPreparationCoordinator.ensure({
+    target,
+    datasets: ['identity', 'history'],
+    timeframe: params.timeframe as import('@/lib/dataPreparation').PreparationTimeframe,
+    adjusted: params.adjusted,
+    end_at: params.as_of ?? null,
+    analysis: {
+      kind: 'rrg', lookback: params.lookback, sampling: params.sampling,
+      tail_length: params.tail_length, history_length: params.history_length,
+      ...(family ? {} : { benchmark_symbol: params.benchmark }),
+    },
+  }, {
+    signal: controller.signal,
+    onProgress: progress => {
+      if (!isCurrent()) return
+      const status = progress.response.status
+      currentPreparationText = ['queued', 'running', 'partial'].includes(status)
+        ? `Preparing ratio inputs (${progress.completed}/${progress.total} dependencies)…`
+        : preparationStatusMessage(progress.response)
+      preparationMessage.value = contextualize(currentPreparationText)
+      if (status === 'partial' && !partialRefreshQueued) {
+        partialRefreshQueued = true
+        queueFreshAnalysis()
+      }
+    },
+  }).then(async result => {
+    if (!isCurrent()) return
+    currentPreparationText = result.status === 'ready' ? '' : preparationStatusMessage(result)
+    preparationMessage.value = contextualize(currentPreparationText)
+    // A terminal held/partial outcome can still have produced independently
+    // useful inputs, so reread this exact analysis context without discarding
+    // the last successful result.
+    queueFreshAnalysis()
+    await refreshChain
+  }).catch(cause => {
+    if (isCurrent() && cause?.name !== 'AbortError') {
+      currentPreparationText = 'Data preparation could not be completed; showing available local results.'
+      preparationMessage.value = contextualize(currentPreparationText)
+    }
+  })
+
+  try {
+    await Promise.all([initialAnalysis, preparation])
   } finally {
-    if (mounted && generation === loadGeneration) {
-      loading.value = false
-      if (activeLoadController === controller) activeLoadController = null
-    }
+    if (isCurrent()) loading.value = false
+    if (generation === loadGeneration && activeLoadController === controller) activeLoadController = null
   }
 }
 onMounted(async () => {

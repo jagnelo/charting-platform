@@ -2,6 +2,11 @@ import { api } from '@/lib/api'
 
 export type PreparationDataset = 'identity' | 'profile' | 'history' | 'holdings' | 'fundamentals'
 export type PreparationTimeframe = 'M1' | 'M5' | 'M15' | 'M30' | 'H1' | 'H2' | 'H4' | 'H12' | 'D1' | 'W1' | 'MN' | 'Y1'
+const PREPARATION_TIMEFRAMES = new Set<PreparationTimeframe>(['M1', 'M5', 'M15', 'M30', 'H1', 'H2', 'H4', 'H12', 'D1', 'W1', 'MN', 'Y1'])
+
+export function isPreparationTimeframe(value: string): value is PreparationTimeframe {
+  return PREPARATION_TIMEFRAMES.has(value as PreparationTimeframe)
+}
 export type PreparationStatus = 'queued' | 'running' | 'partial' | 'ready' | 'waiting' | 'unavailable' | 'failed'
 
 export type PreparationInstrument =
@@ -131,6 +136,9 @@ function validateIdentity(identity: { instrument_id?: number; symbol?: string },
 
 function validateRequest(request: DataEnsureRequest): void {
   if (request.target.kind === 'instrument') validateIdentity(request.target, 'Preparation target')
+  if (request.timeframe !== undefined && !PREPARATION_TIMEFRAMES.has(request.timeframe)) {
+    throw new Error('Preparation timeframe is not supported by the data-preparation contract.')
+  }
   if (request.datasets && new Set(request.datasets).size !== request.datasets.length) {
     throw new Error('Preparation datasets must not contain duplicates.')
   }

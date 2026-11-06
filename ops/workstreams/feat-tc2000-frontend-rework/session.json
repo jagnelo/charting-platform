@@ -108,7 +108,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_candidate_ci_status": "The platform-usability implementation is in progress. No exact-tip CI, combined runtime profile, provider producer integration, or release qualification is claimed; Root owns shared browser and release gates.",
-  "current_checkpoint_status": "Platform-usability remains in progress. The first source context is cc30ff62; a second local context adds the typed Provider preparation consumer and RRG group/family wiring. RRG pointer focus now preserves a hovered marker, canvas rendering uses uPlot canvas-pixel coordinates with DPR scaling and bbox clipping, the companion header has an explicit warning cell, and source status reasons are translated without exposing raw codes. Focused coordinator/RRG tests passed 22/22 and vue-tsc passed. Provider producer and real-browser DPR/pointer qualification remain pending Root.",
+  "current_checkpoint_status": "Platform-usability remains in progress. The typed Provider preparation consumer is wired to RRG and both ratio-chart entrypoints. Local analysis starts independently of preparation; useful cached results remain visible through delayed, held, and failed preparation; partial/ready progress refreshes only the active parameter query; obsolete contexts are fenced; and ratio reads settle each comparator independently so a failed new pair does not clear a valid curve. RRG pointer focus preserves the hovered marker, canvas drawing uses uPlot canvas-pixel coordinates with DPR scaling and bbox clipping, the companion header has an explicit warning cell, and structured reasons are translated without raw codes or mandatory retry copy. Focused coordinator/RRG/ratio tests passed 42/42; frontend type-check passes. Provider producer and actual-browser DPR/pointer qualification remain pending Root.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -438,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "c3f1267e8889e7dd4d07ca85c97ce5e844aaf02b6c1984b0839b8d14ecea8e3c",
+  "plan_hash": "2f42597560ef64e41d7f8b5fc6da981fb0a4d480a54f834e8a620729171bdf9f",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -468,8 +468,8 @@
   "progress": {
     "completed": [],
     "current_blocker": "Provider owns the shared stable preparation DTO/producer; independent TC frontend work can continue meanwhile.",
-    "current_phase": "Platform-usability implementation active; measured RRG render failure is first, followed by clone/catalogue/lifecycle and shared preparation wiring.",
-    "next_action": "Implement the measured RRG numeric scatter renderer fix and focused plotted-data regression, then continue semantic clone/catalogue and lifecycle work.",
+    "current_phase": "Platform-usability implementation active; RRG rendering/pointer fixes are implemented, and the shared preparation client now keeps local RRG/ratio results visible while preparing. Continue wiring the same bounded lifecycle to the remaining TC-owned entrypoints while Provider completes the producer.",
+    "next_action": "Continue shared automatic preparation wiring for selected chart/history entrypoints and progress semantic catalogue/lifecycle work; retain the Root-owned real-browser RRG DPR/pointer proof and combined qualification as pending.",
     "total": 10,
     "updated_at": "2026-11-06"
   },

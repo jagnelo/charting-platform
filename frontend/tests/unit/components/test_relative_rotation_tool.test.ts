@@ -145,12 +145,21 @@ describe('RelativeRotationTool', () => {
 
   it('replaces both scale bounds when a later timeframe returns disjoint plotted values', async () => {
     let releaseWeeklyResponse: ((value: any) => void) | null = null
-    vi.mocked(api.get)
-      .mockResolvedValueOnce({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'OLD', state: 'leading', coverage: 1, tail: [], history: [
+    let weeklyReads = 0
+    const oldPayload = { freshness: 'current', rows: [{ instrument_id: 1, symbol: 'OLD', state: 'leading', coverage: 1, tail: [], history: [
         { timestamp: '2026-01-01', trend: -0.1, momentum: -0.2 },
         { timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 },
-      ] }] })
-      .mockImplementationOnce(() => new Promise(resolve => { releaseWeeklyResponse = resolve }))
+      ] }] }
+    const newPayload = { freshness: 'current', rows: [{ instrument_id: 2, symbol: 'NEW', state: 'improving', coverage: 1, tail: [], history: [
+      { timestamp: '2026-02-01', trend: 100, momentum: 300 },
+      { timestamp: '2026-02-02', trend: 200, momentum: 500 },
+    ] }] }
+    vi.mocked(api.get).mockImplementation((_path, params) => {
+      if (params?.timeframe !== 'W1') return Promise.resolve(oldPayload)
+      weeklyReads += 1
+      if (weeklyReads === 1) return new Promise(resolve => { releaseWeeklyResponse = resolve })
+      return Promise.resolve(newPayload)
+    })
     const wrapper = mountTool()
     await vi.waitFor(() => expect(wrapper.text()).toContain('OLD'))
     await nextTick()
@@ -161,15 +170,15 @@ describe('RelativeRotationTool', () => {
     const initialPlotHost = wrapper.get('.rotation-tool__plot').element
     expect((options.scales?.y?.range as () => [number, number])()[1]).toBeLessThan(1)
 
+    vi.mocked(api.get).mockClear()
     await wrapper.get('select[aria-label="Rotation timeframe"]').setValue('W1')
-    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ timeframe: 'W1' }), expect.any(Object)))
     expect(wrapper.get('.rotation-tool__plot').element).toBe(initialPlotHost)
-    expect(wrapper.get('.rotation-tool__plot-shell').text()).toContain('Updating ratios…')
-    releaseWeeklyResponse?.({ freshness: 'current', rows: [{ instrument_id: 2, symbol: 'NEW', state: 'improving', coverage: 1, tail: [], history: [
-      { timestamp: '2026-02-01', trend: 100, momentum: 300 },
-      { timestamp: '2026-02-02', trend: 200, momentum: 500 },
-    ] }] })
+    expect(wrapper.get('.rotation-tool__plot-shell').text()).toContain('Updating sp500-sectors · W1')
+    expect(wrapper.get('.rotation-tool__plot-shell').text()).toContain('Showing sp500-sectors · D1')
+    releaseWeeklyResponse?.(newPayload)
     await vi.waitFor(() => expect(wrapper.text()).toContain('NEW'))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
     expect(uPlot).toHaveBeenCalledTimes(1)
     await vi.waitFor(() => expect(chart.setData).toHaveBeenCalled())
 
@@ -202,6 +211,48 @@ describe('RelativeRotationTool', () => {
     await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 120 }), expect.any(Object)))
     expect(wrapper.find('input[aria-label="Rotation history length"]').element).toHaveProperty('value', '120')
     expect(wrapper.text()).toContain('120 history points')
+  })
+
+  it('draws the current local RRG result while data preparation is still pending', async () => {
+    let releasePreparation!: (value: unknown) => void
+    vi.mocked(api.post).mockReturnValueOnce(new Promise(resolve => { releasePreparation = resolve }) as any)
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{
+      instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1,
+      tail: [], history: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }],
+    }] })
+    const wrapper = mountTool()
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+    expect(wrapper.get('.rotation-tool__plot').exists()).toBe(true)
+    expect(wrapper.text()).toContain('Updating ratios…')
+    releasePreparation({
+      request_id: 'rrg-unavailable', status: 'unavailable', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+      version: 1, target: {}, completed: 1, total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
+        dependency_id: 'history:1:D1', depends_on: [], instrument_id: 1, dataset: 'history', status: 'unavailable',
+        requested_start: null, requested_end: null, covered_start: null, covered_end: null,
+        reason_code: 'source_history_unavailable', retry_at: null, updated_at: '2026-11-06T12:00:00Z',
+      }],
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('reviewed data source'))
+    expect(wrapper.text()).toContain('XLK')
+    expect(uPlot).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('keeps a successful local RRG result when the preparation request fails', async () => {
+    vi.mocked(api.post).mockRejectedValueOnce(new Error('provider_quota_admission_denied'))
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{
+      instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1,
+      tail: [], history: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }],
+    }] })
+    const wrapper = mountTool()
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('showing available local results'))
+    expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
+    expect(uPlot).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
   })
 
   it('accepts an extended history window above the former thousand-point cap', async () => {
@@ -319,7 +370,7 @@ describe('RelativeRotationTool', () => {
     await vi.waitFor(() => expect(second.text()).toContain('No sector rotation rows are available.'))
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-live')).toBe('polite')
     expect(first.find('.rotation-tool__state[role="status"]').attributes('aria-atomic')).toBe('true')
-    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledTimes(2)
   })
 
   it('does not publish a late rotation response after the tool unmounts', async () => {
