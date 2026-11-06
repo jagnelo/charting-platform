@@ -15,16 +15,11 @@ vi.mock('@/lib/api', () => ({
   },
 }))
 
-vi.mock('@/lib/dataPreparation', () => ({
-  dataPreparationCoordinator: { ensure: vi.fn() },
-}))
-
 vi.mock('vue-router', () => ({
   useRouter: () => ({ push: routerPush }),
 }))
 
 import { api } from '@/lib/api'
-import { dataPreparationCoordinator } from '@/lib/dataPreparation'
 
 let pickerResults: Array<{ symbol: string; instrument_id: number; name: string }> = []
 
@@ -110,7 +105,6 @@ describe('BasketsView', () => {
     vi.mocked(api.post).mockReset()
     vi.mocked(api.patch).mockReset()
     vi.mocked(api.delete).mockReset()
-    vi.mocked(dataPreparationCoordinator.ensure).mockReset()
     routerPush.mockReset()
     vi.mocked(api.get).mockImplementation(async (path: string) => {
       if (path === '/baskets') return [] as never
@@ -258,21 +252,41 @@ describe('BasketsView', () => {
     expect(wrapper.find('.btn-danger').exists()).toBe(false)
   })
 
-  it('opens a selected basket as a synthetic chart token', async () => {
+  it('opens the current basket immediately without a view-owned preparation barrier', async () => {
     vi.mocked(api.get).mockResolvedValue([basket({ id: 42 })])
-    vi.mocked(dataPreparationCoordinator.ensure).mockResolvedValue({ status: 'ready' } as never)
-
     const wrapper = mountView()
     await flushPromises()
 
+    await wrapper.get('.member-symbol').trigger('click')
+    expect(routerPush).toHaveBeenLastCalledWith('/chart/AAPL')
+    routerPush.mockReset()
+
     await wrapper.get('[data-testid="basket-open-chart"]').trigger('click')
+    expect(routerPush).toHaveBeenCalledWith('/chart/BASKET%3A42')
+    expect(wrapper.find('[data-testid="basket-chart-preparation-status"]').exists()).toBe(false)
+    expect(wrapper.find('[data-testid="basket-open-available-chart"]').exists()).toBe(false)
+  })
+
+  it('keeps every basket row in the shared chart route when a source member is unresolved', async () => {
+    vi.mocked(api.get).mockResolvedValue([basket({
+      id: 44,
+      is_system_managed: true,
+      is_read_only: true,
+      members: [{
+        id: 88, instrument_id: null, symbol: 'UNRESOLVED', name: 'Reported constituent',
+        source_holding_id: 501, position: 1, weight: '1.0', label: null, notes: null,
+        metadata: { reason: 'identity_unverified' }, created_at: '2026-11-06', updated_at: '2026-11-06',
+      }],
+    })])
+    const wrapper = mountView()
     await flushPromises()
 
-    expect(routerPush).toHaveBeenCalledWith('/chart/BASKET%3A42')
-    expect(dataPreparationCoordinator.ensure).toHaveBeenCalledWith(
-      { target: { kind: 'instrument', instrument_id: 101 }, datasets: ['history'], timeframe: 'D1', adjusted: true },
-      expect.objectContaining({ signal: expect.any(AbortSignal), onProgress: expect.any(Function) }),
-    )
+    expect(wrapper.get('[data-testid="basket-open-chart"]').attributes('disabled')).toBeUndefined()
+    await wrapper.get('[data-testid="basket-open-chart"]').trigger('click')
+
+    expect(routerPush).toHaveBeenCalledWith('/chart/BASKET%3A44')
+    expect(wrapper.text()).not.toContain('Preparing D1 history')
+    expect(wrapper.text()).not.toContain('Open dashboard with available constituent history')
   })
 
   it('keeps the current selection when a user cancels a dirty basket switch, then discards explicitly', async () => {
@@ -438,22 +452,7 @@ describe('BasketsView', () => {
     expect(wrapper.get('[data-testid="basket-snapshot-history"]').text()).not.toContain('2026-11-01')
   })
 
-  it('offers the current dashboard chart without pretending held constituent history is ready', async () => {
-    vi.mocked(api.get).mockResolvedValue([basket({ id: 42 })])
-    vi.mocked(dataPreparationCoordinator.ensure).mockResolvedValue({ status: 'unavailable' } as never)
-    const wrapper = mountView()
-    await flushPromises()
-
-    await wrapper.get('[data-testid="basket-open-chart"]').trigger('click')
-    await flushPromises()
-
-    expect(routerPush).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('0 of 1 constituent histories are ready')
-    await wrapper.get('[data-testid="basket-open-available-chart"]').trigger('click')
-    expect(routerPush).toHaveBeenCalledWith('/chart/BASKET%3A42')
-  })
-
-  it('aborts obsolete chart preparation when the user selects a different basket', async () => {
+  it('routes using the latest selected basket and leaves member readiness to the shared chart loader', async () => {
     vi.mocked(api.get).mockResolvedValue([
       basket({ id: 42 }),
       basket({ id: 43, name: 'Next basket', members: [{
@@ -461,26 +460,16 @@ describe('BasketsView', () => {
         position: 1, weight: null, label: null, notes: null, metadata: {}, created_at: '2026-01-01', updated_at: '2026-01-01',
       }] }),
     ])
-    let signal: AbortSignal | undefined
-    vi.mocked(dataPreparationCoordinator.ensure).mockImplementation((_request, options) => {
-      signal = options?.signal
-      return new Promise((_, reject) => {
-        options?.signal?.addEventListener('abort', () => reject(new Error('aborted')), { once: true })
-      }) as never
-    })
     const wrapper = mountView()
     await flushPromises()
 
-    await wrapper.get('[data-testid="basket-open-chart"]').trigger('click')
-    expect(wrapper.get('button[title="Discard or save your edits before refreshing saved baskets."]').attributes('disabled')).toBeDefined()
     await wrapper.findAll('button.basket-card')[1]!.trigger('click')
     await flushPromises()
+    await wrapper.get('[data-testid="basket-open-chart"]').trigger('click')
 
-    expect(signal?.aborted).toBe(true)
     expect((wrapper.get('input[placeholder="Basket name"]').element as HTMLInputElement).value)
       .toBe('Next basket')
-    expect(wrapper.text()).not.toContain('Preparing D1 history for 1 basket constituents')
-    expect(routerPush).not.toHaveBeenCalled()
+    expect(routerPush).toHaveBeenCalledWith('/chart/BASKET%3A43')
   })
 
   it('cancels delete without mutation, then deletes only after confirmation', async () => {

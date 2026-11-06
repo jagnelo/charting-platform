@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "owner": "feat-etf-holdings-constituents",
+  "scope": "ETFHoldingsView and BasketsView owned actions only",
+  "approved_journey_ids": {
+    "J01": "first-use and return",
+    "J02": "search and select known, provisional, uncached, unsupported, and ambiguous symbols",
+    "J06": "chart behavior",
+    "J07": "editing, cancellation, deletion, recovery",
+    "J08": "lists, ETF holdings, sorting, membership, and constituent provenance",
+    "J12": "rapid changes, delayed outcomes, and recovery"
+  },
+  "evidence_rules": {
+    "view_unit_tests": "Vitest mounts with mocked API/client dependencies; component behavior and request shapes only, not backend acceptance.",
+    "etf_browser_spec": "Playwright route fixtures intercept ETF APIs; browser interaction only, not real backend/provider acceptance.",
+    "basket_browser_spec": "Playwright spec uses authenticated application APIs; source is present but this owner has not run its browser body. Root combined profile is pending.",
+    "real_api_evidence": "The cited basket PostgreSQL integration node exercises backend CRUD with a real async session; it does not exercise the browser view."
+  },
+  "genuine_normal_flow_targets": {
+    "primary_source_review": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/named-etf-primary-source-review.json",
+    "source_review_scope": "Root's read-only official-source review is a route/identity witness only. It is not app ingestion, a native qualification, a browser result, or permission for this owner to make source calls.",
+    "required_cases": [
+      {"fund": "BWET", "route": "existing Amplify selected-account CSV route", "assert": "Bind exact fund/account/date and full source lineage; show reported freight-futures/derivative and cash rows with source weights/signs; contract rows are not guessed equity tickers.", "offline_parser_evidence": "backend/tests/unit/services/test_etf_holdings_adapters.py::test_amplify_selected_account_keeps_freight_derivatives_nonchartable_and_signed validates a controlled selected-account CSV shape, derivative/cash classification, raw ticker preservation, signed values and date. It is not a captured BWET response or live app proof.", "status": "pending Root actual normal-flow qualification and combined/deployed UI proof"},
+      {"fund": "XHB", "route": "existing SPDR native workbook route", "assert": "Exact canonical fund selection, current returned snapshot, source identity/date/provenance and its reported composition.", "status": "pending Root actual normal-flow qualification and combined/deployed UI proof"},
+      {"fund": "IGV", "route": "existing iShares product-catalog route", "assert": "Exact official catalog ticker/product identity, current returned snapshot, source identity/date/provenance and constituent history handoff.", "status": "pending Root actual normal-flow qualification and combined/deployed UI proof"},
+      {"fund": "SPY", "route": "existing SPDR native workbook route", "assert": "Exact identity and fund-bound composition; retain reported positions and dated source lineage.", "status": "pending Root actual normal-flow qualification and combined/deployed UI proof"},
+      {"fund": "RSP", "route": "existing Invesco catalog/native route", "assert": "Exact issuer product identity and dated composition; no fund/profile borrowing.", "status": "pending Root actual normal-flow qualification and combined/deployed UI proof"},
+      {"fund": "QQQ", "route": "existing Invesco catalog/native route", "assert": "Exact issuer product identity, dated source lineage and ordinary constituent/history flow.", "status": "pending Root actual normal-flow qualification and combined/deployed UI proof"},
+      {"fund": "All 11 SPDR sector presets", "symbols": ["XLB", "XLC", "XLE", "XLF", "XLI", "XLK", "XLP", "XLRE", "XLU", "XLV", "XLY"], "route": "generic compatible SPDR route composition", "assert": "Normal canonical selection and exact workbook fund identity for every sector preset; no per-symbol adapter bypass.", "status": "pending Root's serialized genuine acceptance"},
+      {"fund": "Unfamiliar supported ETF and ordinary stock", "route": "generic canonical discovery and preparation", "assert": "Use returned canonical identity and supported issuer metadata; never substitute a prior fund, guess an identifier, or make ticker text itself source proof.", "status": "pending Root combined/deployed first-use proof"}
+    ]
+  },
+  "views": [
+    {
+      "view": "ETFHoldingsView",
+      "routes": ["/legacy/etf-holdings", "/etf-holdings (redirect alias)"],
+      "actions": [
+        {
+          "action": "Load saved ETF profiles; search/select an ETF or ETV, including exact source discovery",
+          "controls": ["Search ETF instrument", "ETF profile cards"],
+          "journeys": ["J01", "J02", "J08", "J12"],
+          "outcome": "Selected identity is explicit and fund-bound. A newly selected fund starts independent holdings preparation automatically; late results from another fund cannot replace it. ETNs are not admitted as ETFs.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["uses the shared instrument picker to select a stored ETF profile", "discovers and deliberately selects a confirmed Exchange Traded Vehicle without admitting ETNs", "resolves a newly selected fund and starts one generic holdings check", "does not let a late failed refresh for one selected fund alter the next fund", "does not display a returned profile bound to a different selected ETF", "stops after a denied identity in the selected-fund action"]}],
+          "api_contract": ["GET /api/v1/etf-holdings?q=...", "POST /api/v1/instruments/acquire for exact existing/discovered identity resolution through the shared picker where needed", "POST /api/v1/data/ensure with datasets=['holdings'] for deliberate selection"],
+          "normal_flow_targets": ["BWET", "XHB", "IGV", "SPY", "RSP", "QQQ", "all 11 SPDR sector presets", "unfamiliar supported ETF"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "cases": ["selecting an uncached ETF automatically requests holdings and displays the returned dated snapshot", "keeps rapid selected-fund preparations isolated when the user switches tickers"], "mode": "controlled route mocks", "body_run": false, "status": "pending Root combined browser profile; this is not actual backend/provider acceptance"}
+        },
+        {
+          "action": "Show retained snapshot, current eligibility, availability reason, and capability health while checking or waiting",
+          "controls": ["profile selection", "capability status and canary details", "Check saved holdings", "Load latest holdings / Refresh holdings"],
+          "journeys": ["J01", "J02", "J08", "J12"],
+          "outcome": "A cached dated snapshot stays visible during preparation or a held refresh; stale/unverified data is not labelled current. Explicit stored-only and issuer-refresh actions remain distinct.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["reuses a producer-qualified current cache on deliberate profile selection", "checks once when an explicitly selected stored fund has no snapshot despite a current capability summary", "keeps a stale dated holdings cache visible while automatic preparation is pending and unavailable", "resolves identity inside one selected-fund action and keeps stored-only distinct from issuer refresh", "preserves a typed unavailable result when no ETF profile was returned", "keeps the cached snapshot visible when an explicit issuer refresh is held"]}],
+          "api_contract": ["GET /api/v1/etf-holdings/{symbol}/capability", "POST /api/v1/etf-holdings/{symbol}/acquire with canonical instrument binding for explicit check/refresh"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "mode": "controlled route mocks", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Browse a selected composition: search/filter rows, sort by supported field/direction, page results, select a row, inspect identifiers and resolution status",
+          "controls": ["Search rows", "Sort", "Direction", "Previous", "Next", "holding rows"],
+          "journeys": ["J08", "J12"],
+          "outcome": "Visible rows retain reported position and identity details; query/sort/page changes apply to the selected snapshot only.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["loads ETF profiles, browses a paged holdings result, and opens a constituent chart", "applies the visible row search, sort field, and direction to the selected snapshot request", "labels an explicitly selected older snapshot as historical and shows its own lineage"]}],
+          "api_contract": ["GET /api/v1/etf-holdings/{symbol}/holdings with q, snapshot_id, sort, direction, limit, offset"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "coverage": "The controlled tests assert returned holdings rendering, not real filter/sort/page backend behavior.", "body_run": false, "status": "pending Root combined browser profile; a real backend/browser filter-sort journey is not independently evidenced here"}
+        },
+        {
+          "action": "Choose an older holdings snapshot and inspect its own composition date, known-at, publication, source and historical status",
+          "controls": ["Snapshot selector"],
+          "journeys": ["J08"],
+          "outcome": "The selected historical snapshot is labelled historical and displays its own lineage; switching funds resets snapshot selection and prevents stale row routing.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["labels an explicitly selected older snapshot as historical and shows its own lineage", "resets the selected snapshot when switching ETF profiles", "does not route an old page row while a newly selected snapshot is still loading"]}],
+          "api_contract": ["GET /api/v1/etf-holdings/{symbol}/dates", "GET /api/v1/etf-holdings/{symbol}/holdings?snapshot_id=..."],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "coverage": "Controlled fixture shows composition date, known_at and provenance for the returned snapshot.", "body_run": false, "status": "pending Root combined browser profile; no real historical backend/browser proof claimed"}
+        },
+        {
+          "action": "Open history for a resolved constituent with selected holding provenance",
+          "controls": ["Select holding row", "View history"],
+          "journeys": ["J06", "J08", "J12"],
+          "outcome": "Navigation carries canonical instrument identity plus snapshot ID, composition date, known-at, source and row provenance. Historical chart intent does not grant current-analysis eligibility.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["opens resolved constituent history without promoting stale parent eligibility", "does not route an old page row while a newly selected snapshot is still loading"]}],
+          "api_contract": ["Selected row is sourced from GET /api/v1/etf-holdings/{symbol}/holdings; chart route is /legacy/chart/{constituent} with holding lineage query/state"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "coverage": "No history drilldown is exercised by the controlled preparation spec.", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Resolve an eligible unresolved reported equity and open its exact confirmed candidate; retain non-chartable, held and unresolved rows honestly",
+          "controls": ["Resolve reported holding {symbol}", "exact candidate picker", "Cancel"],
+          "journeys": ["J02", "J06", "J08", "J12"],
+          "outcome": "Only exact provider-verified canonical identity opens the chart; the saved snapshot is not mutated. Unresolved rows have no history action, and held capability suppresses discovery. Cash/futures/non-equity rows do not become fake equity charts.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["offers row-originated discovery for an eligible unresolved reported equity without mutating the snapshot", "does not offer a history route for an unresolved holding row", "does not offer unresolved-row discovery when current-analysis capability is held"]}],
+          "api_contract": ["Exact candidate identity is confirmed by the shared picker/identity API; subsequent chart history preparation belongs to the dashboard coordinator"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "coverage": "No unresolved-row discovery case in this controlled spec.", "body_run": false, "status": "pending Root combined browser profile; actual returned-row candidate flow not claimed here"}
+        },
+        {
+          "action": "Compare dated snapshots, review weight evolution/parser-correction audit and turnover transitions",
+          "controls": ["Compare against selector", "Snapshot changes", "Weight evolution", "Turnover timeline"],
+          "journeys": ["J08"],
+          "outcome": "Different composition dates are compared as changes; same-date parser-version differences remain audit data, not fund turnover.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["loads ETF profiles, browses a paged holdings result, and opens a constituent chart", "labels same-date parser-version differences as audit data while preserving raw rows and metrics"]}],
+          "api_contract": ["GET /api/v1/etf-holdings/{symbol}/diff", "GET /api/v1/etf-holdings/{symbol}/weight-evolution", "GET /api/v1/etf-holdings/{symbol}/transitions"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "coverage": "Comparison endpoints are not covered by this controlled browser spec.", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Compare selected ETF overlap or expand a family comparison using issuer, family, search and limit filters",
+          "controls": ["Compare selected", "Compare family", "Issuer", "Family", "Search", "Limit", "overlap candidates"],
+          "journeys": ["J08"],
+          "outcome": "Renders overlap summary and Jaccard matrix for explicitly selected/canonical ETF targets; filters constrain family expansion.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts", "cases": ["loads ETF profiles, browses a paged holdings result, and opens a constituent chart"]}],
+          "api_contract": ["POST /api/v1/etf-holdings/overlap-summary", "POST /api/v1/etf-holdings/overlap-matrix"],
+          "browser_evidence": {"path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts", "coverage": "Overlap actions are not covered by this controlled browser spec.", "body_run": false, "status": "pending Root combined browser profile"}
+        }
+      ]
+    },
+    {
+      "view": "BasketsView",
+      "routes": ["/legacy/baskets", "/baskets (redirect alias)"],
+      "actions": [
+        {
+          "action": "Load, refresh and select saved baskets; reject stale list or lineage responses after selection changes",
+          "controls": ["basket cards", "Refresh"],
+          "journeys": ["J01", "J07", "J08", "J12"],
+          "outcome": "Selected basket remains distinct; loading/reload prevents edits from being overwritten, and late issuer snapshot history cannot replace the newly selected basket's history.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["loads baskets and opens the first one", "freezes basket editing until initial and explicit reloads have settled", "does not display late snapshot history after switching to another issuer basket", "does not publish a late basket reload after the view unmounts"]}],
+          "api_contract": ["GET /api/v1/baskets", "GET /api/v1/baskets/{id}/snapshots for system-managed snapshot baskets"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "coverage": "Both actual-API browser cases are present but this owner has not run their bodies.", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Start and create an equal-weight or custom-weight manual basket from resolved picker results",
+          "controls": ["+ New", "Basket name", "Weighting", "Description", "Add instrument", "Create"],
+          "journeys": ["J02", "J07", "J08"],
+          "outcome": "Only canonical resolved instrument IDs are saved. Name/member requirements and custom 100% allocation are visible before submission.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["creates a valid equal-weight basket from a canonical picker result", "creates a custom weighted basket from picker-selected symbols", "keeps custom weighted baskets disabled until fully allocated", "does not add an unresolved recent symbol without a canonical instrument ID", "distinguishes canonical listings by ID even when their reported ticker text matches"]}],
+          "api_contract": ["POST /api/v1/baskets with resolved members and equal/custom weights"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Edit an existing manual basket, add/remove resolved members, save and reload persisted state",
+          "controls": ["Add instrument", "Remove {symbol}", "Save", "Refresh"],
+          "journeys": ["J07", "J08", "J12"],
+          "outcome": "Member IDs and weights persist; selected basket survives reload without stale members from a prior selection.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["saves resolved picker IDs when adding and removing members from a saved basket", "cancels delete without mutation, then deletes only after confirmation"]}, {"path": "backend/tests/integration/api/test_baskets.py", "cases": ["test_manual_basket_crud_uses_real_async_session"]}],
+          "api_contract": ["PATCH /api/v1/baskets/{id}", "GET /api/v1/baskets", "GET /api/v1/baskets/{id}"],
+          "real_api_evidence": {"path": "backend/tests/integration/api/test_baskets.py::test_manual_basket_crud_uses_real_async_session", "result": "1/1 passed in prior isolated PostgreSQL attempt004; create/update/read/delete and snapshot listing exercised. It is backend-only, not browser acceptance."},
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Cancel a dirty basket switch or explicitly discard edits before switching",
+          "controls": ["basket cards", "Keep editing", "Discard changes", "Discard edits"],
+          "journeys": ["J07", "J12"],
+          "outcome": "Cancel leaves the current draft intact; confirmed discard selects the requested basket and removes the obsolete draft.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["keeps the current selection when a user cancels a dirty basket switch, then discards explicitly"]}],
+          "api_contract": ["No write on cancel; selection uses the already-loaded basket record"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Cancel deletion or confirm deletion and return to a visible remaining basket/new draft",
+          "controls": ["Delete", "Cancel", "confirmation dialog Delete"],
+          "journeys": ["J07", "J12"],
+          "outcome": "Cancel makes no DELETE request; confirmation removes only the selected manual basket and leaves a valid selected basket or new draft.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["cancels delete without mutation, then deletes only after confirmation"]}, {"path": "backend/tests/integration/api/test_baskets.py", "cases": ["test_manual_basket_crud_uses_real_async_session"]}],
+          "api_contract": ["DELETE /api/v1/baskets/{id}; system-managed baskets are not deletable"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Inspect an issuer-snapshot basket and its snapshot history without editing or deleting it",
+          "controls": ["system-managed basket card", "Source snapshot provenance", "snapshot history"],
+          "journeys": ["J08"],
+          "outcome": "Read-only UI retains composition date, known-at, source provider/identifier/URL, provenance, completeness, snapshot and raw-artifact hashes, and member lineage. Edit/delete remain unavailable.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["locks ETF-derived baskets as read-only", "preserves dated issuer provenance for read-only snapshot baskets", "does not display late snapshot history after switching to another issuer basket"]}, {"path": "backend/tests/integration/api/test_baskets.py", "cases": ["test_manual_basket_crud_uses_real_async_session"]}],
+          "api_contract": ["GET /api/v1/baskets", "GET /api/v1/baskets/{id}/snapshots", "API edit/delete of system-managed baskets must reject"],
+          "normal_flow_targets": ["BWET reported futures/cash must remain non-equity rows in read-only source baskets; XHB, IGV, SPY, RSP and QQQ source-basket inputs remain bound to their exact snapshot and lineage"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "existing issuer snapshot basket displays read-only source lineage from basket APIs", "mode": "authenticated actual API with read-only negative API requests and unchanged readback", "body_run": false, "status": "pending Root combined browser profile"}
+        },
+        {
+          "action": "Open the selected saved basket in the shared dashboard chart immediately, including source baskets with unresolved rows",
+          "controls": ["Open chart", "member symbol buttons"],
+          "journeys": ["J06", "J08", "J12"],
+          "outcome": "BasketsView navigates immediately to /chart/BASKET%3A{id}; it does not own a preparation pool or wait for one held member before navigating. All source members remain represented; unresolved members are not silently filtered or converted to equities. TC's shared chart path owns independent member preparation, cached-first rendering, current-context refresh and unavailable-member explanation.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["opens the current basket immediately without a view-owned preparation barrier", "keeps every basket row in the shared chart route when a source member is unresolved", "routes using the latest selected basket and leaves member readiness to the shared chart loader"]}],
+          "api_contract": ["GET /api/v1/baskets/{id}/ohlcv/{timeframe} for weighted basket series", "shared TC chart path must independently submit POST /api/v1/data/ensure for every authorized resolved member and refresh only the active basket/timeframe"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "coverage": "Spec expects immediate route, shared ensure submissions for every member, visible workspace, and nonempty finite weighted bars; this owner has not run the body.", "body_run": false, "status": "pending TC shared-chart implementation and Root combined browser profile"},
+          "contract_gap_owner": "TC owns the chart/basket-load integration in the shared chart path. The currently identified entry point is frontend/src/stores/chart.ts::chartStore.loadBars() BASKET:<id> branch; ETF does not add another coordinator or queue."
+        },
+        {
+          "action": "Open an individual member symbol chart from a basket member row",
+          "controls": ["member symbol button"],
+          "journeys": ["J06", "J08"],
+          "outcome": "Routes to the selected member's chart without changing basket membership or source provenance.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["loads baskets and opens the first one"]}],
+          "api_contract": ["Chart entrypoint is /chart/{encoded-symbol}; normal shared chart preparation behavior is TC-owned"],
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "coverage": "The current journey opens the basket token, not an individual member symbol button.", "body_run": false, "status": "pending Root combined profile; individual member chart handoff is not independently evidenced"}
+        }
+      ]
+    }
+  ],
+  "shared_owner_pending": [
+    "TC shared chart loader must fetch authorized basket members, submit independent preparations without awaiting prior completion, render valid cached basket output immediately, preserve full basket math, and explain unavailable members.",
+    "Root combined backend/browser run must execute the actual API basket journey and ETF controlled journey; current ETF browser spec is mocked and not actual source/backend acceptance.",
+    "Root/TC own the global action matrix and visual acceptance; this file is only ETF-owned view/action evidence and must not be treated as global inventory completion."
+  ],
+  "full_roadmaps": "The complete platform-usability and ETF roadmaps, all prior acceptance criteria, histories, holds, and source datasets remain open and unchanged."
+}

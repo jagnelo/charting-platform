@@ -29630,6 +29630,52 @@ async def test_amplify_adapter_filters_multi_account_holdings_csv(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_amplify_selected_account_keeps_freight_derivatives_nonchartable_and_signed(
+    monkeypatch,
+):
+    adapter = get_holdings_adapter("amplify")
+    assert adapter is not None
+
+    FakeAsyncClient.queue = [
+        FakeResponse(
+            text="\n".join(
+                [
+                    "Date,Account,StockTicker,CUSIP,SecurityName,Shares,Price,MarketValue,Weightings,NetAssets,SharesOutstanding,CreationUnits,MoneyMarketFlag",
+                    "11/06/2026,BWET,C5TCM,C5TCM M26,Capesize 5TC FFA 180kt Timecharter Average M Jun 26,-200,35196,-7039200.00,-19.89%,35392366.73,2850040,114,",
+                    "11/06/2026,BWET,Cash&Other,Cash&Other,Cash & Other,-4395925.92,1,-4395925.92,-0.35%,35392366.73,2850040,114,Y",
+                    "11/06/2026,OTHER,NVDA,67066G104,NVIDIA Corp,10,1,10,0.01%,1000,10,1,",
+                ]
+            ),
+            content_type="text/csv",
+        )
+    ]
+    monkeypatch.setattr("app.services.etf_holdings_adapters.httpx.AsyncClient", FakeAsyncClient)
+
+    result = await adapter.fetch_latest(symbol="BWET")
+
+    assert len(result.rows) == 2
+    freight = result.rows[0]
+    assert freight.holding_type == "future"
+    assert freight.row_type == "security"
+    assert freight.symbol is None
+    assert freight.extra_data["StockTicker"] == "C5TCM"
+    assert freight.extra_data["Account"] == "BWET"
+    assert freight.shares == Decimal("-200")
+    assert freight.market_value == Decimal("-7039200.00")
+    assert freight.weight == Decimal("-0.1989")
+
+    cash = result.rows[1]
+    assert cash.holding_type == "cash"
+    assert cash.row_type == "cash"
+    assert cash.symbol is None
+    assert cash.currency == "USD"
+    assert cash.market_value == Decimal("-4395925.92")
+    assert result.legal_metadata["selected_account"] == "BWET"
+    assert result.legal_metadata["composition_date"] == "2026-11-06"
+    assert result.legal_metadata["source_provider"] == "amplify"
+
+
+@pytest.mark.asyncio
 async def test_volatility_shares_adapter_parses_derivative_xls(monkeypatch):
     adapter = get_holdings_adapter("volatility_shares")
     assert adapter is not None

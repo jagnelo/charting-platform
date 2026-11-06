@@ -54,10 +54,10 @@
               type="button"
               class="btn btn-secondary"
               data-testid="basket-open-chart"
-              :disabled="loading || chartPreparationBusy || !selectedBasket.members.length"
+              :disabled="loading || saving || deleting || isDirty || !selectedBasket.members.length"
               @click="openBasketChart"
             >
-              {{ chartPreparationBusy ? 'Preparing chart…' : 'Open chart' }}
+              Open chart
             </button>
             <button
               v-if="isEditingExisting && !isReadOnly"
@@ -71,7 +71,7 @@
             <button
               type="button"
               class="btn btn-secondary"
-              :disabled="loading || isDirty || saving || deleting || chartPreparationBusy || showDelete"
+              :disabled="loading || isDirty || saving || deleting || showDelete"
               title="Discard or save your edits before refreshing saved baskets."
               @click="handleReload"
             >Refresh</button>
@@ -102,29 +102,6 @@
         <p v-else-if="draft.weighting_scheme === 'custom' && Math.abs(remainingAllocation) > 0.01" class="field-hint" role="status">
           Custom weights must total 100%. {{ remainingAllocationLabel }}.
         </p>
-
-        <p
-          v-if="chartPreparationMessage"
-          class="notice"
-          :class="chartPreparationError ? 'notice--error' : 'notice--success'"
-          role="status"
-          aria-live="polite"
-          data-testid="basket-chart-preparation-status"
-        >{{ chartPreparationMessage }}</p>
-        <button
-          v-if="chartOpenAnyway"
-          type="button"
-          class="btn btn-secondary"
-          data-testid="basket-open-available-chart"
-          @click="routeToBasketChart"
-        >Open dashboard with available constituent history</button>
-        <button
-          v-if="chartPreparationBusy"
-          type="button"
-          class="btn btn-secondary"
-          data-testid="basket-cancel-chart-preparation"
-          @click="cancelChartPreparation"
-        >Stop waiting</button>
 
         <section
           v-if="selectedBasket?.is_system_managed"
@@ -294,7 +271,6 @@ import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { api } from '@/lib/api'
-import { dataPreparationCoordinator } from '@/lib/dataPreparation'
 import type { Basket } from '@/types'
 
 interface BasketMemberDraft {
@@ -343,16 +319,11 @@ const showDiscard = ref(false)
 const pendingDiscardAction = ref<PendingDiscardAction>(null)
 const selectedSnapshots = ref<BasketSnapshotLineage[]>([])
 const snapshotLineageError = ref('')
-const chartPreparationBusy = ref(false)
-const chartPreparationError = ref(false)
-const chartPreparationMessage = ref('')
-const chartOpenAnyway = ref(false)
 const saving = ref(false)
 const deleting = ref(false)
 let lifecycleGeneration = 0
 let reloadSequence = 0
 let selectionGeneration = 0
-let chartPreparationController: AbortController | null = null
 
 function isCurrentLifecycle(generation: number) {
   return generation === lifecycleGeneration
@@ -441,13 +412,9 @@ function selectBasket(basket: Basket) {
     return
   }
   selectionGeneration += 1
-  cancelChartPreparation()
   selectedBasket.value = basket
   savedMessage.value = ''
   saveError.value = ''
-  chartPreparationMessage.value = ''
-  chartPreparationError.value = false
-  chartOpenAnyway.value = false
   draft.name = basket.name
   draft.description = basket.description ?? ''
   draft.weighting_scheme = basket.weighting_scheme === 'custom' ? 'custom' : 'equal'
@@ -477,15 +444,11 @@ function startNew() {
 
 function resetNewDraft() {
   selectionGeneration += 1
-  cancelChartPreparation()
   selectedBasket.value = null
   selectedSnapshots.value = []
   snapshotLineageError.value = ''
   savedMessage.value = ''
   saveError.value = ''
-  chartPreparationMessage.value = ''
-  chartPreparationError.value = false
-  chartOpenAnyway.value = false
   draft.name = ''
   draft.description = ''
   draft.weighting_scheme = 'equal'
@@ -614,7 +577,6 @@ onUnmounted(() => {
   lifecycleGeneration += 1
   reloadSequence += 1
   selectionGeneration += 1
-  chartPreparationController?.abort()
 })
 
 function openChart(symbol: string) {
@@ -622,96 +584,15 @@ function openChart(symbol: string) {
   router.push(`/chart/${encodeURIComponent(symbol)}`)
 }
 
-async function openBasketChart() {
-  const basket = selectedBasket.value
-  if (!basket || chartPreparationBusy.value) return
-  const members = [...new Map(basket.members
-    .filter(member => Number.isSafeInteger(member.instrument_id) && member.instrument_id > 0)
-    .map(member => [member.instrument_id, member])).values()]
-  if (!members.length) {
-    chartPreparationError.value = true
-    chartPreparationMessage.value = 'This basket has no resolved constituents to chart.'
-    return
-  }
-
-  cancelChartPreparation()
-  const controller = new AbortController()
-  chartPreparationController = controller
-  const generation = selectionGeneration
-  const lifecycle = lifecycleGeneration
-  chartPreparationBusy.value = true
-  chartPreparationError.value = false
-  chartOpenAnyway.value = false
-  chartPreparationMessage.value = `Preparing D1 history for ${members.length} basket constituents…`
-  const outcomes = new Map<number, string>()
-  let nextIndex = 0
-  const worker = async () => {
-    while (!controller.signal.aborted && nextIndex < members.length) {
-      const index = nextIndex++
-      const member = members[index]!
-      try {
-        const response = await dataPreparationCoordinator.ensure({
-          target: { kind: 'instrument', instrument_id: member.instrument_id },
-          datasets: ['history'],
-          timeframe: 'D1',
-          adjusted: true,
-        }, {
-          signal: controller.signal,
-          onProgress: progress => {
-            if (!isCurrentLifecycle(lifecycle) || selectionGeneration !== generation
-              || selectedBasket.value?.id !== basket.id) return
-            const status = progress.response.status
-            outcomes.set(member.instrument_id, status)
-            chartPreparationMessage.value = basketPreparationProgress(members.length, outcomes)
-          },
-        })
-        outcomes.set(member.instrument_id, response.status)
-        chartPreparationMessage.value = basketPreparationProgress(members.length, outcomes)
-      } catch (err) {
-        if (controller.signal.aborted) return
-        outcomes.set(member.instrument_id, 'failed')
-        chartPreparationMessage.value = basketPreparationProgress(members.length, outcomes)
-      }
-    }
-  }
-
-  try {
-    await Promise.all(Array.from({ length: Math.min(3, members.length) }, worker))
-    if (controller.signal.aborted || !isCurrentLifecycle(lifecycle) || selectionGeneration !== generation
-      || selectedBasket.value?.id !== basket.id) return
-    const ready = [...outcomes.values()].filter(status => status === 'ready').length
-    if (ready === members.length) {
-      chartPreparationMessage.value = `D1 history is ready for all ${members.length} constituents. Opening the dashboard chart.`
-      routeToBasketChart()
-    } else {
-      chartPreparationError.value = true
-      chartOpenAnyway.value = true
-      chartPreparationMessage.value = `${ready} of ${members.length} constituent histories are ready. Other requests are held or unavailable; the basket and its saved holdings remain unchanged.`
-    }
-  } finally {
-    if (chartPreparationController === controller) chartPreparationController = null
-    if (!controller.signal.aborted && isCurrentLifecycle(lifecycle) && selectionGeneration === generation) {
-      chartPreparationBusy.value = false
-    }
-  }
-}
-
-function cancelChartPreparation() {
-  chartPreparationController?.abort()
-  chartPreparationController = null
-  chartPreparationBusy.value = false
+function openBasketChart() {
+  if (!selectedBasket.value) return
+  routeToBasketChart()
 }
 
 function routeToBasketChart() {
   const basketId = selectedBasket.value?.id
   if (!basketId) return
   void router.push(`/chart/${encodeURIComponent(`BASKET:${basketId}`)}`)
-}
-
-function basketPreparationProgress(total: number, outcomes: Map<number, string>) {
-  const ready = [...outcomes.values()].filter(status => status === 'ready').length
-  const active = [...outcomes.values()].filter(status => ['queued', 'running', 'partial', 'waiting'].includes(status)).length
-  return `Preparing D1 history for basket constituents: ${ready} of ${total} ready${active ? `, ${active} in progress or waiting` : ''}.`
 }
 
 async function refreshBasketLineage(basket: Basket, generation: number) {

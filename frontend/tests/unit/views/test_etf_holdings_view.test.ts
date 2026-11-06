@@ -623,6 +623,44 @@ describe('ETFHoldingsView', () => {
     expect(wrapper.text()).toContain('No holdings match the current filters.')
   })
 
+  it('applies the visible row search, sort field, and direction to the selected snapshot request', async () => {
+    vi.mocked(api.get).mockImplementation(async (path: string) => {
+      if (path === '/etf-holdings') return [profile] as never
+      if (path === '/etf-holdings/SPY/dates') return dates as never
+      if (path === '/etf-holdings/SPY/holdings') return holdingsPage() as never
+      if (path === '/etf-holdings/SPY/diff') return diffPayload() as never
+      if (path === '/etf-holdings/SPY/weight-evolution') return weightEvolutionPayload() as never
+      if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload() as never
+      return [] as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
+    const expectedQuery = {
+      snapshot_id: '55',
+      q: undefined,
+      sort: 'weight',
+      direction: 'desc',
+      limit: 100,
+      offset: 0,
+    }
+
+    await wrapper.get('input[placeholder="Symbol, name, CUSIP, ISIN"]').setValue('Microsoft')
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+      '/etf-holdings/SPY/holdings', { ...expectedQuery, q: 'Microsoft' },
+    ))
+
+    const sortControls = wrapper.findAll('.toolbar select')
+    await sortControls[0]!.setValue('symbol')
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+      '/etf-holdings/SPY/holdings', { ...expectedQuery, q: 'Microsoft', sort: 'symbol' },
+    ))
+    await sortControls[1]!.setValue('asc')
+    await vi.waitFor(() => expect(api.get).toHaveBeenLastCalledWith(
+      '/etf-holdings/SPY/holdings', { ...expectedQuery, q: 'Microsoft', sort: 'symbol', direction: 'asc' },
+    ))
+  })
+
   it('automatically prepares an uncached selected ETF and loads only its returned holdings', async () => {
     const xleProfile = {
       ...profile,

@@ -41392,7 +41392,10 @@ class AmplifyHoldingsAdapter(IssuerCsvHoldingsAdapter):
             row_type = "cash" if holding_type == "cash" else "security"
             rows.append(
                 CanonicalHoldingRow(
-                    symbol=symbol_value if row_type != "cash" else None,
+                    # A reported futures row can carry a contract code that
+                    # resembles a ticker. Keep it in the source payload, but
+                    # do not expose it as a priceable equity symbol.
+                    symbol=symbol_value if holding_type == "security" else None,
                     name=name,
                     cusip=raw_identifier if _looks_like_cusip(raw_identifier) else None,
                     sedol=(

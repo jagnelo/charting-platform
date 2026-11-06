@@ -23,7 +23,7 @@ async function chooseResolvedInstrument(page: import('@playwright/test').Page, s
   return canonical!
 }
 
-test('ordinary basket lifecycle uses resolved instruments, persists edits, and opens the dashboard context', async ({
+test('ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles', async ({
   page,
   request,
   loggedIn,
@@ -112,6 +112,8 @@ test('ordinary basket lifecycle uses resolved instruments, persists edits, and o
     const ensureResponse = page.waitForResponse(response =>
       response.request().method() === 'POST' && new URL(response.url()).pathname === '/api/v1/data/ensure')
     await page.getByTestId('basket-open-chart').click()
+    await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basketA.id}$`), { timeout: 30_000 })
+    await expect(page.locator('.workspace-layout-host')).toBeVisible()
     const prepared = await ensureResponse
     expect(prepared.ok()).toBeTruthy()
     await expect.poll(() => ensureCalls.length).toBe(selectedABody.members.length)
@@ -120,8 +122,6 @@ test('ordinary basket lifecycle uses resolved instruments, persists edits, and o
       datasets: ['history'],
       timeframe: 'D1',
     })))
-    await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basketA.id}$`), { timeout: 30_000 })
-    await expect(page.locator('.workspace-layout-host')).toBeVisible()
     const basketChartResponse = await basketChartRequest
     expect(basketChartResponse.status()).toBe(200)
     const syntheticBars = await basketChartResponse.json() as Array<{ timestamp: string; close: number }>
