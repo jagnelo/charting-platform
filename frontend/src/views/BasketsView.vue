@@ -17,7 +17,7 @@
             type="button"
             class="basket-card"
             :class="{ 'basket-card--active': selectedBasket?.id === basket.id }"
-            :disabled="saving || deleting"
+            :disabled="loading || saving || deleting"
             @click="requestSelectBasket(basket)"
           >
             <span class="basket-card__top">
@@ -32,7 +32,7 @@
           </button>
         </template>
 
-        <button type="button" class="basket-new" :disabled="saving || deleting" @click="startNew">+ New</button>
+        <button type="button" class="basket-new" :disabled="loading || saving || deleting" @click="startNew">+ New</button>
       </div>
     </aside>
 
@@ -54,7 +54,7 @@
               type="button"
               class="btn btn-secondary"
               data-testid="basket-open-chart"
-              :disabled="chartPreparationBusy || !selectedBasket.members.length"
+              :disabled="loading || chartPreparationBusy || !selectedBasket.members.length"
               @click="openBasketChart"
             >
               {{ chartPreparationBusy ? 'Preparing chart…' : 'Open chart' }}
@@ -63,7 +63,7 @@
               v-if="isEditingExisting && !isReadOnly"
               type="button"
               class="btn btn-danger"
-              :disabled="saving || deleting"
+              :disabled="loading || saving || deleting"
               @click="showDelete = true"
             >
               Delete
@@ -71,7 +71,7 @@
             <button
               type="button"
               class="btn btn-secondary"
-              :disabled="loading || isDirty || saving || deleting || chartPreparationBusy"
+              :disabled="loading || isDirty || saving || deleting || chartPreparationBusy || showDelete"
               title="Discard or save your edits before refreshing saved baskets."
               @click="handleReload"
             >Refresh</button>
@@ -86,7 +86,7 @@
             <button
               type="button"
               class="btn btn-primary"
-              :disabled="!canSave || saving || deleting"
+              :disabled="!canSave || loading || saving || deleting"
               @click="saveBasket"
             >
               {{ isEditingExisting ? 'Save' : 'Create' }}
@@ -167,13 +167,13 @@
             <input
               v-model="draft.name"
               class="form-input"
-              :disabled="isReadOnly || saving"
+              :disabled="isReadOnly || loading || saving"
               placeholder="Basket name"
             />
           </label>
           <label class="field">
             <span class="field-label">Weighting</span>
-            <select v-model="draft.weighting_scheme" class="form-select" :disabled="isReadOnly || saving">
+            <select v-model="draft.weighting_scheme" class="form-select" :disabled="isReadOnly || loading || saving">
               <option value="equal">Equal weight</option>
               <option value="custom">Custom weights</option>
             </select>
@@ -183,7 +183,7 @@
             <textarea
               v-model="draft.description"
               class="form-textarea"
-              :disabled="isReadOnly || saving"
+              :disabled="isReadOnly || loading || saving"
               placeholder="What does this basket represent?"
             />
           </label>
@@ -210,7 +210,7 @@
               :show-recent="false"
               :show-screener-link="false"
               :allow-expressions="false"
-              :readonly="saving"
+              :readonly="loading || saving"
               @select="addMember"
             />
           </div>
@@ -239,7 +239,7 @@
                 min="0"
                 max="100"
                 step="0.01"
-                :disabled="isReadOnly || saving"
+                :disabled="isReadOnly || loading || saving"
               />
             </label>
             <button
@@ -247,7 +247,7 @@
               type="button"
               class="remove-btn"
               :aria-label="`Remove ${member.symbol}`"
-              :disabled="saving"
+              :disabled="loading || saving"
               @click="removeMember(member.key)"
             >
               ×
@@ -268,7 +268,7 @@
           <p>This removes "{{ selectedBasket?.name }}" from reusable universes.</p>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" :disabled="deleting" @click="showDelete = false">Cancel</button>
-            <button type="button" class="btn btn-danger" :disabled="deleting" @click="deleteSelected">{{ deleting ? 'Deleting…' : 'Delete' }}</button>
+            <button type="button" class="btn btn-danger" :disabled="loading || deleting" @click="deleteSelected">{{ deleting ? 'Deleting…' : 'Delete' }}</button>
           </div>
         </div>
       </div>

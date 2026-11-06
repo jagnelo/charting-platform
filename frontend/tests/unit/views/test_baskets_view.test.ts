@@ -79,10 +79,10 @@ function mountView() {
     global: {
       stubs: {
         SearchBar: {
-          props: ['modelValue', 'placeholder'],
+          props: ['modelValue', 'placeholder', 'readonly'],
           emits: ['select', 'update:modelValue'],
           template: `
-            <button class="search-stub" type="button" @click="selectNext()">
+            <button class="search-stub" type="button" :disabled="readonly" @click="selectNext()">
               Add instrument
             </button>
           `,
@@ -128,6 +128,47 @@ describe('BasketsView', () => {
     expect(api.get).toHaveBeenCalledWith('/baskets')
     expect(wrapper.text()).toContain('Manual basket')
     expect(wrapper.text()).toContain('Apple Inc.')
+  })
+
+  it('freezes basket editing until initial and explicit reloads have settled', async () => {
+    let releaseInitial: ((value: unknown) => void) | undefined
+    let releaseRefresh: ((value: unknown) => void) | undefined
+    let basketListCalls = 0
+    vi.mocked(api.get).mockImplementation((path: string) => {
+      if (path === '/baskets') {
+        basketListCalls += 1
+        return new Promise(resolve => {
+          if (basketListCalls === 1) releaseInitial = resolve
+          else releaseRefresh = resolve
+        }) as never
+      }
+      return Promise.resolve([]) as never
+    })
+
+    const wrapper = mountView()
+    await nextTick()
+    expect(wrapper.get('input[placeholder="Basket name"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.basket-new').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.search-stub').attributes('disabled')).toBeDefined()
+
+    await vi.waitFor(() => expect(releaseInitial).toBeDefined())
+    releaseInitial!([basket()])
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Loading baskets...'))
+    expect((wrapper.get('input[placeholder="Basket name"]').element as HTMLInputElement).value)
+      .toBe('Manual basket')
+    expect(wrapper.get('input[placeholder="Basket name"]').attributes('disabled')).toBeUndefined()
+
+    await wrapper.get('button[title="Discard or save your edits before refreshing saved baskets."]').trigger('click')
+    expect(wrapper.get('input[placeholder="Basket name"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.basket-new').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('.search-stub').attributes('disabled')).toBeDefined()
+
+    await vi.waitFor(() => expect(releaseRefresh).toBeDefined())
+    releaseRefresh!([basket({ name: 'Manual basket reloaded' })])
+    await vi.waitFor(() => expect(wrapper.text()).not.toContain('Loading baskets...'))
+    expect((wrapper.get('input[placeholder="Basket name"]').element as HTMLInputElement).value)
+      .toBe('Manual basket reloaded')
+    expect(wrapper.get('input[placeholder="Basket name"]').attributes('disabled')).toBeUndefined()
   })
 
   it('creates a custom weighted basket from picker-selected symbols', async () => {
