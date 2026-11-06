@@ -703,6 +703,155 @@ describe('WorkstationView pop-out bindings', () => {
     wrapper.unmount()
   })
 
+  it('keeps a deliberate Enter intent through a known temporary discovery hold', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 20, missing_slices: [] }
+      return []
+    })
+    let discoveryAttempts = 0
+    apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
+      if (path === '/instruments/discover') {
+        discoveryAttempts += 1
+        if (discoveryAttempts === 1) return { request_id: 'f-held-discovery', status: 'held', candidates: [], retry_at: new Date(Date.now() + 80).toISOString(), source_outcomes: [] }
+        return {
+          request_id: 'f-discovery-ready', status: 'complete',
+          candidates: [{ symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+          source_outcomes: [],
+        }
+      }
+      if (path === '/instruments/acquire') return {
+        request_id: 'f-identity-ready', status: 'resolved',
+        instrument: { instrument_id: 83, symbol: 'F', identity_status: 'verified', instrument_type: 'Common Stock' }, source_outcomes: [],
+      }
+      if (path === '/etf-holdings/F/acquire') return { request_id: body.request_id, instrument_id: 83, symbol: 'F', outcome: 'unavailable', refresh: true, refresh_attempted: true, refresh_succeeded: false, profile: null, provider_request_log_ids: [], message: 'No fund holdings.' }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('F')
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'F' })))
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker lookup is temporarily waiting to retry after'))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
+      await input.trigger('keydown', { key: 'Enter' })
+
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'F', instrumentId: 83 })))
+      expect(apiPost.mock.calls.filter(([path]) => path === '/instruments/discover')).toHaveLength(2)
+      expect(apiPost.mock.calls.filter(([path]) => path === '/instruments/acquire')).toHaveLength(1)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps an explicit candidate click through a known temporary identity hold', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockImplementation(async (path: string) => {
+      if (path.startsWith('/coverage/instruments/')) return { status: 'ready', bar_count: 20, missing_slices: [] }
+      return []
+    })
+    let resolutionAttempts = 0
+    apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
+      if (path === '/instruments/discover') return {
+        request_id: 'bw-discovery', status: 'complete',
+        candidates: [{ symbol: 'BWET', name: 'Controlled ETV', exchange: 'XNYS', type: 'Exchange Traded Vehicle', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+        source_outcomes: [],
+      }
+      if (path === '/instruments/acquire') {
+        resolutionAttempts += 1
+        if (resolutionAttempts === 1) return { request_id: 'bwet-held', status: 'held', instrument: null, retry_at: new Date(Date.now() + 80).toISOString(), source_outcomes: [] }
+        return {
+        request_id: 'bwet-resolved', status: 'resolved',
+        instrument: { instrument_id: 690, symbol: 'BWET', identity_status: 'verified', instrument_type: 'Exchange Traded Vehicle' }, source_outcomes: [],
+        }
+      }
+      if (path === '/etf-holdings/BWET/acquire') return { request_id: body.request_id, instrument_id: 690, symbol: 'BWET', outcome: 'unavailable', refresh: true, refresh_attempted: true, refresh_succeeded: false, profile: null, provider_request_log_ids: [], message: 'No current holdings.' }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'SPY' })))
+      harness.workspace.publishSymbol.mockClear()
+      await wrapper.get('input[aria-label="Active symbol"]').setValue('BWET')
+      const option = await vi.waitFor(() => {
+        const candidate = wrapper.findAll('.workstation__source-option').find(button => button.text().includes('Use BWET'))
+        expect(candidate).toBeTruthy()
+        return candidate
+      })
+      await option!.trigger('click')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker confirmation is temporarily waiting to retry after'))
+      expect(harness.workspace.publishSymbol).not.toHaveBeenCalled()
+
+      await vi.waitFor(() => expect(harness.workspace.publishSymbol).toHaveBeenCalledWith(expect.objectContaining({ symbol: 'BWET', instrumentId: 690 })))
+      expect(resolutionAttempts).toBe(2)
+      expect(apiPost.mock.calls.filter(([path]) => path === '/instruments/discover')).toHaveLength(1)
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('cancels a held dashboard discovery when the user edits to a different query', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([])
+    apiPost.mockImplementation(async (_path: string, body: Record<string, unknown>) => {
+      if (body.query === 'OLD') return { request_id: 'old-held', status: 'held', candidates: [], retry_at: new Date(Date.now() + 180).toISOString(), source_outcomes: [] }
+      if (body.query === 'NEW') return { request_id: 'new-no-match', status: 'no_match', candidates: [], source_outcomes: [] }
+      throw new Error(`Unexpected discovery query: ${String(body.query)}`)
+    })
+
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      const input = wrapper.get('input[aria-label="Active symbol"]')
+      await input.setValue('OLD')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker lookup is temporarily waiting to retry after'))
+      await input.setValue('NEW')
+      await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/discover', expect.objectContaining({ query: 'NEW' })))
+      await new Promise(resolve => setTimeout(resolve, 140))
+      expect(apiPost.mock.calls.filter(([path, body]) => path === '/instruments/discover' && body.query === 'OLD')).toHaveLength(1)
+      expect(apiPost).not.toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'OLD' }))
+      expect(wrapper.text()).not.toContain('Use OLD')
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
+  it('keeps a discovery hard hold distinct from a terminal no-match and never retries it', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    apiGet.mockResolvedValue([])
+    apiPost.mockResolvedValue({
+      request_id: 'held-discovery', status: 'held', candidates: [],
+      source_outcomes: [{ provider: 'fixture', capability: 'search', operation: 'discover', status: 'held', reason_code: 'controlled_internal_reason' }],
+    })
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+    try {
+      await wrapper.get('input[aria-label="Active symbol"]').setValue('HOLD')
+      await vi.waitFor(() => expect(wrapper.text()).toContain('Ticker lookup is unavailable. You can try again manually.'))
+      expect(wrapper.get('[role="listbox"]').text()).not.toContain('No matching ticker is available')
+      expect(wrapper.text()).not.toContain('controlled_internal_reason')
+      await new Promise(resolve => setTimeout(resolve, 100))
+      expect(apiPost.mock.calls.filter(([path]) => path === '/instruments/discover')).toHaveLength(1)
+      expect(apiPost).not.toHaveBeenCalledWith('/instruments/acquire', expect.anything())
+    } finally {
+      wrapper.unmount()
+    }
+  })
+
   it('resolves the exact discovered ticker from Go while its matching lookup is pending', async () => {
     routeState.path = '/'
     routeState.params = {}
@@ -901,24 +1050,44 @@ describe('WorkstationView pop-out bindings', () => {
   it('runs bounded history selection for deliberate Space and Ctrl+Space traversal only', async () => {
     routeState.path = '/'
     routeState.params = {}
+    const identityAttempts: string[] = []
+    const historyAttempts: string[] = []
+    const retryAt = (offsetMs: number) => new Date(Date.now() + offsetMs).toISOString()
     apiGet.mockImplementation(async (path: string, params: Record<string, unknown> = {}) => {
       if (path.startsWith('/coverage/instruments/')) {
         return path.includes('/QQQ/')
           ? { status: 'missing', bar_count: 0, missing_slices: [{ start: params.start, end: params.end }] }
           : { status: 'ready', bar_count: 20, missing_slices: [] }
       }
+      if (path === '/instruments/78/history-availability') {
+        return { instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }
+      }
       return []
     })
     apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
       if (path === '/instruments/acquire') {
-        return { status: 'resolved', instrument: { instrument_id: 78, symbol: body.symbol, identity_status: 'verified' } }
+        const symbol = String(body.symbol)
+        if (symbol === 'QQQ') {
+          identityAttempts.push(symbol)
+          return identityAttempts.length === 1
+            ? { request_id: 'qqq-identity-held', status: 'held', instrument: null, retry_at: retryAt(50), source_outcomes: [] }
+            : { request_id: 'qqq-identity-ready', status: 'resolved', instrument: { instrument_id: 78, symbol, identity_status: 'verified', instrument_type: 'ETF' }, source_outcomes: [] }
+        }
+        return { status: 'resolved', instrument: { instrument_id: 79, symbol, identity_status: 'verified', instrument_type: 'Stock' }, source_outcomes: [] }
       }
       if (path === '/instruments/78/history-acquisitions') {
-        return {
-          status: 'partial', instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
-          requested_start: body.start, requested_end: body.end,
-          coverage: { status: 'partial', bar_count: 1, missing_slices: [] }, bars: [{}], source_outcomes: [],
+        historyAttempts.push('QQQ')
+        if (historyAttempts.length === 1) {
+          return { request_id: 'qqq-history-held', status: 'held', instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true, requested_start: body.start, requested_end: body.end, coverage: { status: 'missing', bar_count: 0, missing_slices: [] }, bars: [], retry_at: retryAt(50), source_outcomes: [] }
         }
+        return {
+          request_id: 'qqq-history-ready', status: 'complete', instrument_id: 78, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
+          requested_start: body.start, requested_end: body.end,
+          coverage: { status: 'ready', bar_count: 1, missing_slices: [] }, bars: [{}], source_outcomes: [],
+        }
+      }
+      if (path === '/etf-holdings/QQQ/acquire') {
+        return { request_id: body.request_id, instrument_id: body.instrument_id, symbol: 'QQQ', outcome: 'unavailable', refresh: body.refresh, refresh_attempted: true, refresh_succeeded: false, profile: null, provider_request_log_ids: [], message: 'Controlled held fixture.' }
       }
       throw new Error(`Unexpected request: ${path}`)
     })
@@ -934,13 +1103,21 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/QQQ/ohlcv', expect.objectContaining({
       timeframe: 'D1', mode: 'historical', adjusted: true,
     })))
+    await vi.waitFor(() => expect(identityAttempts).toHaveLength(1))
+    await vi.waitFor(() => expect(identityAttempts).toHaveLength(2), { timeout: 1000 })
+    await vi.waitFor(() => expect(historyAttempts).toHaveLength(1))
+    await vi.waitFor(() => expect(historyAttempts).toHaveLength(2), { timeout: 1000 })
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/acquire', expect.objectContaining({ instrument_id: 78 })))
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/instruments/78/history-acquisitions', expect.objectContaining({
       timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String),
     })))
-    expect(apiPost).toHaveBeenCalledTimes(2)
-    expect(apiPost).toHaveBeenNthCalledWith(1, '/instruments/acquire', expect.objectContaining({ symbol: 'QQQ' }))
-    expect(apiPost.mock.calls[1][1].start).toEqual(expect.any(String))
-    const requestedSpan = Date.parse(apiPost.mock.calls[1][1].end) - Date.parse(apiPost.mock.calls[1][1].start)
+    expect(identityAttempts).toEqual(['QQQ', 'QQQ'])
+    expect(historyAttempts).toEqual(['QQQ', 'QQQ'])
+    expect(apiPost).toHaveBeenCalledWith('/etf-holdings/QQQ/acquire', expect.objectContaining({ instrument_id: 78, refresh: true }))
+    expect(wrapper.text()).toContain('Loaded 1 local D1 bars for QQQ.')
+    const historyCall = apiPost.mock.calls.find(([path]) => path === '/instruments/78/history-acquisitions')
+    expect(historyCall?.[1].start).toEqual(expect.any(String))
+    const requestedSpan = Date.parse(historyCall?.[1].end) - Date.parse(historyCall?.[1].start)
     expect(requestedSpan).toBeGreaterThan(0)
     expect(requestedSpan / 86_400_000 + 1).toBeLessThanOrEqual(2000)
 
@@ -949,8 +1126,7 @@ describe('WorkstationView pop-out bindings', () => {
     await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/coverage/instruments/SPY/ohlcv', expect.objectContaining({
       timeframe: 'D1', mode: 'historical', adjusted: true,
     })))
-    expect(apiPost).toHaveBeenCalledTimes(3)
-    expect(apiPost).toHaveBeenNthCalledWith(3, '/instruments/acquire', expect.objectContaining({ symbol: 'SPY' }))
+    expect(apiPost).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({ symbol: 'SPY' }))
     wrapper.unmount()
   })
 
@@ -1487,6 +1663,9 @@ describe('WorkstationView pop-out bindings', () => {
       if (path === '/coverage/instruments/OIH/ohlcv') {
         return { status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] }
       }
+      if (path === '/instruments/43/history-availability') {
+        return { instrument_id: 43, symbol: 'OIH', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }
+      }
       return []
     })
     apiPost.mockImplementation(async (path: string, body: Record<string, any>) => {
@@ -1552,6 +1731,10 @@ describe('WorkstationView pop-out bindings', () => {
       if (path === '/instruments/search') return []
       if (path.startsWith('/coverage/instruments/')) {
         return { status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-10-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] }
+      }
+      const availabilityId = Number(path.match(/^\/instruments\/(\d+)\/history-availability$/)?.[1])
+      if (availabilityId === 71 || availabilityId === 72) {
+        return { instrument_id: availabilityId, symbol: availabilityId === 71 ? 'AAA' : 'BBB', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }
       }
       return []
     })
