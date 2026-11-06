@@ -26371,3 +26371,7 @@ Root accepted the narrow calendar-sliver correction under the existing history-p
 ## 2026-11-06 — Green a9ee26d context adoption
 
 Root directed non-fast-forward adoption of exact synchronized green staging/master `a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7`. The local merge commit recorded by this handoff's exact branch HEAD preserves the TC branch history and imports Provider history-coverage calendar/admitted-bound implementation and evidence. Canonical receipt `/home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json` (SHA256 `acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3`); staging CI 42184756530 and master provenance CI 42194282702 succeeded. This is context adoption only: deployment and genuine user-flow proof are not claimed. All nine roadmap criteria, ten repair criteria, and prior accepted scope/reference history remain open and unchanged; `integration_capture: exact branch HEAD`.
+
+## 2026-11-06 — Known retry on cached-fallback outcomes
+
+The shared selected-history and identity retry paths now consume a finite `retry_at` from any source outcome when the overall response is held, including a cached fallback marked `used`. Focused tests passed 91/91 and `vue-tsc --noEmit` passed. The existing lifecycle still rejects invalid/non-advancing waits and cancels superseded intent; native quota and hold behavior is unchanged. Root review, exact-tip CI, and Root-owned runtime/release gates remain pending.
