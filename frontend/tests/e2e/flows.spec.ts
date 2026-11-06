@@ -3054,6 +3054,18 @@ test.describe('TC2000 workstation', () => {
     await page.getByRole('button', { name: 'Go', exact: true }).click()
     await expect(activeSymbol).toHaveValue('SPY')
 
+    const benchmarkList = page.getByRole('region', { name: 'Major US benchmarks' })
+    await expect(benchmarkList).toBeVisible({ timeout: 15_000 })
+    const benchmarkSymbols = benchmarkList.getByRole('listbox', { name: 'Major US benchmarks symbols' })
+    await expect(benchmarkSymbols).toBeVisible({ timeout: 15_000 })
+    const benchmarkOptions = benchmarkSymbols.getByRole('option')
+    await expect.poll(async () => {
+      const labels = await benchmarkOptions.evaluateAll(options => options.map(option => option.getAttribute('aria-label') ?? ''))
+      return new Set(labels.map(label => label.split(/\s+/, 1)[0]).filter(Boolean)).size
+    }, { timeout: 15_000 }).toBeGreaterThan(1)
+    await expect(page.locator('.workstation__footer span').first()).toHaveText('SPY')
+    await expect(activeSymbol).toHaveAttribute('aria-expanded', 'false')
+
     const workstation = page.locator('.workstation:visible').last()
     await workstation.press('Control+Space')
     await expect.poll(() => activeSymbol.inputValue()).not.toBe('SPY')
