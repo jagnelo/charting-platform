@@ -342,6 +342,29 @@ describe('RatioUPlot', () => {
     expect(wrapper.text()).not.toContain('SPY 10%')
   })
 
+  it('recreates uPlot when a symbol change replaces the conditional chart host', async () => {
+    vi.mocked(api.get).mockResolvedValue({
+      coverage: 1,
+      points: [{ timestamp: '2026-02-01T00:00:00Z', value: 1.4 }],
+      warnings: [],
+    })
+    const wrapper = mountTool({ props: { symbol: 'XLB', benchmarks: ['SPY'] } })
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+    const originalHost = wrapper.get('.ratio-chart__host').element
+    const originalChart = vi.mocked(uPlot).mock.results[0]?.value
+
+    await wrapper.setProps({ symbol: 'XLV' })
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(2))
+
+    const replacementHost = wrapper.get('.ratio-chart__host').element
+    expect(replacementHost).not.toBe(originalHost)
+    expect(originalChart.destroy).toHaveBeenCalledTimes(1)
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[2]).toBe(replacementHost)
+    expect(wrapper.text()).toContain('XLV/SPY')
+    expect(wrapper.text()).toContain('SPY 100%')
+    wrapper.unmount()
+  })
+
   it('deduplicates identical ratio legs across linked windows', async () => {
     vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })

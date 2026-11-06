@@ -65,6 +65,7 @@ let lastPublishedCursor: string | null = null
 let loadGeneration = 0
 let activeLoadController: AbortController | null = null
 let renderedRatioContext = ''
+let chartHostElement: HTMLElement | null = null
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const benchmarkDraft = ref('')
 function normalizeBenchmarks(values: unknown, symbol = props.symbol) {
@@ -335,12 +336,18 @@ function seriesData(): uPlot.AlignedData {
 
 function draw() {
   if (!host.value || !hasPoints.value) return
+  if (chart && chartHostElement !== host.value) {
+    chart.destroy()
+    chart = null
+    chartHostElement = null
+  }
   const width = Math.max(180, host.value.clientWidth)
   const height = Math.max(90, host.value.clientHeight)
   const data = seriesData()
   if (chart && chart.series.length !== series.value.length + 1) {
     chart.destroy()
     chart = null
+    chartHostElement = null
   }
   if (chart) {
     chart.setData(data)
@@ -373,6 +380,7 @@ function draw() {
       }],
     },
   }, data, host.value)
+  chartHostElement = host.value
   applyLinkedTimestamp(props.linkedTimestamp)
 }
 
@@ -414,6 +422,7 @@ onBeforeUnmount(() => {
   resizeObserver?.disconnect()
   chart?.destroy()
   chart = null
+  chartHostElement = null
 })
 </script>
 
