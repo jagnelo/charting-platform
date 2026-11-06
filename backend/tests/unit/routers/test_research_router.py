@@ -101,6 +101,26 @@ async def test_research_run_detail_projects_artifact_count_from_persisted_artifa
     assert len(serialized.artifacts) == 8
 
 
+@pytest.mark.asyncio
+async def test_research_run_detail_hides_runs_owned_by_another_user():
+    class _NotFoundForCurrentOwnerSession:
+        statement = None
+
+        async def execute(self, statement):
+            self.statement = statement
+            return _ScalarResult(None)
+
+    session = _NotFoundForCurrentOwnerSession()
+    with pytest.raises(HTTPException) as error:
+        await get_run(7, db=session, current_user=SimpleNamespace(id=2))
+
+    compiled = str(session.statement.compile(compile_kwargs={"literal_binds": True}))
+    assert "research_run.id = 7" in compiled
+    assert "research_run.user_id = 2" in compiled
+    assert error.value.status_code == 404
+    assert error.value.detail == "Research run not found"
+
+
 def _series(instrument_id: int, *, feed: str, canonical: bool = True) -> MarketSeries:
     return MarketSeries(
         instrument_id=instrument_id,
