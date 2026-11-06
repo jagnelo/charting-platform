@@ -96,6 +96,10 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     await page.locator('.member-symbol').click()
     await expect(page).toHaveURL(/\/chart\/MSFT$/)
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
+    const basketAfterMemberChart = await request.get(`/api/v1/baskets/${basketB.id}`, { headers })
+    expect(basketAfterMemberChart.ok()).toBeTruthy()
+    const unchangedBasket = await basketAfterMemberChart.json() as { members: Array<{ instrument_id: number }> }
+    expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([added.instrument_id])
     await page.goto('/legacy/baskets')
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
 

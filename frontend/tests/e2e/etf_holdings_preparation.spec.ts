@@ -112,6 +112,42 @@ function fixtureHoldings(symbol: string, instrumentId: number, profileId: number
   }
 }
 
+function overlapFixture() {
+  const sourceSnapshot = fixtureSnapshot('FNEW', 701, 71, 901)
+  const peerSnapshot = { ...sourceSnapshot, id: 904, etf_instrument_id: 704, etf_profile_id: 74, etf_symbol: 'QQQ', etf_name: 'QQQ Sector Fund' }
+  return {
+    summary: {
+      requested_symbols: ['FNEW', 'QQQ'],
+      snapshot_date: '2026-11-05',
+      point_in_time: true,
+      etf_count: 2,
+      pair_count: 1,
+      missing: [],
+      pairs: [{
+        left_symbol: 'FNEW', right_symbol: 'QQQ', left_snapshot: sourceSnapshot, right_snapshot: peerSnapshot,
+        left_count: 1, right_count: 1, shared_count: 1, left_unique_count: 0, right_unique_count: 0,
+        jaccard_overlap: '1.00000000', shared_weight_left: '0.25000000',
+        shared_weight_right: '0.25000000', overlap_weight_min: '0.25000000', top_shared: [],
+      }],
+    },
+    matrix: {
+      requested_symbols: ['FNEW', 'QQQ'], snapshot_date: '2026-11-05', point_in_time: true,
+      metric: 'jaccard', etf_count: 2, symbols: ['FNEW', 'QQQ'], missing: [],
+      highest_overlap_pairs: [], lowest_overlap_pairs: [],
+      rows: ['FNEW', 'QQQ'].map(symbol => ({
+        symbol, name: `${symbol} Sector Fund`, snapshot: symbol === 'FNEW' ? sourceSnapshot : peerSnapshot,
+        average_overlap: '1.00000000', max_overlap: '1.00000000', min_overlap: '1.00000000',
+        closest_peer: symbol === 'FNEW' ? 'QQQ' : 'FNEW', most_distinct_peer: null,
+        cells: ['FNEW', 'QQQ'].map(column => ({
+          row_symbol: symbol, column_symbol: column, value: '1.00000000',
+          shared_count: symbol === column ? 0 : 1,
+          jaccard_overlap: '1.00000000', overlap_weight_min: symbol === column ? null : '0.25000000',
+        })),
+      })),
+    },
+  }
+}
+
 function snapshotDates(snapshotId: number): ETFHoldingsDate[] {
   return [{
     snapshot_id: snapshotId,
@@ -151,8 +187,11 @@ async function selectETF(page: import('@playwright/test').Page, symbol: string) 
 test.describe('ETF holdings preparation', () => {
   test('selecting an uncached ETF automatically requests holdings and displays the returned dated snapshot', async ({ page, loggedIn }) => {
     const selected = profile('FNEW', 701, 71, 901)
+    const savedPeer = profile('QQQ', 704, 74, 904)
     const requested: EnsureRequest[] = []
     const legacyAcquireRequests: string[] = []
+    const holdingsQueries: Array<{ q: string | null; sort: string | null; direction: string | null }> = []
+    const overlapRequests: Array<{ path: string; body: Record<string, unknown> }> = []
     page.on('request', request => {
       const path = new URL(request.url()).pathname
       if (/^\/api\/v1\/etf-holdings\/[^/]+\/acquire$/.test(path)) legacyAcquireRequests.push(path)
@@ -160,7 +199,7 @@ test.describe('ETF holdings preparation', () => {
     await installETFSearch(page)
     await page.route(url => new URL(url).pathname === '/api/v1/etf-holdings', async route => {
       const query = new URL(route.request().url()).searchParams.get('q')?.toUpperCase()
-      await route.fulfill({ status: 200, json: query === 'FNEW' ? [selected] : [] })
+      await route.fulfill({ status: 200, json: query === 'FNEW' ? [selected] : query === null ? [savedPeer] : [] })
     })
     await page.route('**/api/v1/data/ensure', async route => {
       expect(route.request().method()).toBe('POST')
@@ -169,7 +208,11 @@ test.describe('ETF holdings preparation', () => {
       await route.fulfill({ status: 200, json: ensureResponse('FNEW', 'ready') })
     })
     await page.route('**/api/v1/etf-holdings/FNEW/dates', route => route.fulfill({ status: 200, json: snapshotDates(901) }))
-    await page.route('**/api/v1/etf-holdings/FNEW/holdings**', route => route.fulfill({ status: 200, json: fixtureHoldings('FNEW', 701, 71, 901) }))
+    await page.route('**/api/v1/etf-holdings/FNEW/holdings**', async route => {
+      const query = new URL(route.request().url()).searchParams
+      holdingsQueries.push({ q: query.get('q'), sort: query.get('sort'), direction: query.get('direction') })
+      await route.fulfill({ status: 200, json: fixtureHoldings('FNEW', 701, 71, 901) })
+    })
     await page.route('**/api/v1/etf-holdings/FNEW/weight-evolution**', route => route.fulfill({
       status: 200,
       json: { etf_symbol: 'FNEW', etf_name: 'FNEW Sector Fund', snapshot_count: 1, series: [] },
@@ -178,8 +221,28 @@ test.describe('ETF holdings preparation', () => {
       status: 200,
       json: { etf_symbol: 'FNEW', etf_name: 'FNEW Sector Fund', snapshot_count: 1, transition_count: 0, transitions: [] },
     }))
+    await page.route('**/api/v1/etf-holdings/QQQ/dates', route => route.fulfill({ status: 200, json: snapshotDates(904) }))
+    await page.route('**/api/v1/etf-holdings/QQQ/holdings**', route => route.fulfill({ status: 200, json: fixtureHoldings('QQQ', 704, 74, 904) }))
+    await page.route('**/api/v1/etf-holdings/QQQ/weight-evolution**', route => route.fulfill({
+      status: 200,
+      json: { etf_symbol: 'QQQ', etf_name: 'QQQ Sector Fund', snapshot_count: 1, series: [] },
+    }))
+    await page.route('**/api/v1/etf-holdings/QQQ/transitions**', route => route.fulfill({
+      status: 200,
+      json: { etf_symbol: 'QQQ', etf_name: 'QQQ Sector Fund', snapshot_count: 1, transition_count: 0, transitions: [] },
+    }))
+    const overlap = overlapFixture()
+    await page.route('**/api/v1/etf-holdings/overlap-summary', route => {
+      overlapRequests.push({ path: new URL(route.request().url()).pathname, body: route.request().postDataJSON() as Record<string, unknown> })
+      return route.fulfill({ status: 200, json: overlap.summary })
+    })
+    await page.route('**/api/v1/etf-holdings/overlap-matrix', route => {
+      overlapRequests.push({ path: new URL(route.request().url()).pathname, body: route.request().postDataJSON() as Record<string, unknown> })
+      return route.fulfill({ status: 200, json: overlap.matrix })
+    })
 
     await page.goto('/etf-holdings')
+    await expect(page.getByRole('heading', { name: 'QQQ' })).toBeVisible()
     await selectETF(page, 'FNEW')
 
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
@@ -190,6 +253,33 @@ test.describe('ETF holdings preparation', () => {
     expect(requested).toEqual([{ target: { kind: 'instrument', symbol: 'FNEW' }, datasets: ['holdings'] }])
     expect(legacyAcquireRequests).toEqual([])
     await expect(page.getByRole('button', { name: 'Load latest holdings' })).toHaveCount(0)
+
+    const filterRead = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === '/api/v1/etf-holdings/FNEW/holdings' && url.searchParams.get('q') === 'FNEW Example'
+    })
+    await page.getByPlaceholder('Symbol, name, CUSIP, ISIN').fill('FNEW Example')
+    expect((await filterRead).ok()).toBeTruthy()
+    await page.getByLabel('Sort').selectOption('symbol')
+    await expect.poll(() => holdingsQueries.at(-1)?.sort).toBe('symbol')
+    await page.getByLabel('Direction').selectOption('asc')
+    await expect.poll(() => holdingsQueries.at(-1)?.direction).toBe('asc')
+    await page.locator('button.holding-row').filter({ hasText: 'FNEW1' }).click()
+    await expect(page.locator('.holding-detail h3')).toHaveText('FNEW1')
+    await expect(page.locator('.holding-detail')).toContainText('FNEW Example Holding')
+    await expect(page.getByRole('button', { name: 'View history' })).toBeEnabled()
+    await page.getByRole('button', { name: 'Compare selected' }).click()
+    await expect(page.locator('.overlap-matrix')).toContainText('FNEW')
+    await expect(page.locator('.overlap-matrix')).toContainText('QQQ')
+    expect(overlapRequests).toHaveLength(2)
+    expect(overlapRequests.find(request => request.path.endsWith('/overlap-summary'))?.body).toMatchObject({
+      etf_symbols: ['FNEW', 'QQQ'], snapshot_date: '2026-11-05', point_in_time: true,
+    })
+    expect(overlapRequests.find(request => request.path.endsWith('/overlap-matrix'))?.body).toMatchObject({
+      etf_symbols: ['FNEW', 'QQQ'], snapshot_date: '2026-11-05', metric: 'jaccard',
+    })
+    expect(holdingsQueries).toContainEqual({ q: 'FNEW Example', sort: 'weight', direction: 'desc' })
+    expect(holdingsQueries).toContainEqual({ q: 'FNEW Example', sort: 'symbol', direction: 'asc' })
     expect(loggedIn).toBeUndefined()
   })
 

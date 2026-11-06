@@ -29659,6 +29659,8 @@ async def test_amplify_selected_account_keeps_freight_derivatives_nonchartable_a
     assert freight.row_type == "security"
     assert freight.symbol is None
     assert freight.extra_data["StockTicker"] == "C5TCM"
+    assert freight.extra_data["CUSIP"] == "C5TCM M26"
+    assert freight.extra_data["SecurityName"] == "Capesize 5TC FFA 180kt Timecharter Average M Jun 26"
     assert freight.extra_data["Account"] == "BWET"
     assert freight.shares == Decimal("-200")
     assert freight.market_value == Decimal("-7039200.00")
@@ -29668,6 +29670,9 @@ async def test_amplify_selected_account_keeps_freight_derivatives_nonchartable_a
     assert cash.holding_type == "cash"
     assert cash.row_type == "cash"
     assert cash.symbol is None
+    assert cash.extra_data["Account"] == "BWET"
+    assert cash.extra_data["MoneyMarketFlag"] == "Y"
+    assert cash.shares == Decimal("-4395925.92")
     assert cash.currency == "USD"
     assert cash.market_value == Decimal("-4395925.92")
     assert result.legal_metadata["selected_account"] == "BWET"
