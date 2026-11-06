@@ -51,7 +51,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const runId = runLabel.match(/Run #(\d+)/)?.[1]
   expect(runId).toBeTruthy()
   await expect(study.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
-  await expect(results.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })).toBeVisible({ timeout: 15_000 })
+  const completedRun = results.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
+  await expect(completedRun).toBeVisible({ timeout: 15_000 })
+  await completedRun.click()
+  const resultDetail = results.locator(`article[aria-label="Research run ${runId} details"]`)
+  await expect(resultDetail).toBeVisible()
+  await expect(resultDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
 
   const savedDraft = page.waitForResponse(response => response.request().method() === 'PUT' && new URL(response.url()).pathname.endsWith('/snapshot'))
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('XLB')
@@ -194,6 +199,7 @@ test('Study preparation submits every universe member and benchmark while one me
   await expect(outcomes).toContainText('XLK: Requested data is ready.', { timeout: 10_000 })
   await expect(outcomes).toContainText('QQQ: Requested data is ready.', { timeout: 10_000 })
   await expect(validation).toBeDisabled()
+  await expect(study.getByRole('button', { name: 'Run study', exact: true })).toBeDisabled()
   expect(validationRequests).toBe(0)
   expect(runRequests).toBe(0)
 
