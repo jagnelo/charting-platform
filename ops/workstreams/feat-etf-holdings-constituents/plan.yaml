@@ -5480,46 +5480,158 @@ previously_accepted_ordinary_selected_acquisition_current_contract_2026_11_05:
 
 
 # Current owner checkpoint, opened after the accepted 45cc runtime release.
-goal: Repair ETF holdings capability GET evaluation to use the persisted snapshot ORM row while preserving the existing selection and strict native evidence rules.
+previously_accepted_capability_get_checkpoint_2026_11_05:
+  goal: Repair ETF holdings capability GET evaluation to use the persisted snapshot ORM row while preserving the
+    existing selection and strict native evidence rules.
+  acceptance_criteria:
+  - id: CGET1
+    text: Capability evaluation reads the same latest visible snapshot selected by existing composition-date/known-at/id
+      order, retaining E2E visibility and controlled-fixture filters, but passes the ORM row internally so source_artifact_id
+      remains available. Existing response DTO fields do not change.
+  - id: CGET2
+    text: An authenticated capability GET over a valid native qualified snapshot with distinct ETFProfile.id and
+      Instrument.id returns a successful response with identity_verified/current/usable true; removing its linked
+      raw artifact yields a successful fail-closed response with identity_verified and usable false. Native evidence
+      binding is not weakened.
+  - id: CGET3
+    text: Capability reads remain read-only and preserve existing snapshots, artifacts, freshness/oracle behavior,
+      including honest stale OIH status. Focused service, endpoint, lint, record and exact-source CI evidence is
+      recorded without claiming an unrun gate.
+  progress:
+    completed:
+    - CGET1
+    - CGET2
+    - CGET3
+    total: 3
+    current_phase: The persisted-ORM capability route and distinct-ID positive/negative endpoint regression passed
+      focused verification.
+    current_blocker: Exact-source CI and the required Root-owned staging gate remain pending. Preserve AC1-AC14,
+      15 Tier-0 and 156 Tier-1, all source/account/target holds, and genuine deployment work.
+  integration_checkpoint:
+    id: etf-capability-get-persisted-snapshot-2026-11-05
+    goal: Fix capability GET evaluation using the persisted snapshot ORM row without exposing internal artifact
+      fields or weakening native evidence checks.
+    status: Root_accepted_ready_for_integration_exact_CI_pending
+    acceptance_authorization: Root accepted the bounded implementation under existing human-delegated technical
+      authority; no new human quote is claimed.
+    root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json
+    root_acceptance_sha256: f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398
+    tested_base_sha: 45cc8206602d7823ca29e132d991d88b0bcbbc25
+    reviewed_product_file_sha256:
+      backend/app/services/etf_holdings.py: f291ea985cf6026770e968f151e38221ac45e8252abbdde04d0ae96fba402b74
+      backend/tests/integration/api/test_etf_holdings.py: 90f502c3b31bf8eb5628f60eefcbd0b3d54f7331e4fc7f6250a8523d1f6c1a55
+    local_validation_profile: docker_integration
+    validation_evidence: 130 capability service unit tests passed in 3.02s; the endpoint regression passed 1/1 in
+      21.65s with distinct profile/instrument IDs, valid native evidence current/usable, and missing-artifact fail-closed
+      behavior; the exact narrative guard passed 1/1. Ruff check/format and workstream validator passed. Testcontainers
+      released its test session; resource status shows no containers/test sessions and the same two pre-existing
+      worktree volumes recorded by preflight.
+    exact_source_ci:
+      state: pending_Root_owned
+      green_claimed: false
+    remaining_gates:
+    - Root-owned exact-source CI and normal staging gate.
+    - Root owns protected integration/deployment and the genuine ordinary-user/source journey.
+    full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, accepted checkpoints and historical
+      failures remain preserved and open.
+    source_http_requests: 0
+    snapshot_or_artifact_mutation: false
+    integration_capture: exact branch HEAD
+  status: ready_for_integration
+  closure_pending: false
+  human_closure_authorization: Root accepted this bounded implementation under existing human-delegated technical
+    acceptance authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json
+    SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. This records Root's decision and does
+    not invent a new human quote or claim personal human testing.
+  closure_summary: 'Root accepted the bounded capability GET repair under the existing delegated authority. The
+    tested code boundary uses the persisted ORM snapshot and preserves the existing latest selection, visibility/controlled-fixture
+    filters, eager loading, strict artifact/evidence checks, public DTO and stale freshness behavior. The exact
+    endpoint regression passes 1/1 with distinct profile/instrument IDs, valid evidence current/usable and missing-artifact
+    fail-closed; 130 capability unit cases, narrative guard, Ruff/format and workstream validation pass. No Source
+    HTTP, snapshot/artifact/production mutation, or new database/schema change. Exact-source branch CI remains mandatory
+    and pending under Root ownership; Root owns the full staging gate and downstream integration. AC1-AC14, 15 Tier-0
+    and 156 Tier-1, all holds, archives, datasets and genuine deployed user-flow obligations remain open. integration_capture:
+    exact branch HEAD.'
+goal: Repair the three VanEck native qualification/ordinary-refresh integration failures by freezing the test clock
+  for the authentic dated workbook fixtures, without changing provider data, freshness rules, or product behavior.
 acceptance_criteria:
-- id: CGET1
-  text: Capability evaluation reads the same latest visible snapshot selected by existing composition-date/known-at/id order, retaining E2E visibility and controlled-fixture filters, but passes the ORM row internally so source_artifact_id remains available. Existing response DTO fields do not change.
-- id: CGET2
-  text: An authenticated capability GET over a valid native qualified snapshot with distinct ETFProfile.id and Instrument.id returns a successful response with identity_verified/current/usable true; removing its linked raw artifact yields a successful fail-closed response with identity_verified and usable false. Native evidence binding is not weakened.
-- id: CGET3
-  text: Capability reads remain read-only and preserve existing snapshots, artifacts, freshness/oracle behavior, including honest stale OIH status. Focused service, endpoint, lint, record and exact-source CI evidence is recorded without claiming an unrun gate.
+- id: VFC1
+  text: Keep the two authentic VanEck workbook fixtures and their provider-reported 2026-10-29 composition date
+    unchanged; freeze only the test application clock at 2026-11-01T12:00:00Z for the affected tests so the existing
+    five-day daily freshness rule remains authoritative.
+- id: VFC2
+  text: All three affected VanEck PostgreSQL/SQLite integration nodes pass while retaining existing source identity,
+    body, date, quota, provenance, one-shot and ordinary-refresh assertions; no production code, source transport,
+    or freshness policy is changed.
+- id: VFC3
+  text: Record exact failed predecessor CI and focused test evidence, verify fixture hashes and owned test-container
+    cleanup, preserve the full roadmap and prior checkpoints, and leave exact-source CI and broader Root-owned qualification
+    pending.
 progress:
   completed:
-  - CGET1
-  - CGET2
-  - CGET3
+  - VFC1
+  - VFC2
+  - VFC3
   total: 3
-  current_phase: The persisted-ORM capability route and distinct-ID positive/negative endpoint regression passed focused verification.
-  current_blocker: Exact-source CI and the required Root-owned staging gate remain pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, and genuine deployment work.
+  current_phase: The two affected VanEck integration tests pass with a frozen test clock; the authentic 2026-10-29
+    workbook bytes and five-day freshness policy are unchanged.
+  current_blocker: Exact-source CI and Root-owned broader qualification remain pending. Preserve AC1-AC14, 15 Tier-0
+    and 156 Tier-1, all source/account/target holds, histories, and genuine deployment work.
 integration_checkpoint:
-  id: etf-capability-get-persisted-snapshot-2026-11-05
-  goal: Fix capability GET evaluation using the persisted snapshot ORM row without exposing internal artifact fields or weakening native evidence checks.
-  status: Root_accepted_ready_for_integration_exact_CI_pending
-  acceptance_authorization: Root accepted the bounded implementation under existing human-delegated technical authority; no new human quote is claimed.
-  root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json
-  root_acceptance_sha256: f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398
-  tested_base_sha: 45cc8206602d7823ca29e132d991d88b0bcbbc25
-  reviewed_product_file_sha256:
-    backend/app/services/etf_holdings.py: f291ea985cf6026770e968f151e38221ac45e8252abbdde04d0ae96fba402b74
-    backend/tests/integration/api/test_etf_holdings.py: 90f502c3b31bf8eb5628f60eefcbd0b3d54f7331e4fc7f6250a8523d1f6c1a55
-  local_validation_profile: docker_integration
-  validation_evidence: 130 capability service unit tests passed in 3.02s; the endpoint regression passed 1/1 in 21.65s with distinct profile/instrument IDs, valid native evidence current/usable, and missing-artifact fail-closed behavior; the exact narrative guard passed 1/1. Ruff check/format and workstream validator passed. Testcontainers released its test session; resource status shows no containers/test sessions and the same two pre-existing worktree volumes recorded by preflight.
+  id: vaneck-authentic-fixture-clock-2026-11-06
+  goal: Make the three date-sensitive VanEck qualification and ordinary-refresh integration tests deterministic
+    as their authentic 2026-10-29 fixtures age, without altering fixture evidence or freshness behavior.
+  status: ready_for_human_review
+  activation: Root authorized this narrowly scoped repair under the existing active ETF owner session; no new human
+    quote or acceptance is claimed.
+  failed_predecessor:
+    source: 2f152978
+    ci_run: 42141483157
+    result: Backend unit 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed. All three failures were
+      the two VanEck test functions, with the identity-successor test parameterized for PostgreSQL and SQLite.
+  diagnosis: The unchanged authentic workbooks report composition date 2026-10-29. Under the existing five-day daily
+    freshness window, that evidence is expired by 2026-11-06. The tests failed because their application clock advanced
+    while fixture date and freshness contract correctly remained fixed.
+  implementation:
+    type: test-only clock fixture
+    frozen_now_utc: '2026-11-01T12:00:00Z'
+    production_code_changed: false
+    fixture_bytes_changed: false
+    freshness_policy_changed: false
+  test_file: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  test_file_sha256: a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d
+  source_parent_sha: 375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d
+  fixture_sha256:
+    backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx: 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653
+    backend/tests/fixtures/vaneck/oih_job6_identity.xlsx: c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2
+  validation_evidence:
+    affected_nodes: 3
+    result: 3 passed in 29.07s; exit 0
+    pytest_log: /tmp/etf-vaneck-clock-repair-20261106/pytest.log
+    run_receipt: /tmp/etf-vaneck-clock-repair-20261106/run-result.json
+    prelaunch: /tmp/etf-vaneck-clock-repair-20261106/prelaunch.json
+    container_id: 80ecd2cf08010b8a610133f12e816dc42f49a28467c355dcd69016738edd9800
+    container_cleanup: Post-run docker inspect returned no such object for the exact owned container ID. Before/after
+      protected inventory counts were 33 containers, 26 images, 12 networks and 55 volumes; no new unowned container
+      was present.
+    resource_bounds: 'PostgreSQL: 1 CPU, 1 GiB memory, 1 GiB memory+swap, PIDs 128, 768 MiB private tmpfs; one worker,
+      zero retries; external HTTP proxies loopback port 9.'
+  source_http_requests: 0
+  production_or_ledger_mutation: false
   exact_source_ci:
     state: pending_Root_owned
     green_claimed: false
   remaining_gates:
-  - Root-owned exact-source CI and normal staging gate.
-  - Root owns protected integration/deployment and the genuine ordinary-user/source journey.
-  full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, accepted checkpoints and historical failures remain preserved and open.
-  source_http_requests: 0
-  snapshot_or_artifact_mutation: false
+  - Root-owned exact-source CI for the published checkpoint.
+  - Root-owned broader joint qualification and all later integration/deployment gates.
+  full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, historical failures and accepted
+    checkpoints remain preserved and open.
   integration_capture: exact branch HEAD
-status: ready_for_integration
-closure_pending: false
-human_closure_authorization: Root accepted this bounded implementation under existing human-delegated technical acceptance authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. This records Root's decision and does not invent a new human quote or claim personal human testing.
-closure_summary: 'Root accepted the bounded capability GET repair under the existing delegated authority. The tested code boundary uses the persisted ORM snapshot and preserves the existing latest selection, visibility/controlled-fixture filters, eager loading, strict artifact/evidence checks, public DTO and stale freshness behavior. The exact endpoint regression passes 1/1 with distinct profile/instrument IDs, valid evidence current/usable and missing-artifact fail-closed; 130 capability unit cases, narrative guard, Ruff/format and workstream validation pass. No Source HTTP, snapshot/artifact/production mutation, or new database/schema change. Exact-source branch CI remains mandatory and pending under Root ownership; Root owns the full staging gate and downstream integration. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, archives, datasets and genuine deployed user-flow obligations remain open. integration_capture: exact branch HEAD.'
+status: ready_for_human_review
+closure_pending: true
+human_closure_authorization: Not requested for this checkpoint; Root review and exact-source CI remain pending.
+closure_summary: 'Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes
+  pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules.
+  The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy
+  change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0
+  and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.'
