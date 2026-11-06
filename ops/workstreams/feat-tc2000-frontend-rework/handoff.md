@@ -26351,3 +26351,19 @@ Measured shared tab geometry follow-up: Root observed the library's `box-sizing:
 ## 2026-11-06 — Accepted history/dashboard checkpoint closure
 
 Root accepted the bounded implementation checkpoint under existing delegated authority (receipt SHA256 `2e655a7e4f93edf165be100c5be2c0c4453a653933be612d7a1a77b0353586da`). The approved local-reference successor includes only the reviewed PNG `partial-coverage-gap-visual-1440p-100-linux.png` (SHA256 `b504ea29e80a0bb06a3db9750e3846b853283f5347c5b6d98d2d1450c9c77ffb`). Exact source CI `42157099350` for `5180f97b7edba8910f779ebaea0ca312f96be98d` succeeded (receipt SHA256 `8ded4f21cc7c0767bf5d9117352977ec79dceca70c66fc812681fb23a4104cbe`). Final closing-tip CI remains mandatory and pending Root, as do Root-owned integration, deployment and genuine-flow gates. All nine roadmap items and ten repair criteria remain unchanged; no full-roadmap or official V25 completion is claimed. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-06 — Root-accepted history paging correction
+
+Root accepted the bounded follow-up under the existing delegated authority (receipt `tc-paging-correction-root-acceptance.json`, SHA256 `7d12317168ff2d177a7ee81644954e471ad1a446e6936db9c791c6d815c6e537`). Coverage responses that cannot prove completion now fail honestly; monthly older requests use whole calendar buckets within the existing slot limit; non-progressing older reads do not claim source exhaustion and repeated same-cursor reads stay suppressed until explicit refresh. A refresh performs a fresh bounded cursor read.
+
+The affected helper/store tests passed 88/88 and frontend type-check passed. No API/native quota/hold/entitlement, backend, source, data, reference, or tolerance change was made. Exact final-tip CI, new combined qualification, protected staging/master, deployment, and genuine user-flow proof remain Root-owned and pending. Prior beeb closure/history and the original nine-roadmap and ten repair criteria are preserved. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-06 — Known-red staging16 visual remediation
+
+Root authorized merging exact staging16 `16d76a8bddacffec9e8a85035cfea4e69ee0f529` (CI 42164203301, one visual failure; not green adoption) into this feature branch to establish the canonical remediation base. Merge commit `1ccf4fe39dcb28319dcfa23128b4330b155a03b9` has exact parents 7a38ebc and staging16; merge-base after import is staging16. The only local reference change is `frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/unavailable-freshness-gap-visual-1440p-100-linux.png`, copied from Root-reviewed actual bytes: old SHA256 `52c2030188991af88b569aaea0776ed7d584cbe6b7f6277eb36a1128282a015e`, new SHA256 `5747cbb398ffb8193a95b1dc0ba6b73c423acab5c5f435d13346f08c471ac9a8`. The seven accepted TC application hashes remain byte-identical to 7a. Root one-case verification passed 1/1 with zero retries at tolerance 0.005 on unchanged 7a app/test inputs (receipt SHA256 c45b42f89cc327144a068c11480897bbafc867bb7075006654e9d6f051ce8270). Root owns exact new-tip CI, the new exact full staging104 visual profile, canonical remediation and fresh release gates.
+
+## 2026-11-06 — D1/W1 older-history calendar-boundary correction
+
+Root accepted the narrow calendar-sliver correction under the existing history-paging authority; receipt `tc-calendar-sliver-root-acceptance.json` (SHA256 `15b2334fcf509b58dd401db1b98cb7bfe204b341a5fa373eeb2fc7049f4e9727`). D1/W1 older chunks now align the default-window clamp to Monday UTC, preserving the 2,000-slot bound; MN/intraday behavior and API/native bounds are unchanged. The focused helper/store slice passed 89/89 and `vue-tsc --noEmit` passed. Exact-tip CI and Root-owned browser/release gates remain pending.

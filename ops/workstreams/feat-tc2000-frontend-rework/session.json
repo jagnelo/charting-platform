@@ -1,24 +1,44 @@
 {
   "acceptance_criteria": [
     {
-      "id": "TCENTER6",
-      "text": "Workstation Enter/Go submits one exact discovered remote ticker through existing identity verification and canonical acquisition; exact local matches win and fuzzy prefixes are never implicitly selected."
+      "id": "A1",
+      "text": "Select multiple never-resolved preset sector ETFs from S&P500 Sectors; identity metadata history and supported holdings appear in the same dashboard; empty placeholders cannot be mistaken for source absence."
     },
     {
-      "id": "TCENTER7",
-      "text": "Matching pending discovery can complete deliberate submission; query changes and stale/late results cannot submit another ticker. Duplicate exact listings remain ambiguous."
+      "id": "A2",
+      "text": "Search an uncached ordinary stock and an uncached supported issuer ETF with Enter/Go; automatic acquisition works as for preset selection."
     },
     {
-      "id": "TCENTER8",
-      "text": "Shared chart SearchBar uses the same exact remote submission while preserving picker/type restrictions, expressions, explicit arrows/clicks, event compatibility, and source-request bounds."
+      "id": "H1",
+      "text": "Daily chart offers useful admitted historical depth; pan earlier requests older chunks; cache reload avoids duplicate external acquisition."
     },
     {
-      "id": "TCENTER9",
-      "text": "New deliberate selections clear only superseded selection-owned errors. Expected ETF current-analysis unavailability is fund-scoped; stale failures cannot repaint a newer selection, and genuine workspace conflicts remain visible."
+      "id": "H2",
+      "text": "Switch Daily -> Weekly -> Monthly; needed older source history acquired, derived periods show correct chronology and actual provider boundary honestly, never hidden application lifetime cap."
     },
     {
-      "id": "TCENTER10",
-      "text": "Focused regressions, type-check, normal workstream/scope validation, one coherent publication and exact-source CI are required. Root owns the retained-fixture full functional/strict-visual profile; none is newly claimed."
+      "id": "R1",
+      "text": "Reach native per-minute request budget while exploring; show waiting/retry timing, resume current selection, superseded selection must not repaint or issue obsolete retries."
+    },
+    {
+      "id": "N1",
+      "text": "Click a chartable constituent; stay on dashboard, update same active chart/tool context consistently with sector/benchmark selection, retain snapshot/row/asof provenance."
+    },
+    {
+      "id": "N2",
+      "text": "Cash/derivative/unresolved unsupported holding has honest non-chartable feedback, no fabricated instrument or chart."
+    },
+    {
+      "id": "V1",
+      "text": "Inspect panel tab/title and internal heading separation across chart/constituents/benchmarks/sectors/other tool shells at1920x1080 and narrower viewport; no overlap."
+    },
+    {
+      "id": "V2",
+      "text": "Open chart settings and dashboard-accessible menus/dialogs; same TC theme, readable controls, keyboard/accessibility retained."
+    },
+    {
+      "id": "C1",
+      "text": "Rapid ETF->stock->ETF switches plus delayed and failed history/holdings response; no stale context, correct own-cache/held/unavailable feedback."
     }
   ],
   "accepted_tco_checkpoint_archive": "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/tc-on-demand-workstation-consumer-session-20261027.json",
@@ -87,8 +107,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Exact closing-tip CI is pending Root observation after this corrective publication; exact-bundle browser proof remains Root-owned.",
-  "current_checkpoint_status": "Root-accepted delivered implementation checkpoint, subject to exact closing CI and committed104visualinput binding before integration. Local scope/evidence asclosure_summary. All genuine deployment acceptance remains Root-owned; no full-roadmap completion.",
+  "current_candidate_ci_status": "The D1/W1 calendar-sliver correction is recorded with exact source hashes and Root acceptance; exact new-tip CI and Root-owned browser/release gates remain pending.",
+  "current_checkpoint_status": "Root accepted the bounded D1/W1 calendar-bucket paging correction; 89 focused helper/store tests and frontend type-check passed. Exact new-tip CI and Root-owned runtime/release gates remain pending.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -147,15 +167,7 @@
     "tested_backend_source": "6eae00eb8380438da771fed0c42d19587e9520ce",
     "tested_frontend_source": "36e7ad2cb08c769a242773ab2b6be69fcc350774"
   },
-  "dirty_paths": [
-    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
-    "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
-    "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
-    "ops/workstreams/feat-tc2000-frontend-rework/session.json",
-    "ops/workstreams/feat-tc2000-frontend-rework/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -169,7 +181,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 1350876892,
+    "known_bytes": 1352677792,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -180,7 +192,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 1347808988,
+    "volume_bytes": 1349609888,
     "volume_count": 12,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -272,15 +284,15 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "History/dashboard repair candidate per the current plan; focused unit/type/discovery evidence is recorded, with exact source CI and Root-owned combined profile pending.",
+  "goal_objective": "Record Root-authorized known-red staging16 remediation in the TC branch, adopt only the one reviewed visual reference, preserve 7a application bytes and prior history, and prepare the exact tip for Root CI.",
   "goal_recorded_at": "2026-10-23T05:19:32.501383+00:00",
   "goal_request": {
-    "objective": "Repair ordinary dashboard history depth and UX: progressive bounded daily/weekly/monthly history, recover only current intent after known temporary admission waits, retain constituent chart/lineage in-dashboard, and fix shared panel/settings presentation."
+    "objective": "Record Root-authorized known-red staging16 remediation in the TC branch, adopt only the one reviewed visual reference, preserve 7a application bytes and prior history, and prepare the exact tip for Root CI."
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
+  "head": "1ccf4fe39dcb28319dcfa23128b4330b155a03b9",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -392,9 +404,10 @@
     "staging_ci_status": "Terminal green; staging and independent master runs succeeded per canonical promotion receipt.",
     "staging_sha": "e9e1b2b08277dfb4a1e102822b089a6ff29998cc"
   },
+  "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Freeze final clean synchronized closing tip; Root owns exact closing CI, canonical staging/master, private cutover and genuine user-flow verification. No additional owner source edits or full suites.",
+  "next_action": "Root to push/build the exact source and complete required CI and runtime qualification; no broader roadmap or release gate is claimed complete.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -425,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "d27228deb859cff911baa2e93f3dd0bda2325d0ba5d52f1acfa645142d5610f4",
+  "plan_hash": "807ea5f969c011ab0bf66312b5cef1677fea6a485d2763df531a51ff6edcbea7",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -454,21 +467,21 @@
   },
   "progress": {
     "completed": [],
+    "current_blocker": "Exact final-tip CI, new combined qualification, and Root-owned release/genuine-flow gates remain pending.",
+    "current_phase": "Root-accepted D1/W1 older-history calendar-boundary correction; focused tests and frontend type-check are green, exact final-tip CI pending.",
+    "next_action": "Root owns exact final-tip CI, frontend runtime/browser qualification, and remaining release gates.",
     "total": 10,
-    "current_phase": "Focused repair follow-up: measured GoldenLayout tab geometry correction plus exact E2E expectation and approved ETF test dependency; Root-owned targeted browser rerun pending.",
-    "current_blocker": "Root must rebuild and rerun the seven acquisition stories on the updated source; exact-source CI and combined full profile remain pending.",
-    "next_action": "Run final workstream/scope/diff and E2E discovery checks, commit and push the coherent follow-up; Root owns browser rerun and full profile.",
     "updated_at": "2026-11-06"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "The implementation commit plus one focused CSS/test/dependency follow-up are local and ready for one push.",
+    "current_pending_range": "Exact staging16 remediation merge plus one authorized PNG/current-record checkpoint await Root authenticated push.",
     "failure_category": null,
     "remote": "origin",
-    "status": "push authorized after final guards; Root will rebuild and run the seven focused stories on the updated source"
+    "status": "Root to push exact committed remediation tip; exact-tip CI and canonical release gates remain pending."
   },
-  "remote": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
-  "remote_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
+  "remote": "beebf0ac781b86a3c562cf8afce76b5a329118ac",
+  "remote_sha": "beebf0ac781b86a3c562cf8afce76b5a329118ac",
   "remote_synchronized": false,
   "remote_tracking_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "retained_docker_resources": [
@@ -514,6 +527,7 @@
     }
   ],
   "schema": 2,
+  "scope_guard_baseline_sha": "16d76a8bddacffec9e8a85035cfea4e69ee0f529",
   "session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
   "staging_adoption_history": [
     {
@@ -648,7 +662,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T04:04:54Z",
+  "updated_at": "2026-11-06T07:17:51.480429+00:00",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
@@ -690,7 +704,5 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/ops/workstreams/feat-tc2000-frontend-rework/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
-  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
-  "scope_guard_baseline_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
-  "local_candidate_capture": "exact branch HEAD; local checkpoint committed and unpushed"
+  "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
 }

@@ -288,6 +288,10 @@ async function acquirePanelHistory(
       historyProgress.value = `The allowed history window for ${normalized} could not be confirmed; saved chart data remains visible.`
       return
     }
+    if (outcome.kind === 'coverage-unavailable') {
+      historyProgress.value = `Saved history coverage for ${normalized} could not be confirmed; saved chart data remains visible.`
+      return
+    }
     if (outcome.kind === 'at-earliest-bound') {
       historyProgress.value = `The available ${timeframe} history for ${normalized} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       return

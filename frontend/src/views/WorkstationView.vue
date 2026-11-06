@@ -1364,6 +1364,8 @@ async function acquireSelectedTickerData(
         selectionHistoryMessage.value = `History for ${symbol} is temporarily held; the selected chart remains available.`
       } else if (outcome.kind === 'admission-unavailable') {
         selectionHistoryMessage.value = `The allowed history window for ${symbol} could not be confirmed; saved bars remain available.`
+      } else if (outcome.kind === 'coverage-unavailable') {
+        selectionHistoryMessage.value = `Saved history coverage for ${symbol} could not be confirmed; the selected chart remains available.`
       } else if (outcome.kind === 'at-earliest-bound') {
         selectionHistoryMessage.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       } else {
