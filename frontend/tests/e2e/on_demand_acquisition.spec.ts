@@ -178,6 +178,8 @@ function expectBoundedD1Request(request: HistoryRequestBody) {
 }
 
 async function expectGoldenLayoutTabsWithinAllocatedHeaders(page: Page) {
+  await expect(page.locator('.lm_header .lm_tabs > .lm_tab').first()).toBeVisible()
+  await expect(page.locator('.tool-window__title').first()).toBeVisible()
   const geometry = await page.evaluate(() => {
     const rect = (element: Element) => {
       const bounds = element.getBoundingClientRect()
