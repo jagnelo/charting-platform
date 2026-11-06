@@ -164,9 +164,11 @@
         "rerun saved snapshot",
         "rerun latest canonical data"
       ],
-      "visible_outcome": "Mutation affects the selected persisted run, updates linked caches and status, and provides explicit recovery guidance; current draft is not used as a silent snapshot fallback.",
+      "visible_outcome": "Mutation affects the selected persisted run, updates linked caches and status, and provides explicit recovery guidance. A failed cancel/rerun is announced and leaves the action retryable; current draft is not used as a silent snapshot fallback.",
       "unit_evidence": [
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: cancels a queued persisted research run",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: reports a cancellation failure and leaves the selected run retryable",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: reports a rerun failure without disabling a subsequent retry",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: propagates rerun and cancel mutations through the shared results cache",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: preserves a newer run selection when a slower rerun response resolves",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: does not publish a late rerun response after the tool unmounts",

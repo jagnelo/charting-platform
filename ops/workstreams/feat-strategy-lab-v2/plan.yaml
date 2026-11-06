@@ -1163,7 +1163,8 @@ progress:
     id: strategy-study-usability-2026-11-06
     scope: >-
       Repair Study saved-versus-draft identity, run-list arrival/artifact-count consistency, Code
-      Library async validation/save-response fencing, durable run recovery and immutable promotion binding; add a
+      Library async validation/save-response fencing, durable run recovery and immutable promotion binding;
+      keep Results cancel/rerun failures visible and retryable; add a
       Strategy-owned Study journey spec and focused regressions. Consume the exact TC-owned data
       preparation coordinator in Study controls so explicit Validate/Run actions prepare the
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
@@ -1205,17 +1206,17 @@ progress:
     export are recorded and hash-verified; the earlier 55b import and its Ruff/EOF-whitespace failures
     remain historical. The successor's released Ruff check/format review resolves that style issue,
     but full exact-source branch/combined release qualification remains pending. The focused Provider
-      boundary now passes 36/36 unit cases, and the Code Library save-response regressions pass
-      within its 16-case component suite. Root retains the single combined real-backend/browser qualification;
+      boundary now passes 36/36 unit cases, Code Library passes its 16-case suite, and Results passes
+      its 62-case suite with cancel/rerun failure recovery coverage. Root retains the single combined
+      real-backend/browser qualification;
     do not launch a duplicate Strategy stack. The earlier Docker-socket preflight refusal remains
     historical and created no fixtures.
   updated_at: "2026-11-06T21:26:25Z"
   next_action: >-
-      Validate discovery of the expanded normal-user Study -> Python Library edit/validate/save ->
-      Study return/run journey, then close the remaining Strategy Results cancel/rerun and promotion
-      action gaps with focused regressions. Maintain the J10/J11/J12 action matrix and distinguish
-      component/API evidence from browser proof. Preserve full backend/browser/exact-CI qualification
-      in Root's single combined slot; leave usability acceptance and deployed proof pending.
+      Review Strategy-owned Results promotion and delayed-response boundaries for a concrete
+      user-visible defect, then keep J10/J11/J12 browser execution in Root's single combined slot.
+      Maintain component/API versus browser evidence boundaries; do not claim authored journeys
+      passed in a real browser or close usability acceptance before exact CI and combined gates.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and

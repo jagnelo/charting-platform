@@ -415,6 +415,46 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.text()).toContain('canceled')
   })
 
+  it('reports a cancellation failure and leaves the selected run retryable', async () => {
+    const running = { id: 13, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    apiGet.mockResolvedValue([running])
+    apiPost.mockRejectedValueOnce(new Error('cancel endpoint unavailable')).mockResolvedValue({ ...running, status: 'canceled' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Research run 13 details"]').get('button').trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').text()).toContain('cancel endpoint unavailable')
+
+    const cancel = wrapper.get('[aria-label="Research run 13 details"]').get('button')
+    expect(cancel.attributes('disabled')).toBeUndefined()
+    await cancel.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('canceled')
+    wrapper.unmount()
+  })
+
+  it('reports a rerun failure without disabling a subsequent retry', async () => {
+    const completed = { id: 14, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    apiGet.mockResolvedValue([completed])
+    apiPost.mockRejectedValueOnce(new Error('rerun endpoint unavailable')).mockResolvedValue({ ...completed, id: 15, status: 'queued' })
+    const wrapper = mountTool()
+    await flushPromises()
+
+    const rerun = wrapper.findAll('button').find(button => button.text() === 'Rerun snapshot')!
+    await rerun.trigger('click')
+    await flushPromises()
+    expect(wrapper.get('[role="alert"]').text()).toContain('rerun endpoint unavailable')
+    expect(rerun.attributes('disabled')).toBeUndefined()
+
+    await rerun.trigger('click')
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledTimes(2)
+    expect(wrapper.text()).toContain('Run #15')
+    wrapper.unmount()
+  })
+
   it('propagates rerun and cancel mutations through the shared results cache', async () => {
     const running = { id: 16, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
     const canceled = { ...running, status: 'canceled' }
