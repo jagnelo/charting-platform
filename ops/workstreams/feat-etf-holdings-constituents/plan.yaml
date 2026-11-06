@@ -5552,6 +5552,92 @@ previously_accepted_capability_get_checkpoint_2026_11_05:
     and pending under Root ownership; Root owns the full staging gate and downstream integration. AC1-AC14, 15 Tier-0
     and 156 Tier-1, all holds, archives, datasets and genuine deployed user-flow obligations remain open. integration_capture:
     exact branch HEAD.'
+previously_accepted_vaneck_fixture_clock_checkpoint_2026_11_06:
+  goal: Repair the three VanEck native qualification/ordinary-refresh integration failures by freezing the test
+    clock for the authentic dated workbook fixtures, without changing provider data, freshness rules, or product
+    behavior.
+  acceptance_criteria:
+  - id: VFC1
+    text: Keep the two authentic VanEck workbook fixtures and their provider-reported 2026-10-29 composition date
+      unchanged; freeze only the test application clock at 2026-11-01T12:00:00Z for the affected tests so the existing
+      five-day daily freshness rule remains authoritative.
+  - id: VFC2
+    text: All three affected VanEck PostgreSQL/SQLite integration nodes pass while retaining existing source identity,
+      body, date, quota, provenance, one-shot and ordinary-refresh assertions; no production code, source transport,
+      or freshness policy is changed.
+  - id: VFC3
+    text: Record exact failed predecessor CI and focused test evidence, verify fixture hashes and owned test-container
+      cleanup, preserve the full roadmap and prior checkpoints, and leave exact-source CI and broader Root-owned
+      qualification pending.
+  progress:
+    completed:
+    - VFC1
+    - VFC2
+    - VFC3
+    total: 3
+    current_phase: The two affected VanEck integration tests pass with a frozen test clock; the authentic 2026-10-29
+      workbook bytes and five-day freshness policy are unchanged.
+    current_blocker: Exact-source CI and Root-owned broader qualification remain pending. Preserve AC1-AC14, 15
+      Tier-0 and 156 Tier-1, all source/account/target holds, histories, and genuine deployment work.
+  integration_checkpoint:
+    id: vaneck-authentic-fixture-clock-2026-11-06
+    goal: Make the three date-sensitive VanEck qualification and ordinary-refresh integration tests deterministic
+      as their authentic 2026-10-29 fixtures age, without altering fixture evidence or freshness behavior.
+    status: ready_for_human_review
+    activation: Root authorized this narrowly scoped repair under the existing active ETF owner session; no new
+      human quote or acceptance is claimed.
+    failed_predecessor:
+      source: 2f152978
+      ci_run: 42141483157
+      result: Backend unit 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed. All three failures
+        were the two VanEck test functions, with the identity-successor test parameterized for PostgreSQL and SQLite.
+    diagnosis: The unchanged authentic workbooks report composition date 2026-10-29. Under the existing five-day
+      daily freshness window, that evidence is expired by 2026-11-06. The tests failed because their application
+      clock advanced while fixture date and freshness contract correctly remained fixed.
+    implementation:
+      type: test-only clock fixture
+      frozen_now_utc: '2026-11-01T12:00:00Z'
+      production_code_changed: false
+      fixture_bytes_changed: false
+      freshness_policy_changed: false
+    test_file: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+    test_file_sha256: a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d
+    source_parent_sha: 375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d
+    fixture_sha256:
+      backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx: 11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653
+      backend/tests/fixtures/vaneck/oih_job6_identity.xlsx: c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2
+    validation_evidence:
+      affected_nodes: 3
+      result: 3 passed in 29.07s; exit 0
+      pytest_log: /tmp/etf-vaneck-clock-repair-20261106/pytest.log
+      run_receipt: /tmp/etf-vaneck-clock-repair-20261106/run-result.json
+      prelaunch: /tmp/etf-vaneck-clock-repair-20261106/prelaunch.json
+      container_id: 80ecd2cf08010b8a610133f12e816dc42f49a28467c355dcd69016738edd9800
+      container_cleanup: Post-run docker inspect returned no such object for the exact owned container ID. Before/after
+        protected inventory counts were 33 containers, 26 images, 12 networks and 55 volumes; no new unowned container
+        was present.
+      resource_bounds: 'PostgreSQL: 1 CPU, 1 GiB memory, 1 GiB memory+swap, PIDs 128, 768 MiB private tmpfs; one
+        worker, zero retries; external HTTP proxies loopback port 9.'
+    source_http_requests: 0
+    production_or_ledger_mutation: false
+    exact_source_ci:
+      state: pending_Root_owned
+      green_claimed: false
+    remaining_gates:
+    - Root-owned exact-source CI for the published checkpoint.
+    - Root-owned broader joint qualification and all later integration/deployment gates.
+    full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, historical failures and accepted
+      checkpoints remain preserved and open.
+    integration_capture: exact branch HEAD
+  status: ready_for_human_review
+  closure_pending: true
+  human_closure_authorization: Not requested for this checkpoint; Root review and exact-source CI remain pending.
+  closure_summary: 'Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes
+    pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness
+    rules. The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation,
+    or quota/policy change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14,
+    15 Tier-0 and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch
+    HEAD.'
 goal: Repair the three VanEck native qualification/ordinary-refresh integration failures by freezing the test clock
   for the authentic dated workbook fixtures, without changing provider data, freshness rules, or product behavior.
 acceptance_criteria:
@@ -5581,7 +5667,7 @@ integration_checkpoint:
   id: vaneck-authentic-fixture-clock-2026-11-06
   goal: Make the three date-sensitive VanEck qualification and ordinary-refresh integration tests deterministic
     as their authentic 2026-10-29 fixtures age, without altering fixture evidence or freshness behavior.
-  status: ready_for_human_review
+  status: Root_accepted_ready_for_integration_closing_tip_CI_pending
   activation: Root authorized this narrowly scoped repair under the existing active ETF owner session; no new human
     quote or acceptance is claimed.
   failed_predecessor:
@@ -5619,19 +5705,36 @@ integration_checkpoint:
   source_http_requests: 0
   production_or_ledger_mutation: false
   exact_source_ci:
-    state: pending_Root_owned
+    state: pending_Root_owned_for_closing_tip
     green_claimed: false
   remaining_gates:
-  - Root-owned exact-source CI for the published checkpoint.
-  - Root-owned broader joint qualification and all later integration/deployment gates.
-  full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, historical failures and accepted
-    checkpoints remain preserved and open.
+  - Exact closing-tip CI for this records-only publication; Root owns observation.
+  - Root-owned combined visual, canonical staging qualification, master promotion, deployment and genuine user journeys
+    remain pending.
+  full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, native qualification, all retained holds, and genuine
+    user-flow/deployment work remain open and preserved.
   integration_capture: exact branch HEAD
-status: ready_for_human_review
-closure_pending: true
-human_closure_authorization: Not requested for this checkpoint; Root review and exact-source CI remain pending.
-closure_summary: 'Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes
-  pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules.
-  The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy
-  change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0
-  and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.'
+  acceptance_authorization: Accepted by Root under the human standing authorization recorded in the acceptance receipt;
+    no new human quote or personal human testing is claimed.
+  root_acceptance_receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json
+  root_acceptance_sha256: e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681
+  validated_implementation_sha: b25fc814ef301103337f343d57b859545fa5bb8f
+  validated_implementation_ci:
+    run: 42147141948
+    state: terminal_green
+    scope: Exact source b25fc814; CI validated the test-only VanEck fixture-clock repair.
+  test_file_git_blob: c75d410ea18854db6179f0d2ba608ef62e4350c2
+  migrations: none
+  product_or_runtime_configuration_changes: none; test-only change
+status: ready_for_integration
+closure_pending: false
+human_closure_authorization: The human standing authorization in /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json
+  permits autonomous acceptance and integration of these development checkpoints. Root accepted this bounded checkpoint
+  under that authority. No new human quote is asserted.
+closure_summary: 'Root accepted the bounded VanEck authentic-fixture-clock checkpoint under the recorded human standing
+  authorization. Validated implementation b25fc814ef301103337f343d57b859545fa5bb8f is green on exact CI 42147141948;
+  the three affected integration nodes passed (3 passed in 29.07s), with unchanged authentic 2026-10-29 workbook
+  fixtures and unchanged five-day freshness behavior. The change is test-only, with no product/configuration changes
+  or migrations. Closing-tip CI remains mandatory and pending under Root ownership. Root also owns combined visual/staging/master/deployment
+  and genuine qualification/user-flow gates. AC1-AC14, 15 Tier-0 and 156 Tier-1, native qualification, all holds,
+  histories and wider roadmap remain open. integration_capture: exact branch HEAD.'

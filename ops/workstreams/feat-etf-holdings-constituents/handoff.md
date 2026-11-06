@@ -1,3 +1,11 @@
+# Accepted checkpoint — VanEck authentic fixture clock — 2026-11-06
+
+Root accepted this bounded test-only checkpoint under the human standing authorization in `/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json` (SHA256 `e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681`). Validated implementation: `b25fc814ef301103337f343d57b859545fa5bb8f`; its exact-source CI `42147141948` is green. The three affected VanEck integration nodes passed with authentic workbook bytes and freshness policy unchanged. No product/configuration change or migration was made.
+
+The CI for this records-only closing tip is still mandatory and pending under Root ownership. Root also owns the combined visual, staging/master, deployment and genuine-user-flow gates. AC1–AC14, `15 Tier-0 and 156 Tier-1`, native qualification, and all holds remain open. `integration_capture: exact branch HEAD`.
+
+---
+
 # Current handoff — capability GET persisted snapshot — 2026-11-05
 
 The original owner session and claim are unchanged. Root released the branch at `45cc8206602d7823ca29e132d991d88b0bcbbc25` for this bounded follow-up. The capability GET path previously evaluated native identity against `ETFHoldingsSnapshotOut`; the strict verifier requires ORM-only `source_artifact_id`. The service now shares one latest-snapshot ORM query between capability and DTO rendering, preserving existing visibility, controlled-fixture exclusion, ordering, and eager loading. The optional snapshot keyword remains but is typed as the ORM model. No public DTO fields or native checks changed.
