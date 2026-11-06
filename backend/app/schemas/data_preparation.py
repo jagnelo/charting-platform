@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.ohlcv import Timeframe
 
@@ -80,7 +80,7 @@ class AnalysisPreparation(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     kind: Literal["ratio", "rrg"]
-    lookback: int = Field(default=10, ge=1, le=5_000)
+    lookback: int = Field(default=20, ge=2, le=252)
     sampling: int = Field(default=1, ge=1, le=30)
     tail_length: int = Field(default=10, ge=1, le=5_000)
     history_length: int = Field(default=0, ge=0, le=5_000)
@@ -101,8 +101,8 @@ class AnalysisPreparation(BaseModel):
 
     @property
     def required_raw_bars(self) -> int:
-        """Existing RRG math: two lookback windows, plus sampling warmup."""
-        return (self.lookback * 2 + 1) * self.sampling
+        """Raw bars for both lookback windows and the requested result tail."""
+        return (self.lookback * 2 + self.tail_length + self.history_length) * self.sampling
 
 
 class DataEnsureRequest(BaseModel):
@@ -115,6 +115,15 @@ class DataEnsureRequest(BaseModel):
     start_at: datetime | None = None
     end_at: datetime | None = None
     analysis: AnalysisPreparation | None = None
+
+    @field_validator("start_at", "end_at")
+    @classmethod
+    def require_and_normalize_utc(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("range timestamps must include a timezone")
+        return value.astimezone(UTC)
 
     @model_validator(mode="after")
     def validate_range_and_datasets(self) -> DataEnsureRequest:
@@ -132,7 +141,9 @@ class PreparationDependencyResponse(BaseModel):
     depends_on: list[str] = Field(default_factory=list)
     instrument_id: int | None = None
     dataset: PreparationDataset
-    status: Literal["queued", "running", "ready", "waiting", "unavailable", "failed"]
+    status: Literal[
+        "queued", "running", "partial", "ready", "waiting", "unavailable", "failed"
+    ]
     requested_start: datetime | None = None
     requested_end: datetime | None = None
     covered_start: datetime | None = None

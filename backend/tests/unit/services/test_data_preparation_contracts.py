@@ -9,6 +9,7 @@ from app.schemas.data_preparation import (
     DataEnsureRequest,
     InstrumentPreparationTarget,
     PreparationDataset,
+    PreparationDependencyResponse,
 )
 from app.services.data_preparation_contracts import (
     DatasetPreparationContext,
@@ -41,7 +42,7 @@ def test_analysis_contract_uses_existing_names_and_derives_rrg_warmup() -> None:
             "history_length": 80,
         }
     )
-    assert analysis.required_raw_bars == (20 * 2 + 1) * 3
+    assert analysis.required_raw_bars == (20 * 2 + 12 + 80) * 3
     assert analysis.model_dump().keys() >= {
         "lookback",
         "sampling",
@@ -49,6 +50,15 @@ def test_analysis_contract_uses_existing_names_and_derives_rrg_warmup() -> None:
         "history_length",
     }
     assert "warmup_bars" not in analysis.model_dump()
+
+    defaults = AnalysisPreparation(kind="rrg")
+    assert (defaults.lookback, defaults.sampling, defaults.tail_length, defaults.history_length) == (
+        20,
+        1,
+        10,
+        0,
+    )
+    assert defaults.required_raw_bars == 50
 
 
 def test_analysis_rejects_competing_or_client_authoritative_warmup_fields() -> None:
@@ -92,6 +102,36 @@ def test_request_normalizes_symbol_and_rejects_duplicate_datasets() -> None:
                 "datasets": ["history", "history"],
             }
         )
+
+
+def test_request_requires_timezone_and_normalizes_offsets_to_utc() -> None:
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": 1},
+            "start_at": "2026-11-06T12:00:00+02:00",
+            "end_at": "2026-11-06T11:00:00Z",
+        }
+    )
+    assert request.start_at == datetime(2026, 11, 6, 10, tzinfo=UTC)
+    assert request.end_at == datetime(2026, 11, 6, 11, tzinfo=UTC)
+
+    with pytest.raises(ValidationError):
+        DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "instrument", "instrument_id": 1},
+                "start_at": "2026-11-06T12:00:00",
+            }
+        )
+
+
+def test_dependency_wire_accepts_partial_without_treating_it_as_ready() -> None:
+    dependency = PreparationDependencyResponse(
+        dependency_id="dep-1",
+        dataset=PreparationDataset.HISTORY,
+        status="partial",
+        updated_at=datetime(2026, 11, 6, tzinfo=UTC),
+    )
+    assert dependency.status == "partial"
 
 
 def test_etf_hook_context_and_result_are_constructible_shared_types() -> None:
