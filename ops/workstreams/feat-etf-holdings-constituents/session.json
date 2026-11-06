@@ -34,10 +34,14 @@
       "backend/tests/unit/services/test_etf_holdings_preparation.py",
       "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
       "frontend/src/views/ETFHoldingsView.vue",
-      "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
+      "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "backend/app/services/baskets.py",
+      "backend/tests/integration/api/test_baskets.py",
+      "frontend/src/lib/dataPreparation.ts",
+      "frontend/tests/e2e/etf_holdings_preparation.spec.ts"
     ],
     "status": "in_progress",
-    "focused_validation": "Backend 29 passed; ETFHoldingsView 21 passed; Ruff passed. First typed-retry test attempt exposed a missing fixture name, preserved, then corrected focused result passed."
+    "focused_validation": "Backend ETF preparation/hook focused tests 29 passed; ETFHoldingsView unit tests 23 passed; frontend vue-tsc --noEmit passed; new ETF-only Playwright spec listed two tests but browser bodies were not run. Basket real PostgreSQL CRUD passed 1/1 with exact owned cleanup; separate receipt is in the current handoff/validation history."
   },
   "active_follow_up": {
     "id": "platform-usability-etf-holdings-2026-11-06",
@@ -105,7 +109,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Provider contract blobs from exact source 3d10c4c4662249b53a6e3fc497f1d260b59b2079 are consumed unchanged; Provider runtime wiring still awaits normal green staging adoption. Backend preparation/hook tests passed 29/29, ETFHoldingsView passed 21/21, and typed quota retry propagation is covered. The ETF-only browser spec and Root-owned combined proof remain pending.",
+  "current_blocker_latest": "ETFHoldingsView now consumes the exact unchanged TC dataPreparation client and requests holdings automatically on deliberate selection; 23 view unit tests and vue-tsc pass, and the two ETF-only Playwright cases are listed but not run. Provider runtime wiring, TC reconciliation of the legacy on_demand_acquisition.spec.ts expectation, and Root-owned combined profile remain pending.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -1053,7 +1057,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "ab8a8dfbdc3e2042f55450aec0dbe4aeedfefb18198335aedc44554d7e622954",
+  "plan_hash": "4aafe8de1e23723b6e060370e5b2aa83e3757cd415bfc974e09dde55f64bb5e5",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",

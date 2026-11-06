@@ -5722,8 +5722,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: ETF hook matches the exact adopted Provider DTOs; strict selected-snapshot reuse and nested-profile selection fencing are implemented, with focused service/view checks passing.
-  current_blocker: Normal green Provider staging adoption is still required before shared runtime wiring is available; the new ETF-only browser journey and Root-owned combined proof remain pending.
+  current_phase: ETF hook and shared-client view handoff are implemented; cached snapshots remain visible while holdings preparation runs, and current focused view tests/type-check pass.
+  current_blocker: Provider shared-runtime wiring and the Root-owned combined browser profile remain pending. The ETF-only journey spec is authored and listed but has not run; one TC-owned legacy E2E still expects the replaced automatic acquire call and needs owner reconciliation.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
   scope: Implement the ETF-owned holdings preparation callable and ETFHoldingsView automatic request/provenance behavior under the complete human-activated platform-usability plan.
@@ -5735,7 +5735,8 @@ integration_checkpoint:
   - backend/app/routers/etf_holdings.py
   - backend/tests/unit/services/test_etf_holdings_preparation.py
   - frontend/src/views/ETFHoldingsView.vue
-  - frontend/tests/e2e/etf_holdings_acquisition.spec.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
   excluded_shared_paths:
   - backend/app/services/provider_runtime.py
   - backend/app/routers/data_ensure.py
@@ -5755,8 +5756,8 @@ integration_checkpoint:
   source_http_requests: 0
   real_quota_or_production_mutation: false
   full_platform_release_gates: Root-owned after the assigned domains implement their slices; no full roadmaps are marked complete here.
-  remaining: Normal green Provider staging adoption and runtime wiring; ETF integrated service tests, focused ETF browser spec, then Root-allocated DB/browser/live proof and one combined release.
-  focused_validation: "Backend ETF preparation/helper/hook: 29 passed after adding typed quota retry propagation; Ruff check/format passed. ETFHoldingsView unit suite: 21 passed. The initial retry-test attempt exposed a missing name field in its mock instrument; that setup defect is preserved, then the two exact tests passed and the corrected 29-test slice passed. These are focused offline checks only; no shared runtime, database fixture, browser profile, provider request, or production operation was run."
+  remaining: Provider must publish and integrate the actual shared runtime hook; TC must reconcile the legacy ETF-view E2E assertion; Root owns the combined functional/visual profile and any live proof.
+  focused_validation: "Backend ETF preparation/helper/hook: 29 passed with known quota retry propagation; Ruff check/format passed. ETFHoldingsView unit suite: 23 passed; frontend vue-tsc --noEmit passed; Playwright discovery listed both ETF preparation cases. The browser cases were not executed. Basket PostgreSQL CRUD passed 1/1 in its separately recorded attempt004 with exact cleanup. No provider request, production operation, or combined browser profile was run for this view handoff."
   integration_capture: exact branch HEAD
 status: in_progress
 closure_pending: true
@@ -5779,3 +5780,21 @@ root_allocated_basket_crud_followup_2026_11_06:
     cleanup: Exact owned container and volume removed; before/after container, image, network, and volume inventories matched in attempt004. Earlier red attempts are retained separately.
     lint: Ruff check and format check passed for both owned files.
   status: focused implementation ready for Root review; broad platform and ETF roadmaps remain open.
+
+root_allocated_etf_view_shared_preparation_consumption_2026_11_06:
+  authority: Root released exact TC client consumption for ETF-owned view/components; imported dependency is not edited and TC owns its records.
+  dependency:
+    source_commit: 877df044d2496c5f1be0e86b4dd49503cc6e55db
+    path: frontend/src/lib/dataPreparation.ts
+    source_git_blob: 71fd0bd48d4fb1b1a8e21b90b39fd549367e91d6
+    sha256: c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d
+    consumption: Exact unchanged TC blob imported into this ETF worktree; used dataPreparationCoordinator.ensure and preparationStatusMessage only from ETFHoldingsView.
+  behavior: Deliberate exact-fund selection submits one holdings dataset request using a verified instrument ID only when already explicitly confirmed, otherwise the selected ticker. A current snapshot stays visible during preparation; ready responses reload only an exact-symbol profile and its dated provenance. Unavailable/waiting/failed responses remain status text and do not promote stale capability. A rapid switch aborts the old UI subscription and selection-generation checks reject late results. Existing manual holdings controls remain optional.
+  owned_paths:
+  - frontend/src/views/ETFHoldingsView.vue
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/tests/unit/views/test_etf_holdings_view.test.ts
+  - frontend/tests/e2e/etf_holdings_preparation.spec.ts
+  validation: ETFHoldingsView unit tests 23 passed; vue-tsc --noEmit passed; Playwright listed two focused ETF cases, no browser test bodies run.
+  shared_test_handoff: TC-owned frontend/tests/e2e/on_demand_acquisition.spec.ts test at line 1051 still asserts automatic IWM /etf-holdings/IWM/acquire after selection; it must be reconciled to /data/ensure by its owner before the combined profile. No shared test or TC worktree was edited.
+  remaining: Provider runtime import/wiring and Root-owned single combined functional/strict-visual profile are pending. No runtime, provider, production, source, quota, policy, or data operation is claimed.
