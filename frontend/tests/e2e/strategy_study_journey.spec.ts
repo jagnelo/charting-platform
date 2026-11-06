@@ -74,7 +74,12 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await expect(restoredStudy.locator('.study-lab-tool__dataset-summary')).toContainText('Current draft dataset: XLB')
   await expect(restoredStudy.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
   await expect(restoredStudy.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
-  await expect(page.locator('.research-results-tool:visible').last().getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })).toBeVisible()
+  const restoredResults = page.locator('.research-results-tool:visible').last()
+  const restoredRun = restoredResults.getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })
+  await expect(restoredRun).toBeVisible()
+  await restoredRun.click()
+  const restoredDetail = restoredResults.locator(`article[aria-label="Research run ${runId} details"]`)
+  await expect(restoredDetail.locator('.research-results-tool__artifacts > article')).toHaveCount(8, { timeout: 15_000 })
 
   await page.getByRole('button', { name: 'Add tool', exact: true }).click()
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()

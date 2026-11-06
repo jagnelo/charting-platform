@@ -19612,3 +19612,7 @@ The Study E2E spec adds an authored controlled-API journey that holds the first 
 ### Study journey opens and checks persisted Results detail (2026-11-06)
 
 The normal Study E2E now selects the completed run in the adjacent Results tool and checks that the persisted detail exposes all eight artifact panes, in addition to the matching eight-artifact list label. This extends the authored normal-user path through result inspection while preserving the saved SPY identity across the later XLB draft edit and reload. The exact-source browser has not run; `vue-tsc --noEmit` passed and Playwright discovery still lists four stories. Root's combined backend/browser gate remains the required execution evidence.
+
+### Study Results detail rehydration after reload (2026-11-06)
+
+The same normal-user browser journey now reopens the completed run in Research Results after workspace reload and checks that all eight persisted artifact panes return. This distinguishes persisted run hydration from the in-memory result shown before reload. The browser story remains authored-only until Root's combined profile runs; no backend or live data behavior is claimed.

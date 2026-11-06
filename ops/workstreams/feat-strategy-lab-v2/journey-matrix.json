@@ -122,7 +122,7 @@
         "GET /research/runs/{id} and list artifact-count projections: backend/tests/unit/routers/test_research_router.py :: test_research_run_detail_projects_artifact_count_from_persisted_artifacts, test_research_run_detail_hides_runs_owned_by_another_user, and test_research_run_list_projects_persisted_artifact_count_for_current_owner",
         "Structured result persistence: backend/tests/integration/api/test_code.py :: test_research_result_is_collected_as_structured_artifact"
       ],
-      "browser_evidence": "Pending exact-source browser run. The Study journey asserts automatic Results arrival, eight artifacts in the run list, and eight persisted artifact panes after selecting the completed run detail; saved SPY identity remains unchanged after XLB draft edit and reload.",
+      "browser_evidence": "Pending exact-source browser run. The Study journey asserts automatic Results arrival, eight artifacts in the run list, and eight persisted artifact panes after selecting the completed run detail before and after workspace reload; saved SPY identity remains unchanged after XLB draft edit and reload.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow",
         "J12 recovery: reload and delayed result restoration"
