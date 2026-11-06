@@ -109,3 +109,135 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   expect(codeAssetCreations).toBe(1)
   await browserDiagnostics.expectNoCriticalIssues()
 })
+
+test('Results supports ordinary controls through a controlled persisted-run API', async ({ page, loggedIn, browserDiagnostics }) => {
+  const breadthRun = {
+    id: 8000,
+    status: 'completed',
+    created_at: '2026-11-06T12:00:00Z',
+    code_version_id: 88,
+    output_contract: 'study',
+    reproducibility_hash: 'controlled-run-8000',
+    run_config: { execution_mode: 'breadth_history' },
+    dataset_manifest: { source: 'controlled-browser-fixture', symbols: ['SPY'] },
+    diagnostics: [],
+    warnings: [],
+    artifacts: [
+      { id: 801, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+      { id: 802, name: 'occurrences', artifact_type: 'events', payload: { value: [
+        { symbol: 'SPY', timestamp: '2026-11-05T00:00:00Z', kind: 'member_entered', instrument_id: 7 },
+        { symbol: 'SPY', timestamp: '2026-11-04T00:00:00Z', kind: 'member_exited', instrument_id: 7 },
+        { symbol: 'AAPL', timestamp: '2026-11-03T00:00:00Z', kind: 'member_entered', instrument_id: 8 },
+      ] } },
+      { id: 803, name: 'sample_count', artifact_type: 'scalar', payload: { value: 3 } },
+    ],
+    artifact_count: 3,
+  }
+  const makeRun = (id: number, status = 'completed', createdAt = new Date(Date.UTC(2026, 10, 6, 11, 59 - (8000 - id), 0)).toISOString()) => ({
+    id,
+    status,
+    created_at: createdAt,
+    code_version_id: id + 100,
+    output_contract: 'study',
+    reproducibility_hash: `controlled-run-${id}`,
+    run_config: {},
+    dataset_manifest: { source: 'controlled-browser-fixture', symbols: ['SPY'] },
+    diagnostics: [],
+    warnings: [],
+    artifacts: [],
+    artifact_count: 0,
+  })
+  const queuedRun = makeRun(7999, 'queued', '2026-11-06T11:59:00Z')
+  let persistedRuns = [breadthRun, queuedRun, ...Array.from({ length: 24 }, (_, index) => makeRun(7998 - index))]
+  const olderRun = makeRun(7900, 'completed', '2026-11-06T00:00:00Z')
+  let nextRunId = 8100
+  const rerunRequests: Array<{ sourceRunId: number; snapshot: string | null }> = []
+
+  await page.route('**/api/v1/research/runs**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const pathname = url.pathname
+    if (request.method() === 'GET' && pathname.endsWith('/research/runs')) {
+      const pageRows = url.searchParams.has('before_created_at') ? [olderRun] : persistedRuns.slice(0, 26)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(pageRows) })
+      return
+    }
+    const detail = pathname.match(/\/research\/runs\/(\d+)$/)
+    if (request.method() === 'GET' && detail) {
+      const run = persistedRuns.find(item => item.id === Number(detail[1])) ?? olderRun
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(run) })
+      return
+    }
+    const cancel = pathname.match(/\/research\/runs\/(\d+)\/cancel$/)
+    if (request.method() === 'POST' && cancel) {
+      const runId = Number(cancel[1])
+      persistedRuns = persistedRuns.map(run => run.id === runId ? { ...run, status: 'canceled' } : run)
+      const canceled = persistedRuns.find(run => run.id === runId)!
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(canceled) })
+      return
+    }
+    const rerun = pathname.match(/\/research\/runs\/(\d+)\/rerun$/)
+    if (request.method() === 'POST' && rerun) {
+      const sourceRunId = Number(rerun[1])
+      const snapshot = url.searchParams.get('snapshot')
+      rerunRequests.push({ sourceRunId, snapshot })
+      const source = persistedRuns.find(run => run.id === sourceRunId) ?? breadthRun
+      const queued = makeRun(nextRunId++, 'queued', new Date(Date.UTC(2026, 10, 6, 12, 10 + rerunRequests.length, 0)).toISOString())
+      queuedRun.artifacts = []
+      persistedRuns = [queued, ...persistedRuns.filter(run => run.id !== queued.id)]
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify({ ...queued, code_version_id: source.code_version_id }) })
+      return
+    }
+    await route.continue()
+  })
+  await page.route('**/api/v1/analysis/breadth/python/runs/*/promote-scan', async route => {
+    await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify({ id: 810, name: 'Controlled breadth scan' }) })
+  })
+
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  const results = page.locator('.research-results-tool:visible').last()
+  await expect(results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' })).toBeVisible()
+  const runList = results.getByRole('list', { name: 'Persisted research runs' })
+  await expect(runList.locator('.research-results-tool__run-select').nth(0)).toHaveAccessibleName('Run 8000, completed, 3 artifacts')
+  await expect(runList.locator('.research-results-tool__run-select').nth(1)).toHaveAccessibleName('Run 7999, queued, 0 artifacts')
+
+  await results.getByRole('button', { name: 'Load older runs', exact: true }).click()
+  await expect(results.getByRole('button', { name: 'Run 7900, completed, 0 artifacts' })).toBeVisible()
+
+  await results.getByRole('checkbox', { name: 'Compare run 8000' }).check()
+  await results.getByRole('checkbox', { name: 'Compare run 7999' }).check()
+  await results.getByRole('button', { name: 'Compare', exact: true }).click()
+  await expect(results).toContainText('Run 8000 vs 7999')
+
+  await results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' }).click()
+  await results.getByRole('searchbox', { name: 'occurrences symbol filter' }).fill('SPY')
+  await results.getByRole('combobox', { name: 'occurrences event type filter' }).selectOption('member_entered')
+  await expect(results.getByRole('list', { name: 'occurrences filtered occurrences' }).getByRole('listitem')).toHaveCount(1)
+
+  const exportReady = page.waitForEvent('download')
+  await results.locator('[aria-label="sample_count scalar result"] button[title="Export sample_count"]').click()
+  expect((await exportReady).suggestedFilename()).toBe('study-run-8000-sample_count.json')
+
+  await results.getByRole('button', { name: 'Promote to EasyScan', exact: true }).click()
+  await expect(results).toContainText('EasyScan “Controlled breadth scan” (#810) created')
+
+  await results.getByRole('button', { name: 'Run 7999, queued, 0 artifacts' }).click()
+  await results.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(results.getByRole('button', { name: 'Run 7999, canceled, 0 artifacts' })).toBeVisible()
+
+  await results.getByRole('button', { name: 'Run 8000, completed, 3 artifacts' }).click()
+  await results.getByRole('button', { name: 'Rerun snapshot', exact: true }).click()
+  await expect(results.getByRole('button', { name: 'Run 8100, queued, 0 artifacts' })).toBeVisible()
+  await expect(runList.locator('.research-results-tool__run-select').first()).toHaveAccessibleName('Run 8100, queued, 0 artifacts')
+  await results.getByRole('button', { name: 'Rerun latest', exact: true }).click()
+  await expect(results.getByRole('button', { name: 'Run 8101, queued, 0 artifacts' })).toBeVisible()
+  expect(rerunRequests).toEqual([
+    { sourceRunId: 8000, snapshot: 'true' },
+    { sourceRunId: 8100, snapshot: 'false' },
+  ])
+  await browserDiagnostics.expectNoCriticalIssues()
+})

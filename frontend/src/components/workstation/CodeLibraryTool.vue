@@ -25,9 +25,9 @@
       </div>
     </form>
     <p v-if="error" class="code-library-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
-    <p v-else-if="loading && !assets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading user-owned assets…</p>
-    <p v-else-if="!filteredAssets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">No matching Python assets.</p>
-    <div v-else class="code-library-tool__assets" role="list">
+    <p v-if="!error && loading && !assets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">Loading user-owned assets…</p>
+    <p v-else-if="!error && !filteredAssets.length" class="code-library-tool__notice" role="status" aria-live="polite" aria-atomic="true">No matching Python assets.</p>
+    <div v-else-if="filteredAssets.length" class="code-library-tool__assets" role="list">
       <article v-for="asset in filteredAssets" :key="asset.id" class="code-library-tool__asset" :class="{ 'code-library-tool__asset--archived': asset.is_archived }" role="listitem">
         <div class="code-library-tool__asset-main">
           <strong>{{ asset.name }}</strong>
@@ -315,7 +315,7 @@ function selectVersion(asset: CodeAsset) {
   const version = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
   if (!version) return
   selectedVersions.value = { ...selectedVersions.value, [asset.id]: version.version_number }
-  drafts.value = { ...drafts.value, [asset.id]: version.source }
+  if (drafts.value[asset.id] === undefined) drafts.value = { ...drafts.value, [asset.id]: version.source }
 }
 function setSelectedVersion(asset: CodeAsset, versionNumber: number) {
   selectedVersions.value = { ...selectedVersions.value, [asset.id]: versionNumber }

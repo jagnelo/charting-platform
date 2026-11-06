@@ -79,6 +79,45 @@ describe('CodeLibraryTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
   })
 
+  it('keeps a validated Library draft retryable after immutable version persistence fails', async () => {
+    let saveAttempts = 0
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      if (path === '/code/assets/4/versions') {
+        saveAttempts += 1
+        if (saveAttempts === 1) return Promise.reject(new Error('version storage unavailable'))
+        return Promise.resolve({ id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: {}, default_parameters: {} })
+      }
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.get('summary').trigger('click')
+    const source = "output.scalar('n', 2)"
+    const editor = wrapper.get('[aria-label="Python source for Streak study"]')
+    await editor.setValue(source)
+    expect(wrapper.vm.$.setupState.drafts[4]).toBe(source)
+    const save = wrapper.findAll('button').find(button => button.text() === 'Save as new version')!
+    await save.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('version storage unavailable')
+    const retainedEditor = wrapper.get('[aria-label="Python source for Streak study"]')
+    expect((retainedEditor.element as HTMLTextAreaElement).value, JSON.stringify(wrapper.vm.$.setupState.drafts)).toBe(source)
+    await vi.waitFor(() => {
+      const retry = wrapper.findAll('button').find(button => button.text() === 'Save as new version')
+      expect(retry?.attributes('disabled')).toBeUndefined()
+    })
+
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+    expect(saveAttempts).toBe(2)
+    expect(apiPost.mock.calls.filter(([path]) => path === '/code/validate')).toHaveLength(1)
+    expect((wrapper.get('[aria-label="Base version for Streak study"]').element as HTMLSelectElement).value).toBe('2')
+    expect(wrapper.text()).toContain('2 versions')
+    wrapper.unmount()
+  })
+
   it('keeps a newer draft and selected base when an immutable version save resolves late', async () => {
     const pendingSave = deferred<unknown>()
     apiPost.mockImplementation((path: string) => {

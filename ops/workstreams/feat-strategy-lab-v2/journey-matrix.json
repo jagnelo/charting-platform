@@ -150,7 +150,7 @@
         "Stable newest-first server pagination: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
         "Cursor ordering: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
       ],
-      "browser_evidence": "Pending. The Study journey checks its run row/count but does not exercise older-page, compare, event filter, or sort behavior in a browser.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API: verifies newest-first list order, loads an older cursor page, compares two run IDs, filters event occurrences and exports a scalar artifact. This is authored-only UI interaction evidence; execution and real backend behavior remain pending Root's combined gate.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -180,7 +180,7 @@
       "api_evidence": [
         "POST /research/runs/{id}/cancel and POST /research/runs/{id}/rerun?snapshot={true|false}; API list/run invariants are exercised by backend/tests/integration/api/test_code.py :: test_research_rerun_snapshot_retains_manifest and test_research_runs_list_is_user_scoped_and_newest_first"
       ],
-      "browser_evidence": "Pending. Current Study journey does not browser-exercise cancellation or either rerun action; Root's combined gate must retain these cases or explicitly report them as not browser-covered.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API: cancels a queued run and checks its updated status, then verifies snapshot rerun of run 8000 and latest rerun of its queued successor 8100 use distinct request modes. This is authored-only UI interaction evidence, not actual backend/browser acceptance; Root's combined gate remains pending.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -210,7 +210,7 @@
         "Backend promotion integration examples: backend/tests/integration/api/test_strategy_lab.py :: test_research_event_artifact_promotes_with_lineage, test_multi_event_run_requires_and_preserves_named_signal_artifact, and test_study_lab_signal_promotion_creates_strategy_definition_reference",
         "Study result source version remains immutable: backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions"
       ],
-      "browser_evidence": "Pending. The Study journey renders result metrics/artifacts but does not click promotion/export actions in a browser.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against controlled API responses: exports the selected run's scalar artifact and promotes its breadth artifact, checking the visible success message. This proves UI wiring only; real API lineage and browser execution remain pending Root's combined gate.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow",
         "J12 recovery: reload and delayed result restoration"
@@ -262,6 +262,7 @@
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: revalidates a new asset draft when its source changes during validation",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: does not reuse a late validation after an existing asset draft changes",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a newer draft and selected base when an immutable version save resolves late",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a validated Library draft retryable after immutable version persistence fails",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces successful source validation as a polite status",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind"
       ],
