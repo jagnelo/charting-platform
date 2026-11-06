@@ -1265,7 +1265,7 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
-  it('automatically refreshes a stale selected fund once and keeps its saved snapshot when held', async () => {
+  it('keeps a stale dated holdings cache visible while automatic preparation is pending and unavailable', async () => {
     const staleProfile = {
       ...profile,
       holdings_capability: {
@@ -1285,7 +1285,8 @@ describe('ETFHoldingsView', () => {
       if (path === '/etf-holdings/SPY/transitions') return transitionTimelinePayload()
       return []
     })
-    vi.mocked(api.post).mockResolvedValueOnce(preparationResponse('SPY', 'unavailable') as never)
+    let finishPreparation!: (value: unknown) => void
+    vi.mocked(api.post).mockImplementation(() => new Promise(resolve => { finishPreparation = resolve }) as never)
 
     const wrapper = mount(ETFHoldingsView)
     await vi.waitFor(() => expect(wrapper.text()).toContain('MSFT'))
@@ -1294,6 +1295,14 @@ describe('ETFHoldingsView', () => {
     await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/data/ensure', {
       target: { kind: 'instrument', symbol: 'SPY' }, datasets: ['holdings'],
     }, expect.objectContaining({ signal: expect.any(AbortSignal) })))
+    expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('Preparing SPY holdings.')
+    expect(wrapper.get('.holdings-table').text()).toContain('MSFT')
+    expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime')).toBe(originalKnownAt)
+    expect(wrapper.get('.panel-meta').text()).toContain('Profile current eligibility: stale')
+    expect(wrapper.get('[data-testid="etf-check-stored"]').attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-testid="etf-request-issuer"]').attributes('disabled')).toBeDefined()
+
+    finishPreparation(preparationResponse('SPY', 'unavailable'))
     await vi.waitFor(() => expect(wrapper.get('[data-testid="etf-preparation-status"]').text()).toContain('No reviewed data source can provide this request.'))
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('MSFT')
