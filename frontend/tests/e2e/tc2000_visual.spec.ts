@@ -205,18 +205,40 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await waitForShellReady(page)
     const tool = page.locator('.tool-window').filter({ has: page.locator('[title="Tool menu"]') }).first()
     await expect(tool).toBeVisible()
-    await tool.locator('[title="Tool menu"]').click()
-    const menu = tool.getByRole('menu')
+    const menuTrigger = tool.locator('[title="Tool menu"]')
+    const menuId = await menuTrigger.getAttribute('aria-controls')
+    expect(menuId).toBeTruthy()
+    await menuTrigger.click()
+    const menu = page.locator(`[id="${menuId}"]`)
     await expect(menu).toBeVisible()
+    await expect(menu).toHaveRole('menu')
+    await expect(menu).toHaveAttribute('aria-label', 'Benchmarks tool menu')
     await expect(menu.getByRole('menuitem', { name: 'Maximize' })).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Float' })).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Close' })).toBeVisible()
+    const menuGeometry = await menu.evaluate(element => {
+      const rect = element.getBoundingClientRect()
+      const firstItem = element.querySelector<HTMLElement>('[role="menuitem"]')
+      if (!firstItem) return { menuInViewport: false, itemInViewport: false, centerHit: false }
+      const itemRect = firstItem.getBoundingClientRect()
+      const centerX = (itemRect.left + itemRect.right) / 2
+      const centerY = (itemRect.top + itemRect.bottom) / 2
+      const hit = document.elementFromPoint(centerX, centerY)
+      return {
+        menuInViewport: rect.left >= -1 && rect.top >= -1 && rect.right <= window.innerWidth + 1 && rect.bottom <= window.innerHeight + 1,
+        itemInViewport: itemRect.left >= -1 && itemRect.top >= -1 && itemRect.right <= window.innerWidth + 1 && itemRect.bottom <= window.innerHeight + 1,
+        centerHit: Boolean(hit && (hit === firstItem || firstItem.contains(hit))),
+      }
+    })
+    expect(menuGeometry).toEqual({ menuInViewport: true, itemInViewport: true, centerHit: true })
     await expect(page).toHaveScreenshot('workspace-tool-menu-open.png', {
       animations: 'disabled',
       caret: 'hide',
       maxDiffPixelRatio: 0.005,
       scale: 'css',
     })
+    await menu.getByRole('menuitem', { name: 'Close' }).click()
+    await expect(tool).toBeHidden()
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
