@@ -18284,3 +18284,13 @@ Current focused checks: ETFHoldingsView+BasketsView Vitest 41/41; Amplify accoun
 
 
 Basket member chart action coverage was extended in the same owned browser journey: after saving and reloading the edited manual basket, the test clicks its persisted MSFT member, checks `/chart/MSFT` and the visible workspace, returns to Baskets, and then continues the basket-token route. Playwright discovery still lists two basket journeys. Their browser bodies remain unrun here; this is spec coverage, not runtime evidence.
+
+
+## Provider 99 v2 development dependency pin — 2026-11-06
+
+Root corrected the 99 manifest schema. The active dependency now points to source `99ce73bbc67689aef5fc4fcffa76bcfebfa736da` via v2 manifest SHA256 `5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52`; v2 includes required `status_from139` on all 35 file records. Source, eight changed paths, and all 35 product blob/hash entries are identical to superseded v1. The prior 17d pin and original v1 manifest remain archived as history. This import is development-only; Producer full release and Root combined qualification remain pending. No tests, source requests, fixtures, or runtime operations were repeated for this metadata correction. Continue the owned ETF and basket journey work in the existing scope.
+
+
+## BWET reported-row browser journey — 2026-11-06
+
+Added an ETF-only controlled-route browser story for deliberate BWET selection. It asserts automatic holdings preparation, exact selected-fund snapshot lineage, visible reported C5TCM freight-futures and USD cash rows, preserved negative/positive weights, reference classification, and disabled history for the derivative row. This is a UI presentation contract using controlled responses; it is not captured-provider, backend-parser, or live qualification evidence. `npm run type-check` passed, and Playwright discovery lists all three ETF journey cases. Browser bodies remain pending Root’s single combined profile.

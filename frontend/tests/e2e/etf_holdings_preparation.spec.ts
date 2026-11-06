@@ -171,8 +171,8 @@ async function installETFSearch(page: import('@playwright/test').Page) {
       symbol: query,
       name: `${query} Sector Fund`,
       exchange: 'NYSE Arca',
-      type: 'ETF',
-      instrument_id: query === 'FNEW' ? 701 : query === 'RACE' ? 702 : 703,
+      type: query === 'BWET' ? 'ETV' : 'ETF',
+      instrument_id: query === 'FNEW' ? 701 : query === 'RACE' ? 702 : query === 'BWET' ? 811 : 703,
       identity_status: 'resolved',
     }] })
   })
@@ -321,6 +321,139 @@ test.describe('ETF holdings preparation', () => {
       { target: { kind: 'instrument', symbol: 'FNEW' }, datasets: ['holdings'] },
       { target: { kind: 'instrument', symbol: 'RACE' }, datasets: ['holdings'] },
     ])
+    expect(loggedIn).toBeUndefined()
+  })
+
+  test('BWET preparation keeps reported freight-futures and cash rows visible without charting them', async ({ page, loggedIn }) => {
+    const bwetProfile = {
+      ...profile('BWET', 811, 81, 911),
+      name: 'Breakwave Tanker Shipping ETF',
+      issuer: 'Amplify',
+      fund_family: 'Amplify ETFs',
+      resolved_count: 0,
+      unresolved_count: 0,
+    }
+    const bwetSnapshot = {
+      ...fixtureSnapshot('BWET', 811, 81, 911),
+      etf_name: 'Breakwave Tanker Shipping ETF',
+      composition_date: '2026-11-06',
+      as_of_date: '2026-11-06',
+      known_at: '2026-11-06T15:00:00Z',
+      source_provider: 'amplify',
+      source_identifier: 'amplify:bwet:account-1:2026-11-06',
+      source_url: 'https://fixture.invalid/amplify/bwet',
+      provenance: 'issuer_current_holdings',
+      row_count: 2,
+      resolved_count: 0,
+      unresolved_count: 0,
+      total_weight: '-0.07500000',
+    }
+    const rows: ETFHoldingsPage['holdings'] = [
+      {
+        id: 9111,
+        snapshot_id: 911,
+        constituent_instrument_id: null,
+        constituent_symbol: null,
+        constituent_name: null,
+        position: 1,
+        reported_symbol: 'C5TCM',
+        reported_name: 'Freight futures exposure',
+        weight: '-0.12500000',
+        shares: '-3',
+        market_value: '-125000',
+        currency: 'USD',
+        holding_type: 'future',
+        row_type: 'derivative',
+        is_resolved: false,
+      },
+      {
+        id: 9112,
+        snapshot_id: 911,
+        constituent_instrument_id: null,
+        constituent_symbol: null,
+        constituent_name: null,
+        position: 2,
+        reported_symbol: 'USD',
+        reported_name: 'Cash',
+        weight: '0.05000000',
+        shares: '50000',
+        market_value: '50000',
+        currency: 'USD',
+        holding_type: 'cash',
+        row_type: 'security',
+        is_resolved: false,
+      },
+    ]
+    const holdingsPage: ETFHoldingsPage = {
+      snapshot: { ...bwetSnapshot, holdings: rows },
+      holdings: rows,
+      total: rows.length,
+      limit: 100,
+      offset: 0,
+      has_next: false,
+    }
+    const ensureRequests: EnsureRequest[] = []
+
+    await installETFSearch(page)
+    await page.route(url => new URL(url).pathname === '/api/v1/etf-holdings', async route => {
+      const query = new URL(route.request().url()).searchParams.get('q')?.toUpperCase()
+      await route.fulfill({ status: 200, json: query === 'BWET' ? [bwetProfile] : [] })
+    })
+    await page.route('**/api/v1/data/ensure', async route => {
+      const body = route.request().postDataJSON() as EnsureRequest
+      ensureRequests.push(body)
+      await route.fulfill({ status: 200, json: ensureResponse('BWET', 'ready') })
+    })
+    await page.route('**/api/v1/etf-holdings/BWET/dates', route => route.fulfill({
+      status: 200,
+      json: [{
+        snapshot_id: 911,
+        composition_date: '2026-11-06',
+        as_of_date: '2026-11-06',
+        known_at: '2026-11-06T15:00:00Z',
+        provenance: 'issuer_current_holdings',
+        source_provider: 'amplify',
+        source_identifier: 'amplify:bwet:account-1:2026-11-06',
+        row_count: 2,
+        resolved_count: 0,
+        unresolved_count: 0,
+        source_quality: 'issuer_current',
+      }],
+    }))
+    await page.route('**/api/v1/etf-holdings/BWET/holdings**', route => route.fulfill({
+      status: 200,
+      json: holdingsPage,
+    }))
+    await page.route('**/api/v1/etf-holdings/BWET/weight-evolution', route => route.fulfill({
+      status: 200,
+      json: { etf_symbol: 'BWET', etf_name: 'Breakwave Tanker Shipping ETF', snapshot_count: 1, series: [] },
+    }))
+    await page.route('**/api/v1/etf-holdings/BWET/transitions', route => route.fulfill({
+      status: 200,
+      json: { etf_symbol: 'BWET', etf_name: 'Breakwave Tanker Shipping ETF', snapshot_count: 1, transition_count: 0, transitions: [] },
+    }))
+
+    await page.goto('/etf-holdings')
+    await selectETF(page, 'BWET')
+    await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
+    await expect(page.getByRole('heading', { name: 'BWET' })).toBeVisible()
+    await expect(page.locator('.snapshot-date-line')).toContainText('Breakwave Tanker Shipping ETF')
+    await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('amplify')
+    await expect(page.locator('.holdings-table')).toContainText('C5TCM')
+    await expect(page.locator('.holdings-table')).toContainText('Freight futures exposure')
+    await expect(page.locator('.holdings-table')).toContainText('USD')
+    await expect(page.locator('.holdings-table')).toContainText('-12.50%')
+    await expect(page.locator('.holdings-table')).toContainText('5.00%')
+
+    await page.locator('button.holding-row').filter({ hasText: 'C5TCM' }).click()
+    await expect(page.locator('.holding-detail h3')).toHaveText('C5TCM')
+    await expect(page.locator('.holding-detail')).toContainText('reference')
+    await expect(page.getByRole('button', { name: 'View history' })).toBeDisabled()
+    expect(ensureRequests).toEqual([{
+      target: { kind: 'instrument', symbol: 'BWET' },
+      datasets: ['holdings'],
+    }])
+    await expect(page).toHaveURL(/\/etf-holdings$/)
     expect(loggedIn).toBeUndefined()
   })
 })

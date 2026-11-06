@@ -6086,3 +6086,33 @@ provider_runtime_dependency_17d628296e5a:
     combined_profile: pending; Root owns the single combined qualification
   full_release_gates: pending; Root owns final CI, combined qualification and release;
     no acceptance or deployment is claimed.
+
+provider_runtime_dependency_active_99ce73:
+  authority: Root released exact Provider source99ce73bbc67689aef5fc4fcffa76bcfebfa736da
+    for development consumption in this same worktree; this is not product acceptance,
+    integration, deployment, or full release qualification.
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: 17d628296e5a0f3bc1dac1abd564619ac62a0298
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract-v2.json
+  manifest_sha256: 5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52
+  superseded_manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract.json
+  superseded_manifest_sha256: f7dd8e46b3761b685ba9e85be3e5fb26d98a6d6e4b0734cdae9d140d201dc955
+  correction: v2 adds required status_from139 to each of the35 existing file records;
+    source, 8 changed paths, product blobs, and producer style/pure-test evidence are unchanged.
+  changed_paths_since_17d:
+    - backend/app/routers/workspaces.py
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/workstation_tool_catalogue.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/unit/routers/test_workspace_tool_catalogue.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_workstation_tool_catalogue.py
+  active_import_file_records: 35
+  verified_fields: status_from139 present in every manifest file record; all35 imported files
+    match the exact source99 Git blobs and SHA256 values.
+  scope: has_pending_work response field and authenticated canonical21-tool catalogue/factory alignment.
+  validation: no provider suite or full release gate was rerun; existing consumer changes remain
+    in progress and Root owns the combined profile.
+  state: development dependency only; Provider full release, exact final CI, and combined
+    acceptance remain pending.

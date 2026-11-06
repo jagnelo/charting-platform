@@ -41,6 +41,7 @@ _DATASET_ENQUEUE_ORDER = {
     PreparationDataset.HOLDINGS: 3,
     PreparationDataset.FUNDAMENTALS: 4,
 }
+_PENDING_PREPARATION_JOB_STATUSES = frozenset({"queued", "leased", "retry", "deferred"})
 
 
 @dataclass(frozen=True)
@@ -1266,6 +1267,8 @@ def _aggregate_status(dependencies: list[dict]) -> str:
         return "waiting"
     if any(status == "failed" for status in statuses):
         return "failed"
+    if any(status == "partial" for status in statuses):
+        return "partial"
     return "unavailable"
 
 
@@ -1529,6 +1532,9 @@ async def get_data_preparation_response(
         ),
         total=len(dependency_responses),
         last_progress_at=progress_at,
+        has_pending_work=any(
+            job.status in _PENDING_PREPARATION_JOB_STATUSES for job in jobs_by_id.values()
+        ),
     )
 
 

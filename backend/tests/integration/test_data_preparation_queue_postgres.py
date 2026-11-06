@@ -1163,6 +1163,7 @@ async def test_joined_deferred_history_keeps_native_retry_for_both_owners(
             history = next(
                 item for item in response.dependencies if item.dataset.value == "history"
             )
+            assert response.has_pending_work is True
             assert history.status == "waiting"
             assert history.reason_code == "provider_reset"
             assert history.retry_at == provider_retry_at
