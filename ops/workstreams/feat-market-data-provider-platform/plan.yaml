@@ -14692,3 +14692,36 @@ coverage_router_ci_test_followup:
   root_disposition: Root accepts these corrected tests if the planner product hash remains unchanged.
   closure_summary: >-
     Test-only follow-up corrects two expectations against the already Root-accepted coverage planner. The first fixture now spans a completed missing exchange session while preserving alternate-series exclusion and partial readiness. The second expects the planner's positive request-bounded NY-local D1 interval and keeps all other DTO assertions. The accepted product hash c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3 is unchanged. CI 42169503855 remains red historical evidence; exact new-tip CI and new exact staging/release qualification are pending and Root-owned. All prior accepted checkpoints and 24 Provider/14 ETF roadmaps remain preserved. integration_capture: exact branch HEAD.
+
+staging16_remediation_import:
+  id: provider-staging16-known-red-visual-remediation-base-20261106
+  status: remediation_base_imported_exact_ci_pending
+  root_authorization:
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/staging16-visual-reviewed-reference-and-remediation-authorization.json
+    sha256: 2d8656dc4a7f0a1727528592de60b0173454be9695ff8fb47818a88c2883ee7c
+    authority: Root explicit remediation-base import authorization under the human standing history/dashboard repair authority.
+  imported_staging_commit: 16d76a8bddacffec9e8a85035cfea4e69ee0f529
+  provider_tip_before_import: e6db90b2dca4a2369898179062217f752e750f90
+  provider_merge_commit: e1146553b798b0788296276cdf2293c039396a29
+  merge_base_after_import: 16d76a8bddacffec9e8a85035cfea4e69ee0f529
+  classification: Known-red remediation base only; not green adoption, staging acceptance, roadmap completion, promotion or deployment.
+  staging_failure_preserved:
+    run_id: 42164203301
+    result: Red only at one stale reviewed visual reference; 103 other visual figures and prior backend/frontend/functional phases passed.
+    reviewed_reference: frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/unavailable-freshness-gap-visual-1440p-100-linux.png
+    prior_sha256: 52c2030188991af88b569aaea0776ed7d584cbe6b7f6277eb36a1128282a015e
+    approved_sha256: 5747cbb398ffb8193a95b1dc0ba6b73c423acab5c5f435d13346f08c471ac9a8
+    owner: TC owner; Provider does not edit sibling workstreams or UI assertions.
+  preserved_provider_bytes:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+    backend/tests/unit/routers/test_coverage_router.py: d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78
+  validation:
+    result: Non-fast-forward merge completed without conflict. merge-base(Provider HEAD, staging16) is exact 16d76a8bddacffec9e8a85035cfea4e69ee0f529; accepted Provider product and test hashes remain unchanged.
+    tests_run: false
+    provider_http_requests: 0
+    fixture_ledger_policy_changes: false
+    app_rebuild: false
+  pending: New exact Provider CI, TC-owned one-case visual verification, coordinated final exact-source CI and new exact staging qualification, Root-owned integration with REMEDIATE_DEGRADED=1, and all deployment/genuine-flow gates.
+  preserved: Commits 7419aee45f1e3af9cd771a3b771889d956bd1cf1 and e6db90b2dca4a2369898179062217f752e750f90, their accepted records, prior CI failures, and all 24 Provider/14 ETF roadmaps.
+  closure_summary: >-
+    Imported exact degraded staging commit 16d76a8bddacffec9e8a85035cfea4e69ee0f529 into the Provider branch with a non-fast-forward merge under Root authorization solely to establish the remediation base. This is not green adoption. The accepted planner and router test bytes are unchanged. Prior staging CI 42164203301 remains red at the reviewed visual reference. New Provider/TC exact-tip CI, the one-case visual check, and new exact staging CI remain mandatory and Root-owned. No Source request, fixture, real-ledger, quota/policy/hold, production, sibling-worktree or staging mutation occurred. All 24 Provider/14 ETF roadmaps remain open. integration_capture: exact branch HEAD.

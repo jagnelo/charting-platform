@@ -1385,5 +1385,22 @@
     "staging_and_release": "pending; Root-owned",
     "integration_capture": "exact branch HEAD",
     "broader_roadmaps_complete": false
+  },
+  "staging16_remediation_import": {
+    "status": "recorded_pending_new_exact_ci",
+    "root_authorization_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/staging16-visual-reviewed-reference-and-remediation-authorization.json",
+    "root_authorization_sha256": "2d8656dc4a7f0a1727528592de60b0173454be9695ff8fb47818a88c2883ee7c",
+    "imported_staging_commit": "16d76a8bddacffec9e8a85035cfea4e69ee0f529",
+    "merge_commit": "e1146553b798b0788296276cdf2293c039396a29",
+    "merge_base": "16d76a8bddacffec9e8a85035cfea4e69ee0f529",
+    "classification": "known-red remediation base; not green adoption",
+    "preserved_planner_sha256": "c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3",
+    "preserved_router_test_sha256": "d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78",
+    "staging_ci_42164203301": "red at one reviewed stale visual reference; TC repair and Root one-case verification pending",
+    "new_exact_provider_tc_ci": "pending; Root-owned push/observation",
+    "new_exact_staging_qualification": "pending; Root-owned",
+    "tests_or_external_operations_run": false,
+    "integration_capture": "exact branch HEAD",
+    "roadmaps_complete": false
   }
 }
