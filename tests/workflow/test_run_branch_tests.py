@@ -92,6 +92,82 @@ def test_current_workstream_ci_commands_are_repository_portable():
     assert not any(token in command for command in commands for token in forbidden)
 
 
+def test_changed_scope_validates_branch_manifest_before_product_jobs():
+    workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text())
+    changed_scope = workflow["jobs"]["changed-scope"]
+    steps = changed_scope["steps"]
+    validation_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name") == "Validate branch test manifest before product jobs"
+    )
+    classify_index = next(
+        index
+        for index, step in enumerate(steps)
+        if step.get("name") == "Classify exact changed paths"
+    )
+    validation = steps[validation_index]
+    assert classify_index < validation_index
+    assert "--validate-only" in validation["run"]
+    assert "GITHUB_HEAD_REF" in validation["run"]
+    assert "github.event_name == 'pull_request'" in validation["if"]
+    assert "refs/heads/master" in validation["if"]
+    assert "refs/heads/staging" in validation["if"]
+    assert changed_scope["outputs"]["scope"] == "${{ steps.scope.outputs.scope }}"
+    for job_id in ("backend", "frontend-unit", "e2e", "branch-declared"):
+        assert "changed-scope" in workflow["jobs"][job_id]["needs"]
+
+
+def test_validate_only_rejects_manifest_mismatch_before_running_commands(
+    tmp_path, monkeypatch, capsys
+):
+    plan = make_plan(tmp_path)
+    make_manifest(plan, plan_tests=["stale", DESCRIPTIONS[1]])
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["run-branch-tests.py", BRANCH, "--validate-only"])
+
+    def unexpected_run(*_args, **_kwargs):
+        raise AssertionError("validation-only must not execute branch commands")
+
+    monkeypatch.setattr(RUNNER.subprocess, "run", unexpected_run)
+
+    assert RUNNER.main() == 1
+    assert "do not exactly match" in capsys.readouterr().err
+
+
+def test_validate_only_accepts_valid_manifest_without_running_commands(
+    tmp_path, monkeypatch, capsys
+):
+    plan = make_plan(tmp_path)
+    make_manifest(plan)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["run-branch-tests.py", BRANCH, "--validate-only"])
+
+    def unexpected_run(*_args, **_kwargs):
+        raise AssertionError("validation-only must not execute branch commands")
+
+    monkeypatch.setattr(RUNNER.subprocess, "run", unexpected_run)
+
+    assert RUNNER.main() == 0
+    assert "manifest is valid" in capsys.readouterr().out
+
+
+def test_validate_only_preserves_no_manifest_plan_fallback(
+    tmp_path, monkeypatch, capsys
+):
+    make_plan(tmp_path)
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["run-branch-tests.py", BRANCH, "--validate-only"])
+
+    def unexpected_run(*_args, **_kwargs):
+        raise AssertionError("validation-only must not execute fallback commands")
+
+    monkeypatch.setattr(RUNNER.subprocess, "run", unexpected_run)
+
+    assert RUNNER.main() == 0
+    assert "plan fallback is valid" in capsys.readouterr().out
+
+
 def test_github_ci_only_reuses_the_backend_job_after_declaring_dependency():
     workflow = yaml.safe_load((ROOT / ".github" / "workflows" / "ci.yml").read_text())
     branch_job = workflow["jobs"]["branch-declared"]

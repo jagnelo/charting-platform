@@ -144,9 +144,10 @@ def execution_manifest(plan: Path, branch: str) -> dict[str, Any] | None:
 
 
 def main() -> int:
-    branch = (
-        sys.argv[1] if len(sys.argv) > 1 else os.environ.get("INTEGRATION_BRANCH", "")
-    )
+    arguments = sys.argv[1:]
+    validate_only = "--validate-only" in arguments
+    arguments = [argument for argument in arguments if argument != "--validate-only"]
+    branch = arguments[0] if arguments else os.environ.get("INTEGRATION_BRANCH", "")
     if not branch:
         print("INTEGRATION_BRANCH is required", file=sys.stderr)
         return 2
@@ -160,7 +161,14 @@ def main() -> int:
         print(str(exc), file=sys.stderr)
         return 1
 
-    list_only = "--list" in sys.argv[2:]
+    if validate_only:
+        if manifest is None:
+            print(f"No branch-tests.json for {branch}; plan fallback is valid")
+        else:
+            print(f"Branch test manifest is valid for {branch}")
+        return 0
+
+    list_only = "--list" in arguments[1:]
     if manifest is None:
         commands = declared_tests(plan)
         external_gates: list[dict[str, Any]] = []
