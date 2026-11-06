@@ -1,7 +1,16 @@
 import { test, expect } from './helpers'
 
-test('Study journey keeps completed output identity separate and refreshes Results automatically', async ({ page, loggedIn, browserDiagnostics }) => {
+test('Study journey keeps saved identity, refreshes Results, and returns from Python Library on the immutable version', async ({ page, loggedIn, browserDiagnostics }) => {
   test.setTimeout(150_000)
+  const studyName = `Study journey ${Date.now()}`
+  const runRequests: Array<{ code_version_id?: number }> = []
+  let codeAssetCreations = 0
+  page.on('request', request => {
+    if (request.method() !== 'POST') return
+    const pathname = new URL(request.url()).pathname
+    if (pathname.endsWith('/research/runs')) runRequests.push(request.postDataJSON() as { code_version_id?: number })
+    if (pathname.endsWith('/code/assets')) codeAssetCreations += 1
+  })
   await page.goto('/chart')
   await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
   await page.getByRole('button', { name: 'Study', exact: true }).click()
@@ -16,8 +25,9 @@ test('Study journey keeps completed output identity separate and refreshes Resul
   const study = page.locator('.study-lab-tool:visible').last()
   await expect(study).toBeVisible({ timeout: 15_000 })
   await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
-  await study.getByRole('textbox', { name: 'Study name' }).fill(`Study journey ${Date.now()}`)
+  await study.getByRole('textbox', { name: 'Study name' }).fill(studyName)
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  const immutableSource = await study.getByRole('textbox', { name: 'Study Python source' }).inputValue()
   const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
   await study.getByRole('button', { name: 'Validate study' }).click()
   const prepared = await preparationResponse
@@ -30,7 +40,11 @@ test('Study journey keeps completed output identity separate and refreshes Resul
   })
   await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('ready', { timeout: 90_000 })
   await expect(study).toContainText('Validated for isolated execution', { timeout: 15_000 })
+  const firstRunRequest = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/research/runs'))
   await study.getByRole('button', { name: 'Run study', exact: true }).click()
+  const firstRunBody = (await firstRunRequest).postDataJSON() as { code_version_id?: number }
+  expect(Number.isInteger(firstRunBody.code_version_id)).toBe(true)
+  expect(codeAssetCreations).toBe(1)
   await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
 
   const runLabel = await study.locator('.study-lab-tool__run > div > strong').innerText()
@@ -56,5 +70,29 @@ test('Study journey keeps completed output identity separate and refreshes Resul
   await expect(restoredStudy.getByRole('status', { name: 'Saved run dataset' })).toContainText(`Saved run #${runId} dataset: symbol SPY`)
   await expect(restoredStudy.locator('.study-lab-tool__metrics article').filter({ hasText: 'current_streak' })).toBeVisible()
   await expect(page.locator('.research-results-tool:visible').last().getByRole('button', { name: `Run ${runId}, completed, 8 artifacts` })).toBeVisible()
+
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
+  const library = page.locator('.code-library-tool:visible').last()
+  await expect(library.getByRole('button', { name: `Open ${studyName} in Study Lab`, exact: true })).toBeVisible({ timeout: 15_000 })
+  await library.getByRole('button', { name: `Open ${studyName} in Study Lab`, exact: true }).click()
+
+  const returnedStudy = page.locator('.study-lab-tool:visible').last()
+  await expect(returnedStudy).toBeVisible({ timeout: 15_000 })
+  await expect(returnedStudy.getByRole('textbox', { name: 'Study name' })).toHaveValue(studyName)
+  await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(immutableSource)
+  expect(runRequests).toHaveLength(1)
+
+  const returnedPreparation = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
+  await returnedStudy.getByRole('button', { name: 'Validate study' }).click()
+  expect((await returnedPreparation).ok()).toBe(true)
+  await expect(returnedStudy).toContainText('Validated for isolated execution', { timeout: 15_000 })
+  const returnedRunRequest = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/research/runs'))
+  await returnedStudy.getByRole('button', { name: 'Run study', exact: true }).click()
+  const returnedRunBody = (await returnedRunRequest).postDataJSON() as { code_version_id?: number }
+  expect(returnedRunBody.code_version_id).toBe(firstRunBody.code_version_id)
+  await expect(returnedStudy.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+  expect(runRequests).toHaveLength(2)
+  expect(codeAssetCreations).toBe(1)
   await browserDiagnostics.expectNoCriticalIssues()
 })

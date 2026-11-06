@@ -1,0 +1,380 @@
+{
+  "schema": 1,
+  "scope": "Strategy-owned Study, Results, Python Library, and exposed Strategy route action inventory for the human-approved platform-usability release.",
+  "owner_boundary": {
+    "strategy": [
+      "StudyLabTool.vue",
+      "ResearchResultsTool.vue",
+      "CodeLibraryTool.vue",
+      "StrategyLabView.vue",
+      "StrategyLabV2View.vue",
+      "their unit/API tests",
+      "strategy_study_journey.spec.ts"
+    ],
+    "tc_shared": [
+      "WorkstationView.vue shell and tool navigation",
+      "WorkstationToolContent.vue routing",
+      "shared presentation, helpers, and flows.spec.ts"
+    ],
+    "shared_navigation_rule": "Strategy consumes the shared Library-to-Study openStudy handoff; changes to the shared shell or coordinator are routed through Root/TC."
+  },
+  "browser_gate": {
+    "status": "pending",
+    "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "qualification": "The current spec describes one end-to-end normal-user journey, including the newly authored Python Library return. It has only been typechecked and listed; it has not run in a browser on this source. Root owns the single combined backend/browser/strict-visual qualification. Historical deployed journeys on earlier source do not qualify this branch source."
+  },
+  "journeys": [
+    {
+      "surface": "StudyLabTool",
+      "route": "Workstation Study Lab tool; /study-lab redirects to the saved workspace tab.",
+      "actions": [
+        "edit factory/custom source",
+        "edit dataset controls and typed parameters"
+      ],
+      "visible_outcome": "The current editable draft and its validation state are clearly separated from any loaded saved-run dataset/source identity; field edits invalidate stale validation.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: loads editable factory studies and switches back to custom Python on edit",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: requires the current source to match the latest validation before running",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: does not let a late validation response bless source edited while it was pending",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a saved run tied to its recorded dataset while the current draft changes"
+      ],
+      "api_evidence": [
+        "POST /code/validate is validation-only: backend/tests/integration/api/test_code.py :: test_code_validation_never_executes_source",
+        "POST /research/runs preserves typed run parameters: backend/tests/integration/api/test_code.py :: test_research_run_merges_defaults_and_rejects_schema_invalid_parameters"
+      ],
+      "browser_evidence": "Pending exact-source browser run. The Study journey currently edits SPY to XLB after saving and asserts the old SPY run stays unchanged.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ]
+    },
+    {
+      "surface": "StudyLabTool",
+      "route": "Validate action in the Workstation Study Lab tool.",
+      "actions": [
+        "prepare requested datasets",
+        "validate",
+        "show delayed/unavailable/rejected preparation"
+      ],
+      "visible_outcome": "Every independent symbol and benchmark request is submitted before any terminal wait; per-target progress/results remain visible; validation and Run remain gated unless the captured context is current and all required targets are ready.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: prepares the selected primary and benchmark history with bounded date intent before validating",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: submits every independent member and benchmark before waiting for a held target",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: submits later targets before closing while the first preparation is still held",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps later preparation outcomes when one target request rejects",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: aborts all obsolete preparation subscriptions when the benchmark context changes",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: aborts stale preparation when the selected symbol changes during validation",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a saved result visible and does not create a run when selected data preparation is unavailable"
+      ],
+      "api_evidence": [
+        "TC-owned dataPreparationCoordinator.ensure uses POST /data/ensure with shared deduplication; no evaluator-side acquisition is added",
+        "POST /data/ensure producer/backend route compatibility remains a Root release prerequisite for the combined actual-backend browser proof"
+      ],
+      "browser_evidence": "Pending Root combined qualification. The E2E journey checks the SPY ensure request precedes validation; it does not yet provide multi-symbol delayed-server browser coverage.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ]
+    },
+    {
+      "surface": "StudyLabTool",
+      "route": "Run action in the Workstation Study Lab tool.",
+      "actions": [
+        "ordinary isolated run",
+        "create/reuse immutable CodeVersion",
+        "typed parameter and universe submission"
+      ],
+      "visible_outcome": "A successful run has a durable run ID, terminal status, metrics/artifacts and a saved dataset summary derived from that run; opening an existing Library version reuses its immutable ID.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: validates, starts an immutable isolated study run, and renders artifacts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: renders schema-defined parameter controls and sends typed values to the immutable run",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: requires an explicit universe before running aggregate factory studies",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reuses an opened immutable Study definition version without creating a duplicate asset"
+      ],
+      "api_evidence": [
+        "POST /code/assets and POST /research/runs are covered by backend/tests/integration/api/test_code.py :: test_research_run_is_queued_for_isolated_runner and test_research_run_job_preserves_json_parameters_for_isolated_runner",
+        "Run materialization/control validation: backend/tests/integration/api/test_code.py :: test_research_run_honors_study_dataset_controls_and_records_them and test_research_run_rejects_unsupported_study_dataset_controls"
+      ],
+      "browser_evidence": "Pending exact-source browser run; the current Study journey specifies one ordinary isolated run and a second run after Library return. No native or broker execution is part of this journey.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow"
+      ]
+    },
+    {
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "route": "Persisted run hydration, adjacent Results list, and workspace reload.",
+      "actions": [
+        "show new run without manual refresh",
+        "select/restore saved run",
+        "reload",
+        "retry failed saved-run hydration"
+      ],
+      "visible_outcome": "The Results list and detail expose consistent terminal status/artifact count; the Study view restores immutable saved identity while current draft changes remain separate; retry is explicit on restore failure.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: invalidates the persisted-run list when a new Study run is submitted",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: shows a newly completed Study run and its artifact count in the adjacent Results list without manual refresh",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: hydrates a persisted run after a virtual-tool remount",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: switches the displayed result identity when the persisted run selection changes",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: shows a retryable error when a persisted result cannot be restored",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: automatically refreshes the persisted-run list when a Study run is created elsewhere"
+      ],
+      "api_evidence": [
+        "GET /research/runs list owner/order contract: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
+        "GET /research/runs/{id} and list artifact-count projections: backend/tests/unit/routers/test_research_router.py :: test_research_run_detail_projects_artifact_count_from_persisted_artifacts, test_research_run_detail_hides_runs_owned_by_another_user, and test_research_run_list_projects_persisted_artifact_count_for_current_owner",
+        "Structured result persistence: backend/tests/integration/api/test_code.py :: test_research_result_is_collected_as_structured_artifact"
+      ],
+      "browser_evidence": "Pending exact-source browser run. The Study journey asserts automatic Results arrival, eight artifacts, saved SPY identity after XLB edit, and the same identity after reload.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ]
+    },
+    {
+      "surface": "ResearchResultsTool",
+      "route": "Workstation Study Results list/detail and artifact panes.",
+      "actions": [
+        "sort/list by newest stable run order",
+        "load older cursor page",
+        "select/compare runs",
+        "filter and page event/breadth occurrences"
+      ],
+      "visible_outcome": "Newest-first stable pagination keeps selection/comparison; event filters announce matching/visible counts and empty results without changing saved artifacts.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: loads older runs with a stable cursor while preserving selection and comparison",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: exposes comparison visibility as pressed state",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: loads full outputs only when comparison opens and reports changed and missing artifacts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: filters generic event artifacts and publishes the selected event identity",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: makes the complete breadth occurrence list available without overstating the visible count",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: pages large event artifacts and reports visible versus matching occurrences"
+      ],
+      "api_evidence": [
+        "Stable newest-first server pagination: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",
+        "Cursor ordering: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
+      ],
+      "browser_evidence": "Pending. The Study journey checks its run row/count but does not exercise older-page, compare, event filter, or sort behavior in a browser.",
+      "approved_journey": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ]
+    },
+    {
+      "surface": "ResearchResultsTool",
+      "route": "Selected persisted run actions and run recovery.",
+      "actions": [
+        "cancel queued run",
+        "rerun saved snapshot",
+        "rerun latest canonical data"
+      ],
+      "visible_outcome": "Mutation affects the selected persisted run, updates linked caches and status, and provides explicit recovery guidance; current draft is not used as a silent snapshot fallback.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: cancels a queued persisted research run",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: propagates rerun and cancel mutations through the shared results cache",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: preserves a newer run selection when a slower rerun response resolves",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: does not publish a late rerun response after the tool unmounts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: labels terminal and in-flight states with recovery guidance",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reruns a completed study against its snapshot or latest canonical data"
+      ],
+      "api_evidence": [
+        "POST /research/runs/{id}/cancel and POST /research/runs/{id}/rerun?snapshot={true|false}; API list/run invariants are exercised by backend/tests/integration/api/test_code.py :: test_research_rerun_snapshot_retains_manifest and test_research_runs_list_is_user_scoped_and_newest_first"
+      ],
+      "browser_evidence": "Pending. Current Study journey does not browser-exercise cancellation or either rerun action; Root's combined gate must retain these cases or explicitly report them as not browser-covered.",
+      "approved_journey": [
+        "J10 Study: results/cancel/return supported workflow",
+        "J12 recovery: pagination, filters, delayed failures and retry"
+      ]
+    },
+    {
+      "surface": "StudyLabTool and ResearchResultsTool",
+      "route": "Completed artifact export and promotion adapters.",
+      "actions": [
+        "export result",
+        "promote selected artifact to supported chart/watchlist/alert/scan/signal/Study targets"
+      ],
+      "visible_outcome": "Only valid outputs and required explicit thresholds/aggregate adapters are offered; created objects retain the source run, artifact and CodeVersion lineage; missing canonical members remain a visible denial.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: offers threshold fan-out for a finite named scalar in a structured Study run",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps structured threshold drafts independent per artifact",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: refuses to promote a study when no canonical dataset members are declared",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes a direct Study Lab series through one explicit threshold condition",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes a direct Study Lab scalar through an explicit threshold condition",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes direct single-output range centers as chart plots and latest columns",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: exposes lineage-preserving column and chart promotions for structured scalar and series artifacts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: requires a named artifact when a direct events run contains multiple outputs",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: promotes a structured scalar through an explicit thresholded Boolean condition"
+      ],
+      "api_evidence": [
+        "Backend promotion integration examples: backend/tests/integration/api/test_strategy_lab.py :: test_research_event_artifact_promotes_with_lineage, test_multi_event_run_requires_and_preserves_named_signal_artifact, and test_study_lab_signal_promotion_creates_strategy_definition_reference",
+        "Study result source version remains immutable: backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions"
+      ],
+      "browser_evidence": "Pending. The Study journey renders result metrics/artifacts but does not click promotion/export actions in a browser.",
+      "approved_journey": [
+        "J10 Study: edit/validate/run/results/cancel/return supported workflow",
+        "J12 recovery: reload and delayed result restoration"
+      ]
+    },
+    {
+      "surface": "CodeLibraryTool",
+      "route": "Workstation Python Library.",
+      "actions": [
+        "filter/search",
+        "refresh",
+        "empty/error feedback",
+        "create typed asset",
+        "import/export",
+        "clone/archive"
+      ],
+      "visible_outcome": "Owned assets and empty/loading/error states are announced; create/import/clone/archive/export preserve typed asset and version data without silently mutating an immutable CodeVersion.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces loading and filtered-empty library states politely",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: loads, filters, clones, and archives user-owned assets",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: creates a typed new study asset from the library form",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces library request failures as assertive alerts",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps create-form control IDs unique across detached Code Library roots"
+      ],
+      "api_evidence": [
+        "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
+      ],
+      "browser_evidence": "Pending. The authored Study journey opens Python Library and selects an asset; create/import/clone/archive/export/filter error states remain component/API evidence only in this source qualification.",
+      "approved_journey": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ]
+    },
+    {
+      "surface": "CodeLibraryTool",
+      "route": "Python Library asset version editor.",
+      "actions": [
+        "select latest/historical base version",
+        "edit source",
+        "validate",
+        "save as new immutable version",
+        "recover delayed/context-changed validation"
+      ],
+      "visible_outcome": "Validation is tied to the exact source/output/base-version snapshot; stale results cannot enable save; successful save creates a new version and leaves prior versions unchanged.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the latest immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the selected historical immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: revalidates a new asset draft when its source changes during validation",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: does not reuse a late validation after an existing asset draft changes",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces successful source validation as a polite status",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind"
+      ],
+      "api_evidence": [
+        "POST /code/validate; POST /code/assets/{id}/versions; backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions and test_code_asset_rejects_defaults_that_violate_its_parameter_schema"
+      ],
+      "browser_evidence": "Pending. Python Library validation and version creation have unit/API coverage but are not driven in the current browser journey.",
+      "approved_journey": [
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure"
+      ]
+    },
+    {
+      "surface": "CodeLibraryTool -> StudyLabTool",
+      "route": "Python Library Open in Study Lab / Open selected version in Study Lab.",
+      "actions": [
+        "return/open latest or selected historical immutable version",
+        "validate/run without duplicate asset creation"
+      ],
+      "visible_outcome": "The Study draft displays the selected saved name/source/schema/defaults; opening does not dispatch a run; a later Run uses that exact existing version ID and does not create a duplicate CodeAsset.",
+      "unit_evidence": [
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the latest immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the selected historical immutable study version in Study Lab",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reuses an opened immutable Study definition version without creating a duplicate asset"
+      ],
+      "api_evidence": [
+        "WorkstationView openStudyDefinition forwards versionId/source/output contract/schema/defaults to a new Study Lab tool; subsequent POST /research/runs uses code_version_id and does not POST /code/assets again"
+      ],
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts; typecheck and Playwright --list pass, but actual browser execution is pending Root's combined gate.",
+      "approved_journey": [
+        "J01 first-use/return: persistent workspace and automatic preparation",
+        "J10 Study: return via immutable version, validate and run"
+      ]
+    },
+    {
+      "surface": "StrategyLabView",
+      "route": "/legacy/strategy-lab (also linked from /strategy-lab).",
+      "actions": [
+        "create/edit/save/delete definition",
+        "publish version",
+        "backtest/walk-forward",
+        "review/filter/sort run history and results",
+        "preview coverage"
+      ],
+      "visible_outcome": "The selected definition/version is clear; saves/runs preserve immutable Python signal lineage; history and result state remain navigable; unsupported data/capability states stay explicit.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: exposes the selected strategy and names the new-strategy action",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: creates a strategy from the visual builder without JSON payload editing",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: filters and sorts the execution log by individual columns",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: publishes revisions and runs backtests from the current visual state",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: preserves promoted Python signal lineage during profile edits and runs its immutable version",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs",
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: deletes strategies from the current selection"
+      ],
+      "api_evidence": [
+        "Definition/version/run lifecycle: backend/tests/integration/api/test_strategy_lab.py :: test_create_list_version_and_run_strategy, test_update_version_persists_strategy_draft_defaults, test_delete_definition_removes_strategy, and test_walk_forward_run_supports_watchlist_universe",
+        "Results cursor: backend/tests/integration/api/test_strategy_lab.py :: test_research_run_listing_uses_stable_created_at_id_cursor"
+      ],
+      "browser_evidence": "Pending current-source browser acceptance; the Study-only journey does not navigate into this view.",
+      "approved_journey": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ]
+    },
+    {
+      "surface": "StrategyLabView",
+      "route": "/legacy/strategy-lab execution mode controls.",
+      "actions": [
+        "Backtest",
+        "Walk forward",
+        "Paper forward"
+      ],
+      "visible_outcome": "This Strategy usability checkpoint qualifies only currently approved supported modes. Paper-forward/forward persistence is not activated or qualified by this task and must remain under its existing roadmap/Root review; its visible presence is not evidence of readiness.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_strategy_lab_view.test.ts :: supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs",
+        "backend/tests/integration/api/test_strategy_lab.py :: test_paper_forward_runs_can_be_refreshed_and_append_monitor_snapshots (historical/API test only; not an activation grant)"
+      ],
+      "api_evidence": [
+        "No paper-forward acceptance is claimed in this usability matrix; retain existing forward/native/broker/capital holds."
+      ],
+      "browser_evidence": "Not run and outside current approval. Do not launch Paper forward from this task.",
+      "approved_journey": [
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit"
+      ]
+    },
+    {
+      "surface": "StrategyLabV2View",
+      "route": "/legacy/strategy-lab-v2 (also linked from /strategy-lab-v2).",
+      "actions": [
+        "read-only resource tabs",
+        "paginate owner-scoped collection",
+        "select resource",
+        "inspect normal-user Study pin from persisted run/artifact IDs",
+        "retry failed collection/reference read"
+      ],
+      "visible_outcome": "The exact owner/run/CodeVersion/artifact reference is displayed read-only; only authenticated GET is issued; malformed, mismatched, nonpositive, incomplete or failed references remain denied/retryable; no native execution dispatch is offered.",
+      "unit_evidence": [
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: lists owner-scoped v2 strategies and re-reads immutable Study lineage on selection",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: keeps server cursor pagination explicit and appends only the next owner-scoped page",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: previews an immutable Study pin by existing IDs using GET only",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: hydrates a normal-user Study result link and resolves only the pinned GET",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: rejects incomplete or malformed immutable digests from a Study pin response",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: rejects a Study pin response whose returned identity does not match the request",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: does not request a Study pin for non-positive or non-integer identifiers",
+        "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts :: shows a failed collection read and allows an explicit retry"
+      ],
+      "api_evidence": [
+        "GET /strategy-lab/v2/study-artifact-references/{run_id}/{artifact_id}; backend/tests/integration/strategy_lab_v2/test_study_artifact_resolution_postgres.py :: test_strategy_api_authenticates_exact_study_reference_before_persistence, test_study_resolver_rejects_persisted_run_version_and_output_drift, and test_reconstructed_worker_hydrator_rechecks_study_after_persisted_drift"
+      ],
+      "browser_evidence": "Pending current-source whole-profile browser acceptance. Current Study journey does not open this route; Root owns genuine target positive/negative proof and its deployment ordering.",
+      "approved_journey": [
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry"
+      ]
+    }
+  ],
+  "known_coverage_gaps": [
+    "No current-source browser execution has exercised cancellation, either rerun mode, artifact promotion/export, Code Library create/import/version-save/archive or StrategyLabView/StrategyLabV2View route navigation; component/API tests are not browser acceptance.",
+    "The new Library-to-Study return is specified in the Study E2E but remains unexecuted until Root's compatible Producer API and combined profile are available.",
+    "The visible Paper forward mode is not activated or qualified by this usability scope; retain existing forward/native/broker/capital holds and report the boundary rather than treating UI presence as support."
+  ],
+  "safety": "No native-engine trial, broker/capital action, provider-live request, forward activation, or target/deployment claim is included.",
+  "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md"
+}

@@ -41,11 +41,12 @@
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "pending Root resource allocation; no browser/fixture was launched in this turn",
+    "heavy_profile": "Pending Root combined qualification after compatible Producer API release; no local browser or fixture launched for the Library-return extension.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress"
   },
   "dirty_paths": [
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -101,14 +102,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "170ad0a9bd0283782ab6276cb2ceba2c692436c7",
-  "implementation_sha": "170ad0a9bd0283782ab6276cb2ceba2c692436c7",
-  "last_checkpoint": "2026-11-06T20:02:22Z",
+  "head": "af2cd20116bc9ae89a75ca23c10c8cf4c2634a9b",
+  "implementation_sha": "af2cd20116bc9ae89a75ca23c10c8cf4c2634a9b",
+  "last_checkpoint": "2026-11-06T21:04:53Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view action review, adding focused offline regressions only for uncovered behavior. Keep the Study browser journey, Provider backend integration and single combined full qualification with Root; preserve the full local profile and deployed acceptance as pending until those exact gates pass.",
+  "next_action": "Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view action review, adding focused offline regressions only for uncovered behavior. After Root releases the compatible Producer API source, have Root execute the Study browser journey including Python Library return in the single combined qualification. Keep full local and deployed acceptance pending until those exact gates pass.",
   "parent_branch": "staging",
-  "plan_hash": "e146077e88764a550bc0c4872045c3ce11845e582a12dcc4a12892aacf199493",
+  "plan_hash": "910f3b5270872b9a9cafd3f130ff7a1986ab35e598c8faeb4a215cdc8adb0262",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -144,8 +145,8 @@
     "updated_at": "2026-11-06T19:39:16Z"
   },
   "remote": "170ad0a9bd0283782ab6276cb2ceba2c692436c7",
-  "remote_sha": "170ad0a9bd0283782ab6276cb2ceba2c692436c7",
-  "remote_synchronized": true,
+  "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
+  "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
   "session_id": "02d5ffaa-53b5-4dec-b39c-0f36612b5436",

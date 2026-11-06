@@ -1167,6 +1167,8 @@ progress:
       Strategy-owned Study journey spec and focused regressions. Consume the exact TC-owned data
       preparation coordinator in Study controls so explicit Validate/Run actions prepare the
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
+      Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
+      distinguishing component/API evidence from exact-source browser acceptance.
     owned_paths:
       - frontend/src/components/workstation/StudyLabTool.vue
       - frontend/src/components/workstation/ResearchResultsTool.vue
@@ -1176,6 +1178,7 @@ progress:
       - frontend/tests/unit/components/test_research_results_tool.test.ts
       - frontend/tests/unit/components/test_code_library_tool.test.ts
       - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - ops/workstreams/feat-strategy-lab-v2/journey-matrix.json
       - backend/app/routers/research.py
       - backend/tests/unit/routers/test_research_router.py
       - ops/workstreams/feat-strategy-lab-v2/handoff.md
@@ -1184,20 +1187,23 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Exact-source branch CI run 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 is pending.
-    The preceding run 42283102376 was still in progress at the last lookup. The Study journey reload
-    assertion has passed discovery only; browser execution remains pending. Root owns the single
-    combined full qualification and genuine deployed acceptance under
+    Exact-source branch CI 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 is terminal
+    cancelled, not green. The focused Study/Results/Library and Strategy-view unit suites and Study
+    preparation fan-out typecheck passed on the local source recorded in the handoff. The Study
+    browser journey now includes a Python Library return through an immutable CodeVersion, but that
+    new path has only been typechecked and discovered by Playwright --list; browser execution remains
+    pending. The compatible Producer API source and Root's single combined full qualification remain
+    prerequisites for actual-backend browser proof under
     /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/
-    combined-qualification-scheduling.json; no duplicate Strategy Compose/browser stack may be
-    launched. The earlier Docker-socket preflight refusal remains historical and created no fixtures.
-  updated_at: "2026-11-06T20:02:00Z"
+    combined-qualification-scheduling.json. Do not launch a duplicate Strategy Compose/browser stack.
+    The earlier Docker-socket preflight refusal remains historical and created no fixtures.
+  updated_at: "2026-11-06T21:04:53Z"
   next_action: >-
       Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view
-      Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view
-      action review, adding focused offline regressions only for uncovered behavior. Keep the Study
-      browser journey, Provider backend integration and single combined full qualification with Root;
-      preserve the full local profile and deployed acceptance as pending until those exact gates pass.
+      action review, adding focused offline regressions only for uncovered behavior. Once the
+      compatible Producer API source is released, have Root run the Study browser journey including
+      Python Library return in the single combined full qualification. Keep full local and deployed
+      acceptance pending until those exact gates pass.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
