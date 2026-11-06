@@ -178,33 +178,46 @@ function expectBoundedD1Request(request: HistoryRequestBody) {
 }
 
 async function expectGoldenLayoutTabsWithinAllocatedHeaders(page: Page) {
-  const measurements = await page.locator('.lm_header').evaluateAll(headers => headers.flatMap(header => {
-    const headerRect = header.getBoundingClientRect()
-    const tabs = header.querySelector<HTMLElement>('.lm_tabs')
-    if (!tabs) return []
-    const tabsBoxSizing = getComputedStyle(tabs).boxSizing
-    return [...tabs.querySelectorAll<HTMLElement>('.lm_tab')].map(tab => {
-      const rect = tab.getBoundingClientRect()
-      const style = getComputedStyle(tab)
+  const geometry = await page.evaluate(() => {
+    const rect = (element: Element) => {
+      const bounds = element.getBoundingClientRect()
+      return { x: bounds.x, y: bounds.y, width: bounds.width, height: bounds.height, bottom: bounds.bottom, right: bounds.right }
+    }
+    const visible = (element: Element) => {
+      const bounds = element.getBoundingClientRect()
+      const style = getComputedStyle(element)
+      return bounds.width > 0 && bounds.height > 0 && style.visibility !== 'hidden' && style.display !== 'none'
+    }
+    const tabs = [...document.querySelectorAll('.lm_header .lm_tabs > .lm_tab')].filter(visible).map(element => {
+      const style = getComputedStyle(element)
+      const header = element.closest('.lm_header')
       return {
-        headerTop: headerRect.top,
-        headerBottom: headerRect.bottom,
-        tabTop: rect.top,
-        tabBottom: rect.bottom,
-        tabsBoxSizing,
-        tabBoxSizing: style.boxSizing,
-        tabMarginTop: style.marginTop,
+        text: element.textContent?.trim() ?? '',
+        rect: rect(element),
+        header: header ? rect(header) : null,
+        boxSizing: style.boxSizing,
+        marginTop: style.marginTop,
       }
     })
-  }))
-  expect(measurements.length).toBeGreaterThan(0)
-  for (const measurement of measurements) {
-    expect(measurement.tabsBoxSizing).toBe('border-box')
-    expect(measurement.tabBoxSizing).toBe('border-box')
-    expect(measurement.tabMarginTop).toBe('0px')
-    expect(measurement.tabTop).toBeGreaterThanOrEqual(measurement.headerTop)
-    expect(measurement.tabBottom).toBeLessThanOrEqual(measurement.headerBottom)
+    const titles = [...document.querySelectorAll('.tool-window__title')].filter(visible).map(element => ({
+      text: element.textContent?.trim() ?? '',
+      rect: rect(element),
+    }))
+    const overlaps = tabs.flatMap(tab => titles
+      .filter(title => Math.min(tab.rect.right, title.rect.right) - Math.max(tab.rect.x, title.rect.x) > 1
+        && Math.min(tab.rect.bottom, title.rect.bottom) - Math.max(tab.rect.y, title.rect.y) > 1)
+      .map(title => ({ tab: tab.text, title: title.text })))
+    return { tabs, titles, overlaps }
+  })
+  expect(geometry.tabs.length).toBeGreaterThan(0)
+  expect(geometry.titles.length).toBeGreaterThan(0)
+  for (const tab of geometry.tabs) {
+    expect(tab.header, `${tab.text} has an allocated header`).not.toBeNull()
+    expect(tab.boxSizing).toBe('border-box')
+    expect(tab.marginTop).toBe('0px')
+    expect(tab.rect.bottom).toBeLessThanOrEqual(tab.header!.bottom + 1)
   }
+  expect(geometry.overlaps).toEqual([])
 }
 
 function missingCoverage(url: URL) {
