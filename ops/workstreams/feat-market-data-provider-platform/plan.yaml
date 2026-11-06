@@ -14725,3 +14725,31 @@ staging16_remediation_import:
   preserved: Commits 7419aee45f1e3af9cd771a3b771889d956bd1cf1 and e6db90b2dca4a2369898179062217f752e750f90, their accepted records, prior CI failures, and all 24 Provider/14 ETF roadmaps.
   closure_summary: >-
     Imported exact degraded staging commit 16d76a8bddacffec9e8a85035cfea4e69ee0f529 into the Provider branch with a non-fast-forward merge under Root authorization solely to establish the remediation base. This is not green adoption. The accepted planner and router test bytes are unchanged. Prior staging CI 42164203301 remains red at the reviewed visual reference. New Provider/TC exact-tip CI, the one-case visual check, and new exact staging CI remain mandatory and Root-owned. No Source request, fixture, real-ledger, quota/policy/hold, production, sibling-worktree or staging mutation occurred. All 24 Provider/14 ETF roadmaps remain open. integration_capture: exact branch HEAD.
+
+context_adoption_a9:
+  status: adopted_exact_green_context_only
+  root_authorization: Direct Root instruction in the original Provider session for bounded four-feature context adoption.
+  exact_context:
+    sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    tree: ebdddf700b68d3508755efb983eda10b574c426a
+    staging_ci_run: 42184756530
+    master_provenance_run: 42194282702
+    canonical_validation_receipt: .ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json
+    canonical_validation_sha256: acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3
+  local_adoption:
+    merge_commit: 600cfb98635b26891b1db106a294af6dc6eb353b
+    imported_commit: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    merge_base: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    method: Explicit non-fast-forward merge into the Provider worktree; no conflicts.
+    included_context: Exact green four-feature integrated context, including reviewed TC acquisition/history UI contract and approved visual reference update.
+  boundaries:
+    roadmaps_complete: false
+    deployment_or_genuine_user_flow_claimed: false
+    new_product_activation: false
+    product_or_test_validation_run: false
+  pending:
+    - Root private m920q backup/cutover and deployment verification
+    - Genuine deployed user-flow verification
+    - All remaining Provider and ETF roadmap criteria
+  closure_summary: >-
+    Adopted exact green four-feature context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 from the canonical receipt and Root authorization. This records context only; it does not activate new Provider work, claim backup/cutover/deployment or genuine user-flow completion, or close any roadmap. All 24 Provider and 14 ETF criteria remain preserved and open. integration_capture: exact branch HEAD.

@@ -1402,5 +1402,18 @@
     "tests_or_external_operations_run": false,
     "integration_capture": "exact branch HEAD",
     "roadmaps_complete": false
+  },
+  "context_adoption_a9": {
+    "status": "adopted_exact_green_context_only",
+    "staging_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
+    "tree": "ebdddf700b68d3508755efb983eda10b574c426a",
+    "staging_ci_run": 42184756530,
+    "master_provenance_run": 42194282702,
+    "canonical_receipt": ".ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json",
+    "canonical_receipt_sha256": "acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3",
+    "merge_commit": "600cfb98635b26891b1db106a294af6dc6eb353b",
+    "roadmaps_complete": false,
+    "deployment_or_genuine_flow_claimed": false,
+    "root_owns_backup_cutover_and_deployment": true
   }
 }
