@@ -107,8 +107,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Platform-usability implementation is in progress. No implementation CI or full journey qualification is claimed; Root owns the future shared runtime allocation and release gates.",
-  "current_checkpoint_status": "Human-approved platform-usability checkpoint remains in progress. Focused RRG, clone/catalogue, route, Alerts and workstation slice passed 123/123; frontend type-check passed. The RRG update refreshes finite zero-inclusive XY ranges when data changes, keeps the plot mounted during loading, and uses uPlot canvas-pixel geometry for drawing with plot-area CSS geometry for pointer hits. Real-browser DPR/layout qualification and the remaining platform-usability criteria remain pending Root allocation.",
+  "current_candidate_ci_status": "The platform-usability implementation is in progress. No exact-tip CI, combined runtime profile, provider producer integration, or release qualification is claimed; Root owns shared browser and release gates.",
+  "current_checkpoint_status": "Platform-usability remains in progress. The first source context is cc30ff62; a second local context adds the typed Provider preparation consumer and RRG group/family wiring. RRG pointer focus now preserves a hovered marker, canvas rendering uses uPlot canvas-pixel coordinates with DPR scaling and bbox clipping, the companion header has an explicit warning cell, and source status reasons are translated without exposing raw codes. Focused coordinator/RRG tests passed 22/22 and vue-tsc passed. Provider producer and real-browser DPR/pointer qualification remain pending Root.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -438,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "090944b33e3b228780a5ad44244d0d8af752bbcfaf3baaee4907490d3bf1737e",
+  "plan_hash": "c3f1267e8889e7dd4d07ca85c97ce5e844aaf02b6c1984b0839b8d14ecea8e3c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -662,7 +662,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T18:43:42Z",
+  "updated_at": "2026-11-06T19:00:52Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

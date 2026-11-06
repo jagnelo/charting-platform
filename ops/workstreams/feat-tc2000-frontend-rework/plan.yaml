@@ -1524,6 +1524,7 @@ owned_paths:
 - ops/workstreams/feat-tc2000-frontend-rework/
 - frontend/src/router/index.ts
 - frontend/src/views/AlertsView.vue
+- frontend/src/lib/dataPreparation.ts
 excluded_paths:
 - .env.example
 - backend/.env.example

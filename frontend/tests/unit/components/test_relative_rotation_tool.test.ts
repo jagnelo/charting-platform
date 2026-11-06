@@ -3,7 +3,7 @@ import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { nextTick } from 'vue'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('@/lib/api', () => ({ api: { get: vi.fn() } }))
+vi.mock('@/lib/api', () => ({ api: { get: vi.fn(), post: vi.fn() } }))
 import { api } from '@/lib/api'
 import uPlot from 'uplot'
 import RelativeRotationTool from '@/components/workstation/RelativeRotationTool.vue'
@@ -20,6 +20,10 @@ vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 describe('RelativeRotationTool', () => {
   beforeEach(() => {
     vi.mocked(api.get).mockReset()
+    vi.mocked(api.post).mockReset().mockResolvedValue({
+      request_id: 'rrg-ready', status: 'ready', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+      version: 1, target: {}, dependencies: [], completed: 1, total: 1, last_progress_at: '2026-11-06T12:00:00Z',
+    })
     vi.mocked(uPlot).mockClear()
     resize = null
     observedHost = null
@@ -46,6 +50,7 @@ describe('RelativeRotationTool', () => {
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-label')).toBe('Relative rotation trend and momentum plane')
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-describedby')).toBe(wrapper.get('.rotation-tool__sr-only').attributes('id'))
     expect(wrapper.get('.rotation-tool__plot').attributes('aria-keyshortcuts')).toContain('ArrowRight')
+    expect(wrapper.get('.rotation-tool__warning-heading').text()).toBe('Warnings')
     expect(observedHost).toBe(wrapper.get('.rotation-tool__plot').element)
     resize?.()
     expect(vi.mocked(uPlot)).toHaveBeenCalledTimes(1)
@@ -97,30 +102,44 @@ describe('RelativeRotationTool', () => {
     expect(chart.valToPos).toHaveBeenCalledWith(0, 'x', true)
     expect(chart.valToPos).toHaveBeenCalledWith(0, 'y', true)
     expect(chart.valToPos).toHaveBeenCalledWith(0.12, 'x', true)
+    chart.ctx.canvas.width = 1125
+    Object.defineProperty(chart, 'width', { value: 900 })
+    Object.defineProperty(chart, 'bbox', { value: { left: 20, top: 30, width: 850, height: 440 } })
+    draw(chart)
+    expect(chart.ctx.arc.mock.calls.at(-1)?.[2]).toBe(4.375)
     wrapper.unmount()
   })
 
   it('hit-tests against the plot-area origin rather than the host origin', async () => {
-    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', coverage: 1, tail: [], history: [
-      { timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 },
-      { timestamp: '2026-01-02', trend: 0.12, momentum: 0.22 },
-    ] }] })
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-01', trend: -0.14, momentum: -0.18 },
+        { timestamp: '2026-01-02', trend: -0.13, momentum: -0.17 },
+      ] },
+      { instrument_id: 2, symbol: 'XLV', state: 'leading', coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-01', trend: 0.15, momentum: 0.16 },
+        { timestamp: '2026-01-02', trend: 0.16, momentum: 0.17 },
+      ] },
+    ] })
     const wrapper = mountTool()
     await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
     await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
 
     const chart = vi.mocked(uPlot).mock.results[0].value
     chart.rect = { left: 50, top: 75, width: 220, height: 100, right: 270, bottom: 175 }
-    chart.valToPos.mockImplementation((_value, scale) => scale === 'x' ? 100 : 120)
+    chart.valToPos.mockImplementation((value, scale) => value < 0 ? (scale === 'x' ? 20 : 30) : (scale === 'x' ? 100 : 120))
     const host = wrapper.get('.rotation-tool__plot').element
     Object.defineProperty(host, 'getBoundingClientRect', { value: () => ({ left: 0, top: 0, width: 300, height: 200, right: 300, bottom: 200 }) })
 
     await wrapper.get('.rotation-tool__plot-shell').trigger('mousemove', { clientX: 150, clientY: 195 })
 
-    expect(wrapper.get('.rotation-tool__tooltip').text()).toContain('XLK')
+    expect(wrapper.get('.rotation-tool__tooltip').text()).toContain('XLV')
+    await wrapper.get('.rotation-tool__plot').trigger('focus')
+    await wrapper.get('.rotation-tool__plot-shell').trigger('click')
+    expect(wrapper.emitted('select')?.at(-1)).toEqual(['XLV', 2])
     expect(chart.syncRect).toHaveBeenCalled()
-    expect(chart.valToPos).toHaveBeenCalledWith(0.12, 'x')
-    expect(chart.valToPos).toHaveBeenCalledWith(0.22, 'y')
+    expect(chart.valToPos).toHaveBeenCalledWith(0.16, 'x')
+    expect(chart.valToPos).toHaveBeenCalledWith(0.17, 'y')
     wrapper.unmount()
   })
 
@@ -167,7 +186,12 @@ describe('RelativeRotationTool', () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'stale', rows: [] })
     const wrapper = mountTool({ props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })
     await vi.waitFor(() => expect(api.get).toHaveBeenCalled())
-    expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, sampling: 3, lookback: 12, tail_length: 4, history_length: 0, as_of: '2024-04-30T23:59:59Z' })
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', expect.objectContaining({
+      target: { kind: 'market_group', group_key: 'us-benchmarks' }, datasets: ['identity', 'history'], timeframe: 'W1',
+      adjusted: false, end_at: '2024-04-30T23:59:59Z',
+      analysis: { kind: 'rrg', lookback: 12, sampling: 3, tail_length: 4, history_length: 0, benchmark_symbol: 'QQQ' },
+    }), expect.any(Object))
+    expect(api.get).toHaveBeenLastCalledWith('/analysis/groups/us-benchmarks/relative-rotation', { benchmark: 'QQQ', timeframe: 'W1', adjusted: false, sampling: 3, lookback: 12, tail_length: 4, history_length: 0, as_of: '2024-04-30T23:59:59Z' }, expect.any(Object))
     await wrapper.get('input[aria-label="Rotation benchmark"]').setValue('IWM')
     await vi.waitFor(() => expect(wrapper.emitted('configuration')?.at(-1)?.[0]).toEqual(expect.objectContaining({ group_key: 'us-benchmarks', benchmark: 'IWM', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false })))
   })
@@ -175,7 +199,7 @@ describe('RelativeRotationTool', () => {
   it('requests and persists bounded historical rotation curves', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.1, momentum: 0.2, coverage: 1, tail: [], history: [{ timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 }] }] })
     const wrapper = mountTool({ props: { configuration: { history_length: 120 } } })
-    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 120 })))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 120 }), expect.any(Object)))
     expect(wrapper.find('input[aria-label="Rotation history length"]').element).toHaveProperty('value', '120')
     expect(wrapper.text()).toContain('120 history points')
   })
@@ -183,7 +207,7 @@ describe('RelativeRotationTool', () => {
   it('accepts an extended history window above the former thousand-point cap', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [] })
     const wrapper = mountTool({ props: { configuration: { history_length: 1200 } } })
-    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 1200 })))
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/relative-rotation', expect.objectContaining({ history_length: 1200 }), expect.any(Object)))
     expect(wrapper.find('input[aria-label="Rotation history length"]').element).toHaveProperty('value', '1200')
   })
 
@@ -195,7 +219,11 @@ describe('RelativeRotationTool', () => {
     const wrapper = mountTool({ props: { configuration: { group_key: 'sp400', benchmark: 'SPY' } } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('MDY'))
     expect(wrapper.find('[role="region"][aria-label="Relative rotation vs MDY"]').exists()).toBe(true)
-    expect(api.get).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/relative-rotation', expect.not.objectContaining({ benchmark: 'SPY' }))
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', expect.objectContaining({
+      target: { kind: 'family', family_key: 'sp400' }, timeframe: 'D1',
+      analysis: expect.objectContaining({ kind: 'rrg', lookback: 20, sampling: 1 }),
+    }), expect.any(Object))
+    expect(api.get).toHaveBeenCalledWith('/analysis/benchmark-families/sp400/relative-rotation', expect.not.objectContaining({ benchmark: 'SPY' }), expect.any(Object))
     expect(wrapper.text()).toContain('No verified mapped proxy')
   })
 
