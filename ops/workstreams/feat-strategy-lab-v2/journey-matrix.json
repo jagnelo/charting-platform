@@ -21,7 +21,7 @@
   "browser_gate": {
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
-    "qualification": "The current spec describes one end-to-end normal-user journey, including the newly authored Python Library return. It has only been typechecked and listed; it has not run in a browser on this source. Root owns the single combined backend/browser/strict-visual qualification. Historical deployed journeys on earlier source do not qualify this branch source."
+    "qualification": "The current spec contains the end-to-end normal-user Study/Library journey plus controlled Results and delayed multi-target preparation interactions. These authored stories have only been typechecked/listed; they have not run in a browser on this source. Root owns the single combined backend/browser/strict-visual qualification. Historical deployed journeys on earlier source do not qualify this branch source."
   },
   "journeys": [
     {
@@ -67,10 +67,10 @@
       ],
       "api_evidence": [
         "TC-owned dataPreparationCoordinator.ensure uses POST /data/ensure with shared deduplication; no evaluator-side acquisition is added",
-        "Active Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 is imported under provider-runtime-consumption.json; focused preparation/queue regression modules pass 36/36 and StudyLabTool consumer units previously passed 62/62. Historical 55b source evidence remains archived in the manifest.",
+        "Active Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is imported under provider-runtime-consumption.json using the corrected v2 contract and its required status_from139 fields; Root reports81 focused units and exact-export Ruff check/format. Earlier 17d and 55b imports/evidence remain archived in the manifest; the full combined release gate remains pending.",
         "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
       ],
-      "browser_evidence": "Pending Root combined qualification. The E2E journey checks the SPY ensure request precedes validation; it does not yet provide multi-symbol delayed-server browser coverage.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]

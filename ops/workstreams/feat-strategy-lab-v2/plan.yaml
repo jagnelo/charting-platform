@@ -1198,16 +1198,18 @@ progress:
     status: in_progress
   current_blocker: >-
     No exact-source branch CI or Root combined backend/browser acceptance exists for the current
-    99 dependency plus Results recovery story. The 99 active dependency pin contains
+    99 dependency plus the authored Study preparation, Results recovery, and Library lifecycle
+    stories. The 99 active dependency pin contains
     eight imported paths over 17d and all 35 exact exported files with source-derived status fields;
     the 17d and 55b manifests and failures remain historical. Root reports focused catalogue tests
-    and exact-export Ruff check/format, not full release acceptance. The Results retry story is
-    typechecked and discovered by Playwright only; Root owns actual browser and combined backend
-    qualification. Preserve the full 18-criterion roadmap and disabled operation holds.
-  updated_at: "2026-11-06T22:39:55Z"
+    and exact-export Ruff check/format, not full release acceptance. These authored Study, Results,
+    and Library stories are typechecked and discovered by Playwright only; Root owns actual browser
+    and combined backend qualification. Preserve the full 18-criterion roadmap and disabled holds.
+  updated_at: "2026-11-06T22:49:25Z"
   next_action: >-
-    Deliver the three authored Study, Results, and Python Library journeys with the active99
-    dependency to Root's single combined qualification slot. On any actual integrated finding,
+    Deliver the authored Study, Results, and Python Library browser stories, including delayed
+    independent preparation and fail-closed validation behavior, with the active99 dependency to
+    Root's single combined qualification slot. On any actual integrated finding,
     repair only the owned Strategy consumer boundary and preserve current full-profile assertions.
     Do not treat controlled-API Playwright discovery as browser acceptance or close the scope early.
 roadmap_goal: >-

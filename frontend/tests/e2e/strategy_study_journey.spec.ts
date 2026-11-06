@@ -110,6 +110,101 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
+test('Study preparation submits every universe member and benchmark while one member is held', async ({ page, loggedIn, browserDiagnostics }) => {
+  const submittedTargets: Array<{ kind: string; symbol?: string }> = []
+  let resolveAllSubmitted!: () => void
+  const allSubmitted = new Promise<void>(resolve => { resolveAllSubmitted = resolve })
+  let resolveHeldPrimary!: () => void
+  const heldPrimary = new Promise<void>(resolve => { resolveHeldPrimary = resolve })
+  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number) => ({
+    request_id: requestId,
+    status,
+    created_at: '2026-11-06T12:00:00Z',
+    updated_at: '2026-11-06T12:00:01Z',
+    version,
+    target: { kind: 'instrument' },
+    dependencies: [{
+      dependency_id: `${requestId}:history`,
+      depends_on: [],
+      instrument_id: null,
+      dataset: 'history',
+      status,
+      requested_start: null,
+      requested_end: null,
+      covered_start: null,
+      covered_end: null,
+      reason_code: status === 'unavailable' ? 'no_eligible_history_provider' : null,
+      retry_at: null,
+      updated_at: '2026-11-06T12:00:01Z',
+    }],
+    completed: status === 'queued' ? 0 : 1,
+    total: 1,
+    last_progress_at: '2026-11-06T12:00:01Z',
+  })
+
+  await page.route('**/api/v1/data/**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'POST' && url.pathname.endsWith('/data/ensure')) {
+      const body = request.postDataJSON() as { target: { kind: string; symbol?: string } }
+      submittedTargets.push(body.target)
+      if (submittedTargets.length === 3) resolveAllSubmitted()
+      const symbol = body.target.symbol ?? `target-${submittedTargets.length}`
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1)) })
+      return
+    }
+    const poll = url.pathname.match(/\/data\/requests\/study-([^/]+)$/)
+    if (request.method() === 'GET' && poll) {
+      const symbol = decodeURIComponent(poll[1])
+      if (symbol === 'SPY') await heldPrimary
+      const status = symbol === 'SPY' ? 'unavailable' : 'ready'
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, status, 2)) })
+      return
+    }
+    await route.continue()
+  })
+
+  let validationRequests = 0
+  let runRequests = 0
+  page.on('request', request => {
+    if (request.method() !== 'POST') return
+    const pathname = new URL(request.url()).pathname
+    if (pathname.endsWith('/code/validate')) validationRequests += 1
+    if (pathname.endsWith('/research/runs')) runRequests += 1
+  })
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  const study = page.locator('.study-lab-tool:visible').last()
+  await expect(study).toBeVisible({ timeout: 15_000 })
+  await study.getByRole('textbox', { name: 'Study universe' }).fill('SPY, XLK')
+  await study.getByRole('textbox', { name: 'Study benchmark' }).fill('QQQ')
+  const validation = study.getByRole('button', { name: 'Validate study' })
+  await validation.click()
+
+  await allSubmitted
+  expect(submittedTargets).toEqual([
+    { kind: 'instrument', symbol: 'SPY' },
+    { kind: 'instrument', symbol: 'XLK' },
+    { kind: 'instrument', symbol: 'QQQ' },
+  ])
+  const outcomes = study.getByRole('list', { name: 'Study data preparation outcomes' })
+  await expect(outcomes).toContainText('XLK: Requested data is ready.', { timeout: 10_000 })
+  await expect(outcomes).toContainText('QQQ: Requested data is ready.', { timeout: 10_000 })
+  await expect(validation).toBeDisabled()
+  expect(validationRequests).toBe(0)
+  expect(runRequests).toBe(0)
+
+  resolveHeldPrimary()
+  await expect(outcomes).toContainText('SPY: No reviewed data source can provide this request.', { timeout: 10_000 })
+  await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('Some selected Study data is not ready')
+  expect(validationRequests).toBe(0)
+  expect(runRequests).toBe(0)
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
 test('Results supports ordinary controls through a controlled persisted-run API', async ({ page, loggedIn, browserDiagnostics }) => {
   const breadthRun = {
     id: 8000,
