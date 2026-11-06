@@ -107,6 +107,42 @@ describe('CodeLibraryTool', () => {
     wrapper.unmount()
   })
 
+  it('keeps a newly selected historical base when a version save resolves late', async () => {
+    const pendingSave = deferred<unknown>()
+    apiGet.mockResolvedValueOnce([{
+      ...asset,
+      versions: [
+        { id: 8, version_number: 1, source: "output.scalar('n', 1)", output_contract: 'study', parameter_schema: {}, default_parameters: {} },
+        { id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: {}, default_parameters: {} },
+      ],
+    }])
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      if (path === '/code/assets/4/versions') return pendingSave.promise
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.find('summary').trigger('click')
+    const baseSelect = wrapper.get('[aria-label="Base version for Streak study"]')
+    await baseSelect.setValue('2')
+    const editor = wrapper.get('[aria-label="Python source for Streak study"]')
+    await editor.setValue("output.scalar('n', 3)")
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets/4/versions', expect.objectContaining({ source: "output.scalar('n', 3)" }))
+    await baseSelect.setValue('1')
+    pendingSave.resolve({ id: 10, version_number: 3, source: "output.scalar('n', 3)", output_contract: 'study', parameter_schema: {}, default_parameters: {} })
+    await flushPromises()
+
+    expect((baseSelect.element as HTMLSelectElement).value).toBe('1')
+    expect((wrapper.get('[aria-label="Python source for Streak study"]').element as HTMLTextAreaElement).value).toBe("output.scalar('n', 1)")
+    expect(wrapper.text()).toContain('Saved immutable version v3 from base v2')
+    expect(wrapper.find('.code-library-tool__validation').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('opens the latest immutable study version in Study Lab', async () => {
     const wrapper = mount(CodeLibraryTool)
     await flushPromises()

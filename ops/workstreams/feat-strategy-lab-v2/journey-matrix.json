@@ -233,7 +233,7 @@
       "api_evidence": [
         "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
       ],
-      "browser_evidence": "Pending. The authored Study journey opens Python Library and selects an asset; create/import/clone/archive/export/filter error states remain component/API evidence only in this source qualification.",
+      "browser_evidence": "Pending Root's combined browser gate. The Strategy Study journey now opens the existing run asset, edits and validates its Library draft, saves a new immutable version, and returns to Study; create/import/clone/archive/export/filter error states remain component/API evidence only.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
@@ -263,7 +263,7 @@
       "api_evidence": [
         "POST /code/validate; POST /code/assets/{id}/versions; backend/tests/integration/api/test_code.py :: test_code_assets_are_immutable_versions and test_code_asset_rejects_defaults_that_violate_its_parameter_schema"
       ],
-      "browser_evidence": "Pending. Python Library validation and version creation have unit/API coverage but are not driven in the current browser journey.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts: delayed-save context is component-tested; the normal browser path edits, validates, saves a new immutable version, returns to Study and submits a run with the new version ID. Execution remains pending Root's combined browser gate.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
@@ -285,7 +285,7 @@
       "api_evidence": [
         "WorkstationView openStudyDefinition forwards versionId/source/output contract/schema/defaults to a new Study Lab tool; subsequent POST /research/runs uses code_version_id and does not POST /code/assets again"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts; typecheck and Playwright --list pass, but actual browser execution is pending Root's combined gate.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts; the flow now includes Library edit/validate/save of a new version, return, and a run pinned to that new version ID. Actual browser execution remains pending Root's combined gate.",
       "approved_journey": [
         "J01 first-use/return: persistent workspace and automatic preparation",
         "J10 Study: return via immutable version, validate and run"

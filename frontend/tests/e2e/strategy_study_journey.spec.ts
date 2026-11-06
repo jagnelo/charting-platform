@@ -75,12 +75,25 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
   const library = page.locator('.code-library-tool:visible').last()
   await expect(library.getByRole('button', { name: `Open ${studyName} in Study Lab`, exact: true })).toBeVisible({ timeout: 15_000 })
+  const libraryAsset = library.locator('.code-library-tool__asset').filter({ hasText: studyName }).first()
+  await libraryAsset.locator('summary').click()
+  const libraryEditedSource = `${immutableSource.trim()}\n# Saved as an immutable version from the Python Library.\n`
+  await libraryAsset.getByRole('textbox', { name: `Python source for ${studyName}` }).fill(libraryEditedSource)
+  await libraryAsset.getByRole('button', { name: 'Validate', exact: true }).click()
+  await expect(libraryAsset).toContainText('Validated', { timeout: 15_000 })
+  const savedVersionResponse = page.waitForResponse(response => response.request().method() === 'POST' && /\/code\/assets\/\d+\/versions$/.test(new URL(response.url()).pathname))
+  await libraryAsset.getByRole('button', { name: 'Save as new version', exact: true }).click()
+  const savedVersion = await savedVersionResponse
+  expect(savedVersion.ok()).toBe(true)
+  const savedVersionBody = await savedVersion.json() as { id?: number }
+  expect(Number.isInteger(savedVersionBody.id)).toBe(true)
+  await expect(libraryAsset).toContainText('2 versions', { timeout: 15_000 })
   await library.getByRole('button', { name: `Open ${studyName} in Study Lab`, exact: true }).click()
 
   const returnedStudy = page.locator('.study-lab-tool:visible').last()
   await expect(returnedStudy).toBeVisible({ timeout: 15_000 })
   await expect(returnedStudy.getByRole('textbox', { name: 'Study name' })).toHaveValue(studyName)
-  await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(immutableSource)
+  await expect(returnedStudy.getByRole('textbox', { name: 'Study Python source' })).toHaveValue(libraryEditedSource)
   expect(runRequests).toHaveLength(1)
 
   const returnedPreparation = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
@@ -90,7 +103,7 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const returnedRunRequest = page.waitForRequest(request => request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/research/runs'))
   await returnedStudy.getByRole('button', { name: 'Run study', exact: true }).click()
   const returnedRunBody = (await returnedRunRequest).postDataJSON() as { code_version_id?: number }
-  expect(returnedRunBody.code_version_id).toBe(firstRunBody.code_version_id)
+  expect(returnedRunBody.code_version_id).toBe(savedVersionBody.id)
   await expect(returnedStudy.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
   expect(runRequests).toHaveLength(2)
   expect(codeAssetCreations).toBe(1)
