@@ -19581,3 +19581,7 @@ Added focused ResearchResultsTool regressions for failed cancellation and failed
 ### Results promotion feedback remains attached to its source run (2026-11-06)
 
 The selected-run detail previously rendered one global promotion message. If a promotion for run A completed after the user selected run B, its success or failure could be announced inside B's detail. Promotion feedback now carries its source run ID and renders only when that run is selected; the underlying promotion request and immutable source lineage are unchanged. The focused regression delays a successful run-A promotion, selects run B, verifies A's result is absent from B, then returns to A and verifies its outcome. ResearchResultsTool passes 63/63 with one Vitest worker. This is component evidence only; browser promotion lifecycle remains pending Root's combined qualification.
+
+### Results cancel and rerun failure attribution (2026-11-06)
+
+Cancel and rerun failures were surfaced in the page-wide alert without naming their source run. A delayed failure could therefore appear while the user was inspecting another run. The messages now include the exact run ID; the action remains retryable and server/cache behavior is unchanged. Two deferred-request regressions switch to another run before rejecting cancel or rerun, then verify the selected detail stays unchanged and the alert identifies the original run. The focused ResearchResultsTool suite passes 65/65 with one Vitest worker. Browser lifecycle evidence remains pending Root's combined qualification.

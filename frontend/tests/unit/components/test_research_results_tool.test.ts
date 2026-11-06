@@ -22,8 +22,9 @@ const routerLinkStub = {
 
 function deferred<T>() {
   let resolve!: (value: T) => void
-  const promise = new Promise<T>(res => { resolve = res })
-  return { promise, resolve }
+  let reject!: (reason?: unknown) => void
+  const promise = new Promise<T>((res, rej) => { resolve = res; reject = rej })
+  return { promise, resolve, reject }
 }
 
 describe('ResearchResultsTool', () => {
@@ -452,6 +453,44 @@ describe('ResearchResultsTool', () => {
     await flushPromises()
     expect(apiPost).toHaveBeenCalledTimes(2)
     expect(wrapper.text()).toContain('Run #15')
+    wrapper.unmount()
+  })
+
+  it('identifies the source run when a delayed cancellation fails after selection changes', async () => {
+    const sourceRun = { id: 13, status: 'running', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const otherRun = { id: 14, status: 'running', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const cancellation = deferred<typeof sourceRun>()
+    apiGet.mockResolvedValue([sourceRun, otherRun])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/13/cancel' ? cancellation.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Research run 13 details"]').get('button').trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    cancellation.reject(new Error('cancel endpoint unavailable'))
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Research run 14 details"]').exists()).toBe(true)
+    expect(wrapper.get('[role="alert"]').text()).toContain('Unable to cancel run #13: cancel endpoint unavailable')
+    wrapper.unmount()
+  })
+
+  it('identifies the source run when a delayed rerun fails after selection changes', async () => {
+    const sourceRun = { id: 15, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const otherRun = { id: 16, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const rerun = deferred<typeof sourceRun>()
+    apiGet.mockResolvedValue([sourceRun, otherRun])
+    apiPost.mockImplementation((path: string) => path === '/research/runs/15/rerun?snapshot=true' ? rerun.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.get('[aria-label="Research run 15 details"]').findAll('button').find(button => button.text() === 'Rerun snapshot')!.trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    rerun.reject(new Error('rerun endpoint unavailable'))
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Research run 16 details"]').exists()).toBe(true)
+    expect(wrapper.get('[role="alert"]').text()).toContain('Unable to queue rerun for run #15: rerun endpoint unavailable')
     wrapper.unmount()
   })
 

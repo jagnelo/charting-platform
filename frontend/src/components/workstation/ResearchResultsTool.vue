@@ -1042,7 +1042,7 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
       (current ?? []).filter(item => item.id !== queued.id),
     ).slice(0, RESEARCH_RUN_FETCH_SIZE))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to queue study rerun'
+    if (mounted && generation === mutationGeneration) error.value = `Unable to queue rerun for run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) rerunning.value = false
   }
@@ -1061,7 +1061,7 @@ async function cancel(run: ResearchRunSummary) {
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to cancel research run'
+    if (mounted && generation === mutationGeneration) error.value = `Unable to cancel run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) canceling.value = false
   }

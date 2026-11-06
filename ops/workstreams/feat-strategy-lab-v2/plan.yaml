@@ -2102,26 +2102,22 @@ roadmap_progress_history:
       backend, DB, browser, native, provider, target, or fixture gate is claimed.
     status: in_progress
   current_blocker: >-
-    Accepted/deployed a6b9 lacks the Study-reference API and V2 view/App navigation. Exact
-    Strategy-branch prerequisites are 344f87f835f392bd103c20db2044aa0de72148df (persisted Study
-    payload validation), 068d03f1ff55f5b1701d071980b4405d83e65cc6 (typed resolver, API adapter,
-    authenticated GET), 1451b9d0f2f4a468961319eda337f5dcc1e06aa7 (view, route and App navigation),
-    and 4a2c6058d817fbf9c1b2c540cfaa30ed48fd2ee5 (typed pin preview). None is in a6b9. Parent
-    run 39992653172 is terminal green on 64d3b12e only; it does not validate later local changes.
-    Root's source-83 backend result is qualified split-phase evidence: 213 passing unit shards were
-    retained from a clean unit-only checkpoint, all 533 integration cases were freshly collected
-    and run, and combined coverage/XML passed at 84%. It is not a literal successful invocation of
-    the Makefile's authoritative `test-backend-coverage` target. The prepared migration wrapper is
-    pinned to exact source 83e93958921b479ccd122494571d0b9dbb1acc5d and accepted base
-    a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e, but refuses any dirty worktree; this owned receipt is
-    dirty, and committing it would change the pinned HEAD. Resolve that boundary before migration
-    launch. Accepted-target SPY/RSP listing and full local/combined/browser gates remain open.
+    Root owns the single combined backend/browser qualification for the human-approved Study
+    usability scope; local focused component checks do not establish browser lifecycle or release
+    acceptance. Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path
+    development dependency, with all 31 imported backend paths hash-verified and Ruff check/format
+    passing. Research Results now associates promotion feedback with its source run and identifies
+    the source run in delayed cancel/rerun failures. The focused ResearchResultsTool suite passes
+    65/65; Study, Library, Provider, and exposed Strategy view focused evidence remains in the dated
+    handoff. The Study browser journey and Root's combined qualification remain pending. Preserve the
+    full 18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds.
   next_action: >-
-    Keep source frozen at 83e93958921b479ccd122494571d0b9dbb1acc5d. Resolve the migration wrapper's
-    exact clean-worktree/source-pin conflict with Root before its separately assigned PostgreSQL
-    slot; then continue runtime/worker restart and functional/strict-visual qualification under their
-    assigned slots. Do not infer full checkpoint acceptance from the split backend result. Keep
-    provider, quota, paid/trial, broker/capital, unknown, and unsafe operation boundaries disabled.
+    Continue auditing the remaining Strategy-owned Study, Results and Python Library lifecycle
+    actions for concrete context, recovery, persistence, or return-navigation gaps; add focused
+    regressions and update the owned journey matrix only for verified behavior. Keep browser and
+    combined backend qualification in Root's single assigned slot, distinguish component/API
+    evidence from browser acceptance, and do not close the named usability scope before its required
+    integrated evidence and Root review.
 
 context_adoption_a9:
   source_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7

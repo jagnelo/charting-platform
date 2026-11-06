@@ -172,6 +172,8 @@
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: propagates rerun and cancel mutations through the shared results cache",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: preserves a newer run selection when a slower rerun response resolves",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: does not publish a late rerun response after the tool unmounts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: identifies the source run when a delayed cancellation fails after selection changes",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: identifies the source run when a delayed rerun fails after selection changes",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: labels terminal and in-flight states with recovery guidance",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reruns a completed study against its snapshot or latest canonical data"
       ],

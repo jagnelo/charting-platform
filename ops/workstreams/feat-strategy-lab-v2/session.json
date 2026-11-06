@@ -118,12 +118,12 @@
   "goal_unavailable_reason": null,
   "head": "e572a711cb9960201464c854badd4b2d37c020fe",
   "implementation_sha": "af2cd20116bc9ae89a75ca23c10c8cf4c2634a9b",
-  "last_checkpoint": "2026-11-06T21:27:45.155642Z",
+  "last_checkpoint": "2026-11-06T22:03:20Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Review Strategy-owned Results promotion and delayed-response boundaries for concrete user-visible defects. Keep J10/J11/J12 browser execution in Root's single combined slot, distinguishing component/API evidence from browser acceptance; do not close usability acceptance before exact CI and combined gates.",
+  "next_action": "Continue auditing remaining Strategy-owned Study, Results and Python Library lifecycle actions for concrete context, recovery, persistence or return-navigation gaps; add focused regressions and update the owned journey matrix only for verified behavior. Keep browser and combined backend qualification in Root's single assigned slot and do not close usability acceptance before integrated evidence and Root review.",
   "parent_branch": "staging",
-  "plan_hash": "522f8962f0d630b6103ee3996f5d6d703bfc6ee8f5c1457943fe0327963bfd95",
+  "plan_hash": "88b5f5368f6d61be9b79e2923188093ae1ccbd6f5c5ee249fd50d45e0be3ac75",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -152,11 +152,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Provider successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path development dependency; its 31-path manifest is hash-verified and Ruff check/format pass. Focused backend preparation/queue tests pass 36/36, CodeLibraryTool passes 16/16 including delayed save/draft/base fencing, and ResearchResultsTool passes 62/62 including cancellation/rerun error recovery with retry enabled. The Study browser spec includes Library edit/validate/save and exact saved-CodeVersion return/run assertions; Playwright --list passes, but no browser execution is claimed. Root's exact-source combined backend/browser qualification remains pending; no duplicate stack was launched.",
+    "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused component checks do not establish browser lifecycle or release acceptance. Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path development dependency, with all 31 imported backend paths hash-verified and Ruff check/format passing. Research Results associates promotion feedback with its source run and identifies the source run in delayed cancel/rerun failures. The focused ResearchResultsTool suite passes 65/65; Study, Library, Provider and exposed Strategy view evidence remains in the dated handoff. The Study browser journey and combined qualification remain pending. Preserve the full 18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Review Strategy-owned Results promotion and delayed-response boundaries for concrete user-visible defects. Keep J10/J11/J12 browser execution in Root's single combined slot, distinguishing component/API evidence from browser acceptance; do not close usability acceptance before exact CI and combined gates.",
+    "next_action": "Continue auditing remaining Strategy-owned Study, Results and Python Library lifecycle actions for concrete context, recovery, persistence or return-navigation gaps; add focused regressions and update the owned journey matrix only for verified behavior. Keep browser and combined backend qualification in Root's single assigned slot and do not close usability acceptance before integrated evidence and Root review.",
     "total": 6,
-    "updated_at": "2026-11-06T21:54:21Z"
+    "updated_at": "2026-11-06T22:03:20Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -273,5 +273,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "current_blocker": "Provider successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path development dependency; its 31-path manifest is hash-verified and Ruff check/format pass. Focused backend preparation/queue tests pass 36/36, CodeLibraryTool passes 16/16 including delayed save/draft/base fencing, and ResearchResultsTool passes 62/62 including cancellation/rerun error recovery with retry enabled. The Study browser spec includes Library edit/validate/save and exact saved-CodeVersion return/run assertions; Playwright --list passes, but no browser execution is claimed. Root's exact-source combined backend/browser qualification remains pending; no duplicate stack was launched."
+  "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused component checks do not establish browser lifecycle or release acceptance. Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 remains the active exact-path development dependency, with all 31 imported backend paths hash-verified and Ruff check/format passing. Research Results associates promotion feedback with its source run and identifies the source run in delayed cancel/rerun failures. The focused ResearchResultsTool suite passes 65/65; Study, Library, Provider and exposed Strategy view evidence remains in the dated handoff. The Study browser journey and combined qualification remain pending. Preserve the full 18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds."
 }
