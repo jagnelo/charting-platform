@@ -14579,21 +14579,12 @@ owned_paths:
 - backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
 branch_tests:
-- backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback after bounded fuzzy
-  search; typed quota holds and known retry_at are preserved)
-- backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (empty-cache
-  provenance plus typed held/no_match/failed outcomes; unknown quota has no invented retry)
-- backend/app/routers/instruments.py::get_instrument_history_availability (exact selected instrument/symbol fetch_ohlcv
-  scope, true request-driven resolver, reviewed dry cost and no transport/reservation/mutation)
-- Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history
-  bounds and no-eligible/unknown cases, no-network quota outcomes)
-- Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory
-  and pending; Root owns protected integration.
-- backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (Root-approved immutable ETF clock-fix
-  dependency from b25fc814ef301103337f343d57b859545fa5bb8f; three authentic VanEck freshness cases pass without
-  changing payload fixtures or Provider product code)
-- Stale derived-history refresh and retained issuer-ID reconciliation (61 focused acquisition/ohlcv/derived-timeframe
-  unit cases; no-network).
+  - "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback after bounded fuzzy search; typed quota holds and known retry_at are preserved)"
+  - "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (empty-cache provenance plus typed held/no_match/failed outcomes; unknown quota has no invented retry)"
+  - "backend/app/routers/instruments.py::get_instrument_history_availability (exact selected instrument/symbol fetch_ohlcv scope, true request-driven resolver, reviewed dry cost and no transport/reservation/mutation)"
+  - "Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history bounds and no-eligible/unknown cases, no-network quota outcomes)"
+  - "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration."
+  - "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (Root-approved immutable ETF clock-fix dependency from b25fc814ef301103337f343d57b859545fa5bb8f; three authentic VanEck freshness cases pass without changing payload fixtures or Provider product code)"
 
 branch_tests_reason: 'The current focused follow-up passed 61/61 tests across the explicit-acquisition canonical
   identity class, OHLCV router, and derived-timeframe service modules after formatting. Root independently verified
