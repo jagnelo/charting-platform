@@ -2,9 +2,13 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
+const { apiGet, apiPost, ensurePreparation, resolveWatchlistSource, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), ensurePreparation: vi.fn(), resolveWatchlistSource: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
-vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: watchlistSourceState.sources }) }))
+vi.mock('@/lib/dataPreparation', () => ({
+  dataPreparationCoordinator: { ensure: ensurePreparation },
+  preparationStatusMessage: (response: { status: string }) => response.status === 'ready' ? 'Requested data is ready.' : 'Requested data is unavailable.',
+}))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: watchlistSourceState.sources, resolveWatchlistSource }) }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
 vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
@@ -27,6 +31,8 @@ describe('StudyLabTool', () => {
   beforeEach(() => {
     apiGet.mockReset()
     apiPost.mockReset()
+    ensurePreparation.mockReset().mockResolvedValue({ status: 'ready' })
+    resolveWatchlistSource.mockReset()
     watchlistSourceState.sources = []
   })
 
@@ -152,6 +158,105 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ source: "output.scalar('changed', 1)" }),
     }))
+    const preparationOrder = ensurePreparation.mock.invocationCallOrder.at(-1)!
+    const assetOrder = apiPost.mock.invocationCallOrder[apiPost.mock.calls.findIndex(([path]) => path === '/code/assets')]
+    const runOrder = apiPost.mock.invocationCallOrder[apiPost.mock.calls.findIndex(([path]) => path === '/research/runs')]
+    expect(preparationOrder).toBeLessThan(assetOrder)
+    expect(preparationOrder).toBeLessThan(runOrder)
+    wrapper.unmount()
+  })
+
+  it('prepares the selected primary and benchmark history with bounded date intent before validating', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: { timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', start_date: '2024-01-02', end_date: '2024-02-29', as_of: '2024-02-15T15:30:00Z' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+
+    expect(ensurePreparation).toHaveBeenNthCalledWith(1, {
+      target: { kind: 'instrument', symbol: 'SPY' },
+      datasets: ['history'],
+      timeframe: 'W1',
+      adjusted: false,
+      start_at: '2024-01-02T00:00:00.000Z',
+      end_at: '2024-02-15T15:30:00.000Z',
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(ensurePreparation).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      target: { kind: 'instrument', symbol: 'QQQ' },
+      timeframe: 'W1',
+      start_at: '2024-01-02T00:00:00.000Z',
+      end_at: '2024-02-15T15:30:00.000Z',
+    }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(ensurePreparation.mock.invocationCallOrder[0]).toBeLessThan(apiPost.mock.invocationCallOrder[0])
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Selected Study data and benchmark are ready.')
+    wrapper.unmount()
+  })
+
+  it('resolves a watchlist membership snapshot before preparing its instrument history', async () => {
+    resolveWatchlistSource.mockResolvedValue({
+      source: { source_id: 'watchlist:7', membership_version: 'watchlist:7:v2' },
+      members: [
+        { instrument_id: 7, position: 0, relationship_type: 'member' },
+        { instrument_id: 8, position: 1, relationship_type: 'member' },
+      ],
+      exclusions: [],
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { universe_source_id: 'watchlist:7', as_of: '2024-02-15T15:30:00Z' } })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+
+    expect(resolveWatchlistSource).toHaveBeenCalledWith('watchlist:7', '2024-02-15T15:30:00.000Z')
+    expect(ensurePreparation).toHaveBeenNthCalledWith(1, expect.objectContaining({ target: { kind: 'instrument', instrument_id: 7 } }), expect.anything())
+    expect(ensurePreparation).toHaveBeenNthCalledWith(2, expect.objectContaining({ target: { kind: 'instrument', instrument_id: 8 } }), expect.anything())
+    wrapper.unmount()
+  })
+
+  it('keeps a saved result visible and does not create a run when selected data preparation is unavailable', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { symbol: 'SPY', timeframe: 'D1' }, artifacts: [{ id: 1, name: 'saved', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve([]))
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    ensurePreparation.mockResolvedValueOnce({ status: 'ready' }).mockResolvedValueOnce({ status: 'unavailable' })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_name: 'Saved study' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.get('button[aria-label="Run study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Requested data is unavailable.'))
+
+    expect(wrapper.text()).toContain('Run #77')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('aborts stale preparation when the selected symbol changes during validation', async () => {
+    const pending = deferred<{ status: string }>()
+    ensurePreparation.mockReturnValueOnce(pending.promise)
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    const [, options] = ensurePreparation.mock.calls[0]
+    await wrapper.get('[aria-label="Study symbol"]').setValue('XLB')
+    expect(options.signal.aborted).toBe(true)
+    pending.resolve({ status: 'ready' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
     wrapper.unmount()
   })
 
@@ -1145,6 +1250,7 @@ describe('StudyLabTool', () => {
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.anything()))
     wrapper.unmount()
 
     resolveRun({ id: 202, status: 'queued', artifacts: [] })

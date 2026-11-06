@@ -30,6 +30,8 @@
         :data-source-id="selectedSourceLineage.analysisSourceId"
       >{{ selectedSourceLineage.label }} · Parent source {{ selectedSourceLineage.parentSourceId }}</p>
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
+      <p class="study-lab-tool__preparation-note" role="note">Validate prepares the selected canonical data first. Data acquisition is shown here; evaluation remains local.</p>
+      <p v-if="preparationStatus" class="study-lab-tool__preparation-status" role="status" aria-label="Study data preparation" aria-live="polite" aria-atomic="true">{{ preparationStatus }}</p>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
         <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" :aria-invalid="parameterSchemaError ? 'true' : undefined" :aria-describedby="parameterSchemaError ? parameterSchemaErrorId : undefined" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
@@ -143,6 +145,8 @@
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { dataPreparationCoordinator, preparationStatusMessage } from '@/lib/dataPreparation'
+import type { DataEnsureRequest, PreparationTimeframe } from '@/lib/dataPreparation'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { researchRunQueryKey, researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
@@ -272,12 +276,13 @@ const universeSymbols = ref(configString('symbols', ''))
 const selectedSourceLineage = computed(() => {
   const configuration = props.configuration ?? {}
   if (configuration.analysis_scope !== 'selection' || typeof configuration.analysis_source_id !== 'string' || !configuration.analysis_source_id.startsWith('explicit:')) return null
-  const selectedIds = Array.isArray(configuration.selected_member_ids)
+  const selectedIds: number[] = Array.isArray(configuration.selected_member_ids)
     ? configuration.selected_member_ids.filter((value): value is number => Number.isInteger(value) && value > 0)
     : configuration.analysis_source_id.slice('explicit:'.length).split(',').map(Number).filter(value => Number.isInteger(value) && value > 0)
   const parentSourceId = typeof configuration.source_id === 'string' && configuration.source_id ? configuration.source_id : 'unknown'
   return {
     analysisSourceId: configuration.analysis_source_id,
+    selectedMemberIds: selectedIds,
     parentSourceId,
     label: `Selected members · ${new Set(selectedIds).size} · Locked explicit source`,
   }
@@ -304,6 +309,7 @@ if (openedStudySource.value) {
   factoryStudyKey.value = 'custom'
 }
 const busy = ref(false)
+const preparationStatus = ref('')
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
 const rerunBusy = ref(false)
@@ -336,6 +342,8 @@ const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 let disposed = false
 let runGeneration = 0
+let preparationGeneration = 0
+let preparationController: AbortController | null = null
 let runPollTimer: ReturnType<typeof setTimeout> | null = null
 let visibilityObserver: IntersectionObserver | null = null
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
@@ -695,14 +703,14 @@ const savedRunDatasetSummary = computed(() => {
   const manifest = savedRun.dataset_manifest ?? {}
   const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
   const configuredSymbols = Array.isArray(config.symbols)
-    ? config.symbols.filter((value): value is string => typeof value === 'string' && value.trim())
+    ? config.symbols.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
     : Array.isArray(manifest.symbols)
-      ? manifest.symbols.filter((value): value is string => typeof value === 'string' && value.trim())
+      ? manifest.symbols.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
       : []
   const manifestSymbols = datasets
     .filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object')
     .map(value => value.symbol)
-    .filter((value): value is string => typeof value === 'string' && value.trim())
+    .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
   const symbols = [...new Set([...configuredSymbols, ...manifestSymbols])]
   const requestedSymbols = recordedValue(config.symbol) ?? configuredSymbols.join(', ')
   const materializedSymbols = recordedValue(manifest.symbol) ?? [...new Set(manifestSymbols)].join(', ')
@@ -728,7 +736,7 @@ const savedRunDatasetSummary = computed(() => {
   const fields = [
     symbolLabel ? `symbol ${symbolLabel}` : sourceLabel ? `universe ${sourceLabel}` : 'symbol not recorded',
     recordedField('timeframe', config.timeframe, manifest.timeframe, 'not recorded'),
-    recordedField('adjustment', config.adjustment, manifest.adjustment, 'not recorded').replaceAll('_', ' '),
+    recordedField('adjustment', config.adjustment, manifest.adjustment, 'not recorded').replace(/_/g, ' '),
     recordedField('session', config.session, manifest.session, 'not recorded'),
     `${recordedField('benchmark', config.benchmark, manifest.benchmark, 'not recorded')} (${benchmarkCoverageLabel})`,
     `${recordedField('from', config.start_date, manifest.start_date, 'earliest available')} → ${recordedField('through', config.end_date, manifest.end_date, 'latest available')}`,
@@ -786,8 +794,135 @@ watch(() => props.configuration, configuration => {
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
 }, { deep: true, flush: 'sync' })
-watch([timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
+interface StudyDatasetIntent {
+  symbol: string
+  benchmark: string
+  universeSourceId: string
+  universeSymbols: string
+  selectedMemberIds: number[]
+  timeframe: string
+  adjustment: 'split_adjusted' | 'raw'
+  session: 'regular' | 'all'
+  startDate: string
+  endDate: string
+  asOf: string
+}
+function captureStudyDatasetIntent(): StudyDatasetIntent {
+  return {
+    symbol: symbol.value.trim().toUpperCase(),
+    benchmark: benchmark.value.trim().toUpperCase(),
+    universeSourceId: universeSourceId.value.trim(),
+    universeSymbols: universeSymbols.value,
+    selectedMemberIds: selectedSourceLineage.value?.selectedMemberIds ?? [],
+    timeframe: timeframe.value,
+    adjustment: adjustment.value,
+    session: session.value,
+    startDate: startDate.value,
+    endDate: endDate.value,
+    asOf: asOf.value,
+  }
+}
+function studyDatasetIntentMatches(intent: StudyDatasetIntent): boolean {
+  return JSON.stringify(captureStudyDatasetIntent()) === JSON.stringify(intent)
+}
+function dateStartAt(value: string): string | null {
+  return value ? `${value}T00:00:00.000Z` : null
+}
+function dateEndAt(value: string): string | null {
+  return value ? `${value}T23:59:59.999Z` : null
+}
+async function buildStudyPreparationRequests(intent: StudyDatasetIntent): Promise<DataEnsureRequest[]> {
+  const sourceId = intent.universeSourceId
+  let targets: DataEnsureRequest['target'][]
+  if (sourceId.startsWith('market-group:') && sourceId.slice('market-group:'.length).trim()) {
+    targets = [{ kind: 'market_group', group_key: sourceId.slice('market-group:'.length).trim() }]
+  } else if (sourceId.startsWith('family:') && sourceId.slice('family:'.length).trim()) {
+    targets = [{ kind: 'family', family_key: sourceId.slice('family:'.length).trim() }]
+  } else if (sourceId.startsWith('explicit:')) {
+    const ids = [...new Set(sourceId.slice('explicit:'.length).split(',').map(Number).filter(value => Number.isInteger(value) && value > 0))]
+    if (!ids.length) throw new Error('The selected Study members have no valid instrument identities; saved results remain available.')
+    targets = ids.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  } else if (sourceId) {
+    const asOf = intent.asOf ? new Date(intent.asOf).toISOString() : null
+    const resolved = await watchlistStore.resolveWatchlistSource(sourceId, asOf)
+    if (!resolved) throw new Error(`The selected Study universe “${sourceId}” could not be resolved for data preparation; saved results remain available.`)
+    const ids = [...new Set(resolved.members.map(member => member.instrument_id).filter(value => Number.isInteger(value) && value > 0))]
+    if (!ids.length) throw new Error(`The selected Study universe “${sourceId}” has no resolved members to prepare; saved results remain available.`)
+    targets = ids.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  } else if (intent.selectedMemberIds.length) {
+    targets = intent.selectedMemberIds.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  } else {
+    const symbols = [...new Set(intent.universeSymbols.split(',').map(value => value.trim().toUpperCase()).filter(Boolean))]
+    const selectedSymbols = symbols.length ? symbols : [intent.symbol]
+    if (!selectedSymbols.some(Boolean)) throw new Error('Enter a Study symbol before preparing data.')
+    targets = selectedSymbols.map(symbol => ({ kind: 'instrument', symbol }))
+  }
+  const startAt = dateStartAt(intent.startDate)
+  const selectedEnd = dateEndAt(intent.endDate)
+  const asOf = intent.asOf ? new Date(intent.asOf).toISOString() : null
+  const endAt = selectedEnd && asOf
+    ? (Date.parse(selectedEnd) <= Date.parse(asOf) ? selectedEnd : asOf)
+    : selectedEnd ?? asOf
+  const base: Omit<DataEnsureRequest, 'target'> = {
+    datasets: ['history'],
+    timeframe: intent.timeframe as PreparationTimeframe,
+    adjusted: intent.adjustment === 'split_adjusted',
+    start_at: startAt,
+    end_at: endAt,
+  }
+  const requests: DataEnsureRequest[] = targets.map(target => ({ ...base, target }))
+  const benchmarkAlreadyIncluded = targets.some(target => target.kind === 'instrument'
+    && target.symbol?.toUpperCase() === intent.benchmark)
+  if (intent.benchmark && !benchmarkAlreadyIncluded) requests.push({ ...base, target: { kind: 'instrument', symbol: intent.benchmark } })
+  return requests
+}
+function invalidateStudyPreparation() {
+  preparationGeneration += 1
+  preparationController?.abort()
+  preparationController = null
+  if (preparationStatus.value) preparationStatus.value = 'Study data selection changed. Validate or run to prepare the current selection.'
+}
+async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean> {
+  const generation = ++preparationGeneration
+  preparationController?.abort()
+  const controller = new AbortController()
+  preparationController = controller
+  preparationStatus.value = 'Preparing the selected Study data…'
+  try {
+    const requests = await buildStudyPreparationRequests(intent)
+    if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
+    for (const [index, request] of requests.entries()) {
+      const label = request.target.kind === 'instrument'
+        ? request.target.symbol ?? `instrument ${request.target.instrument_id}`
+        : request.target.kind === 'market_group' ? request.target.group_key : request.target.family_key
+      const response = await dataPreparationCoordinator.ensure(request, {
+        signal: controller.signal,
+        onProgress: progress => {
+          if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return
+          preparationStatus.value = `${label}: ${preparationStatusMessage(progress.response)} (${progress.completed}/${progress.total} dependencies complete.)`
+        },
+      })
+      if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
+      preparationStatus.value = `${label}: ${preparationStatusMessage(response)}`
+      if (response.status !== 'ready') return false
+      if (index + 1 < requests.length) preparationStatus.value = `Study data dependency ${index + 1} is ready. Preparing the next dependency…`
+    }
+    if (generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
+    preparationStatus.value = 'Selected Study data and benchmark are ready.'
+    return true
+  } catch (cause) {
+    if (controller.signal.aborted || disposed || generation !== preparationGeneration) return false
+    preparationStatus.value = cause instanceof Error ? cause.message : 'Study data preparation could not be completed.'
+    return false
+  } finally {
+    if (preparationController === controller) preparationController = null
+  }
+}
+watch([symbol, timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
+  invalidateStudyPreparation()
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
+  if (symbol.value.trim()) configuration.symbol = symbol.value.trim().toUpperCase()
+  else delete configuration.symbol
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
   else delete configuration.benchmark
   if (universeSourceId.value) configuration.universe_source_id = universeSourceId.value
@@ -801,7 +936,10 @@ watch([timeframe, benchmark, universeSourceId, universeSymbols, adjustment, sess
   if (universeSymbols.value) configuration.symbols = universeSymbols.value.toUpperCase()
   else delete configuration.symbols
   emit('configuration', configuration)
-})
+}, { flush: 'sync' })
+watch(() => `${props.configuration?.analysis_scope ?? ''}|${props.configuration?.analysis_source_id ?? ''}|${JSON.stringify(props.configuration?.selected_member_ids ?? [])}`, () => {
+  invalidateStudyPreparation()
+}, { flush: 'sync' })
 watch(parameterSchemaText, value => {
   emit('configuration', { ...(props.configuration ?? {}), parameter_schema: value })
 })
@@ -1005,11 +1143,16 @@ function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: strin
 
 async function validate() {
   const sourceToValidate = source.value
+  const datasetIntent = captureStudyDatasetIntent()
   validatedSource.value = null
   busy.value = true; error.value = ''
   try {
+    const prepared = await prepareStudyDataset(datasetIntent)
+    if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
     validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate })
+    if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
     validatedSource.value = sourceToValidate
+    if (!prepared && !preparationStatus.value) preparationStatus.value = 'Study data is not ready. Resolve the preparation status before running this study.'
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to validate study source' }
   finally { busy.value = false }
@@ -1022,52 +1165,58 @@ async function saveAndRun() {
     error.value = 'This factory study requires a declared comma-separated universe before it can run.'
     return
   }
+  const datasetIntent = captureStudyDatasetIntent()
+  const sourceSnapshot = source.value
+  const nameSnapshot = name.value
+  const parameterSchemaSnapshot = parsedParameterSchema.value ?? {}
+  const parameters = buildParameters()
   busy.value = true; error.value = ''
   persistedRunError.value = false
   promotedScanId.value = null
   try {
-    runSource.value = source.value
+    const prepared = await prepareStudyDataset(datasetIntent)
+    if (!prepared || disposed || !studyDatasetIntentMatches(datasetIntent) || source.value !== sourceSnapshot) return
+    runSource.value = sourceSnapshot
     runContract.value = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
     promotionStatus.value = ''
-    const parameters = buildParameters()
     // A single-output study can be consumed directly by its compatible target
     // surfaces. Structured/multi-output studies retain the study contract and
     // use typed promotion adapters when a target needs one specific artifact.
     const directContracts = new Set(['scalar', 'series', 'boolean', 'events'])
     const candidateContract = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
     const executionContract = candidateContract && directContracts.has(candidateContract) ? candidateContract : 'study'
-    const reuseOpenedVersion = openedStudyVersionId.value != null && source.value === openedStudySource.value
+    const reuseOpenedVersion = openedStudyVersionId.value != null && sourceSnapshot === openedStudySource.value
     let codeVersionId: number
     if (reuseOpenedVersion) {
       codeVersionId = openedStudyVersionId.value!
       runContract.value = openedStudyOutputContract.value || executionContract
     } else {
       const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-        stable_key: uniqueAssetKey(name.value),
-        name: name.value,
+        stable_key: uniqueAssetKey(nameSnapshot),
+        name: nameSnapshot,
         kind: 'study',
-        initial_version: { source: source.value, output_contract: executionContract, parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
+        initial_version: { source: sourceSnapshot, output_contract: executionContract, parameter_schema: parameterSchemaSnapshot, default_parameters: parameters },
       })
       codeVersionId = asset.versions[0].id
       void invalidateCodeAssets(queryClient)
     }
-    if (disposed || generation !== runGeneration) return
+    if (disposed || generation !== runGeneration || !studyDatasetIntentMatches(datasetIntent) || source.value !== sourceSnapshot) return
     const datasetControls: Record<string, string> = {
-      timeframe: timeframe.value,
-      adjustment: adjustment.value,
-      session: session.value,
+      timeframe: datasetIntent.timeframe,
+      adjustment: datasetIntent.adjustment,
+      session: datasetIntent.session,
     }
-    if (benchmark.value) datasetControls.benchmark = benchmark.value.toUpperCase()
-    if (startDate.value) datasetControls.start_date = startDate.value
-    if (endDate.value) datasetControls.end_date = endDate.value
-    if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
-    const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
+    if (datasetIntent.benchmark) datasetControls.benchmark = datasetIntent.benchmark
+    if (datasetIntent.startDate) datasetControls.start_date = datasetIntent.startDate
+    if (datasetIntent.endDate) datasetControls.end_date = datasetIntent.endDate
+    if (datasetIntent.asOf) datasetControls.as_of = new Date(datasetIntent.asOf).toISOString()
+    const symbols = datasetIntent.universeSymbols.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
     const resultScope = selectedFactoryStudy.value?.resultScope
-    const runConfig: Record<string, unknown> = universeSourceId.value
-      ? { universe_source_id: universeSourceId.value, parameters, ...datasetControls }
+    const runConfig: Record<string, unknown> = datasetIntent.universeSourceId
+      ? { universe_source_id: datasetIntent.universeSourceId, parameters, ...datasetControls }
       : symbols.length
         ? { symbols, parameters, ...datasetControls }
-        : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
+        : { symbol: datasetIntent.symbol, parameters, ...datasetControls }
     if (resultScope) runConfig.result_scope = resultScope
     const createdRun = await api.post<Run>('/research/runs', {
       code_version_id: codeVersionId,
@@ -1088,8 +1237,8 @@ async function saveAndRun() {
     run.value = createdRun
     cacheResearchRunInList(createdRun)
     persistedRunId.value = createdRun.id
-    persistedRunName.value = name.value
-    persistedRunParameterSchema.value = parsedParameterSchema.value ?? {}
+    persistedRunName.value = nameSnapshot
+    persistedRunParameterSchema.value = parameterSchemaSnapshot
     runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
     void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
     scheduleRunPolling(createdRun.id, generation)
@@ -1098,8 +1247,8 @@ async function saveAndRun() {
       study_run_id: run.value.id,
       study_run_source: runSource.value,
       study_run_contract: runContract.value,
-      study_run_name: name.value,
-      study_run_parameter_schema: parsedParameterSchema.value ?? {},
+      study_run_name: nameSnapshot,
+      study_run_parameter_schema: parameterSchemaSnapshot,
       promoted_scan_id: null,
     }
     if (!reuseOpenedVersion) {
@@ -1786,6 +1935,10 @@ watch(() => Number(props.configuration?.study_run_id) || null, runId => {
 onBeforeUnmount(() => {
   disposed = true
   runGeneration += 1
+  preparationGeneration += 1
+  const activePreparation = preparationController as AbortController | null
+  activePreparation?.abort()
+  preparationController = null
   stopRunPolling()
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
   visibilityObserver?.disconnect()

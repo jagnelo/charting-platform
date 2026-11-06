@@ -18,7 +18,17 @@ test('Study journey keeps completed output identity separate and refreshes Resul
   await study.getByRole('combobox', { name: 'Factory study' }).selectOption('positive_streak')
   await study.getByRole('textbox', { name: 'Study name' }).fill(`Study journey ${Date.now()}`)
   await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST' && new URL(response.url()).pathname.endsWith('/data/ensure'))
   await study.getByRole('button', { name: 'Validate study' }).click()
+  const prepared = await preparationResponse
+  expect(prepared.ok()).toBe(true)
+  expect(prepared.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'SPY' },
+    datasets: ['history'],
+    timeframe: 'D1',
+    adjusted: true,
+  })
+  await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('ready', { timeout: 90_000 })
   await expect(study).toContainText('Validated for isolated execution', { timeout: 15_000 })
   await study.getByRole('button', { name: 'Run study', exact: true }).click()
   await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })

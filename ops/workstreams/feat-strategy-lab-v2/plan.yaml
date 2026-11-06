@@ -1164,7 +1164,9 @@ progress:
     scope: >-
       Repair Study saved-versus-draft identity, run-list arrival/artifact-count consistency, Code
       Library async validation fencing, durable run recovery and immutable promotion binding; add a
-      Strategy-owned Study journey spec and focused regressions.
+      Strategy-owned Study journey spec and focused regressions. Consume the exact TC-owned data
+      preparation coordinator in Study controls so explicit Validate/Run actions prepare the
+      selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
     owned_paths:
       - frontend/src/components/workstation/StudyLabTool.vue
       - frontend/src/components/workstation/ResearchResultsTool.vue
@@ -1187,13 +1189,12 @@ progress:
     combined-qualification-scheduling.json. Focused offline source checks continue; no duplicate
     Strategy Compose/browser stack is to be launched. The earlier Docker-socket preflight refusal
     remains historical and created no fixtures.
-  updated_at: "2026-11-06T19:09:36Z"
+  updated_at: "2026-11-06T19:38:55Z"
   next_action: >-
-    After this result-identity/cache/Library source context is frozen for Root review, consume only
-    TC's released data-preparation coordinator in Strategy-owned Study controls. Prepare the
-    selected canonical dataset before validation/execution through the shared ensure/status flow,
-    preserve explicit user intent and saved outputs, and never hide acquisition inside evaluation.
-    Keep the combined full profile and deployed acceptance Root-owned.
+      Complete focused review of the TC data-preparation consumer path and Study action map, then
+      submit this coherent source context for Root review. Root owns the single combined qualification
+      and any real backend/data-preparation end-to-end proof; preserve the full local profile and
+      deployed acceptance as pending until those exact gates pass.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -1323,7 +1324,13 @@ dependencies:
     feat/tc2000-frontend-rework owns the workstation, unified Python/DSL,
     immutable CodeVersion, Study Lab, and current Strategy Lab paths. Consume
     staged code/output contracts; do not edit its active files before staging or
-    create a parallel editor/research runner.
+    create a parallel editor/research runner. This checkpoint consumes only
+    `frontend/src/lib/dataPreparation.ts` from exact TC commit
+    `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
+    `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), under
+    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend-preparation-consumption-contract.json`.
+    The imported shared client remains unchanged. Provider DTOs are at `3d10`;
+    actual backend preparation wiring and combined end-to-end proof remain Root-owned.
   - >-
     An exact-pinned stable or release-candidate Nautilus v2 build may publish
     local backtests after its four backtest conformance checks pass, and may
