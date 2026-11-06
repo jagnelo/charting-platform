@@ -187,7 +187,7 @@
           "outcome": "Routes to the selected member's chart without changing basket membership or source provenance.",
           "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["loads baskets and opens the first one"]}],
           "api_contract": ["Chart entrypoint is /chart/{encoded-symbol}; normal shared chart preparation behavior is TC-owned"],
-          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "coverage": "The current journey opens the basket token, not an individual member symbol button.", "body_run": false, "status": "pending Root combined profile; individual member chart handoff is not independently evidenced"}
+          "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "coverage": "The journey clicks the saved MSFT member symbol, confirms /chart/MSFT and the visible workspace, returns to Baskets, then opens the basket token. Body not run by this owner.", "body_run": false, "status": "pending Root combined browser profile"}
         }
       ]
     }

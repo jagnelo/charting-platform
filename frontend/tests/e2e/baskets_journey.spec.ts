@@ -93,6 +93,12 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     await expect(page.locator('.member-row').filter({ hasText: 'MSFT' })).toBeVisible()
     await expect(page.locator('.member-row').filter({ hasText: 'NVDA' })).toHaveCount(0)
 
+    await page.locator('.member-symbol').click()
+    await expect(page).toHaveURL(/\/chart\/MSFT$/)
+    await expect(page.locator('.workspace-layout-host')).toBeVisible()
+    await page.goto('/legacy/baskets')
+    await page.locator('.basket-card').filter({ hasText: basketBName }).click()
+
     const ensureCalls: Array<{ instrument_id: number; datasets: string[]; timeframe: string }> = []
     page.on('request', requestEvent => {
       if (requestEvent.method() !== 'POST' || new URL(requestEvent.url()).pathname !== '/api/v1/data/ensure') return
