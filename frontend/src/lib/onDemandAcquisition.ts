@@ -204,11 +204,20 @@ export function olderHistoryRange(
   const endTime = beforeTime - 1
   const chunkStart = endTime - ((slots - 1) * interval)
   const windowStart = admittedWindowStart ? Date.parse(admittedWindowStart) : Number.NaN
+  const calendarWindowStart = Number.isFinite(windowStart) && (timeframe === 'D1' || timeframe === 'W1')
+    ? (() => {
+      const week = new Date(windowStart)
+      week.setUTCDate(week.getUTCDate() - ((week.getUTCDay() + 6) % 7))
+      week.setUTCHours(0, 0, 0, 0)
+      return week.getTime()
+    })()
+    : windowStart
   // When filling a short local cache, keep the first request inside the
-  // configured default window. Once the chart reaches that start, later
-  // explicit pans may request further bounded chunks for longer entitlements.
+  // configured default window, aligned to a full UTC week for daily/weekly
+  // bars. Once the chart reaches that bucket, later explicit pans may request
+  // further bounded chunks for longer entitlements.
   const startTime = Number.isFinite(windowStart) && endTime > windowStart
-    ? Math.max(chunkStart, windowStart)
+    ? Math.max(chunkStart, calendarWindowStart)
     : chunkStart
   if (startTime >= endTime) throw new RangeError('Older history cursor is already at the admitted window start.')
   return { start: new Date(startTime).toISOString(), end: new Date(endTime).toISOString() }

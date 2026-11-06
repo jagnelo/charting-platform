@@ -107,8 +107,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The known-red staging16 import is a remediation base, not green adoption. The authorized single reference passed Root one-case verification at 1/1, zero retries and 0.005 tolerance on unchanged 7a application/test inputs. Exact new-tip CI and new exact full staging qualification remain pending.",
-  "current_checkpoint_status": "The authorized staging16 remediation and reviewed PNG are recorded; Root one-case visual verification passed. Exact new-tip CI and new exact full staging visual/release gates remain pending.",
+  "current_candidate_ci_status": "The D1/W1 calendar-sliver correction is recorded with exact source hashes and Root acceptance; exact new-tip CI and Root-owned browser/release gates remain pending.",
+  "current_checkpoint_status": "Root accepted the bounded D1/W1 calendar-bucket paging correction; 89 focused helper/store tests and frontend type-check passed. Exact new-tip CI and Root-owned runtime/release gates remain pending.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -407,7 +407,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Root owns exact new-tip CI, new exact full staging104 visual qualification, and canonical degraded-staging remediation; keep application and all other references frozen.",
+  "next_action": "Root to push/build the exact source and complete required CI and runtime qualification; no broader roadmap or release gate is claimed complete.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -438,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "42ec44e5dc8631a23e46e4e729ee282d86dd05f456d4308159c600a12f8412e9",
+  "plan_hash": "807ea5f969c011ab0bf66312b5cef1677fea6a485d2763df531a51ff6edcbea7",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -468,8 +468,8 @@
   "progress": {
     "completed": [],
     "current_blocker": "Exact final-tip CI, new combined qualification, and Root-owned release/genuine-flow gates remain pending.",
-    "current_phase": "Root-accepted bounded history-paging correction; focused tests and type-check are green, exact final-tip CI pending.",
-    "next_action": "Root to observe exact final-tip CI and perform the new combined qualification and remaining release gates.",
+    "current_phase": "Root-accepted D1/W1 older-history calendar-boundary correction; focused tests and frontend type-check are green, exact final-tip CI pending.",
+    "next_action": "Root owns exact final-tip CI, frontend runtime/browser qualification, and remaining release gates.",
     "total": 10,
     "updated_at": "2026-11-06"
   },
@@ -662,7 +662,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T04:04:54Z",
+  "updated_at": "2026-11-06T07:17:51.480429+00:00",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

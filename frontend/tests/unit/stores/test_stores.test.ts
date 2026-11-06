@@ -263,7 +263,10 @@ describe('useChartStore', () => {
     expect(request).toBeDefined()
     const payload = request?.[1] as { timeframe: string; start: string; end: string }
     expect(payload.timeframe).toBe('D1')
-    expect(Date.parse(payload.start)).toBeGreaterThanOrEqual(Date.now() - 2 * 366 * 86_400_000)
+    const defaultTarget = new Date(Date.now() - 728 * 86_400_000)
+    defaultTarget.setUTCDate(defaultTarget.getUTCDate() - ((defaultTarget.getUTCDay() + 6) % 7))
+    defaultTarget.setUTCHours(0, 0, 0, 0)
+    expect(payload.start).toBe(defaultTarget.toISOString())
     expect(Date.parse(payload.end)).toBeLessThan(Date.parse(cached.ts))
     expect(store.bars.map(bar => bar.ts)).toEqual([older.ts, cached.ts])
     expect(store.historyBoundaryMessage).toContain('Loaded older D1 history')

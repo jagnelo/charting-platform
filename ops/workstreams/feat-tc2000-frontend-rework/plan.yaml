@@ -4336,3 +4336,18 @@ staging16_visual_remediation:
   - Root one-case visual verification
   - Canonical degraded-staging remediation and fresh full staging gates
   integration_capture: exact branch HEAD
+
+calendar_sliver_followup:
+  objective: Align only D1/W1 older-history default-window clamps to Monday UTC bucket starts so ordinary near-728-day backfill cannot skip a preceding admitted daily bar or weekly bucket.
+  accepted_by_root:
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/tc-calendar-sliver-root-acceptance.json
+    sha256: 15b2334fcf509b58dd401db1b98cb7bfe204b341a5fa373eeb2fc7049f4e9727
+  status: ready_for_integration subject to exact final-tip CI and Root-owned release gates
+  application_hashes:
+    frontend/src/lib/onDemandAcquisition.ts: 3b71ee0d3c0cc8215b90fb8e7adbd472aea1610ccb0724cfa2810f4524b92fcb
+    frontend/tests/unit/lib/test_on_demand_acquisition.test.ts: fa4b97a878a6135e0617f287896d71c7f441664d4a35ecafdd3748ad7f86d557
+    frontend/tests/unit/stores/test_stores.test.ts: 0db3fb10613984f7c3e3d53b5d5d237c8bc8b2600cf85bbaebbbe1fbdc800809
+  focused_validation: 89/89 affected helper/store tests passed; frontend vue-tsc --noEmit passed.
+  scope: D1/W1 calendar bucket alignment only; MN and intraday behavior, admitted/native bounds, 2000-slot request limit, API, backend, references, and tolerance are unchanged.
+  pending: Exact new-tip CI, Root-owned frontend runtime/browser qualification, and remaining release gates.
+  integration_capture: exact branch HEAD
