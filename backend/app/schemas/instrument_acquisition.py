@@ -3,8 +3,9 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_serializer, field_validator, model_validator
 
+from app.lib.time_utils import wire_datetime
 from app.models.ohlcv import Timeframe
 from app.schemas.ohlcv import OHLCVBarOut
 
@@ -26,6 +27,7 @@ class InstrumentAcquisitionSourceOutcome(BaseModel):
     reason_code: str | None = None
     result_count: int | None = Field(default=None, ge=0)
     error_type: str | None = None
+    retry_at: datetime | None = None
 
 
 class InstrumentDiscoveryRequest(BaseModel):
@@ -178,3 +180,27 @@ class HistoryAcquisitionResponse(BaseModel):
     coverage: HistoryCoverageSummary
     bars: list[OHLCVBarOut] = Field(default_factory=list)
     source_outcomes: list[InstrumentAcquisitionSourceOutcome] = Field(default_factory=list)
+
+
+class HistoryAvailabilityResponse(BaseModel):
+    instrument_id: int
+    symbol: str
+    timeframe: Timeframe
+    adjusted: bool
+    status: Literal["eligible", "held"]
+    earliest_start: datetime | None = None
+    max_requested_bars: int = Field(gt=0)
+    reason_code: str | None = None
+
+    @field_validator("earliest_start")
+    @classmethod
+    def require_utc_earliest_start(cls, value: datetime | None) -> datetime | None:
+        if value is None:
+            return None
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("earliest_start must include a timezone")
+        return value
+
+    @field_serializer("earliest_start")
+    def serialize_earliest_start(self, value: datetime | None) -> str | None:
+        return wire_datetime(value) if value is not None else None

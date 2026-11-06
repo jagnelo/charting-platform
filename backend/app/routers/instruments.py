@@ -3,6 +3,7 @@ import logging
 import math
 import re
 from datetime import UTC, datetime, timedelta
+from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -41,6 +42,7 @@ from app.schemas.instrument import InstrumentMembership, InstrumentOut, Instrume
 from app.schemas.instrument_acquisition import (
     HistoryAcquisitionRequest,
     HistoryAcquisitionResponse,
+    HistoryAvailabilityResponse,
     HistoryCoverageSlice,
     InstrumentAcquireRequest,
     InstrumentAcquireResponse,
@@ -73,6 +75,7 @@ from app.services.market_data import (
     fetch_ohlcv,
     fetch_ohlcv_latest,
     get_provider_profile_async,
+    ohlcv_operation_cost_overrides,
     search_provider_instruments_async,
 )
 from app.services.market_data_identity import apply_domain_identity, choose_domain_key
@@ -90,6 +93,8 @@ from app.services.provider_runtime import (
     bind_explicit_provider_acquisition,
     execute_provider_call,
     list_provider_status,
+    provider_history_bound_start,
+    resolve_provider_chain,
 )
 
 logger = logging.getLogger(__name__)
@@ -430,6 +435,7 @@ async def discover_instruments(
                             outcome_status,
                             reason_code,
                             error_type=type(exc).__name__,
+                            retry_at=getattr(exc, "retry_at", None),
                         )
                     )
                 else:
@@ -625,6 +631,7 @@ async def acquire_instrument(
                     status="held",
                     reason_code=reason_code,
                     error_type=type(error).__name__,
+                    retry_at=getattr(error, "retry_at", None),
                 )
                 outcomes.append(held_outcome)
                 return InstrumentAcquireResponse(
@@ -746,14 +753,50 @@ async def acquire_instrument(
             symbol=provider_symbol,
             provider_names=frozenset({provider_name}),
         ):
-            profile = await get_provider_profile_async(
-                db, provider_symbol, provider_name=provider_name, persist=False
-            )
+            try:
+                profile = await get_provider_profile_async(
+                    db,
+                    provider_symbol,
+                    provider_name=provider_name,
+                    persist=False,
+                    raise_provider_errors=True,
+                )
+            except Exception as exc:
+                outcome_status, reason_code = _provider_profile_lookup_error(exc)
+                error_type = type(exc).__name__
+                retry_at = getattr(exc, "retry_at", None)
+                if outcome_status == "failed":
+                    logger.warning(
+                        "Selected provider profile lookup failed",
+                        extra={
+                            "request_id": body.request_id,
+                            "provider": provider_name,
+                            "symbol": provider_symbol,
+                            "error_type": error_type,
+                        },
+                    )
+                profile_outcome = InstrumentAcquisitionSourceOutcome(
+                    provider=provider_name,
+                    capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                    operation="get_instrument_profile",
+                    status=outcome_status,
+                    reason_code=reason_code,
+                    error_type=error_type,
+                    retry_at=retry_at,
+                )
+                outcomes.append(profile_outcome)
+                return InstrumentAcquireResponse(
+                    request_id=body.request_id,
+                    status=outcome_status,
+                    reason_code=reason_code,
+                    source_outcomes=outcomes,
+                )
         profile_outcome = InstrumentAcquisitionSourceOutcome(
             provider=provider_name,
             capability=ProviderCapability.INSTRUMENT_METADATA.value,
             operation="get_instrument_profile",
-            status="attempted",
+            status="attempted" if profile is not None else "no_match",
+            reason_code="exact_profile_not_found" if profile is None else None,
         )
     profile_listings = (
         [
@@ -771,7 +814,17 @@ async def acquire_instrument(
         if exact_exchange_code
         else None
     )
-    if profile is None or not _profile_exact_match(profile, symbol):
+    if profile is None:
+        profile_outcome.status = "no_match"
+        profile_outcome.reason_code = "exact_profile_not_found"
+        outcomes.append(profile_outcome)
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="no_match",
+            reason_code=profile_outcome.reason_code,
+            source_outcomes=outcomes,
+        )
+    if not _profile_exact_match(profile, symbol):
         profile_outcome.status = "failed"
         profile_outcome.reason_code = "provider_profile_unavailable_or_mismatched"
         outcomes.append(profile_outcome)
@@ -923,6 +976,98 @@ async def acquire_instrument(
     )
 
 
+@router.get(
+    "/{instrument_id}/history-availability",
+    response_model=HistoryAvailabilityResponse,
+)
+async def get_instrument_history_availability(
+    instrument_id: int,
+    timeframe: Timeframe = Query(default=Timeframe.D1),
+    adjusted: bool = Query(default=True),
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    """Read current reviewed history bounds without reserving quota or transport."""
+    instrument = (
+        await db.execute(
+            select(Instrument).where(
+                Instrument.id == instrument_id,
+                Instrument.is_synthetic.is_(False),
+            )
+        )
+    ).scalar_one_or_none()
+    if instrument is None:
+        raise HTTPException(404, detail={"code": "canonical_instrument_not_found"})
+
+    max_bars = max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
+    base = {
+        "instrument_id": instrument.id,
+        "symbol": instrument.symbol,
+        "timeframe": timeframe,
+        "adjusted": adjusted,
+        "max_requested_bars": max_bars,
+    }
+    if await _qualified_identity(db, instrument) is None:
+        return HistoryAvailabilityResponse(
+            **base,
+            status="held",
+            reason_code="canonical_identity_unresolved",
+        )
+
+    with bind_explicit_provider_acquisition(
+        request_id=f"history-availability:{instrument.id}:{uuid4()}",
+        operations=frozenset({(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}),
+        instrument_id=instrument.id,
+        symbol=instrument.symbol,
+    ):
+        now = datetime.now(UTC)
+        request_window_start = now - timedelta(
+            seconds=TIMEFRAME_SECONDS[timeframe] * max(0, max_bars - 1)
+        )
+        chain = await resolve_provider_chain(
+            db,
+            ProviderCapability.PRICE_HISTORY,
+            instrument_id=instrument.id,
+            provider_symbol=instrument.symbol,
+            operation=f"fetch_ohlcv:{timeframe.value}",
+            operation_cost_overrides=ohlcv_operation_cost_overrides(
+                timeframe, request_window_start, now
+            ),
+            adjusted=adjusted,
+            read_only=True,
+        )
+    admitted_bounds: list[datetime] = []
+    bound_failures: list[str] = []
+    for resolved in chain:
+        quota_policy = resolved.entitlement.quota_policy
+        constraints = (
+            quota_policy.get("history_constraints") if isinstance(quota_policy, dict) else None
+        )
+        if not isinstance(constraints, dict):
+            bound_failures.append("history_depth_unknown")
+            continue
+        earliest, reason = provider_history_bound_start(constraints, now=now)
+        if earliest is None:
+            bound_failures.append(reason or "history_depth_invalid")
+            continue
+        admitted_bounds.append(earliest)
+
+    if admitted_bounds:
+        return HistoryAvailabilityResponse(
+            **base,
+            status="eligible",
+            earliest_start=min(admitted_bounds),
+        )
+    reason_code = (
+        "no_eligible_history_provider"
+        if not chain
+        else "history_depth_unknown"
+        if "history_depth_unknown" in bound_failures
+        else "history_depth_invalid"
+    )
+    return HistoryAvailabilityResponse(**base, status="held", reason_code=reason_code)
+
+
 @router.post("/{instrument_id}/history-acquisitions", response_model=HistoryAcquisitionResponse)
 async def acquire_instrument_history(
     instrument_id: int,
@@ -992,7 +1137,9 @@ async def acquire_instrument_history(
     if limit_reason is not None:
         execution_status = "held"
         reason_code = limit_reason
+        held_error: Exception | None = None
     else:
+        held_error = None
         try:
             with bind_explicit_provider_acquisition(
                 request_id=body.request_id,
@@ -1017,18 +1164,23 @@ async def acquire_instrument_history(
         except ProviderRequestScopeDeniedError as exc:
             execution_status = "held"
             reason_code = exc.reason_code
-        except ProviderRateLimitError:
+            held_error = exc
+        except ProviderRateLimitError as exc:
             execution_status = "held"
             reason_code = "provider_capacity_unavailable"
-        except ProviderQuotaAdmissionError:
+            held_error = exc
+        except ProviderQuotaAdmissionError as exc:
             execution_status = "held"
             reason_code = "provider_quota_admission_denied"
-        except ProviderQuotaCoordinatorError:
+            held_error = exc
+        except ProviderQuotaCoordinatorError as exc:
             execution_status = "held"
             reason_code = "provider_quota_coordinator_unavailable"
-        except ProviderQuotaUnknownError:
+            held_error = exc
+        except ProviderQuotaUnknownError as exc:
             execution_status = "held"
             reason_code = "provider_quota_contract_unknown"
+            held_error = exc
         except ProviderNoDataError:
             execution_status = "no_data"
             reason_code = "no_admitted_provider_data"
@@ -1088,6 +1240,34 @@ async def acquire_instrument_history(
         )
     if execution_status == "held" and not outcomes and not reason_code.startswith("application_"):
         outcomes = await _held_provider_outcomes(db, ProviderCapability.PRICE_HISTORY, operation)
+    if execution_status == "held" and held_error is not None:
+        held_provider = str(getattr(held_error, "provider_name", "") or "").strip().lower()
+        held_outcome = next(
+            (
+                item
+                for item in outcomes
+                if item.capability == ProviderCapability.PRICE_HISTORY.value
+                and item.operation == operation
+                and (not held_provider or item.provider.strip().lower() == held_provider)
+            ),
+            None,
+        )
+        if held_outcome is None:
+            outcomes.append(
+                InstrumentAcquisitionSourceOutcome(
+                    provider=held_provider or "provider_chain",
+                    capability=ProviderCapability.PRICE_HISTORY.value,
+                    operation=operation,
+                    status="held",
+                    reason_code=reason_code,
+                    error_type=type(held_error).__name__,
+                    retry_at=getattr(held_error, "retry_at", None),
+                )
+            )
+        else:
+            held_outcome.reason_code = reason_code
+            held_outcome.error_type = type(held_error).__name__
+            held_outcome.retry_at = getattr(held_error, "retry_at", None)
     response_limit_exceeded = len(persisted) > max_bars
     if reason_code in {
         "application_requested_range_limit_exceeded",
@@ -2518,6 +2698,7 @@ def _discovery_profile_outcome(
     *,
     result_count: int | None = None,
     error_type: str | None = None,
+    retry_at: datetime | None = None,
 ) -> dict:
     outcome = {
         "provider": provider,
@@ -2531,6 +2712,8 @@ def _discovery_profile_outcome(
         outcome["result_count"] = result_count
     if error_type is not None:
         outcome["error_type"] = error_type
+    if retry_at is not None:
+        outcome["retry_at"] = retry_at
     return outcome
 
 
@@ -2548,6 +2731,24 @@ def _discovery_profile_error(exc: Exception) -> tuple[str, str]:
     if isinstance(exc, ProviderNoDataError):
         return "no_match", "exact_profile_not_found"
     return "failed", "exact_symbol_profile_lookup_failed"
+
+
+def _provider_profile_lookup_error(exc: Exception) -> tuple[str, str]:
+    """Keep expected profile admission holds distinct from lookup failures."""
+
+    if isinstance(exc, ProviderRequestScopeDeniedError):
+        return "held", exc.reason_code
+    if isinstance(exc, ProviderRateLimitError):
+        return "held", "provider_capacity_unavailable"
+    if isinstance(exc, ProviderQuotaAdmissionError):
+        return "held", "provider_quota_admission_denied"
+    if isinstance(exc, ProviderQuotaCoordinatorError):
+        return "held", "provider_quota_coordinator_unavailable"
+    if isinstance(exc, ProviderQuotaUnknownError):
+        return "held", "provider_quota_contract_unknown"
+    if isinstance(exc, ProviderNoDataError):
+        return "no_match", "exact_profile_not_found"
+    return "failed", "provider_profile_unavailable_or_mismatched"
 
 
 def _exact_discovery_profile_candidate(

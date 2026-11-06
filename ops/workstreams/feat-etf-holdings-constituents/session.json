@@ -1,52 +1,43 @@
 {
   "acceptance_criteria": [
     {
-      "id": "CGET1",
-      "text": "Capability evaluation reads the same latest visible snapshot selected by existing composition-date/known-at/id order, retaining E2E visibility and controlled-fixture filters, but passes the ORM row internally so source_artifact_id remains available. Existing response DTO fields do not change."
+      "id": "VFC1",
+      "text": "Keep the two authentic VanEck workbook fixtures and their provider-reported 2026-10-29 composition date unchanged; freeze only the test application clock at 2026-11-01T12:00:00Z for the affected tests so the existing five-day daily freshness rule remains authoritative."
     },
     {
-      "id": "CGET2",
-      "text": "An authenticated capability GET over a valid native qualified snapshot with distinct ETFProfile.id and Instrument.id returns a successful response with identity_verified/current/usable true; removing its linked raw artifact yields a successful fail-closed response with identity_verified and usable false. Native evidence binding is not weakened."
+      "id": "VFC2",
+      "text": "All three affected VanEck PostgreSQL/SQLite integration nodes pass while retaining existing source identity, body, date, quota, provenance, one-shot and ordinary-refresh assertions; no production code, source transport, or freshness policy is changed."
     },
     {
-      "id": "CGET3",
-      "text": "Capability reads remain read-only and preserve existing snapshots, artifacts, freshness/oracle behavior, including honest stale OIH status. Focused service, endpoint, lint, record and exact-source CI evidence is recorded without claiming an unrun gate."
+      "id": "VFC3",
+      "text": "Record exact failed predecessor CI and focused test evidence, verify fixture hashes and owned test-container cleanup, preserve the full roadmap and prior checkpoints, and leave exact-source CI and broader Root-owned qualification pending."
     }
   ],
   "active_changeset": {
-    "name": "capability GET persisted-snapshot ORM boundary",
-    "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25",
+    "name": "VanEck authentic fixture clock checkpoint",
+    "baseline": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
     "source_paths": [
-      "backend/app/services/etf_holdings.py",
-      "backend/tests/integration/api/test_etf_holdings.py"
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py"
     ],
-    "scope": "ETF-owned capability GET only. Preserve exact latest-snapshot ordering, E2E visibility and controlled-fixture exclusion, strict native artifact binding, public DTO shape, all snapshots/artifacts and stale/freshness decisions. No Source HTTP, production writes, quota/policy changes, staging edits or sibling worktree changes.",
-    "focused_validation": "130 capability service unit tests passed; the distinct-ID capability GET endpoint regression passed 1/1 (21.65s); Ruff check and format passed. Testcontainers cleanup left zero containers/test sessions; two pre-existing worktree volumes unchanged.",
-    "next_action": "Root owns exact closing-tip CI observation and normal staging gate; no additional local heavy profile is authorized.",
-    "status": "ready_for_integration",
-    "source_http_requests": 0,
-    "snapshot_or_artifact_mutation": false,
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json",
-    "root_acceptance_sha256": "f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398",
-    "tested_base_sha": "45cc8206602d7823ca29e132d991d88b0bcbbc25",
+    "scope": "Freeze the test clock for the two tests using the unchanged authentic 2026-10-29 VanEck workbooks. No production code, workbook bytes, freshness policy, Source calls, quota/policy, or data changes.",
+    "focused_validation": "Exactly three authorized PostgreSQL/SQLite integration nodes passed in 29.07s; Ruff check/format and diff checks are recorded in validation.jsonl.",
     "exact_source_ci": "pending_Root_owned",
-    "green_claimed": false
+    "green_claimed": false,
+    "status": "ready_for_human_review"
   },
   "active_follow_up": {
-    "id": "etf-capability-get-persisted-snapshot-2026-11-05",
-    "scope": "Use the persisted ETF holdings snapshot ORM row for capability evaluation; add distinct-profile/instrument-ID endpoint regression and missing-artifact fail-closed proof.",
-    "status": "Root_accepted_ready_for_integration_exact_CI_pending",
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json",
-    "root_acceptance_sha256": "f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398",
-    "tested_base_sha": "45cc8206602d7823ca29e132d991d88b0bcbbc25"
+    "id": "vaneck-authentic-fixture-clock-2026-11-06",
+    "scope": "Repair the three VanEck native qualification/ordinary-refresh integration failures by freezing the test clock for the authentic dated workbook fixtures, without changing provider data, freshness rules, or product behavior.",
+    "status": "ready_for_human_review",
+    "source_parent_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d"
   },
   "active_goal": {
-    "created_at_epoch": 1793898514,
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793929180,
+    "objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
+    "status": "complete",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
-    "objective": "Repair ETF capability GET evaluation to use the persisted snapshot ORM row while preserving the existing selection and strict native evidence rules.",
-    "status": "active",
-    "token_budget": null,
-    "completed_goal_history_preserved": true
+    "token_budget": null
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -68,7 +59,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -89,8 +80,8 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "closure_pending": false,
-  "closure_summary": "Root accepted the bounded capability GET repair under existing delegated authority. Exact CI remains pending and Root-owned; Root owns staging/integration. Full roadmap and all holds remain open. integration_capture: exact branch HEAD.",
+  "closure_pending": true,
+  "closure_summary": "Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules. The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.",
   "continuation_goal": {
     "accounting_note": "This is the same unbudgeted ordinary ticker-selection goal in the original thread. Prior completed goal accounting and accepted checkpoints remain archived unchanged.",
     "created_at_epoch": 1793705535,
@@ -100,17 +91,17 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Only the final exact closing-tip CI and Root-owned protected integration/deployment/genuine-flow gates remain. The exact closing-tip CI is pending, not green.",
-  "current_checkpoint_objective": "Implement and validate etf-capability-get-persisted-snapshot-2026-11-05; exact-source CI and Root integration remain pending.",
-  "current_local_delta": "Two ETF backend paths changed: capability now evaluates the latest filtered persisted ORM snapshot, and an authenticated endpoint regression proves distinct profile/instrument IDs plus missing-artifact denial. Four owned workstream records track this candidate. No DTO, source-provider, ledger, production or snapshot data changes.",
-  "dirty_paths": [
-    "backend/app/services/etf_holdings.py",
-    "backend/tests/integration/api/test_etf_holdings.py",
-    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
-    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
-    "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
-  ],
+  "current_blocker_latest": "Exact-source CI and Root-owned broader qualification remain pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, histories, and genuine deployment work.",
+  "current_checkpoint_objective": "Repair the three VanEck native qualification/ordinary-refresh integration failures by freezing the test clock for the authentic dated workbook fixtures, without changing provider data, freshness rules, or product behavior.",
+  "current_local_delta": {
+    "type": "test-only",
+    "paths": [
+      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py"
+    ],
+    "test_file_sha256": "a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d",
+    "product_code_changed": false
+  },
+  "dirty_paths": [],
   "docker": {
     "accounting_complete": true,
     "available": true,
@@ -145,15 +136,15 @@
     "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Repair ETF capability GET evaluation to use the persisted snapshot ORM row while preserving the existing selection and strict native evidence rules.",
+  "goal_objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
   "goal_recorded_at": "2026-11-03T11:32:15Z",
   "goal_request": {
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
   },
   "goal_request_state": "active",
-  "goal_state": "active",
+  "goal_state": "complete",
   "goal_unavailable_reason": null,
-  "head": "45cc8206602d7823ca29e132d991d88b0bcbbc25",
+  "head": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -371,7 +362,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -676,98 +667,56 @@
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
   "human_closure_authorization": "Root accepted this bounded implementation under existing human-delegated authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. No new human quote is claimed.",
-  "implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce",
+  "implementation_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "implementation_source_baseline": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
   "integration_capture": "exact branch HEAD",
   "integration_checkpoint": {
-    "acceptance_authorization": "accepted_by_root_under_existing_human_delegated_checkpoint_authority",
-    "acceptance_criteria": [
-      {
-        "id": "NCP1",
-        "text": "Derive current identity and analysis capability from the persisted native qualification evidence only when canonical instrument/fund, profile, provider/adapter, source URL and identifier, composition date, schema, completeness, payload hash, and captured-body or retained-continuation lineage match the selected snapshot; valid retained SPY7/IGV8 reads become current and usable without mutation."
-      },
-      {
-        "id": "NCP2",
-        "text": "Fail closed for missing evidence, wrong symbol/provider/date/schema/raw hash, incomplete composition, or missing retained artifact; Root verified all eight negative bindings for each retained SPY and IGV case against the exact new backend image."
-      },
-      {
-        "id": "NCP3",
-        "text": "Do not rewrite existing snapshots, jobs, or raw artifacts. Write a verified projection only when a new continuation snapshot is created; infer SPY daily cadence only from explicit source metadata and keep IGV cadence unspecified."
-      },
-      {
-        "id": "NCP4",
-        "text": "Qualify the exact runtime and paired served application through Root-pinned backend CI, the combined functional and strict-visual profile, served Enter/Go regressions, and protected-inventory evidence with assertions, references, tolerances, and zero-retry policy unchanged."
-      }
-    ],
-    "accepted_profile": {
-      "functional_proof_sha256": "c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a",
-      "protected_inventory_after_sha256": "85e117d60259a434f757dff195e77401a48ed0bf42ea80506dba64224c1f1ec4",
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-      "receipt_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
-      "served_enter_go_proof_sha256": "c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7",
-      "strict_visual_proof_sha256": "265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e",
-      "summary": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired."
+    "id": "vaneck-authentic-fixture-clock-2026-11-06",
+    "goal": "Make the three date-sensitive VanEck qualification and ordinary-refresh integration tests deterministic as their authentic 2026-10-29 fixtures age, without altering fixture evidence or freshness behavior.",
+    "status": "ready_for_human_review",
+    "activation": "Root authorized this narrowly scoped repair under the existing active ETF owner session; no new human quote or acceptance is claimed.",
+    "failed_predecessor": {
+      "source": "2f152978",
+      "ci_run": 42141483157,
+      "result": "Backend unit 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed. All three failures were the two VanEck test functions, with the identity-successor test parameterized for PostgreSQL and SQLite."
     },
-    "backend_artifact": {
-      "backend_tree": "e1bc0af5c1da5151b67ebc88dfffb480897df5ff",
-      "image": "sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a",
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-6eae00eb-backend-artifact-20261105/artifact-receipt.json",
-      "receipt_sha256": "00511754d09713b7847bf3aa3e16733c5aaed35547dfcf67a7356436ab2723bf"
+    "diagnosis": "The unchanged authentic workbooks report composition date 2026-10-29. Under the existing five-day daily freshness window, that evidence is expired by 2026-11-06. The tests failed because their application clock advanced while fixture date and freshness contract correctly remained fixed.",
+    "implementation": {
+      "type": "test-only clock fixture",
+      "frozen_now_utc": "2026-11-01T12:00:00Z",
+      "production_code_changed": false,
+      "fixture_bytes_changed": false,
+      "freshness_policy_changed": false
     },
-    "exact_closing_tip_ci": {
-      "green_claimed": false,
-      "owner": "Root observes; no feature-session CI polling or rerun",
-      "required": true,
-      "state": "pending_after_this_records_only_publication"
+    "test_file": "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "test_file_sha256": "a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d",
+    "source_parent_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
+    "fixture_sha256": {
+      "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx": "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653",
+      "backend/tests/fixtures/vaneck/oih_job6_identity.xlsx": "c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2"
     },
-    "exact_runtime_ci": {
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json",
-      "receipt_sha256": "70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1",
-      "run": 42009540648,
-      "state": "terminal_green_on_tested_implementation_only",
-      "summary": "Exact runtime-source CI42009540648 on 6eae00eb is terminal green: Backend 5,880 passed/1 unchanged configured skip, integration 625 passed/2 configured skips, 84% combined coverage, both canonical DDL tests passed; Frontend Unit, E2E, and Branch-declared jobs succeeded. This is runtime-source CI, not the final closing-tip CI."
+    "validation_evidence": {
+      "affected_nodes": 3,
+      "result": "3 passed in 29.07s; exit 0",
+      "pytest_log": "/tmp/etf-vaneck-clock-repair-20261106/pytest.log",
+      "run_receipt": "/tmp/etf-vaneck-clock-repair-20261106/run-result.json",
+      "prelaunch": "/tmp/etf-vaneck-clock-repair-20261106/prelaunch.json",
+      "container_id": "80ecd2cf08010b8a610133f12e816dc42f49a28467c355dcd69016738edd9800",
+      "container_cleanup": "Post-run docker inspect returned no such object for the exact owned container ID. Before/after protected inventory counts were 33 containers, 26 images, 12 networks and 55 volumes; no new unowned container was present.",
+      "resource_bounds": "PostgreSQL: 1 CPU, 1 GiB memory, 1 GiB memory+swap, PIDs 128, 768 MiB private tmpfs; one worker, zero retries; external HTTP proxies loopback port 9."
     },
-    "existing_snapshot_job_raw_artifact_mutation": false,
-    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, datasets, historical failures, accepted archives, and genuine deployment/user-flow obligations remain open and preserved.",
-    "goal": "Close the accepted strict native capability-projection follow-up. Read the immutable native qualification evidence faithfully for selected-acquire consumers; retain historical source records and all broader ETF obligations.",
-    "id": "etf-native-capability-projection-20261105",
-    "integration_capture": "exact branch HEAD",
-    "intermediate_TC_runtime_ci": {
-      "qualification_note": "Not used as final closing-tip qualification; final exact closing CI remains mandatory.",
-      "receipt_sha256": "f43d9373c53cb8d6da95d657b3955d5aba8f8f5f9444e3e9bb76a4b44a36807c",
-      "run": 42013633810,
-      "state": "in_progress_at_pinned_observation_in_Root_receipt"
-    },
-    "local_profile_evidence": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired.",
-    "local_validation_profile": "full_stack_browser",
-    "paired_frontend_runtime_sha": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
+    "source_http_requests": 0,
     "production_or_ledger_mutation": false,
-    "progress": {
-      "completed": [
-        "NCP1",
-        "NCP2",
-        "NCP3",
-        "NCP4"
-      ],
-      "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates.",
-      "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
-      "total": 4
+    "exact_source_ci": {
+      "state": "pending_Root_owned",
+      "green_claimed": false
     },
     "remaining_gates": [
-      "Exact final closing-tip CI must be terminal green before integration.",
-      "Root owns accepted compatible ETF→TC staging, green staging and independent master gates.",
-      "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
+      "Root-owned exact-source CI for the published checkpoint.",
+      "Root-owned broader joint qualification and all later integration/deployment gates."
     ],
-    "retained_input_proof": {
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json",
-      "sha256": "26d724cd47335e9c745cd89618c9d527214b0d75887871626792b308be82cbb4",
-      "summary": "Exact 6eae image offline check: SPY snapshot7/artifact22 505 rows and IGV snapshot8/artifact23 110 rows, both dated 2026-11-03 and current/identity-verified/usable; eight negative binding cases passed per fund. Existing historical metadata remained byte-for-byte unchanged; zero DB/network mounts and zero snapshot/source operations."
-    },
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
-    "source_http_requests": 0,
-    "status": "accepted_ready_for_integration_closing_tip_CI_pending",
-    "tested_implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce"
+    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, historical failures and accepted checkpoints remain preserved and open.",
+    "integration_capture": "exact branch HEAD"
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -872,7 +821,7 @@
     "success_marker": "ETF_DURABLE_GATE_EXIT=0",
     "unit": "etf-holdings-final-gate-20261015-1934.service"
   },
-  "local_validation_profile": "docker_integration",
+  "local_validation_profile": "full_stack_browser",
   "native_capability_projection_followup_2026_11_05": {
     "accepted_profile": {
       "functional_proof_sha256": "c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a",
@@ -1053,7 +1002,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "c4f015368a4da71c4a67616f1d832605f01eb932a4dc4173eada515664457bc0",
+  "plan_hash": "7434437f803004b4d1bbe1a307a48452ae574c58a9ee47dd6650bf985e098d06",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -1294,6 +1243,51 @@
     "resulting_head": "870d37dcc2b9715402ccfefce12a61020465ab35",
     "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json",
     "root_release_review_sha256": "da4780ab9674c10b22e1533c55dd506d02f62ff030a09bfd7db91fe9cae3812d"
+  },
+  "previous_native_capability_active_changeset_session_2026_11_05": {
+    "backend_tree": "e1bc0af5c1da5151b67ebc88dfffb480897df5ff",
+    "existing_history_mutation": false,
+    "focused_validation": "192 focused backend tests; Ruff check and format passed.",
+    "name": "strict native capability projection follow-up",
+    "next_action": "Root observes final exact closing-tip CI; Root owns protected integration/deployment and genuine user-flow gates.",
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+    "source_http": 0,
+    "source_paths": [
+      "backend/app/services/etf_holdings_capability.py",
+      "backend/app/services/etf_holdings_native_qualification.py",
+      "backend/tests/unit/services/test_etf_holdings_capability.py",
+      "backend/tests/unit/services/test_etf_holdings_native_qualification.py"
+    ],
+    "status": "accepted_ready_for_integration_closing_tip_CI_pending",
+    "tested_implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce"
+  },
+  "previous_native_capability_checkpoint_session_2026_11_05": {
+    "id": "etf-native-capability-projection-20261105",
+    "implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce",
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+    "scope": "Strict evidence-based current capability projection for retained native SPDR/iShares snapshots; records-only closure.",
+    "status": "accepted_ready_for_integration_closing_tip_CI_pending"
+  },
+  "previous_native_capability_closure_session_2026_11_05": "Root accepted the strict native capability-projection follow-up at tested implementation 6eae00eb8380438da771fed0c42d19587e9520ce. Exact runtime-source CI42009540648 on 6eae00eb is terminal green: Backend 5,880 passed/1 unchanged configured skip, integration 625 passed/2 configured skips, 84% combined coverage, both canonical DDL tests passed; Frontend Unit, E2E, and Branch-declared jobs succeeded. This is runtime-source CI, not the final closing-tip CI. Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired. Actual retained SPY7/IGV8 source evidence and all 16 negative bindings passed against the exact new backend; original snapshots, jobs, and raw artifacts were not rewritten. This closing commit changes only the four owned records. Final exact closing-tip CI remains pending and mandatory; Root owns integration, promotion, deployment, and genuine post-deployment flow checks. AC1-AC14, 15 Tier-0/156 Tier-1, all holds, datasets, accepted archives, and historical failures remain preserved/open. integration_capture: exact branch HEAD.",
+  "previous_native_capability_goal_session_2026_11_05": {
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793705535,
+    "objective": "Finish the ETF backend for the ordinary ticker journey on synchronized green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c in this original visible session. Preserve 876358b9, the existing claim and unbudgeted goal accounting, all checkpoints, failures, and the full roadmap. Complete current PostgreSQL qualification, one coherent closing publication and exact-source CI, and prepare the source-specific backend artifact for Root review. Root/TC own the combined profile and Root owns protected integration/deployment; no live Source HTTP, real-ledger, policy or sibling changes. Stop at ready_for_human_review.",
+    "status": "active",
+    "token_budget": null
+  },
+  "previous_native_capability_progress_session_2026_11_05": {
+    "completed": [
+      "NCP1",
+      "NCP2",
+      "NCP3",
+      "NCP4"
+    ],
+    "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates. The full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, all source/account/target holds, and genuine production workflows remain open.",
+    "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
+    "total": 4
   },
   "previous_session_ids": [
     "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
@@ -1779,7 +1773,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -3258,13 +3252,13 @@
   },
   "progress": {
     "completed": [
-      "CGET1",
-      "CGET2",
-      "CGET3"
+      "VFC1",
+      "VFC2",
+      "VFC3"
     ],
     "total": 3,
-    "current_phase": "Root accepted the focused capability GET implementation; one coherent closing publication is being prepared.",
-    "current_blocker": "Exact-source CI and Root-owned staging/integration remain pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, and genuine deployed workflow gates."
+    "current_phase": "The two affected VanEck integration tests pass with a frozen test clock; the authentic 2026-10-29 workbook bytes and five-day freshness policy are unchanged.",
+    "current_blocker": "Exact-source CI and Root-owned broader qualification remain pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, histories, and genuine deployment work."
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -3321,10 +3315,10 @@
     "state": "terminal_green_all_required_jobs",
     "supported_reconcile": "make staging-reconcile exited0; synchronized; marker absent"
   },
-  "remote": "66b9c6733a8de3d3fc5267a1079016b86bd76021",
+  "remote": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "remote_observation": "Pre-publication status was captured at local base45cc8206602d7823ca29e132d991d88b0bcbbc25 with origin feature66b9c6733a8de3d3fc5267a1079016b86bd76021; one coherent accepted-source publication is now authorized. Exact closing-tip CI and staging remain Root-owned.",
-  "remote_sha": "66b9c6733a8de3d3fc5267a1079016b86bd76021",
-  "remote_synchronized": false,
+  "remote_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -3473,7 +3467,7 @@
     "released_staging_sha": "a6558c4978311d7a21c3b29d3d8fd2f043610efb"
   },
   "state": "in_progress",
-  "status": "ready_for_integration",
+  "status": "ready_for_human_review",
   "structural_skip_diagnostics": {
     "DFTT": "1 unverified skip;issuer403/503;SEC mismatched-series rejected;no current/native guarantee",
     "DFTT_responses": ".ai/validation/structural-donoghue-native-replay-20261015.log",
@@ -3534,7 +3528,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-05T04:00:00Z",
+  "updated_at": "2026-11-06T01:56:21Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -3553,49 +3547,94 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
   "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
-  "previous_native_capability_checkpoint_session_2026_11_05": {
-    "id": "etf-native-capability-projection-20261105",
-    "implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce",
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
-    "scope": "Strict evidence-based current capability projection for retained native SPDR/iShares snapshots; records-only closure.",
-    "status": "accepted_ready_for_integration_closing_tip_CI_pending"
-  },
-  "previous_native_capability_active_changeset_session_2026_11_05": {
-    "backend_tree": "e1bc0af5c1da5151b67ebc88dfffb480897df5ff",
-    "existing_history_mutation": false,
-    "focused_validation": "192 focused backend tests; Ruff check and format passed.",
-    "name": "strict native capability projection follow-up",
-    "next_action": "Root observes final exact closing-tip CI; Root owns protected integration/deployment and genuine user-flow gates.",
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
-    "source_http": 0,
-    "source_paths": [
-      "backend/app/services/etf_holdings_capability.py",
-      "backend/app/services/etf_holdings_native_qualification.py",
-      "backend/tests/unit/services/test_etf_holdings_capability.py",
-      "backend/tests/unit/services/test_etf_holdings_native_qualification.py"
+  "previously_accepted_capability_get_checkpoint_2026_11_05": {
+    "acceptance_authorization": "accepted_by_root_under_existing_human_delegated_checkpoint_authority",
+    "acceptance_criteria": [
+      {
+        "id": "NCP1",
+        "text": "Derive current identity and analysis capability from the persisted native qualification evidence only when canonical instrument/fund, profile, provider/adapter, source URL and identifier, composition date, schema, completeness, payload hash, and captured-body or retained-continuation lineage match the selected snapshot; valid retained SPY7/IGV8 reads become current and usable without mutation."
+      },
+      {
+        "id": "NCP2",
+        "text": "Fail closed for missing evidence, wrong symbol/provider/date/schema/raw hash, incomplete composition, or missing retained artifact; Root verified all eight negative bindings for each retained SPY and IGV case against the exact new backend image."
+      },
+      {
+        "id": "NCP3",
+        "text": "Do not rewrite existing snapshots, jobs, or raw artifacts. Write a verified projection only when a new continuation snapshot is created; infer SPY daily cadence only from explicit source metadata and keep IGV cadence unspecified."
+      },
+      {
+        "id": "NCP4",
+        "text": "Qualify the exact runtime and paired served application through Root-pinned backend CI, the combined functional and strict-visual profile, served Enter/Go regressions, and protected-inventory evidence with assertions, references, tolerances, and zero-retry policy unchanged."
+      }
     ],
+    "accepted_profile": {
+      "functional_proof_sha256": "c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a",
+      "protected_inventory_after_sha256": "85e117d60259a434f757dff195e77401a48ed0bf42ea80506dba64224c1f1ec4",
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+      "receipt_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+      "served_enter_go_proof_sha256": "c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7",
+      "strict_visual_proof_sha256": "265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e",
+      "summary": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired."
+    },
+    "backend_artifact": {
+      "backend_tree": "e1bc0af5c1da5151b67ebc88dfffb480897df5ff",
+      "image": "sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a",
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-6eae00eb-backend-artifact-20261105/artifact-receipt.json",
+      "receipt_sha256": "00511754d09713b7847bf3aa3e16733c5aaed35547dfcf67a7356436ab2723bf"
+    },
+    "exact_closing_tip_ci": {
+      "green_claimed": false,
+      "owner": "Root observes; no feature-session CI polling or rerun",
+      "required": true,
+      "state": "pending_after_this_records_only_publication"
+    },
+    "exact_runtime_ci": {
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json",
+      "receipt_sha256": "70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1",
+      "run": 42009540648,
+      "state": "terminal_green_on_tested_implementation_only",
+      "summary": "Exact runtime-source CI42009540648 on 6eae00eb is terminal green: Backend 5,880 passed/1 unchanged configured skip, integration 625 passed/2 configured skips, 84% combined coverage, both canonical DDL tests passed; Frontend Unit, E2E, and Branch-declared jobs succeeded. This is runtime-source CI, not the final closing-tip CI."
+    },
+    "existing_snapshot_job_raw_artifact_mutation": false,
+    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, datasets, historical failures, accepted archives, and genuine deployment/user-flow obligations remain open and preserved.",
+    "goal": "Close the accepted strict native capability-projection follow-up. Read the immutable native qualification evidence faithfully for selected-acquire consumers; retain historical source records and all broader ETF obligations.",
+    "id": "etf-native-capability-projection-20261105",
+    "integration_capture": "exact branch HEAD",
+    "intermediate_TC_runtime_ci": {
+      "qualification_note": "Not used as final closing-tip qualification; final exact closing CI remains mandatory.",
+      "receipt_sha256": "f43d9373c53cb8d6da95d657b3955d5aba8f8f5f9444e3e9bb76a4b44a36807c",
+      "run": 42013633810,
+      "state": "in_progress_at_pinned_observation_in_Root_receipt"
+    },
+    "local_profile_evidence": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired.",
+    "local_validation_profile": "full_stack_browser",
+    "paired_frontend_runtime_sha": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
+    "production_or_ledger_mutation": false,
+    "progress": {
+      "completed": [
+        "NCP1",
+        "NCP2",
+        "NCP3",
+        "NCP4"
+      ],
+      "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates.",
+      "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
+      "total": 4
+    },
+    "remaining_gates": [
+      "Exact final closing-tip CI must be terminal green before integration.",
+      "Root owns accepted compatible ETF\u2192TC staging, green staging and independent master gates.",
+      "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
+    ],
+    "retained_input_proof": {
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json",
+      "sha256": "26d724cd47335e9c745cd89618c9d527214b0d75887871626792b308be82cbb4",
+      "summary": "Exact 6eae image offline check: SPY snapshot7/artifact22 505 rows and IGV snapshot8/artifact23 110 rows, both dated 2026-11-03 and current/identity-verified/usable; eight negative binding cases passed per fund. Existing historical metadata remained byte-for-byte unchanged; zero DB/network mounts and zero snapshot/source operations."
+    },
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+    "source_http_requests": 0,
     "status": "accepted_ready_for_integration_closing_tip_CI_pending",
     "tested_implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce"
-  },
-  "previous_native_capability_goal_session_2026_11_05": {
-    "completed_goal_history_preserved": true,
-    "created_at_epoch": 1793705535,
-    "objective": "Finish the ETF backend for the ordinary ticker journey on synchronized green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c in this original visible session. Preserve 876358b9, the existing claim and unbudgeted goal accounting, all checkpoints, failures, and the full roadmap. Complete current PostgreSQL qualification, one coherent closing publication and exact-source CI, and prepare the source-specific backend artifact for Root review. Root/TC own the combined profile and Root owns protected integration/deployment; no live Source HTTP, real-ledger, policy or sibling changes. Stop at ready_for_human_review.",
-    "status": "active",
-    "token_budget": null
-  },
-  "previous_native_capability_progress_session_2026_11_05": {
-    "completed": [
-      "NCP1",
-      "NCP2",
-      "NCP3",
-      "NCP4"
-    ],
-    "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates. The full AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1, all source/account/target holds, and genuine production workflows remain open.",
-    "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
-    "total": 4
-  },
-  "previous_native_capability_closure_session_2026_11_05": "Root accepted the strict native capability-projection follow-up at tested implementation 6eae00eb8380438da771fed0c42d19587e9520ce. Exact runtime-source CI42009540648 on 6eae00eb is terminal green: Backend 5,880 passed/1 unchanged configured skip, integration 625 passed/2 configured skips, 84% combined coverage, both canonical DDL tests passed; Frontend Unit, E2E, and Branch-declared jobs succeeded. This is runtime-source CI, not the final closing-tip CI. Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired. Actual retained SPY7/IGV8 source evidence and all 16 negative bindings passed against the exact new backend; original snapshots, jobs, and raw artifacts were not rewritten. This closing commit changes only the four owned records. Final exact closing-tip CI remains pending and mandatory; Root owns integration, promotion, deployment, and genuine post-deployment flow checks. AC1-AC14, 15 Tier-0/156 Tier-1, all holds, datasets, accepted archives, and historical failures remain preserved/open. integration_capture: exact branch HEAD."
+  }
 }

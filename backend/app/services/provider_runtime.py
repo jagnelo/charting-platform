@@ -3258,6 +3258,7 @@ async def resolve_provider_chain(
     adjusted: bool | None = None,
     history_start: HistoryStartSpec | None = None,
     etf_holdings_adapters: dict[str, Any] | None = None,
+    read_only: bool = False,
 ) -> list[ResolvedProvider]:
     scope_denial = _explicit_acquisition_scope_denial(
         capability=capability,
@@ -3299,7 +3300,11 @@ async def resolve_provider_chain(
         and profile_id == native_etf_qualification.fund_profile_id
         and str(provider_symbol or "").strip().upper() == native_etf_qualification.provider_symbol
     )
-    await seed_provider_runtime(db)
+    # The selected-history-bound endpoint uses this resolver to inspect the
+    # current reviewed chain without seeding rows or updating health scores.
+    # Runtime callers keep the established seed/update behavior by default.
+    if not read_only:
+        await seed_provider_runtime(db)
     if not settings.PROVIDER_ROUTING_ENABLED:
         return []
     entitlement_candidate_filter = or_(
@@ -3647,8 +3652,9 @@ async def resolve_provider_chain(
         )
         if effective_support == SUPPORT_STATUS_UNSUPPORTED:
             continue
-        policy.effective_score = _effective_score(policy, health)
-        health.observed_score = policy.effective_score
+        if not read_only:
+            policy.effective_score = _effective_score(policy, health)
+            health.observed_score = policy.effective_score
         resolved.append(
             ResolvedProvider(
                 provider_name=data_source.name,
@@ -3814,7 +3820,7 @@ async def execute_provider_call(
         chain = [resolved for resolved in chain if resolved.provider_name == provider_name]
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
-    admission_denied: set[str] = set()
+    admission_denied: dict[str, datetime | None] = {}
 
     for resolved in chain:
         resolved_usage_identity = (
@@ -3883,6 +3889,7 @@ async def execute_provider_call(
         semaphore = _get_semaphore(resolved.policy, resolved.provider_name)
         await semaphore.acquire()
         try:
+            admission_details: dict[str, Any] = {}
             reservations = await reserve_provider_contract(
                 db,
                 resolved=resolved,
@@ -3891,17 +3898,19 @@ async def execute_provider_call(
                 dimension_units=dimension_units,
                 usage_identity=resolved_usage_identity,
                 now=datetime.now(UTC),
+                denial_details=admission_details,
             )
         except BaseException:
             semaphore.release()
             raise
         if reservations is None:
             semaphore.release()
-            admission_denied.add(resolved.provider_name)
+            admission_denied[resolved.provider_name] = admission_details.get("retry_at")
             continue
         from app.services.provider_quota_coordinator import reserve_provider_quota_async
 
         try:
+            coordinator_denial: dict[str, Any] = {}
             coordinator_reservation = await reserve_provider_quota_async(
                 provider_name=resolved.provider_name,
                 capability=capability.value,
@@ -3910,6 +3919,7 @@ async def execute_provider_call(
                 dimension_units=dimension_units,
                 usage_identity=resolved_usage_identity,
                 now=datetime.now(UTC),
+                denial_details=coordinator_denial,
             )
         except BaseException:
             settle_provider_contract(
@@ -3932,7 +3942,7 @@ async def execute_provider_call(
                 release_only_dimensions=release_only_dimensions,
             )
             semaphore.release()
-            admission_denied.add(resolved.provider_name)
+            admission_denied[resolved.provider_name] = coordinator_denial.get("retry_at")
             continue
         if (
             resolved.policy.tokens_per_minute is not None
@@ -3957,7 +3967,7 @@ async def execute_provider_call(
                     not_sent=True,
                 )
                 semaphore.release()
-                admission_denied.add(resolved.provider_name)
+                admission_denied[resolved.provider_name] = None
                 continue
         try:
             log_row = ProviderRequestLog(
@@ -4272,8 +4282,15 @@ async def execute_provider_call(
         from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
 
         names = ", ".join(sorted(admission_denied))
+        retry_values = list(admission_denied.values())
+        retry_at = (
+            min(retry_values)
+            if retry_values and all(value is not None for value in retry_values)
+            else None
+        )
         raise ProviderQuotaAdmissionError(
-            f"durable provider quota admission denied for {capability.value}/{operation}: {names}"
+            f"durable provider quota admission denied for {capability.value}/{operation}: {names}",
+            retry_at=retry_at,
         )
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")
 

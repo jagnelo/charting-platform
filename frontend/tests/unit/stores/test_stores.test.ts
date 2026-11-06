@@ -6,6 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useAuthStore } from '@/stores/auth'
 import { useChartStore } from '@/stores/chart'
+import { clearOhlcvRequestCache } from '@/lib/workstation/ohlcvRequests'
 import { useAlertsStore } from '@/stores/alerts'
 import { router } from '@/router'
 
@@ -125,6 +126,7 @@ describe('useChartStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    clearOhlcvRequestCache()
   })
 
   it('initial state', () => {
@@ -198,6 +200,7 @@ describe('useChartStore', () => {
     })
     const store = useChartStore()
     await store.loadBars('SPY', 'D1', 'candles', true)
+    expect(store.bars).toHaveLength(1)
     await store.loadMoreBars()
 
     expect(api.get).toHaveBeenCalledWith('/ohlcv/local/SPY/D1', expect.objectContaining({
@@ -205,6 +208,213 @@ describe('useChartStore', () => {
       limit: 500,
     }))
     expect(api.get).not.toHaveBeenCalledWith('/ohlcv/SPY/D1', expect.anything())
+  })
+
+  it('fills older missing daily history from a short local cache in one bounded admitted request', async () => {
+    const now = Date.now()
+    const cached = {
+      ts: new Date(now - 180 * 86_400_000).toISOString(),
+      open: 10, high: 11, low: 9, close: 10.5, volume: 100,
+    }
+    const older = {
+      ts: new Date(Date.parse(cached.ts) - 86_400_000).toISOString(),
+      open: 9, high: 10, low: 8, close: 9.5, volume: 90,
+    }
+    let localPageReads = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: {} }) as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/coverage/instruments/SPY/ohlcv') {
+        return Promise.resolve({ status: 'partial', bar_count: 1, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: cached.ts }] }) as any
+      }
+      if (path === '/instruments/42/history-availability') {
+        return Promise.resolve({ instrument_id: 42, symbol: 'SPY', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }) as any
+      }
+      if (path === '/ohlcv/local/SPY/D1') {
+        localPageReads += 1
+        if (localPageReads === 1) return Promise.resolve([cached]) as any
+        if (localPageReads === 2) return Promise.resolve([]) as any
+        expect(params?.before).toBe(cached.ts)
+        return Promise.resolve([older]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/acquire') {
+        return Promise.resolve({ status: 'resolved', instrument: { instrument_id: 42, symbol: 'SPY', identity_status: 'resolved' }, source_outcomes: [] }) as any
+      }
+      if (path === '/instruments/42/history-acquisitions') {
+        return Promise.resolve({
+          status: 'complete', instrument_id: 42, symbol: 'SPY', timeframe: 'D1', adjusted: true,
+          requested_start: '2024-01-01T00:00:00Z', requested_end: cached.ts,
+          coverage: { status: 'ready', bar_count: 500, missing_slices: [] }, bars: [older], source_outcomes: [],
+        }) as any
+      }
+      return Promise.resolve({}) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    expect(store.bars.map(bar => bar.ts)).toEqual([cached.ts])
+    await store.loadMoreBars()
+
+    expect(localPageReads).toBe(3)
+    const request = (api.post as ReturnType<typeof vi.fn>).mock.calls.find(([path]) => path === '/instruments/42/history-acquisitions')
+    expect(request).toBeDefined()
+    const payload = request?.[1] as { timeframe: string; start: string; end: string }
+    expect(payload.timeframe).toBe('D1')
+    const defaultTarget = new Date(Date.now() - 728 * 86_400_000)
+    defaultTarget.setUTCDate(defaultTarget.getUTCDate() - ((defaultTarget.getUTCDay() + 6) % 7))
+    defaultTarget.setUTCHours(0, 0, 0, 0)
+    expect(payload.start).toBe(defaultTarget.toISOString())
+    expect(Date.parse(payload.end)).toBeLessThan(Date.parse(cached.ts))
+    expect(store.bars.map(bar => bar.ts)).toEqual([older.ts, cached.ts])
+    expect(store.historyBoundaryMessage).toContain('Loaded older D1 history')
+  })
+
+  it.each([
+    { label: 'empty readback after complete', status: 'complete', freshBars: [] as any[] },
+    { label: 'duplicate readback after partial', status: 'partial', freshBars: null as any },
+  ])('does not claim exhaustion or repeat the same cursor after $label', async ({ status, freshBars }) => {
+    const cached = { ts: '2026-10-01T00:00:00.000Z', open: 10, high: 11, low: 9, close: 10.5, volume: 100 }
+    let pageReads = 0
+    let historyAttempts = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: {} }) as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/coverage/instruments/SPY/ohlcv') return Promise.resolve({
+        status: 'partial', bar_count: 1,
+        missing_slices: [{ start: '2024-01-01T00:00:00Z', end: cached.ts }],
+      }) as any
+      if (path === '/instruments/42/history-availability') return Promise.resolve({
+        instrument_id: 42, symbol: 'SPY', timeframe: 'D1', adjusted: true,
+        status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null,
+      }) as any
+      if (path === '/ohlcv/local/SPY/D1') {
+        if (!params?.before) return Promise.resolve([cached]) as any
+        pageReads += 1
+        if (pageReads === 1 || pageReads === 3) return Promise.resolve([]) as any
+        if (pageReads === 2) return Promise.resolve(freshBars ?? [cached]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path === '/instruments/acquire') return Promise.resolve({
+        status: 'resolved', instrument: { instrument_id: 42, symbol: 'SPY', identity_status: 'resolved' }, source_outcomes: [],
+      }) as any
+      if (path === '/instruments/42/history-acquisitions') {
+        historyAttempts += 1
+        return Promise.resolve({
+          status: historyAttempts === 1 ? status : 'no_data', instrument_id: 42, symbol: 'SPY', timeframe: 'D1', adjusted: true,
+          requested_start: body.start, requested_end: body.end,
+          coverage: { status: 'partial', bar_count: 1, missing_slices: [{ start: body.start, end: body.end }] },
+          bars: [], source_outcomes: [],
+        }) as any
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const store = useChartStore()
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    await store.loadMoreBars()
+
+    expect(store.hasReachedStart).toBe(false)
+    expect(store.historyBoundaryMessage).toContain('refresh chart data before trying this range again.')
+    expect(historyAttempts).toBe(1)
+    const pageReadsAfterNoProgress = pageReads
+    await store.loadMoreBars()
+    expect(pageReads).toBe(pageReadsAfterNoProgress)
+    expect(historyAttempts).toBe(1)
+
+    // The existing explicit refresh is the bounded retry gesture for this
+    // same cursor; only authoritative no_data may then mark the source edge.
+    await store.refreshLocalBars()
+    await store.loadMoreBars()
+    expect(historyAttempts).toBe(2)
+    expect(store.hasReachedStart).toBe(true)
+    expect(store.historyBoundaryMessage).toContain('No older D1 history is available')
+  })
+
+  it('resumes a known quota wait for older history and appends the completed local bars', async () => {
+    const cached = { ts: new Date(Date.now() - 30 * 86_400_000).toISOString(), open: 10, high: 11, low: 9, close: 10.5, volume: 100 }
+    const older = { ts: new Date(Date.now() - 60 * 86_400_000).toISOString(), open: 9, high: 10, low: 8, close: 9.5, volume: 90 }
+    let historyAttempts = 0
+    let persisted = false
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/QQQ') return Promise.resolve({ id: 44, symbol: 'QQQ', stats: {} }) as any
+      if (path === '/instrument-indicators/44') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/QQQ/D1') return Promise.resolve(params?.before ? persisted ? [older] : [] : [cached]) as any
+      if (path === '/coverage/instruments/QQQ/ohlcv') return Promise.resolve({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: cached.ts }] }) as any
+      if (path === '/instruments/44/history-availability') return Promise.resolve({ instrument_id: 44, symbol: 'QQQ', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }) as any
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path === '/instruments/acquire') return Promise.resolve({ status: 'resolved', instrument: { instrument_id: 44, symbol: 'QQQ', identity_status: 'resolved' }, source_outcomes: [] }) as any
+      if (path === '/instruments/44/history-acquisitions') {
+        historyAttempts += 1
+        if (historyAttempts === 1) return Promise.resolve({
+          status: 'held', retry_at: new Date(Date.now() + 20).toISOString(),
+          instrument_id: 44, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
+          requested_start: body.start, requested_end: body.end,
+          coverage: { status: 'missing', bar_count: 0, missing_slices: [] }, bars: [], source_outcomes: [],
+        }) as any
+        persisted = true
+        return Promise.resolve({
+          status: 'complete', instrument_id: 44, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
+          requested_start: body.start, requested_end: body.end,
+          coverage: { status: 'ready', bar_count: 1, missing_slices: [] }, bars: [older], source_outcomes: [],
+        }) as any
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const store = useChartStore()
+    await store.loadBars('QQQ', 'D1', 'candles', true)
+    await store.loadMoreBars()
+
+    expect(historyAttempts).toBe(2)
+    expect(store.bars).toEqual([older, cached])
+    expect(store.hasReachedStart).toBe(false)
+    expect(store.historyRetryAt).toBeNull()
+    expect(store.historyBoundaryMessage).toContain('Loaded older D1 history')
+    expect(store.historyBoundaryMessage).not.toContain('native_quota_window')
+  })
+
+  it('does not apply a late older-history response after a faster symbol switch', async () => {
+    const qqqBar = { ts: '2026-06-01T00:00:00Z', open: 10, high: 11, low: 9, close: 10.5, volume: 100 }
+    const spyBar = { ts: '2026-10-01T00:00:00Z', open: 20, high: 21, low: 19, close: 20.5, volume: 200 }
+    let releaseHistory!: (value: unknown) => void
+    const delayedHistory = new Promise(resolve => { releaseHistory = resolve })
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/QQQ') return Promise.resolve({ id: 44, symbol: 'QQQ', stats: {} }) as any
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: {} }) as any
+      if (path === '/instrument-indicators/44' || path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/ohlcv/local/QQQ/D1') return Promise.resolve(params?.before ? [] : [qqqBar]) as any
+      if (path === '/ohlcv/local/SPY/D1') return Promise.resolve(params?.before ? [] : [spyBar]) as any
+      if (path === '/coverage/instruments/QQQ/ohlcv') return Promise.resolve({ status: 'missing', bar_count: 1, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: qqqBar.ts }] }) as any
+      if (path === '/instruments/44/history-availability') return Promise.resolve({ instrument_id: 44, symbol: 'QQQ', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }) as any
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string) => {
+      if (path === '/instruments/acquire') return Promise.resolve({ status: 'resolved', instrument: { instrument_id: 44, symbol: 'QQQ', identity_status: 'resolved' }, source_outcomes: [] }) as any
+      if (path === '/instruments/44/history-acquisitions') return delayedHistory as any
+      return Promise.resolve({}) as any
+    })
+
+    const store = useChartStore()
+    await store.loadBars('QQQ', 'D1', 'candles', true)
+    const oldRequest = store.loadMoreBars()
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/44/history-acquisitions', expect.any(Object)))
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    releaseHistory({
+      status: 'complete', instrument_id: 44, symbol: 'QQQ', timeframe: 'D1', adjusted: true,
+      requested_start: '2024-01-01T00:00:00Z', requested_end: qqqBar.ts,
+      coverage: { status: 'ready', bar_count: 500, missing_slices: [] }, bars: [qqqBar], source_outcomes: [],
+    })
+    await oldRequest
+
+    expect(store.symbol).toBe('SPY')
+    expect(store.bars).toEqual([spyBar])
   })
 
   it('starts local workstation bars while canonical instrument metadata is resolving', async () => {

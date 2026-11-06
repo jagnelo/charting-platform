@@ -4,10 +4,11 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
 from statistics import median
 from typing import Literal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import and_, or_
 
@@ -24,6 +25,11 @@ class CoverageStatus(StrEnum):
 
 CoverageMode = Literal["historical", "latest"]
 CalendarName = Literal["XNYS"]
+_XNYS_TZ = ZoneInfo("America/New_York")
+_XNYS_AD_HOC_CLOSURES = {
+    # NYSE closed on Jan 9, 2025 for the National Day of Mourning.
+    2025: {date(2025, 1, 9)},
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -353,6 +359,7 @@ def _xnys_holidays(year: int) -> set[date]:
     }
     if year >= 2022:
         holidays.add(_observed_fixed_holiday(year, 6, 19))  # Juneteenth
+    holidays.update(_XNYS_AD_HOC_CLOSURES.get(year, set()))
     return holidays
 
 
@@ -375,32 +382,99 @@ def _calendar_missing_slices(
     start: datetime,
     end: datetime,
     calendar: CalendarName,
-) -> list[tuple[datetime, datetime]]:
-    if calendar != "XNYS" or timeframe != Timeframe.D1:
-        return []
-    missing = sorted(
-        _xnys_session_days(start.date(), end.date()) - {value.date() for value in ordered}
-    )
+) -> list[tuple[datetime, datetime]] | None:
+    """Plan missing completed XNYS sessions or calendar periods.
+
+    ``None`` means this calendar/timeframe pair has no explicit grid and must
+    use the conservative interval fallback. It must never be interpreted as a
+    gap-free range.
+    """
+    if calendar != "XNYS" or timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}:
+        return None
+
+    start = _as_utc(start)
+    end = _as_utc(end)
+    periods: list[tuple[date, datetime, datetime]] = []
+
+    if timeframe == Timeframe.D1:
+        local_start = start.astimezone(_XNYS_TZ)
+        local_end = end.astimezone(_XNYS_TZ)
+        for session in sorted(_xnys_session_days(local_start.date(), local_end.date())):
+            bar_start = datetime.combine(session, time.min, tzinfo=_XNYS_TZ).astimezone(UTC)
+            session_close = datetime.combine(session, time(16), tzinfo=_XNYS_TZ).astimezone(UTC)
+            # Daily bars represent completed sessions. Do not manufacture a
+            # missing tail for a session that has not closed yet.
+            if bar_start < start or session_close > end:
+                continue
+            next_midnight = datetime.combine(
+                session + timedelta(days=1), time.min, tzinfo=_XNYS_TZ
+            ).astimezone(UTC)
+            periods.append(
+                (session, bar_start, min(next_midnight - timedelta(microseconds=1), end))
+            )
+
+        # Both canonical UTC-midnight labels and native NY-midnight labels
+        # (04:00/05:00 UTC across DST) keep the exchange date in UTC's date
+        # component. Converting a canonical 00:00 UTC label to New York would
+        # incorrectly move it to the prior session.
+        present = {value.date() for value in ordered}
+    else:
+        first_date = start.date()
+        if timeframe == Timeframe.W1:
+            bucket = first_date - timedelta(days=first_date.weekday())
+            if datetime.combine(bucket, time.min, tzinfo=UTC) < start:
+                bucket += timedelta(days=7)
+        else:
+            bucket = date(first_date.year, first_date.month, 1)
+            if datetime.combine(bucket, time.min, tzinfo=UTC) < start:
+                bucket = date(
+                    first_date.year + (first_date.month == 12), first_date.month % 12 + 1, 1
+                )
+
+        while True:
+            bucket_start = datetime.combine(bucket, time.min, tzinfo=UTC)
+            if timeframe == Timeframe.W1:
+                next_bucket = bucket + timedelta(days=7)
+            else:
+                next_bucket = date(bucket.year + (bucket.month == 12), bucket.month % 12 + 1, 1)
+            bucket_end = datetime.combine(next_bucket, time.min, tzinfo=UTC) - timedelta(
+                microseconds=1
+            )
+            if bucket_start > end:
+                break
+
+            sessions = _xnys_session_days(bucket, next_bucket - timedelta(days=1))
+            if sessions:
+                last_session_close = datetime.combine(
+                    max(sessions), time(16), tzinfo=_XNYS_TZ
+                ).astimezone(UTC)
+                if last_session_close > end:
+                    break
+                periods.append((bucket, bucket_start, min(bucket_end, end)))
+            bucket = next_bucket
+
+        if timeframe == Timeframe.W1:
+            present = {value.date() - timedelta(days=value.date().weekday()) for value in ordered}
+        else:
+            present = {date(value.year, value.month, 1) for value in ordered}
+
+    present_periods = set(present)
+    missing = [
+        (index, period) for index, period in enumerate(periods) if period[0] not in present_periods
+    ]
     if not missing:
         return []
+
     slices: list[tuple[datetime, datetime]] = []
-    first = previous = missing[0]
-    for current in missing[1:]:
-        if current != previous + timedelta(days=1):
-            slices.append(
-                (
-                    datetime.combine(first, datetime.min.time(), tzinfo=UTC),
-                    datetime.combine(previous, datetime.min.time(), tzinfo=UTC),
-                )
-            )
-            first = current
+    first_index, first = missing[0]
+    previous_index, previous = first_index, first
+    for current_index, current in missing[1:]:
+        if current_index != previous_index + 1:
+            slices.append((first[1], previous[2]))
+            first_index, first = current_index, current
         previous = current
-    slices.append(
-        (
-            datetime.combine(first, datetime.min.time(), tzinfo=UTC),
-            datetime.combine(previous, datetime.min.time(), tzinfo=UTC),
-        )
-    )
+        previous_index = current_index
+    slices.append((first[1], previous[2]))
     return slices
 
 
@@ -414,9 +488,11 @@ def missing_range_slices(
 ) -> list[tuple[datetime, datetime]]:
     """Return exact edge and conservative obvious internal gaps.
 
-    When an explicit calendar is supplied, daily gaps are evaluated against its
-    expected session dates. Without one, retain conservative interval-based
-    behavior because exchange closures cannot be inferred safely.
+    When an explicit calendar is supplied, supported daily and calendar-period
+    gaps are evaluated against completed exchange sessions. Missing expected
+    periods are coalesced across closed days; present periods split the ranges.
+    Unsupported calendar/timeframe pairs retain the conservative interval
+    fallback rather than being assumed complete.
     """
     if not cached:
         return [(_as_utc(start), _as_utc(end))]
@@ -429,7 +505,9 @@ def missing_range_slices(
         return [(start, end)]
 
     if calendar is not None:
-        return _calendar_missing_slices(ordered, timeframe, start, end, calendar)
+        calendar_slices = _calendar_missing_slices(ordered, timeframe, start, end, calendar)
+        if calendar_slices is not None:
+            return calendar_slices
 
     tolerance = 4 if timeframe == Timeframe.D1 else 2
     slices: list[tuple[datetime, datetime]] = []

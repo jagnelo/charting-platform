@@ -194,11 +194,17 @@ const discoveryScheduled = ref(false)
 const resolvingCandidate = ref(false)
 const discoveryMessage = ref('')
 const discoveryError = ref('')
+const discoveryRetryAt = ref<string | null>(null)
+const discoveryHeld = ref(false)
 const optionExplicitlyNavigated = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
 let searchGeneration = 0
 let pendingSearch: { generation: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
+let retryTimer: ReturnType<typeof setTimeout> | null = null
+let resolveRetryWait: ((ready: boolean) => void) | null = null
+let pendingEnterIntent: { generation: number; query: string; lastRetryAtMs: number } | null = null
+let candidateResolutionSequence = 0
 
 const showRecentResults = computed(() => props.showRecent)
 const showScreenerShortcut = computed(() =>
@@ -247,10 +253,10 @@ watch(() => props.modelValue, value => {
 
 async function onInput() {
   const generation = ++searchGeneration
+  cancelKnownRetryWait()
+  pendingEnterIntent = null
   finishPendingSearch()
-  let resolvePending!: () => void
-  const promise = new Promise<void>(resolve => { resolvePending = resolve })
-  pendingSearch = { generation, query: query.value.trim(), promise, resolve: resolvePending }
+  beginPendingSearch(generation, query.value.trim())
   optionExplicitlyNavigated.value = false
   expressionSelected.value = false
   dropdownDismissed.value = false
@@ -260,6 +266,8 @@ async function onInput() {
   highlightIdx.value = query.value.trim() ? -1 : 0
   discoveryMessage.value = ''
   discoveryError.value = ''
+  discoveryRetryAt.value = null
+  discoveryHeld.value = false
   loading.value = false
   if (debounceTimer) clearTimeout(debounceTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
@@ -330,17 +338,43 @@ async function discoverTicker(requested: string, generation: number) {
   discoveryMessage.value = ''
   discoveryCandidates.value = []
   try {
-    const response = await discoverInstruments(requested, props.resultTypes, 10)
-    if (generation !== searchGeneration || query.value.trim().toUpperCase() !== queryKey) return
-    discoveryCandidates.value = response.candidates.filter(matchesResultTypeScope)
-    discoveryMessage.value = tickerDiscoveryMessage(response.status, discoveryCandidates.value.length)
-    if (!results.value.length && discoveryCandidates.value.length && highlightIdx.value < 0) highlightIdx.value = 0
+    while (true) {
+      const response = await discoverInstruments(requested, props.resultTypes, 10)
+      if (generation !== searchGeneration || query.value.trim().toUpperCase() !== queryKey) return
+      discoveryCandidates.value = response.candidates.filter(matchesResultTypeScope)
+      discoveryHeld.value = response.status === 'held'
+      discoveryRetryAt.value = response.retry_at
+        ?? response.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+        ?? null
+      discoveryMessage.value = discoveryHeld.value
+        ? `Ticker availability is temporarily held${discoveryRetryAt.value ? `; checking again after ${new Date(discoveryRetryAt.value).toLocaleTimeString()}` : '. Enter to check again when ready.'}`
+        : tickerDiscoveryMessage(response.status, discoveryCandidates.value.length)
+      if (!results.value.length && discoveryCandidates.value.length && highlightIdx.value < 0) highlightIdx.value = 0
+
+      const intent = pendingEnterIntent
+      if (!discoveryHeld.value || !discoveryRetryAt.value || !intent
+        || intent.generation !== generation || intent.query.toUpperCase() !== queryKey) break
+      const retryDue = nextKnownRetryAt(discoveryRetryAt.value, intent.lastRetryAtMs)
+      if (retryDue == null) {
+        discoveryMessage.value = 'Ticker availability is temporarily held. Press Enter to check again when available.'
+        break
+      }
+      intent.lastRetryAtMs = retryDue
+      discoveryLoading.value = false
+      discoveryScheduled.value = true
+      const ready = await waitForKnownRetry(discoveryRetryAt.value, generation, queryKey, retryDue)
+      if (!ready || generation !== searchGeneration || query.value.trim().toUpperCase() !== queryKey) return
+      discoveryLoading.value = true
+      discoveryScheduled.value = false
+      discoveryCandidates.value = []
+    }
   } catch {
     if (generation === searchGeneration && query.value.trim().toUpperCase() === queryKey) {
       discoveryError.value = 'Ticker availability could not be checked. Local results remain available.'
     }
   } finally {
     if (generation === searchGeneration) discoveryLoading.value = false
+    if (generation === searchGeneration) discoveryScheduled.value = false
     finishSearch(generation)
   }
 }
@@ -359,8 +393,81 @@ function finishPendingSearch() {
   pending.resolve()
 }
 
+function beginPendingSearch(generation: number, requested: string) {
+  finishPendingSearch()
+  let resolve!: () => void
+  const promise = new Promise<void>(done => { resolve = done })
+  pendingSearch = { generation, query: requested, promise, resolve }
+  return pendingSearch
+}
+
+function cancelKnownRetryWait() {
+  if (retryTimer) clearTimeout(retryTimer)
+  retryTimer = null
+  const resolve = resolveRetryWait
+  resolveRetryWait = null
+  resolve?.(false)
+}
+
+function nextKnownRetryAt(retryAt: string, previousRetryAtMs: number): number | null {
+  const due = Date.parse(retryAt)
+  if (!Number.isFinite(due) || due <= Date.now() || due <= previousRetryAtMs) return null
+  const delay = due - Date.now()
+  // Avoid browser timer overflow rather than firing early or creating a retry
+  // loop from an implausibly distant admission timestamp.
+  if (delay > 2_147_000_000) return null
+  return due
+}
+
+function waitForKnownRetry(retryAt: string, generation: number, queryKey: string, expectedDue: number): Promise<boolean> {
+  const due = Date.parse(retryAt)
+  if (!Number.isFinite(due) || due !== expectedDue) return Promise.resolve(false)
+  const delay = due - Date.now()
+  if (delay <= 0) return Promise.resolve(false)
+  cancelKnownRetryWait()
+  return new Promise(resolve => {
+    resolveRetryWait = resolve
+    retryTimer = setTimeout(() => {
+      retryTimer = null
+      resolveRetryWait = null
+      resolve(generation === searchGeneration && query.value.trim().toUpperCase() === queryKey)
+    }, delay)
+  })
+}
+
+function retryHeldDiscoveryForEnter(requested: string, generation: number) {
+  const queryKey = requested.toUpperCase()
+  const pending = beginPendingSearch(generation, requested)
+  pendingEnterIntent = { generation, query: requested, lastRetryAtMs: 0 }
+  const retryAt = discoveryRetryAt.value
+  const retry = async () => {
+    const retryDue = retryAt ? nextKnownRetryAt(retryAt, 0) : null
+    if (retryDue != null) {
+      discoveryScheduled.value = true
+      discoveryMessage.value = `Ticker availability is temporarily held; checking again after ${new Date(retryDue).toLocaleTimeString()}.`
+      if (!await waitForKnownRetry(retryAt!, generation, queryKey, retryDue)) {
+        discoveryScheduled.value = false
+        finishSearch(generation)
+        return
+      }
+      if (pendingEnterIntent?.generation === generation) pendingEnterIntent.lastRetryAtMs = retryDue
+    }
+    if (generation === searchGeneration && query.value.trim().toUpperCase() === queryKey) {
+      void discoverTicker(requested, generation)
+    } else finishSearch(generation)
+  }
+  void retry()
+  return pending.promise
+}
+
 async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
-  if (resolvingCandidate.value) return
+  pendingEnterIntent = null
+  candidateResolutionSequence += 1
+  cancelKnownRetryWait()
+  return resolveCandidateAttempt(candidate, candidateResolutionSequence)
+}
+
+async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, resolutionId: number) {
   const generation = searchGeneration
   const queryKey = query.value.trim().toUpperCase()
   const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
@@ -371,45 +478,66 @@ async function resolveCandidate(candidate: InstrumentDiscoveryCandidate) {
   resolvingCandidate.value = true
   discoveryError.value = ''
   try {
-    const response = await resolveDiscoveredInstrument(candidate)
-    if (generation !== searchGeneration || query.value.trim().toUpperCase() !== queryKey) return
-    if (response.status !== 'resolved' || !response.instrument
-      || !Number.isSafeInteger(response.instrument.instrument_id) || response.instrument.instrument_id <= 0) {
-      discoveryMessage.value = response.status === 'held'
-        ? 'Identity resolution is held.'
-        : response.status === 'identity_conflict'
+    let lastRetryAtMs = 0
+    while (true) {
+      const response = await resolveDiscoveredInstrument(candidate)
+      if (resolutionId !== candidateResolutionSequence || generation !== searchGeneration
+        || query.value.trim().toUpperCase() !== queryKey) return
+      const retryAt = response.retry_at
+        ?? response.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+        ?? null
+      if (response.status === 'held') {
+        const retryDue = retryAt ? nextKnownRetryAt(retryAt, lastRetryAtMs) : null
+        discoveryRetryAt.value = retryAt
+        if (retryDue == null) {
+          discoveryMessage.value = 'Identity verification is temporarily held. Select the candidate to try again when available.'
+          return
+        }
+        lastRetryAtMs = retryDue
+        discoveryMessage.value = `Identity verification is temporarily held; checking again after ${new Date(retryAt!).toLocaleTimeString()}.`
+        if (!await waitForKnownRetry(retryAt!, generation, queryKey, retryDue)) return
+        if (resolutionId !== candidateResolutionSequence || generation !== searchGeneration
+          || query.value.trim().toUpperCase() !== queryKey) return
+        continue
+      }
+      if (response.status !== 'resolved' || !response.instrument
+        || !Number.isSafeInteger(response.instrument.instrument_id) || response.instrument.instrument_id <= 0) {
+        discoveryMessage.value = response.status === 'identity_conflict'
           ? 'Identity conflict: this candidate was not opened.'
           : response.status === 'no_match'
             ? 'No canonical instrument matched this candidate.'
             : response.status === 'failed'
               ? 'Identity resolution failed.'
               : 'Candidate identity is not resolved.'
+        return
+      }
+      if (requiredSymbol && response.instrument.symbol.trim().toUpperCase() !== requiredSymbol) {
+        discoveryMessage.value = 'The resolved canonical symbol does not match the exact reported ticker.'
+        return
+      }
+      if (requiredSymbol && !['resolved', 'verified'].includes(response.instrument.identity_status.trim().toLowerCase())) {
+        discoveryMessage.value = 'The provider did not verify this canonical identity. The holding was not opened.'
+        return
+      }
+      const result: SearchResult = {
+        symbol: response.instrument.symbol,
+        name: candidate.name,
+        exchange: candidate.exchange,
+        type: candidate.type,
+        instrument_id: response.instrument.instrument_id,
+        identity_status: response.instrument.identity_status,
+        explicitlyResolved: true,
+      }
+      commitSelection(result.symbol, result.name, result, response)
       return
     }
-    if (requiredSymbol && response.instrument.symbol.trim().toUpperCase() !== requiredSymbol) {
-      discoveryMessage.value = 'The resolved canonical symbol does not match the exact reported ticker.'
-      return
-    }
-    if (requiredSymbol && !['resolved', 'verified'].includes(response.instrument.identity_status.trim().toLowerCase())) {
-      discoveryMessage.value = 'The provider did not verify this canonical identity. The holding was not opened.'
-      return
-    }
-    const result: SearchResult = {
-      symbol: response.instrument.symbol,
-      name: candidate.name,
-      exchange: candidate.exchange,
-      type: candidate.type,
-      instrument_id: response.instrument.instrument_id,
-      identity_status: response.instrument.identity_status,
-      explicitlyResolved: true,
-    }
-    commitSelection(result.symbol, result.name, result, response)
   } catch {
-    if (generation === searchGeneration && query.value.trim().toUpperCase() === queryKey) {
+    if (resolutionId === candidateResolutionSequence && generation === searchGeneration
+      && query.value.trim().toUpperCase() === queryKey) {
       discoveryError.value = 'Ticker identity verification failed. No chart was opened.'
     }
   } finally {
-    if (generation === searchGeneration) resolvingCandidate.value = false
+    if (resolutionId === candidateResolutionSequence) resolvingCandidate.value = false
   }
 }
 
@@ -470,6 +598,8 @@ function commitSelection(
   discoveryCandidates.value = []
   discoveryMessage.value = ''
   discoveryError.value = ''
+  discoveryRetryAt.value = null
+  discoveryHeld.value = false
   dropdownDismissed.value = true
   errorMessage.value = ''
 }
@@ -489,9 +619,16 @@ async function selectFirst() {
       const generation = searchGeneration
       const pending = pendingSearch
       if (props.allowSourceDiscovery && pending?.generation === generation && pending.query === submittedQuery) {
+        pendingEnterIntent = { generation, query: submittedQuery, lastRetryAtMs: 0 }
         await pending.promise
         if (generation !== searchGeneration || query.value.trim() !== submittedQuery) return
+        if (pendingEnterIntent?.generation === generation) pendingEnterIntent = null
+      } else if (props.allowSourceDiscovery && discoveryHeld.value) {
+        await retryHeldDiscoveryForEnter(submittedQuery, generation)
+        if (generation !== searchGeneration || query.value.trim() !== submittedQuery) return
+        if (pendingEnterIntent?.generation === generation) pendingEnterIntent = null
       }
+      if (discoveryHeld.value) return
       if (optionExplicitlyNavigated.value) {
         if (highlightIdx.value >= 0 && highlightIdx.value < results.value.length) {
           select(results.value[highlightIdx.value])
@@ -527,6 +664,10 @@ async function selectFirst() {
 }
 
 function moveDown() {
+  if (pendingEnterIntent) {
+    pendingEnterIntent = null
+    cancelKnownRetryWait()
+  }
   if (query.value.trim() && discoveryCandidates.value.length) {
     const count = results.value.length + discoveryCandidates.value.length
     optionExplicitlyNavigated.value = true
@@ -540,6 +681,10 @@ function moveDown() {
   highlightIdx.value = Math.min(highlightIdx.value + 1, Math.max(0, len - 1))
 }
 function moveUp() {
+  if (pendingEnterIntent) {
+    pendingEnterIntent = null
+    cancelKnownRetryWait()
+  }
   if (query.value.trim() && discoveryCandidates.value.length) {
     optionExplicitlyNavigated.value = true
     highlightIdx.value = Math.max(highlightIdx.value - 1, 0)
@@ -560,6 +705,8 @@ function clear()    {
   discoveryCandidates.value = []
   discoveryMessage.value = ''
   discoveryError.value = ''
+  discoveryRetryAt.value = null
+  discoveryHeld.value = false
   expressionSelected.value = false
   dropdownDismissed.value = true
   errorMessage.value = ''
@@ -579,6 +726,8 @@ function handleEscape() {
 }
 
 function invalidateSearch() {
+  cancelKnownRetryWait()
+  pendingEnterIntent = null
   finishPendingSearch()
   searchGeneration += 1
   optionExplicitlyNavigated.value = false

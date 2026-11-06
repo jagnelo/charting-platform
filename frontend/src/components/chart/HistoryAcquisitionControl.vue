@@ -10,7 +10,7 @@
     <details class="history-acquisition__advanced">
       <summary>Custom date range</summary>
       <div class="history-acquisition__body">
-        <p>Recent {{ HISTORY_RANGE_LIMIT_DAYS[props.timeframe] }} days are selected by default. Custom ranges stay within this limit.</p>
+        <p>The default range is {{ HISTORY_DEFAULT_RANGE_DAYS[props.timeframe] }} days. Each request is limited to {{ HISTORY_ACQUISITION_MAX_REQUESTED_BARS }} time slots; provider history and entitlement limits still apply.</p>
         <p>Sources may not cover every date. Partial or held results are reported, and existing chart data stays available.</p>
         <label>From <input v-model="startDate" type="date" aria-label="History start date" :max="today" :disabled="busy" /></label>
         <label>To <input v-model="endDate" type="date" aria-label="History end date" :max="today" :disabled="busy" /></label>
@@ -23,16 +23,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
-import { api } from '@/lib/api'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import {
-  acquireInstrumentHistory,
+  acquireSelectedHistory,
   defaultHistoryRange,
-  HISTORY_RANGE_LIMIT_DAYS,
+  HISTORY_DEFAULT_RANGE_DAYS,
+  HISTORY_ACQUISITION_MAX_REQUESTED_BARS,
   historyRangeIsAllowed,
-  resolveExistingInstrument,
   type HistoryAcquisitionResponse,
-  type HistoryCoverageSummary,
+  type SelectedHistoryStage,
 } from '@/lib/onDemandAcquisition'
 import type { Timeframe } from '@/types'
 
@@ -48,7 +47,7 @@ const props = withDefaults(defineProps<{
 const emit = defineEmits<{ loaded: [result: HistoryAcquisitionResponse] }>()
 const startDate = ref('')
 const endDate = ref('')
-const stage = ref<'coverage' | 'identity' | 'history' | null>(null)
+const stage = ref<SelectedHistoryStage | null>(null)
 const message = ref('')
 const error = ref('')
 const busy = computed(() => stage.value !== null)
@@ -83,7 +82,7 @@ const rangeError = computed(() => {
   const range = selectedRange.value
   return range && historyRangeIsAllowed(props.timeframe, range.start, range.end)
     ? ''
-    : `Choose a past range of at most ${HISTORY_RANGE_LIMIT_DAYS[props.timeframe]} days.`
+    : `Choose a past range within ${HISTORY_ACQUISITION_MAX_REQUESTED_BARS} time slots.`
 })
 
 const actionLabel = computed(() => stage.value === 'coverage'
@@ -92,11 +91,20 @@ const actionLabel = computed(() => stage.value === 'coverage'
     ? 'Checking instrument…'
     : stage.value === 'history'
       ? 'Loading missing history…'
+      : stage.value === 'waiting'
+        ? 'Waiting to retry…'
       : 'Load missing history')
 
 let actionGeneration = 0
+let actionAbortController: AbortController | null = null
+
+function cancelCurrentAction() {
+  actionAbortController?.abort()
+  actionAbortController = null
+}
 
 watch(() => [props.symbol, props.timeframe], () => {
+  cancelCurrentAction()
   actionGeneration += 1
   stage.value = null
   message.value = ''
@@ -104,6 +112,7 @@ watch(() => [props.symbol, props.timeframe], () => {
 })
 
 watch(() => [startDate.value, endDate.value], () => {
+  cancelCurrentAction()
   actionGeneration += 1
   message.value = ''
   error.value = ''
@@ -112,82 +121,101 @@ watch(() => [startDate.value, endDate.value], () => {
 async function loadMissingHistory() {
   const range = selectedRange.value
   if (!props.symbol || !range || rangeError.value || busy.value) return
-  const generation = actionGeneration
+  cancelCurrentAction()
+  const controller = new AbortController()
+  actionAbortController = controller
+  const generation = ++actionGeneration
   const symbol = props.symbol
   const timeframe = props.timeframe
   stage.value = 'coverage'
+  let activeStage: SelectedHistoryStage = 'coverage'
+  const stageAtFailure = (): SelectedHistoryStage => activeStage
   message.value = ''
   error.value = ''
-
-  let checked: HistoryCoverageSummary
+  const adjusted = props.adjusted !== false
   try {
-    checked = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(symbol)}/ohlcv`, {
-      timeframe,
-      start: range.start,
-      end: range.end,
-      mode: 'historical',
-      adjusted: props.adjusted !== false,
-    })
-  } catch {
-    if (generation === actionGeneration) error.value = 'Local history could not be checked. No source request was sent.'
-    return finish(generation)
-  }
-  if (generation !== actionGeneration) return
-  if (!Array.isArray(checked.missing_slices) || checked.missing_slices.length === 0) {
-    message.value = `Recent data for ${symbol} is already available locally. No source request was sent.`
-    return finish(generation)
-  }
-
-  stage.value = 'identity'
-  let instrumentId: number | null = null
-  try {
-    const identity = await resolveExistingInstrument(symbol)
+    const outcome = await acquireSelectedHistory(symbol, timeframe, adjusted, {
+      timeframe, adjusted, start: range.start, end: range.end,
+    }, (nextStage: SelectedHistoryStage, retryAt?: string) => {
+      if (generation === actionGeneration) {
+        activeStage = nextStage
+        stage.value = nextStage
+        if (nextStage === 'waiting' && retryAt) {
+          message.value = `Waiting to retry history for ${symbol} after ${new Date(retryAt).toLocaleTimeString()}…`
+        }
+      }
+    }, () => generation === actionGeneration && !controller.signal.aborted,
+    undefined,
+    { signal: controller.signal })
     if (generation !== actionGeneration) return
-    if (identity.status === 'resolved' && identity.instrument
-      && identity.instrument.symbol.trim().toUpperCase() === symbol.trim().toUpperCase()
-      && Number.isSafeInteger(identity.instrument.instrument_id) && identity.instrument.instrument_id > 0) {
-      instrumentId = identity.instrument.instrument_id
-    } else {
-      error.value = identity.status === 'identity_conflict'
-        ? `The identity of ${symbol} is conflicting. No history was requested.`
-        : identity.status === 'held'
-          ? `Instrument verification for ${symbol} is currently held. No history was requested.`
-          : `The instrument for ${symbol} could not be verified. No history was requested.`
+    if (outcome.kind === 'superseded') return
+    if (outcome.kind === 'already-covered') {
+      message.value = `Requested history for ${symbol} is already saved locally. No source request was sent.`
+      return finish(generation)
     }
-  } catch {
-    if (generation === actionGeneration) error.value = `Instrument verification for ${symbol} failed. No history was requested.`
-  }
-  if (generation !== actionGeneration) return
-  if (instrumentId == null) return finish(generation)
-
-  stage.value = 'history'
-  try {
-    const result = await acquireInstrumentHistory(instrumentId, {
-      timeframe,
-      adjusted: props.adjusted !== false,
-      start: range.start,
-      end: range.end,
-    })
-    if (generation !== actionGeneration) return
+    if (outcome.kind === 'identity-unavailable') {
+      message.value = outcome.status === 'held'
+        ? `Instrument verification for ${symbol} is temporarily held${outcome.retryAt ? `; try again after ${new Date(outcome.retryAt).toLocaleTimeString()}` : ''}. No history was requested.`
+        : outcome.status === 'identity_conflict'
+          ? `The identity of ${symbol} conflicts with the selected instrument. No history was requested.`
+          : `The instrument for ${symbol} could not be verified. No history was requested.`
+      return finish(generation)
+    }
+    if (outcome.kind === 'admission-held') {
+      message.value = `History for ${symbol} is temporarily held by the current admission limits. Your existing chart remains available.`
+      return finish(generation)
+    }
+    if (outcome.kind === 'admission-unavailable') {
+      message.value = `The allowed history window for ${symbol} could not be confirmed. Your existing chart remains available.`
+      return finish(generation)
+    }
+    if (outcome.kind === 'coverage-unavailable') {
+      message.value = `Saved history coverage for ${symbol} could not be confirmed. Your existing chart remains available.`
+      return finish(generation)
+    }
+    if (outcome.kind === 'at-earliest-bound') {
+      message.value = `The available history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
+      return finish(generation)
+    }
+    activeStage = 'history'
+    stage.value = 'history'
+    const result = outcome.result
+    const requestedStart = Date.parse(range.start)
+    const effectiveStart = Date.parse(result.requested_start)
+    const clippedMessage = Number.isFinite(requestedStart) && Number.isFinite(effectiveStart) && effectiveStart > requestedStart
+      ? ` The admitted range begins ${new Date(result.requested_start).toLocaleDateString()}.`
+      : ''
     message.value = result.status === 'complete'
-      ? `History loaded: ${result.coverage.bar_count} bars are available.`
+      ? `History loaded: ${result.coverage.bar_count} bars are available.${clippedMessage}`
       : result.status === 'partial'
-        ? `Some history loaded; ${result.coverage.missing_slices.length} range(s) remain unavailable.`
+        ? `Some history loaded; ${result.coverage.missing_slices.length} range(s) remain unavailable.${clippedMessage}`
         : result.status === 'held'
-          ? 'The history request is held. Your existing chart remains available.'
+          ? `The history request is temporarily held${result.retry_at ? `; try again after ${new Date(result.retry_at).toLocaleTimeString()}` : ''}. Your existing chart remains available.`
           : result.status === 'no_data'
             ? 'No history was returned. Your existing chart remains available.'
             : 'History could not be loaded. Your existing chart remains available.'
     if (result.status === 'complete' || result.status === 'partial') emit('loaded', result)
   } catch {
-    if (generation === actionGeneration) error.value = 'History could not be loaded. Your existing chart remains available.'
+    if (generation === actionGeneration) {
+      const failedAt = stageAtFailure()
+      error.value = failedAt === 'coverage'
+        ? 'Local history could not be checked. No source request was sent.'
+        : failedAt === 'identity'
+          ? `Instrument verification for ${symbol} failed. No history was requested.`
+          : 'History could not be loaded. Your existing chart remains available.'
+    }
   }
   return finish(generation)
 }
 
 function finish(generation: number) {
-  if (generation === actionGeneration) stage.value = null
+  if (generation === actionGeneration) {
+    stage.value = null
+    actionAbortController = null
+  }
 }
+
+onBeforeUnmount(cancelCurrentAction)
 </script>
 
 <style scoped>

@@ -20,6 +20,7 @@ from app.models.instrument_stats import InstrumentStats
 from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import InstrumentIdentityQuarantine
 from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.provider_runtime import ProviderEntitlement, ProviderHealthState, ProviderPolicy
 from app.providers.base import IdentifierRecord, InstrumentProfile, ListingRecord
 from app.routers.instruments import (
     _create_from_provider,
@@ -46,7 +47,10 @@ from app.services.instrument_mastering import (
     instrument_type_for_quote_type,
     store_profile_snapshot,
 )
-from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaAdmissionError,
+    ProviderQuotaCoordinatorError,
+)
 from app.services.provider_runtime import (
     _EXPLICIT_ACQUISITION_CONTEXT,
     ProviderCapability,
@@ -54,6 +58,7 @@ from app.services.provider_runtime import (
     ProviderQuotaUnknownError,
     ProviderRateLimitError,
     ProviderRequestScopeDeniedError,
+    seed_provider_runtime,
 )
 from tests.unit.conftest import AsyncSessionAdapter
 
@@ -72,6 +77,258 @@ def test_shared_wire_datetime_normalizes_offsets_to_utc_z():
     naive = datetime(2026, 1, 2, 3, 4, 5)
     assert wire_datetime(aware) == "2026-01-02T03:04:05Z"
     assert wire_datetime(naive) == "2026-01-02T03:04:05Z"
+
+
+def test_history_availability_exposes_deepest_eligible_reviewed_bound(
+    client, auth_headers, instrument, monkeypatch
+):
+    providers = [
+        SimpleNamespace(
+            provider_name="massive",
+            entitlement=SimpleNamespace(
+                quota_policy={"history_constraints": {"max_lookback_years": 2}}
+            ),
+        ),
+        SimpleNamespace(
+            provider_name="long_history",
+            entitlement=SimpleNamespace(
+                quota_policy={"history_constraints": {"max_lookback_years": 6}}
+            ),
+        ),
+    ]
+    calls = []
+
+    async def _qualified(_db, selected):
+        assert selected.id == instrument.id
+        return object()
+
+    async def _resolve(_db, capability, **kwargs):
+        calls.append((capability, kwargs))
+        return providers
+
+    monkeypatch.setattr("app.routers.instruments._qualified_identity", _qualified)
+    monkeypatch.setattr("app.routers.instruments.resolve_provider_chain", _resolve)
+    before = datetime.now(UTC)
+    response = client.get(
+        f"/api/v1/instruments/{instrument.id}/history-availability?timeframe=D1&adjusted=true",
+        headers=auth_headers,
+    )
+    after = datetime.now(UTC)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["instrument_id"] == instrument.id
+    assert body["symbol"] == instrument.symbol
+    assert body["timeframe"] == "D1"
+    assert body["adjusted"] is True
+    assert body["status"] == "eligible"
+    assert body["reason_code"] is None
+    assert body["max_requested_bars"] == max(1, int(settings.PROVIDER_ON_DEMAND_MAX_REQUESTED_BARS))
+    bound = datetime.fromisoformat(body["earliest_start"].replace("Z", "+00:00"))
+    assert before.replace(year=before.year - 6) - timedelta(seconds=1) <= bound
+    assert bound <= after.replace(year=after.year - 6) + timedelta(seconds=1)
+    assert calls[0][0] == ProviderCapability.PRICE_HISTORY
+    resolver_args = calls[0][1]
+    assert {
+        key: resolver_args[key]
+        for key in (
+            "instrument_id",
+            "provider_symbol",
+            "operation",
+            "adjusted",
+            "read_only",
+        )
+    } == {
+        "instrument_id": instrument.id,
+        "provider_symbol": instrument.symbol,
+        "operation": "fetch_ohlcv:D1",
+        "adjusted": True,
+        "read_only": True,
+    }
+    assert resolver_args["operation_cost_overrides"]["massive"] >= 1
+
+
+def test_history_availability_uses_exact_scope_with_request_driven_routing(
+    client, auth_headers, db, instrument, monkeypatch, tmp_path
+):
+    async_db = AsyncSessionAdapter(db)
+    asyncio.run(seed_provider_runtime(async_db))
+    source = db.query(DataSource).filter_by(name="massive").one()
+    policy = (
+        db.query(ProviderPolicy)
+        .filter_by(data_source_id=source.id, capability=ProviderCapability.PRICE_HISTORY)
+        .one()
+    )
+    entitlement = (
+        db.query(ProviderEntitlement)
+        .filter_by(data_source_id=source.id, capability=ProviderCapability.PRICE_HISTORY)
+        .one()
+    )
+    health = (
+        db.query(ProviderHealthState)
+        .filter_by(data_source_id=source.id, capability=ProviderCapability.PRICE_HISTORY)
+        .one()
+    )
+    now = datetime.now(UTC)
+    policy.is_enabled = True
+    policy.quota_scope = "massive-history-availability-test"
+    policy.quota_source = "offline reviewed fixture"
+    policy.quota_verified_at = now
+    policy.quota_contract = {
+        "reset": "rolling",
+        "operation_costs": {"fetch_ohlcv": 1},
+        "dimensions": [
+            {
+                "name": "requests_per_minute",
+                "limit": 5,
+                "window_seconds": 60,
+                "unit": "requests",
+                "scope": "massive-history-availability-test",
+                "source": "offline reviewed fixture",
+                "reset": "rolling",
+            }
+        ],
+    }
+    entitlement.configured_plan = "reviewed-free-history-test"
+    entitlement.is_free = True
+    entitlement.authentication_required = True
+    entitlement.live_probe_status = "passed"
+    entitlement.enabled_environments = [settings.APP_ENV]
+    entitlement.review_due_at = now + timedelta(days=1)
+    entitlement.quota_policy = {"history_constraints": {"max_lookback_years": 2}}
+    instrument.identity_status = "resolved"
+    instrument.domain_key = "figi:BBG00HISTORYTEST1"
+    instrument.primary_identifier_type = InstrumentIdentifierType.FIGI.value
+    instrument.primary_identifier_value = "BBG00HISTORYTEST1"
+    exchange = Exchange(
+        mic="XNAS",
+        name="Nasdaq history availability fixture",
+        country_code="US",
+        timezone="America/New_York",
+        currency="USD",
+    )
+    db.add(exchange)
+    db.flush()
+    db.add(
+        InstrumentListing(
+            instrument_id=instrument.id,
+            exchange_id=exchange.id,
+            ticker=instrument.symbol,
+            currency="USD",
+            is_primary=True,
+            is_active=True,
+            source="offline history availability fixture",
+        )
+    )
+    db.flush()
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "PROVIDER_CHECKPOINT_OPERATION_HOLDS", {})
+    monkeypatch.setattr(settings, "MASSIVE_API_KEY", "unit-test-not-a-real-key")
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_REFERENCE",
+        "unit-test reviewed scope",
+    )
+    monkeypatch.setattr(
+        settings,
+        "MASSIVE_MARKET_DATA_USE_AUTHORITY_SCOPE",
+        "written_automated_persistent_archive_and_audience",
+    )
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_REVIEWED_AT", now)
+    monkeypatch.setattr(settings, "MASSIVE_MARKET_DATA_USE_EXPIRES_AT", now + timedelta(days=1))
+    ledger_path = tmp_path / "must-not-be-created.sqlite3"
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(ledger_path))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(
+        "app.routers.instruments.execute_provider_call",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            AssertionError("history availability must never execute a provider call")
+        ),
+    )
+    before_policy = (policy.is_enabled, policy.effective_score, policy.quota_contract)
+    before_entitlement = (
+        entitlement.revision,
+        entitlement.configured_plan,
+        entitlement.live_probe_status,
+        entitlement.quota_policy,
+    )
+    before_health = (health.observed_score, health.failure_streak, health.circuit_open_until)
+
+    before = datetime.now(UTC)
+    response = client.get(
+        f"/api/v1/instruments/{instrument.id}/history-availability?timeframe=D1&adjusted=true",
+        headers=auth_headers,
+    )
+    after = datetime.now(UTC)
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "eligible", body
+    assert body["reason_code"] is None
+    earliest = datetime.fromisoformat(body["earliest_start"].replace("Z", "+00:00"))
+    assert before.replace(year=before.year - 2) - timedelta(seconds=1) <= earliest
+    assert earliest <= after.replace(year=after.year - 2) + timedelta(seconds=1)
+    db.expire_all()
+    policy = db.query(ProviderPolicy).filter_by(id=policy.id).one()
+    entitlement = db.query(ProviderEntitlement).filter_by(id=entitlement.id).one()
+    health = db.query(ProviderHealthState).filter_by(id=health.id).one()
+    assert (policy.is_enabled, policy.effective_score, policy.quota_contract) == before_policy
+    assert (
+        entitlement.revision,
+        entitlement.configured_plan,
+        entitlement.live_probe_status,
+        entitlement.quota_policy,
+    ) == before_entitlement
+    assert (
+        health.observed_score,
+        health.failure_streak,
+        health.circuit_open_until,
+    ) == before_health
+    assert not ledger_path.exists()
+
+
+@pytest.mark.parametrize(
+    ("resolved", "expected_reason"),
+    [
+        ([], "no_eligible_history_provider"),
+        (
+            [
+                SimpleNamespace(
+                    provider_name="massive",
+                    entitlement=SimpleNamespace(quota_policy={"history_depth": "unknown"}),
+                )
+            ],
+            "history_depth_unknown",
+        ),
+    ],
+)
+def test_history_availability_holds_without_a_current_reviewed_bound(
+    client, auth_headers, instrument, monkeypatch, resolved, expected_reason
+):
+    async def _qualified(_db, _instrument):
+        return object()
+
+    async def _resolve(*_args, **_kwargs):
+        return resolved
+
+    monkeypatch.setattr("app.routers.instruments._qualified_identity", _qualified)
+    monkeypatch.setattr("app.routers.instruments.resolve_provider_chain", _resolve)
+    response = client.get(
+        f"/api/v1/instruments/{instrument.id}/history-availability?timeframe=W1&adjusted=false",
+        headers=auth_headers,
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body["status"] == "held"
+    assert body["earliest_start"] is None
+    assert body["reason_code"] == expected_reason
+    assert body["timeframe"] == "W1"
+    assert body["adjusted"] is False
 
 
 def test_instrument_response_schemas_keep_pydantic_datetime_json_contract():
@@ -359,6 +616,38 @@ async def test_discovery_exact_profile_fallback_respects_metadata_holds_without_
         for item in response.source_outcomes
     )
     assert db.query(Instrument).filter_by(symbol="QXDISC").one_or_none() is None
+
+
+@pytest.mark.asyncio
+async def test_discovery_preserves_temporary_search_hold_and_retry_time(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    retry_at = datetime.now(UTC) + timedelta(seconds=29)
+
+    async def _held_search(_db, _query, *, source_outcomes=None):
+        source_outcomes.append(
+            {
+                "provider": "massive",
+                "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                "operation": "search_instruments",
+                "status": "held",
+                "reason_code": "provider_quota_admission_denied",
+                "retry_at": retry_at,
+            }
+        )
+        return []
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _held_search)
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(query="XLB", request_id="discover-search-window-held"),
+        async_db,
+        None,
+    )
+
+    assert response.status == "held"
+    assert response.candidates == []
+    assert len(response.source_outcomes) == 1
+    assert response.source_outcomes[0].status == "held"
+    assert response.source_outcomes[0].retry_at == retry_at
 
 
 @pytest.mark.asyncio
@@ -1356,6 +1645,171 @@ class TestExplicitAcquireCanonicalIdentity:
         )
         assert held.status == "held"
         assert held.error_type == type(lookup_error).__name__
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("lookup_error", "expected_status", "expected_reason"),
+        [
+            (
+                ProviderRequestScopeDeniedError("exact_profile_scope_expired"),
+                "held",
+                "exact_profile_scope_expired",
+            ),
+            (
+                ProviderRateLimitError(
+                    "massive",
+                    "capacity denied",
+                    retry_at=datetime(2026, 11, 6, 12, 30, tzinfo=UTC),
+                ),
+                "held",
+                "provider_capacity_unavailable",
+            ),
+            (
+                ProviderQuotaAdmissionError(
+                    "quota admission denied",
+                    retry_at=datetime(2026, 11, 6, 12, 30, tzinfo=UTC),
+                ),
+                "held",
+                "provider_quota_admission_denied",
+            ),
+            (
+                ProviderQuotaCoordinatorError("quota coordinator unavailable"),
+                "held",
+                "provider_quota_coordinator_unavailable",
+            ),
+            (
+                ProviderQuotaUnknownError("quota contract unknown"),
+                "held",
+                "provider_quota_contract_unknown",
+            ),
+            (ProviderNoDataError("profile absent"), "no_match", "exact_profile_not_found"),
+            (
+                RuntimeError("sensitive adapter detail must not be exposed"),
+                "failed",
+                "provider_profile_unavailable_or_mismatched",
+            ),
+        ],
+    )
+    async def test_selected_candidate_profile_errors_keep_typed_outcomes_without_identity_write(
+        self,
+        db,
+        monkeypatch,
+        caplog,
+        lookup_error,
+        expected_status,
+        expected_reason,
+    ):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXHOLD"
+
+        async def _search(_db, query, *, source_outcomes=None):
+            assert query == symbol
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 1,
+                }
+            )
+            return [
+                {
+                    "symbol": symbol,
+                    "name": "Synthetic selected candidate",
+                    "exchange": "XNAS",
+                    "type": "ETF",
+                    "provider": "massive",
+                }
+            ]
+
+        async def _profile(_db, provider_symbol, **kwargs):
+            assert provider_symbol == symbol
+            assert kwargs["provider_name"] == "massive"
+            assert kwargs["persist"] is False
+            assert kwargs["raise_provider_errors"] is True
+            raise lookup_error
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+        monkeypatch.setattr(
+            "app.routers.instruments.ingest_provider_profile",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                AssertionError("a held or failed metadata lookup must not be ingested")
+            ),
+        )
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol=symbol,
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol=symbol, exchange="XNAS"
+                ),
+                request_id="selected-profile-error",
+            ),
+            async_db,
+        )
+
+        assert response.status == expected_status
+        assert response.reason_code == expected_reason
+        outcome = next(
+            item for item in response.source_outcomes if item.operation == "get_instrument_profile"
+        )
+        assert outcome.status == expected_status
+        assert outcome.error_type == type(lookup_error).__name__
+        if isinstance(lookup_error, ProviderRateLimitError | ProviderQuotaAdmissionError):
+            assert outcome.retry_at == lookup_error.retry_at
+        assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
+        if expected_status == "failed":
+            record = next(
+                record
+                for record in caplog.records
+                if record.getMessage() == "Selected provider profile lookup failed"
+            )
+            assert record.request_id == "selected-profile-error"
+            assert record.error_type == "RuntimeError"
+            assert "sensitive adapter detail" not in caplog.text
+
+    @pytest.mark.asyncio
+    async def test_selected_candidate_empty_profile_result_is_no_match_without_identity_write(
+        self, db, monkeypatch
+    ):
+        async_db = AsyncSessionAdapter(db)
+        symbol = "QXEMPTY"
+
+        async def _search(_db, _query, *, source_outcomes=None):
+            source_outcomes.append(
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 1,
+                }
+            )
+            return [{"symbol": symbol, "exchange": "XNAS", "type": "ETF", "provider": "massive"}]
+
+        async def _no_profile(*_args, **_kwargs):
+            return None
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _no_profile)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol=symbol,
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol=symbol, exchange="XNAS"
+                ),
+                request_id="selected-profile-empty",
+            ),
+            async_db,
+        )
+
+        assert response.status == "no_match"
+        assert response.reason_code == "exact_profile_not_found"
+        assert response.source_outcomes[-1].status == "no_match"
+        assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
 
     @pytest.mark.asyncio
     async def test_search_hold_does_not_fall_through_to_exact_profile(self, db, monkeypatch):
