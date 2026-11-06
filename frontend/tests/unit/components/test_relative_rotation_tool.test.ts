@@ -56,6 +56,113 @@ describe('RelativeRotationTool', () => {
     expect(chart.setSize).toHaveBeenCalled()
   })
 
+  it('builds numeric domains from finite ratio points and draws quadrant labels and XY markers', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [
+      { instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.12, momentum: 0.2, coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-01', trend: 0.12, momentum: 0.2 },
+        { timestamp: '2026-01-02', trend: -0.05, momentum: -0.14 },
+      ] },
+      { instrument_id: 2, symbol: 'XLE', state: 'improving', trend: 0.04, momentum: 0.05, coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-02', trend: 0.04, momentum: 0.05 },
+      ] },
+    ] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLE'))
+    await nextTick()
+    resize?.()
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+
+    const [options, data] = vi.mocked(uPlot).mock.calls.at(-1)!
+    expect(options.scales?.x?.time).toBe(false)
+    expect(options.scales?.y?.auto).toBe(true)
+    expect(data[0]).toEqual([-0.05, 0.04, 0.12])
+    expect(data[1]).toEqual([-0.14, 0.05, 0.2])
+    const xRange = options.scales?.x?.range as () => [number, number]
+    const yRange = options.scales?.y?.range as () => [number, number]
+    expect(xRange()[0]).toBeLessThan(-0.05)
+    expect(xRange()[1]).toBeGreaterThan(0.12)
+    expect(yRange()[0]).toBeLessThan(-0.14)
+    expect(yRange()[1]).toBeGreaterThan(0.2)
+    expect(xRange()[0]).toBeLessThan(0)
+    expect(xRange()[1]).toBeGreaterThan(0)
+    expect(yRange()[0]).toBeLessThan(0)
+    expect(yRange()[1]).toBeGreaterThan(0)
+
+    const chart = vi.mocked(uPlot).mock.results[0].value
+    const draw = options.plugins?.[0].hooks.draw[0]
+    draw(chart)
+    expect(chart.ctx.fillText.mock.calls.map(([label]) => label)).toEqual(['Leading', 'Weakening', 'Improving', 'Lagging'])
+    expect(chart.ctx.arc).toHaveBeenCalledTimes(3)
+    expect(chart.ctx.stroke).toHaveBeenCalled()
+    expect(chart.valToPos).toHaveBeenCalledWith(0, 'x', true)
+    expect(chart.valToPos).toHaveBeenCalledWith(0, 'y', true)
+    expect(chart.valToPos).toHaveBeenCalledWith(0.12, 'x', true)
+    wrapper.unmount()
+  })
+
+  it('hit-tests against the plot-area origin rather than the host origin', async () => {
+    vi.mocked(api.get).mockResolvedValue({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', coverage: 1, tail: [], history: [
+      { timestamp: '2026-01-01', trend: 0.1, momentum: 0.2 },
+      { timestamp: '2026-01-02', trend: 0.12, momentum: 0.22 },
+    ] }] })
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+
+    const chart = vi.mocked(uPlot).mock.results[0].value
+    chart.rect = { left: 50, top: 75, width: 220, height: 100, right: 270, bottom: 175 }
+    chart.valToPos.mockImplementation((_value, scale) => scale === 'x' ? 100 : 120)
+    const host = wrapper.get('.rotation-tool__plot').element
+    Object.defineProperty(host, 'getBoundingClientRect', { value: () => ({ left: 0, top: 0, width: 300, height: 200, right: 300, bottom: 200 }) })
+
+    await wrapper.get('.rotation-tool__plot-shell').trigger('mousemove', { clientX: 150, clientY: 195 })
+
+    expect(wrapper.get('.rotation-tool__tooltip').text()).toContain('XLK')
+    expect(chart.syncRect).toHaveBeenCalled()
+    expect(chart.valToPos).toHaveBeenCalledWith(0.12, 'x')
+    expect(chart.valToPos).toHaveBeenCalledWith(0.22, 'y')
+    wrapper.unmount()
+  })
+
+  it('replaces both scale bounds when a later timeframe returns disjoint plotted values', async () => {
+    let releaseWeeklyResponse: ((value: any) => void) | null = null
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ freshness: 'current', rows: [{ instrument_id: 1, symbol: 'OLD', state: 'leading', coverage: 1, tail: [], history: [
+        { timestamp: '2026-01-01', trend: -0.1, momentum: -0.2 },
+        { timestamp: '2026-01-02', trend: 0.1, momentum: 0.2 },
+      ] }] })
+      .mockImplementationOnce(() => new Promise(resolve => { releaseWeeklyResponse = resolve }))
+    const wrapper = mountTool()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('OLD'))
+    await nextTick()
+    resize?.()
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+    const [options] = vi.mocked(uPlot).mock.calls[0]
+    const chart = vi.mocked(uPlot).mock.results[0].value
+    const initialPlotHost = wrapper.get('.rotation-tool__plot').element
+    expect((options.scales?.y?.range as () => [number, number])()[1]).toBeLessThan(1)
+
+    await wrapper.get('select[aria-label="Rotation timeframe"]').setValue('W1')
+    await vi.waitFor(() => expect(api.get).toHaveBeenCalledTimes(2))
+    expect(wrapper.get('.rotation-tool__plot').element).toBe(initialPlotHost)
+    expect(wrapper.get('.rotation-tool__plot-shell').text()).toContain('Updating ratios…')
+    releaseWeeklyResponse?.({ freshness: 'current', rows: [{ instrument_id: 2, symbol: 'NEW', state: 'improving', coverage: 1, tail: [], history: [
+      { timestamp: '2026-02-01', trend: 100, momentum: 300 },
+      { timestamp: '2026-02-02', trend: 200, momentum: 500 },
+    ] }] })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('NEW'))
+    expect(uPlot).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(chart.setData).toHaveBeenCalled())
+
+    expect(chart.setScale.mock.calls.slice(-2)).toEqual([
+      ['x', { min: -16, max: 216 }],
+      ['y', { min: -40, max: 540 }],
+    ])
+    expect((options.scales?.x?.range as () => [number, number])()).toEqual([-16, 216])
+    expect((options.scales?.y?.range as () => [number, number])()).toEqual([-40, 540])
+    wrapper.unmount()
+  })
+
   it('persists and sends transparent rotation controls', async () => {
     vi.mocked(api.get).mockResolvedValue({ freshness: 'stale', rows: [] })
     const wrapper = mountTool({ props: { configuration: { group_key: 'us-benchmarks', benchmark: 'QQQ', timeframe: 'W1', sampling: 3, lookback: 12, tail_length: 4, as_of: '2024-04-30', adjusted: false } } })

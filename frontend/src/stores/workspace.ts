@@ -61,8 +61,18 @@ export interface OpenableToolDefinition {
   configuration?: Record<string, unknown>
 }
 
+/** Stable semantic identity for specialized watchlist surfaces. Legacy saved
+ * workspaces are recognized once by their historical key; new and cloned
+ * windows carry the role in serializable configuration instead. */
+export function workspaceToolRole(tool: Pick<WorkspaceWindowState, 'instance_key' | 'tool_type' | 'configuration'>): string | null {
+  if (tool.tool_type !== 'watchlist') return null
+  if (tool.configuration.workspace_role === 'benchmark-universe' || tool.instance_key === 'benchmark-list') return 'benchmark-universe'
+  return null
+}
+
 export const OPENABLE_WORKSTATION_TOOLS: readonly OpenableToolDefinition[] = [
   { tool_type: 'chart', title: 'Chart', instance_prefix: 'chart', configuration: { symbol: 'SPY', timeframe: 'D1' } },
+  { tool_type: 'watchlist', title: 'Benchmarks', instance_prefix: 'benchmark-universe', configuration: { workspace_role: 'benchmark-universe' } },
   { tool_type: 'watchlist', title: 'WatchList', instance_prefix: 'watchlist', configuration: { personal: true, watchlist_id: null } },
   { tool_type: 'watchlist', title: 'My Favorites', instance_prefix: 'favorites', configuration: { personal: true, favorites: true } },
   { tool_type: 'notes', title: 'Notes', instance_prefix: 'notes', configuration: { scope: 'active-instrument' } },
@@ -3301,13 +3311,17 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       position: workspace.value.tabs.length,
       layout_config: cloneLayout(source.layout_config) as Record<string, unknown>,
       active_window_key: source.active_window_key ? (remappedKeys.get(source.active_window_key) ?? source.active_window_key) : null,
-      windows: source.windows.map(window => ({
-        ...window,
-        id: -(Date.now() + window.position + 1),
-        instance_key: remappedKeys.get(window.instance_key) ?? window.instance_key,
-        configuration: cloneLayout(window.configuration) as Record<string, unknown>,
-        style: cloneLayout(window.style) as Record<string, unknown>,
-      })),
+      windows: source.windows.map(window => {
+        const configuration = cloneLayout(window.configuration) as Record<string, unknown>
+        if (workspaceToolRole(window) === 'benchmark-universe') configuration.workspace_role = 'benchmark-universe'
+        return {
+          ...window,
+          id: -(Date.now() + window.position + 1),
+          instance_key: remappedKeys.get(window.instance_key) ?? window.instance_key,
+          configuration,
+          style: cloneLayout(window.style) as Record<string, unknown>,
+        }
+      }),
     }
     workspace.value = { ...workspace.value, tabs: [...workspace.value.tabs, copiedTab] }
     activeTabKey.value = copiedTab.stable_key

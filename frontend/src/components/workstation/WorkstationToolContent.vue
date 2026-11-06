@@ -1,7 +1,7 @@
 <template>
 <ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
-    <div v-if="tool.instance_key === 'benchmark-list'" class="benchmark-surface">
+    <div v-if="isBenchmarkUniverse" class="benchmark-surface">
       <div class="benchmark-surface__family-controls" aria-label="Benchmark family selector">
         <label>Family
           <select :value="benchmarkFamilyKey" aria-label="Benchmark family" @change="setBenchmarkFamily(($event.target as HTMLSelectElement).value)">
@@ -1054,7 +1054,7 @@ import ChartPlotLibrary from './ChartPlotLibrary.vue'
 import { refreshMountedWorkstationChartPanels, registerWorkstationPanelChartRefresh, usePanelStore } from '@/stores/chart'
 import { useDrawingsStore } from '@/stores/drawings'
 import { useAlertsStore } from '@/stores/alerts'
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
+import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, workspaceToolRole, type BenchmarkFamilyCoverageState, type BenchmarkFamilyReadinessState, type GenericBreadthHistoryState, type GenericBreadthState, type GroupSnapshotRow, type LinkGroup, type WorkspaceWindowState } from '@/stores/workspace'
 import { useWatchlistStore } from '@/stores/watchlist'
 import { useFavoritesStore } from '@/stores/favorites'
 import type { Instrument, Watchlist, WatchlistSource } from '@/types'
@@ -2679,6 +2679,7 @@ const benchmarkFamilyOptions = computed(() => {
   })
 })
 const benchmarkFamilyKey = ref(typeof props.tool.configuration.benchmark_family_key === 'string' ? props.tool.configuration.benchmark_family_key.trim() : '')
+const isBenchmarkUniverse = computed(() => workspaceToolRole(props.tool) === 'benchmark-universe')
 watch(() => props.tool.configuration.benchmark_family_key, value => {
   benchmarkFamilyKey.value = typeof value === 'string' ? value.trim() : ''
 })
@@ -4390,6 +4391,7 @@ function setBenchmarkFamily(familyKey: string) {
   benchmarkFamilyMapRole.value = 'cap_weight'
   emit('configuration', props.tool.instance_key, {
     ...props.tool.configuration,
+    workspace_role: 'benchmark-universe',
     benchmark_family_key: normalized || null,
     benchmark_family_map_role: normalized ? 'cap_weight' : null,
   })
@@ -4477,7 +4479,7 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
 }
 let benchmarkFamilyLoadSequence = 0
 watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([familyKey, _capProxy, timeframe]) => {
-  if (disposed || props.tool.instance_key !== 'benchmark-list' || !familyKey) return
+  if (disposed || !isBenchmarkUniverse.value || !familyKey) return
   const sequence = ++benchmarkFamilyLoadSequence
   benchmarkFamilyLoading.value = true
   try {
@@ -4494,8 +4496,8 @@ watch([benchmarkFamilyKey, benchmarkFamilyCapProxy, activeTimeframe], async ([fa
     if (!disposed && sequence === benchmarkFamilyLoadSequence) benchmarkFamilyLoading.value = false
   }
 }, { immediate: true })
-watch(() => props.tool.instance_key, async instanceKey => {
-  if (disposed || instanceKey !== 'benchmark-list') return
+watch(isBenchmarkUniverse, async isBenchmark => {
+  if (disposed || !isBenchmark) return
   const sequence = ++benchmarkFamilyReadinessSequence
   benchmarkFamilyReadinessLoading.value = true
   try {

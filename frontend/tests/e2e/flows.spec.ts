@@ -691,7 +691,7 @@ test.describe('Chart', () => {
     const exportPath = await download.path()
     expect(exportPath).not.toBeNull()
 
-    await workspaceMenu.getByRole('menuitem', { name: 'Clone', exact: true }).click()
+    await workspaceMenu.getByRole('menuitem', { name: 'Duplicate active layout', exact: true }).click()
     await expect(layoutTabs).toHaveCount(originalCount + 1, { timeout: 10_000 })
     await workspaceButton.click()
     const reopenedMenu = page.locator('.workstation__workspace-popover:visible')
@@ -818,18 +818,18 @@ test.describe('Chart', () => {
       menu = page.getByRole('menu', { name: 'Workspace layouts' })
       await expect(menu).toBeVisible()
     }
-    await menu.getByRole('menuitem', { name: 'New', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'New workspace', exact: true }).click()
     await expect(page.locator('.workstation__workspace-name')).toHaveText('New Workspace', { timeout: 15_000 })
 
     await workspaceButton.click()
     await expect(menu.getByRole('option', { name: 'New Workspace' })).toBeVisible()
     const reviewName = `Morning Review ${Date.now()}`
     page.once('dialog', dialog => dialog.accept(reviewName))
-    await menu.getByRole('menuitem', { name: 'Rename', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'Rename workspace', exact: true }).click()
     await expect(page.locator('.workstation__workspace-name')).toHaveText(reviewName, { timeout: 15_000 })
 
     await workspaceButton.click()
-    await menu.getByRole('menuitem', { name: 'Clone workspace', exact: true }).click()
+    await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
     const reviewCopyName = `${reviewName} Copy`
     await expect(page.locator('.workstation__workspace-name')).toHaveText(reviewCopyName, { timeout: 15_000 })
 
@@ -844,7 +844,7 @@ test.describe('Chart', () => {
     const deleteMenu = page.getByRole('menu', { name: 'Workspace layouts' })
     await expect(deleteMenu).toBeVisible({ timeout: 10_000 })
     page.once('dialog', dialog => dialog.accept())
-    await deleteMenu.getByRole('menuitem', { name: 'Delete', exact: true }).click()
+    await deleteMenu.getByRole('menuitem', { name: 'Delete workspace', exact: true }).click()
     await expect(page.locator('.workstation__workspace-name')).toHaveText('US Top Down', { timeout: 15_000 })
     await browserDiagnostics.expectNoCriticalIssues()
   })

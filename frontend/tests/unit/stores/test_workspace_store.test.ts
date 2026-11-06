@@ -11,7 +11,7 @@ function deferred<T>() {
   return { promise, resolve }
 }
 
-import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type OpenableToolDefinition } from '@/stores/workspace'
+import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, workspaceToolRole, type OpenableToolDefinition } from '@/stores/workspace'
 
 describe('workspace store layout tabs', () => {
   beforeEach(() => {
@@ -819,6 +819,37 @@ describe('workspace store layout tabs', () => {
 
     await new Promise(resolve => setTimeout(resolve, 400))
     expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({ base_revision: 4, tabs: expect.any(Array) }))
+  })
+
+  it('preserves a benchmark universe role and selected family when cloning a legacy workspace tool', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'benchmark-list',
+        layout_config: { root: { type: 'component', componentState: { instance_key: 'benchmark-list' } } },
+        windows: [{ id: 30, instance_key: 'benchmark-list', tool_type: 'watchlist', title: 'Benchmarks', link_group: 'blue', configuration: { benchmark_family_key: 'sp500', benchmark_family_map_role: 'equal_weight' }, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+
+    store.cloneActiveTab()
+
+    const clone = store.workspace.tabs[1].windows[0]
+    expect(clone.instance_key).not.toBe('benchmark-list')
+    expect(clone.configuration).toEqual(expect.objectContaining({
+      workspace_role: 'benchmark-universe',
+      benchmark_family_key: 'sp500',
+      benchmark_family_map_role: 'equal_weight',
+    }))
+    expect(workspaceToolRole(clone)).toBe('benchmark-universe')
+    expect(workspaceToolRole(store.workspace.tabs[0].windows[0])).toBe('benchmark-universe')
+    expect(OPENABLE_WORKSTATION_TOOLS).toContainEqual(expect.objectContaining({
+      title: 'Benchmarks', tool_type: 'watchlist', configuration: { workspace_role: 'benchmark-universe' },
+    }))
+    await new Promise(resolve => setTimeout(resolve, 400))
+    expect(apiPut).toHaveBeenCalledWith('/workspaces/10/snapshot', expect.objectContaining({
+      tabs: expect.arrayContaining([expect.objectContaining({ windows: expect.arrayContaining([expect.objectContaining({ configuration: expect.objectContaining({ workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500' }) })]) })]),
+    }))
   })
 
   it('does not let an older snapshot response replace a newer local tool edit', async () => {

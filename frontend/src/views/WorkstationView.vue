@@ -50,20 +50,23 @@
               <button v-for="(item, index) in workspaceStore.workspaces" :id="`saved-workspace-${item.id}`" :key="item.id" type="button" role="option" tabindex="-1" :aria-selected="item.id === workspaceStore.workspace?.id" @click="switchWorkspaceFromMenu(item.id)">{{ item.name }}<small v-if="item.is_default">Default</small></button>
             </div>
             <div class="workstation__workspace-actions">
-              <button type="button" role="menuitem" tabindex="-1" @click="createWorkspace(); closeShellMenuToTrigger('workspace')">New</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="workspaceStore.cloneActiveTab(); closeShellMenuToTrigger('workspace')">Clone</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="cloneWorkspace(); closeShellMenuToTrigger('workspace')">Clone workspace</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="renameWorkspace(); closeShellMenuToTrigger('workspace')">Rename</button>
-              <button type="button" role="menuitem" tabindex="-1" :disabled="workspaceStore.workspace?.is_default" @click="deleteWorkspace(); closeShellMenuToTrigger('workspace')">Delete</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="exportWorkspace">Export</button>
-              <button type="button" role="menuitem" tabindex="-1" @click="workspaceFileInput?.click()">Import</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="createWorkspace(); closeShellMenuToTrigger('workspace')">New workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="workspaceStore.cloneActiveTab(); closeShellMenuToTrigger('workspace')">Duplicate active layout</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="cloneWorkspace(); closeShellMenuToTrigger('workspace')">Duplicate workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="renameWorkspace(); closeShellMenuToTrigger('workspace')">Rename workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" title="Factory workspaces cannot be deleted" :disabled="workspaceStore.workspace?.is_default" @click="deleteWorkspace(); closeShellMenuToTrigger('workspace')">Delete workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="exportWorkspace">Export workspace</button>
+              <button type="button" role="menuitem" tabindex="-1" @click="workspaceFileInput?.click()">Import workspace</button>
               <input ref="workspaceFileInput" class="workstation__workspace-file" type="file" accept="application/json,.json" @change="importWorkspace" />
             </div>
+            <small id="workspace-delete-help" class="workstation__workspace-delete-help">
+              {{ workspaceStore.workspace?.is_default ? 'This factory workspace is protected; remove extra layouts from the list below.' : 'Deleting a workspace removes its saved layouts. Export it first if you need a backup.' }}
+            </small>
             <div class="workstation__layout-list">
               <div v-for="tab in workspaceStore.workspace?.tabs ?? []" :key="tab.stable_key" class="workstation__layout-item" draggable="true" @dragstart="dragTabKey = tab.stable_key" @dragover.prevent @drop.prevent="dropTab(tab.stable_key)" @dragend="dragTabKey = null">
                 <button type="button" role="menuitem" tabindex="-1" class="workstation__layout-select" :class="{ active: tab.stable_key === workspaceStore.activeTabKey }" @click="selectWorkspaceTab(tab.stable_key); closeShellMenuToTrigger('workspace')">{{ tab.name }}</button>
                 <input :aria-label="`Rename ${tab.name}`" :value="tab.name" @change="renameTab(tab.stable_key, ($event.target as HTMLInputElement).value)" />
-                <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete ${tab.name}`" @click="deleteTab(tab.stable_key)"><WorkstationGlyph kind="delete" /></button>
+                <button type="button" class="workstation__layout-delete" :disabled="(workspaceStore.workspace?.tabs.length ?? 0) <= 1" :aria-label="`Delete layout ${tab.name}`" :title="`Delete layout ${tab.name}`" @click="deleteTab(tab.stable_key, tab.name)"><WorkstationGlyph kind="delete" /><span>Delete</span></button>
               </div>
             </div>
             <button v-if="workspaceStore.workspace?.settings.factory_id === 'us-top-down'" type="button" role="menuitem" tabindex="-1" class="workstation__layout-reset" @click="resetFactoryWorkspace(); closeShellMenuToTrigger('workspace')">Reset factory layout</button>
@@ -2066,8 +2069,8 @@ function renameTab(stableKey: string, name: string) {
   workspaceStore.renameTab(stableKey, name)
 }
 
-function deleteTab(stableKey: string) {
-  if (!window.confirm('Delete this personal layout?')) return
+function deleteTab(stableKey: string, name: string) {
+  if (!window.confirm(`Delete layout “${name}”?`)) return
   workspaceStore.deleteTab(stableKey)
 }
 
@@ -3179,9 +3182,13 @@ onBeforeUnmount(() => {
 .workstation__help-popover > small { display: block; padding: 4px 3px 2px; border-top: 1px solid #29343b; color: #81909a; line-height: 1.35; }
 .workstation__workspace-popover header { display: flex; justify-content: space-between; align-items: baseline; padding: 3px 4px 5px; border-bottom: 1px solid #29343b; font-size: 11px; }.workstation__workspace-popover header small { color: #81909a; font-size: 9px; }
 .workstation__workspace-list { display: grid; gap: 2px; max-height: 112px; overflow: auto; padding: 4px 0; border-bottom: 1px solid #29343b; }.workstation__workspace-list button { display: flex; justify-content: space-between; gap: 8px; border: 1px solid transparent; background: transparent; color: #aebbc4; padding: 3px 4px; text-align: left; font: 10px "Segoe UI",Arial,sans-serif; cursor: pointer; }.workstation__workspace-list button:hover,.workstation__workspace-list button[aria-selected="true"] { border-color: #3e505c; background: #202b32; color: #f1f7fa; }.workstation__workspace-list small { color: #81909a; font-size: 9px; }
-.workstation__workspace-actions { display: flex; gap: 3px; padding: 5px 2px; border-bottom: 1px solid #29343b; }.workstation__workspace-actions button,.workstation__layout-reset { border: 1px solid #42505a; background: #202b32; color: #cbd6dc; padding: 3px 6px; font: 10px "Segoe UI",Arial,sans-serif; cursor: pointer; }.workstation__workspace-actions button:hover,.workstation__layout-reset:hover { background: #31424d; color: #fff; }.workstation__workspace-file { display: none; }
-.workstation__layout-list { display: grid; gap: 2px; max-height: 250px; overflow: auto; padding: 4px 0; }.workstation__layout-item { display: grid; grid-template-columns: minmax(72px, 1fr) 112px 20px; gap: 3px; align-items: center; padding: 2px; border: 1px solid transparent; }.workstation__layout-item:hover { border-color: #3e505c; }.workstation__layout-select { overflow: hidden; border: 0; background: transparent; color: #aebbc4; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-select.active { color: #eaf2f6; font-weight: 700; }.workstation__layout-item input { min-width: 0; border: 1px solid #3b4850; background: #11161a; color: #bfcbd3; padding: 2px 3px; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-delete { border: 0; background: transparent; color: #d78989; cursor: pointer; }.workstation__layout-delete:disabled { color: #5e686e; cursor: not-allowed; }.workstation__layout-reset { width: 100%; margin-top: 2px; }
+.workstation__workspace-actions { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 4px; padding: 5px 2px; border-bottom: 1px solid #29343b; }.workstation__workspace-actions button,.workstation__layout-reset { min-width: 0; min-height: 28px; border: 1px solid #42505a; background: #202b32; color: #cbd6dc; padding: 4px 5px; font: 10px/1.2 "Segoe UI",Arial,sans-serif; cursor: pointer; white-space: normal; }.workstation__workspace-actions button:hover,.workstation__layout-reset:hover { background: #31424d; color: #fff; }.workstation__workspace-actions button:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }.workstation__workspace-file { display: none; }
+.workstation__workspace-delete-help { display: block; padding: 4px 4px 2px; border-bottom: 1px solid #29343b; color: #91a0a9; font-size: 9px; line-height: 1.35; }
+.workstation__layout-list { display: grid; gap: 2px; max-height: 250px; overflow: auto; padding: 4px 0; }.workstation__layout-item { display: grid; grid-template-columns: minmax(72px, 1fr) 98px 58px; gap: 3px; align-items: center; padding: 2px; border: 1px solid transparent; }.workstation__layout-item:hover { border-color: #3e505c; }.workstation__layout-select { overflow: hidden; border: 0; background: transparent; color: #aebbc4; text-align: left; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-select.active { color: #eaf2f6; font-weight: 700; }.workstation__layout-item input { min-width: 0; border: 1px solid #3b4850; background: #11161a; color: #bfcbd3; padding: 2px 3px; font: 10px "Segoe UI",Arial,sans-serif; }.workstation__layout-delete { display: flex; align-items: center; justify-content: center; gap: 2px; min-height: 22px; padding: 2px 3px; border: 1px solid #4d4242; border-radius: var(--tc-radius); background: #2a2020; color: #e4a4a4; font: 9px/1.1 "Segoe UI",Arial,sans-serif; cursor: pointer; white-space: nowrap; }.workstation__layout-delete:hover:not(:disabled) { border-color: #d78989; background: #3b2626; color: #fff; }.workstation__layout-delete:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }.workstation__layout-reset { width: 100%; margin-top: 2px; }
 .workstation__menu nav button, .workstation__tab-add, .workstation__tab-reset { border: 0; background: transparent; color: #d4d9dd; padding: 0 8px; font: 11px "Segoe UI", Arial, sans-serif; cursor: pointer; }
+.workstation__menu nav .workstation__workspace-actions button { border: 1px solid #42505a; border-radius: var(--tc-radius); background: #202b32; color: #cbd6dc; padding: 4px 5px; font: 10px/1.2 "Segoe UI",Arial,sans-serif; white-space: normal; }
+.workstation__menu nav .workstation__workspace-actions button:hover:not(:disabled) { background: #31424d; color: #fff; }
+.workstation__menu nav .workstation__workspace-actions button:disabled { color: #68767e; border-color: #354149; background: #182026; cursor: not-allowed; }
 .workstation__menu nav button:hover, .workstation__tab-add:hover, .workstation__tab-reset:hover { background: #3a444d; color: #fff; }
 .workstation__search { position: relative; display: flex; height: 21px; margin-left: 10px; }
 .workstation__search input { width: 88px; padding: 0 5px; border: 1px solid #4d5a63; background: #11161a; color: #f1f5f7; font: 11px "Segoe UI", Arial, sans-serif; text-transform: uppercase; }

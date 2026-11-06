@@ -107,8 +107,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "Staging CI 42211787590 and master provenance CI 42222793213 are green for exact 139b350238b5e1c8a170dce5af09a805301d857e. This turn adopts context only; broader roadmap remains open.",
-  "current_checkpoint_status": "Exact green staging/master context 139b350 adopted by non-fast-forward merge; product trees match release. Root-reported private deployment/data preservation is recorded; native-wait proof and final guide remain Root-owned.",
+  "current_candidate_ci_status": "Platform-usability implementation is in progress. No implementation CI or full journey qualification is claimed; Root owns the future shared runtime allocation and release gates.",
+  "current_checkpoint_status": "Human-approved platform-usability checkpoint remains in progress. Focused RRG, clone/catalogue, route, Alerts and workstation slice passed 123/123; frontend type-check passed. The RRG update refreshes finite zero-inclusive XY ranges when data changes, keeps the plot mounted during loading, and uses uPlot canvas-pixel geometry for drawing with plot-area CSS geometry for pointer hits. Real-browser DPR/layout qualification and the remaining platform-usability criteria remain pending Root allocation.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -181,7 +181,7 @@
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-redis-1",
       "charting-stack-feat-tc2000-frontend-rework-f63d60ae-research-runner-1"
     ],
-    "known_bytes": 1355178992,
+    "known_bytes": 1356579592,
     "over_budget": false,
     "projects": [
       "charting-dev-feat-tc2000-frontend-rework-f63d60ae",
@@ -192,7 +192,7 @@
     "unattributed_shared_layers_excluded": true,
     "unique_image_bytes": 0,
     "unknown_components": [],
-    "volume_bytes": 1352111088,
+    "volume_bytes": 1353511688,
     "volume_count": 12,
     "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc"
   },
@@ -284,15 +284,15 @@
     "visual_followup": "Full104 remains deferred until F8n and F8m close and the coordinator separately releases capacity."
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Advance feat/tc2000-frontend-rework: Repair general dashboard ticker selection, admitted historical depth, bounded older-history acquisition and current-context recovery; keep reported-holding selection and dated lineage in the dashboard, align shared panel chrome, and style dashboard-accessible settings consistently.. Acceptance criteria: A1: Select multiple never-resolved preset sector ETFs from S&P500 Sectors; identity metadata history and supported holdings appear in the same dashboard; empty placeholders cannot be mistaken for source absence.; A2: Search an uncached ordinary stock and an uncached supported issuer ETF with Enter/Go; automatic acquisition works as for preset selection.; H1: Daily chart offers useful admitted historical depth; pan earlier requests older chunks; cache reload avoids duplicate external acquisition.; H2: Switch Daily -> Weekly -> Monthly; needed older source history acquired, derived periods show correct chronology and actual provider boundary honestly, never hidden application lifetime cap.; R1: Reach native per-minute request budget while exploring; show waiting/retry timing, resume current selection, superseded selection must not repaint or issue obsolete retries.; N1: Click a chartable constituent; stay on dashboard, update same active chart/tool context consistently with sector/benchmark selection, retain snapshot/row/asof provenance.; N2: Cash/derivative/unresolved unsupported holding has honest non-chartable feedback, no fabricated instrument or chart.; V1: Inspect panel tab/title and internal heading separation across chart/constituents/benchmarks/sectors/other tool shells at1920x1080 and narrower viewport; no overlap.; V2: Open chart settings and dashboard-accessible menus/dialogs; same TC theme, readable controls, keyboard/accessibility retained.; C1: Rapid ETF->stock->ETF switches plus delayed and failed history/holdings response; no stale context, correct own-cache/held/unavailable feedback.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_objective": "Implement the TC-owned frontend scope of the human-approved complete platform-usability release: shared data-preparation client/coordinator and all entrypoint wiring; semantic tool identity, factory/Add-tool catalogue and reversible layout lifecycle; ratio and RRG data/plotted interactions across D1/W1/MN; consistent presentation for every TC-owned route/tool/dialog; and the complete route/action journey matrix. Coordinate shared Provider/ETF/Strategy contracts through Root, preserve current account/model/effort and broader roadmap history, and stop before integration, deployment, live source, or production operations.",
   "goal_recorded_at": "2026-10-23T05:19:32.501383+00:00",
   "goal_request": {
-    "objective": "Record Root-authorized known-red staging16 remediation in the TC branch, adopt only the one reviewed visual reference, preserve 7a application bytes and prior history, and prepare the exact tip for Root CI."
+    "objective": "Implement the TC-owned frontend scope of the human-approved complete platform-usability release: shared data-preparation client/coordinator and all entrypoint wiring; semantic tool identity, factory/Add-tool catalogue and reversible layout lifecycle; ratio and RRG data/plotted interactions across D1/W1/MN; consistent presentation for every TC-owned route/tool/dialog; and the complete route/action journey matrix. Coordinate shared Provider/ETF/Strategy contracts through Root, preserve current account/model/effort and broader roadmap history, and stop before integration, deployment, live source, or production operations."
   },
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "e31fdd77d13f12ec740c321e7809104f4781f107",
+  "head": "4132fffe1acfa53fab758935221d7c5d79564795",
   "historical_checkpoint_archive": {
     "acceptance_criteria": [
       {
@@ -407,7 +407,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Root owns push, final native-wait proof and guide; do not activate broader roadmap in this context-adoption checkpoint.",
+  "next_action": "Implement the measured RRG numeric scatter renderer fix and focused plotted-data regression, then continue semantic clone/catalogue and lifecycle work.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -438,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "4662e0a16e608b69d8d1153972d5d0bf5f418ac801e76345eacd58df73597cc0",
+  "plan_hash": "090944b33e3b228780a5ad44244d0d8af752bbcfaf3baaee4907490d3bf1737e",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -467,22 +467,22 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Exact final-tip CI, new combined qualification, and Root-owned release/genuine-flow gates remain pending.",
-    "current_phase": "Adopted exact green staging/master source 139b350238b5e1c8a170dce5af09a805301d857e; frontend/backend trees match release; remaining Root native-wait proof and guide are pending.",
-    "next_action": "Root owns push and remaining release evidence; preserve the broader roadmap and existing goal accounting.",
+    "current_blocker": "Provider owns the shared stable preparation DTO/producer; independent TC frontend work can continue meanwhile.",
+    "current_phase": "Platform-usability implementation active; measured RRG render failure is first, followed by clone/catalogue/lifecycle and shared preparation wiring.",
+    "next_action": "Implement the measured RRG numeric scatter renderer fix and focused plotted-data regression, then continue semantic clone/catalogue and lifecycle work.",
     "total": 10,
     "updated_at": "2026-11-06"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "remote": "origin",
-    "status": "Root owns push of this exact green-context adoption checkpoint; no new product validation or roadmap activation is claimed.",
     "current_pending_range": "Non-fast-forward adoption of 139b350 plus current TC context-adoption records; Root push pending.",
-    "failure_category": null
+    "failure_category": null,
+    "remote": "origin",
+    "status": "Root owns push of this exact green-context adoption checkpoint; no new product validation or roadmap activation is claimed."
   },
-  "remote": "c161793475271b102e832e8c36d564acba95eb35",
-  "remote_sha": "c161793475271b102e832e8c36d564acba95eb35",
-  "remote_synchronized": false,
+  "remote": "4132fffe1acfa53fab758935221d7c5d79564795",
+  "remote_sha": "4132fffe1acfa53fab758935221d7c5d79564795",
+  "remote_synchronized": true,
   "remote_tracking_sha": "c161793475271b102e832e8c36d564acba95eb35",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
@@ -662,7 +662,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T13:22:00.324248+00:00",
+  "updated_at": "2026-11-06T18:43:42Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

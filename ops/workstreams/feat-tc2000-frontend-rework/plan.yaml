@@ -1522,6 +1522,8 @@ owned_paths:
 - docs/tc2000-visual-parity.md
 - scripts/validate-tc2000-scope.py
 - ops/workstreams/feat-tc2000-frontend-rework/
+- frontend/src/router/index.ts
+- frontend/src/views/AlertsView.vue
 excluded_paths:
 - .env.example
 - backend/.env.example
@@ -1946,8 +1948,7 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and private-target/deployment
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: "ready_for_integration"
-
+status: in_progress
 progress:
   completed: []
   total: 10
@@ -4390,4 +4391,110 @@ context_adoption_139:
   coordinator_reported_runtime: Private deployment and business-row/schema/quota preservation verified by Root; genuine NVDA/XLE/IYF/AFG flows reported. Root native-wait proof and final guide remain in progress.
   preserved: All nine roadmap criteria, ten repair criteria, previous accepted checkpoints and reference history remain unchanged; broader roadmap remains open.
   status: Green context adopted only; no new feature work or independent deployment claim.
+  integration_capture: exact branch HEAD
+
+platform_usability_checkpoint_20261106:
+  authority: Human explicitly activated the complete Make-the-existing-platform-complete-and-usable
+    plan; Root owns acceptance, integration, release and live operations.
+  approved_plan: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md
+  shared_contract: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/SHARED-CONTRACT.md
+  baseline: 139b350238b5e1c8a170dce5af09a805301d857e
+  status: in_progress
+  assigned_acceptance_criteria:
+    PU01: Inventory every frontend route, factory panel, addable tool and exposed action;
+      map every supported action to journey coverage and critical visual/user-review
+      evidence, with no unmapped actions.
+    PU02: Implement one shared authenticated data-preparation client/coordinator against
+      the Provider-owned ensure/request contract; deduplicate, poll, invalidate and
+      fence obsolete intent across all TC-owned entrypoints.
+    PU03: Every exact resolved selection and downstream chart/analysis action prepares
+      missing data automatically without suggestion fan-out, required fetch buttons,
+      hidden evaluator HTTP, or prior-context data leakage; independent datasets remain
+      useful when another is unavailable.
+    PU04: Preserve semantic tool identity and useful defaults across factory creation,
+      Add Tool, clone/import, popout, reload and restore; catalogue every implemented
+      factory panel.
+    PU05: Provide explicit reversible workspace/layout duplicate, rename, delete, reorder,
+      close/recreate, cancel, resize, maximize, reset and recovery actions while preserving
+      account data and other user state.
+    PU06: Prepare both ratio legs and group members; verify inverse values, adjustment,
+      date alignment and reload behavior with bounded missing-data dependencies.
+    PU07: Render real finite RRG points, labels, quadrants and tails for D1/W1/MN with
+      correct D1 dependencies and monthly warm-up beyond the former two-year boundary;
+      prove ordinary pointer and keyboard interaction after dock, tab, resize, maximize,
+      clone and restore.
+    PU08: Apply the shared TC presentation system to every TC-owned exposed page, tool,
+      menu and dialog; verify readable, discoverable, non-overlapping layouts at representative
+      laptop/desktop sizes and scaling.
+    PU09: Cover the twelve approved J01-J12 journeys across TC-owned scope with genuine
+      successful data paths separate from unavailable-data cases; retain strict functional/oracle
+      semantics and require useful results rather than DOM, tables, spinners or errors
+      alone.
+  ownership: TC owns remaining frontend including shared types/API/client, workstation
+    shell/workspace, catalogue, RRG/ratio, common helpers/styles and general journeys.
+    Provider owns shared backend data/ensure, schemas, durable jobs/worker/routing/history.
+    ETFHoldingsView.vue and NEW ETF-only journey spec remain ETF-owned. StudyLabTool.vue,
+    StudyDashboard.vue, ResearchResultsTool.vue, CodeLibraryTool.vue, StrategyLab/StrategyLabV2
+    legacy views, strategyLab store and NEW Study-only journey spec remain Strategy-owned.
+  preserved_prior_execution_state:
+    session_id: c7beca8d-84a3-4382-97e4-4854dca50b8c
+    prior_native_goal_id: 01a066e3-dbae-7512-90bf-61d1af7c6bd8
+    prior_goal_snapshot_sha256: 71745d827128ca11a0fa6537f873d06789544a86d74ef03319c4cc4b91d12737
+    prior_goal_snapshot_json: '{"active_session_id":"c7beca8d-84a3-4382-97e4-4854dca50b8c","claim":{"branch":"feat/tc2000-frontend-rework","displaced_session_id":"9dffc01c-3c8b-4580-9e17-84148e8878e7","host":"m920q","session_id":"c7beca8d-84a3-4382-97e4-4854dca50b8c","started_at":"2026-09-24T22:32:09.683908+00:00","taken_over_at":"2026-10-19T00:02:35.058961+00:00","takeover_request":"Human-authorized
+      coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000
+      returned no-client-found and the latest branch turn is terminal. Take over this
+      exact stale writer claim in order to continue the existing checkpoint after its
+      upstream dependencies release. Preserve all existing source, workstream evidence,
+      roadmap, tests, and runtime/data safety boundaries; do not modify staging.","worktree":"/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework","worktree_id":"feat-tc2000-frontend-rework-f63d60aebc"},"codex_goal_id":"01a066e3-dbae-7512-90bf-61d1af7c6bd8","current_candidate_ci_status":"Staging
+      CI 42211787590 and master provenance CI 42222793213 are green for exact 139b350238b5e1c8a170dce5af09a805301d857e.
+      This turn adopts context only; broader roadmap remains open.","current_checkpoint_status":"Exact
+      green staging/master context 139b350 adopted by non-fast-forward merge; product
+      trees match release. Root-reported private deployment/data preservation is recorded;
+      native-wait proof and final guide remain Root-owned.","goal_budget_policy":"unbounded_unless_human_authorized","goal_objective":"Advance
+      feat/tc2000-frontend-rework: Repair general dashboard ticker selection, admitted
+      historical depth, bounded older-history acquisition and current-context recovery;
+      keep reported-holding selection and dated lineage in the dashboard, align shared
+      panel chrome, and style dashboard-accessible settings consistently.. Acceptance
+      criteria: A1: Select multiple never-resolved preset sector ETFs from S&P500 Sectors;
+      identity metadata history and supported holdings appear in the same dashboard;
+      empty placeholders cannot be mistaken for source absence.; A2: Search an uncached
+      ordinary stock and an uncached supported issuer ETF with Enter/Go; automatic acquisition
+      works as for preset selection.; H1: Daily chart offers useful admitted historical
+      depth; pan earlier requests older chunks; cache reload avoids duplicate external
+      acquisition.; H2: Switch Daily -> Weekly -> Monthly; needed older source history
+      acquired, derived periods show correct chronology and actual provider boundary
+      honestly, never hidden application lifetime cap.; R1: Reach native per-minute
+      request budget while exploring; show waiting/retry timing, resume current selection,
+      superseded selection must not repaint or issue obsolete retries.; N1: Click a
+      chartable constituent; stay on dashboard, update same active chart/tool context
+      consistently with sector/benchmark selection, retain snapshot/row/asof provenance.;
+      N2: Cash/derivative/unresolved unsupported holding has honest non-chartable feedback,
+      no fabricated instrument or chart.; V1: Inspect panel tab/title and internal heading
+      separation across chart/constituents/benchmarks/sectors/other tool shells at1920x1080
+      and narrower viewport; no overlap.; V2: Open chart settings and dashboard-accessible
+      menus/dialogs; same TC theme, readable controls, keyboard/accessibility retained.;
+      C1: Rapid ETF->stock->ETF switches plus delayed and failed history/holdings response;
+      no stale context, correct own-cache/held/unavailable feedback.. Required local
+      profile: full_stack_browser. Stop at ready_for_human_review; do not integrate,
+      promote, deploy, or modify another worktree.","goal_recorded_at":"2026-10-23T05:19:32.501383+00:00","goal_request":{"objective":"Record
+      Root-authorized known-red staging16 remediation in the TC branch, adopt only the
+      one reviewed visual reference, preserve 7a application bytes and prior history,
+      and prepare the exact tip for Root CI."},"goal_request_state":"active","goal_state":"active","goal_unavailable_reason":null,"next_action":"Root
+      owns push, final native-wait proof and guide; do not activate broader roadmap
+      in this context-adoption checkpoint.","prior_native_goal_created_at":1793988333,"prior_native_goal_id":"01a066e3-dbae-7512-90bf-61d1af7c6bd8","progress":{"completed":[],"current_blocker":"Exact
+      final-tip CI, new combined qualification, and Root-owned release/genuine-flow
+      gates remain pending.","current_phase":"Adopted exact green staging/master source
+      139b350238b5e1c8a170dce5af09a805301d857e; frontend/backend trees match release;
+      remaining Root native-wait proof and guide are pending.","next_action":"Root owns
+      push and remaining release evidence; preserve the broader roadmap and existing
+      goal accounting.","total":10,"updated_at":"2026-11-06"},"session_id":"c7beca8d-84a3-4382-97e4-4854dca50b8c"}'
+    prior_progress_total: 10
+    prior_completed: []
+  dependencies: Provider publishes the actual stable DTO before consumer completion;
+    coordinate shared hooks through Root. Continue independent static/code work meanwhile.
+  boundaries: No new app server/hidden agents/sibling edits; no provider HTTP, real
+    quota/ledger, data-hold, production, staging or master writes from TC. No duplicate
+    heavy stack or broad suite replay during implementation.
+  next_action: Repair the measured RRG axes/data drawing, then resolve semantic clone/catalogue/lifecycle
+    gaps and wire the shared Provider preparation contract into TC entrypoints.
   integration_capture: exact branch HEAD

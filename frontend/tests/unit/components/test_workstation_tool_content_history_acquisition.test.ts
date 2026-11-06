@@ -104,6 +104,54 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     vi.clearAllMocks()
   })
 
+  it('renders and loads a cloned benchmark-universe tool from semantic role, not its remapped window key', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.marketGroups['us-benchmarks'] = {
+      members: [],
+      provenance: { benchmark_families: [{ logical_key: 'sp500', name: 'S&P 500' }] },
+    } as never
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/sp500') return Promise.resolve({ members: [], provenance: {} })
+      if (path === '/analysis/benchmark-families/sp500/overview') return Promise.resolve({ mappings: [{ role: 'cap_weight', symbol: 'SPY', label: 'Cap-weight proxy', verification_state: 'verified', holdings_available: true }] })
+      if (path === '/analysis/benchmark-families/readiness') return Promise.resolve({ status: 'ready', families: [], provider_probe_evidence: [] })
+      return Promise.resolve([])
+    })
+    const tool: WorkspaceWindowState = {
+      id: -32,
+      instance_key: 'benchmark-list-clone-abc123',
+      tool_type: 'watchlist',
+      title: 'Benchmarks',
+      link_group: 'blue',
+      configuration: { workspace_role: 'benchmark-universe', benchmark_family_key: 'sp500' },
+      style: {},
+      state_schema_version: 1,
+      position: 0,
+    }
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false } } }) }]],
+        stubs: {
+          VirtualWatchlistTool: true,
+          ToolWindow: ToolWindowShell,
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: true,
+          ChartTemplateControl: true,
+          DrawingToolbar: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(wrapper.get('select[aria-label="Benchmark family"]').element).toHaveProperty('value', 'sp500')
+    expect(wrapper.get('[aria-label="Selected benchmark family roles"]').text()).toContain('SPY')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500')
+    wrapper.unmount()
+  })
+
   it('offers one explicit action only on the focused empty chart and refreshes that panel from local bars', async () => {
     const instrumentId = 990014
     const bar = {
