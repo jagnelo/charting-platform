@@ -14932,9 +14932,9 @@ acceptance_criteria:
   text: >-
     Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before acceptance.
 next_action: >-
-  Provide this coherent executable API/worker source checkpoint to Root for downstream consumer development, then continue the remaining
-  Provider-owned maintenance ordering, provider-readiness/activation prerequisites, and full range-aware history scope in this same active
-  goal. Root owns fixture lifecycle, exact-source CI, combined release qualification and integration.
+  Commit this coherent maintenance/API-worker successor for Root to release to downstream consumers, then continue the remaining Provider
+  readiness, range-aware history, and canonical 60-month E2E fixture scope in this same active goal. Root owns fixture lifecycle, exact-source
+  CI, combined release qualification, production configuration, and integration.
 human_intent_authorization: >-
   Human explicitly activated the complete “Make the existing platform complete and usable” plan in the original Provider thread. The
   execution copy and shared contract are platform-usability-20261106/APPROVED-PLAN.md and SHARED-CONTRACT.md. This is active work, not
@@ -14943,9 +14943,9 @@ checkpoint_status: in_progress
 progress:
   completed: []
   total: 8
-  current_phase: executable_api_queue_worker_checkpoint_available_remaining_provider_scope_active
-  current_blocker: Remaining Provider maintenance/provider-readiness scope, exact-source CI, and Root-owned combined release qualification remain pending.
-  next_action: Release the coherent source checkpoint to Root, then continue the remaining approved Provider scope without closing this goal.
+  current_phase: maintenance_cadence_and_system_identity_checkpoint_available_remaining_provider_scope_active
+  current_blocker: Provider readiness/deeper-history scope, the 60-month canonical E2E fixture, exact-source CI, and Root-owned combined release qualification remain pending.
+  next_action: Release this coherent source checkpoint to Root, then continue the remaining approved Provider scope without closing this goal.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -14956,8 +14956,13 @@ current_gate_checkpoint: >-
   the working tree. Focused affected Provider units passed 440/440. The Root-allocated isolated PostgreSQL suite passed 5/5, including
   independent-session parent/dependency preservation, priority promotion, worker-result-to-response coverage, continuation persistence,
   and W1/MN range growth after a real daily worker rematerializes the derived series. Ruff checks and diff checks pass. This remains
-  in_progress: automatic maintenance/readiness work, full backend/DDL, exact-source CI and Root combined release gates remain pending.
-  Root owns the allocated fixture lifecycle. All previous acceptance/failure records and complete roadmaps remain preserved.
+  in_progress. This successor adds due-input reevaluation to the existing 15-minute worker cadence, publication/session-aware maintenance
+  cutoffs, ownerless system identity execution, retry-aware outstanding-work projection, and saved RRG warm-up/tail parameters. The affected
+  unit selection passed 82/82; the exact Root-allocated PostgreSQL maintenance slice passed 3/3, including same-session-date dedupe and
+  re-entry after a later published session. Ruff check/format and diff checks pass. Provider activation/readiness, deeper-history scope, the
+  60-month canonical E2E fixture, exact-source CI, and Root combined release gates remain pending. The v2 controls review confirms existing
+  operation-specific Marketstack and FINRA bounds; this change adds no redundant restriction. Root owns the allocated fixture lifecycle and
+  production operations. All previous acceptance/failure records and complete roadmaps remain preserved.
 previously_accepted_provider_history_identity_human_closure_authorization: >-
   Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
   remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
@@ -1299,3 +1299,209 @@ async def test_startup_maintenance_uses_shared_planner_and_catalogue_defaults(
                 .get("normalized_request", {})
             ]
         )
+
+
+async def test_system_maintenance_identity_job_runs_without_an_owner_user(
+    preparation_sessions, monkeypatch
+):
+    from app.routers import instruments as instruments_router
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.schemas.instrument_acquisition import (
+        InstrumentAcquireResponse,
+        QualifiedInstrumentIdentity,
+    )
+    from app.services.data_preparation import (
+        create_maintenance_data_preparation_request,
+    )
+    from app.tasks import data_tasks
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    async with preparation_sessions() as session:
+        parent = await create_maintenance_data_preparation_request(
+            session,
+            request=DataEnsureRequest.model_validate(
+                {
+                    "target": {"kind": "instrument", "symbol": "MNTNEW"},
+                    "datasets": ["history"],
+                }
+            ),
+            idempotency_key="test-system-identity-mntnew",
+        )
+        parent_id = parent.id
+        identity_job_id = next(
+            dependency["job_ids"][0]
+            for dependency in parent.metadata_payload["data_preparation"]["dependencies"]
+            if dependency["dataset"] == "identity"
+        )
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        _, stock_type_id = await _create_instrument_types(session)
+        canonical = _canonical_instrument("MNTNEW", stock_type_id, domain_prefix="maintenance")
+        session.add(canonical)
+        await session.flush()
+        instrument_id = canonical.id
+        await session.commit()
+
+    calls = []
+
+    async def fake_acquire(body, *, db, current_user):
+        calls.append((body.symbol, current_user))
+        return InstrumentAcquireResponse(
+            request_id=body.request_id,
+            status="resolved",
+            instrument=QualifiedInstrumentIdentity(
+                instrument_id=instrument_id,
+                symbol="MNTNEW",
+                identity_status="resolved",
+                domain_key="maintenance:mntnew",
+                primary_identifier_type="figi",
+                primary_identifier_value="BBG000TESTMNTNEW",
+            ),
+        )
+
+    monkeypatch.setattr(instruments_router, "acquire_instrument", fake_acquire)
+    result = await data_tasks.process_refresh_jobs({}, limit=1)
+    assert result["completed"] == 1
+    assert calls == [("MNTNEW", None)]
+
+    async with preparation_sessions() as session:
+        from app.models.market_data_foundation import MarketRefreshJob
+
+        parent = await session.get(MarketRefreshJob, parent_id)
+        identity_job = await session.get(MarketRefreshJob, identity_job_id)
+        assert identity_job.status == "completed"
+        dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+        identity = next(item for item in dependencies if item["dataset"] == "identity")
+        history = next(item for item in dependencies if item["dataset"] == "history")
+        assert identity["status"] == "queued"
+        assert identity["instrument_id"] == instrument_id
+        assert history["status"] == "queued"
+        assert history["instrument_id"] == instrument_id
+        assert history["job_ids"]
+
+
+async def test_system_maintenance_reenters_shared_preparation_for_later_observation(
+    preparation_sessions,
+):
+    from app.models.exchange import Exchange
+    from app.models.listing import InstrumentListing
+    from app.models.market_data_foundation import ExchangeSessionRule, MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import create_maintenance_data_preparation_request
+    from app.tasks.data_tasks import _maintenance_history_end_at
+
+    first_observation = datetime(2026, 11, 6, 14, 5, tzinfo=UTC)
+    same_observation = datetime(2026, 11, 6, 14, 55, tzinfo=UTC)
+    later_observation = datetime(2026, 11, 6, 21, 5, tzinfo=UTC)
+    closed_session_observation = datetime(2026, 11, 7, 14, 5, tzinfo=UTC)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        exchange = Exchange(
+            mic=f"XNAS{uuid4().hex[:4]}",
+            name="Test Nasdaq",
+            country_code="USA",
+            timezone="America/New_York",
+            market_open="09:30",
+            market_close="16:00",
+        )
+        session.add(exchange)
+        await session.flush()
+        session.add_all(
+            [
+                ExchangeSessionRule(
+                    exchange_id=exchange.id,
+                    session_code="regular",
+                    weekday=weekday,
+                    opens_at=time(9, 30),
+                    closes_at=time(16, 0),
+                    crosses_midnight=False,
+                    trade_date_rule="local_open_date",
+                    valid_from=date(2020, 1, 1),
+                    provenance={"test": True},
+                )
+                for weekday in range(5)
+            ]
+        )
+        instrument = _canonical_instrument(
+            "MAINTX", stock_type_id, domain_prefix="maintenance-refresh"
+        )
+        instrument.listings.append(
+            InstrumentListing(
+                exchange_id=exchange.id,
+                ticker="MAINTX",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+            )
+        )
+        session.add(instrument)
+        await session.flush()
+        instrument_id = instrument.id
+        exchange_id = exchange.id
+        await session.commit()
+
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument_id},
+            "timeframe": "D1",
+            "datasets": ["history"],
+        }
+    )
+
+    async def create_at(observed_at):
+        async with preparation_sessions() as session:
+            published_end = await _maintenance_history_end_at(
+                session,
+                instrument_ids={instrument_id},
+                timeframe=request.timeframe,
+                observed_at=observed_at,
+                primary_exchange_ids={instrument_id: {exchange_id}},
+            )
+            assert published_end is not None
+            bounded_request = request.model_copy(update={"end_at": published_end})
+            parent = await create_maintenance_data_preparation_request(
+                session,
+                request=bounded_request,
+                idempotency_key=f"workstation:{published_end.isoformat()}:maintenancex-history",
+                now=observed_at,
+            )
+            parent_id = parent.id
+            child_id = parent.metadata_payload["data_preparation"]["dependencies"][0]["job_ids"][0]
+            await session.commit()
+        return parent_id, child_id
+
+    first_parent, first_child = await create_at(first_observation)
+    same_parent, same_child = await create_at(same_observation)
+    later_parent, later_child = await create_at(later_observation)
+    closed_parent, closed_child = await create_at(closed_session_observation)
+
+    assert (same_parent, same_child) == (first_parent, first_child)
+    assert later_parent != first_parent
+    assert later_child != first_child
+    assert (closed_parent, closed_child) == (later_parent, later_child)
+
+    async with preparation_sessions() as session:
+        parents = list(
+            (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.id.in_([first_parent, later_parent])
+                    )
+                )
+            ).scalars()
+        )
+        children = list(
+            (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.id.in_([first_child, later_child])
+                    )
+                )
+            ).scalars()
+        )
+        assert len(parents) == 2
+        assert len(children) == 2
+        assert all(job.capability == "price_history" for job in children)
+        assert len({job.request_key for job in children}) == 2

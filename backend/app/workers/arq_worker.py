@@ -386,13 +386,18 @@ async def scheduled_daily_history_refresh(ctx: dict):
 
 
 async def scheduled_refresh_queue_process(ctx: dict):
-    """Process a bounded batch of leased core refresh jobs."""
+    """Re-evaluate due defaults, then process a bounded leased refresh batch."""
 
     if not settings.MARKET_DATA_REFRESH_SCHEDULE_ENABLED:
         logger.info("Market-data refresh schedule disabled; skipping queue process")
         return {"skipped": True, "reason": "schedule disabled"}
-    from app.tasks.data_tasks import process_refresh_jobs
+    from app.tasks.data_tasks import enqueue_core_refresh_jobs, process_refresh_jobs
 
+    # Re-running the existing planner here lets saved/default inputs discover
+    # later publications without an open browser. Its parent key shares the
+    # same observation bucket as history child dedupe, and normal coverage
+    # assessment avoids provider calls for already complete closed sessions.
+    await enqueue_core_refresh_jobs(ctx)
     return await process_refresh_jobs(ctx)
 
 

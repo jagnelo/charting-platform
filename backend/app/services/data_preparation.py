@@ -716,13 +716,14 @@ async def create_data_preparation_request(
     idempotency_key: str | None = None,
     priority: str = "visible",
     system_maintenance: bool = False,
+    now: datetime | None = None,
 ) -> MarketRefreshJob:
     """Persist owner or internal maintenance work without provider I/O."""
 
     if system_maintenance != (owner_user_id is None):
         raise ValueError("system maintenance requests must not have an owner user id")
 
-    now = datetime.now(UTC)
+    now = _as_utc(now or datetime.now(UTC))
     normalized = request.model_dump(mode="json")
     fingerprint = _digest(normalized)
     request_id = str(uuid4())
@@ -987,6 +988,7 @@ async def create_maintenance_data_preparation_request(
     request: DataEnsureRequest,
     idempotency_key: str,
     priority: str = "background",
+    now: datetime | None = None,
 ) -> MarketRefreshJob:
     """Queue non-owner system maintenance through the same durable planner."""
 
@@ -997,6 +999,7 @@ async def create_maintenance_data_preparation_request(
         idempotency_key=idempotency_key,
         priority=priority,
         system_maintenance=True,
+        now=now,
     )
 
 
@@ -1318,6 +1321,47 @@ def _deferred_job_reason(jobs: list[MarketRefreshJob]) -> str:
     return "provider_capacity_deferred"
 
 
+def _history_wait_projection(
+    jobs: list[MarketRefreshJob], *, useful_coverage: bool
+) -> tuple[str, str, datetime | None]:
+    """Project runnable work ahead of quota waits; expose the earliest wait only
+    when every remaining child is time-gated.
+    """
+
+    if any(job.status == "failed" for job in jobs):
+        return ("partial" if useful_coverage else "failed", "history_backfill_failed", None)
+    if any(job.status in {"queued", "leased"} for job in jobs):
+        if any(job.status == "leased" for job in jobs):
+            status = "partial" if useful_coverage else "running"
+        else:
+            status = "partial" if useful_coverage else "queued"
+        return status, "history_backfill_pending", None
+
+    timed_jobs = [job for job in jobs if job.status in {"deferred", "retry"}]
+    if timed_jobs:
+        retry_at = min(
+            (_as_utc(job.next_attempt_at) for job in timed_jobs if job.next_attempt_at is not None),
+            default=None,
+        )
+        return (
+            "partial" if useful_coverage else "waiting",
+            _deferred_job_reason(timed_jobs),
+            retry_at,
+        )
+    return ("partial" if useful_coverage else "queued", "history_backfill_pending", None)
+
+
+def _has_useful_history_output(jobs: list[MarketRefreshJob]) -> bool:
+    return any(
+        int((job.result_summary or {}).get("bars_observed") or 0) > 0
+        or (job.result_summary or {}).get("data_status") in {"ready", "partial"}
+        or (job.result_summary or {}).get("chunk_coverage_status") == "ready"
+        or (job.result_summary or {}).get("range_coverage_status") in {"ready", "partial"}
+        for job in jobs
+        if job.status == "completed"
+    )
+
+
 async def get_data_preparation_response(
     db: AsyncSession, *, parent: MarketRefreshJob, owner_user_id: int
 ) -> DataEnsureResponse:
@@ -1361,21 +1405,16 @@ async def get_data_preparation_response(
                 (_as_utc(job.updated_at) for job in [*child_jobs, *background_jobs]),
                 default=updated_at,
             )
-            if any(job.status == "failed" for job in background_jobs):
-                item_status, reason = "partial", "history_backfill_failed"
-            elif any(job.status == "deferred" for job in background_jobs):
-                deferred_jobs = [job for job in background_jobs if job.status == "deferred"]
-                item_status, reason = "partial", _deferred_job_reason(deferred_jobs)
-                retry_at = max(
-                    (
-                        _as_utc(job.next_attempt_at)
-                        for job in deferred_jobs
-                        if job.next_attempt_at is not None
+            remaining_background = [job for job in background_jobs if job.status != "completed"]
+            if remaining_background:
+                item_status, reason, retry_at = _history_wait_projection(
+                    remaining_background,
+                    useful_coverage=(
+                        dependency.get("status") in {"ready", "partial"}
+                        or _has_useful_history_output(child_jobs)
+                        or _has_useful_history_output(background_jobs)
                     ),
-                    default=None,
                 )
-            elif any(job.status != "completed" for job in background_jobs):
-                item_status, reason = "partial", "history_backfill_pending"
             else:
                 final_outcome = background_jobs[-1].result_summary or {}
                 if final_outcome.get("range_coverage_status") == "ready":
@@ -1464,20 +1503,13 @@ async def get_data_preparation_response(
                     )
                 else:
                     item_status, reason = "ready", None
-            elif "leased" in child_statuses:
-                item_status, reason = "running", None
-            elif "failed" in child_statuses:
-                item_status, reason = "failed", "preparation_job_failed"
-            elif "deferred" in child_statuses:
-                deferred_jobs = [job for job in child_jobs if job.status == "deferred"]
-                item_status, reason = "waiting", _deferred_job_reason(deferred_jobs)
-                retry_at = max(
-                    (
-                        _as_utc(job.next_attempt_at)
-                        for job in deferred_jobs
-                        if job.next_attempt_at is not None
+            elif child_statuses & {"queued", "leased", "deferred", "retry", "failed"}:
+                item_status, reason, retry_at = _history_wait_projection(
+                    child_jobs,
+                    useful_coverage=(
+                        dependency.get("status") in {"ready", "partial"}
+                        or _has_useful_history_output(child_jobs)
                     ),
-                    default=None,
                 )
             else:
                 item_status, reason = "queued", None

@@ -67,3 +67,24 @@ def test_default_maintenance_projects_ratio_and_rrg_inputs_from_catalogue_config
         "kind": "ratio",
         "legs": [{"symbol": "SPY"}, {"symbol": "RSP"}],
     }
+    custom_monthly = maintenance_request_specs(
+        "relative_rotation",
+        {
+            "group_key": "sp500-sectors",
+            "benchmark": "SPY",
+            "timeframe": "MN",
+            "sampling": 3,
+            "lookback": 24,
+            "tail_length": 12,
+            "history_points": 8,
+        },
+    )[0]
+    assert custom_monthly["timeframe"] == "MN"
+    assert custom_monthly["analysis"] == {
+        "kind": "rrg",
+        "lookback": 24,
+        "sampling": 3,
+        "tail_length": 12,
+        "history_length": 8,
+        "benchmark_symbol": "SPY",
+    }

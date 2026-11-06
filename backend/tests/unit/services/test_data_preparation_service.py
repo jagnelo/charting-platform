@@ -219,6 +219,34 @@ async def test_background_history_is_partial_until_durable_backfill_finishes(db,
     assert deferred.dependencies[0].reason_code == "provider_reset"
     assert deferred.dependencies[0].retry_at == retry_at
 
+    # A runnable sibling continuation must not be hidden behind the deferred
+    # job's deadline; the shared client should continue ordinary progress polls.
+    runnable = MarketRefreshJob(
+        id=503,
+        request_key="runnable-background-history-test",
+        instrument_id=instrument.id,
+        capability="price_history",
+        timeframe="D1",
+        status="queued",
+        next_attempt_at=now,
+        metadata_payload={},
+    )
+    db.add(runnable)
+    payload = dict(parent.metadata_payload)
+    data = dict(payload["data_preparation"])
+    dependency = dict(data["dependencies"][0])
+    dependency["background_job_ids"] = [502, 503]
+    data["dependencies"] = [dependency]
+    payload["data_preparation"] = data
+    parent.metadata_payload = payload
+    db.flush()
+
+    mixed = await get_data_preparation_response(async_db, parent=parent, owner_user_id=902)
+    assert mixed.dependencies[0].status == "partial"
+    assert mixed.dependencies[0].reason_code == "history_backfill_pending"
+    assert mixed.dependencies[0].retry_at is None
+    assert mixed.has_pending_work is True
+
     # Older stored/fixture response payloads remain valid without the additive
     # lifecycle bit and default fail-safe to no known pending queue work.
     from app.schemas.data_preparation import DataEnsureResponse
@@ -302,9 +330,30 @@ async def test_partial_history_and_unavailable_holdings_have_no_pending_work(db,
     db.add_all([parent, history, holdings])
     db.flush()
 
-    response = await get_data_preparation_response(
-        AsyncSessionAdapter(db), parent=parent, owner_user_id=903
+    async_db = AsyncSessionAdapter(db)
+    retry_at = now + timedelta(minutes=35)
+    holdings.status = "deferred"
+    holdings.next_attempt_at = retry_at
+    holdings.metadata_payload = {"defer_reason": "provider_reset"}
+    deferred_holdings = await get_data_preparation_response(
+        async_db, parent=parent, owner_user_id=903
     )
+    assert deferred_holdings.status == "partial"
+    assert deferred_holdings.has_pending_work is True
+    holdings_outcome = next(
+        item for item in deferred_holdings.dependencies if item.dataset.value == "holdings"
+    )
+    assert holdings_outcome.status == "waiting"
+    assert holdings_outcome.retry_at == retry_at
+
+    holdings.status = "completed"
+    holdings.next_attempt_at = now
+    holdings.result_summary = {
+        "preparation_status": "unavailable",
+        "reason_code": "holdings_issuer_not_supported",
+    }
+    holdings.metadata_payload = {}
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=903)
 
     assert response.status == "partial"
     assert response.has_pending_work is False

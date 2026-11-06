@@ -267,7 +267,13 @@ def maintenance_request_specs(
         group_key, benchmark = config.get("group_key"), config.get("benchmark")
         if not isinstance(group_key, str) or not group_key.strip():
             return []
-        analysis: dict[str, Any] = {"kind": "rrg"}
+        analysis: dict[str, Any] = {
+            "kind": "rrg",
+            "lookback": config.get("lookback", 20),
+            "sampling": config.get("sampling", 1),
+            "tail_length": config.get("tail_length", 10),
+            "history_length": config.get("history_length", config.get("history_points", 0)),
+        }
         if isinstance(benchmark, str) and benchmark.strip():
             analysis["benchmark_symbol"] = benchmark.strip().upper()
         return [

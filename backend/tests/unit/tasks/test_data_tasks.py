@@ -8,6 +8,19 @@ from app.models.ohlcv import Timeframe
 from app.tasks import data_tasks
 
 
+def test_maintenance_observation_bucket_matches_shared_hourly_freshness_window():
+    first = datetime(2026, 11, 6, 14, 5, tzinfo=UTC)
+    repeated = datetime(2026, 11, 6, 14, 59, tzinfo=UTC)
+    later_same_day = datetime(2026, 11, 6, 21, 5, tzinfo=UTC)
+
+    assert data_tasks._maintenance_observation_bucket(first) == (
+        data_tasks._maintenance_observation_bucket(repeated)
+    )
+    assert data_tasks._maintenance_observation_bucket(first) != (
+        data_tasks._maintenance_observation_bucket(later_same_day)
+    )
+
+
 class _Result:
     def __init__(self, values):
         self._values = values

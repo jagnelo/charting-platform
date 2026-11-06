@@ -101,16 +101,21 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
+    async def fake_enqueue(ctx):
+        calls.append(("enqueue", ctx))
+        return {"queued": 2}
+
     async def fake_process(ctx):
-        calls.append(ctx)
+        calls.append(("process", ctx))
         return {"claimed": 4, "completed": 3, "retried": 1}
 
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
     monkeypatch.setattr(data_tasks, "process_refresh_jobs", fake_process)
 
     result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
 
     assert result == {"claimed": 4, "completed": 3, "retried": 1}
-    assert calls == [{"redis": "test"}]
+    assert calls == [("enqueue", {"redis": "test"}), ("process", {"redis": "test"})]
 
 
 @pytest.mark.asyncio
