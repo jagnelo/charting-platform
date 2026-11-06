@@ -10,8 +10,9 @@ from pydantic import ValidationError
 
 from app.config import Settings, settings
 from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
-from app.models.ohlcv import OHLCVBar, Timeframe
+from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
+from app.providers.errors import ProviderRateLimitError
 from app.routers import instruments as instruments_router
 from app.routers.instruments import _history_application_limit_reason
 from app.schemas.instrument_acquisition import (
@@ -652,7 +653,6 @@ async def test_history_readback_excludes_overlapping_alternate_series(monkeypatc
     assert response.status == "partial"
     assert fetch_calls == 1
     assert observed_provider_scopes == [frozenset({"massive"})]
-
     oversized = await instruments_router.acquire_instrument_history(
         instrument.id,
         HistoryAcquisitionRequest(
@@ -670,12 +670,73 @@ async def test_history_readback_excludes_overlapping_alternate_series(monkeypatc
     assert fetch_calls == 1
 
 
+@pytest.mark.parametrize("timeframe", [Timeframe.D1, Timeframe.W1, Timeframe.MN])
+@pytest.mark.asyncio
+async def test_history_workload_bound_applies_per_progressive_request_not_lifetime(
+    monkeypatch, db, instrument, timeframe
+):
+    class AsyncSessionAdapter:
+        async def execute(self, statement):
+            return db.execute(statement)
+
+    async def stable_identity(_db, _instrument, *_args):
+        return object()
+
+    fetch_ranges = []
+
+    async def admitted_fetch(_db, _instrument, _timeframe, start, end, *_args, **_kwargs):
+        fetch_ranges.append((start, end))
+        return []
+
+    monkeypatch.setattr(instruments_router, "_qualified_identity", stable_identity)
+    monkeypatch.setattr(instruments_router, "fetch_ohlcv", admitted_fetch)
+    now = datetime.now(UTC).replace(microsecond=0)
+    chunk_seconds = 1_999 * TIMEFRAME_SECONDS[timeframe]
+
+    responses = []
+    for index in range(3):
+        end = now - timedelta(seconds=index * chunk_seconds)
+        start = end - timedelta(seconds=chunk_seconds)
+        responses.append(
+            await instruments_router.acquire_instrument_history(
+                instrument.id,
+                HistoryAcquisitionRequest(
+                    timeframe=timeframe,
+                    adjusted=True,
+                    start=start,
+                    end=end,
+                    request_id=f"progressive-{timeframe.value}-{index}",
+                ),
+                db=AsyncSessionAdapter(),
+                current_user=SimpleNamespace(id=1),
+            )
+        )
+
+    assert len(fetch_ranges) == 3
+    assert all(response.status == "no_data" for response in responses)
+    assert all(
+        response.reason_code != "application_requested_range_limit_exceeded"
+        for response in responses
+    )
+
+
 @pytest.mark.parametrize(
     ("error", "reason_code"),
     [
         (
-            ProviderQuotaAdmissionError("quota admission denied"),
+            ProviderQuotaAdmissionError(
+                "quota admission denied",
+                retry_at=datetime(2026, 11, 6, 12, 30, tzinfo=UTC),
+            ),
             "provider_quota_admission_denied",
+        ),
+        (
+            ProviderRateLimitError(
+                "massive",
+                "native 5-per-60-second window is full",
+                retry_at=datetime(2026, 11, 6, 12, 1, 1, tzinfo=UTC),
+            ),
+            "provider_capacity_unavailable",
         ),
         (
             ProviderQuotaCoordinatorError("quota coordinator unavailable"),
@@ -735,8 +796,10 @@ async def test_history_quota_errors_return_typed_held_outcomes(
 
     assert response.status == "held"
     assert response.reason_code == reason_code
+    assert response.request_id == "history-quota-hold-test"
     assert response.source_outcomes == [held_outcome]
     assert held_outcome_calls == 1
+    assert response.source_outcomes[0].retry_at == getattr(error, "retry_at", None)
 
 
 @pytest.mark.asyncio

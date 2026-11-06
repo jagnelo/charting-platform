@@ -1,6 +1,7 @@
 schema: 4
 previously_active_provider_vtr_status: ready_for_integration
 previously_accepted_provider_etv_routing_status: ready_for_integration
+previously_accepted_provider_history_hold_status: ready_for_integration
 status: ready_for_integration
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
@@ -14442,32 +14443,32 @@ previously_accepted_provider_exact_symbol_discovery_followup:
     closing_tip_ci: pending; Root owns observation
 
 
-# Current human-activated history acquisition quota-outcome repair; prior accepted checkpoints remain archived.
-goal: >-
+# Previously accepted history acquisition quota-outcome checkpoint; retained as history.
+previously_accepted_history_hold_goal: >-
   Ensure ordinary history acquisition reports expected quota admission, coordinator, and unknown-contract failures as explicit held outcomes, while unexpected errors remain failed and are logged with safe request context.
-scope:
+previously_accepted_history_hold_scope:
 - Continue in the existing Provider worktree, original session and claim; preserve all completed goal accounting and the complete Provider and ETF roadmaps.
 - Map ProviderQuotaAdmissionError, ProviderQuotaCoordinatorError, and ProviderQuotaUnknownError to the established held status and corresponding reason codes used by provider discovery; preserve existing rate-limit, scope, no-data, success and persistence behavior.
 - Log unexpected history-acquisition exceptions with request ID, instrument ID and exception type only; do not log exception messages, credentials, or response bodies, and keep the public result failed with the established generic reason.
 - Add endpoint regressions for each typed hold, unexpected-error safe logging, and unchanged successful history behavior. No provider HTTP, real quota-ledger access/write, policy/hold mutation, fixture, target, sibling, staging, or deployment action.
-owned_paths:
+previously_accepted_history_hold_owned_paths:
 - backend/app/routers/instruments.py
 - backend/tests/unit/services/test_provider_explicit_acquisition.py
 - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
-branch_tests:
+previously_accepted_history_hold_branch_tests:
   - "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)"
   - "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)"
   - "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)"
   - "backend/tests/unit/services/test_provider_explicit_acquisition.py (typed quota holds, safe unexpected-error logging, and successful history regression)"
   - "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
-branch_tests_reason: >-
+previously_accepted_history_hold_branch_tests_reason: >-
   The focused explicit-acquisition endpoint module passed 18/18 in 2.96s on the exact reviewed source hashes. Ruff check,
   Ruff format check, and git diff --check passed. A prior collection attempt failed before executing tests because the
   test module omitted an import; that setup failure is preserved in validation.jsonl and was corrected without changing
   product behavior. No provider requests, real-ledger access, quota or policy mutation, or heavy fixtures occurred.
   Root's read-only production quota evidence supports a pre-send hold but does not identify the exact swallowed exception;
   the fix handles the known typed hold classes and safely exposes only non-sensitive context for other failures.
-acceptance_criteria:
+previously_accepted_history_hold_acceptance_criteria:
 - id: HISTORY-HOLD-1
   text: "ProviderQuotaAdmissionError, ProviderQuotaCoordinatorError, and ProviderQuotaUnknownError return status held with the established reason code; existing rate-limit, scope, and no-data outcomes remain unchanged."
 - id: HISTORY-HOLD-2
@@ -14476,14 +14477,14 @@ acceptance_criteria:
   text: "Focused tests prove all typed holds, unexpected-error logging, and unchanged successful history readback; no provider HTTP or real quota-ledger operation occurs."
 - id: HISTORY-HOLD-4
   text: "The checkpoint records exact source/test hashes, preserves prior accepted checkpoints and all roadmaps, and leaves exact closing-tip CI plus Root-owned combined release gates mandatory and pending."
-next_action: >-
+previously_accepted_history_hold_next_action: >-
   Freeze this coherent publication for Root-owned exact closing-tip CI observation; Root owns combined release qualification,
   protected integration, production checks, and deployment. Do not launch full local fixtures or make provider requests.
-human_intent_authorization: >-
+previously_accepted_history_hold_human_intent_authorization: >-
   Human directly activated the bounded ordinary history-acquisition outcome repair in the existing Provider worktree.
   Root confirmed the existing claim and authorized continuation from exact deployed source 45cc8206602d7823ca29e132d991d88b0bcbbc25.
-checkpoint_status: ready_for_integration
-progress:
+previously_accepted_history_hold_checkpoint_status: ready_for_integration
+previously_accepted_history_hold_progress:
   completed:
   - HISTORY-HOLD-1
   - HISTORY-HOLD-2
@@ -14493,29 +14494,134 @@ progress:
   current_phase: bounded_checkpoint_ready_for_root_review_exact_tip_ci_pending
   current_blocker: Exact closing-tip backend/DDL/frontend/branch/browser CI and Root-owned combined release qualification remain pending.
   next_action: Root owns exact published-tip CI observation and protected integration only after all required gates pass.
-human_closure_authorization: >-
+previously_accepted_history_hold_human_closure_authorization: >-
   Root accepted the exact implementation and focused test evidence under standing human delegation; no direct human quotation
   is attributed. Acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json
   (SHA-256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398).
-integration_checkpoint_authorization: >-
+previously_accepted_history_hold_integration_checkpoint_authorization: >-
   Root authorized one coherent ready_for_integration publication. Root owns exact closing-tip CI, combined full_stack_browser
   qualification, protected staging integration and downstream production checks; integration remains gated on those results.
-local_validation_profile: full_stack_browser
-local_validation_reason: >-
+previously_accepted_history_hold_local_validation_profile: full_stack_browser
+previously_accepted_history_hold_local_validation_reason: >-
   The changed route and unit-test files classify as docker_integration, while the cumulative branch profile remains
   full_stack_browser because of the previously approved shared calendar-readiness E2E test change. This bounded checkpoint
   ran the focused explicit-acquisition module only (18/18); no full local matrix is claimed. Root owns the combined profile.
-current_gate_checkpoint: >-
+previously_accepted_history_hold_current_gate_checkpoint: >-
   Root accepted the exact current implementation hashes. The focused module passed 18/18, Ruff check and format check passed,
   and git diff --check passed. The previous exact discovery checkpoint and its CI history remain archived. Exact closing-tip
   CI and combined release qualification are mandatory and pending; Root owns observation and integration.
-closure_summary: >-
+previously_accepted_history_hold_closure_summary: >-
   This bounded Provider checkpoint maps expected quota admission, quota coordinator, and unknown-contract errors in ordinary
   history acquisition to explicit held outcomes, while unexpected exceptions remain failed and are safely logged with request
   ID, instrument ID and exception type. Focused endpoint tests passed 18/18 on the exact reviewed source hashes. No provider
   HTTP or real-ledger operation occurred. The previous exact-discovery checkpoint, all prior failures, and all 24 Provider/
   14 ETF roadmap criteria remain preserved and open. Exact closing-tip CI and Root's combined release gates remain mandatory
   and pending. integration_capture: exact branch HEAD.
-migration_impact: None; no database schema or migration changes.
-live_test_impact: No provider, issuer, or SEC transport was executed; none was authorized in this checkpoint.
-deployment_impact: None; Root owns protected integration, promotion, deployment, and genuine provider operations.
+previously_accepted_history_hold_migration_impact: None; no database schema or migration changes.
+previously_accepted_history_hold_live_test_impact: No provider, issuer, or SEC transport was executed; none was authorized in this checkpoint.
+previously_accepted_history_hold_deployment_impact: None; Root owns protected integration, promotion, deployment, and genuine provider operations.
+
+
+# Current human-activated shared Provider acquisition/history-boundary repair; prior accepted checkpoints remain archived.
+goal: >-
+  Complete the shared Provider acquisition repair: expose truthful temporary quota/contract holds and known retry timing across discovery, selected identity and history; provide a read-only reviewed history-availability contract for the selected canonical instrument; preserve all native quota, identity, entitlement, class, operation, adjustment and history-boundary guards. Preserve the complete Provider and ETF roadmaps and all accepted/failure history. Stop at ready_for_human_review for Root review; do not integrate, promote, deploy, or make live provider requests.
+scope:
+- Map known scope, rate-limit, quota-admission, coordinator-unavailable and unknown-quota outcomes consistently across provider search/discovery, exact selected identity and history acquisition. Include retry_at only where the typed error carries a conservative reviewed reset; unknown baselines and hard holds have no invented timer. Unexpected errors remain failed with safe diagnostics only.
+- Expose GET /api/v1/instruments/{instrument_id}/history-availability?timeframe=D1&adjusted=true with instrument_id, symbol, timeframe, adjusted, status, earliest_start, max_requested_bars and reason_code. Use the exact selected instrument/symbol fetch_ohlcv scope and real read-only resolver under request-driven/free-only and existing class, operation, adjustment, entitlement, review and hold gates.
+- Reuse the same provider-specific dry OHLCV cost estimators as ordinary history acquisition. Read-only availability performs no Source transport, quota reservation, runtime seeding, or policy/health mutation; unknown/malformed reviewed bounds stay held, and earliest_start reflects the deepest eligible reviewed connection bound rather than observed coverage.
+- Preserve existing canonical identity, selected-source lineage, request bounds, 2,000 inclusive per-request slots, native provider limits and all prior quota/hold semantics. No lifetime history cap or invented source depth is introduced.
+- Add meaningful no-network regressions for search-native-window held with known retry, unknown/hard no-timer, unexpected failed, request-driven history eligibility with real resolver/policy, bounds and no-eligible/unknown-bound cases. Preserve all prior acceptance criteria and the complete 24 Provider/14 ETF roadmap history.
+- Run the affected unit modules and normal workstream/static checks. Full backend/DDL, exact closing-tip CI, and Root's combined full_stack_browser/release profile remain mandatory and Root-owned; no local broad suite, Docker fixture, provider HTTP, real ledger, policy/hold, target, staging, master, deployment or sibling operation is in this checkpoint.
+owned_paths:
+- backend/app/routers/instruments.py
+- backend/app/schemas/instrument_acquisition.py
+- backend/app/services/market_data.py
+- backend/app/services/provider_quota_coordinator.py
+- backend/app/services/provider_routing.py
+- backend/app/services/provider_runtime.py
+- backend/tests/unit/routers/test_instruments_router.py
+- backend/tests/unit/services/test_provider_explicit_acquisition.py
+- backend/tests/unit/services/test_provider_persistence.py
+- backend/tests/unit/services/test_provider_quota_coordinator.py
+- backend/tests/unit/services/test_provider_routing.py
+- backend/tests/unit/services/test_provider_runtime.py
+- backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+- ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}
+branch_tests:
+  - "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback after bounded fuzzy search; typed quota holds and known retry_at are preserved)"
+  - "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (empty-cache provenance plus typed held/no_match/failed outcomes; unknown quota has no invented retry)"
+  - "backend/app/routers/instruments.py::get_instrument_history_availability (exact selected instrument/symbol fetch_ohlcv scope, true request-driven resolver, reviewed dry cost and no transport/reservation/mutation)"
+  - "Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history bounds and no-eligible/unknown cases, no-network quota outcomes)"
+  - "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration."
+  - "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (Root-approved immutable ETF clock-fix dependency from b25fc814ef301103337f343d57b859545fa5bb8f; three authentic VanEck freshness cases pass without changing payload fixtures or Provider product code)"
+branch_tests_reason: >-
+  The affected six unit modules passed 334/334 in 204.83s on the exact source hashes recorded in Root's conditional implementation review.
+  This includes the real resolver path with PROVIDER_REQUEST_DRIVEN_ONLY=true and the shared dynamic-cost estimator used by _fetch_provider;
+  the history endpoint proves eligible reviewed bounds with no execute_provider_call, quota file, or policy/health mutation. The discovery
+  service reports native window admission as held with the known retry_at, unknown quota contract as held without a retry, and unexpected
+  TypeError as failed. Ruff check/format and git diff checks passed. No external request, real ledger access, fixture or broad backend run occurred.
+  Root approved the exact ETF-owned test-only clock dependency at b25fc814ef301103337f343d57b859545fa5bb8f; its blob and SHA are pinned in the follow-up record.
+acceptance_criteria:
+- id: HISTORY-SHARED-1
+  text: "Discovery, selected identity and history expose typed held/no_match/failed outcomes; known rate/window retry times are preserved, unknown/hard holds never invent retry_at, and unexpected failures remain failed with safe diagnostics."
+- id: HISTORY-SHARED-2
+  text: "History availability binds exact instrument_id and provider_symbol under fetch_ohlcv while PROVIDER_REQUEST_DRIVEN_ONLY=true, runs the real resolver in read-only mode with the same dry provider-specific OHLCV cost estimate as ordinary fetch, and performs no transport, reservation, seeding, or policy/health mutation."
+- id: HISTORY-SHARED-3
+  text: "The DTO returns the earliest reviewed bound and configured inclusive per-request bar cap for currently eligible connections; unresolved identity, no eligible connection and unknown/malformed bounds are held with earliest_start=null, not reported as unlimited or observed coverage."
+- id: HISTORY-SHARED-4
+  text: "Meaningful focused regressions cover known native window denial/retry, unknown no-timer, unexpected failure, production request-driven resolver eligibility, shorter/longer bounds, no-eligible/unknown-bound cases, and prior selected-history behavior; affected 334-test suite and static checks pass without external provider or real-ledger activity."
+- id: HISTORY-SHARED-5
+  text: "Current workstream accurately records exact implementation/test hashes and this focused evidence, preserves all prior accepted checkpoints and the 24 Provider/14 ETF roadmaps, and leaves full backend/DDL, exact closing-tip CI and Root combined release gates pending."
+next_action: >-
+  Freeze the single coherent review checkpoint for Root. Root owns exact closing-tip CI and combined full_stack_browser/release qualification;
+  no broad local suite or live provider operation is authorized by this checkpoint.
+human_intent_authorization: >-
+  Human directly activated the shared Provider ordinary acquisition/history-boundary repair in this original worktree/session. Root supplied
+  the exact history-availability DTO and reviewed the implementation source hashes; the full release and deployment remain Root-owned.
+checkpoint_status: ready_for_integration
+progress:
+  completed:
+  - HISTORY-SHARED-1
+  - HISTORY-SHARED-2
+  - HISTORY-SHARED-3
+  - HISTORY-SHARED-4
+  - HISTORY-SHARED-5
+  total: 5
+  current_phase: focused_implementation_ready_for_root_review
+  current_blocker: Exact closing-tip backend/DDL/branch CI and Root combined full_stack_browser/release qualification remain pending and Root-owned.
+  next_action: Root reviews this coherent frozen checkpoint and owns the exact-source and combined release gates.
+local_validation_profile: full_stack_browser
+local_validation_reason: >-
+  The cumulative branch profile remains full_stack_browser because of the previously approved shared calendar-readiness E2E test change.
+  This bounded source delta ran the six affected backend unit modules only (334/334); no full local backend, browser or visual matrix is claimed.
+  Root owns the combined full_stack_browser release profile.
+current_gate_checkpoint: >-
+  Root's conditional implementation review is /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-implementation-conditional-review.json.
+  The exact reviewed product/test hashes are recorded in that receipt. The affected unit modules passed 334/334 in 204.83s; Ruff check/format and
+  git diff --check passed. Exact closing-tip CI and combined release qualification are not yet run on this checkpoint and remain mandatory.
+human_closure_authorization: >-
+  Root's acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json (SHA-256 e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681) records the human standing authorization as: "Human standing authorization to accept, reconcile, merge and deploy these development checkpoints autonomously; current explicit general history/dashboard repair activation." Root's delegated technical acceptance for this bounded Provider checkpoint is recorded in the same receipt. This is not a new human quote and does not accept the pending combined release gates or close the wider roadmap.
+closure_summary: >-
+  Accepted bounded Provider checkpoint: shared typed acquisition/history outcomes and read-only canonical instrument history availability, with exact eligibility, dry cost, bounds and per-request slot contract, plus the Root-approved immutable ETF VanEck test-clock dependency. Validated implementation SHA eb7b2a02e2ddfbb6304b3afeb036ae77b34cb445 has exact-source CI run 42148199207 green (5,908 backend unit and 626 integration cases reported); the bounded focused suite passed 334/334. The approved ETF dependency source b25fc814ef301103337f343d57b859545fa5bb8f has exact CI run 42147141948 green and its three affected nodes passed 3/3 in 29.07 seconds. No migrations or provider product-configuration changes were made in this checkpoint. Native free-only controls, quotas, holds, ledgers, datasets and all 24 Provider/14 ETF roadmap criteria remain preserved; the roadmap is not complete. TC causal-menu/visual qualification, exact CI for this closure tip, combined staging qualification, master promotion, private backup/cutover, genuine user journeys, guide and exact cleanup remain Root-owned and pending. integration_capture: exact branch HEAD.
+migration_impact: None; no schema or migration change.
+live_test_impact: No provider/issuer/SEC HTTP; no real-ledger access or quota/hold/policy mutation occurred.
+deployment_impact: None; Root owns integration, promotion, deployment and genuine user-flow verification.
+
+followup_checkpoint:
+  id: provider-van-eck-fixture-clock-ci-dependency-20261106
+  objective: Adopt one Root-approved immutable test-only dependency that keeps authentic Oct 29 VanEck workbook regressions inside their reviewed freshness window, then publish one coherent Provider checkpoint for exact-tip CI.
+  status: ready_for_human_review
+  changed_provider_product_code: false
+  dependency:
+    source_commit: b25fc814ef301103337f343d57b859545fa5bb8f
+    path: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+    git_blob: c75d410ea18854db6179f0d2ba608ef62e4350c2
+    sha256: a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d
+    root_approval: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/etf-clock-fix-dependency-approval.json
+    root_approval_sha256: 1167ce41d9d257dade6c9dcd1d7a2938fd0e3bd7f92179c54e90f7c43a0e0826
+  prior_exact_ci:
+    run_id: 42141483157
+    result: Overall failure preserved. Backend unit phase 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed because the authentic Oct 29 workbook fixtures aged beyond the five-day freshness deadline; frontend and E2E jobs were green.
+    disposition: ETF owner reports the three previously failing nodes pass 3/3 in 29.07s on the exact approved test-only dependency; this Provider worktree did not rerun the bridge module.
+  scope: Only the approved test file and this Provider workstream are changed. No ETF workstream, payload fixture, Provider product code, provider transport, ledger, quota, policy, hold, or runtime resource is changed.
+  next_gate: Fresh exact-tip CI on this coherent Provider checkpoint, followed by Root-owned combined runtime/exhaustive/deployment gates; no prior red run is relabeled green.

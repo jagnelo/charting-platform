@@ -81,10 +81,11 @@ follow_up_history:
   expected_effect: "Removing the prerequisite jobs lets the single full gate start immediately after changed-scope, avoiding a repeated standalone backend run and separate frontend/E2E runner jobs. Expected staging critical-path reduction is at least the observed 28-32 minute backend lead time, plus any standalone frontend/E2E time extending beyond it; the complete product matrix still runs once in the authoritative gate."
   status: "Root accepted AC10 under the human's standing delegation in workflow-AC10-implementation-technical-acceptance.json after final source review and focused workflow evidence. All ten criteria are complete; exact new-source CI and protected adoption remain Root-owned."
 branch_tests:
-  - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python -m pytest tests/workflow -q"
-  - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python -m pytest backend/tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers --no-cov -q"
-  - "UV_CACHE_DIR=/tmp/workflow-efficiency-uv-cache UV_PROJECT_ENVIRONMENT=/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework/backend/.venv UV_NO_SYNC=1 UV_OFFLINE=1 PYTHONDONTWRITEBYTECODE=1 uv run --project backend python scripts/validate-workstream.py ops/workstreams"
+  - "uv run --project backend python -m pytest tests/workflow -q"
+  - "uv run --project backend python -m pytest --no-cov backend/tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers -q"
+  - "uv run --project backend python scripts/validate-workstream.py ops/workstreams"
 branch_tests_reason: "Workflow-only regression suite and complete workstream/hash/scope validation; no heavy product, browser, Docker, or provider suite."
+branch_command_portability: "Current/future branch_tests commands use repository-portable uv run --project backend invocations without host environment/cache paths or local-only flags. Earlier local validation.jsonl commands are preserved verbatim. Root's ea0d3c4 branch run remains overall red because the previous command failed before pytest; its Backend, Frontend Unit, and E2E job passes are not reclassified as a green run."
 live_test_impact: none
 migration_impact: none
 deployment_impact: none

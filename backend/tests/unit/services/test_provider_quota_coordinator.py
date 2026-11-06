@@ -453,6 +453,67 @@ def test_unknown_current_window_baseline_blocks_until_exact_seed(tmp_path, monke
     )
 
 
+def test_native_five_per_minute_capacity_denial_exposes_conservative_retry_time(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {"massive": "massive-test-key"})
+    policy = _policy(_dimension("requests_per_minute", limit=5), reset="rolling")
+    now = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
+    _seed_test_baseline(policy, now=now, provider="massive")
+    first = reserve_provider_quota(
+        provider_name="massive",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_minute": 5},
+        now=now,
+    )
+    assert first is not None
+    settle_provider_quota(
+        first,
+        observed_dimension_units={"requests_per_minute": 5},
+        now=now,
+    )
+
+    denial: dict = {}
+    denied = reserve_provider_quota(
+        provider_name="massive",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_minute": 1},
+        now=now + timedelta(seconds=5),
+        denial_details=denial,
+    )
+
+    assert denied is None
+    assert denial["retry_at"] == now + timedelta(seconds=61)
+
+
+def test_unknown_rolling_baseline_has_no_retry_time(tmp_path, monkeypatch):
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_DATABASE_URL", "")
+    monkeypatch.setattr(settings, "PROVIDER_QUOTA_ACCOUNT_SCOPES", {"massive": "massive-test-key"})
+    policy = _policy(_dimension("requests_per_minute", limit=5), reset="rolling")
+    now = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
+    denial: dict = {}
+
+    denied = reserve_provider_quota(
+        provider_name="massive",
+        capability="price_history",
+        operation="fetch_ohlcv",
+        policy=policy,
+        dimension_units={"requests_per_minute": 1},
+        now=now,
+        denial_details=denial,
+    )
+
+    assert denied is None
+    assert "retry_at" not in denial
+
+
 def test_marketstack_monthly_reset_unknown_uses_rolling_30_day_safety(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "PROVIDER_QUOTA_LEDGER_PATH", str(tmp_path / "quota.sqlite3"))
     monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 100)

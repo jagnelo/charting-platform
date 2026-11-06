@@ -127,3 +127,38 @@ All ten criteria are complete and the branch is ready for integration. The
 only remaining gates are exact CI on this new pushed SHA and Root's protected
 canonical staging/master adoption. `integration_capture: exact branch HEAD`.
 Root retains integration, promotion, and deployment ownership.
+
+## Independent E2E scheduling follow-up
+
+Root-authorized follow-up changes only `e2e.needs` to `[changed-scope]`. The
+E2E job already installs its own dependencies and browser, builds and starts its
+own Compose stack, runs Playwright, and always tears the stack down. This lets
+it run beside backend and frontend-unit jobs. Focused structural and
+final-evidence regressions passed 7/7 in 0.34 seconds; exact branch qualification
+still requires unique completed successful backend, frontend-unit, and E2E
+jobs (or the existing trusted scoped profile). Root's delegated technical
+acceptance is recorded in
+`.ai/staging-attempts/workflow-parallel-browser-context-root-review-20261105.json`;
+the authorized publication preserves merge parents `45cc820` and `05d98ea`.
+No product, Makefile, runtime-tree, or protected-branch change was made. Exact
+CI and release ownership remain with Root.
+
+## Hosted branch command portability
+
+Exact run `42096402834` on `ea0d3c4` remains **overall red**: Backend Tests,
+Frontend Unit Tests, and E2E passed, but Branch-declared failed before pytest
+because current plan commands embedded a workstation `UV_PROJECT_ENVIRONMENT`
+and local-only UV flags. This workstream has no `branch-tests.json`, so the
+runner executes the plan's `branch_tests` directly. Updated only those
+current/future command declarations to `uv run --project backend`; historical
+`validation.jsonl` entries remain unchanged.
+
+The actual `scripts/run-branch-tests.py` completed under a hosted-like
+environment without host project/cache overrides, `UV_NO_SYNC`, `UV_OFFLINE`,
+or `rtk` in the generated commands: 211 workflow tests passed in 2.36 seconds,
+the narrative guard passed 1/1 in 12.22 seconds, and 47 workstream records
+validated. The focused runner test, changed-file Ruff, own-record validator and
+diff checks also passed. Root's delegated acceptance is conditional on this
+portable runner proof, which is now satisfied; no full product/browser/Compose
+matrix was rerun. The red `ea0d3c4` run is retained as failed history. Root owns
+exact CI, qualified-base context, and final publication/adoption.

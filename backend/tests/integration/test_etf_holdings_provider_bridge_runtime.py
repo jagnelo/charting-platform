@@ -101,6 +101,61 @@ class _ProviderDB:
         return self._session_factory()
 
 
+def _freeze_vaneck_authentic_fixture_clock(monkeypatch):
+    """Keep the authentic 2026-10-29 workbook inside its reviewed daily window."""
+
+    import sys
+
+    from app.services import (
+        etf_holdings as etf_holdings_service,
+    )
+    from app.services import (
+        etf_holdings_adapters as adapters,
+    )
+    from app.services import (
+        etf_holdings_provider_bridge as provider_bridge,
+    )
+    from app.services import (
+        etf_holdings_refresh as refresh_service,
+    )
+    from app.services import (
+        etf_holdings_vaneck_qualification as vaneck_qualification,
+    )
+    from app.services import (
+        provider_quota_coordinator as quota_coordinator,
+    )
+    from app.services import (
+        provider_runtime,
+    )
+
+    frozen_now = datetime(2026, 11, 1, 12, 0, tzinfo=UTC)
+    real_datetime = datetime
+
+    class FixtureDateTime(real_datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return frozen_now.replace(tzinfo=None) if tz is None else frozen_now.astimezone(tz)
+
+        @classmethod
+        def today(cls):
+            return frozen_now.date()
+
+    # Keep fixture seeding, provider admission/logging, adapter parsing, and
+    # snapshot freshness on one logical clock. The source workbook and its
+    # provider-reported 2026-10-29 composition date remain byte-identical.
+    monkeypatch.setattr(sys.modules[__name__], "datetime", FixtureDateTime)
+    for module in (
+        etf_holdings_service,
+        adapters,
+        provider_bridge,
+        refresh_service,
+        vaneck_qualification,
+        quota_coordinator,
+        provider_runtime,
+    ):
+        monkeypatch.setattr(module, "datetime", FixtureDateTime)
+
+
 async def _canonical_equity_instrument_type(session: AsyncSession, name: str) -> InstrumentType:
     """Reuse the canonical type rows inside this test's isolated schema."""
     asset_class = await session.scalar(select(AssetClass).where(AssetClass.name == "Equity"))
@@ -3772,6 +3827,7 @@ async def test_vaneck_qualification_schema_continues_through_ordinary_refresh_id
         qualify_vaneck_oih_fund,
     )
 
+    _freeze_vaneck_authentic_fixture_clock(monkeypatch)
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
     monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
     monkeypatch.setattr(
@@ -6788,6 +6844,7 @@ async def test_admin_vaneck_job6_identity_successor_is_bound_to_retained_body_an
         VANECK_POSTTRANSPORT_CONTINUATION_KEY,
     )
 
+    _freeze_vaneck_authentic_fixture_clock(monkeypatch)
     monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
     monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
     monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)

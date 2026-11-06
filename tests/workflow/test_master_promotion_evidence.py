@@ -172,6 +172,25 @@ def test_staging_runs_only_the_authoritative_single_full_gate():
     assert target.count("$(MAKE) test-fe") == 1
 
 
+def test_e2e_job_is_independent_and_builds_its_own_stack():
+    import yaml
+
+    workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
+    e2e = workflow["jobs"]["e2e"]
+    assert e2e["needs"] == ["changed-scope"]
+    assert "github.ref != 'refs/heads/master'" in e2e["if"]
+    assert "github.ref != 'refs/heads/staging'" in e2e["if"]
+    assert "needs.changed-scope.outputs.scope == 'broad'" in e2e["if"]
+    names = [step.get("name") for step in e2e["steps"]]
+    assert "Install frontend deps" in names
+    assert "Install Playwright browsers" in names
+    assert "Build stack images" in names
+    assert "Start stack" in names
+    assert "Run Playwright tests" in names
+    teardown = next(step for step in e2e["steps"] if step.get("name") == "Tear down")
+    assert teardown["if"] == "always()"
+
+
 def test_deployment_guard_accepts_legacy_or_explicit_reuse_receipts():
     spec = importlib.util.spec_from_file_location(
         "rpi_receipt", ROOT / "scripts" / "rpi.py"

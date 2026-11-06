@@ -413,6 +413,31 @@ def test_branch_scope_modes_keep_skipped_product_suites_explicit():
         staging.branch_ci_mode(full[:-1] + [{**full[-1], "conclusion": "skipped"}])
 
 
+@pytest.mark.parametrize("e2e_state", ["failed", "skipped", "missing", "duplicate"])
+def test_parallel_e2e_still_must_be_unique_and_successful_for_full_branch_evidence(
+    e2e_state: str,
+) -> None:
+    staging = load_script("staging")
+    jobs = [
+        {"name": name, "status": "completed", "conclusion": "success"}
+        for name in (
+            "Changed-path validation scope",
+            "Branch-declared Tests",
+            *staging.BRANCH_PRODUCT_JOBS,
+        )
+    ]
+    if e2e_state == "failed":
+        jobs[-1]["conclusion"] = "failure"
+    elif e2e_state == "skipped":
+        jobs[-1]["conclusion"] = "skipped"
+    elif e2e_state == "missing":
+        jobs.pop()
+    elif e2e_state == "duplicate":
+        jobs.append(dict(jobs[-1]))
+    with pytest.raises(SystemExit):
+        staging.branch_ci_mode(jobs)
+
+
 def test_first_policy_promotion_requires_explicit_staging_and_reuse_run_identity():
     staging = load_script("staging")
     sha = "a" * 40

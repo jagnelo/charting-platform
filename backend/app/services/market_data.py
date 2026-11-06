@@ -56,7 +56,7 @@ from app.providers.crypto_market_data import (
     estimate_kraken_latest_ohlcv_request_count,
     estimate_kraken_ohlcv_request_count,
 )
-from app.providers.errors import bounded_redact_provider_message
+from app.providers.errors import ProviderRateLimitError, bounded_redact_provider_message
 from app.providers.ibkr import (
     estimate_ibkr_current_price_request_count,
     estimate_ibkr_latest_ohlcv_request_count,
@@ -89,8 +89,14 @@ from app.services.provider_observations import (
     store_latest_price_snapshot,
     store_search_snapshot,
 )
+from app.services.provider_quota_coordinator import (
+    ProviderQuotaAdmissionError,
+    ProviderQuotaCoordinatorError,
+)
 from app.services.provider_runtime import (
     ProviderNoDataError,
+    ProviderQuotaUnknownError,
+    ProviderRequestScopeDeniedError,
     execute_provider_call,
     resolve_provider_chain,
 )
@@ -1118,30 +1124,7 @@ async def _fetch_provider(
     end: datetime,
     adjusted: bool,
 ) -> list[OHLCVBar]:
-    alpaca_cost = estimate_ohlcv_request_count(timeframe, start, end)
-    binance_cost = estimate_ohlcv_request_weight(timeframe, start, end)
-    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, start, end)
-    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, start, end)
-    massive_cost = estimate_massive_ohlcv_request_count(timeframe, start, end)
-    marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, start, end)
-    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
-    ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
-    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, start, end)
-    fmp_cost = estimate_fmp_ohlcv_request_count(timeframe, start, end)
-    tiingo_cost = estimate_tiingo_ohlcv_request_count(timeframe, start, end)
-    operation_cost_overrides = {
-        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
-        **({"binance": binance_cost} if binance_cost is not None else {}),
-        **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
-        **({"kraken": kraken_cost} if kraken_cost is not None else {}),
-        **({"massive": massive_cost} if massive_cost is not None else {}),
-        **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
-        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
-        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
-        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
-        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
-        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
-    }
+    operation_cost_overrides = ohlcv_operation_cost_overrides(timeframe, start, end)
     execution = await execute_provider_call(
         db,
         ProviderCapability.PRICE_HISTORY,
@@ -1196,6 +1179,37 @@ async def _fetch_provider(
         execution.provider_name,
     )
     return bars
+
+
+def ohlcv_operation_cost_overrides(
+    timeframe: Timeframe, start: datetime, end: datetime
+) -> dict[str, int]:
+    """Return the same reviewed per-provider estimates used for history calls."""
+
+    alpaca_cost = estimate_ohlcv_request_count(timeframe, start, end)
+    binance_cost = estimate_ohlcv_request_weight(timeframe, start, end)
+    coinbase_cost = estimate_coinbase_ohlcv_request_count(timeframe, start, end)
+    kraken_cost = estimate_kraken_ohlcv_request_count(timeframe, start, end)
+    massive_cost = estimate_massive_ohlcv_request_count(timeframe, start, end)
+    marketstack_cost = estimate_marketstack_ohlcv_request_count(timeframe, start, end)
+    twelve_data_cost = estimate_twelve_data_ohlcv_request_count(timeframe, start, end)
+    ibkr_cost = estimate_ibkr_ohlcv_request_count(timeframe, start, end)
+    marketdata_app_cost = estimate_marketdata_app_ohlcv_credit_count(timeframe, start, end)
+    fmp_cost = estimate_fmp_ohlcv_request_count(timeframe, start, end)
+    tiingo_cost = estimate_tiingo_ohlcv_request_count(timeframe, start, end)
+    return {
+        **({"alpaca": alpaca_cost} if alpaca_cost is not None else {}),
+        **({"binance": binance_cost} if binance_cost is not None else {}),
+        **({"coinbase": coinbase_cost} if coinbase_cost is not None else {}),
+        **({"kraken": kraken_cost} if kraken_cost is not None else {}),
+        **({"massive": massive_cost} if massive_cost is not None else {}),
+        **({"marketstack": marketstack_cost} if marketstack_cost is not None else {}),
+        **({"twelve_data": twelve_data_cost} if twelve_data_cost is not None else {}),
+        **({"ibkr": ibkr_cost} if ibkr_cost is not None else {}),
+        **({"marketdata_app": marketdata_app_cost} if marketdata_app_cost is not None else {}),
+        **({"fmp": fmp_cost} if fmp_cost is not None else {}),
+        **({"tiingo": tiingo_cost} if tiingo_cost is not None else {}),
+    }
 
 
 async def _attach_provider_series(
@@ -1816,14 +1830,34 @@ async def search_provider_instruments_async(
             )
         except Exception as exc:
             if source_outcomes is not None:
+                if isinstance(exc, ProviderRequestScopeDeniedError):
+                    status, reason_code = "held", exc.reason_code
+                elif isinstance(exc, ProviderRateLimitError):
+                    status, reason_code = "held", "provider_capacity_unavailable"
+                elif isinstance(exc, ProviderQuotaAdmissionError):
+                    status, reason_code = "held", "provider_quota_admission_denied"
+                elif isinstance(exc, ProviderQuotaCoordinatorError):
+                    status, reason_code = "held", "provider_quota_coordinator_unavailable"
+                elif isinstance(exc, ProviderQuotaUnknownError):
+                    status, reason_code = "held", "provider_quota_contract_unknown"
+                elif isinstance(exc, ProviderNoDataError):
+                    status, reason_code = "no_match", "no_provider_match"
+                else:
+                    status, reason_code = "failed", "provider_request_failed"
                 source_outcomes.append(
                     {
                         "provider": resolved.provider_name,
                         "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
                         "operation": "search_instruments",
-                        "status": "failed",
-                        "reason_code": "provider_request_failed",
+                        "status": status,
+                        "reason_code": reason_code,
                         "error_type": type(exc).__name__,
+                        **(
+                            {"retry_at": exc.retry_at}
+                            if isinstance(exc, ProviderRateLimitError | ProviderQuotaAdmissionError)
+                            and exc.retry_at is not None
+                            else {}
+                        ),
                     }
                 )
             continue
@@ -1882,6 +1916,7 @@ async def get_provider_profile_async(
     instrument_id: int | None = None,
     provider_name: str | None = None,
     persist: bool = True,
+    raise_provider_errors: bool = False,
 ):
     cached = await _fresh_profile_from_cache(
         db,
@@ -1906,6 +1941,8 @@ async def get_provider_profile_async(
             treat_empty_as_failure=True,
         )
     except Exception:
+        if raise_provider_errors:
+            raise
         return None
     if not persist:
         return execution.result
