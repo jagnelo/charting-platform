@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from datetime import UTC, datetime
 from typing import TypeVar
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -176,6 +176,174 @@ def _period_key(ts: datetime, timeframe: Timeframe) -> tuple[int, int]:
     raise ValueError(f"Unsupported derived timeframe: {timeframe.value}")
 
 
+def _signature_timestamp(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    normalized = value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+    return normalized.astimezone(UTC).isoformat()
+
+
+async def _canonical_d1_signature(
+    db: AsyncSession,
+    instrument_id: int,
+    *,
+    adjusted: bool,
+) -> dict[str, object]:
+    """Return a cheap persisted-input watermark for lazy coarse-view refresh.
+
+    The signature uses aggregate bounds/count, the represented series/source
+    identities, and their dataset observation watermarks. It does not load or
+    re-aggregate the D1 rows on a normal W1/MN read.
+    """
+
+    statement = select(
+        func.count(OHLCVBar.id),
+        func.min(OHLCVBar.ts),
+        func.max(OHLCVBar.ts),
+    ).where(
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == Timeframe.D1,
+        OHLCVBar.is_adjusted.is_(adjusted),
+    )
+    count, coverage_start, coverage_end = (await db.execute(statement)).one()
+    source_statement = (
+        select(OHLCVBar.data_source_id, OHLCVBar.market_series_id)
+        .where(
+            OHLCVBar.instrument_id == instrument_id,
+            OHLCVBar.timeframe == Timeframe.D1,
+            OHLCVBar.is_adjusted.is_(adjusted),
+        )
+        .distinct()
+    )
+    identities = (await db.execute(source_statement)).all()
+    source_ids = sorted({int(source_id) for source_id, _ in identities if source_id is not None})
+    series_ids = sorted({int(series_id) for _, series_id in identities if series_id is not None})
+    state_key = f"D1:{'adj' if adjusted else 'raw'}"
+    state_statement = select(InstrumentDatasetState).where(
+        InstrumentDatasetState.instrument_id == instrument_id,
+        InstrumentDatasetState.dataset_type == "ohlcv",
+        InstrumentDatasetState.data_source_id.in_(source_ids)
+        if source_ids
+        else InstrumentDatasetState.data_source_id.is_(None),
+        InstrumentDatasetState.dataset_key == state_key,
+    )
+    states = (await db.execute(state_statement)).scalars().all()
+    watermarks = sorted(
+        (
+            {
+                "data_source_id": state.data_source_id,
+                "version": state.version,
+                "status": getattr(state.status, "value", state.status),
+                "fetched_at": _signature_timestamp(state.fetched_at),
+                "coverage_start": _signature_timestamp(state.coverage_start),
+                "coverage_end": _signature_timestamp(state.coverage_end),
+            }
+            for state in states
+        ),
+        key=lambda item: (-1 if item["data_source_id"] is None else int(item["data_source_id"])),
+    )
+    return {
+        "adjusted": adjusted,
+        "bar_count": int(count or 0),
+        "coverage_start": _signature_timestamp(coverage_start),
+        "coverage_end": _signature_timestamp(coverage_end),
+        "data_source_ids": source_ids,
+        "market_series_ids": series_ids,
+        "source_watermarks": watermarks,
+    }
+
+
+async def derived_timeframe_needs_refresh(
+    db: AsyncSession,
+    instrument_id: int,
+    timeframe: Timeframe,
+    *,
+    adjusted: bool = True,
+) -> bool:
+    """Check whether persisted W1/MN outputs still match the D1 source.
+
+    Legacy derived rows lack an input signature, so the first local read after
+    this check was added refreshes them once. Subsequent reads compare only a
+    small D1 aggregate and dataset watermarks; they do not aggregate bars or
+    call a provider.
+    """
+
+    if timeframe not in (Timeframe.W1, Timeframe.MN):
+        return False
+    signature = await _canonical_d1_signature(db, instrument_id, adjusted=adjusted)
+    if signature["bar_count"] == 0:
+        return False
+    derived_exists = await db.execute(
+        select(OHLCVBar.id)
+        .where(
+            OHLCVBar.instrument_id == instrument_id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+            OHLCVBar.is_derived.is_(True),
+        )
+        .limit(1)
+    )
+    if derived_exists.scalar_one_or_none() is None:
+        return True
+    state = (
+        await db.execute(
+            select(InstrumentDatasetState).where(
+                InstrumentDatasetState.instrument_id == instrument_id,
+                InstrumentDatasetState.data_source_id.is_(None),
+                InstrumentDatasetState.dataset_type == "ohlcv",
+                InstrumentDatasetState.dataset_key
+                == f"{timeframe.value}:{'adj' if adjusted else 'raw'}",
+            )
+        )
+    ).scalar_one_or_none()
+    stored_signature = (state.extra_data or {}).get("source_d1_signature") if state else None
+    if stored_signature is not None:
+        return stored_signature != signature
+    if state is None:
+        return True
+
+    # States written before source signatures were introduced can still be
+    # checked without rebuilding every complete cache. A newer D1 observation
+    # means bars may have been added or corrected; changed source bounds catch
+    # backfills even when an older producer did not advance fetched_at.
+    source_watermarks = signature["source_watermarks"]
+    newest_source_fetch = max(
+        (
+            watermark["fetched_at"]
+            for watermark in source_watermarks
+            if watermark["fetched_at"] is not None
+        ),
+        default=None,
+    )
+    if newest_source_fetch is not None and state.fetched_at is not None:
+        if newest_source_fetch > _signature_timestamp(state.fetched_at):
+            return True
+
+    source_bounds = await db.execute(
+        select(func.min(OHLCVBar.source_start), func.max(OHLCVBar.source_end)).where(
+            OHLCVBar.instrument_id == instrument_id,
+            OHLCVBar.timeframe == timeframe,
+            OHLCVBar.is_adjusted.is_(adjusted),
+            OHLCVBar.is_derived.is_(True),
+        )
+    )
+    derived_source_start, derived_source_end = source_bounds.one()
+    current_source_start = signature["coverage_start"]
+    current_source_end = signature["coverage_end"]
+    return (
+        derived_source_start is None
+        or derived_source_end is None
+        or (
+            current_source_start is not None
+            and current_source_start < _signature_timestamp(derived_source_start)
+        )
+        or (
+            current_source_end is not None
+            and current_source_end > _signature_timestamp(derived_source_end)
+        )
+    )
+
+
 def aggregate_d1_bars(bars: Iterable[_BarLike], timeframe: Timeframe) -> list[dict[str, object]]:
     """Aggregate D1 bars into deterministic W1 or MN payloads.
 
@@ -265,6 +433,11 @@ async def materialize_derived_timeframes(
         instrument_id,
         adjusted=adjusted,
         end=normalized_end,
+    )
+    source_d1_signature = (
+        await _canonical_d1_signature(db, instrument_id, adjusted=adjusted)
+        if normalized_end is None
+        else None
     )
     result: dict[str, int] = {}
     for timeframe in (Timeframe.W1, Timeframe.MN):
@@ -402,6 +575,7 @@ async def materialize_derived_timeframes(
                 "adjusted": adjusted,
                 "derived_bar_count": len(derived_rows),
                 "provider_periods_excluded": len(provider_periods),
+                "source_d1_signature": source_d1_signature,
                 "adjustment_provenance": {
                     "mode": "split_adjusted" if adjusted else "raw",
                     "source_kind": "derived_from_canonical_d1",
