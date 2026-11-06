@@ -14665,3 +14665,30 @@ history_coverage_followup:
   pending: Exact closing-tip CI and Root combined/release gates remain pending; Root owns acceptance, integration and deployment.
   closure_summary: >-
     Root accepted the bounded shared XNYS D1/W1/MN coverage-gap planner correction under the recorded human standing delegation. The focused 64-test unit result and static checks are recorded above. No migration, public API, provider configuration, quota, hold, entitlement, real-ledger or source-request change occurred. Prior accepted checkpoints and all 24 Provider/14 ETF roadmap items remain preserved and open. Exact pushed-tip CI, new staging qualification, combined release, promotion, deployment and genuine user journeys remain mandatory and Root-owned. integration_capture: exact branch HEAD.
+
+coverage_router_ci_test_followup:
+  id: provider-history-coverage-router-test-contract-20261106
+  status: ready_for_integration
+  parent_checkpoint: provider-history-calendar-gap-planner-20261106
+  accepted_product_commit: 7419aee45f1e3af9cd771a3b771889d956bd1cf1
+  product_source_frozen: true
+  product_sha256:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+  preserved_ci_failure:
+    run_id: 42169503855
+    backend_job_id: 127733921845
+    result: 5,922 unit passed, 1 configured skip, 2 coverage-router test failures; product tests and prior history remain unchanged.
+    first_failure: The selected-series fixture ended before Monday's NYSE session closed, so the only completed session was Jan 2 and READY was correct. Its range now ends at 2026-01-06T00:00:00Z to include the missing completed Jan 5 session; series-exclusion and PARTIAL assertions are preserved.
+    second_failure: The coverage DTO expected zero-UTC/equal-day bounds. The accepted planner emits the positive NY-local Jan 5 bar-open bound 2026-01-05T05:00:00Z and clamps the end to the request's 2026-01-10T00:00:00Z. Only missing_slices expected timestamps changed; the rest of the response contract is unchanged.
+  test_file_sha256:
+    backend/tests/unit/routers/test_coverage_router.py: d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78
+  validation:
+    command: UV_CACHE_DIR=/tmp/provider-quota-hold-followup-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 ENV_FILE=/dev/null uv run --no-sync --project backend pytest backend/tests/unit/routers/test_coverage_router.py backend/tests/unit/services/test_market_data.py backend/tests/unit/services/test_provider_explicit_acquisition.py -q
+    result: 71 passed, 0 failed, 0 errors, 0 skipped in 8.97 seconds; five dependency deprecation warnings only.
+    static: Ruff check, Ruff format --check, and git diff --check passed.
+    product_changed: false
+    provider_requests: 0
+    fixtures_or_ledger_or_policy_mutations: false
+  root_disposition: Root accepts these corrected tests if the planner product hash remains unchanged.
+  closure_summary: >-
+    Test-only follow-up corrects two expectations against the already Root-accepted coverage planner. The first fixture now spans a completed missing exchange session while preserving alternate-series exclusion and partial readiness. The second expects the planner's positive request-bounded NY-local D1 interval and keeps all other DTO assertions. The accepted product hash c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3 is unchanged. CI 42169503855 remains red historical evidence; exact new-tip CI and new exact staging/release qualification are pending and Root-owned. All prior accepted checkpoints and 24 Provider/14 ETF roadmaps remain preserved. integration_capture: exact branch HEAD.

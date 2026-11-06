@@ -1370,5 +1370,20 @@
     "exact_closing_tip_ci": "pending; Root-owned",
     "integration_capture": "exact branch HEAD",
     "broader_roadmaps_complete": false
+  },
+  "coverage_router_ci_test_followup": {
+    "id": "provider-history-coverage-router-test-contract-20261106",
+    "status": "ready_for_integration",
+    "parent_checkpoint": "provider-history-calendar-gap-planner-20261106",
+    "accepted_product_commit": "7419aee45f1e3af9cd771a3b771889d956bd1cf1",
+    "product_hash_frozen": "c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3",
+    "test_hash": "d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78",
+    "preserved_red_ci": "42169503855 backend job 127733921845: 5,922 passed, one configured skip, two coverage-router expectation failures; no product failure claimed",
+    "focused_result": "coverage router plus the two accepted affected modules: 71 passed, 0 failed, 0 skipped in 8.97 seconds",
+    "root_accepts_test_correction_on_unchanged_product_hash": true,
+    "exact_new_tip_ci": "pending; Root owns push and observation",
+    "staging_and_release": "pending; Root-owned",
+    "integration_capture": "exact branch HEAD",
+    "broader_roadmaps_complete": false
   }
 }
