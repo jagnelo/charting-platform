@@ -5762,3 +5762,20 @@ status: in_progress
 closure_pending: true
 human_closure_authorization: Human authorized implementation of the complete plan; no checkpoint acceptance or release completion is claimed.
 closure_summary: ETF platform-usability implementation is in progress. The complete original ETF roadmap and accepted checkpoint histories remain preserved. Root owns technical acceptance, integration, deployment and final genuine-flow proof.
+root_allocated_basket_crud_followup_2026_11_06:
+  authority: Root directly added this concrete backend repair under the human-activated platform-usability plan; no new human quote or checkpoint acceptance is claimed.
+  scope: Repair normal authenticated manual basket create/update/read/delete with real AsyncSession behavior; leave TC frontend ownership and unrelated platform paths unchanged.
+  owner_paths:
+  - backend/app/services/baskets.py
+  - backend/tests/integration/api/test_baskets.py
+  acceptance:
+  - New Basket and BasketSnapshot relationship collections are initialized before flush so AsyncSession writes do not trigger implicit lazy I/O.
+  - Basket reads eagerly load the snapshot collection used by the response serializer; member and snapshot history remain readable.
+  - A real PostgreSQL AsyncSession API regression covers create, update, read, snapshot listing, and delete.
+  validation:
+    final_node: tests/integration/api/test_baskets.py::test_manual_basket_crud_uses_real_async_session
+    final_result: 1 passed in 9.73s on exact working source recorded in validation.jsonl; pytest exit 0.
+    owned_postgres: 1 GiB memory, 1 effective CPU, 128 PIDs; only local Postgres was used, with no Redis, provider HTTP, real quota ledger, or production operation.
+    cleanup: Exact owned container and volume removed; before/after container, image, network, and volume inventories matched in attempt004. Earlier red attempts are retained separately.
+    lint: Ruff check and format check passed for both owned files.
+  status: focused implementation ready for Root review; broad platform and ETF roadmaps remain open.

@@ -69,6 +69,10 @@ async def create_basket(
         metadata_=payload.metadata,
         is_system_managed=False,
         is_read_only=False,
+        # The collection must be initialized before flush: appending to an
+        # unloaded relationship on this newly persistent AsyncSession object
+        # would trigger implicit async I/O outside an awaitable context.
+        members=[],
     )
     db.add(basket)
     await db.flush()
@@ -272,7 +276,10 @@ async def get_basket(db: AsyncSession, basket_id: int, user_id: int) -> Basket |
     return (
         await db.execute(
             select(Basket)
-            .options(selectinload(Basket.members).selectinload(BasketMember.instrument))
+            .options(
+                selectinload(Basket.members).selectinload(BasketMember.instrument),
+                selectinload(Basket.snapshots),
+            )
             .where(
                 Basket.id == basket_id,
                 (Basket.user_id == user_id) | (Basket.is_system_managed.is_(True)),
@@ -531,6 +538,7 @@ async def _record_basket_snapshot(
         basket_id=basket.id,
         composition_date=composition_date,
         source_type=source_type,
+        members=[],
     )
     snapshot.known_at = known_at
     snapshot.source_snapshot_id = source_snapshot_id
