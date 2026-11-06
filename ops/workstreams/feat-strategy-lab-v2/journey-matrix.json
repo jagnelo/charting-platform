@@ -67,7 +67,8 @@
       ],
       "api_evidence": [
         "TC-owned dataPreparationCoordinator.ensure uses POST /data/ensure with shared deduplication; no evaluator-side acquisition is added",
-        "POST /data/ensure producer/backend route compatibility remains a Root release prerequisite for the combined actual-backend browser proof"
+        "Exact Provider runtime 55b956f40615f1623a0f7d084b9fc0a355727053 is imported under provider-runtime-consumption.json; its focused request-contract, parent/child-planning, owner-scoped service and worker-wakeup units passed 26/26, and StudyLabTool consumer units passed 62/62",
+        "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
       ],
       "browser_evidence": "Pending Root combined qualification. The E2E journey checks the SPY ensure request precedes validation; it does not yet provide multi-symbol delayed-server browser coverage.",
       "approved_journey": [

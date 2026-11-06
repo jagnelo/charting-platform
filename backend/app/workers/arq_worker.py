@@ -407,6 +407,14 @@ async def scheduled_refresh_queue_process(ctx: dict):
     return await process_refresh_jobs(ctx)
 
 
+async def task_process_refresh_jobs(ctx: dict):
+    """Process a bounded durable batch for prompt user-driven preparation."""
+
+    from app.tasks.data_tasks import process_refresh_jobs
+
+    return await process_refresh_jobs(ctx)
+
+
 async def scheduled_etf_holdings_refresh(ctx: dict):
     from app.tasks.etf_holdings_tasks import refresh_etf_holdings_task
 
@@ -611,6 +619,7 @@ class WorkerSettings:
         task_refresh_scheduled_benchmark_family_holdings_unit,
         task_run_screener,
         task_refresh_instrument_data,
+        task_process_refresh_jobs,
         task_bootstrap_core_workstation,
         scheduled_weekly_seed,
         scheduled_daily_metadata_sync,

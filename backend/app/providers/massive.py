@@ -348,7 +348,7 @@ class MassiveProvider:
             volume=volume,
             vwap=vwap,
             is_adjusted=adjusted,
-            adjustment_basis="provider_adjusted" if adjusted else "raw",
+            adjustment_basis="split_adjusted" if adjusted else "raw",
             adjustment_version="massive-split-adjusted" if adjusted else "provider-native",
             provenance=provenance,
         )

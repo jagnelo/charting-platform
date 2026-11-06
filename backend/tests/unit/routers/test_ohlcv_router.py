@@ -229,13 +229,35 @@ class TestOHLCVRouter:
         assert monthly_response.status_code == 200, monthly_response.text
         weekly = weekly_response.json()
         monthly = monthly_response.json()
-        assert weekly[0]["ts"] == "2024-11-11T00:00:00Z"
-        assert weekly[0]["close"] == 13.0
-        assert monthly[0]["ts"] == "2024-11-11T00:00:00Z"
-        assert monthly[0]["close"] == 13.0
+        # The two isolated historical D1 observations do not prove a complete
+        # wider feed, so the canonical route keeps the provider default intact.
+        assert [(row["ts"], row["close"]) for row in weekly] == [
+            ("2026-06-08T00:00:00Z", 999.0)
+        ]
+        assert [(row["ts"], row["close"]) for row in monthly] == [
+            ("2026-06-01T00:00:00Z", 999.0)
+        ]
+        derived_weekly_response = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.W1.value}",
+            params={"limit": 5000, "view": "derived"},
+            headers=auth_headers,
+        )
+        derived_monthly_response = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.MN.value}",
+            params={"limit": 5000, "view": "derived"},
+            headers=auth_headers,
+        )
+        assert derived_weekly_response.status_code == 200
+        assert derived_monthly_response.status_code == 200
+        weekly_derived = derived_weekly_response.json()
+        monthly_derived = derived_monthly_response.json()
+        assert weekly_derived[0]["ts"] == "2024-11-11T00:00:00Z"
+        assert weekly_derived[0]["close"] == 13.0
+        assert monthly_derived[0]["ts"] == "2024-11-11T00:00:00Z"
+        assert monthly_derived[0]["close"] == 13.0
         latest_close = float(close_value - 1)
-        assert weekly[-1]["close"] == latest_close
-        assert monthly[-1]["close"] == latest_close
+        assert weekly_derived[-1]["close"] == latest_close
+        assert monthly_derived[-1]["close"] == latest_close
         assert materialize_calls == [True]
         assert provider_calls == []
 
@@ -436,6 +458,108 @@ class TestOHLCVRouter:
         assert response.status_code == 200, response.text
         payload = response.json()
         assert [row["close"] for row in payload] == [10.0]
+
+    def test_local_canonical_reads_only_selected_series_for_daily_and_derived_views(
+        self, client, auth_headers, db, instrument, monkeypatch
+    ):
+        monkeypatch.setattr(settings, "E2E_SEED_MARKET_DATA", False)
+        monkeypatch.setattr(
+            "app.routers.ohlcv.derived_timeframe_needs_refresh",
+            lambda *_args, **_kwargs: asyncio.sleep(0, result=False),
+        )
+        scopes = {
+            Timeframe.D1: datetime(2026, 11, 4, 4, tzinfo=UTC),
+            Timeframe.W1: datetime(2026, 11, 2, tzinfo=UTC),
+            Timeframe.MN: datetime(2026, 11, 1, tzinfo=UTC),
+        }
+        series_by_scope: dict[tuple[Timeframe, str], MarketSeries] = {}
+        for timeframe in scopes:
+            for feed in ("selected", "alternate"):
+                series = MarketSeries(
+                    instrument_id=instrument.id,
+                    feed_scope=f"local-{timeframe.value}-{feed}",
+                    session_code="regular",
+                    timeframe=timeframe.value,
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="provider-v1",
+                    is_canonical=True,
+                    is_active=True,
+                )
+                db.add(series)
+                series_by_scope[(timeframe, feed)] = series
+        db.flush()
+
+        stored: list[OHLCVBar] = []
+        for timeframe, ts in scopes.items():
+            selected = series_by_scope[(timeframe, "selected")]
+            alternate = series_by_scope[(timeframe, "alternate")]
+            db.add(
+                MarketSeriesDefault(
+                    instrument_id=instrument.id,
+                    timeframe=timeframe.value,
+                    is_adjusted=True,
+                    market_series_id=selected.id,
+                    selection_reason="local-selected-series-regression",
+                )
+            )
+            for feed, series, close in (
+                ("selected", selected, Decimal("10")),
+                ("alternate", alternate, Decimal("90")),
+            ):
+                bar = OHLCVBar(
+                    instrument_id=instrument.id,
+                    market_series_id=series.id,
+                    timeframe=timeframe,
+                    ts=ts,
+                    open=close - Decimal("1"),
+                    high=close + Decimal("1"),
+                    low=close - Decimal("2"),
+                    close=close,
+                    volume=Decimal("100" if feed == "selected" else "900"),
+                    is_adjusted=True,
+                    is_derived=timeframe in {Timeframe.W1, Timeframe.MN},
+                    source_timeframe=(Timeframe.D1.value if timeframe != Timeframe.D1 else None),
+                    derivation_method=("d1-aggregate-v1" if timeframe != Timeframe.D1 else None),
+                    scope_key=f"series:{series.id}:regular",
+                )
+                db.add(bar)
+                stored.append(bar)
+        db.flush()
+        original_ids = {bar.id for bar in stored}
+
+        for timeframe, expected_ts in scopes.items():
+            response = client.get(
+                f"/api/v1/ohlcv/local/{instrument.symbol}/{timeframe.value}",
+                params={"limit": 5000},
+                headers=auth_headers,
+            )
+            assert response.status_code == 200, response.text
+            payload = response.json()
+            assert len(payload) == 1
+            assert payload[0]["ts"] == expected_ts.isoformat().replace("+00:00", "Z")
+            assert payload[0]["close"] == 10.0
+            assert payload[0]["is_derived"] is (timeframe != Timeframe.D1)
+
+        provider_view = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.D1.value}",
+            params={"limit": 5000, "view": "provider"},
+            headers=auth_headers,
+        )
+        derived_view = client.get(
+            f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.W1.value}",
+            params={"limit": 5000, "view": "derived"},
+            headers=auth_headers,
+        )
+        assert provider_view.status_code == derived_view.status_code == 200
+        assert {row["close"] for row in provider_view.json()} == {10.0, 90.0}
+        assert {row["close"] for row in derived_view.json()} == {10.0, 90.0}
+
+        retained = db.query(OHLCVBar).filter(OHLCVBar.id.in_(original_ids)).all()
+        assert len(retained) == 6
+        assert {bar.market_series_id for bar in retained} == {
+            series.id for series in series_by_scope.values()
+        }
+        assert sum(bar.close == Decimal("90") for bar in retained) == 3
 
     def test_transformed_chart_types_return_server_shape(
         self, client, auth_headers, instrument, monkeypatch

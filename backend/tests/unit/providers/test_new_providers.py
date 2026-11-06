@@ -725,7 +725,7 @@ class TestAlpacaOHLCVParsing:
 
         with (
             patch("app.providers.alpaca.settings") as mock_settings,
-            patch("app.providers.alpaca.httpx.get", return_value=mock_resp),
+            patch("app.providers.alpaca.httpx.get", return_value=mock_resp) as mock_get,
         ):
             mock_settings.ALPACA_API_KEY = "key"
             mock_settings.ALPACA_SECRET_KEY = "secret"
@@ -741,8 +741,9 @@ class TestAlpacaOHLCVParsing:
         assert float(bars[0].open) == 185.0
         assert float(bars[0].close) == 186.0
         assert float(bars[1].open) == 186.0
-        assert bars[0].adjustment_basis == "provider_adjusted"
-        assert bars[0].adjustment_version == "alpaca-all"
+        assert bars[0].adjustment_basis == "split_adjusted"
+        assert bars[0].adjustment_version == "alpaca-split"
+        assert mock_get.call_args.kwargs["params"]["adjustment"] == "split"
         assert bars[0].provenance["provider"] == "alpaca"
 
     @pytest.mark.parametrize(
