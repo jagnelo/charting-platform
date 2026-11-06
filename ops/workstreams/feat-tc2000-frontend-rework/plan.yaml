@@ -334,9 +334,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: |
-  Root will rebuild the current frontend and rerun the seven acquisition stories after this exact-source follow-up. The prior 5/7 run on image 5d20ff400 had two stale assertions; their corrections are included. Root also measured a shared GoldenLayout tab overflow on that image; the scoped CSS correction and a bounds regression are included here. Exact-source CI and the combined profile remain pending.
-
+current_blocker: "Root-owned exact-source CI and corrected full strict104 visual profile remain pending. The prior visual run and focused menu failures are retained as evidence; no broader roadmap or deployment completion is claimed."
 current_checkpoint_status: |
   Focused implementation evidence remains 232 affected unit tests passed, frontend type-check passed, and seven on-demand browser cases discovered. Root ran the seven stories on frontend source 5d20ff400: 5 passed, 2 stale-expectation failures, zero retries. The current history-status/lineage assertions are corrected. A measured GoldenLayout content-box override is corrected with a browser geometry assertion; this new CSS change has not yet been browser-qualified. The exact approved ETF clock-only integration-test dependency is included. No rerun is claimed.
 
@@ -1358,7 +1356,7 @@ historical_checkpoint_archive:
 integration_checkpoint: null
 current_software_checkpoint:
   id: tc-history-dashboard-repair-20261106
-  status: focused_candidate_ready_for_root_review
+  status: "ready_for_human_review"
   source_capture: exact branch HEAD at publication
   criteria_ids:
   - A1
@@ -1962,14 +1960,9 @@ status: in_progress
 progress:
   completed: []
   total: 10
-  current_phase: Focused frontend repair candidate; waiting on exact Provider source
-    CI and Root-owned combined browser profile.
-  current_blocker: Provider CI 42141483157 has three existing VanEck integration failures
-    under ETF-owner diagnosis; Root coordinates dependency resolution. TC exact-source
-    CI and combined profile remain pending.
-  next_action: Create one coherent local implementation checkpoint for Root review/build;
-    hold push until the reviewed Provider fix handoff, then run the shared combined
-    profile under Root coordination.
+  current_phase: "Ready for human review: approved 30-reference local successor and exact-panel menu close correction are prepared for Root qualification."
+  current_blocker: "Root-owned exact-source CI and corrected full strict104 visual profile remain pending; wider repair criteria and deployment gates remain open."
+  next_action: "Root to run exact-source CI and corrected strict104 visual qualification on the frozen candidate; preserve all remaining roadmap criteria."
   updated_at: '2026-11-06'
 historical_checkpoint_status_archive: 'Current boundary (2026-10-22): published HEAD is a7c8ecba208ce6c79d8f1a5d7294500122e462e5;
   one test-only change in workstation_performance.spec.ts and the four owned records are pending review. Exact hosted CI39693019337
@@ -4253,9 +4246,7 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: |
-  Finish the targeted scope/workstream/diff checks and publish this one coherent follow-up. Root owns the rebuilt frontend and seven-story browser rerun; keep exact-source CI and the combined full profile pending.
-
+next_action: "Root to run exact-source CI and corrected strict104 visual qualification on this candidate. Preserve the wider roadmap and all native source, quota, hold, and data controls."
 current_exact_ci:
   head_sha: null
   run_id: null

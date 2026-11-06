@@ -205,6 +205,10 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     await waitForShellReady(page)
     const tool = page.locator('.tool-window').filter({ has: page.locator('[title="Tool menu"]') }).first()
     await expect(tool).toBeVisible()
+    const toolKey = await tool.getAttribute('data-window-key')
+    expect(toolKey).toBeTruthy()
+    const originalTool = page.locator(`.tool-window[data-window-key="${toolKey}"]`)
+    await expect(originalTool).toHaveCount(1)
     const menuTrigger = tool.locator('[title="Tool menu"]')
     const menuId = await menuTrigger.getAttribute('aria-controls')
     expect(menuId).toBeTruthy()
@@ -238,7 +242,8 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
       scale: 'css',
     })
     await menu.getByRole('menuitem', { name: 'Close' }).click()
-    await expect(tool).toBeHidden()
+    await expect(menu).toHaveCount(0)
+    await expect(originalTool).toHaveCount(0)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
