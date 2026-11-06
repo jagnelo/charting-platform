@@ -138,6 +138,8 @@ function holdingsPage(overrides: Record<string, unknown> = {}) {
       published_at: null,
       provenance: 'issuer_current_holdings',
       source_provider: 'issuer-test',
+      source_identifier: 'issuer-test:SPY:2026-06-07',
+      source_url: 'https://issuer.example.test/holdings/spy',
       source_quality: 'issuer_current',
       completeness_status: 'complete',
       row_count: 2,
@@ -516,6 +518,11 @@ describe('ETFHoldingsView', () => {
     })
     expect(wrapper.get('[data-testid="etf-selected-snapshot-kind"]').text()).toBe('Latest stored snapshot')
     expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('issuer current holdings')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-provider"]').text()).toBe('issuer-test')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-identifier"]').text())
+      .toBe('issuer-test:SPY:2026-06-07')
+    expect(wrapper.get('[data-testid="etf-snapshot-source-url"]').text())
+      .toBe('https://issuer.example.test/holdings/spy')
     expect(wrapper.get('[data-testid="etf-snapshot-known-at"]').attributes('datetime'))
       .toBe('2026-06-07T04:15:00Z')
     expect(wrapper.get('[data-testid="etf-snapshot-lineage"]').text()).toContain('Source-reported publication')

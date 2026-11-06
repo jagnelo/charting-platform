@@ -18294,3 +18294,13 @@ Root corrected the 99 manifest schema. The active dependency now points to sourc
 ## BWET reported-row browser journey — 2026-11-06
 
 Added an ETF-only controlled-route browser story for deliberate BWET selection. It asserts automatic holdings preparation, exact selected-fund snapshot lineage, visible reported C5TCM freight-futures and USD cash rows, preserved negative/positive weights, reference classification, and disabled history for the derivative row. This is a UI presentation contract using controlled responses; it is not captured-provider, backend-parser, or live qualification evidence. `npm run type-check` passed, and Playwright discovery lists all three ETF journey cases. Browser bodies remain pending Root’s single combined profile.
+
+
+## ETF historical-snapshot browser journey — 2026-11-06
+
+Added a controlled-route Playwright journey for selecting an older IGV snapshot. It asserts the exact `snapshot_id`, historical label, composition date, known-at time, published time, source identifier, and row from that selected snapshot. This covers browser context/provenance behavior only; it does not establish real historical backend retrieval. Frontend type-check and Playwright discovery pass; browser bodies remain pending Root’s combined profile.
+
+
+## Snapshot source provenance visibility — 2026-11-06
+
+A review of the historical-snapshot browser story exposed that the view showed provenance and timestamps but omitted the selected snapshot’s source provider, source identifier, and source URL. `ETFHoldingsView` now renders those three persisted fields as escaped text with explicit “Not established” fallbacks; URLs are not clickable. Unit assertions cover exact values. Current and historical controlled-route browser stories check that each selected snapshot displays its own source metadata. The ETF view suite passed 24/24, type-check passed, and Playwright discovery lists four ETF journeys; no browser body was run. Real backend history and combined visual qualification remain Root-owned.

@@ -82,6 +82,18 @@
             <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
           </div>
           <div>
+            <dt>Source provider</dt>
+            <dd data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</dd>
+          </div>
+          <div>
+            <dt>Source identifier</dt>
+            <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
+          </div>
+          <div>
+            <dt>Source document</dt>
+            <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
+          </div>
+          <div>
             <dt>Observed / known at</dt>
             <dd>
               <time

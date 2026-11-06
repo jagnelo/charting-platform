@@ -248,6 +248,8 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
     await expect(page.locator('.holdings-table')).toContainText('FNEW1')
     await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('controlled-fixture')
+    await expect(page.getByTestId('etf-snapshot-source-identifier')).toHaveText('fixture:FNEW:2026-11-05')
+    await expect(page.getByTestId('etf-snapshot-source-url')).toHaveText('https://fixture.invalid/holdings')
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-11-06T10:15:00Z')
     await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Latest stored snapshot')
     expect(requested).toEqual([{ target: { kind: 'instrument', symbol: 'FNEW' }, datasets: ['holdings'] }])
@@ -454,6 +456,122 @@ test.describe('ETF holdings preparation', () => {
       datasets: ['holdings'],
     }])
     await expect(page).toHaveURL(/\/etf-holdings$/)
+    expect(loggedIn).toBeUndefined()
+  })
+
+  test('choosing an older snapshot shows that snapshot’s own date, known-at and source lineage', async ({ page, loggedIn }) => {
+    const igvProfile = {
+      ...profile('IGV', 820, 82, 912),
+      name: 'iShares Expanded Tech Software Sector ETF',
+      issuer: 'iShares',
+      fund_family: 'iShares U.S. ETFs',
+      latest_composition_date: '2026-11-05',
+    }
+    const dates: ETFHoldingsDate[] = [
+      {
+        snapshot_id: 912,
+        composition_date: '2026-11-05',
+        as_of_date: '2026-11-05',
+        known_at: '2026-11-06T16:00:00Z',
+        published_at: '2026-11-06T15:30:00Z',
+        provenance: 'issuer_current_holdings',
+        source_provider: 'ishares',
+        source_identifier: 'ishares:239771:2026-11-05',
+        row_count: 1,
+        resolved_count: 1,
+        unresolved_count: 0,
+        source_quality: 'issuer_current',
+      },
+      {
+        snapshot_id: 911,
+        composition_date: '2026-10-15',
+        as_of_date: '2026-10-15',
+        known_at: '2026-10-16T09:20:00Z',
+        published_at: '2026-10-16T08:00:00Z',
+        provenance: 'issuer_historical_snapshot',
+        source_provider: 'ishares',
+        source_identifier: 'ishares:239771:2026-10-15',
+        row_count: 1,
+        resolved_count: 1,
+        unresolved_count: 0,
+        source_quality: 'issuer_historical',
+      },
+    ]
+    const requests: Array<{ snapshotId: string | null; sort: string | null }> = []
+    await page.route(url => new URL(url).pathname === '/api/v1/etf-holdings', async route => {
+      await route.fulfill({ status: 200, json: [igvProfile] })
+    })
+    await page.route('**/api/v1/etf-holdings/IGV/dates', route => route.fulfill({ status: 200, json: dates }))
+    await page.route('**/api/v1/etf-holdings/IGV/holdings**', async route => {
+      const query = new URL(route.request().url()).searchParams
+      const snapshotId = query.get('snapshot_id') ?? '912'
+      requests.push({ snapshotId: query.get('snapshot_id'), sort: query.get('sort') })
+      const historical = snapshotId === '911'
+      const snapshotDate = historical ? dates[1] : dates[0]
+      const base = fixtureHoldings('IGV', 820, 82, Number(snapshotId))
+      const row = {
+        ...base.holdings[0],
+        id: Number(snapshotId) * 10,
+        snapshot_id: Number(snapshotId),
+        reported_symbol: historical ? 'ACME' : 'MSFT',
+        constituent_symbol: historical ? 'ACME' : 'MSFT',
+        reported_name: historical ? 'Historical Example Corp' : 'Current Example Corp',
+        constituent_name: historical ? 'Historical Example Corp' : 'Current Example Corp',
+      }
+      await route.fulfill({
+        status: 200,
+        json: {
+          ...base,
+          snapshot: {
+            ...base.snapshot,
+            id: Number(snapshotId),
+            composition_date: snapshotDate.composition_date,
+            as_of_date: snapshotDate.as_of_date,
+            known_at: snapshotDate.known_at,
+            published_at: snapshotDate.published_at,
+            provenance: snapshotDate.provenance,
+            source_provider: snapshotDate.source_provider,
+            source_identifier: snapshotDate.source_identifier,
+            source_url: historical
+              ? 'https://fixture.invalid/ishares/239771?date=2026-10-15'
+              : 'https://fixture.invalid/ishares/239771?date=2026-11-05',
+            source_quality: snapshotDate.source_quality,
+            holdings: [row],
+          },
+          holdings: [row],
+        },
+      })
+    })
+    await page.route('**/api/v1/etf-holdings/IGV/weight-evolution', route => route.fulfill({
+      status: 200,
+      json: { etf_symbol: 'IGV', etf_name: igvProfile.name, snapshot_count: 2, series: [] },
+    }))
+    await page.route('**/api/v1/etf-holdings/IGV/transitions', route => route.fulfill({
+      status: 200,
+      json: { etf_symbol: 'IGV', etf_name: igvProfile.name, snapshot_count: 2, transition_count: 1, transitions: [] },
+    }))
+
+    await page.goto('/etf-holdings')
+    await expect(page.getByRole('heading', { name: 'IGV' })).toBeVisible()
+    await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Latest stored snapshot')
+    await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-11-06T16:00:00Z')
+
+    const historicalRequest = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === '/api/v1/etf-holdings/IGV/holdings'
+        && url.searchParams.get('snapshot_id') === '911'
+    })
+    await page.getByLabel('Snapshot').selectOption('911')
+    expect((await historicalRequest).ok()).toBeTruthy()
+    await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Historical snapshot')
+    await expect(page.locator('.snapshot-date-line')).toContainText('2026-10-15')
+    await expect(page.locator('.snapshot-date-line')).toContainText('Historical snapshot')
+    await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-10-16T09:20:00Z')
+    await expect(page.getByTestId('etf-snapshot-published-at')).toHaveAttribute('datetime', '2026-10-16T08:00:00Z')
+    await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('ishares:239771:2026-10-15')
+    await expect(page.getByTestId('etf-snapshot-source-url')).toHaveText('https://fixture.invalid/ishares/239771?date=2026-10-15')
+    await expect(page.locator('.holdings-table')).toContainText('ACME')
+    expect(requests.some(request => request.snapshotId === '911')).toBeTruthy()
     expect(loggedIn).toBeUndefined()
   })
 })
