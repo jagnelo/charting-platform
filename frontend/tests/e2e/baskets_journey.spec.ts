@@ -117,6 +117,23 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     const selectedA = await request.get(`/api/v1/baskets/${basketA.id}`, { headers })
     expect(selectedA.status()).toBe(200)
     const selectedABody = await selectedA.json() as { members: Array<{ instrument_id: number }> }
+    expect(selectedABody.members.length).toBeGreaterThan(1)
+    let releaseFirstEnsure!: () => void
+    let firstEnsureWasHeld = false
+    let firstEnsureWasReleased = false
+    const firstEnsureGate = new Promise<void>(resolve => { releaseFirstEnsure = resolve })
+    await page.route('**/api/v1/data/ensure', async route => {
+      const body = route.request().postDataJSON() as { target?: { instrument_id?: number } }
+      if (body.target?.instrument_id === selectedABody.members[0]?.instrument_id) {
+        const response = await route.fetch()
+        firstEnsureWasHeld = true
+        await firstEnsureGate
+        firstEnsureWasReleased = true
+        await route.fulfill({ response })
+        return
+      }
+      await route.continue()
+    })
     const basketChartRequest = page.waitForResponse(response =>
       new URL(response.url()).pathname.startsWith(`/api/v1/baskets/${basketA.id}/ohlcv/`))
     const ensureResponse = page.waitForResponse(response =>
@@ -124,19 +141,30 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     await page.getByTestId('basket-open-chart').click()
     await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basketA.id}$`), { timeout: 30_000 })
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
+    let syntheticBars: Array<{ timestamp: string; close: number }> = []
+    try {
+      // The first real preparation response is held after the server accepts it.
+      // Later member submissions and valid cached basket output must still proceed.
+      await expect.poll(() => firstEnsureWasHeld).toBeTruthy()
+      await expect.poll(() => ensureCalls.length).toBe(selectedABody.members.length)
+      expect(firstEnsureWasHeld).toBeTruthy()
+      expect(firstEnsureWasReleased).toBeFalsy()
+      expect(ensureCalls).toEqual(selectedABody.members.map(member => ({
+        instrument_id: member.instrument_id,
+        datasets: ['history'],
+        timeframe: 'D1',
+      })))
+      const basketChartResponse = await basketChartRequest
+      expect(basketChartResponse.status()).toBe(200)
+      syntheticBars = await basketChartResponse.json() as Array<{ timestamp: string; close: number }>
+      expect(syntheticBars.length).toBeGreaterThan(0)
+      expect(syntheticBars.every(bar => Number.isFinite(bar.close))).toBeTruthy()
+    } finally {
+      releaseFirstEnsure()
+    }
     const prepared = await ensureResponse
     expect(prepared.ok()).toBeTruthy()
-    await expect.poll(() => ensureCalls.length).toBe(selectedABody.members.length)
-    expect(ensureCalls).toEqual(selectedABody.members.map(member => ({
-      instrument_id: member.instrument_id,
-      datasets: ['history'],
-      timeframe: 'D1',
-    })))
-    const basketChartResponse = await basketChartRequest
-    expect(basketChartResponse.status()).toBe(200)
-    const syntheticBars = await basketChartResponse.json() as Array<{ timestamp: string; close: number }>
-    expect(syntheticBars.length).toBeGreaterThan(0)
-    expect(syntheticBars.every(bar => Number.isFinite(bar.close))).toBeTruthy()
+    expect(firstEnsureWasReleased).toBeTruthy()
 
     await page.goto('/legacy/baskets')
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
