@@ -18,7 +18,10 @@ from app.services.adjustment_factors import (
     materialize_local_split_adjusted_view,
 )
 from app.services.bar_transforms import TRANSFORM_REGISTRY, apply_transform
-from app.services.derived_timeframes import materialize_derived_timeframes
+from app.services.derived_timeframes import (
+    derived_timeframe_needs_refresh,
+    materialize_derived_timeframes,
+)
 from app.services.distributed_locks import DistributedLockError
 from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
 from app.services.ohlcv_coverage import _as_utc
@@ -190,29 +193,9 @@ async def get_local_ohlcv(
         and not settings.E2E_SEED_MARKET_DATA
         and timeframe in (Timeframe.W1, Timeframe.MN)
     ):
-        d1_exists = await db.execute(
-            select(OHLCVBar.id)
-            .where(
-                OHLCVBar.instrument_id == instrument.id,
-                OHLCVBar.timeframe == Timeframe.D1,
-                OHLCVBar.is_adjusted.is_(adjusted),
-            )
-            .limit(1)
-        )
-        if d1_exists.scalar_one_or_none() is not None:
-            derived_exists = await db.execute(
-                select(OHLCVBar.id)
-                .where(
-                    OHLCVBar.instrument_id == instrument.id,
-                    OHLCVBar.timeframe == timeframe,
-                    OHLCVBar.is_adjusted.is_(adjusted),
-                    OHLCVBar.is_derived.is_(True),
-                )
-                .limit(1)
-            )
-            if derived_exists.scalar_one_or_none() is None:
-                await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
-                await db.commit()
+        if await derived_timeframe_needs_refresh(db, instrument.id, timeframe, adjusted=adjusted):
+            await materialize_derived_timeframes(db, instrument.id, adjusted=adjusted)
+            await db.commit()
             bars = (
                 (
                     await db.execute(
