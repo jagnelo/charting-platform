@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { api } from '@/lib/api'
-import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage } from '@/lib/dataPreparation'
+import { DataEnsureRequest, DataEnsureResponse, DataPreparationCoordinator, isPreparationTimeframe, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 
 const baseTime = '2026-11-06T12:00:00.000Z'
 const request: DataEnsureRequest = { target: { kind: 'instrument', symbol: 'SPY' }, timeframe: 'D1', datasets: ['identity', 'history'] }
@@ -18,6 +18,35 @@ function coordinator(client: { post: ReturnType<typeof vi.fn>; get: ReturnType<t
 }
 
 describe('DataPreparationCoordinator', () => {
+  it('coalesces duplicate progress and refreshes each newer partial range through completion', async () => {
+    const dependency = (coveredEnd: string, updatedAt: string, status: DataEnsureResponse['status'] = 'partial') => ({
+      dependency_id: 'history:1:MN', depends_on: [], instrument_id: 1, dataset: 'history' as const, status,
+      requested_start: '2023-01-01T00:00:00Z', requested_end: '2026-11-06T00:00:00Z',
+      covered_start: '2025-11-01T00:00:00Z', covered_end: coveredEnd,
+      reason_code: null, retry_at: null, updated_at: updatedAt,
+    })
+    const partialOne = response('partial', 2, { dependencies: [dependency('2025-11-15T00:00:00Z', '2026-11-06T12:00:01Z')] })
+    const partialTwo = response('partial', 3, { dependencies: [dependency('2025-12-15T00:00:00Z', '2026-11-06T12:00:02Z')] })
+    const ready = response('ready', 4, { completed: 1, total: 1, dependencies: [dependency('2026-11-05T00:00:00Z', '2026-11-06T12:00:03Z', 'ready')] })
+    const queue = new PreparationProgressRefreshQueue()
+    const refreshed: number[] = []
+    let releaseFirst!: () => void
+    const first = queue.request(partialOne, () => new Promise<void>(resolve => {
+      refreshed.push(2)
+      releaseFirst = resolve
+    }))
+    await Promise.resolve()
+    const second = queue.request(partialTwo, async () => { refreshed.push(3) })
+    const duplicate = queue.request(partialTwo, async () => { refreshed.push(30) })
+    expect(shouldRefreshAnalysisProgress(partialOne)).toBe(true)
+    expect(queue.isLatest(partialTwo)).toBe(true)
+    releaseFirst()
+    await Promise.all([first, second, duplicate])
+    await queue.request(ready, async () => { refreshed.push(4) })
+
+    expect(refreshed).toEqual([2, 3, 4])
+  })
+
   it('deduplicates concurrent identical requests and publishes durable progress', async () => {
     const client = { post: vi.fn().mockResolvedValue(response('running', 1)), get: vi.fn().mockResolvedValue(response('ready', 2)) }
     const progressA = vi.fn(), progressB = vi.fn()

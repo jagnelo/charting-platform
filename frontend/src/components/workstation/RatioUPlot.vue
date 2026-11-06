@@ -22,7 +22,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
-import { dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress, type DataEnsureResponse } from '@/lib/dataPreparation'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
 const props = withDefaults(defineProps<{
@@ -46,6 +46,7 @@ const series = ref<Array<{ benchmark: string; points: Array<{ timestamp: string;
 const error = ref<string | null>(null)
 const warning = ref<string | null>(null)
 const status = ref('Local adjusted')
+const warningsByBenchmark = ref<Record<string, string>>({})
 const preparationByBenchmark = ref<Record<string, string>>({})
 const analysisFailureByBenchmark = ref<Record<string, string>>({})
 const preparationMessage = computed(() => [
@@ -133,20 +134,23 @@ async function load() {
     if (renderedRatioContext !== contextKey) {
       series.value = []
       warning.value = null
+      warningsByBenchmark.value = {}
       analysisFailureByBenchmark.value = {}
       renderedRatioContext = contextKey
     } else {
       const selectedBenchmarks = new Set(benchmarks.map(benchmark => benchmark.toUpperCase()))
       series.value = series.value.filter(item => selectedBenchmarks.has(item.benchmark.toUpperCase()))
+      warningsByBenchmark.value = Object.fromEntries(Object.entries(warningsByBenchmark.value)
+        .filter(([benchmark]) => selectedBenchmarks.has(benchmark)))
       analysisFailureByBenchmark.value = Object.fromEntries(Object.entries(analysisFailureByBenchmark.value)
         .filter(([benchmark]) => selectedBenchmarks.has(benchmark)))
     }
     const isCurrent = () => generation === loadGeneration && !controller.signal.aborted
     const queryKey = (benchmark: string) => ['workstation', 'relative-strength', numerator, benchmark.toUpperCase(), timeframe, cutoff, true]
-    const readRatios = async (fresh = false) => Promise.all(benchmarks.map(async benchmark => {
+    const readRatios = async (selectedBenchmarks = benchmarks, fresh = false) => Promise.all(selectedBenchmarks.map(async benchmark => {
       const key = queryKey(benchmark)
-      if (fresh) await queryClient.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' })
       try {
+        if (fresh) await queryClient.invalidateQueries({ queryKey: key, exact: true, refetchType: 'none' })
         const payload = await queryClient.fetchQuery<{
           points: Array<{ timestamp: string; value: number }>
           coverage: number
@@ -177,32 +181,41 @@ async function load() {
           continue
         }
         nextSeries.set(benchmarkKey, { benchmark: item.benchmark, points: item.payload.points, coverage: item.payload.coverage })
+        const pairWarnings = item.payload.warnings.map(itemWarning => itemWarning.message)
+        if (pairWarnings.length) warningsByBenchmark.value = { ...warningsByBenchmark.value, [benchmarkKey]: pairWarnings.join(' ') }
+        else {
+          const { [benchmarkKey]: _previousWarning, ...remainingWarnings } = warningsByBenchmark.value
+          warningsByBenchmark.value = remainingWarnings
+        }
         const { [benchmarkKey]: _previousFailure, ...remainingFailures } = analysisFailureByBenchmark.value
         analysisFailureByBenchmark.value = remainingFailures
       }
       series.value = [...nextSeries.values()]
-      warning.value = payloads.flatMap(item => item.failed || !item.payload
-        ? []
-        : item.payload.warnings.map(itemWarning => `${item.benchmark}: ${itemWarning.message}`)).join(' ')
+      warning.value = Object.entries(warningsByBenchmark.value).map(([benchmark, message]) => `${benchmark}: ${message}`).join(' ') || null
       status.value = `${series.value.map(item => `${item.benchmark} ${(item.coverage * 100).toFixed(0)}%`).join(' · ') || 'No current ratio coverage'} overlap · local adjusted${cutoff ? ` · as of ${cutoff.slice(0, 10)}` : ''}`
       if (payloads.some(item => !item.failed && item.payload)) error.value = null
       await nextTick()
       if (isCurrent()) draw()
     }
-    const initialRead = readRatios().then(applyRatios).catch(cause => {
-      if (!isCurrent() || cause?.name === 'AbortError') return
-      if (!series.value.length) error.value = 'Ratio data could not be loaded.'
-    })
-
-    let refreshChain = Promise.resolve()
-    let partialRefreshQueued = false
-    const queueFreshRead = () => {
-      refreshChain = refreshChain.then(async () => {
-        await initialRead
-        if (!isCurrent()) return
-        try { await applyRatios(await readRatios(true)) } catch (cause: any) {
-          if (isCurrent() && cause?.name !== 'AbortError' && !series.value.length) error.value = 'Ratio data could not be refreshed.'
-        }
+    const initialReads = new Map<string, Promise<void>>()
+    const refreshQueues = new Map(benchmarks.map(benchmark => [benchmark.toUpperCase(), new PreparationProgressRefreshQueue()]))
+    for (const benchmark of benchmarks) {
+      const key = benchmark.toUpperCase()
+      const initialRead = readRatios([benchmark]).then(applyRatios).catch(cause => {
+        if (!isCurrent() || cause?.name === 'AbortError') return
+        if (!series.value.length) error.value = 'Ratio data could not be loaded.'
+      })
+      initialReads.set(key, initialRead)
+    }
+    const refreshPair = (benchmark: string, response: DataEnsureResponse) => {
+      const key = benchmark.toUpperCase()
+      const queue = refreshQueues.get(key)!
+      return queue.request(response, async () => {
+        await initialReads.get(key)
+        if (!isCurrent() || !queue.isLatest(response)) return
+        const payloads = await readRatios([benchmark], true)
+        if (!isCurrent() || !queue.isLatest(response)) return
+        await applyRatios(payloads)
       })
     }
     const preparation = Promise.all(benchmarks.map(async benchmark => {
@@ -225,9 +238,14 @@ async function load() {
                 ? `Preparing ${numerator}/${denominator} inputs (${progress.completed}/${progress.total})…`
                 : preparationStatusMessage(progress.response),
             }
-            if (progress.response.status === 'partial' && !partialRefreshQueued) {
-              partialRefreshQueued = true
-              queueFreshRead()
+            if (shouldRefreshAnalysisProgress(progress.response)) {
+              void refreshPair(denominator, progress.response).catch(() => {
+                if (!isCurrent()) return
+                analysisFailureByBenchmark.value = {
+                  ...analysisFailureByBenchmark.value,
+                  [denominator]: 'This comparison could not be refreshed; other ratio curves remain available.',
+                }
+              })
             }
           },
         })
@@ -258,18 +276,18 @@ async function load() {
           [denominator]: preparationStatusMessage(result),
         }
       }
-      // A partial or held terminal result may still have added usable local
-      // observations. Refresh these exact selected pairs only, preserving the
-      // current plot until that bounded local read completes.
-      queueFreshRead()
-      await refreshChain
+      // A terminal response may carry useful partial inputs. Refresh only its
+      // exact ratio pair; repeated terminal progress is deduplicated by version.
+      await Promise.all(results.map((result, index) => result
+        ? refreshPair(benchmarks[index], result).catch(() => undefined)
+        : Promise.resolve()))
     }).catch(cause => {
       if (isCurrent() && cause?.name !== 'AbortError') {
         preparationByBenchmark.value = Object.fromEntries(benchmarks.map(benchmark => [benchmark.toUpperCase(), 'Preparation could not be completed; available local results remain visible.']))
       }
     })
 
-    await Promise.all([initialRead, preparation])
+    await Promise.all([...initialReads.values(), preparation])
   } catch (cause: any) {
     if (generation !== loadGeneration || cause?.name === 'AbortError') return
     if (!series.value.length) error.value = 'Ratio data could not be prepared or calculated.'

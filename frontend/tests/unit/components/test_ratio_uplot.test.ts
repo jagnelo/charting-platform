@@ -171,6 +171,60 @@ describe('RatioUPlot', () => {
     wrapper.unmount()
   })
 
+  it('refreshes after successive partial ratio versions until a later history chunk yields bars', async () => {
+    const progressResponse = (status: 'partial' | 'ready', version: number, coveredEnd: string) => ({
+      request_id: 'ratio-progress', status, created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+      version, target: { kind: 'instrument', symbol: 'NVDA' }, completed: status === 'ready' ? 2 : 0,
+      total: 2, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
+        dependency_id: 'history:NVDA:D1', depends_on: [], instrument_id: 1, dataset: 'history', status,
+        requested_start: '2024-11-01T00:00:00Z', requested_end: '2026-11-06T00:00:00Z',
+        covered_start: '2025-11-01T00:00:00Z', covered_end: coveredEnd,
+        reason_code: null, retry_at: null, updated_at: `2026-11-06T12:00:0${version}Z`,
+      }],
+    })
+    const progress = [
+      progressResponse('partial', 2, '2025-11-15T00:00:00Z'),
+      progressResponse('partial', 3, '2025-12-15T00:00:00Z'),
+      progressResponse('ready', 4, '2026-11-05T00:00:00Z'),
+    ]
+    let progressReads = 0
+    let analysisReads = 0
+    vi.mocked(api.post).mockResolvedValue({
+      request_id: 'ratio-progress', status: 'running', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+      version: 1, target: {}, dependencies: [], completed: 0, total: 2, last_progress_at: '2026-11-06T12:00:00Z',
+    })
+    vi.mocked(api.get).mockImplementation((path) => {
+      if (path.startsWith('/data/requests/')) return Promise.resolve(progress[progressReads++])
+      analysisReads += 1
+      return Promise.resolve(analysisReads < 3
+        ? { coverage: 0, points: [], warnings: [] }
+        : { coverage: 1, points: [
+          { timestamp: '2026-01-01T00:00:00Z', value: 1.1 },
+          { timestamp: '2026-01-02T00:00:00Z', value: 1.2 },
+          { timestamp: '2026-01-03T00:00:00Z', value: 1.3 },
+        ], warnings: [] })
+    })
+    const wrapper = mountTool({ props: { symbol: 'NVDA', benchmarks: ['SPY'] } })
+
+    await vi.waitFor(() => expect(analysisReads).toBe(1))
+    await vi.waitFor(() => expect(progressReads).toBe(1), { timeout: 2_000 })
+    await vi.waitFor(() => expect(analysisReads).toBe(2))
+    expect(wrapper.find('.ratio-chart__host').exists()).toBe(false)
+
+    await vi.waitFor(() => expect(progressReads).toBe(2), { timeout: 2_000 })
+    await vi.waitFor(() => expect(analysisReads).toBe(3))
+    await vi.waitFor(() => expect(uPlot).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[1]).toEqual([
+      [1767225600, 1767312000, 1767398400], [1.1, 1.2, 1.3],
+    ])
+
+    await vi.waitFor(() => expect(progressReads).toBe(3), { timeout: 2_000 })
+    await vi.waitFor(() => expect(analysisReads).toBe(4))
+    expect(wrapper.text()).toContain('NVDA/SPY')
+    expect(uPlot).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
   it('reloads ratios using the active linked timeframe', async () => {
     vi.mocked(api.get).mockResolvedValue({ coverage: 1, points: [], warnings: [] })
     const wrapper = mountTool({ props: { symbol: 'XLK', benchmarks: ['SPY'], timeframe: 'D1' } })
@@ -275,7 +329,7 @@ describe('RatioUPlot', () => {
     expect(wrapper.get('.ratio-chart').attributes('aria-busy')).toBe('true')
     expect(wrapper.text()).toContain('NVDA/SPY')
     expect(chart.data).toEqual(validPairData)
-    expect(chart.setData).not.toHaveBeenCalled()
+    expect(chart.setData).toHaveBeenCalledWith(validPairData)
 
     failXle(new Error('instrument_not_found'))
     await vi.waitFor(() => expect(wrapper.text()).toContain('XLE: This comparison is unavailable'))

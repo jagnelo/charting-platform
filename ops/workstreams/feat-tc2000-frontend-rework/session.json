@@ -107,8 +107,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The platform-usability implementation is in progress. No exact-tip CI, combined runtime profile, provider producer integration, or release qualification is claimed; Root owns shared browser and release gates.",
-  "current_checkpoint_status": "Platform-usability remains in progress. The typed Provider preparation consumer is wired to RRG and both ratio-chart entrypoints. Local analysis starts independently of preparation; useful cached results remain visible through delayed, held, and failed preparation; partial/ready progress refreshes only the active parameter query; obsolete contexts are fenced; and ratio reads settle each comparator independently so a failed new pair does not clear a valid curve. A replaced conditional chart host now destroys and recreates its uPlot instance on context change. RRG pointer focus preserves the hovered marker, canvas drawing uses uPlot canvas-pixel coordinates with DPR scaling and bbox clipping, the companion header has an explicit warning cell, and structured reasons are translated without raw codes or mandatory retry copy. Focused coordinator/RRG/ratio tests passed 43/43; frontend type-check passes. Provider producer and actual-browser DPR/pointer and replacement-canvas qualification remain pending Root.",
+  "current_candidate_ci_status": "Platform-usability implementation remains in progress. This RRG/progress-refresh and laptop tool-lifecycle slice has focused tests/type-check only; no exact-tip CI, combined runtime profile, Provider producer/browser integration, or release qualification is claimed. Root owns the real-browser review and release gates.",
+  "current_checkpoint_status": "The shared preparation queue now refreshes the exact ratio/RRG query on successive durable partial/range versions and terminal completion, coalescing duplicate revisions while preserving current-intent fencing. RRG has responsive scrollable sizing, explicit twelve-column table tracks, and latest-symbol labels. Inactive chart drawing controls are removed and inactive teleported menus close; Maximize/Restore labels track GoldenLayout state. Five focused files passed 68/68 tests, frontend type-check, workstream validation, TC scope validation and diff check. Root actual laptop/maximize/restore/browser geometry remains pending; catalogue, semantic factory roles, reversible workspace lifecycle and route/action/secondary-page journeys remain open.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -438,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "7ce434b46dac266083e06dbe184a4aa654c9469fb0d01cca25794da9abe6a456",
+  "plan_hash": "fec8c8a73c12eeb3b06a0c375fd8c6ad7813d52b5563b1c91192f61d4f2040d5",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -662,7 +662,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T19:00:52Z",
+  "updated_at": "2026-11-06T20:00:24Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",

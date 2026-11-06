@@ -4516,3 +4516,12 @@ platform_usability_checkpoint_20261106:
     heavy stack or broad suite replay during implementation.
   next_action: Continue wiring the shared preparation coordinator into remaining TC-owned entrypoints; then complete semantic tool identity, factory/Add-tool catalogue, reversible layout lifecycle, and the route/action plus secondary-page inventory and journeys. Root owns corrected-source browser and combined release qualification.
   integration_capture: exact branch HEAD
+
+  progress_refresh_and_laptop_rrg_followup:
+    objective: Refresh exact RRG and ratio analyses as successive useful preparation versions arrive, and address measured laptop/maximize lifecycle issues in the shared tool shell and RRG panel.
+    status: focused_tests_and_typecheck_green; real_browser_review_pending_root
+    contract_source: 3d10c4c4662249b53a6e3fc497f1d260b59b2079
+    validation: 68 focused tests passed across preparation coordinator, RRG, ratio plot, ToolWindow, and WorkstationToolContent; frontend type-check, workstream validation, TC scope validation, and diff check passed.
+    behavior: New partial dependency/range revisions are coalesced through one shared refresh queue; a second useful partial result can populate the RRG/ratio chart before preparation completes, and ready completion refreshes the same active query. Inactive chart drawing controls are removed, inactive teleported tool menus close, and ordinary pane contents remain interactive. Maximize/restore labels follow GoldenLayout stack state. Relative Rotation receives a scrollable tool body, a growing plot row, explicit twelve-column table tracks, and canvas labels for latest symbols.
+    pending: Root real-browser laptop/maximize/restore and pointer geometry review, full J01-J12 journey/action inventory, factory catalogue/semantic roles, reversible lifecycle, remaining routes and secondary pages, Provider producer/runtime integration, exact-source CI, and final combined qualification.
+    integration_capture: exact branch HEAD

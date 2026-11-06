@@ -75,6 +75,65 @@ export interface PreparationProgress {
   activeDependencies: number
 }
 
+/**
+ * Versions that may expose newly usable analysis inputs. The coordinator owns
+ * polling cadence; consumers only refresh their current local analysis when a
+ * new durable request version or partial/terminal state arrives.
+ */
+export function shouldRefreshAnalysisProgress(response: DataEnsureResponse): boolean {
+  return response.version > 1 || ['partial', 'ready', 'waiting', 'unavailable', 'failed'].includes(response.status)
+}
+
+function progressRevision(response: DataEnsureResponse): string {
+  const dependencies = [...response.dependencies]
+    .sort((left, right) => left.dependency_id.localeCompare(right.dependency_id))
+    .map(dependency => [
+      dependency.dependency_id,
+      dependency.dataset,
+      dependency.status,
+      dependency.requested_start,
+      dependency.requested_end,
+      dependency.covered_start,
+      dependency.covered_end,
+      dependency.updated_at,
+    ])
+  return JSON.stringify([response.request_id, response.version, response.status, response.completed, response.total, dependencies])
+}
+
+/**
+ * Serializes local analysis refreshes and keeps only the newest pending
+ * progress version while a prior exact-query read is in flight. Repeated
+ * versions/ranges are deduplicated without creating another timer or poller.
+ */
+export class PreparationProgressRefreshQueue {
+  private latestRevision: string | null = null
+  private pendingRefresh: (() => Promise<void>) | null = null
+  private draining: Promise<void> | null = null
+
+  isLatest(response: DataEnsureResponse): boolean {
+    return this.latestRevision === progressRevision(response)
+  }
+
+  request(response: DataEnsureResponse, refresh: () => Promise<void>): Promise<void> {
+    const revision = progressRevision(response)
+    if (revision === this.latestRevision) return this.draining ?? Promise.resolve()
+    this.latestRevision = revision
+    this.pendingRefresh = refresh
+    if (!this.draining) {
+      this.draining = Promise.resolve().then(async () => {
+        let firstError: unknown = null
+        while (this.pendingRefresh) {
+          const next = this.pendingRefresh
+          this.pendingRefresh = null
+          try { await next() } catch (error) { firstError ??= error }
+        }
+        if (firstError) throw firstError
+      }).finally(() => { this.draining = null })
+    }
+    return this.draining
+  }
+}
+
 export interface PreparationOptions {
   signal?: AbortSignal
   onProgress?: (progress: PreparationProgress) => void

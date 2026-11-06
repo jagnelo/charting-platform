@@ -65,9 +65,9 @@ function mountedChartTool(instanceKey: string, linkGroup: 'blue' | 'red' = 'blue
   return { ...chartFixture(), instance_key: instanceKey, link_group: linkGroup, configuration: {} }
 }
 
-function mountChartTool(tool: WorkspaceWindowState, pinia: ReturnType<typeof createPinia>, queryClient: QueryClient) {
+function mountChartTool(tool: WorkspaceWindowState, pinia: ReturnType<typeof createPinia>, queryClient: QueryClient, activeWindowKey = 'another-chart') {
   return mount(WorkstationToolContent, {
-    props: { tool, activeWindowKey: 'another-chart' },
+    props: { tool, activeWindowKey },
     global: {
       plugins: [pinia, [VueQueryPlugin, { queryClient }]],
       stubs: {
@@ -150,6 +150,35 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     expect(wrapper.get('[aria-label="Selected benchmark family roles"]').text()).toContain('SPY')
     expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500')
     wrapper.unmount()
+  })
+
+  it('removes chart drawing controls from inactive docked tools and restores them only for the active chart', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const tool = chartFixture()
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: 'another-chart' },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub,
+          ChartPlotLibrary: { template: '<div />' },
+          ChartTemplateControl: { template: '<div />' },
+          DrawingToolbar: { template: '<div data-test="chart-drawing-toolbar" />' },
+          ToolWindow: ToolWindowShell,
+        },
+      },
+    })
+
+    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+    await wrapper.setProps({ activeWindowKey: tool.instance_key })
+    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(true)
+    await wrapper.setProps({ activeWindowKey: 'another-chart' })
+    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+
+    wrapper.unmount()
+    queryClient.clear()
   })
 
   it('offers one explicit action only on the focused empty chart and refreshes that panel from local bars', async () => {

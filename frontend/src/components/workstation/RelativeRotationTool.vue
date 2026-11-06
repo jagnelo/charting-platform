@@ -36,6 +36,7 @@
 .rotation-tool__row > * { white-space: nowrap; }
 .rotation-tool__warning-heading { color: #9baab5; font-weight: 600; text-transform: uppercase; }
 .rotation-tool__warning { color: #e7bc68; }
+@media(max-height:700px){.rotation-tool{min-height:520px;grid-template-rows:auto minmax(240px,1.4fr) minmax(150px,.6fr)}}
 </style>
 
 <script setup lang="ts">
@@ -44,7 +45,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
-import { dataPreparationCoordinator, preparationStatusMessage } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
@@ -311,6 +312,24 @@ function drawPlot() {
       const x = chart.valToPos(point.trend, 'x', true), y = chart.valToPos(point.momentum, 'y', true)
       ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, (point.last ? 3.5 : 2) * pixelRatio, 0, Math.PI * 2); ctx.fill()
     }
+    const latestLabels = points.filter(point => point.last)
+      .map(point => ({ point, x: chart.valToPos(point.trend, 'x', true), y: chart.valToPos(point.momentum, 'y', true) }))
+      .filter(entry => Number.isFinite(entry.x) && Number.isFinite(entry.y))
+      .sort((left, right) => left.y - right.y)
+    const labelRows: number[] = []
+    ctx.font = `${9 * pixelRatio}px Segoe UI`
+    for (const { point, x, y } of latestLabels) {
+      let labelY = y
+      while (labelRows.some(previous => Math.abs(previous - labelY) < 12 * pixelRatio)) labelY += 12 * pixelRatio
+      labelRows.push(labelY)
+      const labelWidth = Math.max(24, point.symbol.length * 6) * pixelRatio
+      const labelX = Math.min(left + plotWidth - labelWidth, x + 6 * pixelRatio)
+      labelY = Math.min(top + plotHeight - 3 * pixelRatio, Math.max(top + 10 * pixelRatio, labelY))
+      ctx.fillStyle = '#0d1318'
+      ctx.fillRect(labelX - 2 * pixelRatio, labelY - 9 * pixelRatio, labelWidth + 4 * pixelRatio, 12 * pixelRatio)
+      ctx.fillStyle = point.color
+      ctx.fillText(point.symbol, labelX, labelY)
+    }
   }] } }
   plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: {
     x: { time: false, auto: true, range: () => numericRange(points.map(point => point.trend)) },
@@ -386,17 +405,14 @@ async function load() {
   const initialAnalysis = readAnalysis().then(applyAnalysis).catch(cause => {
     if (cause?.name !== 'AbortError') reportAnalysisFailure()
   })
-  let partialRefreshQueued = false
-  let refreshChain = Promise.resolve()
-  const queueFreshAnalysis = () => {
-    refreshChain = refreshChain.then(async () => {
+  const progressRefreshQueue = new PreparationProgressRefreshQueue()
+  const refreshForProgress = (response: import('@/lib/dataPreparation').DataEnsureResponse) => progressRefreshQueue.request(response, async () => {
       await initialAnalysis
-      if (!isCurrent()) return
+      if (!isCurrent() || !progressRefreshQueue.isLatest(response)) return
       try { await applyAnalysis(await readAnalysis(true)) } catch (cause: any) {
         if (cause?.name !== 'AbortError') reportAnalysisFailure()
       }
     })
-  }
   const preparation = dataPreparationCoordinator.ensure({
     target,
     datasets: ['identity', 'history'],
@@ -417,9 +433,8 @@ async function load() {
         ? `Preparing ratio inputs (${progress.completed}/${progress.total} dependencies)…`
         : preparationStatusMessage(progress.response)
       preparationMessage.value = contextualize(currentPreparationText)
-      if (status === 'partial' && !partialRefreshQueued) {
-        partialRefreshQueued = true
-        queueFreshAnalysis()
+      if (shouldRefreshAnalysisProgress(progress.response)) {
+        void refreshForProgress(progress.response).catch(reportAnalysisFailure)
       }
     },
   }).then(async result => {
@@ -429,8 +444,7 @@ async function load() {
     // A terminal held/partial outcome can still have produced independently
     // useful inputs, so reread this exact analysis context without discarding
     // the last successful result.
-    queueFreshAnalysis()
-    await refreshChain
+    await refreshForProgress(result).catch(reportAnalysisFailure)
   }).catch(cause => {
     if (isCurrent() && cause?.name !== 'AbortError') {
       currentPreparationText = 'Data preparation could not be completed; showing available local results.'
@@ -476,4 +490,4 @@ onBeforeUnmount(() => {
 <style scoped>
 .rotation-tool__plot:focus-visible{outline:2px solid #eef3fb;outline-offset:-2px}.rotation-tool__updating{position:absolute;z-index:1;top:6px;right:8px;margin:0;padding:3px 6px;border:1px solid #394750;border-radius:3px;background:#171f25e8;color:#c0ccd3;pointer-events:none}
 .rotation-tool__sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto 150px minmax(0,1fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{overflow:auto}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px repeat(7, minmax(58px, 1fr)) 64px 38px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>
+.rotation-tool{display:grid;height:100%;min-height:560px;grid-template-rows:auto minmax(260px,1.4fr) minmax(160px,.6fr);background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{min-height:160px;overflow:auto;overscroll-behavior:contain}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}</style>

@@ -4,6 +4,42 @@ import { describe, expect, it, vi } from 'vitest'
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
 
 describe('ToolWindow', () => {
+  it('tracks GoldenLayout maximize state and closes teleported menus when a tool becomes inactive', async () => {
+    const stack = document.createElement('div')
+    stack.className = 'lm_stack'
+    document.body.append(stack)
+    const wrapper = mount(ToolWindow, { attachTo: stack, props: { title: 'Relative Rotation', active: true } })
+    const toggle = wrapper.get('button[aria-label="Maximize tool"]')
+    expect(toggle.attributes('title')).toBe('Maximize')
+
+    stack.classList.add('lm_maximised')
+    await vi.waitFor(() => expect(wrapper.find('button[aria-label="Restore tool"]').exists()).toBe(true))
+    expect(wrapper.get('button[aria-label="Restore tool"]').attributes('title')).toBe('Restore')
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))?.querySelector('[role="menuitem"]')?.textContent).toBe('Restore')
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    stack.classList.remove('lm_maximised')
+    await vi.waitFor(() => expect(wrapper.find('button[aria-label="Maximize tool"]').exists()).toBe(true))
+
+    await wrapper.get('[aria-label="Open tool menu"]').trigger('click')
+    expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))).not.toBeNull()
+    await wrapper.setProps({ active: false })
+    expect(wrapper.get('.tool-window').classes()).not.toContain('tool-window--active')
+    expect(document.getElementById(wrapper.get('[aria-label="Open tool menu"]').attributes('aria-controls'))).toBeNull()
+
+    wrapper.unmount()
+    stack.remove()
+  })
+
+  it('gives the Relative Rotation body its own scrollable viewport without changing other tool defaults', () => {
+    const rotation = mount(ToolWindow, { props: { title: 'Relative Rotation', scrollableBody: true } })
+    const chart = mount(ToolWindow, { props: { title: 'Chart' } })
+    expect(rotation.find('.tool-window').classes()).toContain('tool-window--scrollable-body')
+    expect(chart.find('.tool-window').classes()).not.toContain('tool-window--scrollable-body')
+    rotation.unmount()
+    chart.unmount()
+  })
+
   it('exposes the instance key used by workstation tool activation readiness', () => {
     const wrapper = mount(ToolWindow, { props: { windowKey: 'breadth-instance-1', title: 'Market Breadth' } })
 

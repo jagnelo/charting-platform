@@ -96,7 +96,7 @@ describe('RelativeRotationTool', () => {
     const chart = vi.mocked(uPlot).mock.results[0].value
     const draw = options.plugins?.[0].hooks.draw[0]
     draw(chart)
-    expect(chart.ctx.fillText.mock.calls.map(([label]) => label)).toEqual(['Leading', 'Weakening', 'Improving', 'Lagging'])
+    expect(chart.ctx.fillText.mock.calls.map(([label]) => label)).toEqual(['Leading', 'Weakening', 'Improving', 'Lagging', 'XLK', 'XLE'])
     expect(chart.ctx.arc).toHaveBeenCalledTimes(3)
     expect(chart.ctx.stroke).toHaveBeenCalled()
     expect(chart.valToPos).toHaveBeenCalledWith(0, 'x', true)
@@ -252,6 +252,56 @@ describe('RelativeRotationTool', () => {
     await vi.waitFor(() => expect(wrapper.text()).toContain('showing available local results'))
     expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
     expect(uPlot).toHaveBeenCalledTimes(1)
+    wrapper.unmount()
+  })
+
+  it('refreshes after successive partial RRG versions when a later history chunk adds usable bars', async () => {
+    const progressResponse = (status: 'partial' | 'ready', version: number, coveredEnd: string) => ({
+      request_id: 'rrg-progress', status, created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+      version, target: { kind: 'market_group', group_key: 'sp500-sectors' }, completed: status === 'ready' ? 1 : 0,
+      total: 1, last_progress_at: '2026-11-06T12:00:00Z', dependencies: [{
+        dependency_id: 'history:group:sp500-sectors:MN', depends_on: [], instrument_id: 1, dataset: 'history', status,
+        requested_start: '2024-11-01T00:00:00Z', requested_end: '2026-11-06T00:00:00Z',
+        covered_start: '2025-11-01T00:00:00Z', covered_end: coveredEnd,
+        reason_code: null, retry_at: null, updated_at: `2026-11-06T12:00:0${version}Z`,
+      }],
+    })
+    const progress = [
+      progressResponse('partial', 2, '2025-11-15T00:00:00Z'),
+      progressResponse('partial', 3, '2025-12-15T00:00:00Z'),
+      progressResponse('ready', 4, '2026-11-05T00:00:00Z'),
+    ]
+    let progressReads = 0
+    let analysisReads = 0
+    vi.mocked(api.post).mockResolvedValue({
+      request_id: 'rrg-progress', status: 'running', created_at: '2026-11-06T12:00:00Z', updated_at: '2026-11-06T12:00:00Z',
+      version: 1, target: {}, dependencies: [], completed: 0, total: 1, last_progress_at: '2026-11-06T12:00:00Z',
+    })
+    vi.mocked(api.get).mockImplementation((path) => {
+      if (path.startsWith('/data/requests/')) return Promise.resolve(progress[progressReads++])
+      analysisReads += 1
+      return Promise.resolve(analysisReads < 3 ? { freshness: 'partial', rows: [] } : {
+        freshness: 'partial', rows: [{ instrument_id: 1, symbol: 'XLK', state: 'leading', trend: 0.12, momentum: 0.2,
+          coverage: 1, tail: [{ timestamp: '2026-01-02', trend: 0.12, momentum: 0.2 }],
+          history: [{ timestamp: '2026-01-02', trend: 0.12, momentum: 0.2 }] }],
+      })
+    })
+    const wrapper = mountTool()
+
+    await vi.waitFor(() => expect(analysisReads).toBe(1))
+    await vi.waitFor(() => expect(progressReads).toBe(1), { timeout: 2_000 })
+    await vi.waitFor(() => expect(analysisReads).toBe(2))
+    expect(wrapper.find('.rotation-tool__row').exists()).toBe(false)
+
+    await vi.waitFor(() => expect(progressReads).toBe(2), { timeout: 2_000 })
+    await vi.waitFor(() => expect(analysisReads).toBe(3))
+    await vi.waitFor(() => expect(wrapper.text()).toContain('XLK'))
+    expect(uPlot).toHaveBeenCalledTimes(1)
+
+    await vi.waitFor(() => expect(progressReads).toBe(3), { timeout: 2_000 })
+    await vi.waitFor(() => expect(analysisReads).toBe(4))
+    expect(wrapper.get('.rotation-tool__row').text()).toContain('XLK')
+    expect(vi.mocked(uPlot).mock.calls.at(-1)?.[1][0]).toEqual([0.12])
     wrapper.unmount()
   })
 
