@@ -46,6 +46,7 @@ from app.services.etf_holdings_adapters import (
     _discover_holdings_download_url,
     _extract_nuxt_hydration_holdings,
     _format_template,
+    _merge_compatible_issuer_route_metadata,
     _parse_ishares_inline_top_holdings,
     _row_dict,
     etf_promoter_universe_status,
@@ -25135,6 +25136,7 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         "SPY",
         "XLB",
         "XLC",
+        "XLE",
         "XLF",
         "XLI",
         "XLK",
@@ -25151,6 +25153,11 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
         assert metadata["issuer"] == "State Street Global Advisors"
         assert metadata["provider_aliases"]["holdings_adapter"] == "spdr"
         assert metadata["provider_aliases"]["holdings_source_provider"] == "spdr"
+    xle_aliases = known_etf_route_metadata("XLE")["provider_aliases"]
+    assert xle_aliases["sec_cik"] == "0001064641"
+    assert xle_aliases["sec_series_id"] == "S000006410"
+    assert xle_aliases["sec_class_id"] == "C000017596"
+    assert xle_aliases["sec_fund_tickers_symbol"] == "XLE"
 
     for symbol, product_slug in {
         "SMH": "semiconductor-etf-smh",
@@ -25316,6 +25323,75 @@ def test_holdings_adapter_catalog_and_inference_cover_known_routes():
     invesco_entry = next(item for item in invesco if item["adapter_key"] == "invesco")
     assert invesco_entry["source_access"] == "issuer_public_json_catalog_cusip"
     assert all("idType=ticker" not in url for url in invesco_entry["url_templates"])
+
+
+def test_spdr_route_merge_preserves_compatible_existing_metadata():
+    metadata = {
+        "XLE": {
+            "issuer": "State Street Global Advisors",
+            "provider_aliases": {
+                "sec_cik": "0001064641",
+                "sec_series_id": "S000006410",
+                "sec_class_id": "C000017596",
+                "sec_fund_tickers_symbol": "XLE",
+            },
+        }
+    }
+
+    assert _merge_compatible_issuer_route_metadata(
+        metadata,
+        "XLE",
+        issuer="State Street Global Advisors",
+        provider_aliases={"holdings_adapter": "spdr", "holdings_source_provider": "spdr"},
+    )
+    assert metadata["XLE"] == {
+        "issuer": "State Street Global Advisors",
+        "provider_aliases": {
+            "sec_cik": "0001064641",
+            "sec_series_id": "S000006410",
+            "sec_class_id": "C000017596",
+            "sec_fund_tickers_symbol": "XLE",
+            "holdings_adapter": "spdr",
+            "holdings_source_provider": "spdr",
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    "existing",
+    [
+        {
+            "issuer": "Different Issuer",
+            "provider_aliases": {"custom": "preserve-me"},
+        },
+        {
+            "issuer": "State Street Global Advisors",
+            "provider_aliases": {"holdings_adapter": "ishares", "custom": "preserve-me"},
+        },
+        {
+            "issuer": "State Street Global Advisors",
+            "provider_aliases": {
+                "holdings_adapter": "spdr",
+                "holdings_source_provider": "invesco",
+                "custom": "preserve-me",
+            },
+        },
+    ],
+)
+def test_spdr_route_merge_leaves_conflicting_metadata_unchanged(existing):
+    metadata = {"XLE": existing}
+    original = {
+        "issuer": existing["issuer"],
+        "provider_aliases": dict(existing["provider_aliases"]),
+    }
+
+    assert not _merge_compatible_issuer_route_metadata(
+        metadata,
+        "XLE",
+        issuer="State Street Global Advisors",
+        provider_aliases={"holdings_adapter": "spdr", "holdings_source_provider": "spdr"},
+    )
+    assert metadata["XLE"] == original
 
 
 @pytest.mark.parametrize(
