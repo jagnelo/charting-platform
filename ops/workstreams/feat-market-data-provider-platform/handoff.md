@@ -57,6 +57,14 @@ The first Provider-owned wire and callable types are implemented in
   the request is still actionable but has no currently ready dependency;
   `unavailable` means no safe route exists; `failed` is reserved for unexpected
   errors and exposes only a safe code/request reference.
+- `has_pending_work: bool` is computed from the persisted child and continuation
+  jobs referenced by the owner request, including identity and D1 prerequisites.
+  It is true only while one of those jobs is queued, leased, retrying or
+  deferred. A partial or unavailable dataset with no live durable job reports
+  false, so consumers can settle useful partial results instead of polling
+  forever. The API always emits the field; its schema default preserves older
+  fixture payloads that omit it. When only deferred work remains, each
+  dependency's known `retry_at` is the next poll time.
 
 `GET /api/v1/data/requests/{request_id}` returns the same durable DTO only to
 the authenticated owner. Equivalent acquisition work may share existing queue

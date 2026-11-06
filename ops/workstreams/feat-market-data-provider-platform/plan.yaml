@@ -14847,6 +14847,28 @@ derived_refresh_issuer_identity_followup:
   wider_roadmaps_complete: false
   integration_capture: exact branch HEAD
 
+data_preparation_outstanding_work_followup:
+  id: provider-data-preparation-has-pending-work-20261106
+  status: focused_source_candidate
+  authority: Root-agreed additive response contract in preparation-outstanding-work-contract.json
+  scope:
+    - Emit has_pending_work from referenced durable child and continuation job states, including identity and D1 prerequisites.
+    - Keep partial/unavailable results settleable when no referenced job remains queued, leased, retrying or deferred.
+    - Preserve per-dependency retry_at for known native waits and compatibility with legacy response fixtures that omit the field.
+  validation:
+    unit: "data preparation service and router: 16 passed"
+    postgres: "committed deferred shared child status response: 1 passed on Root allocated fixture"
+    ruff: passed for changed schema/service/tests
+    migrations: none
+  pending:
+    - Root release and consumer adoption of this additive field
+    - Exact-tip full backend/DDL/branch CI and Root combined release qualification
+    - Remaining Provider worker maintenance and provider-readiness scope
+  provider_http_requests: 0
+  production_or_real_ledger_policy_quota_hold_mutation: false
+  wider_roadmaps_complete: false
+  integration_capture: exact branch HEAD
+
 goal: >-
   Implement the Provider-owned shared backend preparation contract for the activated platform-usability release: resolve exact
   instrument/group/family dependencies; persist owner-scoped requests and per-dataset state; reuse MarketRefreshJob, current acquisition
