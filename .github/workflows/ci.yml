@@ -27,6 +27,13 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Validate branch test manifest before product jobs
+        if: >-
+          github.event_name == 'pull_request' ||
+          (github.ref != 'refs/heads/master' && github.ref != 'refs/heads/staging')
+        run: >-
+          python scripts/run-branch-tests.py
+          "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" --validate-only
       - name: Classify exact changed paths
         id: scope
         env:

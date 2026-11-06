@@ -162,3 +162,35 @@ diff checks also passed. Root's delegated acceptance is conditional on this
 portable runner proof, which is now satisfied; no full product/browser/Compose
 matrix was rerun. The red `ea0d3c4` run is retained as failed history. Root owns
 exact CI, qualified-base context, and final publication/adoption.
+
+## Fail-fast branch manifest validation follow-up
+
+Root activated this bounded follow-up under the human's urgent workflow mandate.
+The branch first merged exact synchronized-green staging/master commit
+`a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7` normally. Provider run
+`42204424643` spent about 23 minutes in Backend Tests before its
+Branch-declared job immediately failed on `plan.yaml` / `branch-tests.json`
+parity. The existing `execution_manifest` validator now has a
+`--validate-only` mode that checks explicit manifests without executing
+commands and accepts the existing no-manifest plan fallback.
+
+The Changed-path validation scope job invokes that check before path
+classification on ordinary feature pushes and PRs. Direct master/staging pushes
+skip the feature manifest check; PRs still validate their source branch. Backend,
+frontend-unit, E2E, and branch-declared jobs already require changed-scope, so a
+manifest mismatch fails before product jobs begin. The runner itself is added
+as one exact workflow-tool allowlist path; prior qualification and broad fallback
+rules are unchanged. Guidance now documents the local pre-publication check.
+
+Checkpoint files: `.github/workflows/ci.yml`, `docs/agent-orchestration.md`,
+`scripts/ci-change-scope.py`, `scripts/run-branch-tests.py`,
+`tests/workflow/test_ci_change_scope.py`,
+`tests/workflow/test_run_branch_tests.py`, and this workstream's `plan.yaml`,
+`handoff.md`, `validation.jsonl`, and `session.json`.
+
+Root conditionally accepts this narrow checkpoint after focused checks and exact
+closing-tip CI. Focused runner/scope regressions and actual no-manifest
+validation-only CLI proof passed; no branch commands ran in validation-only
+mode. Product behavior, provider policy, sibling worktrees and protected refs
+were not changed. Root owns exact CI and integration. `integration_capture:
+exact branch HEAD`.

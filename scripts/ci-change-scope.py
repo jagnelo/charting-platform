@@ -22,6 +22,7 @@ WORKFLOW_FILES = {
     "scripts/staging.py",
     "scripts/agent-session.py",
     "scripts/worktree.py",
+    "scripts/run-branch-tests.py",
     "scripts/ci-change-scope.py",
     "scripts/verify-master-promotion.py",
     "scripts/verify-prior-qualification.py",
