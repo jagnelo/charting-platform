@@ -22,13 +22,13 @@
           <button
             type="button"
             class="research-results-tool__run-select"
-            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts.length} artifacts`"
+            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts?.length ?? 0} artifacts`"
             :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
             @click="selectedRun = run"
           >
             <strong>Run #{{ run.id }}</strong>
             <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
-            <small>{{ run.artifact_count ?? run.artifacts.length }} artifact{{ (run.artifact_count ?? run.artifacts.length) === 1 ? '' : 's' }}</small>
+            <small>{{ run.artifact_count ?? run.artifacts?.length ?? 0 }} artifact{{ (run.artifact_count ?? run.artifacts?.length ?? 0) === 1 ? '' : 's' }}</small>
           </button>
         </div>
       </div>
@@ -196,6 +196,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
@@ -291,6 +292,58 @@ function mergeResearchRuns(...groups: ResearchRunSummary[][]) {
   }
   return [...byId.values()]
 }
+function reconcileResearchRunsWithCache(
+  serverRuns: ResearchRunSummary[],
+  cachedRuns: ResearchRunSummary[],
+) {
+  const cachedById = new Map(cachedRuns.map(run => [run.id, run]))
+  const mergedById = new Map<number, ResearchRunSummary>()
+  for (const serverRun of serverRuns) {
+    const cachedRun = cachedById.get(serverRun.id)
+    if (!cachedRun) {
+      mergedById.set(serverRun.id, serverRun)
+      continue
+    }
+    const serverArtifacts = serverRun.artifacts ?? []
+    const cachedArtifacts = cachedRun?.artifacts ?? []
+    const serverRunConfig = serverRun.run_config ?? {}
+    const serverDatasetManifest = serverRun.dataset_manifest ?? {}
+    const serverArtifactCount = serverRun.artifact_count ?? serverArtifacts.length
+    const cachedArtifactCount = cachedRun?.artifact_count ?? cachedArtifacts.length
+    const hasArtifactCount = serverRun.artifact_count !== undefined || cachedRun.artifact_count !== undefined
+    const serverIsTerminal = ['completed', 'failed', 'canceled'].includes(serverRun.status)
+    const serverHasRunConfig = Object.keys(serverRunConfig).length > 0
+    const serverHasManifest = Object.keys(serverDatasetManifest).length > 0
+    mergedById.set(serverRun.id, {
+      ...cachedRun,
+      ...serverRun,
+      status: cachedRun && ['completed', 'failed', 'canceled'].includes(cachedRun.status) && !serverIsTerminal
+        ? cachedRun.status
+        : serverRun.status,
+      run_config: serverHasRunConfig ? serverRunConfig : cachedRun?.run_config ?? serverRunConfig,
+      dataset_manifest: serverHasManifest ? serverDatasetManifest : cachedRun?.dataset_manifest ?? serverDatasetManifest,
+      ...(hasArtifactCount ? { artifact_count: Math.max(serverArtifactCount, cachedArtifactCount) } : {}),
+      artifacts: cachedArtifacts.length > serverArtifacts.length ? cachedArtifacts : serverArtifacts,
+    })
+  }
+  for (const cachedRun of cachedRuns) {
+    if (!mergedById.has(cachedRun.id)) mergedById.set(cachedRun.id, cachedRun)
+  }
+  const serverOrderedRuns = serverRuns.flatMap(serverRun => {
+    const reconciled = mergedById.get(serverRun.id)
+    return reconciled ? [reconciled] : []
+  })
+  const cachedOnlyRuns = [...mergedById.values()].filter(run => !serverRuns.some(serverRun => serverRun.id === run.id))
+  cachedOnlyRuns.sort((left, right) => {
+    const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : Number.NaN
+    const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : Number.NaN
+    if (Number.isFinite(leftCreatedAt) && Number.isFinite(rightCreatedAt) && leftCreatedAt !== rightCreatedAt) {
+      return rightCreatedAt - leftCreatedAt
+    }
+    return right.id - left.id
+  })
+  return [...cachedOnlyRuns, ...serverOrderedRuns].slice(0, RESEARCH_RUN_FETCH_SIZE)
+}
 const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
   const [leftRun, rightRun] = comparisonRuns.value.map(run => comparisonDetails.value[run.id] ?? run)
   if (!leftRun || !rightRun) return []
@@ -324,7 +377,7 @@ const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.
   : '')
 const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
-const runsQueryKey = ['workstation', 'research-runs'] as const
+const runsQueryKey = researchRunsQueryKey
 const queryClient = useQueryClient()
 const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research-artifact-${artifactId}-summary`
 let visibilityObserver: IntersectionObserver | null = null
@@ -341,7 +394,11 @@ function beginPromotion() {
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
-  queryFn: async () => (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? [],
+  queryFn: async () => {
+    const serverRuns = (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? []
+    const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
+    return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+  },
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
   staleTime: 5_000,
   refetchOnWindowFocus: true,

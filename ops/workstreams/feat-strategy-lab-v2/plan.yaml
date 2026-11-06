@@ -1,11 +1,29 @@
 schema: 4
 goal: >-
+  Implement the Strategy-owned Study usability scope from the human-activated platform-usability
+  release: reliable Study editing, validation, ordinary runs, truthful persisted Results, recovery,
+  and immutable promotion bindings. Preserve the complete original Strategy Lab v2 roadmap and all
+  safety holds; this active checkpoint does not qualify native execution or complete the platform.
+previous_checkpoint_goal: >-
   Prepare the next named first-human Strategy Lab v2 source checkpoint: complete the normal-user
   read-only path from a completed Study output into the owner-scoped immutable V2 inspector, close
   the branch-local resolver/payload prerequisites, preserve corrected date-bound and authoritative
   venue/calendar semantics, and verify compatibility with accepted a6b9. Record the delegated source
   acceptance for integration while keeping deployed proof and full-roadmap completion open; do not
   claim native execution.
+current_checkpoint:
+  id: strategy-study-usability-2026-11-06
+  status: in_progress
+  authority: >-
+    Human-activated complete platform-usability plan at
+    /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md
+    and SHARED-CONTRACT.md; Root aligned the existing session-local goal without resetting its
+    objective history, creation time, or accounting.
+  scope: >-
+    Strategy ownership covers Study/Results/Library components and views, Strategy Lab views/store,
+    Study-specific backend modules/tests, and a new Study-only browser journey. TC owns the shared
+    shell, workspace, ToolContent, shared helpers/types/styles and flows.spec.ts. No native, broker,
+    capital, paid/trial, provider-live, or other held scope is activated.
 integration_checkpoint:
   id: strategy-lab-v2-first-human-study-inspector-2
   status: ready_for_integration
@@ -950,7 +968,7 @@ accepted_integration_1_progress:
   completed: [SLICP1, SLICP2, SLICP3, SLICP4, SLICP5]
   total: 5
   status_at_acceptance: ready_for_integration
-acceptance_criteria:
+previous_checkpoint_acceptance_criteria:
 - id: FH1
   text: >-
     Preserve the accepted strategy-lab-v2-integration-1 source/closure and full original 18
@@ -987,7 +1005,7 @@ acceptance_criteria:
     target before final target acceptance or coordinator-goal completion. This separates ordering
     only: no proof is waived or passed early. Native, full SPA, full-roadmap, forward/broker/capital
     activation remain outside this checkpoint and disabled.
-progress:
+previous_checkpoint_progress:
   completed: [FH1, FH2, FH3, FH4, FH5]
   total: 5
   current_phase: strategy-lab-v2-first-human-study-inspector-2
@@ -1108,6 +1126,74 @@ local_validation_reason: >-
   Docker-backed PostgreSQL/Redis, migration, worker, and backend API gates.
 goal_budget_policy: unbounded_unless_human_authorized
 human_goal_budget_authorization: none
+acceptance_criteria:
+- id: SU1
+  text: >-
+    A loaded persisted Study displays dataset and source identity from that saved run's immutable
+    run_config and dataset_manifest, separately from the editable current draft; switching context,
+    restoring a run, and validating a new draft never relabel old outputs.
+- id: SU2
+  text: >-
+    A newly created or completed Study run appears in the adjacent persisted Results list without
+    manual refresh, and its terminal status and artifact count agree across list/detail projections.
+- id: SU3
+  text: >-
+    Code Library validation and save operations are bound to the exact source, output contract and
+    base CodeVersion snapshot that was validated; late responses cannot certify changed drafts.
+- id: SU4
+  text: >-
+    Reload, explicit cancel, snapshot/latest rerun, return and result promotion remain recoverable
+    and operate on the selected persisted run's immutable source/config/manifest, never current draft
+    fallbacks. Closing a view does not cancel a durable run.
+- id: SU5
+  text: >-
+    A Strategy-owned Study-only browser journey covers normal-user validate/run, automatic Results
+    arrival, accurate artifacts, and draft-versus-saved identity; the complete unchanged full local
+    profile and exact-source CI remain required before readiness.
+- id: SU6
+  text: >-
+    Preserve all original 18 roadmap criteria and accepted checkpoint history; retain honest limits
+    and disabled native/forward/broker/capital/provider-live scopes. Full platform profile and any
+    Root-owned genuine target acceptance remain distinct and open.
+progress:
+  completed: [SU1, SU2, SU3, SU4]
+  total: 6
+  current_phase: strategy-study-usability-2026-11-06
+  active_changeset:
+    id: strategy-study-usability-2026-11-06
+    scope: >-
+      Repair Study saved-versus-draft identity, run-list arrival/artifact-count consistency, Code
+      Library async validation fencing, durable run recovery and immutable promotion binding; add a
+      Strategy-owned Study journey spec and focused regressions.
+    owned_paths:
+      - frontend/src/components/workstation/StudyLabTool.vue
+      - frontend/src/components/workstation/ResearchResultsTool.vue
+      - frontend/src/components/workstation/CodeLibraryTool.vue
+      - frontend/src/lib/workstation/researchQueryKeys.ts
+      - frontend/tests/unit/components/test_study_lab_tool.test.ts
+      - frontend/tests/unit/components/test_research_results_tool.test.ts
+      - frontend/tests/unit/components/test_code_library_tool.test.ts
+      - frontend/tests/e2e/strategy_study_journey.spec.ts
+      - backend/app/routers/research.py
+      - backend/tests/unit/routers/test_research_router.py
+      - ops/workstreams/feat-strategy-lab-v2/handoff.md
+      - ops/workstreams/feat-strategy-lab-v2/plan.yaml
+      - ops/workstreams/feat-strategy-lab-v2/session.json
+      - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
+    status: in_progress
+  current_blocker: >-
+    The combined full qualification suite and genuine deployed acceptance are scheduled and owned by
+    Root under /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/
+    combined-qualification-scheduling.json. Focused offline source checks continue; no duplicate
+    Strategy Compose/browser stack is to be launched. The earlier Docker-socket preflight refusal
+    remains historical and created no fixtures.
+  updated_at: "2026-11-06T19:09:36Z"
+  next_action: >-
+    After this result-identity/cache/Library source context is frozen for Root review, consume only
+    TC's released data-preparation coordinator in Strategy-owned Study controls. Prepare the
+    selected canonical dataset before validation/execution through the shared ensure/status flow,
+    preserve explicit user intent and saved outputs, and never hide acquisition inside evaluation.
+    Keep the combined full profile and deployed acceptance Root-owned.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -1388,13 +1474,18 @@ branch_tests:
   - cd backend && uv run mypy app/strategy_lab_v2 strategy_runtime
   - git diff --check
   - uv run --project backend python scripts/validate-workstream.py ops/workstreams
+  - cd frontend && npm test -- tests/unit/components/test_study_lab_tool.test.ts tests/unit/components/test_research_results_tool.test.ts tests/unit/components/test_code_library_tool.test.ts tests/unit/router/test_application_routes.test.ts --maxWorkers=1 --minWorkers=1
+  - cd backend && uv run pytest tests/unit/routers/test_research_router.py -q --override-ini addopts=
 branch_tests_reason: >-
   The active provider workstream owns backend/tests, so v2-focused tests stay
   beside the new package and use an explicit pytest path. The executable branch
   checks cover the implemented engine-neutral package and durable workstream
   records; database/migration, PostgreSQL/Redis, isolated runtime, Nautilus,
   worker, API, Compose, and full exact-tip integration commands remain deferred
-  until their shared-path gates are open.
+  until their shared-path gates are open. The appended portable frontend and
+  Research-router unit commands cover the Strategy-owned Study usability
+  changes; Root's combined qualification remains the only full runtime/browser
+  profile and retains all existing assertions and thresholds.
 live_test_impact: >-
   No real broker, broker paper account, or external test service is used. Forward
   validation consumes platform canonical events; activating a long-running
@@ -1406,7 +1497,7 @@ deployment_impact: >-
   Add local Compose backtest/forward worker services and a persistent artifact
   volume with conservative defaults. No deployment, worker activation against
   real data, provider secret distribution, or broker connectivity is authorized.
-status: ready_for_integration
+status: in_progress
 remaining_gaps:
   # These accumulated entries are dated implementation snapshots, not the live
   # gate list. Use current_blocker/next_action for active work; stable Nautilus

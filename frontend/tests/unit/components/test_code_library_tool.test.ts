@@ -14,6 +14,12 @@ function mount(component: typeof CodeLibraryTool, options: Record<string, any> =
 
 const asset = { id: 4, stable_key: 'streak-study', name: 'Streak study', kind: 'study', is_archived: false, versions: [{ id: 8, version_number: 1, source: "output.scalar('n', 1)", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
+
 describe('CodeLibraryTool', () => {
   beforeEach(() => {
     apiGet.mockReset(); apiPost.mockReset(); apiGet.mockResolvedValue([asset])
@@ -194,6 +200,69 @@ describe('CodeLibraryTool', () => {
     expect(validation.attributes('aria-live')).toBe('assertive')
     expect(validation.attributes('aria-atomic')).toBe('true')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('revalidates a new asset draft when its source changes during validation', async () => {
+    const pendingValidation = deferred<unknown>()
+    let validationCalls = 0
+    apiGet.mockResolvedValue([asset])
+    apiPost.mockImplementation((path: string, payload?: Record<string, any>) => {
+      if (path === '/code/validate') {
+        validationCalls += 1
+        if (validationCalls === 1) return pendingValidation.promise
+        expect(payload).toEqual({ source: "output.scalar('current', 2)" })
+        return Promise.resolve({ valid: false, diagnostics: ['Current source is invalid'], dependencies: [], output_contracts: [] })
+      }
+      return Promise.resolve({ ...asset, id: 99 })
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    await wrapper.find('[aria-label="New Python asset name"]').setValue('Current study')
+    await wrapper.find('[aria-label="New Python asset key"]').setValue('current-study')
+    const source = wrapper.find('[aria-label="New Python asset source"]')
+    await source.setValue("output.scalar('old', 1)")
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await source.setValue("output.scalar('current', 2)")
+
+    pendingValidation.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['scalar'] })
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(validationCalls).toBe(2)
+    expect(wrapper.text()).toContain('Current source is invalid')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('does not reuse a late validation after an existing asset draft changes', async () => {
+    const pendingValidation = deferred<unknown>()
+    let validationCalls = 0
+    apiPost.mockImplementation((path: string, payload?: Record<string, any>) => {
+      if (path === '/code/validate') {
+        validationCalls += 1
+        if (validationCalls === 1) return pendingValidation.promise
+        expect(payload).toEqual({ source: "output.scalar('current', 3)" })
+        return Promise.resolve({ valid: false, diagnostics: ['Current version is invalid'], dependencies: [], output_contracts: [] })
+      }
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Streak study'))
+    await wrapper.get('summary').trigger('click')
+    const source = wrapper.find('[aria-label="Python source for Streak study"]')
+    await source.setValue("output.scalar('old', 2)")
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await source.setValue("output.scalar('current', 3)")
+
+    pendingValidation.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['scalar'] })
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+
+    expect(validationCalls).toBe(2)
+    expect(wrapper.text()).toContain('Current version is invalid')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets/4/versions', expect.anything())
   })
 
   it('announces successful source validation as a polite status', async () => {

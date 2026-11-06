@@ -55,6 +55,30 @@ describe('ResearchResultsTool', () => {
     expect(wrapper.find(`#${summaryId}`).text()).toContain('confidence range result with 1 observations')
   })
 
+  it('automatically refreshes the persisted-run list when a Study run is created elsewhere', async () => {
+    let listReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path !== '/research/runs') return Promise.resolve({})
+      listReads += 1
+      return Promise.resolve(listReads === 1
+        ? [{ id: 6, status: 'completed', code_version_id: 42, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] }]
+        : [
+            { id: 7, status: 'completed', code_version_id: 43, run_config: {}, dataset_manifest: {}, artifact_count: 8, artifacts: [] },
+            { id: 6, status: 'completed', code_version_id: 42, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] },
+          ])
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const wrapper = mount(ResearchResultsTool, {
+      global: { plugins: [[VueQueryPlugin, { queryClient }]], stubs: { RouterLink: routerLinkStub } },
+    })
+    await flushPromises()
+    expect(wrapper.find('[aria-label="Run 7, completed, 8 artifacts"]').exists()).toBe(false)
+
+    await queryClient.invalidateQueries({ queryKey: ['workstation', 'research-runs'] })
+    await vi.waitFor(() => expect(wrapper.find('[aria-label="Run 7, completed, 8 artifacts"]').exists()).toBe(true))
+    expect(listReads).toBe(2)
+  })
+
   it('links completed Study outputs to the read-only v2 inspector with their persisted IDs', async () => {
     apiGet.mockResolvedValue([{ id: 29, status: 'completed', output_contract: 'study', reproducibility_hash: 'abc', diagnostics: [], artifacts: [
       { id: 73, name: 'score', artifact_type: 'scalar', payload: { type: 'scalar', value: 6 } },

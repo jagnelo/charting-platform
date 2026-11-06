@@ -22,7 +22,9 @@ from app.routers.research import (
     _research_coverage_calendars,
     _research_manifest_fingerprint,
     _wire_timestamps,
+    get_run,
 )
+from app.schemas.code import ResearchRunOut
 
 
 class _AsyncSessionAdapter:
@@ -33,6 +35,70 @@ class _AsyncSessionAdapter:
     async def execute(self, statement):
         self.execute_count += 1
         return self.session.execute(statement)
+
+
+class _ScalarResult:
+    def __init__(self, value):
+        self.value = value
+
+    def scalar_one_or_none(self):
+        return self.value
+
+
+class _ResearchRunDetailSession:
+    def __init__(self, run):
+        self.run = run
+
+    async def execute(self, _statement):
+        return _ScalarResult(self.run)
+
+    async def flush(self):
+        return None
+
+
+@pytest.mark.asyncio
+async def test_research_run_detail_projects_artifact_count_from_persisted_artifacts(monkeypatch):
+    from app.routers import research
+
+    artifacts = [
+        SimpleNamespace(
+            id=index, artifact_type="scalar", name=f"metric-{index}", payload={"value": index}
+        )
+        for index in range(1, 9)
+    ]
+
+    def collect_persisted_output(run):
+        run.artifacts.extend(artifacts)
+        return True
+
+    monkeypatch.setattr(research, "collect_research_result", collect_persisted_output)
+    monkeypatch.setattr(research, "read_research_progress", lambda _run_id: {})
+    run = SimpleNamespace(
+        id=7,
+        user_id=1,
+        created_at=datetime(2026, 11, 6, tzinfo=UTC),
+        code_version_id=42,
+        code_version=SimpleNamespace(output_contract="study"),
+        status="completed",
+        evaluation_status="evaluated",
+        run_config={"symbol": "XLB"},
+        dataset_manifest={"datasets": [{"symbol": "XLB"}]},
+        reproducibility_hash="sha256:study-run",
+        diagnostics=[],
+        warnings=[],
+        resource_usage={},
+        logs="",
+        artifacts=[],
+        progress={},
+    )
+
+    response = await get_run(
+        7, db=_ResearchRunDetailSession(run), current_user=SimpleNamespace(id=1)
+    )
+    serialized = ResearchRunOut.model_validate(response)
+
+    assert serialized.artifact_count == 8
+    assert len(serialized.artifacts) == 8
 
 
 def _series(instrument_id: int, *, feed: str, canonical: bool = True) -> MarketSeries:

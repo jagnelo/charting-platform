@@ -11,9 +11,9 @@
     <form v-if="creating" :id="createFormId" class="code-library-tool__create" aria-label="Create Python asset" @submit.prevent="createAsset">
       <input v-model.trim="newName" aria-label="New Python asset name" placeholder="Asset name" />
       <input v-model.trim="newStableKey" aria-label="New Python asset key" placeholder="stable-key" />
-      <select v-model="newKind" aria-label="New Python asset kind" @change="newValidation = null"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
-      <select v-if="newKind === 'condition'" v-model="newConditionContract" aria-label="New Python condition output contract" @change="newValidation = null"><option value="boolean">Boolean predicate</option><option value="series">Numeric series target</option></select>
-      <PythonSourceEditor v-model="newSource" ariaLabel="New Python asset source" @update:model-value="newValidation = null" />
+      <select v-model="newKind" aria-label="New Python asset kind" @change="invalidateNewValidation"><option value="study">Study</option><option value="plot">Plot</option><option value="column">Column</option><option value="condition">Condition</option><option value="signal">Signal</option></select>
+      <select v-if="newKind === 'condition'" v-model="newConditionContract" aria-label="New Python condition output contract" @change="invalidateNewValidation"><option value="boolean">Boolean predicate</option><option value="series">Numeric series target</option></select>
+      <PythonSourceEditor v-model="newSource" ariaLabel="New Python asset source" @update:model-value="invalidateNewValidation" />
       <div class="code-library-tool__validation-actions">
         <button type="button" :disabled="validatingNew || !newSource.trim()" @click="validateNewSource">{{ validatingNew ? 'Validating…' : 'Validate' }}</button>
         <button type="submit" :disabled="creatingBusy || validatingNew || !newName || !newStableKey || !newSource.trim()">{{ creatingBusy ? 'Creating…' : 'Create asset' }}</button>
@@ -132,8 +132,12 @@ const newKind = ref<'study' | 'plot' | 'column' | 'condition' | 'signal'>('study
 const newConditionContract = ref<'boolean' | 'series'>('boolean')
 const newSource = ref("output.scalar('value', 0)")
 const newValidation = ref<ValidationResult | null>(null)
+const newValidationSource = ref<string | null>(null)
+const newValidationContract = ref<string | null>(null)
 const validatingNew = ref(false)
 const versionValidations = ref<Record<number, ValidationResult>>({})
+const versionValidationSources = ref<Record<number, string>>({})
+const versionValidationBases = ref<Record<number, number>>({})
 const validatingAsset = ref<number | null>(null)
 let mounted = false
 let refreshGeneration = 0
@@ -192,36 +196,84 @@ async function validateSource(source: string): Promise<ValidationResult | null> 
 }
 async function validateNewSource() {
   if (validatingNew.value || !newSource.value.trim()) return
+  const source = newSource.value
+  const outputContract = newOutputContract()
   validatingNew.value = true
   error.value = ''
   try {
-    const validation = await validateSource(newSource.value)
-    newValidation.value = validation ? reconcileOutputContract(validation, newOutputContract()) : null
+    const validation = await validateSource(source)
+    if (newSource.value !== source || newOutputContract() !== outputContract) {
+      markNewValidationStale('The source or output contract changed while validation was running. Validate the current draft again.')
+      return
+    }
+    newValidation.value = validation ? reconcileOutputContract(validation, outputContract) : null
+    newValidationSource.value = validation ? source : null
+    newValidationContract.value = validation ? outputContract : null
   }
   finally { validatingNew.value = false }
+}
+function invalidateNewValidation() {
+  newValidation.value = null
+  newValidationSource.value = null
+  newValidationContract.value = null
+}
+function markNewValidationStale(message: string) {
+  newValidation.value = { valid: false, diagnostics: [{ message }], dependencies: [], output_contracts: [] }
+  newValidationSource.value = null
+  newValidationContract.value = null
 }
 async function validateVersionSource(asset: CodeAsset) {
   const source = drafts.value[asset.id] ?? latestVersion(asset)?.source ?? ''
   const base = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
   if (validatingAsset.value === asset.id || !source.trim()) return
+  if (!base) return
   validatingAsset.value = asset.id
   error.value = ''
   try {
     const result = await validateSource(source)
-    if (result && base) versionValidations.value = { ...versionValidations.value, [asset.id]: reconcileOutputContract(result, base.output_contract, base.output_name) }
+    const currentSource = (drafts.value[asset.id] ?? latestVersion(asset)?.source ?? '').trim()
+    const currentBase = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
+    if (currentSource !== source || currentBase?.version_number !== base.version_number) {
+      invalidateVersionValidation(asset.id)
+      markVersionValidationStale(asset.id, 'The source or base version changed while validation was running. Validate the current draft again.')
+      return
+    }
+    if (result) {
+      versionValidations.value = { ...versionValidations.value, [asset.id]: reconcileOutputContract(result, base.output_contract, base.output_name) }
+      versionValidationSources.value = { ...versionValidationSources.value, [asset.id]: source }
+      versionValidationBases.value = { ...versionValidationBases.value, [asset.id]: base.version_number }
+    }
   } finally { validatingAsset.value = null }
 }
 async function createAsset() {
   if (creatingBusy.value || !newName.value || !newStableKey.value || !newSource.value.trim()) return
+  const name = newName.value
+  const stableKey = newStableKey.value
+  const source = newSource.value
+  const kind = newKind.value
+  const outputContract = newOutputContract()
   creatingBusy.value = true; error.value = ''
   try {
-    const validation = newValidation.value?.valid ? newValidation.value : await validateSource(newSource.value).then(result => result ? reconcileOutputContract(result, newOutputContract()) : null)
+    const cachedValidationMatches = newValidation.value?.valid
+      && newValidationSource.value === source
+      && newValidationContract.value === outputContract
+    const validation = cachedValidationMatches
+      ? newValidation.value
+      : await validateSource(source).then(result => result ? reconcileOutputContract(result, outputContract) : null)
     newValidation.value = validation
+    if (validation) {
+      newValidationSource.value = source
+      newValidationContract.value = outputContract
+    }
     if (!validation?.valid) return
-    const asset = await api.post<CodeAsset>('/code/assets', { stable_key: newStableKey.value, name: newName.value, kind: newKind.value, initial_version: { source: newSource.value, output_contract: newOutputContract(), parameter_schema: {}, default_parameters: {} } })
+    if (newName.value !== name || newStableKey.value !== stableKey || newKind.value !== kind || newSource.value !== source || newOutputContract() !== outputContract) {
+      markNewValidationStale('The asset draft changed while it was being validated. Review and validate the current draft again.')
+      return
+    }
+    const asset = await api.post<CodeAsset>('/code/assets', { stable_key: stableKey, name, kind, initial_version: { source, output_contract: outputContract, parameter_schema: {}, default_parameters: {} } })
     await invalidateCodeAssets(queryClient)
     assets.value = [...assets.value, asset].sort((left, right) => left.name.localeCompare(right.name))
-    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newConditionContract.value = 'boolean'; newSource.value = "output.scalar('value', 0)"; newValidation.value = null
+    creating.value = false; newName.value = ''; newStableKey.value = ''; newKind.value = 'study'; newConditionContract.value = 'boolean'; newSource.value = "output.scalar('value', 0)"; invalidateNewValidation()
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset' }
   finally { creatingBusy.value = false }
 }
@@ -265,26 +317,57 @@ function selectVersion(asset: CodeAsset) {
 }
 function setSelectedVersion(asset: CodeAsset, versionNumber: number) {
   selectedVersions.value = { ...selectedVersions.value, [asset.id]: versionNumber }
+  invalidateVersionValidation(asset.id)
   const version = asset.versions.find(item => item.version_number === versionNumber)
   if (version) drafts.value = { ...drafts.value, [asset.id]: version.source }
 }
 function setDraft(assetId: number, source: string) {
   drafts.value = { ...drafts.value, [assetId]: source }
+  invalidateVersionValidation(assetId)
+}
+function invalidateVersionValidation(assetId: number) {
   const next = { ...versionValidations.value }
   delete next[assetId]
   versionValidations.value = next
+  const sources = { ...versionValidationSources.value }
+  delete sources[assetId]
+  versionValidationSources.value = sources
+  const bases = { ...versionValidationBases.value }
+  delete bases[assetId]
+  versionValidationBases.value = bases
+}
+function markVersionValidationStale(assetId: number, message: string) {
+  versionValidations.value = {
+    ...versionValidations.value,
+    [assetId]: { valid: false, diagnostics: [{ message }], dependencies: [], output_contracts: [] },
+  }
 }
 async function saveVersion(asset: CodeAsset) {
   const source = drafts.value[asset.id]?.trim()
   const base = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
   if (!source || !base) return
+  const selectedBaseVersion = base.version_number
   savingVersion.value = asset.id
   error.value = ''
   try {
-    const validation = versionValidations.value[asset.id]?.valid
+    const cachedValidationMatches = versionValidations.value[asset.id]?.valid
+      && versionValidationSources.value[asset.id] === source
+      && versionValidationBases.value[asset.id] === selectedBaseVersion
+    const validation = cachedValidationMatches
       ? versionValidations.value[asset.id]
       : await validateSource(source).then(result => result ? reconcileOutputContract(result, base.output_contract, base.output_name) : null)
-    if (validation) versionValidations.value = { ...versionValidations.value, [asset.id]: validation }
+    const currentSource = (drafts.value[asset.id] ?? latestVersion(asset)?.source ?? '').trim()
+    const currentBase = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
+    if (currentSource !== source || currentBase?.version_number !== selectedBaseVersion) {
+      invalidateVersionValidation(asset.id)
+      markVersionValidationStale(asset.id, 'The source or base version changed while it was being validated. Validate the current draft again.')
+      return
+    }
+    if (validation) {
+      versionValidations.value = { ...versionValidations.value, [asset.id]: validation }
+      versionValidationSources.value = { ...versionValidationSources.value, [asset.id]: source }
+      versionValidationBases.value = { ...versionValidationBases.value, [asset.id]: selectedBaseVersion }
+    }
     if (!validation?.valid) return
     const version = await api.post<CodeVersion>(`/code/assets/${asset.id}/versions`, { source, output_contract: base.output_contract, parameter_schema: base.parameter_schema, default_parameters: base.default_parameters })
     await invalidateCodeAssets(queryClient)

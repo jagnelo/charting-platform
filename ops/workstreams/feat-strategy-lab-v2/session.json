@@ -34,15 +34,31 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "backend/app/routers/research.py",
+    "backend/tests/unit/routers/test_research_router.py",
+    "frontend/src/components/workstation/CodeLibraryTool.vue",
+    "frontend/src/components/workstation/ResearchResultsTool.vue",
+    "frontend/src/components/workstation/StudyLabTool.vue",
+    "frontend/src/lib/workstation/researchQueryKeys.ts",
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
+    "frontend/tests/unit/components/test_code_library_tool.test.ts",
+    "frontend/tests/unit/components/test_research_results_tool.test.ts",
+    "frontend/tests/unit/components/test_study_lab_tool.test.ts",
+    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
+    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
+    "ops/workstreams/feat-strategy-lab-v2/session.json",
+    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
+  ],
   "docker": {
     "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "reason": "make agent-docker-ready timed out after 180 seconds with permission denied on /var/run/docker.sock; no fixture was created"
   },
   "docker_ready": {
-    "ready": true,
+    "ready": false,
     "started_desktop": false,
-    "wait_seconds": 0
+    "wait_seconds": 180,
+    "reason": "Docker socket permission denied before fixture creation"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
   "goal_objective": "Advance feat/strategy-lab-v2: Continue the original full 18-criterion Strategy Lab v2 roadmap in the existing branch and worktree. The accepted strategy-lab-v2-integration-1 checkpoint is historical evidence, not full-topic or native-v2 SPA/execution completion. Continue bounded work against the integrated Provider, ETF, and TC2000 contracts while preserving every original criterion and all disabled-scope boundaries.. Acceptance criteria: SLICP1: Preserve original goal and all 18 criterion IDs/texts, exhaustive dispositions and pending human acceptance; reconcile stale session progress with later evidence.; SLICP2: Prepare independent API/migration/worker and immutable-input consumer success/rejection evidence without importing unstaged implementations.; SLICP3: Reconcile dependency-ordered accepted green staging incrementally: Provider canonical identity/local series/coverage/freshness/provenance now; ETF known-at point-in-time membership and TC2000 immutable CodeVersion/Study outputs only after their releases; then prove the full combined consumer contract without completing this criterion early.; SLICP4: Reconcile routers, migrations, configuration and Compose workers; pass full application and exact-source CI gates with unsupported scopes explicit and Nautilus RC results qualified by exact build and scope.; SLICP5: Publish a clean pushed checkpoint with tested source, impacts, limitations and outstanding roadmap; stop at ready_for_human_review, closure pending human acceptance.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
@@ -67,14 +83,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "f91fe873131c7c2644a8bcfe0377492c8e4ddb5e",
-  "implementation_sha": "f91fe873131c7c2644a8bcfe0377492c8e4ddb5e",
-  "last_checkpoint": "2026-11-06T13:19:10Z",
+  "head": "55fb5bd8498e4eb5629ae3d2b8f80b1a50c4d921",
+  "implementation_sha": "55fb5bd8498e4eb5629ae3d2b8f80b1a50c4d921",
+  "last_checkpoint": "2026-11-06T19:09:36Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Stop at this context-adoption checkpoint. Root owns push, final native-wait proof and completion audit. No broader roadmap work is activated here. After a later scoped release, continue the original AC-UPSTREAM consumer roadmap while preserving the full 18 criteria, accepted checkpoint history, goal/accounting and every data, quota, provider, native, forward, broker, capital, paid/trial and unsafe hold.",
+  "next_action": "After this result-identity/cache/Library source context is frozen for Root review, consume only TC's released data-preparation coordinator in Strategy-owned Study controls. Prepare the selected canonical dataset before validation/execution through the shared ensure/status flow, preserve explicit user intent and saved outputs, and never hide acquisition inside evaluation. Keep the combined full profile and deployed acceptance Root-owned.",
   "parent_branch": "staging",
-  "plan_hash": "592b47a2ad00603722186f1c301db038a1a79252958b02f3b6b0fbd08a6a5e5b",
+  "plan_hash": "13ab6a6486d50f5c64e71003423583a013d4ce07bd450d64491c52ec32d9da98",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -98,20 +114,19 @@
   ],
   "progress": {
     "completed": [
-      "FH1",
-      "FH2",
-      "FH3",
-      "FH4",
-      "FH5"
+      "SU1",
+      "SU2",
+      "SU3",
+      "SU4"
     ],
-    "current_blocker": "Root authorized this records-only adoption of exact staging/master source 139b350238b5e1c8a170dce5af09a805301d857e. Local merge f91fe873131c7c2644a8bcfe0377492c8e4ddb5e has first parent 460521e60209316ab7eee64fa2a9f7e0244ba56b and second parent 139b; merge base is a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7. It completed without conflicts. Canonical receipt /home/m920q/charting-platform/.ai/validation/139b350238b5e1c8a170dce5af09a805301d857e.json (SHA256 3696ca6b1e85d492e08275ceac7b88ade3fe36bc554dbb9c0647721b8f7c51cd) records staging CI 42211787590 and master provenance CI 42222793213 as successful for the same SHA. Backend and frontend trees match 139 exactly; only four Strategy-owned records differ. Root reports that the private deployment passed row/schema/quota-preservation checks and verifies NVDA 498D1/104W1/25MN, XLE own 24 holdings, and IYF ACGL acquisition from provisional zero to 498 candles with dated IYF provenance. Root still owns the native-wait proof and final handoff. This source/context adoption does not complete or reactivate the original 18-criterion Strategy roadmap, alter the active full-goal status, or enable held operations.",
-    "current_phase": "strategy-lab-v2-first-human-study-inspector-2",
-    "next_action": "Stop at this context-adoption checkpoint. Root owns push, final native-wait proof and completion audit. No broader roadmap work is activated here. After a later scoped release, continue the original AC-UPSTREAM consumer roadmap while preserving the full 18 criteria, accepted checkpoint history, goal/accounting and every data, quota, provider, native, forward, broker, capital, paid/trial and unsafe hold.",
-    "total": 5,
-    "updated_at": "2026-11-06T13:19:10Z"
+    "total": 6,
+    "current_phase": "strategy-study-usability-2026-11-06",
+    "current_blocker": "The combined full qualification suite and genuine deployed acceptance are scheduled and owned by Root under /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/combined-qualification-scheduling.json. Focused offline source checks continue; no duplicate Strategy Compose/browser stack is to be launched. The earlier Docker-socket preflight refusal remains historical and created no fixtures.",
+    "next_action": "After this result-identity/cache/Library source context is frozen for Root review, consume only TC's released data-preparation coordinator in Strategy-owned Study controls. Prepare the selected canonical dataset before validation/execution through the shared ensure/status flow, preserve explicit user intent and saved outputs, and never hide acquisition inside evaluation. Keep the combined full profile and deployed acceptance Root-owned.",
+    "updated_at": "2026-11-06T19:09:36Z"
   },
-  "remote": "460521e60209316ab7eee64fa2a9f7e0244ba56b",
-  "remote_sha": "460521e60209316ab7eee64fa2a9f7e0244ba56b",
+  "remote": "55fb5bd8498e4eb5629ae3d2b8f80b1a50c4d921",
+  "remote_sha": "55fb5bd8498e4eb5629ae3d2b8f80b1a50c4d921",
   "remote_synchronized": false,
   "retained_docker_resources": [],
   "schema": 2,
@@ -224,5 +239,12 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
-  "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+  "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
+  "current_execution_checkpoint": {
+    "id": "strategy-study-usability-2026-11-06",
+    "status": "in_progress",
+    "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
+    "full_roadmap_preserved": true,
+    "heavy_profile": "pending Root resource allocation; no browser/fixture was launched in this turn"
+  }
 }
