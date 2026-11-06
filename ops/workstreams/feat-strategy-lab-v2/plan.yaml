@@ -1184,19 +1184,20 @@ progress:
       - ops/workstreams/feat-strategy-lab-v2/validation.jsonl
     status: in_progress
   current_blocker: >-
-    Exact-source branch CI run 42283102376 for published record checkpoint 8d0b3013a42e38b0e65eed901e49c643c2747ddf is in progress. The
-    local Study journey reload assertion has passed test discovery only. Root owns the single
+    Exact-source branch CI run 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 is pending.
+    The preceding run 42283102376 was still in progress at the last lookup. The Study journey reload
+    assertion has passed discovery only; browser execution remains pending. Root owns the single
     combined full qualification and genuine deployed acceptance under
     /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/
     combined-qualification-scheduling.json; no duplicate Strategy Compose/browser stack may be
     launched. The earlier Docker-socket preflight refusal remains historical and created no fixtures.
-  updated_at: "2026-11-06T19:59:57Z"
+  updated_at: "2026-11-06T20:02:00Z"
   next_action: >-
       Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view
-      action review, adding focused offline regressions only for uncovered behavior. The current local
-      reload journey assertion awaits exact-source CI and Root's combined browser qualification. Keep the Study browser
-      journey, Provider backend integration and single combined full qualification with Root; preserve
-      the full local profile and deployed acceptance as pending until those exact gates pass.
+      Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view
+      action review, adding focused offline regressions only for uncovered behavior. Keep the Study
+      browser journey, Provider backend integration and single combined full qualification with Root;
+      preserve the full local profile and deployed acceptance as pending until those exact gates pass.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
