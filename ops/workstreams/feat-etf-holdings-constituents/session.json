@@ -22,15 +22,15 @@
     ],
     "scope": "Merge existing SPDR route aliases only into compatible same-issuer metadata; preserve other aliases and leave issuer/adapter conflicts unchanged.",
     "focused_validation": "5 focused route tests passed in 7.62s on the final implementation; Ruff check/format, workstream validation, broad-scope classification, diff check, and plan/session history assertions passed.",
-    "exact_source_ci": "pending_Root_owned",
+    "exact_source_ci": "run_42199229443_pending_Root_terminal_green",
     "green_claimed": false,
-    "status": "ready_for_human_review"
+    "status": "Root_accepted_ready_for_integration; exact_implementation_CI_pending"
   },
   "active_follow_up": {
     "id": "spdr-sector-route-metadata-composition-2026-11-06",
     "scope": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
     "source_parent_sha": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
-    "status": "ready_for_human_review"
+    "status": "Root_accepted_ready_for_integration; exact_implementation_CI_pending"
   },
   "active_goal": {
     "created_at_epoch": 1793958254,
@@ -81,8 +81,8 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "closure_pending": true,
-  "closure_summary": "Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules. The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.",
+  "closure_pending": false,
+  "closure_summary": "Root accepted the shared SPDR route-composition fix at tested implementation ec861fdd9d7d22df8882c67271a2d07e6f877229. Five focused route tests, lint, workstream/record and scope guards passed. The fix adds the existing SPDR route aliases only to compatible same-issuer metadata, preserving existing identifiers and leaving conflicting metadata unchanged; adapter URLs, workbook parsing/fund identity, native contracts and quotas are unchanged. No migrations, product configuration, policy/quota changes, or external source calls occurred. Exact implementation CI 42199229443 must be terminal green before Root pushes this records-only closure; combined staging/master gates and genuine deployed XLE proof remain mandatory. The wider AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 criteria, holds and historical evidence remain open and unchanged. integration_capture: exact branch HEAD.",
   "continuation_goal": {
     "accounting_note": "This is the same unbudgeted ordinary ticker-selection goal in the original thread. Prior completed goal accounting and accepted checkpoints remain archived unchanged.",
     "created_at_epoch": 1793705535,
@@ -92,7 +92,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Exact-source CI, Root-owned genuine XLE acceptance, and combined release gates remain pending. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories and wider roadmap remain preserved/open.",
+  "current_blocker_latest": "Exact implementation CI 42199229443 must be terminal green before Root pushes this records-only closure; combined staging/master gates and genuine deployed XLE proof remain mandatory and Root-owned. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories and wider roadmap remain preserved/open.",
   "current_checkpoint_objective": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
   "current_local_delta": {
     "type": "test-only",
@@ -667,7 +667,7 @@
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
-  "human_closure_authorization": "Root accepted this bounded implementation under existing human-delegated authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. No new human quote is claimed.",
+  "human_closure_authorization": "Root accepted the bounded SPDR route-composition checkpoint under the existing standing human-delegated acceptance authority; this records Root delegated acceptance and does not claim a new human statement.",
   "implementation_sha": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
   "implementation_source_baseline": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
   "integration_capture": "exact branch HEAD",
@@ -1001,7 +1001,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "38c8cb3388233fdc4eb345b5eebd6df6b9a5f908720dea9d423ecd5146f9c95d",
+  "plan_hash": "6cdfa87bca747b9fd6c93327352bbf98343e6e25732207b20092e5933af8868d",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -3681,5 +3681,19 @@
   },
   "previous_goal_request_context_adoption_a9_2026_11_06": {
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
+  },
+  "previous_session_closure_before_spdr_route_checkpoint_2026_11_06": {
+    "human_closure_authorization": "Root accepted this bounded implementation under existing human-delegated authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. No new human quote is claimed.",
+    "closure_summary": "Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules. The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.",
+    "closure_pending": true
+  },
+  "current_checkpoint_acceptance": {
+    "checkpoint_id": "spdr-sector-route-metadata-composition-2026-11-06",
+    "root_delegated_acceptance": "Root accepted under standing human-delegated checkpoint acceptance; no new human quote is asserted.",
+    "tested_implementation_sha": "ec861fdd9d7d22df8882c67271a2d07e6f877229",
+    "focused_evidence": "Five focused route tests passed; lint, workstream/record and scope guards passed.",
+    "exact_implementation_ci": "42199229443 pending terminal green; Root owns push after green.",
+    "integration_capture": "exact branch HEAD",
+    "status": "ready_for_integration"
   }
 }

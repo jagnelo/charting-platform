@@ -5649,27 +5649,39 @@ acceptance_criteria:
 progress:
   completed: [SPR1, SPR2, SPR3]
   total: 3
-  current_phase: Focused route-composition tests and source guards pass; candidate is ready for Root review.
-  current_blocker: Exact-source CI, serialized genuine XLE acceptance, and combined release gates remain Root-owned and pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories, and wider roadmap.
+  current_phase: Root accepted the bounded route-composition checkpoint; exact implementation CI and downstream release gates remain pending.
+  current_blocker: Exact implementation CI 42199229443 must become terminal green; combined staging/master gates and genuine deployed XLE proof remain mandatory and Root-owned. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories, and wider roadmap remain open.
 integration_checkpoint:
   id: spdr-sector-route-metadata-composition-2026-11-06
   scope: Add the existing SPDR route aliases only to compatible same-issuer canonical route metadata, preserving existing fields and refusing conflicts.
-  status: ready_for_human_review
-  activation: Root authorized this bounded implementation in the current ETF branch/session; checkpoint acceptance remains pending.
+  status: accepted_ready_for_integration
+  activation: Root accepted this bounded checkpoint under standing human-delegated checkpoint authority.
   implementation_paths:
   - backend/app/services/etf_holdings_adapters.py
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   focused_validation: 5 focused route tests passed; Ruff check and format passed. No live provider calls or heavy profiles were run.
   source_contracts_unchanged: SPDR workbook URL construction and exact workbook fund-ticker identity validation are unchanged.
-  exact_source_ci: pending_Root_owned
+  exact_source_ci: run_42199229443_pending_Root_terminal_green
   green_claimed: false
+  root_acceptance: Root accepted the bounded SPDR route-composition correction under standing human-delegated checkpoint acceptance; no new human quote is asserted.
   live_xle_acceptance: Root_owned_pending; no request or source result is claimed.
   migration_impact: none
   product_configuration_or_policy_change: none
   full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, datasets, histories, and other genuine user-flow work remain open and preserved.
   integration_capture: exact branch HEAD
-status: ready_for_human_review
-closure_pending: true
-human_closure_authorization: Root authorized implementation only; Root checkpoint acceptance and exact-source CI remain pending.
+status: ready_for_integration
+closure_pending: false
+human_closure_authorization: Root accepted the bounded SPDR route-composition checkpoint under the existing standing human-delegated acceptance authority; this records Root's delegated acceptance and does not claim a new human statement.
 closure_summary: >-
-  The bounded SPDR route-composition correction is ready for Root review after focused offline tests and scope guards. Compatible State Street metadata gains only missing route aliases while existing identity metadata is preserved and conflicts remain untouched. No external request, policy/quota change, migration, or live XLE acceptance is claimed. Exact-source CI and Root-owned genuine XLE/release gates remain pending. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, histories, and wider roadmap remain open. integration_capture: exact branch HEAD.
+  Root accepted the shared SPDR route-composition fix at tested implementation
+  ec861fdd9d7d22df8882c67271a2d07e6f877229. Five focused route tests, lint,
+  workstream/record and scope guards passed. The fix adds the existing SPDR
+  route aliases only to compatible same-issuer metadata, preserving existing
+  identifiers and leaving conflicting metadata unchanged; adapter URLs,
+  workbook parsing/fund identity, native contracts and quotas are unchanged.
+  No migrations, product configuration, policy/quota changes, or external
+  source calls occurred. Exact implementation CI 42199229443 must be terminal
+  green before Root pushes this records-only closure; combined staging/master
+  gates and genuine deployed XLE proof remain mandatory. The wider AC1-AC14
+  roadmap, 15 Tier-0 and 156 Tier-1 criteria, holds and historical evidence
+  remain open and unchanged. integration_capture: exact branch HEAD.

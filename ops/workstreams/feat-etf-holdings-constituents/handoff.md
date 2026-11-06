@@ -18217,3 +18217,7 @@ The exact three PostgreSQL/SQLite nodes passed once (`3 passed`, `29.07s`, exit 
 This is a test-only checkpoint. Exact-source CI is pending under Root coordination; no broader full-suite, staging, integration, deployment, or roadmap completion is claimed. Preserve the prior checkpoint and the full AC1–AC14, `15 Tier-0 and 156 Tier-1`, all holds, histories, and genuine user-flow obligations.
 
 ---
+
+## SPDR sector route composition — Root-accepted checkpoint — 2026-11-06 10:36 UTC
+
+Root accepted implementation `ec861fdd9d7d22df8882c67271a2d07e6f877229` under standing human-delegated checkpoint authority. Five focused route tests and the recorded lint, workstream/record and scope guards passed. The fix composes existing SPDR aliases into compatible same-issuer metadata without changing identifiers or conflicting records; workbook URL, parsing/fund identity, native contracts and quotas are unchanged. No migration, product configuration, policy/quota mutation or external source call occurred. Exact implementation CI `42199229443` is still running; Root will push this records-only closure only after that exact CI is terminal green. Combined staging/master gates and genuine deployed XLE proof remain mandatory. AC1-AC14, 15 Tier-0/156 Tier-1, holds and historical evidence remain open and preserved.
