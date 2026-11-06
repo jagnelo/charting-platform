@@ -209,6 +209,9 @@ def bind_explicit_provider_acquisition(
         (ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"),
         (ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile"),
         (ProviderCapability.PRICE_HISTORY, "fetch_ohlcv"),
+        # Durable server-owned preparation can invoke the existing bounded
+        # multi-provider history planner for one exact canonical instrument.
+        (ProviderCapability.PRICE_HISTORY, "bulk_fetch"),
         (ProviderCapability.ETF_HOLDINGS, "fetch_etf_holdings_latest"),
     }
     if not operations.issubset(allowed_operations):

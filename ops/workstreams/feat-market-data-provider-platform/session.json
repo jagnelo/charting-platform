@@ -1,27 +1,39 @@
 {
   "acceptance_criteria": [
     {
-      "id": "HISTORY-SHARED-1",
-      "text": "Discovery, selected identity and history expose typed held/no_match/failed outcomes; known rate/window retry times are preserved, unknown/hard holds never invent retry_at, and unexpected failures remain failed with safe diagnostics."
+      "id": "PLATFORM-PREP-1",
+      "text": "Authenticated ensure/poll DTOs expose exact typed target, datasets, range/analysis input, opaque request ID, owner-scoped durable per-dataset state/version, dependencies, actual coverage, safe reason and only known retry_at; ambiguous identity never ingests."
     },
     {
-      "id": "HISTORY-SHARED-2",
-      "text": "History availability binds exact instrument_id and provider_symbol under fetch_ohlcv while PROVIDER_REQUEST_DRIVEN_ONLY=true, runs the real resolver in read-only mode with the same dry provider-specific OHLCV cost estimate as ordinary fetch, and performs no transport, reservation, seeding, or policy/health mutation."
+      "id": "PLATFORM-PREP-2",
+      "text": "Request/dependency state survives API/worker restart and deduplicates equivalent acquisition work through MarketRefreshJob; active visible requests wake the real ARQ worker without waiting for the 15-minute maintenance cron; leases fence stale workers."
     },
     {
-      "id": "HISTORY-SHARED-3",
-      "text": "The DTO returns the earliest reviewed bound and configured inclusive per-request bar cap for currently eligible connections; unresolved identity, no eligible connection and unknown/malformed bounds are held with earliest_start=null, not reported as unlimited or observed coverage."
+      "id": "PLATFORM-PREP-3",
+      "text": "Planning resolves instrument, group/family, benchmark and both ratio legs before ingestion, keeps datasets independent, derives W1/MN from canonical D1, and computes analysis warmup/tail from existing semantics with truthful readiness states."
     },
     {
-      "id": "HISTORY-SHARED-4",
-      "text": "Meaningful focused regressions cover known native window denial/retry, unknown no-timer, unexpected failure, production request-driven resolver eligibility, shorter/longer bounds, no-eligible/unknown-bound cases and prior selected-history behavior; affected 334-test suite and static checks pass without external provider or real-ledger activity."
+      "id": "PLATFORM-PREP-4",
+      "text": "Progressive history uses multiple currently eligible providers only within exact identity/listing/feed/adjustment/terms boundaries and existing cost, entitlement, free-only, native/shared quota and per-request chunk guards; no arbitrary total-age cap or source mixing."
     },
     {
-      "id": "HISTORY-SHARED-5",
-      "text": "Current workstream records exact implementation/test hashes and focused evidence, preserves all prior accepted checkpoints and the 24 Provider/14 ETF roadmaps, and leaves full backend/DDL, exact closing-tip CI and Root combined release gates pending."
+      "id": "PLATFORM-PREP-5",
+      "text": "The real app.workers.arq_worker services active demand promptly and maintains defaults/discovered/saved-list/analysis inputs in visible-demand, default-readiness, then background order with session timing, provider delays, quota, restart and retry safety."
+    },
+    {
+      "id": "PLATFORM-PREP-6",
+      "text": "ETF holdings call only the agreed shared hook after a real ETF-owned handler exists; missing handler is unavailable, never fake success, and history/holdings progress remains independent."
+    },
+    {
+      "id": "PLATFORM-PREP-7",
+      "text": "A no-secret static provider inventory reports concrete future production credential/account/quota/history prerequisites, including Tiingo/Alpaca depth, without provider requests or target mutation; unknown/paid/trial/unsafe operations stay held."
+    },
+    {
+      "id": "PLATFORM-PREP-8",
+      "text": "Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before release acceptance."
     }
   ],
-  "active_checkpoint_id": "provider-shared-history-availability-and-discovery-holds-20261106",
+  "active_checkpoint_id": "provider-platform-usability-data-preparation-20261106",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
   "blocker": "Exact closing-tip CI and Root-owned combined staging/master/deployed proof remain mandatory and pending.",
   "branch": "feat/market-data-provider-platform",
@@ -275,14 +287,14 @@
     "source_sha": "caac446e982228cb13c259d7ed36274b1f68a679",
     "status": "overall failure solely because Branch-declared rejected the pre-correction plan/branch-tests mismatch; backend, frontend and Playwright product jobs passed; do not call the run green."
   },
-  "current_checkpoint_local_profile": "full_stack_browser cumulative category retained. The focused explicit-acquisition route module passed 18/18; this is not a full local matrix. Root owns combined release qualification.",
+  "current_checkpoint_local_profile": "full_stack_browser cumulative category retained. The active platform-usability implementation checkpoint passed 440 focused offline Provider unit cases and the one Root-allocated isolated PostgreSQL API/queue/worker module 5/5. No full backend or browser matrix is claimed; Root owns the combined release qualification.",
   "current_exact_ci": {
     "run_id": null,
     "source_sha": "exact branch HEAD after the coherent closing publication",
     "status": "pending; Root owns observation; no exact-tip CI is claimed"
   },
-  "current_gate_checkpoint": "Focused endpoint module 18/18; Ruff check/format and diff checks pass. Root acceptance pins the exact two implementation files. Exact closing-tip CI and combined release qualification remain pending.",
-  "current_native_goal_created_at": 1793898712,
+  "current_gate_checkpoint": "Active platform-usability API/queue/worker source checkpoint: affected focused units 440/440 and Root-allocated PostgreSQL cases 5/5; Ruff and diff checks pass. The actual worker-to-response coverage path reports completed chunk coverage during unfinished total backfill; W1/MN progress follows persisted derived series after a later D1 worker chunk. Full backend/DDL, exact-source CI, maintenance/readiness scope and Root combined release remain pending.",
+  "current_native_goal_created_at": 1793988315,
   "current_native_goal_token_budget": null,
   "current_postgres_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-expanded-current-PG-root-acceptance-20261104.json",
   "current_postgres_acceptance_receipt_sha256": "cc42daa5a3623f10abf5e99790a2e7cff6c5b180e74e69b6f23f43a151511e08",
@@ -312,7 +324,11 @@
     "backend/app/services/market_data.py": "b4a3ef40aa6c620ae1447921da28d1f1cb16d04b5db641508348b4b2e85f0b13",
     "backend/tests/unit/routers/test_instruments_router.py": "e1158c55bb26052adf5af3c0c845b18f9c4a1f8815e0a76b40ae4e3f0a4d6699"
   },
-  "dirty_paths": [],
+  "dirty_paths": [
+    "ops/workstreams/feat-market-data-provider-platform/plan.yaml",
+    "ops/workstreams/feat-market-data-provider-platform/handoff.md",
+    "ops/workstreams/feat-market-data-provider-platform/session.json"
+  ],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -356,17 +372,17 @@
     "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Complete the accepted bounded Provider follow-up: refresh stale derived W1/MN after D1 expansion and safely reuse verified same-symbol retained issuer security identifiers during exact acquisition; preserve all prior history and the full roadmap.",
-  "goal_recorded_at": "2026-11-05T17:11:52Z",
+  "goal_objective": "Implement the Provider-owned shared backend preparation contract for the human-activated platform-usability release: resolve exact instrument/group/family dependencies; persist owner-scoped preparation requests and per-dataset state; reuse the existing MarketRefreshJob queue, acquisition services and real ARQ worker for priority-aware, restart-safe, deduplicated work; and plan range-aware multi-provider history without mixing identity, listing, feed, adjustment or entitlement scopes. Preserve every prior accepted checkpoint and all Provider/ETF roadmaps. No frontend/ETF-owned implementation, provider HTTP, real quota/ledger/policy change, sibling/staging/master write, production change or deployment. Stop at ready_for_human_review; Root owns acceptance, integration and the single combined release.",
+  "goal_recorded_at": "2026-11-06T18:14:29.467381+00:00",
   "goal_request": {
-    "created_at": "2026-11-05T17:11:52Z",
-    "human_authorization_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/live-45cc-followup-owner-context-20261105.json",
-    "objective": "Advance feat/market-data-provider-platform: Complete the human-authorized shared Provider acquisition repair. Expose truthful typed held/no_match/failed outcomes and known retry timing across discovery, selected identity, and history; unknown baselines and hard holds never invent retry_at. Provide a read-only canonical-instrument history-availability DTO using the exact request-driven/free-only/class/operation/adjustment/entitlement resolver and the same documented dry OHLCV cost estimates as ordinary fetch, without Source HTTP, quota reservation, runtime seeding, or policy mutation. Return the actual deepest reviewed history bound and per-request slot budget; unknown bounds stay held. Preserve all native quotas, ledgers, user data, holds, accepted checkpoints, and the complete roadmaps. Stop at ready_for_human_review; Root owns exact CI, combined full_stack_browser qualification, integration, promotion, deployment, and genuine user proof."
+    "created_at": "2026-11-06",
+    "authorization": "Human activation recorded in platform-usability-20261106/APPROVED-PLAN.md; Root coordinates full release.",
+    "objective": "Implement the Provider-owned shared backend preparation contract for the human-activated platform-usability release: resolve exact instrument/group/family dependencies; persist owner-scoped preparation requests and per-dataset state; reuse the existing MarketRefreshJob queue, acquisition services and real ARQ worker for priority-aware, restart-safe, deduplicated work; and plan range-aware multi-provider history without mixing identity, listing, feed, adjustment or entitlement scopes. Preserve every prior accepted checkpoint and all Provider/ETF roadmaps. No frontend/ETF-owned implementation, provider HTTP, real quota/ledger/policy change, sibling/staging/master write, production change or deployment. Stop at ready_for_human_review; Root owns acceptance, integration and the single combined release."
   },
-  "goal_request_state": "active_test_dependency_checkpoint",
+  "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "2f152978f8fe409cda977f551ebae03f56421168",
+  "head": "4140440835f7d59ac69b87f3db1d4d04f39e516f",
   "historical_oih_closing_commit_ci_20261029": {
     "head_sha": "5e1aabdde44d7810d1cb286dee23d4f89a00b1ba",
     "owner": "Root",
@@ -462,7 +478,7 @@
     "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json",
     "source_sha": "314528777893f320f6e898085da3180561843f0c"
   },
-  "next_action": "Freeze this coherent checkpoint. Root owns push, exact-tip CI, combined release qualification, integration and deployment.",
+  "next_action": "Implement Provider-owned durable request/dependency schemas and planning over MarketRefreshJob, with focused offline tests.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
@@ -960,22 +976,15 @@
     "status": "completed: success"
   },
   "progress": {
-    "completed": [
-      "DISCOVERY-1",
-      "DISCOVERY-2",
-      "DISCOVERY-3",
-      "DISCOVERY-4",
-      "DISCOVERY-5"
-    ],
-    "current_blocker": "Final exact closing-tip CI and Root combined full_stack_browser release gates remain pending; Root owns observation.",
-    "current_phase": "bounded_software_checkpoint_accepted_final_tip_ci_pending",
-    "next_action": "Commit and push the coherent checkpoint, then freeze for Root CI.",
-    "total": 5,
-    "updated_at": "2026-11-05T03:17:57Z"
+    "completed": [],
+    "total": 8,
+    "current_phase": "shared_contract_and_existing_queue_analysis",
+    "current_blocker": "None; ETF implementation and Root-allocated database/browser proof are coordinated dependencies, not blockers to independent Provider work.",
+    "next_action": "Implement Provider-owned durable request/dependency schemas and planning over MarketRefreshJob, with focused offline tests."
   },
   "recorded_at": "2026-11-02T02:14:51.835172+00:00",
-  "remote": "2f152978f8fe409cda977f551ebae03f56421168",
-  "remote_sha": "2f152978f8fe409cda977f551ebae03f56421168",
+  "remote": "4140440835f7d59ac69b87f3db1d4d04f39e516f",
+  "remote_sha": "4140440835f7d59ac69b87f3db1d4d04f39e516f",
   "remote_synchronized": true,
   "retained_docker_resources": [
     "Read-only inventory at 2026-10-18T20:22:31Z found provider-noble-2734-retry1-20261017, provider-noble-2734-20261017, charting-provider-validation-isolated-20261017, charting-stack-provider-validation-1236-20261016, charting-stack-feat-market-data-provider-platform-c6e40c66, feat-market-data-provider-platform infrastructure, its buildkit container, and assigned charting-stack-feat-tc2000-frontend-rework-f63d60ae services active. No exact-current fixture capacity/ownership release exists. No service, volume, dataset, or retained artifact was stopped, reset, pruned, or cleaned."
@@ -1143,7 +1152,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "ready_for_integration",
+  "status": "in_progress",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -1416,6 +1425,110 @@
     "deployment_or_genuine_flow_claimed": false,
     "root_owns_backup_cutover_and_deployment": true
   },
-  "derived_refresh_issuer_identity_followup": {"exact_closing_tip_ci": "pending; Root-owned", "focused_result": "61 passed after final formatting; Ruff check/format and git diff check passed.", "id": "provider-derived-history-and-retained-issuer-identity-20261106", "integration_capture": "exact branch HEAD", "result": "Real instrument 359 and six retained issuer links returned CUSIP G0450A105 and SEDOL 2740542 in PostgreSQL READ ONLY; no HTTP/writes.", "retained_identity_readonly_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/retained-identity-readonly-checks/55cc6441c6957fc3b16d9c87fde82b3f46243ff6e62b8bf03731c717f868084b/receipt.json", "roadmaps_complete": false, "root_acceptance": "Direct same-turn Root acceptance under existing standing authorization; no separate receipt supplied.", "status": "ready_for_integration"},
-  "context_adoption_139": {"backend_tree": "2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc", "deployed_and_genuine_evidence": "Root reports actual private deployment with business-row/schema/quota preservation; NVDA 498D1/104W1/25MN, XLE 24 holdings, and IYF ACGL from provisional zero to 498 candles on the same Dashboard with dated IYF provenance. Root native-wait proof and final guide remain in progress.", "frontend_tree": "9df32b87de20826dbe0e32c739d2cbf0d9e1a634", "integration_capture": "exact branch HEAD", "master_provenance_run": 42222793213, "merge_base": "139b350238b5e1c8a170dce5af09a805301d857e", "provider_activation_or_source_request": false, "provider_local_merge_commit": "bfdeecb8083a166c7dae58111e4f5673fa685bc8", "roadmaps_complete": false, "root_authority": "Direct Root instruction in the original Provider thread for bounded release-context adoption.", "staging_ci_run": 42211787590, "staging_profile": "Staging CI 42211787590: exhaustive green, 202 functional, 104 strict visual, 1,614 frontend unit; master provenance CI 42222793213 green.", "staging_sha": "139b350238b5e1c8a170dce5af09a805301d857e", "staging_tree": "83a15dcd915c46e766285fdf533629eba89bc781", "status": "adopted_exact_green_context_only"}
+  "derived_refresh_issuer_identity_followup": {
+    "exact_closing_tip_ci": "pending; Root-owned",
+    "focused_result": "61 passed after final formatting; Ruff check/format and git diff check passed.",
+    "id": "provider-derived-history-and-retained-issuer-identity-20261106",
+    "integration_capture": "exact branch HEAD",
+    "result": "Real instrument 359 and six retained issuer links returned CUSIP G0450A105 and SEDOL 2740542 in PostgreSQL READ ONLY; no HTTP/writes.",
+    "retained_identity_readonly_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/retained-identity-readonly-checks/55cc6441c6957fc3b16d9c87fde82b3f46243ff6e62b8bf03731c717f868084b/receipt.json",
+    "roadmaps_complete": false,
+    "root_acceptance": "Direct same-turn Root acceptance under existing standing authorization; no separate receipt supplied.",
+    "status": "ready_for_integration"
+  },
+  "context_adoption_139": {
+    "backend_tree": "2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc",
+    "deployed_and_genuine_evidence": "Root reports actual private deployment with business-row/schema/quota preservation; NVDA 498D1/104W1/25MN, XLE 24 holdings, and IYF ACGL from provisional zero to 498 candles on the same Dashboard with dated IYF provenance. Root native-wait proof and final guide remain in progress.",
+    "frontend_tree": "9df32b87de20826dbe0e32c739d2cbf0d9e1a634",
+    "integration_capture": "exact branch HEAD",
+    "master_provenance_run": 42222793213,
+    "merge_base": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "provider_activation_or_source_request": false,
+    "provider_local_merge_commit": "bfdeecb8083a166c7dae58111e4f5673fa685bc8",
+    "roadmaps_complete": false,
+    "root_authority": "Direct Root instruction in the original Provider thread for bounded release-context adoption.",
+    "staging_ci_run": 42211787590,
+    "staging_profile": "Staging CI 42211787590: exhaustive green, 202 functional, 104 strict visual, 1,614 frontend unit; master provenance CI 42222793213 green.",
+    "staging_sha": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "staging_tree": "83a15dcd915c46e766285fdf533629eba89bc781",
+    "status": "adopted_exact_green_context_only"
+  },
+  "prior_session_goal_state_at_platform_usability_activation": {
+    "goal_objective": "Complete the accepted bounded Provider follow-up: refresh stale derived W1/MN after D1 expansion and safely reuse verified same-symbol retained issuer security identifiers during exact acquisition; preserve all prior history and the full roadmap.",
+    "goal_recorded_at": "2026-11-05T17:11:52Z",
+    "goal_request": {
+      "created_at": "2026-11-05T17:11:52Z",
+      "human_authorization_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/live-45cc-followup-owner-context-20261105.json",
+      "objective": "Advance feat/market-data-provider-platform: Complete the human-authorized shared Provider acquisition repair. Expose truthful typed held/no_match/failed outcomes and known retry timing across discovery, selected identity, and history; unknown baselines and hard holds never invent retry_at. Provide a read-only canonical-instrument history-availability DTO using the exact request-driven/free-only/class/operation/adjustment/entitlement resolver and the same documented dry OHLCV cost estimates as ordinary fetch, without Source HTTP, quota reservation, runtime seeding, or policy mutation. Return the actual deepest reviewed history bound and per-request slot budget; unknown bounds stay held. Preserve all native quotas, ledgers, user data, holds, accepted checkpoints, and the complete roadmaps. Stop at ready_for_human_review; Root owns exact CI, combined full_stack_browser qualification, integration, promotion, deployment, and genuine user proof."
+    },
+    "goal_state": "active",
+    "goal_request_state": "active_test_dependency_checkpoint",
+    "current_native_goal_created_at": 1793898712,
+    "current_native_goal_token_budget": null,
+    "acceptance_criteria": [
+      {
+        "id": "HISTORY-SHARED-1",
+        "text": "Discovery, selected identity and history expose typed held/no_match/failed outcomes; known rate/window retry times are preserved, unknown/hard holds never invent retry_at, and unexpected failures remain failed with safe diagnostics."
+      },
+      {
+        "id": "HISTORY-SHARED-2",
+        "text": "History availability binds exact instrument_id and provider_symbol under fetch_ohlcv while PROVIDER_REQUEST_DRIVEN_ONLY=true, runs the real resolver in read-only mode with the same dry provider-specific OHLCV cost estimate as ordinary fetch, and performs no transport, reservation, seeding, or policy/health mutation."
+      },
+      {
+        "id": "HISTORY-SHARED-3",
+        "text": "The DTO returns the earliest reviewed bound and configured inclusive per-request bar cap for currently eligible connections; unresolved identity, no eligible connection and unknown/malformed bounds are held with earliest_start=null, not reported as unlimited or observed coverage."
+      },
+      {
+        "id": "HISTORY-SHARED-4",
+        "text": "Meaningful focused regressions cover known native window denial/retry, unknown no-timer, unexpected failure, production request-driven resolver eligibility, shorter/longer bounds, no-eligible/unknown-bound cases and prior selected-history behavior; affected 334-test suite and static checks pass without external provider or real-ledger activity."
+      },
+      {
+        "id": "HISTORY-SHARED-5",
+        "text": "Current workstream records exact implementation/test hashes and focused evidence, preserves all prior accepted checkpoints and the 24 Provider/14 ETF roadmaps, and leaves full backend/DDL, exact closing-tip CI and Root combined release gates pending."
+      }
+    ],
+    "progress": {
+      "completed": [
+        "DISCOVERY-1",
+        "DISCOVERY-2",
+        "DISCOVERY-3",
+        "DISCOVERY-4",
+        "DISCOVERY-5"
+      ],
+      "current_blocker": "Final exact closing-tip CI and Root combined full_stack_browser release gates remain pending; Root owns observation.",
+      "current_phase": "bounded_software_checkpoint_accepted_final_tip_ci_pending",
+      "next_action": "Commit and push the coherent checkpoint, then freeze for Root CI.",
+      "total": 5,
+      "updated_at": "2026-11-05T03:17:57Z"
+    },
+    "active_checkpoint_id": "provider-shared-history-availability-and-discovery-holds-20261106",
+    "status": "ready_for_integration",
+    "planning_state": "ready",
+    "native_goal_lookup_before_new_goal": "null; no unfinished native goal existed",
+    "accounting_note": "Prior workstream goals/checkpoint history remain unchanged; new unbudgeted native goal was created only after that lookup."
+  },
+  "platform_usability_goal": {
+    "thread_id": "01a06924-ece6-7332-b416-84a0e335bac1",
+    "created_at": 1793988315,
+    "status": "active",
+    "token_budget": null,
+    "objective": "Implement the Provider-owned shared backend preparation contract for the human-activated platform-usability release: resolve exact instrument/group/family dependencies; persist owner-scoped preparation requests and per-dataset state; reuse the existing MarketRefreshJob queue, acquisition services and real ARQ worker for priority-aware, restart-safe, deduplicated work; and plan range-aware multi-provider history without mixing identity, listing, feed, adjustment or entitlement scopes. Preserve every prior accepted checkpoint and all Provider/ETF roadmaps. No frontend/ETF-owned implementation, provider HTTP, real quota/ledger/policy change, sibling/staging/master write, production change or deployment. Stop at ready_for_human_review; Root owns acceptance, integration and the single combined release."
+  },
+  "session_preflight_platform_usability": {
+    "result": "success",
+    "command": "UV_CACHE_DIR=/tmp/provider-platform-usability-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 make agent-context agent-session-status",
+    "retained_claim": "f093caba-0194-4527-b22b-0bfa26344c34",
+    "preflight_warning": "Runtime host quota-ledger directory could not be prepared; the implementation role and existing claim were verified. No Docker/resource action was taken."
+  },
+  "platform_usability_progress": {
+    "checkpoint": "provider-platform-usability-data-preparation-20261106",
+    "status": "in_progress",
+    "active_native_goal_created_at": 1793988315,
+    "token_budget": null,
+    "focused_units": "440 passed, 0 failed, 0 skipped",
+    "allocated_postgres": "5 passed, 0 failed, 0 skipped; fixture cleanup remains Root-owned",
+    "next": "Continue Provider-owned maintenance/readiness and range-aware multi-provider scope; no integration or deployment by this worktree",
+    "release_gates": "full backend/DDL, exact-source CI, and Root combined release pending",
+    "preserved": "All previous goal accounting, checkpoint history, and 24 Provider/14 ETF roadmaps remain unchanged/open"
+  }
 }

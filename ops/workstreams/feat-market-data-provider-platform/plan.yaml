@@ -2,7 +2,7 @@ schema: 4
 previously_active_provider_vtr_status: ready_for_integration
 previously_accepted_provider_etv_routing_status: ready_for_integration
 previously_accepted_provider_history_hold_status: ready_for_integration
-status: ready_for_integration
+status: in_progress
 # 2026-10-23 12:20Z: the focused prelisting boundary regression now checks
 # both the cross-page corroborated positive and conflicting-symbol quarantine;
 # the complete prelisting unit module passes 12/12. Source candidate and parent
@@ -14684,6 +14684,268 @@ closure_summary: 'Accepted bounded Provider checkpoint: (1) local W1/MN reads de
 migration_impact: None; no schema or migration change.
 live_test_impact: No provider/issuer/SEC HTTP; no real-ledger access or quota/hold/policy mutation occurred.
 deployment_impact: None; Root owns integration, promotion, deployment and genuine user-flow verification.
+
+followup_checkpoint:
+  id: provider-van-eck-fixture-clock-ci-dependency-20261106
+  objective: Adopt one Root-approved immutable test-only dependency that keeps authentic Oct 29 VanEck workbook regressions inside their reviewed freshness window, then publish one coherent Provider checkpoint for exact-tip CI.
+  status: ready_for_human_review
+  changed_provider_product_code: false
+  dependency:
+    source_commit: b25fc814ef301103337f343d57b859545fa5bb8f
+    path: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+    git_blob: c75d410ea18854db6179f0d2ba608ef62e4350c2
+    sha256: a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d
+    root_approval: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/etf-clock-fix-dependency-approval.json
+    root_approval_sha256: 1167ce41d9d257dade6c9dcd1d7a2938fd0e3bd7f92179c54e90f7c43a0e0826
+  prior_exact_ci:
+    run_id: 42141483157
+    result: Overall failure preserved. Backend unit phase 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed because the authentic Oct 29 workbook fixtures aged beyond the five-day freshness deadline; frontend and E2E jobs were green.
+    disposition: ETF owner reports the three previously failing nodes pass 3/3 in 29.07s on the exact approved test-only dependency; this Provider worktree did not rerun the bridge module.
+  scope: Only the approved test file and this Provider workstream are changed. No ETF workstream, payload fixture, Provider product code, provider transport, ledger, quota, policy, hold, or runtime resource is changed.
+  next_gate: Fresh exact-tip CI on this coherent Provider checkpoint, followed by Root-owned combined runtime/exhaustive/deployment gates; no prior red run is relabeled green.
+
+history_coverage_followup:
+  id: provider-history-calendar-gap-planner-20261106
+  objective: Correct shared cached-history readiness for sparse D1, W1 and MN data without changing the DTO/API or acquisition limits.
+  status: ready_for_integration
+  root_acceptance:
+    authority: Root delegated acceptance under the human standing authorization for this repair.
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-calendar-correction-root-acceptance.json
+    sha256: 48f13b3236c375be99cd392a91c1a7bcfba2a370d011a3130072402c1d62c203
+    decision: Accepted for integration subject to exact pushed-tip CI and new exact staging qualification; no gate or prior failed evidence is waived.
+  prior_accepted_checkpoint: 1cd22a256eee27181964afc3afbfe511c0441e51
+  scope:
+    - Coalesce consecutive missing XNYS D1 sessions across weekends, full-day holidays and DST while splitting at every present session.
+    - Plan XNYS W1 and MN coverage on UTC bucket boundaries aligned with derived timeframe keys; do not mark a short partial cache ready, and exclude unfinished current periods from missing tails.
+    - Use positive D1 request intervals containing the actual 04:00/05:00 UTC native bar timestamp while retaining support for canonical UTC-midnight daily labels.
+    - Preserve the existing 8 missing-slice and 2,000 inclusive-slot limits, provider entitlement/history bounds, native quotas, freshness rules and public history DTO/API shape.
+    - Record the documented NYSE Jan 9, 2025 full-day closure as a local calendar exception; do not infer closures from absent bars or add a calendar database query per day.
+  owned_paths:
+    - backend/app/services/ohlcv_coverage.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_provider_explicit_acquisition.py
+    - ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json}
+  file_sha256:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+    backend/tests/unit/services/test_market_data.py: c4ff035bf826c9264db4711a97941ff2bc06043b7c208145179fc4a0c73ecca7
+    backend/tests/unit/services/test_provider_explicit_acquisition.py: 7ecefeaabe007c17d80da49bd5e1e88c00cc5c0608b83071c0dabb5deb7a5699
+  validation:
+    command: UV_CACHE_DIR=/tmp/provider-quota-hold-followup-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 ENV_FILE=/dev/null uv run --no-sync --project backend pytest backend/tests/unit/services/test_market_data.py backend/tests/unit/services/test_provider_explicit_acquisition.py -q
+    result: 64 passed, 0 failed, 0 errors, 0 skipped in 2.99 seconds.
+    focused_cases: XLB-shaped 124-session cache reduces the 87-slice pattern to one old gap and at most one completed-session tail; W1=26 and MN=7 recent bars remain PARTIAL; empty caches remain MISSING; present periods split holes; current unfinished periods do not create tails; month bounds use real month lengths; Jan 9 2025 closure and native/UTC-midnight/DST daily labels reselect without repair slices.
+    application_bound: Existing max-slice guard regression passed; source guard and configured 8/2,000 values were not changed.
+    static: Ruff check, Ruff format --check, and git diff --check passed.
+    initial_attempts: The first full module run exposed a pre-existing fixture window ending before Monday's XNYS session opened; the test window was extended through the following completed session while preserving its partial-coverage/series-isolation assertions. One new endpoint expectation was corrected to clamp at the caller's end bound.
+  provider_requests: 0
+  ledger_policy_quota_hold_changes: false
+  migrations_or_api_changes: false
+  wider_provider_etf_roadmaps_complete: false
+  pending: Exact closing-tip CI and Root combined/release gates remain pending; Root owns acceptance, integration and deployment.
+  closure_summary: >-
+    Root accepted the bounded shared XNYS D1/W1/MN coverage-gap planner correction under the recorded human standing delegation. The focused 64-test unit result and static checks are recorded above. No migration, public API, provider configuration, quota, hold, entitlement, real-ledger or source-request change occurred. Prior accepted checkpoints and all 24 Provider/14 ETF roadmap items remain preserved and open. Exact pushed-tip CI, new staging qualification, combined release, promotion, deployment and genuine user journeys remain mandatory and Root-owned. integration_capture: exact branch HEAD.
+
+coverage_router_ci_test_followup:
+  id: provider-history-coverage-router-test-contract-20261106
+  status: ready_for_integration
+  parent_checkpoint: provider-history-calendar-gap-planner-20261106
+  accepted_product_commit: 7419aee45f1e3af9cd771a3b771889d956bd1cf1
+  product_source_frozen: true
+  product_sha256:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+  preserved_ci_failure:
+    run_id: 42169503855
+    backend_job_id: 127733921845
+    result: 5,922 unit passed, 1 configured skip, 2 coverage-router test failures; product tests and prior history remain unchanged.
+    first_failure: The selected-series fixture ended before Monday's NYSE session closed, so the only completed session was Jan 2 and READY was correct. Its range now ends at 2026-01-06T00:00:00Z to include the missing completed Jan 5 session; series-exclusion and PARTIAL assertions are preserved.
+    second_failure: The coverage DTO expected zero-UTC/equal-day bounds. The accepted planner emits the positive NY-local Jan 5 bar-open bound 2026-01-05T05:00:00Z and clamps the end to the request's 2026-01-10T00:00:00Z. Only missing_slices expected timestamps changed; the rest of the response contract is unchanged.
+  test_file_sha256:
+    backend/tests/unit/routers/test_coverage_router.py: d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78
+  validation:
+    command: UV_CACHE_DIR=/tmp/provider-quota-hold-followup-uv-cache UV_NO_SYNC=1 UV_OFFLINE=1 ENV_FILE=/dev/null uv run --no-sync --project backend pytest backend/tests/unit/routers/test_coverage_router.py backend/tests/unit/services/test_market_data.py backend/tests/unit/services/test_provider_explicit_acquisition.py -q
+    result: 71 passed, 0 failed, 0 errors, 0 skipped in 8.97 seconds; five dependency deprecation warnings only.
+    static: Ruff check, Ruff format --check, and git diff --check passed.
+    product_changed: false
+    provider_requests: 0
+    fixtures_or_ledger_or_policy_mutations: false
+  root_disposition: Root accepts these corrected tests if the planner product hash remains unchanged.
+  closure_summary: >-
+    Test-only follow-up corrects two expectations against the already Root-accepted coverage planner. The first fixture now spans a completed missing exchange session while preserving alternate-series exclusion and partial readiness. The second expects the planner's positive request-bounded NY-local D1 interval and keeps all other DTO assertions. The accepted product hash c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3 is unchanged. CI 42169503855 remains red historical evidence; exact new-tip CI and new exact staging/release qualification are pending and Root-owned. All prior accepted checkpoints and 24 Provider/14 ETF roadmaps remain preserved. integration_capture: exact branch HEAD.
+
+staging16_remediation_import:
+  id: provider-staging16-known-red-visual-remediation-base-20261106
+  status: remediation_base_imported_exact_ci_pending
+  root_authorization:
+    receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/staging16-visual-reviewed-reference-and-remediation-authorization.json
+    sha256: 2d8656dc4a7f0a1727528592de60b0173454be9695ff8fb47818a88c2883ee7c
+    authority: Root explicit remediation-base import authorization under the human standing history/dashboard repair authority.
+  imported_staging_commit: 16d76a8bddacffec9e8a85035cfea4e69ee0f529
+  provider_tip_before_import: e6db90b2dca4a2369898179062217f752e750f90
+  provider_merge_commit: e1146553b798b0788296276cdf2293c039396a29
+  merge_base_after_import: 16d76a8bddacffec9e8a85035cfea4e69ee0f529
+  classification: Known-red remediation base only; not green adoption, staging acceptance, roadmap completion, promotion or deployment.
+  staging_failure_preserved:
+    run_id: 42164203301
+    result: Red only at one stale reviewed visual reference; 103 other visual figures and prior backend/frontend/functional phases passed.
+    reviewed_reference: frontend/tests/e2e/tc2000_visual.spec.ts-snapshots/unavailable-freshness-gap-visual-1440p-100-linux.png
+    prior_sha256: 52c2030188991af88b569aaea0776ed7d584cbe6b7f6277eb36a1128282a015e
+    approved_sha256: 5747cbb398ffb8193a95b1dc0ba6b73c423acab5c5f435d13346f08c471ac9a8
+    owner: TC owner; Provider does not edit sibling workstreams or UI assertions.
+  preserved_provider_bytes:
+    backend/app/services/ohlcv_coverage.py: c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3
+    backend/tests/unit/routers/test_coverage_router.py: d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78
+  validation:
+    result: Non-fast-forward merge completed without conflict. merge-base(Provider HEAD, staging16) is exact 16d76a8bddacffec9e8a85035cfea4e69ee0f529; accepted Provider product and test hashes remain unchanged.
+    tests_run: false
+    provider_http_requests: 0
+    fixture_ledger_policy_changes: false
+    app_rebuild: false
+  pending: New exact Provider CI, TC-owned one-case visual verification, coordinated final exact-source CI and new exact staging qualification, Root-owned integration with REMEDIATE_DEGRADED=1, and all deployment/genuine-flow gates.
+  preserved: Commits 7419aee45f1e3af9cd771a3b771889d956bd1cf1 and e6db90b2dca4a2369898179062217f752e750f90, their accepted records, prior CI failures, and all 24 Provider/14 ETF roadmaps.
+  closure_summary: >-
+    Imported exact degraded staging commit 16d76a8bddacffec9e8a85035cfea4e69ee0f529 into the Provider branch with a non-fast-forward merge under Root authorization solely to establish the remediation base. This is not green adoption. The accepted planner and router test bytes are unchanged. Prior staging CI 42164203301 remains red at the reviewed visual reference. New Provider/TC exact-tip CI, the one-case visual check, and new exact staging CI remain mandatory and Root-owned. No Source request, fixture, real-ledger, quota/policy/hold, production, sibling-worktree or staging mutation occurred. All 24 Provider/14 ETF roadmaps remain open. integration_capture: exact branch HEAD.
+
+context_adoption_a9:
+  status: adopted_exact_green_context_only
+  root_authorization: Direct Root instruction in the original Provider session for bounded four-feature context adoption.
+  exact_context:
+    sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    tree: ebdddf700b68d3508755efb983eda10b574c426a
+    staging_ci_run: 42184756530
+    master_provenance_run: 42194282702
+    canonical_validation_receipt: .ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json
+    canonical_validation_sha256: acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3
+  local_adoption:
+    merge_commit: 600cfb98635b26891b1db106a294af6dc6eb353b
+    imported_commit: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    merge_base: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    method: Explicit non-fast-forward merge into the Provider worktree; no conflicts.
+    included_context: Exact green four-feature integrated context, including reviewed TC acquisition/history UI contract and approved visual reference update.
+  boundaries:
+    roadmaps_complete: false
+    deployment_or_genuine_user_flow_claimed: false
+    new_product_activation: false
+    product_or_test_validation_run: false
+  pending:
+    - Root private m920q backup/cutover and deployment verification
+    - Genuine deployed user-flow verification
+    - All remaining Provider and ETF roadmap criteria
+  closure_summary: >-
+    Adopted exact green four-feature context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 from the canonical receipt and Root authorization. This records context only; it does not activate new Provider work, claim backup/cutover/deployment or genuine user-flow completion, or close any roadmap. All 24 Provider and 14 ETF criteria remain preserved and open. integration_capture: exact branch HEAD.
+
+derived_refresh_issuer_identity_followup:
+  id: provider-derived-history-and-retained-issuer-identity-20261106
+  status: ready_for_integration
+  root_delegated_acceptance: Direct same-turn Root acceptance under existing human standing authorization; exact closing-tip CI and combined release remain pending.
+  focused_result: 61 passed, 0 failed, 0 skipped after final formatting.
+  retained_identity_readonly_receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/retained-identity-readonly-checks/55cc6441c6957fc3b16d9c87fde82b3f46243ff6e62b8bf03731c717f868084b/receipt.json
+  retained_identity_read_only_result: PostgreSQL READ ONLY; instrument 359 and all six retained issuer links yielded CUSIP G0450A105 and SEDOL 2740542; no external calls or writes.
+  final_exact_tip_ci: pending; Root owns observation.
+  combined_staging_master_deployed_proof: pending; Root-owned.
+  provider_http_requests: 0
+  ledger_policy_quota_or_hold_mutation: false
+  migrations: none
+  wider_roadmaps_complete: false
+  integration_capture: exact branch HEAD
+
+goal: >-
+  Implement the Provider-owned shared backend preparation contract for the activated platform-usability release: resolve exact
+  instrument/group/family dependencies; persist owner-scoped requests and per-dataset state; reuse MarketRefreshJob, current acquisition
+  services, and the real ARQ worker for priority-aware, restart-safe, deduplicated work; and plan range-aware multi-provider history
+  without mixing identity, listing, feed, adjustment, or entitlement scopes. Preserve every prior checkpoint and all Provider/ETF
+  roadmaps. Do not edit frontend/ETF-owned implementation or perform provider HTTP, real quota/ledger/policy changes, sibling/staging/master
+  writes, production changes, or deployment. Stop at ready_for_human_review; Root owns acceptance, integration, and the combined release.
+scope:
+  - "Add authenticated POST /api/v1/data/ensure and owner-scoped GET /api/v1/data/requests/{request_id} with typed target, dataset, analysis, state and progress DTOs. Persist owner, normalized request, resolved dependency snapshot, per-dataset state, actual coverage, safe reason, and only known retry times."
+  - "Reuse MarketRefreshJob as the only durable work queue. Add only minimal request/dependency state needed for restart-safe polling, request-level progress, ownership and coalescing; do not add a second queue or report parent readiness while required datasets remain waiting/unavailable."
+  - "Resolve exact canonical instruments before queueing. Plan all group/family members, benchmarks and both ratio legs; ambiguous listings wait for selection without ingestion. Keep identity/profile/history/holdings and other applicable datasets independent."
+  - "Plan progressive history against currently configured eligible providers using exact identity, listing/feed, adjustment, terms, entitlement, operation cost, free-only, native/shared quota and 2,000-slot per-request guards. No arbitrary age cap, source mixing, inferred free access or guessed source depth."
+  - "Derive W1/MN from canonical D1 with accepted stale-derived refresh behavior. Calculate RRG/rotation warmup and tail from existing calculation semantics. Track source exhaustion, listing inception, stale data and unsupported inputs independently."
+  - "Use the ETF-owned holdings hook only after shared context/result types and a real ETF implementation exist. Missing handler is unavailable, never synthetic success. Do not edit ETF or frontend-owned files."
+  - "Extend the actual app.workers.arq_worker entrypoint for prompt active-request wakeup and idle maintenance ordering: visible demand, default readiness, then background backfill/universe work; respect sessions, source delays, native quotas, leases, retries and restart safety while preserving existing schedule guards."
+  - "Inventory registered providers’ capabilities, credential requirements, free-plan/account limits, quota scope and reviewed history depth without printing secrets or making requests. Give Root concrete production provisioning prerequisites, especially deeper Tiingo/Alpaca history; do not change production config."
+  - "Add focused offline coverage for dependency planning, durable coalescing/restart/priority, ranges/source identity, derived warmup, ETF-handler unavailable, ARQ registration/wakeup and typed holds. Root allocates meaningful PostgreSQL/Redis/browser proof. Preserve all 24 Provider and 14 ETF roadmap criteria and prior evidence."
+owned_paths:
+  - "backend/app/routers/data_preparation.py"
+  - "backend/app/schemas/data_preparation.py"
+  - "backend/app/services/data_preparation.py"
+  - "backend/app/services/data_preparation_contracts.py"
+  - "backend/app/models/market_data_foundation.py"
+  - "backend/app/services/market_refresh_queue.py"
+  - "backend/app/tasks/data_tasks.py"
+  - "backend/app/workers/arq_worker.py"
+  - "backend/app/config.py (only request-worker controls if required)"
+  - "backend/alembic/versions/ (only additive request/dependency migration if required)"
+  - "backend/tests/unit/routers/test_data_preparation_router.py"
+  - "backend/tests/unit/services/test_data_preparation.py"
+  - "backend/tests/unit/workers/test_arq_worker.py"
+  - "backend/tests/integration/ (focused shared request/queue persistence cases)"
+  - "ops/workstreams/feat-market-data-provider-platform/{plan.yaml,handoff.md,validation.jsonl,session.json,branch-tests.json}"
+branch_tests_reason: >-
+  Existing portable command IDs and CI mapping remain unchanged during the active implementation. Focused Provider platform tests
+  and the Root-allocated PostgreSQL API/queue/worker proof are separately recorded in the current validation journal; the canonical
+  full-backend-suite remains mapped to Backend Tests and exact-source CI remains required. No acceptance or integration is claimed.
+acceptance_criteria:
+- id: PLATFORM-PREP-1
+  text: >-
+    Authenticated ensure/poll DTOs expose exact typed target, datasets, range/analysis input, opaque request ID, owner-scoped durable per-dataset state/version, dependencies, actual coverage, safe reason and only known retry_at; ambiguous identity never ingests.
+- id: PLATFORM-PREP-2
+  text: >-
+    Request/dependency state survives API/worker restart and deduplicates equivalent acquisition work through MarketRefreshJob; active visible requests wake the real ARQ worker without waiting for the 15-minute maintenance cron; leases fence stale workers.
+- id: PLATFORM-PREP-3
+  text: >-
+    Planning resolves instrument, group/family, benchmark and both ratio legs before ingestion, keeps datasets independent, derives W1/MN from canonical D1, and computes analysis warmup/tail from existing semantics with truthful readiness states.
+- id: PLATFORM-PREP-4
+  text: >-
+    Progressive history uses multiple currently eligible providers only within exact identity/listing/feed/adjustment/terms boundaries and existing cost, entitlement, free-only, native/shared quota and per-request chunk guards; no arbitrary total-age cap or source mixing.
+- id: PLATFORM-PREP-5
+  text: >-
+    The real app.workers.arq_worker services active demand promptly and maintains defaults/discovered/saved-list/analysis inputs in visible-demand, default-readiness, then background order with session timing, provider delays, quota, restart and retry safety.
+- id: PLATFORM-PREP-6
+  text: >-
+    ETF holdings call only the agreed shared hook after a real ETF-owned handler exists; missing handler is unavailable, never fake success, and history/holdings progress remains independent.
+- id: PLATFORM-PREP-7
+  text: >-
+    A no-secret static provider inventory reports concrete future production credential/account/quota/history prerequisites, including Tiingo/Alpaca depth, without provider requests or target mutation; unknown/paid/trial/unsafe operations stay held.
+- id: PLATFORM-PREP-8
+  text: >-
+    Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before acceptance.
+next_action: >-
+  Provide this coherent executable API/worker source checkpoint to Root for downstream consumer development, then continue the remaining
+  Provider-owned maintenance ordering, provider-readiness/activation prerequisites, and full range-aware history scope in this same active
+  goal. Root owns fixture lifecycle, exact-source CI, combined release qualification and integration.
+human_intent_authorization: >-
+  Human explicitly activated the complete “Make the existing platform complete and usable” plan in the original Provider thread. The
+  execution copy and shared contract are platform-usability-20261106/APPROVED-PLAN.md and SHARED-CONTRACT.md. This is active work, not
+  acceptance. Root owns acceptance, integration, promotion, deployment, live source/account operations and combined release.
+checkpoint_status: in_progress
+progress:
+  completed: []
+  total: 8
+  current_phase: executable_api_queue_worker_checkpoint_available_remaining_provider_scope_active
+  current_blocker: Remaining Provider maintenance/provider-readiness scope, exact-source CI, and Root-owned combined release qualification remain pending.
+  next_action: Release the coherent source checkpoint to Root, then continue the remaining approved Provider scope without closing this goal.
+local_validation_profile: "full_stack_browser"
+local_validation_reason: >-
+  API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
+  Start with focused offline tests. Root allocates required PostgreSQL/Redis and combined browser proof; no remote-only exception.
+current_gate_checkpoint: >-
+  Active platform-usability implementation checkpoint. The shared authenticated API/DTO, existing-queue parent and dependency planning,
+  target/benchmark/ratio expansion, priority-aware continuation, actual ETF hook dispatch, and range-aware history worker are present in
+  the working tree. Focused affected Provider units passed 440/440. The Root-allocated isolated PostgreSQL suite passed 5/5, including
+  independent-session parent/dependency preservation, priority promotion, worker-result-to-response coverage, continuation persistence,
+  and W1/MN range growth after a real daily worker rematerializes the derived series. Ruff checks and diff checks pass. This remains
+  in_progress: automatic maintenance/readiness work, full backend/DDL, exact-source CI and Root combined release gates remain pending.
+  Root owns the allocated fixture lifecycle. All previous acceptance/failure records and complete roadmaps remain preserved.
+previously_accepted_provider_history_identity_human_closure_authorization: >-
+  Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
+  remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.
+human_closure_authorization: "pending; no closure acceptance has been issued for this active checkpoint."
+closure_summary: >-
+  Pending: implementation and required validation for the platform-usability release are incomplete. Preserve all roadmaps and prior
+  accepted history. integration_capture: exact branch HEAD.
+migration_impact: "No new request/dependency tables or migration were added; request and dataset state reuse MarketRefreshJob metadata. Root-owned full DDL qualification remains pending."
+live_test_impact: "No provider/issuer/SEC HTTP or real quota/ledger/policy/hold operation is authorized from this worktree. Existing free/paid/unknown controls remain intact."
+deployment_impact: "Root owns production provisioning, integration, promotion, deployment, genuine journeys and exact cleanup."
 
 followup_checkpoint:
   id: provider-van-eck-fixture-clock-ci-dependency-20261106

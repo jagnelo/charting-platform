@@ -114,16 +114,33 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
 
 
 @pytest.mark.asyncio
+async def test_data_preparation_wakeup_is_registered_and_not_schedule_gated(monkeypatch):
+    monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", False)
+    process = AsyncMock(return_value={"claimed": 1, "completed": 1})
+    monkeypatch.setattr(data_tasks, "process_refresh_jobs", process)
+
+    result = await arq_worker.task_process_refresh_jobs({"redis": "test"})
+
+    assert result == {"claimed": 1, "completed": 1}
+    process.assert_awaited_once_with({"redis": "test"})
+    assert arq_worker.task_process_refresh_jobs in arq_worker.WorkerSettings.functions
+
+
+@pytest.mark.asyncio
 async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
     from app.services.market_refresh_queue import RefreshLeaseLostError
 
     session = _RefreshQueueSession()
     job = SimpleNamespace(
         id=7,
+        capability="price_history",
         instrument_id=42,
         timeframe="D1",
         start_at=None,
         end_at=None,
+        metadata_payload={},
+        status="leased",
+        next_attempt_at=None,
     )
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", lambda: session)
     monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
@@ -135,7 +152,13 @@ async def test_refresh_queue_does_not_retry_after_lease_is_lost(monkeypatch):
 
     result = await data_tasks.process_refresh_jobs({})
 
-    assert result == {"claimed": 1, "completed": 0, "retried": 0, "lease_lost": 1}
+    assert result == {
+        "claimed": 1,
+        "completed": 0,
+        "retried": 0,
+        "lease_lost": 1,
+        "wakeup_scheduled": False,
+    }
     complete.assert_awaited_once()
     summary = complete.await_args.kwargs["result_summary"]
     assert summary["instrument_id"] == 42

@@ -32,9 +32,12 @@ The first Provider-owned wire and callable types are implemented in
 - `analysis.kind` is `ratio` or `rrg`. For `ratio`, `analysis.legs` is exactly
   two instrument targets and both legs are resolved and prepared. The model
   also uses existing names `lookback`, integer `sampling`, `tail_length`, and
-  `history_length`, with optional `benchmark_symbol`. Server-side
-  `required_raw_bars` derives the raw warmup from existing RRG math
-  `(lookback * 2 + 1) * sampling`; clients cannot claim warmup coverage.
+  `history_length`, with optional `benchmark_symbol`. Defaults match the
+  existing RRG endpoint (`lookback=20`, `sampling=1`, `tail_length=10`,
+  `history_length=0`). Server-side `required_raw_bars` includes both lookback
+  windows and all requested tail/history points:
+  `(lookback * 2 + tail_length + history_length) * sampling` (50 sampled bars
+  at defaults). Clients cannot claim warmup coverage.
 - Optional `Idempotency-Key` is scoped to the authenticated user. It only
   coalesces an identical normalized request; it does not alter provider quota
   identity or bypass existing request/native limits.
@@ -45,7 +48,7 @@ The first Provider-owned wire and callable types are implemented in
   unavailable | failed`, `created_at`, `updated_at`, monotonically increasing
   `version`, and `target`.
 - `dependencies[]`: `dependency_id`, `depends_on[]`, `instrument_id`,
-  `dataset`, `status: queued | running | ready | waiting | unavailable |
+  `dataset`, `status: queued | running | partial | ready | waiting | unavailable |
   failed`, `requested_start/end`, `covered_start/end`, `reason_code`, nullable
   known `retry_at`, and `updated_at`.
 - top-level `completed`, `total`, and `last_progress_at`. `ready` means all
@@ -90,6 +93,77 @@ owner-scoped normalized request/dependency/status metadata, and existing child
 jobs represent executable dataset work. A parent tracking row is never treated
 as price work. No second request/dependency table or migration is planned.
 
+### Provider account and deep-history readiness (static contract)
+
+Every source still needs a registered capability and exact operation, matching
+instrument/listing/feed/adjustment, enabled policy, reviewed entitlement/terms,
+known account-scoped quota baseline, and any persistent-storage authorization
+required by its plan. Credential presence alone never makes a provider ready.
+Root's read-only deployment inventory says production currently has only the
+Massive credential; owner application credentials are not evidence that
+production is provisioned. Root owns deploying applicable credentials and
+operator account evidence. No secret value is recorded here.
+
+- **Alpaca deep daily:** the existing free route is the authenticated IEX feed,
+  not paid SIP. Owner settings need `ALPACA_API_KEY`, `ALPACA_SECRET_KEY`,
+  `ALPACA_DATA_FEED=iex`, reviewed free-IEX entitlement, the native account
+  usage bootstrap/200-requests-per-minute quota identity, and retained
+  provider response quota headers. The checked-in seed describes history from
+  2016-01-01 and delayed latest data. Before retaining bars, the deployment also
+  needs an in-scope written persistence authority via the existing
+  `ALPACA_PERSISTENT_STORAGE_AUTHORIZED` and authority reference/scope/review
+  fields. Do not switch to SIP or treat credentials as permission to archive.
+- **Tiingo deep daily:** Root's owner-app-only evidence is a reviewed `custom`
+  account with 500 unique symbols/month, 50 requests/hour, 1,000 requests/day,
+  and 2,000,000,000 bytes/month; custom quota evidence is present. Do not replace
+  this with the Starter public 1 GB profile. Deployment configuration must carry
+  exact values in `TIINGO_CUSTOM_UNIQUE_SYMBOLS_PER_MONTH`,
+  `TIINGO_CUSTOM_REQUESTS_PER_HOUR`, `TIINGO_CUSTOM_REQUESTS_PER_DAY`,
+  `TIINGO_CUSTOM_BANDWIDTH_BYTES_PER_MONTH`, and
+  `TIINGO_CUSTOM_QUOTA_EVIDENCE`, plus positive per-operation
+  `TIINGO_OPERATION_BYTE_BOUNDS`. The account-scope is the Tiingo API key.
+  The effective cost/free classification of this custom plan must be grounded
+  in Root's account terms; this code treats non-Starter as not free absent an
+  explicit reviewed classification. The legacy `/account/usage` 403 is a
+  non-retryable unsupported path and must not be replayed for a baseline.
+  Unknown resets remain guarded by the existing rolling safety windows unless
+  exact reset evidence is configured. Root owns this profile; no credential,
+  policy, or quota changes were made by this worktree.
+
+### Deep-provider series selection and current native observations
+
+The progressive history worker inspects the currently admitted chain without
+transport, chooses the provider with the deepest reviewed `history_constraints`,
+and pins that provider across recent-first bounded chunks. Each fetch/cache read
+is restricted to one provider `MarketSeries`; overlapping timestamps from
+another source remain separate. The existing `MarketSeriesDefault` stays on the
+current useful feed while an alternate range is incomplete. After the alternate
+series proves complete coverage for the whole requested range, and that range
+extends the current default's earliest data while reaching its latest timestamp,
+the existing default mapping switches atomically to that single feed. Ordinary
+OHLCV and Research reads then see one coherent source/adjustment series, never a
+timestamp splice. `bulk_fetch` duplicate detection is likewise scoped to the
+incoming series rather than the current default.
+
+Focused offline coverage exercises a populated two-year default against a
+ten-year alternate through the normal Research reader: the default remains
+selected while the alternate is shallow/incomplete; after older chunks fill the
+same alternate series, the read returns the full range from that source only.
+The tests also retain both feeds' overlapping observations and adjustment/source
+lineage. The current focused set (market-data, series-default, bulk-fetch,
+history-planning and preparation-service modules) passes 63 tests; Ruff passes.
+This is local unit evidence only, not the allocated PostgreSQL worker/API proof
+or the final combined release qualification.
+
+Root's six native account-usage checks passed at their individual observation
+times for Alpaca, Twelve Data, EODHD, Finnhub, FMP, and MarketData.app; the
+read-only receipt is
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/native-quota-observations.json`.
+Those observations are not future availability guarantees or authorization to
+route: production policy inventory still shows those providers administratively
+disabled, and normal reservations/holds remain required. Root owns any later
+configuration/provisioning and full release qualification.
+
 ### Current progress and next action
 
 - Existing claim `f093caba-0194-4527-b22b-0bfa26344c34` was retained. The
@@ -98,12 +172,16 @@ as price work. No second request/dependency table or migration is planned.
   history remain recorded.
 - Exact green/deployed context `139b350238b5e1c8a170dce5af09a805301d857e`
   remains adopted; backend/frontend trees are unchanged by this task so far.
-- The DTO and hook contracts above are implemented and covered by six focused
-  offline tests. Next: persist the owner-scoped request envelope and dependency
-  graph in `MarketRefreshJob` metadata, with executable dataset work represented
-  by existing shared queue jobs; then connect the current ARQ worker and API.
-- No provider request, real quota/ledger/policy access, Docker fixture, or
-  sibling/staging/master/production write has occurred.
+- The owner-scoped parent envelope, shared child-job deduplication, late
+  identity expansion, real ETF hook dispatch, authenticated API/wakeup, ARQ
+  registration, and recent-first source-pinned history path are in the current
+  uncommitted implementation. Focused units cover the provider-series selection
+  trap; Root's one isolated real-AsyncSession PostgreSQL allocation is still
+  required for concurrent-owner graph persistence, queue reconstruction,
+  authorization, hook outcomes, and dependency isolation.
+- No provider request, real quota/ledger/policy mutation, Docker fixture,
+  sibling/staging/master/production write, or deployment has occurred in this
+  active checkpoint.
 
 ## 2026-10-25 — accepted staging consumption and SEC first-qualification review
 
@@ -33149,3 +33227,13 @@ Checkpoint status is `ready_for_integration`; `integration_capture` is the exact
 - Under Root's direct bounded context-adoption instruction, merged exact synchronized staging/master `139b350238b5e1c8a170dce5af09a805301d857e` into this Provider branch with a normal non-fast-forward merge. Local merge commit: `bfdeecb8083a166c7dae58111e4f5673fa685bc8`; merge-base is the exact released SHA. The merged backend and frontend tree IDs match the released source exactly: `2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc` and `9df32b87de20826dbe0e32c739d2cbf0d9e1a634`.
 - Root reports staging CI `42211787590` exhaustive green (202 functional, 104 strict visual, 1,614 frontend unit), master provenance CI `42222793213` green, private deployment preservation checks passed, and genuine NVDA/XLE/IYF history journeys succeeded. Root's native-wait proof and final guide remain in progress; this record does not claim broader product or roadmap completion.
 - This is context adoption only. Provider source/API, provider requests, Docker, target data, quotas/holds, policies, and sibling/staging branches were not changed by this owner. The Provider goal/accounting and all 24 Provider/14 ETF roadmap criteria remain preserved. Existing full_backend/full_stack_browser, exact-source validation and genuine-release dependencies remain as recorded. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-06 — executable platform preparation API/worker checkpoint
+
+- The active Provider platform-usability goal remains `in_progress`. This coherent implementation checkpoint is available to Root for downstream development; it is not a full-scope acceptance, integration, deployment, or roadmap completion.
+- Provider source includes the authenticated ensure/poll API and typed contracts, owner-scoped parent tracking on the existing refresh-job queue, exact dependency planning for instruments/groups/families/RRG benchmarks/ratio legs, shared identity/profile/history/holdings jobs, real ETF hook invocation, ARQ processing/wakeup/continuations, and priority-aware range-limited free-history routing.
+- Coverage now distinguishes a completed chunk from unfinished total depth. A real worker result with whole-range `data_status=partial` and `chunk_coverage_status=ready` reports the useful completed interval while older continuation remains queued. W1/MN coverage reads the persisted derived series and follows D1 worker rematerialization; it does not use daily request bounds as coarse coverage or join incompatible lineages. Per-lineage covered ranges never bridge missing periods or claim coverage from a zero-output job.
+- Focused offline Provider tests passed 440/440 across the affected provider, router, queue, series, worker, preparation-contract and ETF-hook modules. Root's already allocated isolated PostgreSQL suite passed 5/5. It exercises separate AsyncSessions, shared parent/job references, priority promotion, API authorization, real worker result persistence, queued continuation, and W1/MN coverage growth after a later D1 worker chunk rematerializes derived series. Ruff checks and `git diff --check` passed.
+- All provider transports are mocked or absent in this proof; no real source HTTP, credentials, real quota ledger, policy/hold mutation, or production data was used. Root owns the PG fixture cleanup. No new schema tables or migration were added.
+- Remaining scope is active: automatic default/saved-list/analysis maintenance ordering, complete provider/account readiness and eligible deeper-source continuation, exact full backend/DDL and branch CI, then Root's combined release profile. All 24 Provider and 14 ETF roadmaps and prior acceptance/failure records remain preserved.

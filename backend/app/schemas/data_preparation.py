@@ -134,12 +134,27 @@ class DataEnsureRequest(BaseModel):
         return self
 
 
+class PreparationCoveredRange(BaseModel):
+    """One contiguous, single-series interval actually present in storage."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    start_at: datetime
+    end_at: datetime
+    data_source_id: int | None = None
+    market_series_id: int | None = None
+    adjustment_basis: str
+    adjustment_version: str
+    is_adjusted: bool
+
+
 class PreparationDependencyResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     dependency_id: str
     depends_on: list[str] = Field(default_factory=list)
     instrument_id: int | None = None
+    symbol: str | None = None
     dataset: PreparationDataset
     status: Literal[
         "queued", "running", "partial", "ready", "waiting", "unavailable", "failed"
@@ -151,6 +166,7 @@ class PreparationDependencyResponse(BaseModel):
     reason_code: str | None = None
     retry_at: datetime | None = None
     updated_at: datetime
+    covered_ranges: list[PreparationCoveredRange] = Field(default_factory=list)
 
 
 class DataEnsureResponse(BaseModel):

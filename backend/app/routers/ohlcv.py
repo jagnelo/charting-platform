@@ -23,7 +23,12 @@ from app.services.derived_timeframes import (
     materialize_derived_timeframes,
 )
 from app.services.distributed_locks import DistributedLockError
-from app.services.market_data import fetch_ohlcv, fetch_ohlcv_latest, fetch_ohlcv_page_before
+from app.services.market_data import (
+    _default_series_bar_condition,
+    fetch_ohlcv,
+    fetch_ohlcv_latest,
+    fetch_ohlcv_page_before,
+)
 from app.services.ohlcv_coverage import _as_utc
 from app.services.provider_runtime import ProviderNoDataError, ProviderRateLimitError
 
@@ -167,6 +172,10 @@ async def get_local_ohlcv(
         OHLCVBar.timeframe == timeframe,
         OHLCVBar.is_adjusted.is_(adjusted),
     ]
+    # The default view is one coherent selected series. Explicit provider and
+    # derived views remain lineage views across every retained series.
+    if view == "canonical":
+        predicates.append(_default_series_bar_condition(instrument.id, timeframe, adjusted))
     before = _as_utc(before) if before is not None else None
     if before is not None:
         predicates.append(OHLCVBar.ts < before)
