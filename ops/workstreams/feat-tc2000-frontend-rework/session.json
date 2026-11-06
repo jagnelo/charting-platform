@@ -88,7 +88,7 @@
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
   "current_candidate_ci_status": "Exact closing-tip CI is pending Root observation after this corrective publication; exact-bundle browser proof remains Root-owned.",
-  "current_checkpoint_status": "Focused history/dashboard repair candidate: 232 affected unit tests passed, frontend type-check passed, and all seven on-demand browser cases are discoverable. No combined browser/visual result or source qualification is claimed.",
+  "current_checkpoint_status": "Root-accepted delivered implementation checkpoint, subject to exact closing CI and committed104visualinput binding before integration. Local scope/evidence asclosure_summary. All genuine deployment acceptance remains Root-owned; no full-roadmap completion.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -126,7 +126,7 @@
     "id": "tc-ordinary-remote-ticker-selection-errors-20261105",
     "integration_capture": "exact branch HEAD",
     "local_evidence": "Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774 / image sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076. Functional: 203 passed, 2 configured opt-in skips, 0 failures, 0 retries, including all seven acquisition cases. Strict visual: 104 passed across four projects, 0 skips/failures/retries, references and tolerances unchanged. Separate served typed Enter/Go partial-local-hit cases: 2/2 passed. Root also accepted retained SPY7/IGV8 input proof and 16 negative bindings without historical-data mutation. This is bounded software/profile acceptance only.",
-    "pending": "Exact closing-tip CI is mandatory and pending Root observation. Root owns the accepted ETF→TC staging batch, staging and independent master gates, preserved-data rollout, and genuine deployed Enter/Go, SPY/IGV, rapid/failure/late-response and cached-flow proof. Official REF-HELP-V25 parity and the full nine-item roadmap remain open.",
+    "pending": "Exact closing-tip CI remains mandatory and pending Root observation. Root owns canonical staging/master, private cutover, genuine user-flow proof, official REF-HELP-V25 parity and the wider roadmap; none is claimed complete.",
     "planning_authority": "Root checkpoint acceptance under the existing human delegation; no new human quote.",
     "retained_inputs_evidence": {
       "path": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json",
@@ -394,7 +394,7 @@
   },
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Publish the coherent accepted correction. Root builds the exact published frontend and owns focused browser proof, closing-tip CI, and subsequent release gates.",
+  "next_action": "Freeze final clean synchronized closing tip; Root owns exact closing CI, canonical staging/master, private cutover and genuine user-flow verification. No additional owner source edits or full suites.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -425,7 +425,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "e84acda5a789f42498d02f8610c9acab228f9c747c5d14286fb296326492cdc4",
+  "plan_hash": "d27228deb859cff911baa2e93f3dd0bda2325d0ba5d52f1acfa645142d5610f4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -648,7 +648,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T02:01:20Z",
+  "updated_at": "2026-11-06T04:04:54Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
