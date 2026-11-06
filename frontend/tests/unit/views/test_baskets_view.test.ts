@@ -315,6 +315,32 @@ describe('BasketsView', () => {
     expect(wrapper.text()).not.toContain('Apple Inc.')
   })
 
+  it('keeps a dirty basket when New is cancelled and clears its members only after discard confirmation', async () => {
+    vi.mocked(api.get).mockResolvedValue([basket()])
+    const wrapper = mountView()
+    await flushPromises()
+
+    await wrapper.get('input[placeholder="Basket name"]').setValue('Unsaved basket edit')
+    await wrapper.get('.basket-new').trigger('click')
+    expect(document.body.querySelector('[aria-labelledby="basket-discard-title"]')).not.toBeNull()
+    ;(document.body.querySelector('[aria-labelledby="basket-discard-title"] .btn-secondary') as HTMLButtonElement).click()
+    await flushPromises()
+
+    expect((wrapper.get('input[placeholder="Basket name"]').element as HTMLInputElement).value)
+      .toBe('Unsaved basket edit')
+    expect(wrapper.get('.member-symbol').text()).toBe('AAPL')
+
+    await wrapper.get('.basket-new').trigger('click')
+    ;(document.body.querySelector('[data-testid="basket-confirm-discard"]') as HTMLButtonElement).click()
+    await flushPromises()
+
+    expect(wrapper.get('h2').text()).toBe('New basket')
+    expect((wrapper.get('input[placeholder="Basket name"]').element as HTMLInputElement).value).toBe('')
+    expect(wrapper.findAll('.member-row')).toHaveLength(1)
+    expect(wrapper.get('.member-row--head').exists()).toBe(true)
+    expect(wrapper.find('.basket-card--active').exists()).toBe(false)
+  })
+
   it('saves resolved picker IDs when adding and removing members from a saved basket', async () => {
     vi.mocked(api.get).mockResolvedValue([basket()])
     const saved = basket({

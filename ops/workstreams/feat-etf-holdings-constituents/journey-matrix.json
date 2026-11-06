@@ -143,11 +143,11 @@
           "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
         },
         {
-          "action": "Cancel a dirty basket switch or explicitly discard edits before switching",
+          "action": "Cancel a dirty basket switch or explicitly discard edits before switching or starting a new basket",
           "controls": ["basket cards", "Keep editing", "Discard changes", "Discard edits"],
           "journeys": ["J07", "J12"],
-          "outcome": "Cancel leaves the current draft intact; confirmed discard selects the requested basket and removes the obsolete draft.",
-          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["keeps the current selection when a user cancels a dirty basket switch, then discards explicitly"]}],
+          "outcome": "Cancel leaves the current draft intact; confirmed discard selects the requested basket or opens a blank new draft without leaking previous members.",
+          "focused_evidence": [{"path": "frontend/tests/unit/views/test_baskets_view.test.ts", "cases": ["keeps the current selection when a user cancels a dirty basket switch, then discards explicitly", "keeps a dirty basket when New is cancelled and clears its members only after discard confirmation"]}],
           "api_contract": ["No write on cancel; selection uses the already-loaded basket record"],
           "browser_evidence": {"path": "frontend/tests/e2e/baskets_journey.spec.ts", "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles", "mode": "authenticated actual API", "body_run": false, "status": "pending Root combined browser profile"}
         },
