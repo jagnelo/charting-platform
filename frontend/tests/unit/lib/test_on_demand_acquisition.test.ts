@@ -47,7 +47,7 @@ describe('explicit acquisition API contracts', () => {
       .mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] })
       .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
     vi.mocked(api.post)
-      .mockResolvedValueOnce({ request_id: 'identity-held', status: 'held', instrument: null, source_outcomes: [{ provider: 'massive', capability: 'instrument_search', operation: 'resolve', status: 'held', retry_at: identityRetryAt }] })
+      .mockResolvedValueOnce({ request_id: 'identity-held', status: 'held', instrument: null, source_outcomes: [{ provider: 'massive', capability: 'instrument_search', operation: 'resolve', status: 'used', result_count: 1, retry_at: identityRetryAt }] })
       .mockResolvedValueOnce({ request_id: 'identity-ready', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] })
       .mockResolvedValueOnce({ request_id: 'history-held', status: 'held', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z', coverage: { status: 'missing', bar_count: 0, missing_slices: [] }, bars: [], source_outcomes: [{ provider: 'massive', capability: 'price_history', operation: 'history', status: 'held', retry_at: historyRetryAt }] })
       .mockResolvedValueOnce({ request_id: 'history-ready', status: 'complete', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z', coverage: { status: 'ready', bar_count: 2, missing_slices: [] }, bars: [], source_outcomes: [] })
@@ -73,6 +73,94 @@ describe('explicit acquisition API contracts', () => {
       '/coverage/instruments/IGV/ohlcv', '/instruments/82/history-availability',
     ])
     expect(stageReads.filter(stage => stage.stage === 'waiting').map(stage => stage.retryAt)).toEqual([identityRetryAt, historyRetryAt])
+    vi.useRealTimers()
+  })
+
+  it('resumes a held history response when cached fallback bars report a known retry on a used outcome', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-06T12:00:00.000Z'))
+    const retryAt = new Date(Date.now() + 1_000).toISOString()
+    const missing = { status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] }
+    const availability = { instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null }
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(missing)
+      .mockResolvedValueOnce(availability)
+      .mockResolvedValueOnce(missing)
+      .mockResolvedValueOnce(availability)
+    const cachedBars = Array.from({ length: 124 }, (_, index) => ({
+      ts: new Date(Date.now() - index * 86_400_000).toISOString(),
+      open: 10, high: 11, low: 9, close: 10, volume: 100,
+    }))
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        request_id: 'history-held-cached', status: 'held', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true,
+        requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z',
+        coverage: { status: 'partial', bar_count: 124, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] },
+        bars: cachedBars,
+        source_outcomes: [{ provider: 'massive', capability: 'price_history', operation: 'fetch_ohlcv:D1', status: 'used', result_count: 124, error_type: 'ProviderQuotaAdmissionError', reason_code: 'provider_quota_admission_denied', retry_at: retryAt }],
+      })
+      .mockResolvedValueOnce({
+        request_id: 'history-ready-after-cache', status: 'complete', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true,
+        requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z',
+        coverage: { status: 'ready', bar_count: 124, missing_slices: [] }, bars: cachedBars, source_outcomes: [],
+      })
+
+    const waits: string[] = []
+    const lifecycle = createKnownTemporaryRetryLifecycle(() => true, value => waits.push(value))
+    const identity = Promise.resolve({
+      request_id: 'identity-ready', status: 'resolved',
+      instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [],
+    } as any)
+    const acquisition = acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true, start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z',
+    }, undefined, () => true, identity, { retryLifecycle: lifecycle })
+
+    await vi.advanceTimersByTimeAsync(1_000)
+    const result = await acquisition
+    expect(result).toMatchObject({ kind: 'acquired', result: { status: 'complete' } })
+    expect(cachedBars).toHaveLength(124)
+    expect(waits).toEqual([retryAt])
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(api.post.mock.calls.map(([path]) => path)).toEqual([
+      '/instruments/82/history-acquisitions', '/instruments/82/history-acquisitions',
+    ])
+    vi.useRealTimers()
+  })
+
+  it('cancels a held cached-fallback retry after the selection is superseded', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-11-06T12:00:00.000Z'))
+    const retryAt = new Date(Date.now() + 30_000).toISOString()
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] })
+      .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
+    vi.mocked(api.post).mockResolvedValueOnce({
+      request_id: 'history-held-cached', status: 'held', instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true,
+      requested_start: '2026-01-01T00:00:00Z', requested_end: '2026-11-01T00:00:00Z',
+      coverage: { status: 'partial', bar_count: 124, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z' }] },
+      bars: [{ ts: '2026-11-05T00:00:00Z', open: 10, high: 11, low: 9, close: 10, volume: 100 }],
+      source_outcomes: [{ provider: 'massive', capability: 'price_history', operation: 'fetch_ohlcv:D1', status: 'used', result_count: 124, error_type: 'ProviderQuotaAdmissionError', reason_code: 'provider_quota_admission_denied', retry_at: retryAt }],
+    })
+
+    const controller = new AbortController()
+    let current = true
+    const waits: string[] = []
+    const lifecycle = createKnownTemporaryRetryLifecycle(() => current, value => waits.push(value), controller.signal)
+    const identity = Promise.resolve({
+      request_id: 'identity-ready', status: 'resolved',
+      instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [],
+    } as any)
+    const acquisition = acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true, start: '2026-01-01T00:00:00Z', end: '2026-11-01T00:00:00Z',
+    }, undefined, () => current, identity, { retryLifecycle: lifecycle, signal: controller.signal })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(waits).toEqual([retryAt])
+    current = false
+    controller.abort()
+
+    await expect(acquisition).resolves.toMatchObject({ kind: 'superseded' })
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.get).toHaveBeenCalledTimes(2)
     vi.useRealTimers()
   })
 

@@ -1825,7 +1825,7 @@ dependencies:
   Vehicle reconciliation and selected instrument-type response. TC consumes the returned identity/type before issuer holdings
   eligibility; ETF and Index ETF remain eligible, ETN remains excluded. No Provider source implementation was copied into
   this branch.
-scope_guard_baseline_sha: "16d76a8bddacffec9e8a85035cfea4e69ee0f529"
+scope_guard_baseline_sha: "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7"
 
 frozen_upstream_import_manifests: []
 approved_presentation_adaptations: []
@@ -4350,4 +4350,28 @@ calendar_sliver_followup:
   focused_validation: 89/89 affected helper/store tests passed; frontend vue-tsc --noEmit passed.
   scope: D1/W1 calendar bucket alignment only; MN and intraday behavior, admitted/native bounds, 2000-slot request limit, API, backend, references, and tolerance are unchanged.
   pending: Exact new-tip CI, Root-owned frontend runtime/browser qualification, and remaining release gates.
+  integration_capture: exact branch HEAD
+
+context_adoption_a9:
+  authority: Root-directed context adoption under the existing human four-feature integration authorization; no new product activation.
+  source_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+  local_merge_commit: exact branch HEAD (integration capture)
+  canonical_green_receipt: /home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json
+  canonical_green_receipt_sha256: acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3
+  staging_ci: "42184756530 success; full staging qualification backend/frontend 1612, functional 202, strict visual 104"
+  master_provenance_ci: 42194282702 (success; exact same source SHA)
+  imported_contracts: Provider's green history-coverage calendar and admitted-bound implementation, with its qualification and workstream evidence.
+  preserved: All nine roadmap criteria, ten repair criteria, prior accepted scope and reference history remain unchanged.
+  status: Green context adopted; deployment and genuine user-flow proof are not claimed and remain Root-owned.
+  integration_capture: exact branch HEAD
+
+known_retry_fallback_followup:
+  objective: Honor a finite known retry_at on any source outcome when the shared identity or selected-history response is top-level held, including cached-fallback outcomes marked used.
+  status: Focused implementation ready for Root review; exact CI and runtime qualification remain pending.
+  application_hashes:
+    frontend/src/lib/onDemandAcquisition.ts: 76807b5a82c511a7439ece6afc800d4790b81bb37c9e5d8db735e4d562716b7d
+    frontend/tests/unit/lib/test_on_demand_acquisition.test.ts: 57378d310464d72549b0b454c33392ce596841db312d28c93e62a2e0b2afccb8
+  focused_validation: 91/91 tests passed in the selected acquisition helper and chart store files; frontend vue-tsc --noEmit passed.
+  scope: Reuse existing retry lifecycle validation and cancellation. Native quotas, holds, current-intent guards, API, backend, provider, data, references and tolerance are unchanged.
+  pending: Root review, exact new-tip CI, and Root-owned browser/reconciliation/release gates.
   integration_capture: exact branch HEAD

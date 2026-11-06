@@ -131,6 +131,15 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
         "adjusted": True,
         "derived_bar_count": 1,
         "provider_periods_excluded": 1,
+        "source_d1_signature": {
+            "adjusted": True,
+            "bar_count": 4,
+            "coverage_start": "2025-01-02T00:00:00+00:00",
+            "coverage_end": "2025-01-10T00:00:00+00:00",
+            "data_source_ids": [],
+            "market_series_ids": [],
+            "source_watermarks": [],
+        },
         "adjustment_provenance": {
             "mode": "split_adjusted",
             "source_kind": "derived_from_canonical_d1",

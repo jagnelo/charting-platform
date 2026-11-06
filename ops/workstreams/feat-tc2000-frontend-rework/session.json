@@ -107,8 +107,8 @@
     "status": "pending Root observation after publication"
   },
   "codex_goal_id": "01a066e3-dbae-7512-90bf-61d1af7c6bd8",
-  "current_candidate_ci_status": "The D1/W1 calendar-sliver correction is recorded with exact source hashes and Root acceptance; exact new-tip CI and Root-owned browser/release gates remain pending.",
-  "current_checkpoint_status": "Root accepted the bounded D1/W1 calendar-bucket paging correction; 89 focused helper/store tests and frontend type-check passed. Exact new-tip CI and Root-owned runtime/release gates remain pending.",
+  "current_candidate_ci_status": "Known-retry fallback correction is locally focused-green and ready for Root review; exact new-tip CI and Root-owned runtime/reconciliation gates remain pending.",
+  "current_checkpoint_status": "The shared known-retry extraction now accepts a finite retry_at from any outcome on a top-level held identity/history response, including cached fallback status used. Focused tests 91/91 and frontend type-check pass; Root review and exact CI/runtime gates remain pending.",
   "current_exact_ci": {
     "head_sha": null,
     "run_id": null,
@@ -407,7 +407,7 @@
   "local_candidate_capture": "exact current branch HEAD after staging16 remediation and one-case proof; Root push and exact full staging104 pending",
   "local_validation_profile": "full_stack_browser",
   "merge_head": null,
-  "next_action": "Root to push/build the exact source and complete required CI and runtime qualification; no broader roadmap or release gate is claimed complete.",
+  "next_action": "Root to review the exact committed change, push it, and own exact CI and runtime qualification; broader roadmap remains open.",
   "owned_runtime_cleanup": {
     "after_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-after.json (SHA256 3696bb48051e0e6cf11d45af99ac118d302f454337b6fbd48df8dbeae57d157b)",
     "before_receipt": "/tmp/tc-on-demand-cc4b-20261027/playwright-artifacts/attempt-17/cleanup-before.json (SHA256 8f1eeb19f585da67cfea43f8c35a4aa11baa3aa6d3510a065afd0f95498505bf)",
@@ -438,7 +438,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "807ea5f969c011ab0bf66312b5cef1677fea6a485d2763df531a51ff6edcbea7",
+  "plan_hash": "2e9ec790d840a2c4ca7fc3a18bcacd3b56555059f329163e2498e5af90bf1991",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -468,8 +468,8 @@
   "progress": {
     "completed": [],
     "current_blocker": "Exact final-tip CI, new combined qualification, and Root-owned release/genuine-flow gates remain pending.",
-    "current_phase": "Root-accepted D1/W1 older-history calendar-boundary correction; focused tests and frontend type-check are green, exact final-tip CI pending.",
-    "next_action": "Root owns exact final-tip CI, frontend runtime/browser qualification, and remaining release gates.",
+    "current_phase": "Focused known-retry fallback correction is implemented and locally green; exact source CI and Root-owned runtime qualification pending.",
+    "next_action": "Root owns exact-tip CI, runtime/reconciliation qualification and remaining release gates.",
     "total": 10,
     "updated_at": "2026-11-06"
   },
@@ -527,7 +527,7 @@
     }
   ],
   "schema": 2,
-  "scope_guard_baseline_sha": "16d76a8bddacffec9e8a85035cfea4e69ee0f529",
+  "scope_guard_baseline_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
   "session_id": "c7beca8d-84a3-4382-97e4-4854dca50b8c",
   "staging_adoption_history": [
     {
@@ -662,7 +662,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T07:17:51.480429+00:00",
+  "updated_at": "2026-11-06T09:42:01.953807+00:00",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
