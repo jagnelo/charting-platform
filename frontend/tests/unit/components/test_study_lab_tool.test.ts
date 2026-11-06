@@ -197,6 +197,121 @@ describe('StudyLabTool', () => {
     wrapper.unmount()
   })
 
+  it('submits every independent member and benchmark before waiting for a held target', async () => {
+    const heldPrimary = deferred<{ status: string }>()
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return heldPrimary.promise
+      return Promise.resolve({ status: 'ready' })
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    expect(ensurePreparation.mock.calls.map(([request]) => request.target)).toEqual([
+      { kind: 'instrument', symbol: 'SPY' },
+      { kind: 'instrument', symbol: 'XLK' },
+      { kind: 'instrument', symbol: 'QQQ' },
+    ])
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.'))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
+
+    heldPrimary.resolve({ status: 'unavailable' })
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+    expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('SPY: Requested data is unavailable.')
+    expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.')
+    expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.')
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready')
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('submits later targets before closing while the first preparation is still held', async () => {
+    const heldPrimary = deferred<{ status: string }>()
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return heldPrimary.promise
+      return Promise.resolve({ status: 'ready' })
+    })
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
+    const signals = ensurePreparation.mock.calls.map(([, options]) => options.signal as AbortSignal)
+
+    wrapper.unmount()
+    expect(signals.every(signal => signal.aborted)).toBe(true)
+    heldPrimary.resolve({ status: 'unavailable' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
+  })
+
+  it('keeps later preparation outcomes when one target request rejects', async () => {
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return Promise.reject(new Error('Preparation request timed out.'))
+      return Promise.resolve({ status: 'ready' })
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+
+    const outcomes = wrapper.get('[aria-label="Study data preparation outcomes"]').text()
+    expect(outcomes).toContain('SPY: Preparation request timed out.')
+    expect(outcomes).toContain('XLK: Requested data is ready.')
+    expect(outcomes).toContain('QQQ: Requested data is ready.')
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready')
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('aborts all obsolete preparation subscriptions when the benchmark context changes', async () => {
+    const heldPrimary = deferred<{ status: string }>()
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return heldPrimary.promise
+      return Promise.resolve({ status: 'ready' })
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    const signals = ensurePreparation.mock.calls.map(([, options]) => options.signal as AbortSignal)
+    await wrapper.get('[aria-label="Study benchmark"]').setValue('DIA')
+    expect(signals.every(signal => signal.aborted)).toBe(true)
+
+    heldPrimary.resolve({ status: 'ready' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
+    wrapper.unmount()
+  })
+
   it('resolves a watchlist membership snapshot before preparing its instrument history', async () => {
     resolveWatchlistSource.mockResolvedValue({
       source: { source_id: 'watchlist:7', membership_version: 'watchlist:7:v2' },

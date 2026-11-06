@@ -32,6 +32,9 @@
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
       <p class="study-lab-tool__preparation-note" role="note">Validate prepares the selected canonical data first. Data acquisition is shown here; evaluation remains local.</p>
       <p v-if="preparationStatus" class="study-lab-tool__preparation-status" role="status" aria-label="Study data preparation" aria-live="polite" aria-atomic="true">{{ preparationStatus }}</p>
+      <ul v-if="preparationOutcomes.length" class="study-lab-tool__preparation-outcomes" aria-label="Study data preparation outcomes">
+        <li v-for="outcome in preparationOutcomes" :key="outcome.target">{{ outcome.target }}: {{ outcome.message }}</li>
+      </ul>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
         <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" :aria-invalid="parameterSchemaError ? 'true' : undefined" :aria-describedby="parameterSchemaError ? parameterSchemaErrorId : undefined" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
@@ -310,6 +313,7 @@ if (openedStudySource.value) {
 }
 const busy = ref(false)
 const preparationStatus = ref('')
+const preparationOutcomes = ref<Array<{ target: string; message: string }>>([])
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
 const rerunBusy = ref(false)
@@ -831,6 +835,11 @@ function dateStartAt(value: string): string | null {
 function dateEndAt(value: string): string | null {
   return value ? `${value}T23:59:59.999Z` : null
 }
+function preparationTargetLabel(target: DataEnsureRequest['target']): string {
+  if (target.kind === 'instrument') return target.symbol ?? `Instrument ${target.instrument_id}`
+  if (target.kind === 'market_group') return `Market group ${target.group_key}`
+  return `Family ${target.family_key}`
+}
 async function buildStudyPreparationRequests(intent: StudyDatasetIntent): Promise<DataEnsureRequest[]> {
   const sourceId = intent.universeSourceId
   let targets: DataEnsureRequest['target'][]
@@ -880,6 +889,7 @@ function invalidateStudyPreparation() {
   preparationGeneration += 1
   preparationController?.abort()
   preparationController = null
+  preparationOutcomes.value = []
   if (preparationStatus.value) preparationStatus.value = 'Study data selection changed. Validate or run to prepare the current selection.'
 }
 async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean> {
@@ -891,25 +901,42 @@ async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean>
   try {
     const requests = await buildStudyPreparationRequests(intent)
     if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
-    for (const [index, request] of requests.entries()) {
-      const label = request.target.kind === 'instrument'
-        ? request.target.symbol ?? `instrument ${request.target.instrument_id}`
-        : request.target.kind === 'market_group' ? request.target.group_key : request.target.family_key
-      const response = await dataPreparationCoordinator.ensure(request, {
-        signal: controller.signal,
-        onProgress: progress => {
-          if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return
-          preparationStatus.value = `${label}: ${preparationStatusMessage(progress.response)} (${progress.completed}/${progress.total} dependencies complete.)`
-        },
-      })
-      if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
-      preparationStatus.value = `${label}: ${preparationStatusMessage(response)}`
-      if (response.status !== 'ready') return false
-      if (index + 1 < requests.length) preparationStatus.value = `Study data dependency ${index + 1} is ready. Preparing the next dependency…`
-    }
-    if (generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
-    preparationStatus.value = 'Selected Study data and benchmark are ready.'
-    return true
+    const outcomes = requests.map(request => ({
+      target: preparationTargetLabel(request.target),
+      message: 'Request submitted; waiting for data status…',
+    }))
+    preparationOutcomes.value = outcomes
+    preparationStatus.value = `Preparing ${requests.length} independent Study data target${requests.length === 1 ? '' : 's'}…`
+    const isCurrentIntent = () => !disposed && generation === preparationGeneration && studyDatasetIntentMatches(intent)
+    const readiness = await Promise.all(requests.map(async (request, index) => {
+      const label = outcomes[index].target
+      const updateOutcome = (message: string) => {
+        if (!isCurrentIntent()) return
+        outcomes[index] = { target: label, message }
+        preparationOutcomes.value = [...outcomes]
+      }
+      try {
+        const response = await dataPreparationCoordinator.ensure(request, {
+          signal: controller.signal,
+          onProgress: progress => {
+            updateOutcome(`${preparationStatusMessage(progress.response)} (${progress.completed}/${progress.total} dependencies complete.)`)
+          },
+        })
+        if (!isCurrentIntent()) return false
+        updateOutcome(preparationStatusMessage(response))
+        return response.status === 'ready'
+      } catch (cause) {
+        if (!isCurrentIntent() || controller.signal.aborted) return false
+        updateOutcome(cause instanceof Error ? cause.message : 'Data preparation could not be completed.')
+        return false
+      }
+    }))
+    if (!isCurrentIntent()) return false
+    const allReady = readiness.every(Boolean)
+    preparationStatus.value = allReady
+      ? 'Selected Study data and benchmark are ready.'
+      : 'Some selected Study data is not ready. Review each target above; saved runs remain available.'
+    return allReady
   } catch (cause) {
     if (controller.signal.aborted || disposed || generation !== preparationGeneration) return false
     preparationStatus.value = cause instanceof Error ? cause.message : 'Study data preparation could not be completed.'
@@ -1966,6 +1993,7 @@ input,textarea,button,select { min-width:0; border:1px solid #3a4954; background
 .study-lab-tool__metrics article button { justify-self:start; padding:1px 4px; }
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }
+.study-lab-tool__preparation-outcomes { margin:0; padding-left:18px; display:grid; gap:2px; max-height:72px; overflow:auto; color:#91a8b4; }
 @media (max-width: 560px) {
   .study-lab-tool { padding:4px; gap:4px; }
   .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr) 52px; }
