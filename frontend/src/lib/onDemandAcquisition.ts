@@ -168,15 +168,56 @@ export function olderHistoryRange(
   if (!Number.isFinite(beforeTime) || !Number.isSafeInteger(slots) || slots < 2 || slots > HISTORY_ACQUISITION_MAX_REQUESTED_BARS) {
     throw new RangeError(`Older history requires a valid cursor and 2-${HISTORY_ACQUISITION_MAX_REQUESTED_BARS} slots.`)
   }
+  if (timeframe === 'MN') {
+    const monthStart = (time: number) => {
+      const value = new Date(time)
+      value.setUTCDate(1)
+      value.setUTCHours(0, 0, 0, 0)
+      return value.getTime()
+    }
+    const previousMonth = (time: number) => {
+      const value = new Date(time)
+      value.setUTCMonth(value.getUTCMonth() - 1)
+      return value.getTime()
+    }
+    const endTime = monthStart(beforeTime) - 1
+    let startTime = monthStart(endTime)
+    // Keep month buckets intact while using the same inclusive approximate
+    // 30-day slot budget enforced by the application and provider endpoints.
+    for (;;) {
+      const candidate = previousMonth(startTime)
+      if (requestedHistoryBarSlots('MN', new Date(candidate).toISOString(), new Date(endTime).toISOString()) > slots) break
+      startTime = candidate
+    }
+    const windowStart = admittedWindowStart ? Date.parse(admittedWindowStart) : Number.NaN
+    if (Number.isFinite(windowStart) && endTime > windowStart) {
+      // Include the whole month overlapping the default target. Actual
+      // provider entitlement is still enforced by acquireSelectedHistory.
+      startTime = Math.max(startTime, monthStart(windowStart))
+    }
+    if (requestedHistoryBarSlots('MN', new Date(startTime).toISOString(), new Date(endTime).toISOString()) > slots) {
+      throw new RangeError(`An older monthly bucket requires more than ${slots} request slots.`)
+    }
+    return { start: new Date(startTime).toISOString(), end: new Date(endTime).toISOString() }
+  }
   const interval = HISTORY_TIMEFRAME_SECONDS[timeframe] * 1000
   const endTime = beforeTime - 1
   const chunkStart = endTime - ((slots - 1) * interval)
   const windowStart = admittedWindowStart ? Date.parse(admittedWindowStart) : Number.NaN
+  const calendarWindowStart = Number.isFinite(windowStart) && (timeframe === 'D1' || timeframe === 'W1')
+    ? (() => {
+      const week = new Date(windowStart)
+      week.setUTCDate(week.getUTCDate() - ((week.getUTCDay() + 6) % 7))
+      week.setUTCHours(0, 0, 0, 0)
+      return week.getTime()
+    })()
+    : windowStart
   // When filling a short local cache, keep the first request inside the
-  // configured default window. Once the chart reaches that start, later
-  // explicit pans may request further bounded chunks for longer entitlements.
+  // configured default window, aligned to a full UTC week for daily/weekly
+  // bars. Once the chart reaches that bucket, later explicit pans may request
+  // further bounded chunks for longer entitlements.
   const startTime = Number.isFinite(windowStart) && endTime > windowStart
-    ? Math.max(chunkStart, windowStart)
+    ? Math.max(chunkStart, calendarWindowStart)
     : chunkStart
   if (startTime >= endTime) throw new RangeError('Older history cursor is already at the admitted window start.')
   return { start: new Date(startTime).toISOString(), end: new Date(endTime).toISOString() }
@@ -262,6 +303,7 @@ export function createKnownTemporaryRetryLifecycle(
 
 export type SelectedHistoryOutcome =
   | { kind: 'already-covered'; coverage: HistoryCoverageSummary }
+  | { kind: 'coverage-unavailable' }
   | { kind: 'identity-unavailable'; coverage: HistoryCoverageSummary; status: InstrumentAcquireResponse['status']; reasonCode?: string | null; retryAt?: string | null }
   | { kind: 'admission-held'; coverage: HistoryCoverageSummary }
   | { kind: 'admission-unavailable'; coverage: HistoryCoverageSummary }
@@ -273,6 +315,29 @@ export interface SelectedHistoryOptions {
   retryLifecycle?: KnownTemporaryRetryLifecycle
   signal?: AbortSignal
   onRetryWait?: (retryAt: string) => void
+}
+
+function validatedHistoryCoverage(value: unknown): HistoryCoverageSummary | null {
+  if (!value || typeof value !== 'object') return null
+  const coverage = value as Partial<HistoryCoverageSummary>
+  if (!['ready', 'partial', 'missing', 'stale'].includes(String(coverage.status))
+    || !Number.isSafeInteger(coverage.bar_count) || (coverage.bar_count ?? -1) < 0
+    || !Array.isArray(coverage.missing_slices)) return null
+  const slices = coverage.missing_slices
+  if (!slices.every(slice => {
+    if (!slice || typeof slice.start !== 'string' || typeof slice.end !== 'string') return false
+    const start = Date.parse(slice.start)
+    const end = Date.parse(slice.end)
+    return Number.isFinite(start) && Number.isFinite(end) && start <= end
+  })) return null
+  if (coverage.status === 'ready') {
+    if (slices.length !== 0 || coverage.bar_count === 0) return null
+  } else if (slices.length === 0) {
+    // A non-ready historical assessment without missing ranges contradicts
+    // the response contract; it cannot certify that the requested range is covered.
+    return null
+  }
+  return coverage as HistoryCoverageSummary
 }
 
 /**
@@ -304,7 +369,7 @@ export async function acquireSelectedHistory(
 
   while (isCurrent() && !options.signal?.aborted) {
     onStage?.('coverage')
-    const coverage = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
+    const rawCoverage = await api.get<unknown>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
       timeframe,
       start: range.start,
       end: range.end,
@@ -312,7 +377,9 @@ export async function acquireSelectedHistory(
       adjusted,
     })
     if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
-    if (!Array.isArray(coverage.missing_slices) || coverage.missing_slices.length === 0) {
+    const coverage = validatedHistoryCoverage(rawCoverage)
+    if (!coverage) return { kind: 'coverage-unavailable' }
+    if (coverage.status === 'ready') {
       return { kind: 'already-covered', coverage }
     }
 
@@ -379,7 +446,7 @@ export async function acquireSelectedHistory(
     if (rangeStart >= rangeEnd) return { kind: 'admission-unavailable', coverage }
     if (rangeStart !== Date.parse(admittedRange.start)) {
       admittedRange = { ...admittedRange, start: new Date(rangeStart).toISOString() }
-      const boundedCoverage = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
+      const rawBoundedCoverage = await api.get<unknown>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
         timeframe,
         start: admittedRange.start,
         end: admittedRange.end,
@@ -387,7 +454,9 @@ export async function acquireSelectedHistory(
         adjusted,
       })
       if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
-      if (!Array.isArray(boundedCoverage.missing_slices) || boundedCoverage.missing_slices.length === 0) {
+      const boundedCoverage = validatedHistoryCoverage(rawBoundedCoverage)
+      if (!boundedCoverage) return { kind: 'coverage-unavailable' }
+      if (boundedCoverage.status === 'ready') {
         return { kind: 'already-covered', coverage: boundedCoverage }
       }
     }

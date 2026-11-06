@@ -2283,6 +2283,10 @@ async function acquireExplicitTimeframeHistory(timeframe: Timeframe) {
       timeframeHistoryMessage.value = `The allowed ${timeframe} history window for ${symbol} could not be confirmed.`
       return
     }
+    if (outcome.kind === 'coverage-unavailable') {
+      timeframeHistoryMessage.value = `Saved ${timeframe} history coverage for ${symbol} could not be confirmed.`
+      return
+    }
     if (outcome.kind === 'at-earliest-bound') {
       timeframeHistoryMessage.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       return

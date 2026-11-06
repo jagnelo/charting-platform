@@ -169,6 +169,10 @@ async function loadMissingHistory() {
       message.value = `The allowed history window for ${symbol} could not be confirmed. Your existing chart remains available.`
       return finish(generation)
     }
+    if (outcome.kind === 'coverage-unavailable') {
+      message.value = `Saved history coverage for ${symbol} could not be confirmed. Your existing chart remains available.`
+      return finish(generation)
+    }
     if (outcome.kind === 'at-earliest-bound') {
       message.value = `The available history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       return finish(generation)

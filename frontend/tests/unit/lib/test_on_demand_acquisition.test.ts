@@ -250,13 +250,56 @@ describe('explicit acquisition API contracts', () => {
     const cachedStart = new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000).toISOString()
     const defaultStart = defaultHistoryRange('D1', now).start
     const gap = olderHistoryRange('D1', cachedStart, undefined, defaultStart)
-    expect(gap.start).toBe(defaultStart)
+    expect(gap.start).toBe('2024-11-04T00:00:00.000Z')
     expect(Date.parse(gap.end)).toBeLessThan(Date.parse(cachedStart))
     expect(historyRangeIsAllowed('D1', gap.start, gap.end, now)).toBe(true)
     expect(requestedHistoryBarSlots('D1', gap.start, gap.end)).toBeLessThanOrEqual(HISTORY_ACQUISITION_MAX_REQUESTED_BARS)
 
     const beyondDefault = olderHistoryRange('W1', defaultStart, undefined, defaultStart)
     expect(requestedHistoryBarSlots('W1', beyondDefault.start, beyondDefault.end)).toBe(HISTORY_ACQUISITION_MAX_REQUESTED_BARS)
+  })
+
+  it('aligns D1/W1 default-window backfill to Monday UTC and continues in bounded older chunks', () => {
+    const admittedStart = '2024-11-08T07:00:00.000Z'
+    const mondayCursor = '2024-11-11T05:00:00.000Z'
+
+    const daily = olderHistoryRange('D1', mondayCursor, undefined, admittedStart)
+    expect(daily.start).toBe('2024-11-04T00:00:00.000Z')
+    expect(daily.end).toBe('2024-11-11T04:59:59.999Z')
+    expect(Date.parse(daily.start)).toBeLessThanOrEqual(Date.parse('2024-11-08T05:00:00.000Z'))
+    expect(requestedHistoryBarSlots('D1', daily.start, daily.end)).toBeLessThanOrEqual(2000)
+
+    const weekly = olderHistoryRange('W1', mondayCursor, undefined, admittedStart)
+    expect(weekly.start).toBe('2024-11-04T00:00:00.000Z')
+    expect(weekly.end).toBe('2024-11-11T04:59:59.999Z')
+    expect(new Date(weekly.start).getUTCDay()).toBe(1)
+    expect(requestedHistoryBarSlots('W1', weekly.start, weekly.end)).toBeLessThanOrEqual(2000)
+
+    for (const timeframe of ['D1', 'W1'] as const) {
+      const first = olderHistoryRange(timeframe, '2026-06-01T00:00:00.000Z', undefined, admittedStart)
+      const continuation = olderHistoryRange(timeframe, first.start, undefined, admittedStart)
+      expect(Date.parse(continuation.start)).toBeLessThan(Date.parse(admittedStart))
+      expect(requestedHistoryBarSlots(timeframe, continuation.start, continuation.end)).toBeLessThanOrEqual(2000)
+    }
+  })
+
+  it('builds older monthly history from whole calendar buckets within the existing slot bound', () => {
+    const before = '2026-11-01T00:00:00.000Z'
+    const bounded = olderHistoryRange('MN', before, 25)
+    expect(bounded.end).toBe('2026-10-31T23:59:59.999Z')
+    expect(new Date(bounded.start).toISOString().slice(8, 10)).toBe('01')
+    expect(new Date(bounded.start).toISOString().slice(11, 23)).toBe('00:00:00.000')
+    expect(requestedHistoryBarSlots('MN', bounded.start, bounded.end)).toBeLessThanOrEqual(25)
+
+    const maxBounded = olderHistoryRange('MN', before)
+    expect(new Date(maxBounded.start).toISOString().slice(8, 10)).toBe('01')
+    expect(requestedHistoryBarSlots('MN', maxBounded.start, maxBounded.end)).toBeLessThanOrEqual(2000)
+
+    const defaultWindow = olderHistoryRange('MN', before, 25, '2024-11-08T12:00:00.000Z')
+    // The 25-slot approximation cannot fit every day of the overlapping
+    // November bucket, so start at the next complete month within budget.
+    expect(defaultWindow.start).toBe('2024-12-01T00:00:00.000Z')
+    expect(requestedHistoryBarSlots('MN', defaultWindow.start, defaultWindow.end)).toBeLessThanOrEqual(25)
   })
 
   it('keeps ETF acquire refresh semantics explicit and distinct', async () => {
@@ -286,6 +329,39 @@ describe('explicit acquisition API contracts', () => {
       timeframe: 'D1', start: '2026-10-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
       mode: 'historical', adjusted: true,
     })
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    ['non-ready assessment without missing ranges', { status: 'partial', bar_count: 8, missing_slices: [] }],
+    ['missing slice list', { status: 'partial', bar_count: 8 }],
+    ['ready assessment with missing ranges', { status: 'ready', bar_count: 8, missing_slices: [{ start: '2026-01-01T00:00:00Z', end: '2026-01-02T00:00:00Z' }] }],
+  ])('does not accept contradictory or malformed coverage as complete (%s)', async (_name, response) => {
+    vi.mocked(api.get).mockResolvedValueOnce(response as any)
+    const result = await acquireSelectedHistory('SPY', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2026-01-01T00:00:00.000Z', end: '2026-10-20T00:00:00.000Z',
+    })
+
+    expect(result.kind).toBe('coverage-unavailable')
+    expect(api.get).toHaveBeenCalledTimes(1)
+    expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('fails honestly when bounded recheck returns a non-ready assessment with no gaps', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce({ status: 'partial', bar_count: 1, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: '2026-01-01T00:00:00Z' }] })
+      .mockResolvedValueOnce({ instrument_id: 82, symbol: 'IGV', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2025-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
+      .mockResolvedValueOnce({ status: 'partial', bar_count: 1, missing_slices: [] })
+    const identity = Promise.resolve({ request_id: 'cached-identity', status: 'resolved', instrument: { instrument_id: 82, symbol: 'IGV', identity_status: 'resolved' }, source_outcomes: [] } as any)
+
+    const result = await acquireSelectedHistory('IGV', 'D1', true, {
+      timeframe: 'D1', adjusted: true,
+      start: '2024-01-01T00:00:00.000Z', end: '2026-01-01T00:00:00.000Z',
+    }, undefined, () => true, identity)
+
+    expect(result.kind).toBe('coverage-unavailable')
+    expect(api.get).toHaveBeenCalledTimes(3)
     expect(api.post).not.toHaveBeenCalled()
   })
 
