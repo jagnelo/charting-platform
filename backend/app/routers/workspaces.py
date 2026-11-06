@@ -24,6 +24,11 @@ from app.schemas.workstation import (
     WorkspaceUpdate,
 )
 from app.services.python_conditions import VisualConditionCompileError, compile_visual_condition
+from app.services.workstation_tool_catalogue import (
+    WorkstationToolCatalogue,
+    factory_tool_configuration,
+    tool_catalogue,
+)
 
 router = APIRouter(prefix="/workspaces", tags=["workspaces"])
 FACTORY_WORKSPACE_VERSION = 8
@@ -241,7 +246,7 @@ def _factory_tabs() -> list[WorkspaceTab]:
                 tool_type=tool_type,
                 title=title,
                 link_group="blue",
-                configuration=configuration,
+                configuration=factory_tool_configuration(instance_key, tool_type, configuration),
                 style={},
                 position=position,
             )
@@ -372,7 +377,9 @@ def _factory_tabs() -> list[WorkspaceTab]:
                     tool_type=tool_type,
                     title=title,
                     link_group="blue",
-                    configuration=configuration,
+                    configuration=factory_tool_configuration(
+                        instance_key, tool_type, configuration
+                    ),
                     style={},
                     position=window_position,
                 )
@@ -490,6 +497,16 @@ async def list_workspaces(
         _workspace_query().where(Workspace.user_id == current_user.id).order_by(Workspace.position)
     )
     return result.scalars().unique().all()
+
+
+@router.get("/tool-catalogue", response_model=WorkstationToolCatalogue)
+async def get_workspace_tool_catalogue(
+    current_user: User = Depends(get_current_user),
+):
+    """Return canonical serializable tools for authenticated workspace consumers."""
+
+    del current_user  # Authentication is the access boundary; catalogue is shared.
+    return tool_catalogue()
 
 
 @router.get("/default", response_model=WorkspaceOut)
