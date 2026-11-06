@@ -148,27 +148,9 @@
     "tested_frontend_source": "36e7ad2cb08c769a242773ab2b6be69fcc350774"
   },
   "dirty_paths": [
-    "frontend/src/components/chart/ChartPanel.vue",
-    "frontend/src/components/chart/DrawingToolbar.vue",
-    "frontend/src/components/chart/HistoryAcquisitionControl.vue",
-    "frontend/src/components/chart/UPlotChart.vue",
-    "frontend/src/components/common/SearchBar.vue",
+    "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
     "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
-    "frontend/src/components/workstation/WorkstationToolContent.vue",
-    "frontend/src/lib/onDemandAcquisition.ts",
-    "frontend/src/stores/chart.ts",
-    "frontend/src/views/ChartView.vue",
-    "frontend/src/views/WorkstationView.vue",
     "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-    "frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts",
-    "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
-    "frontend/tests/unit/components/test_search_bar.test.ts",
-    "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
-    "frontend/tests/unit/lib/test_on_demand_acquisition.test.ts",
-    "frontend/tests/unit/stores/test_stores.test.ts",
-    "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
-    "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
-    "ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json",
     "ops/workstreams/feat-tc2000-frontend-rework/handoff.md",
     "ops/workstreams/feat-tc2000-frontend-rework/plan.yaml",
     "ops/workstreams/feat-tc2000-frontend-rework/session.json",
@@ -443,7 +425,7 @@
     "source_sha": "977add9f6771337cc3d39124127b8c3fe7449c43",
     "updated_at": "2026-10-17T10:22:51Z"
   },
-  "plan_hash": "1235368dd5a9299482c61b907af991e2aa631db1ee770cffc0e82d7c681fc6ca",
+  "plan_hash": "e84acda5a789f42498d02f8610c9acab228f9c747c5d14286fb296326492cdc4",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -473,22 +455,22 @@
   "progress": {
     "completed": [],
     "total": 10,
-    "current_phase": "Focused frontend repair candidate; waiting on exact Provider source CI and Root-owned combined browser profile.",
-    "current_blocker": "Provider CI 42141483157 has three existing VanEck integration failures under ETF-owner diagnosis; Root coordinates dependency resolution. TC exact-source CI and combined profile remain pending.",
-    "next_action": "Create one coherent local implementation checkpoint for Root review/build; hold push until the reviewed Provider fix handoff, then run the shared combined profile under Root coordination.",
+    "current_phase": "Focused repair follow-up: measured GoldenLayout tab geometry correction plus exact E2E expectation and approved ETF test dependency; Root-owned targeted browser rerun pending.",
+    "current_blocker": "Root must rebuild and rerun the seven acquisition stories on the updated source; exact-source CI and combined full profile remain pending.",
+    "next_action": "Run final workstream/scope/diff and E2E discovery checks, commit and push the coherent follow-up; Root owns browser rerun and full profile.",
     "updated_at": "2026-11-06"
   },
   "push_status": {
     "branch": "feat/tc2000-frontend-rework",
-    "current_pending_range": "Local history-dashboard repair candidate; Root requested brief push hold for the reviewed Provider native-test correction.",
+    "current_pending_range": "The implementation commit plus one focused CSS/test/dependency follow-up are local and ready for one push.",
     "failure_category": null,
     "remote": "origin",
-    "status": "local coherent commit pending; push held for Root dependency handoff"
+    "status": "push authorized after final guards; Root will rebuild and run the seven focused stories on the updated source"
   },
   "remote": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "remote_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
-  "remote_synchronized": true,
-  "remote_tracking_sha": "feb0d8a259695405a50feaf4d8e67a63a97f5307",
+  "remote_synchronized": false,
+  "remote_tracking_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "retained_docker_resources": [
     "charting-stack-feat-tc2000-frontend-rework-f63d60ae (assigned TC project; preserve)",
     "five coordinator-reported Provider Compose projects (preserve; names intentionally not inspected)"
@@ -666,7 +648,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for TC2000 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T01:55:00Z",
+  "updated_at": "2026-11-06T02:01:20Z",
   "upstream_backmerge": {
     "canonical_green_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261023T051709Z-f04fb2a26c63.json",
     "local_merge_commit": "acbfe696e1732c3d5db9ec1fdfc9a87b31f30c32",
@@ -709,5 +691,6 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-tc2000-frontend-rework",
   "worktree_id": "feat-tc2000-frontend-rework-f63d60aebc",
-  "scope_guard_baseline_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d"
+  "scope_guard_baseline_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
+  "local_candidate_capture": "exact branch HEAD; local checkpoint committed and unpushed"
 }

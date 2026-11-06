@@ -1,5 +1,5 @@
 import { test, expect } from './helpers'
-import type { Frame, Request } from '@playwright/test'
+import type { Frame, Page, Request } from '@playwright/test'
 import type {
   ETFHolding,
   ETFHoldingsDate,
@@ -175,6 +175,36 @@ function expectBoundedD1Request(request: HistoryRequestBody) {
   const end = Date.parse(request.end)
   expect(end).toBeGreaterThan(start)
   expect(Math.ceil((end - start) / 86_400_000) + 1).toBeLessThanOrEqual(2000)
+}
+
+async function expectGoldenLayoutTabsWithinAllocatedHeaders(page: Page) {
+  const measurements = await page.locator('.lm_header').evaluateAll(headers => headers.flatMap(header => {
+    const headerRect = header.getBoundingClientRect()
+    const tabs = header.querySelector<HTMLElement>('.lm_tabs')
+    if (!tabs) return []
+    const tabsBoxSizing = getComputedStyle(tabs).boxSizing
+    return [...tabs.querySelectorAll<HTMLElement>('.lm_tab')].map(tab => {
+      const rect = tab.getBoundingClientRect()
+      const style = getComputedStyle(tab)
+      return {
+        headerTop: headerRect.top,
+        headerBottom: headerRect.bottom,
+        tabTop: rect.top,
+        tabBottom: rect.bottom,
+        tabsBoxSizing,
+        tabBoxSizing: style.boxSizing,
+        tabMarginTop: style.marginTop,
+      }
+    })
+  }))
+  expect(measurements.length).toBeGreaterThan(0)
+  for (const measurement of measurements) {
+    expect(measurement.tabsBoxSizing).toBe('border-box')
+    expect(measurement.tabBoxSizing).toBe('border-box')
+    expect(measurement.tabMarginTop).toBe('0px')
+    expect(measurement.tabTop).toBeGreaterThanOrEqual(measurement.headerTop)
+    expect(measurement.tabBottom).toBeLessThanOrEqual(measurement.headerBottom)
+  }
 }
 
 function missingCoverage(url: URL) {
@@ -1267,7 +1297,7 @@ test('held IWM issuer and constituent-history actions preserve snapshot lineage 
   const canvasCountBefore = await chartCanvases.count()
   const identityBeforeExplicitM1 = identityRequests.length
   await page.getByTestId('history-load-missing').click()
-  await expect(page.getByRole('status').filter({ hasText: 'The history request is held.' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'The history request is temporarily held. Your existing chart remains available.' })).toBeVisible()
   const m1History = await m1HistoryReady
   expect(m1History.status()).toBe(200)
   expect(await m1History.json()).toMatchObject({ status: 'held', symbol: 'AMD', instrument_id: amdInstrumentId })
@@ -2136,6 +2166,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     await page.goto('/')
     const symbolSearch = page.getByRole('combobox', { name: 'Active symbol' })
     await expect(symbolSearch).toBeVisible()
+    await expectGoldenLayoutTabsWithinAllocatedHeaders(page)
     expect(historyRequests).toHaveLength(0)
     expect(issuerRequests).toHaveLength(0)
     expect(discoveryRequests).toHaveLength(0)
@@ -2464,7 +2495,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const loadedUnxqBar = bars.get('UNXQ')
     await expect.poll(() => localReadbacks.some(readback => readback.symbol === 'UNXQ' && readback.bars.length === 1)).toBe(true)
     expect(localReadbacks.find(readback => readback.symbol === 'UNXQ' && readback.bars.length === 1)?.bars[0]).toMatchObject({ ts: loadedUnxqBar?.ts, close: loadedUnxqBar?.close })
-    await expect(page.locator('.historical-holding-context')).toContainText('UNXQ')
+    await expect(holdingLineage).toBeVisible()
     await browserDiagnostics.expectNoCriticalIssues()
   } finally {
     xhbAcquireGate.resolve()

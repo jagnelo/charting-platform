@@ -334,13 +334,11 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: Provider exact CI 42141483157 has three existing VanEck native-qualification
-  integration failures under ETF-owner diagnosis. TC exact-source CI and the Root-owned
-  combined browser/visual profile remain pending.
+current_blocker: |
+  Root will rebuild the current frontend and rerun the seven acquisition stories after this exact-source follow-up. The prior 5/7 run on image 5d20ff400 had two stale assertions; their corrections are included. Root also measured a shared GoldenLayout tab overflow on that image; the scoped CSS correction and a bounds regression are included here. Exact-source CI and the combined profile remain pending.
 
-current_checkpoint_status: 'Focused history/dashboard repair candidate: 232 affected
-  unit tests passed, frontend type-check passed, and all seven on-demand browser cases
-  are discoverable. No combined browser/visual result or source qualification is claimed.'
+current_checkpoint_status: |
+  Focused implementation evidence remains 232 affected unit tests passed, frontend type-check passed, and seven on-demand browser cases discovered. Root ran the seven stories on frontend source 5d20ff400: 5 passed, 2 stale-expectation failures, zero retries. The current history-status/lineage assertions are corrected. A measured GoldenLayout content-box override is corrected with a browser geometry assertion; this new CSS change has not yet been browser-qualified. The exact approved ETF clock-only integration-test dependency is included. No rerun is claimed.
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -1800,6 +1798,15 @@ shared_path_exceptions:
     ticker/history repair; preserve picker/type restrictions, expression semantics,
     event compatibility, and current-intent retry cancellation. No directory-wide
     ownership is granted.
+- path: backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py
+  reason: Exact test-only shared dependency adopted from clean synchronized ETF source
+    b25fc814ef301103337f343d57b859545fa5bb8f, blob
+    c75d410ea18854db6179f0d2ba608ef62e4350c2 (SHA256
+    a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d).
+    The reviewed test-clock-only correction stabilizes the existing VanEck
+    qualification cases; no ETF workstream, product source, policy, payload,
+    ledger, data, or runtime resource is adopted. This grants no directory
+    ownership.
 dependencies:
 - Prior accepted green staging 173745205692acd3fca650eeeafcd6de38f29fed imports the accepted Provider/ETF on-demand contracts
   from producer source95a93f0b932f58018d4f0d40f17f8fdb9eecdb20. Provider owns candidate discovery, canonical identity, bounded
@@ -1950,7 +1957,7 @@ migration_impact: No TC-owned migration/schema change in this checkpoint; accept
   closure.
 deployment_impact: No deployment or target mutation is claimed. Real Provider/issuer qualification and private-target/deployment
   acceptance remain Root-owned and pending; all operational holds remain unchanged.
-status: ready_for_human_review
+status: in_progress
 
 progress:
   completed: []
@@ -4246,9 +4253,9 @@ correction_summary:
     recorded.
 
 ordinary_ticker_snapshot_followup_20261105: {"kind": "corrective followup within existing ordinary ticker checkpoint; no roadmap replan", "baseline": "45cc8206602d7823ca29e132d991d88b0bcbbc25", "previous_goal": "Repair exact discovered ticker Enter/Go in Workstation and shared chart SearchBar, and isolate superseded selection errors while preserving exact-local precedence, explicit choices, expressions, identity verification, ambiguity safeguards, picker scopes, stale-query fencing, current ETF context, and genuine workspace conflict recovery.", "Root_acceptance": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/TC-same-snapshot-implementation-root-acceptance.json", "accepted_file_hashes": {"frontend/src/components/workstation/WorkstationToolContent.vue": "3ff06c38e10066f15e4bca78b49833ec109d6e4443a4302106c6acdc1a813db2", "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts": "b28994b75748976ef4658f74a79379909bb76fad5c7e8077b4e9b45a5e331c7e"}, "local_evidence": "4/4 mounted component tests, type-check and diff checks; prior failing CI retained", "release_state": "Root correct-bundle browser, exact closing-tip CI and combined full profile remain pending", "boundaries": "No self-integration/deployment; no source requests or quota/policy/dataset changes; all old roadmap criteria and accepted archives preserved"}
-next_action: Commit the coherent local frontend candidate for Root freeze/build; hold
-  push for the reviewed Provider dependency handoff, then run the shared combined
-  profile under Root coordination.
+next_action: |
+  Finish the targeted scope/workstream/diff checks and publish this one coherent follow-up. Root owns the rebuilt frontend and seven-story browser rerun; keep exact-source CI and the combined full profile pending.
+
 current_exact_ci:
   head_sha: null
   run_id: null
@@ -4259,8 +4266,9 @@ closing_tip_ci:
   run_id: null
   scope: Exact source CI for the history-dashboard repair candidate after publication.
   status: pending Root observation after publication
-current_candidate_ci_status: Not yet published; exact-source CI and combined browser/visual
-  qualification remain pending Root.
+current_candidate_ci_status: |
+  This local history/dashboard candidate includes the measured shared tab-box sizing correction, stale browser expectation corrections, and one exact ETF test-only dependency. Current branch CI and Root-owned focused browser/full profile remain pending after publication; no acceptance is claimed.
+
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd

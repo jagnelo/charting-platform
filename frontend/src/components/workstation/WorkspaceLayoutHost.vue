@@ -628,8 +628,8 @@ defineExpose({
 .workspace-layout-host { position: relative; width: 100%; height: 100%; min-width: 0; min-height: 0; overflow: hidden; background: #0b0f12; }
 :deep(.lm_goldenlayout) { background: #0b0f12; }
 :deep(.lm_header) { box-sizing: border-box; height: 20px; background: linear-gradient(#2a3036, #1d2227); border-bottom: 1px solid #0d0f11; }
-:deep(.lm_tabs) { box-sizing: border-box; height: 20px; }
-:deep(.lm_tab) { box-sizing: border-box; height: 20px; padding: 4px 8px 0; color: #b9c4cc; font: 600 11px/1 "Segoe UI", Arial, sans-serif; background: #20262b; }
+:deep(.lm_header .lm_tabs) { box-sizing: border-box !important; height: 20px; }
+:deep(.lm_header .lm_tabs > .lm_tab) { box-sizing: border-box !important; height: 20px; margin-top: 0 !important; padding: 4px 8px 0; color: #b9c4cc; font: 600 11px/1 "Segoe UI", Arial, sans-serif; background: #20262b; }
 :deep(.lm_tab.lm_active) { color: #edf5f8; background: #303940; box-shadow: inset 0 2px #67b7ea; }
 :deep(.lm_content) { background: #15191e; }
 :deep(.lm_splitter) { background: #090c0f; opacity: 1; }
