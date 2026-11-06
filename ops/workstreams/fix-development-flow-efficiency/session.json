@@ -80,7 +80,7 @@
   "local_validation_profile": "unit",
   "next_action": "Implementation and records are ready for integration; Root owns exact CI and protected adoption",
   "parent_branch": "staging",
-  "plan_hash": "4094b9155b44641feeb9137a24bd909b01e880bb3aca411af15cba29b74f5c32",
+  "plan_hash": "0cf3c53adafee8be9ba0ec0dee6717c9883bed37c620fa7ae8ad9126dcd0b922",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [],

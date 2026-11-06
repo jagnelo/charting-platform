@@ -107,7 +107,7 @@ def test_changed_scope_validates_branch_manifest_before_product_jobs():
         if step.get("name") == "Classify exact changed paths"
     )
     validation = steps[validation_index]
-    assert validation_index < classify_index
+    assert classify_index < validation_index
     assert "--validate-only" in validation["run"]
     assert "GITHUB_HEAD_REF" in validation["run"]
     assert "github.event_name == 'pull_request'" in validation["if"]

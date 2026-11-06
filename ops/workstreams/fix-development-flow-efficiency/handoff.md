@@ -194,3 +194,14 @@ validation-only CLI proof passed; no branch commands ran in validation-only
 mode. Product behavior, provider policy, sibling worktrees and protected refs
 were not changed. Root owns exact CI and integration. `integration_capture:
 exact branch HEAD`.
+
+## Changed-scope step-order correction
+
+Root's exact CI run `42209366171` on `4ca8133` failed one existing structural
+assertion because the new validation step displaced `Classify exact changed
+paths` from index 1; 214 other workflow tests passed. Moved the validation-only
+step after classification in the same job. The job still completes before any
+backend, frontend-unit, E2E, or branch-declared job can start, and all prior
+qualification and scope guards remain unchanged. The corrected full fast
+workflow suite passed 215/215 in 1.81 seconds. The `4ca8133` overall CI remains
+red and unqualified; Root owns push and exact CI for this corrective commit.
