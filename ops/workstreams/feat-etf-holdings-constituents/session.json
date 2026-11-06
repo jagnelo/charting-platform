@@ -33,8 +33,8 @@
   },
   "active_goal": {
     "completed_goal_history_preserved": true,
-    "created_at_epoch": 1793929180,
-    "objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
+    "created_at_epoch": 1793957192,
+    "objective": "Adopt exact green context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 into this ETF owner branch with one records-only handoff, preserve the full roadmap, and leave broader work unactivated.",
     "status": "complete",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -92,7 +92,7 @@
     "updated_at_epoch": 1793716359
   },
   "current_blocker_latest": "Exact-source CI and Root-owned broader qualification remain pending. Preserve AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, histories, and genuine deployment work.",
-  "current_checkpoint_objective": "Repair the three VanEck native qualification/ordinary-refresh integration failures by freezing the test clock for the authentic dated workbook fixtures, without changing provider data, freshness rules, or product behavior.",
+  "current_checkpoint_objective": "Records-only context adoption of exact green staging/master a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7; no new product scope activated.",
   "current_local_delta": {
     "type": "test-only",
     "paths": [
@@ -136,7 +136,7 @@
     "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
+  "goal_objective": "Adopt exact green context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 into this ETF owner branch with one records-only handoff, preserve the full roadmap, and leave broader work unactivated.",
   "goal_recorded_at": "2026-11-03T11:32:15Z",
   "goal_request": {
     "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
@@ -753,7 +753,7 @@
   },
   "last_checkpoint": "2026-10-31T09:51:12Z",
   "last_human_progress_update": "2026-10-24T16:58:00.570331+00:00",
-  "latest_checkpoint": "Root accepted the narrow SPDR provenance-fixture correction after CI41956681710 exposed that the exact expected fund_identity omitted requested_source_url. The corrected isolated PostgreSQL node passed 1/1 in24.92s. Exact final-tip CI is pending and mandatory; Root owns observation. Earlier red CI and failed one-shot/source histories remain preserved; full roadmaps and holds remain open.",
+  "latest_checkpoint": "Root authorized context-only adoption of exact green a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7. Local non-fast-forward merge completed without conflicts; full ETF roadmap remains open and no deployment/genuine flow is claimed. Root owns push and later private cutover.",
   "latest_published_ci": {
     "covers_current_local_changes": false,
     "result": "Exact implementation push CI41186532340 is terminal green on 802ef5b1e6a4246cc27f29da90950984878df947; Backend, Frontend Unit, Branch-declared and Playwright succeeded; Exhaustive Integration Gate was skipped as configured.",
@@ -761,18 +761,16 @@
     "sha": "802ef5b1e6a4246cc27f29da90950984878df947"
   },
   "latest_staging_baseline_adoption": {
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261104T111148Z-4de1365cec4b.json",
-    "canonical_receipt_sha256": "ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea",
-    "exact_ci_run": 41805745211,
-    "master_or_deployment_claim": false,
-    "master_or_deployment_claimed": false,
+    "released_staging_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json",
+    "canonical_receipt_sha256": "e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681",
+    "exact_staging_ci": 42184756530,
+    "exact_master_provenance_ci": 42194282702,
     "merge_conflicts": [],
-    "pre_adoption_feature_sha": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
-    "product_delta_imported": "Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adopted through normal same-branch merge; resulting backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c",
-    "release_state": "exact synchronized-green staging normally merged into the assigned ETF branch",
-    "released_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
-    "resulting_head": "3a8e205921071923e1517eabb7623f01ded77935",
-    "source_changes_after_merge": "Green staging ancestry is in the source; tested ETF implementation is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. No sibling source copy."
+    "merge_method": "normal non-fast-forward owner-branch merge",
+    "deployment_or_target_claimed": false,
+    "roadmap_activation": false,
+    "integration_capture": "exact branch HEAD"
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
@@ -1002,7 +1000,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "7434437f803004b4d1bbe1a307a48452ae574c58a9ee47dd6650bf985e098d06",
+  "plan_hash": "61b04347c0789d3fba41be1cab71e6be870b132d993ffe203ed9a5d99fc9e348",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -3318,7 +3316,7 @@
   "remote": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
   "remote_observation": "Pre-publication status was captured at local base45cc8206602d7823ca29e132d991d88b0bcbbc25 with origin feature66b9c6733a8de3d3fc5267a1079016b86bd76021; one coherent accepted-source publication is now authorized. Exact closing-tip CI and staging remain Root-owned.",
   "remote_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -3528,7 +3526,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T01:56:21Z",
+  "updated_at": "2026-11-06T09:32:12Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -3636,5 +3634,40 @@
     "source_http_requests": 0,
     "status": "accepted_ready_for_integration_closing_tip_CI_pending",
     "tested_implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce"
-  }
+  },
+  "historical_completed_vaneck_clock_goal_before_a9_adoption_2026_11_06": {
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793929180,
+    "objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
+    "status": "complete",
+    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
+    "token_budget": null
+  },
+  "current_context_adoption": {
+    "released_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json",
+    "canonical_receipt_sha256": "e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681",
+    "staging_ci": 42184756530,
+    "master_provenance_ci": 42194282702,
+    "adoption": "normal non-fast-forward merge; no conflicts",
+    "status": "adopted_context_only",
+    "broader_roadmap": "open; no feature activation",
+    "root_owned_private_cutover_and_genuine_flow": "pending",
+    "integration_capture": "exact branch HEAD"
+  },
+  "previous_latest_staging_baseline_adoption_before_a9_2026_11_06": {
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261104T111148Z-4de1365cec4b.json",
+    "canonical_receipt_sha256": "ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea",
+    "exact_ci_run": 41805745211,
+    "master_or_deployment_claim": false,
+    "master_or_deployment_claimed": false,
+    "merge_conflicts": [],
+    "pre_adoption_feature_sha": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
+    "product_delta_imported": "Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adopted through normal same-branch merge; resulting backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c",
+    "release_state": "exact synchronized-green staging normally merged into the assigned ETF branch",
+    "released_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
+    "resulting_head": "3a8e205921071923e1517eabb7623f01ded77935",
+    "source_changes_after_merge": "Green staging ancestry is in the source; tested ETF implementation is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. No sibling source copy."
+  },
+  "previous_latest_checkpoint_before_a9_2026_11_06": "Root accepted the narrow SPDR provenance-fixture correction after CI41956681710 exposed that the exact expected fund_identity omitted requested_source_url. The corrected isolated PostgreSQL node passed 1/1 in24.92s. Exact final-tip CI is pending and mandatory; Root owns observation. Earlier red CI and failed one-shot/source histories remain preserved; full roadmaps and holds remain open."
 }

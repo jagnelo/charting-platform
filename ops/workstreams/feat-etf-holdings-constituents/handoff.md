@@ -1,3 +1,9 @@
+# Green context adoption — a9ee26d46ca0 — 2026-11-06
+
+This owner branch now adopts exact synchronized staging/master context `a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7` through a normal non-fast-forward merge. Canonical receipt `/home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json` (SHA256 `e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681`) records staging CI `42184756530` and master provenance CI `42194282702` terminal success. Root reports 1612 backend/frontend, 202 functional, and 104 visual; the receipt’s separate unexecuted-job list is preserved as written. This adopts shared history/planner/provider controls and released dashboard/chart behavior as context only; no further ETF implementation is activated. Root’s private backup/cutover and genuine user-flow gates remain pending. Preserve the complete ETF roadmap, issuer coverage, histories, datasets and holds.
+
+---
+
 # Accepted checkpoint — VanEck authentic fixture clock — 2026-11-06
 
 Root accepted this bounded test-only checkpoint under the human standing authorization in `/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json` (SHA256 `e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681`). Validated implementation: `b25fc814ef301103337f343d57b859545fa5bb8f`; its exact-source CI `42147141948` is green. The three affected VanEck integration nodes passed with authentic workbook bytes and freshness policy unchanged. No product/configuration change or migration was made.

@@ -43,6 +43,18 @@ _DISTINCT_IDENTITY_UNITS = {"symbol", "symbols", "unique_symbol", "unique_symbol
 _IN_FLIGHT_UNITS = {"concurrent_requests", "concurrency"}
 
 
+def _quota_window_retry_boundary(
+    started_at: datetime, window_seconds: int, *, rolling: bool
+) -> datetime:
+    start = (
+        started_at.replace(tzinfo=UTC) if started_at.tzinfo is None else started_at.astimezone(UTC)
+    )
+    # Rolling buckets are second-granularity and remain active at an exact
+    # cutoff because the query includes ``>= cutoff``. Add one second so the
+    # advertised resume time is after, never before, the reviewed boundary.
+    return start + timedelta(seconds=window_seconds + (1 if rolling else 0))
+
+
 def quota_group_for_dimension(capability: str, dimension: dict[str, Any]) -> str:
     """Return the explicitly reviewed bucket key for one provider dimension.
 
@@ -233,6 +245,7 @@ async def reserve_provider_quota(
     now: datetime | None = None,
     rolling: bool = False,
     release_only: bool = False,
+    denial_details: dict[str, Any] | None = None,
 ) -> ProviderQuotaWindow | None:
     """Atomically reserve units in a durable fixed or rolling window."""
 
@@ -317,6 +330,23 @@ async def reserve_provider_quota(
             row.reserved_units + (0 if release_only else row.consumed_units) for row in active
         )
         if available < units:
+            if denial_details is not None and not release_only:
+                required_to_free = units - available
+                freed = 0
+                for row in sorted(
+                    active,
+                    key=lambda item: _quota_window_retry_boundary(
+                        item.window_started_at, window_seconds, rolling=rolling
+                    ),
+                ):
+                    freed += row.reserved_units + row.consumed_units
+                    if freed >= required_to_free:
+                        denial_details["retry_at"] = _quota_window_retry_boundary(
+                            row.window_started_at,
+                            window_seconds,
+                            rolling=rolling,
+                        )
+                        break
             return None
         window.reserved_units += units
         return window
@@ -375,6 +405,10 @@ async def reserve_provider_quota(
         window.limit_units - window.reserved_units - (0 if release_only else window.consumed_units)
     )
     if available < units:
+        if denial_details is not None and not release_only:
+            denial_details["retry_at"] = _quota_window_retry_boundary(
+                start, window_seconds, rolling=False
+            )
         return None
     window.reserved_units += units
     return window
@@ -389,6 +423,7 @@ async def reserve_provider_contract(
     dimension_units: dict[str, int] | None = None,
     usage_identity: str | None = None,
     now: datetime,
+    denial_details: dict[str, Any] | None = None,
 ) -> list[ProviderQuotaWindow] | None:
     """Reserve every documented quota dimension or none of them."""
 
@@ -435,6 +470,7 @@ async def reserve_provider_contract(
         # request/credit units the provider-specific operation costs.
         reserved_units = 1 if is_in_flight else raw_reserved_units
         window_start, rolling = _window_start_for_dimension(dimension, reset=reset, now=now)
+        dimension_denial: dict[str, Any] = {}
         window = await reserve_provider_quota(
             db,
             data_source_id=resolved.data_source.id,
@@ -448,8 +484,11 @@ async def reserve_provider_contract(
             now=now,
             rolling=rolling,
             release_only=is_in_flight,
+            denial_details=dimension_denial,
         )
         if window is None:
+            if denial_details is not None and dimension_denial.get("retry_at") is not None:
+                denial_details["retry_at"] = dimension_denial["retry_at"]
             for prior in windows:
                 prior_name = str(prior.dimension)
                 # Roll back the actual reservation amount. In-flight

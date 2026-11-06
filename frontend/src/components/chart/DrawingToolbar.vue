@@ -385,22 +385,22 @@ async function lockDrawing() {
   position: absolute;
   left: calc(100% + 6px);
   top: 0;
-  background: #151c21;
-  border: 1px solid #394852;
-  border-radius: 2px;
+  background: var(--tc-panel-bg, #151c21);
+  border: 1px solid var(--tc-border-strong, #394852);
+  border-radius: var(--tc-radius, 2px);
   padding: 4px;
   min-width: 180px;
   z-index: 200;
-  box-shadow: 0 3px 12px rgba(0,0,0,0.55);
+  box-shadow: var(--tc-shadow, 0 3px 12px rgba(0,0,0,0.55));
 }
 
 .popup-title {
   font-size: 10px;
-  color: #71818b;
+  color: var(--tc-text-muted, #71818b);
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 2px 4px 5px;
-  border-bottom: 1px solid #2d3941;
+  border-bottom: 1px solid var(--tc-border, #2d3941);
   margin-bottom: 3px;
 }
 

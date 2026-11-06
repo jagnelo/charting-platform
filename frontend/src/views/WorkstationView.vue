@@ -152,7 +152,7 @@
             <div v-if="searchLoading" class="workstation__symbol-search-message" role="status">Searching canonical instruments…</div>
             <div v-else-if="searchError" class="workstation__symbol-search-message workstation__symbol-search-message--error" role="alert">{{ searchError }}</div>
             <div v-else-if="searchSettled && !searchResults.length && sourceDiscoveryLoading" class="workstation__symbol-search-message" role="status">No local match. Checking ticker availability…</div>
-            <div v-else-if="searchSettled && !searchResults.length && sourceDiscoverySettled && !sourceCandidates.length && !sourceDiscoveryError" class="workstation__symbol-search-message" role="status">No matching ticker is available for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
+            <div v-else-if="searchSettled && sourceDiscoverySettled && sourceDiscoveryTerminalNoMatch" class="workstation__symbol-search-message" role="status">No matching ticker is available for “{{ symbolDraft.trim().toUpperCase() }}”.</div>
             <button
               v-for="(result, index) in searchResults"
               :key="`${result.symbol}:${result.exchange}`"
@@ -192,6 +192,14 @@
         <span v-if="selectionHistoryError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHistoryError }}</span>
         <span v-if="selectionHoldingsMessage" class="workstation__selection-acquisition" role="status" aria-live="polite">{{ selectionHoldingsMessage }}</span>
         <span v-if="selectionHoldingsError" class="workstation__selection-acquisition workstation__selection-acquisition--error" role="alert">{{ selectionHoldingsError }}</span>
+        <span
+          v-if="selectedHoldingLineage"
+          class="workstation__selection-acquisition"
+          data-testid="active-holding-lineage"
+          role="status"
+          :aria-label="selectedHoldingLineage"
+          :title="selectedHoldingLineage"
+        >{{ selectedHoldingCaption }}</span>
         <button type="button" class="workstation__refresh" :disabled="workspaceStore.marketAnalysisRefreshing" title="Refresh top-down analysis" @click="refreshMarketData">{{ workspaceStore.marketAnalysisRefreshing ? 'Refreshing…' : 'Refresh' }}</button>
         <button type="button" class="workstation__sign-out logout-btn" title="Sign out" @click="signOut">Sign out</button>
       </div>
@@ -250,7 +258,7 @@
         :active-window-key="popoutTool.instance_key"
         :factory-layout="workspaceStore.activeTabKey"
         @select="(symbol, instrumentId, preserveETFContext) => selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true)"
-        @holding-drilldown="openHoldingDrilldown"
+        @holding-select="selectHoldingInDashboard"
         @compare="compareSymbols"
         @ratio="openMarketMapRatio"
         @reorder="reorderWatchlistItems"
@@ -305,7 +313,7 @@ import { useAuthStore } from '@/stores/auth'
 import { OPENABLE_WORKSTATION_TOOLS, useWorkspaceStore, type LinkGroup, type OpenableToolDefinition } from '@/stores/workspace'
 import type { LayoutConfig } from 'golden-layout'
 import { resolveKnownInstrument } from '@/lib/instruments'
-import { acquireETFHoldings, acquireSelectedHistory, defaultHistoryRange, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
+import { acquireETFHoldings, acquireSelectedHistory, createKnownTemporaryRetryLifecycle, defaultHistoryRange, isCurrentETFHoldingsCapability, isEligibleETFHoldingsInstrumentType, readETFHoldingsCapability, resolveExistingInstrument, resolveExistingInstrumentWithRetry, type InstrumentDiscoveryResponse, type SelectedHistoryStage } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
 import { autoRatioExpression } from '@/lib/workstation/ratioExpression'
 import { api } from '@/lib/api'
@@ -318,7 +326,7 @@ import { workstationFreshness } from '@/lib/workstation/freshness'
 import { isInteractiveTarget } from '@/lib/workstation/keyboard'
 import { capturePopoutGeometry, popoutWindowFeatures, readPopoutGeometry, recoverPopoutGeometry, type PopoutScreen } from '@/lib/workstation/popoutGeometry'
 import { resolveMarketMapAnalysisSource } from '@/lib/workstation/marketMapPublication'
-import { holdingDrilldownRouteQuery, holdingDrilldownRouteState, isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
+import { isConfirmedETFHoldingIdentity, type ETFHoldingDrilldownContext } from '@/lib/etfHoldingDrilldown'
 import { isSharedNavigationItemActive, sharedShellNavigation } from '@/router'
 import type { Timeframe } from '@/types'
 
@@ -420,6 +428,7 @@ const searchError = ref('')
 const sourceCandidates = ref<InstrumentDiscoveryCandidate[]>([])
 const sourceDiscoveryLoading = ref(false)
 const sourceDiscoverySettled = ref(false)
+const sourceDiscoveryTerminalNoMatch = ref(false)
 const sourceResolving = ref(false)
 const sourceDiscoveryMessage = ref('')
 const sourceDiscoveryError = ref('')
@@ -427,8 +436,26 @@ const selectionHistoryMessage = ref('')
 const selectionHistoryError = ref('')
 const selectionHoldingsMessage = ref('')
 const selectionHoldingsError = ref('')
+const activeHoldingContext = ref<{ symbol: string; context: ETFHoldingDrilldownContext } | null>(null)
+const selectedHoldingDetails = computed(() => {
+  const selection = activeHoldingContext.value
+  const fund = workspaceStore.constituentETF
+  if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
+  const context = selection.context
+  return `${selection.symbol} from ${fund} holdings · snapshot ${context.snapshotId} · row ${context.holdingRowId} · composition ${context.compositionDate} · known ${context.knownAt || 'not reported'} · ${context.sourceProvider} / ${context.provenance}`
+})
+const selectedHoldingCaption = computed(() => {
+  const selection = activeHoldingContext.value
+  const fund = workspaceStore.constituentETF
+  if (!selection || !fund || selection.symbol !== workspaceStore.linkedSymbol.trim().toUpperCase()) return ''
+  return `${selection.symbol} from ${fund} holdings · ${selection.context.compositionDate}`
+})
+const selectedHoldingLineage = selectedHoldingDetails
 let searchTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
+let discoveryRetryAbortController: AbortController | null = null
+let candidateResolutionAbortController: AbortController | null = null
+let candidateResolutionSequence = 0
 let searchRequest = 0
 let pendingSymbolSearch: { requestId: number; query: string; promise: Promise<void>; resolve: () => void } | null = null
 let symbolSubmissionInFlight = false
@@ -442,7 +469,7 @@ const searchStateText = computed(() => {
   if (sourceDiscoveryLoading.value) return 'Checking ticker availability'
   if (searchError.value) return `Symbol search error: ${searchError.value}`
   if (sourceDiscoveryError.value) return `Ticker lookup error: ${sourceDiscoveryError.value}`
-  if (searchSettled.value && !searchResults.value.length && sourceDiscoverySettled.value && !sourceCandidates.value.length) return `No matching ticker is available for ${symbolDraft.value.trim().toUpperCase()}`
+  if (searchSettled.value && sourceDiscoverySettled.value && sourceDiscoveryTerminalNoMatch.value) return `No matching ticker is available for ${symbolDraft.value.trim().toUpperCase()}`
   return ''
 })
 const handledWheelEvents = new WeakSet<Event>()
@@ -454,6 +481,7 @@ const ctrlWheelHeld = ref(false)
 // Initial route loading and fast list traversal can overlap. The latest symbol
 // intent wins so a late initial SPY request cannot restore an older selection.
 let symbolSelectionGeneration = 0
+let selectedAcquisitionAbortController: AbortController | null = null
 let drilldownSelectionGeneration = 0
 let componentMounted = false
 let resolveComponentMountSettled: (() => void) | null = null
@@ -476,6 +504,11 @@ const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterv
 
 function closeSymbolSearch() {
   symbolSearchEnabled.value = false
+  discoveryRetryAbortController?.abort()
+  discoveryRetryAbortController = null
+  candidateResolutionAbortController?.abort()
+  candidateResolutionAbortController = null
+  candidateResolutionSequence += 1
   if (searchTimer) {
     clearTimeout(searchTimer)
     searchTimer = null
@@ -492,6 +525,8 @@ function closeSymbolSearch() {
   searchSettled.value = false
   searchError.value = ''
   sourceDiscoveryLoading.value = false
+  sourceDiscoveryMessage.value = ''
+  sourceDiscoveryTerminalNoMatch.value = false
 }
 
 function handleSymbolSearchFocusout(event: FocusEvent) {
@@ -1097,7 +1132,7 @@ function sp500TradableProxy(): string {
   return 'SPY'
 }
 
-function openHoldingDrilldown(
+function selectHoldingInDashboard(
   symbol: string,
   context: ETFHoldingDrilldownContext,
   confirmedIdentity?: InstrumentAcquireResponse,
@@ -1105,11 +1140,11 @@ function openHoldingDrilldown(
   const canonical = symbol.trim().toUpperCase()
   if (!canonical || canonical !== context.canonicalSymbol.trim().toUpperCase()
     || !Number.isSafeInteger(context.instrumentId) || context.instrumentId <= 0) return
-  const location = {
-    path: `/legacy/chart/${encodeURIComponent(canonical)}`,
-    query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
-  }
-  void router.push({ ...location, state: holdingDrilldownRouteState(context, confirmedIdentity) })
+  // A holding row is a dashboard selection, not a legacy chart navigation.
+  // Keep the parent ETF context active so the same snapshot/row remains the
+  // provenance source while linked dashboard panels follow the selected equity.
+  void selectSymbol(canonical, undefined, false, context.instrumentId, true, true,
+    confirmedIdentity?.instrument?.instrument_type ?? '', true, confirmedIdentity, context)
 }
 
 async function selectSymbol(
@@ -1122,10 +1157,14 @@ async function selectSymbol(
   instrumentType = '',
   acquisitionIntent = false,
   confirmedIdentity?: InstrumentAcquireResponse,
+  holdingContext?: ETFHoldingDrilldownContext,
 ) {
   const requested = raw.trim()
   if (!requested) return
   clearSupersededSymbolSelectionError()
+  selectedAcquisitionAbortController?.abort()
+  const acquisitionController = new AbortController()
+  selectedAcquisitionAbortController = acquisitionController
   const generation = ++symbolSelectionGeneration
   if (!preserveETFContext) {
     const requestedSymbol = requested.toUpperCase()
@@ -1199,6 +1238,9 @@ async function selectSymbol(
     }
   }
   if (generation !== symbolSelectionGeneration) return
+  activeHoldingContext.value = holdingContext
+    ? { symbol: symbol.trim().toUpperCase(), context: holdingContext }
+    : null
   selectionHistoryMessage.value = ''
   selectionHistoryError.value = ''
   selectionHoldingsMessage.value = ''
@@ -1245,7 +1287,7 @@ async function selectSymbol(
   try {
     const localDataReady = loadSymbolData(symbol, comparisonETF, false, preserveETFContext)
     const selectedAcquisition = acquisitionIntent
-      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity)
+      ? acquireSelectedTickerData(symbol, generation, localDataReady, confirmedIdentity, acquisitionController.signal)
       : Promise.resolve()
     await Promise.all([localDataReady, selectedAcquisition])
     if (generation !== symbolSelectionGeneration) return
@@ -1271,6 +1313,7 @@ async function acquireSelectedTickerData(
   generation: number,
   localDataReady: Promise<void>,
   confirmedIdentity?: InstrumentAcquireResponse,
+  signal?: AbortSignal,
 ) {
   const timeframe = chartStore.timeframe
   const range = defaultHistoryRange(timeframe)
@@ -1280,16 +1323,23 @@ async function acquireSelectedTickerData(
   // qualified identity; provisional or stale identity is governed there.
   // History and issuer work share this result, so neither can race or resolve
   // the selected symbol twice.
+  const isCurrent = () => generation === symbolSelectionGeneration && !signal?.aborted
+    && chartStore.timeframe === timeframe
+  const retryLifecycle = createKnownTemporaryRetryLifecycle(isCurrent, retryAt => {
+    if (isCurrent()) selectionHistoryMessage.value = `Waiting to retry ${symbol} history after ${new Date(retryAt).toLocaleTimeString()}…`
+  }, signal)
   const identityPromise = confirmedIdentity
     ? Promise.resolve(confirmedIdentity)
-    : resolveExistingInstrument(symbol)
+    : resolveExistingInstrumentWithRetry(symbol, retryLifecycle, isCurrent)
   const updateStage = (stage: SelectedHistoryStage) => {
-    if (generation !== symbolSelectionGeneration) return
+    if (!isCurrent()) return
     selectionHistoryMessage.value = stage === 'coverage'
       ? `Checking local ${timeframe} history for ${symbol}…`
       : stage === 'identity'
         ? `Confirming ${symbol}…`
-        : `Loading missing ${timeframe} history for ${symbol}…`
+        : stage === 'waiting'
+          ? selectionHistoryMessage.value
+          : `Loading missing ${timeframe} history for ${symbol}…`
   }
   const historyTask = (async () => {
     try {
@@ -1299,24 +1349,35 @@ async function acquireSelectedTickerData(
         true,
         request,
         updateStage,
-        () => generation === symbolSelectionGeneration,
+        isCurrent,
         identityPromise,
+        { retryLifecycle, signal },
       )
       if (generation !== symbolSelectionGeneration || outcome.kind === 'superseded') return
       if (outcome.kind === 'already-covered') {
         selectionHistoryMessage.value = `Local ${timeframe} history is available for ${symbol}.`
       } else if (outcome.kind === 'identity-unavailable') {
         selectionHistoryMessage.value = outcome.status === 'held'
-          ? `History for ${symbol} is currently unavailable; the selected chart is unchanged.`
+          ? `History for ${symbol} is temporarily held${outcome.retryAt ? `; try again after ${new Date(outcome.retryAt).toLocaleTimeString()}` : ''}. The selected chart remains available.`
           : `The ticker identity for ${symbol} could not be confirmed; no history was requested.`
+      } else if (outcome.kind === 'admission-held') {
+        selectionHistoryMessage.value = `History for ${symbol} is temporarily held; the selected chart remains available.`
+      } else if (outcome.kind === 'admission-unavailable') {
+        selectionHistoryMessage.value = `The allowed history window for ${symbol} could not be confirmed; saved bars remain available.`
+      } else if (outcome.kind === 'coverage-unavailable') {
+        selectionHistoryMessage.value = `Saved history coverage for ${symbol} could not be confirmed; the selected chart remains available.`
+      } else if (outcome.kind === 'at-earliest-bound') {
+        selectionHistoryMessage.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       } else {
         const result = outcome.result
+        const heldSource = result.source_outcomes.find(source => source.status === 'held')
+        const retryAt = result.retry_at ?? heldSource?.retry_at
         selectionHistoryMessage.value = result.status === 'complete'
           ? `Loaded ${result.coverage.bar_count} local ${timeframe} bars for ${symbol}.`
           : result.status === 'partial'
             ? `Some ${timeframe} history for ${symbol} loaded; the rest remains unavailable.`
             : result.status === 'held'
-              ? `History for ${symbol} is currently unavailable; the selected chart is unchanged.`
+              ? `History for ${symbol} is temporarily held${retryAt ? `; try again after ${new Date(retryAt).toLocaleTimeString()}` : ''}. The current chart remains available.`
               : result.status === 'no_data'
                 ? `No ${timeframe} history is available for ${symbol}; the selected chart is unchanged.`
                 : `History for ${symbol} could not be loaded; the selected chart is unchanged.`
@@ -1487,6 +1548,11 @@ async function loadSymbolData(symbol: string, comparisonETF = workspaceStore.con
 
 function scheduleSymbolSearch(value: string) {
   if (!symbolSearchEnabled.value) return
+  discoveryRetryAbortController?.abort()
+  discoveryRetryAbortController = null
+  candidateResolutionAbortController?.abort()
+  candidateResolutionAbortController = null
+  candidateResolutionSequence += 1
   searchOptionExplicitlyNavigated.value = false
   finishPendingSymbolSearch()
   if (searchTimer) clearTimeout(searchTimer)
@@ -1499,6 +1565,7 @@ function scheduleSymbolSearch(value: string) {
   sourceDiscoveryLoading.value = false
   sourceResolving.value = false
   sourceDiscoverySettled.value = false
+  sourceDiscoveryTerminalNoMatch.value = false
   sourceCandidates.value = []
   if (!query) {
     searchResults.value = []
@@ -1590,25 +1657,57 @@ async function discoverSymbolDraft(rawQuery = symbolDraft.value, requestGenerati
   const queryKey = query.toUpperCase()
   if (lastDiscoveryQuery === queryKey) return
   lastDiscoveryQuery = queryKey
+  discoveryRetryAbortController?.abort()
+  const controller = new AbortController()
+  discoveryRetryAbortController = controller
+  const isCurrent = () => componentMounted
+    && !controller.signal.aborted
+    && requestGeneration === searchRequest
+    && symbolDraft.value.trim().toUpperCase() === queryKey
+  const retryLifecycle = createKnownTemporaryRetryLifecycle(
+    isCurrent,
+    retryAt => {
+      sourceDiscoveryLoading.value = false
+      sourceDiscoveryMessage.value = `Ticker lookup is temporarily waiting to retry after ${new Date(retryAt).toLocaleTimeString()}.`
+    },
+    controller.signal,
+  )
   sourceDiscoveryLoading.value = true
   sourceDiscoverySettled.value = false
   sourceDiscoveryError.value = ''
   sourceDiscoveryMessage.value = ''
   sourceCandidates.value = []
   try {
-    const result = await discoverInstruments(query, [], 10)
-    if (requestGeneration !== searchRequest || symbolDraft.value.trim().toUpperCase() !== queryKey) return
-    sourceCandidates.value = Array.isArray(result.candidates) ? result.candidates : []
-    sourceDiscoveryMessage.value = tickerDiscoveryMessage(result.status, sourceCandidates.value.length)
+    while (isCurrent()) {
+      sourceDiscoveryLoading.value = true
+      sourceDiscoveryMessage.value = ''
+      const result = await discoverInstruments(query, [], 10)
+      if (!isCurrent()) return
+      const retryAt = result.retry_at
+        ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+      const hasHeldSource = result.source_outcomes.some(outcome => outcome.status === 'held')
+      const shouldWait = (result.status === 'held' || result.status === 'unavailable' || hasHeldSource) && Boolean(retryAt)
+      if (shouldWait && await retryLifecycle.wait(retryAt) === 'ready') continue
+      sourceCandidates.value = Array.isArray(result.candidates) ? result.candidates : []
+      sourceDiscoveryTerminalNoMatch.value = result.status === 'no_match' && sourceCandidates.value.length === 0
+      sourceDiscoveryMessage.value = sourceDiscoveryTerminalNoMatch.value
+        ? ''
+        : tickerDiscoveryMessage(result.status, sourceCandidates.value.length)
+      if ((result.status === 'held' || result.status === 'unavailable' || hasHeldSource) && !sourceCandidates.value.length) {
+        sourceDiscoveryMessage.value = 'Ticker lookup is unavailable. You can try again manually.'
+      }
+      return
+    }
   } catch {
-    if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
+    if (isCurrent()) {
       sourceDiscoveryError.value = 'Ticker lookup failed. Local search and cached charts remain available.'
     }
   } finally {
-    if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
+    if (isCurrent()) {
       sourceDiscoveryLoading.value = false
       sourceDiscoverySettled.value = true
     }
+    if (discoveryRetryAbortController === controller) discoveryRetryAbortController = null
   }
 }
 
@@ -1616,11 +1715,38 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
   if (sourceResolving.value) return
   const queryKey = symbolDraft.value.trim().toUpperCase()
   const requestGeneration = searchRequest
+  candidateResolutionAbortController?.abort()
+  const controller = new AbortController()
+  candidateResolutionAbortController = controller
+  const resolutionId = ++candidateResolutionSequence
+  const isCurrent = () => componentMounted
+    && !controller.signal.aborted
+    && resolutionId === candidateResolutionSequence
+    && requestGeneration === searchRequest
+    && symbolDraft.value.trim().toUpperCase() === queryKey
+  const retryLifecycle = createKnownTemporaryRetryLifecycle(
+    isCurrent,
+    retryAt => {
+      sourceResolving.value = false
+      sourceDiscoveryMessage.value = `Ticker confirmation is temporarily waiting to retry after ${new Date(retryAt).toLocaleTimeString()}.`
+    },
+    controller.signal,
+  )
   sourceResolving.value = true
   sourceDiscoveryError.value = ''
   try {
-    const result = await resolveDiscoveredInstrument(candidate)
-    if (requestGeneration !== searchRequest || symbolDraft.value.trim().toUpperCase() !== queryKey) return
+    let result: InstrumentAcquireResponse | null = null
+    while (isCurrent()) {
+      sourceResolving.value = true
+      sourceDiscoveryMessage.value = ''
+      result = await resolveDiscoveredInstrument(candidate)
+      if (!isCurrent()) return
+      const retryAt = result.retry_at
+        ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+      if (result.status === 'held' && await retryLifecycle.wait(retryAt) === 'ready') continue
+      break
+    }
+    if (!isCurrent() || !result) return
     if (result.status !== 'resolved' || !result.instrument
       || !Number.isSafeInteger(result.instrument.instrument_id) || result.instrument.instrument_id <= 0) {
       sourceDiscoveryMessage.value = result.status === 'identity_conflict'
@@ -1636,11 +1762,12 @@ async function resolveSourceCandidate(candidate: InstrumentDiscoveryCandidate) {
     }
     selectSearchResult(result.instrument.symbol, result.instrument.instrument_id, candidate.type, result)
   } catch {
-    if (requestGeneration === searchRequest && symbolDraft.value.trim().toUpperCase() === queryKey) {
+    if (isCurrent()) {
       sourceDiscoveryError.value = 'Ticker confirmation failed. No chart was opened.'
     }
   } finally {
-    if (requestGeneration === searchRequest) sourceResolving.value = false
+    if (isCurrent()) sourceResolving.value = false
+    if (candidateResolutionAbortController === controller) candidateResolutionAbortController = null
   }
 }
 
@@ -2477,7 +2604,7 @@ function renderDockTool(dockTool: { instance_key: string; title: string; tool_ty
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
     onSelect: (symbol: string, instrumentId?: number | null, preserveETFContext?: boolean) => void selectSymbol(symbol, undefined, false, instrumentId, true, Boolean(preserveETFContext), '', true),
-    onHoldingDrilldown: (symbol: string, context: ETFHoldingDrilldownContext, identity?: InstrumentAcquireResponse) => openHoldingDrilldown(symbol, context, identity),
+    onHoldingSelect: (symbol: string, context: ETFHoldingDrilldownContext, identity?: InstrumentAcquireResponse) => selectHoldingInDashboard(symbol, context, identity),
     onCompare: (symbols: string[]) => compareSymbols(symbols),
     onRatio: (symbols: string[]) => void openMarketMapRatio(symbols),
     onReorder: (watchlistId: number, itemIds: number[]) => reorderWatchlistItems(watchlistId, itemIds),
@@ -2854,8 +2981,14 @@ watch(symbolDraft, value => {
 })
 watch(() => workspaceStore.linkedTimeframe, timeframe => {
   if (timeframe === chartStore.timeframe) return
+  selectedAcquisitionAbortController?.abort()
+  selectedAcquisitionAbortController = null
   void chartStore.loadBars(activeSymbol.value, timeframe as typeof chartStore.timeframe, chartStore.barType, true)
 })
+watch(() => chartStore.timeframe, () => {
+  selectedAcquisitionAbortController?.abort()
+  selectedAcquisitionAbortController = null
+}, { flush: 'sync' })
 watch(() => workspaceStore.workspace?.id, (workspaceId, previousWorkspaceId) => {
   if (workspaceId && previousWorkspaceId && workspaceId !== previousWorkspaceId) {
     void replaceDockAfterWorkspaceChange()
@@ -2995,6 +3128,8 @@ onBeforeUnmount(() => {
   resolveComponentMountSettled = null
   resolveMount?.()
   symbolSelectionGeneration += 1
+  selectedAcquisitionAbortController?.abort()
+  selectedAcquisitionAbortController = null
   drilldownSelectionGeneration += 1
   searchRequest += 1
   finishPendingSymbolSearch()
@@ -3009,6 +3144,8 @@ onBeforeUnmount(() => {
   removeVisibilityListener = null
   if (searchTimer) clearTimeout(searchTimer)
   if (discoveryTimer) clearTimeout(discoveryTimer)
+  discoveryRetryAbortController?.abort()
+  candidateResolutionAbortController?.abort()
   workspaceStore.disconnect()
   removeShellMenuListeners()
 })
