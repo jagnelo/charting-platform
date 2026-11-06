@@ -62,6 +62,7 @@ def test_metadata_cannot_launder_an_unqualified_parent():
 
 def test_workflow_only_changes_require_workflow_regressions() -> None:
     assert MODULE.classify([".github/workflows/ci.yml"]) == "workflow"
+    assert MODULE.classify(["scripts/run-branch-tests.py"]) == "workflow"
     assert (
         MODULE.classify(
             ["scripts/staging.py", "tests/workflow/test_staging_workflow.py"]
@@ -111,7 +112,11 @@ def git(repo: Path, *args: str) -> str:
 
 def test_actual_ci_scope_sequence_uses_qualified_merge_base_and_direct_tree_diff():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text())
-    run_script = workflow["jobs"]["changed-scope"]["steps"][1]["run"]
+    run_script = next(
+        step["run"]
+        for step in workflow["jobs"]["changed-scope"]["steps"]
+        if step.get("name") == "Classify exact changed paths"
+    )
     with tempfile.TemporaryDirectory() as temporary:
         repo = Path(temporary)
         (repo / "scripts").mkdir()

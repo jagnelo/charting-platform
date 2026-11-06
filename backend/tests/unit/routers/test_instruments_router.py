@@ -1,5 +1,5 @@
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 
@@ -9,6 +9,12 @@ from app.config import settings
 from app.lib.time_utils import wire_datetime
 from app.models.asset_class import InstrumentType
 from app.models.data_source import DataSource
+from app.models.etf_holdings import (
+    ETFHolding,
+    ETFHoldingsRawArtifact,
+    ETFHoldingsSnapshot,
+    ETFProfile,
+)
 from app.models.exchange import Exchange
 from app.models.instrument import Instrument
 from app.models.instrument_identity import (
@@ -1031,6 +1037,384 @@ class TestInstrumentAutoCreate:
 
 
 class TestExplicitAcquireCanonicalIdentity:
+    def _seed_issuer_security_evidence(
+        self,
+        db,
+        instrument,
+        instrument_type,
+        *,
+        snapshot_specs,
+        stored_cusip="G0450A105",
+        stored_sedol="2740542",
+    ):
+        internal_source = db.query(DataSource).filter_by(name="etf_holdings_internal").one_or_none()
+        if internal_source is None:
+            internal_source = DataSource(name="etf_holdings_internal", is_active=True, config={})
+            db.add(internal_source)
+        fund = Instrument(
+            symbol="IYF",
+            name="iShares U.S. Financials ETF",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+        )
+        db.add_all([internal_source, fund])
+        db.flush()
+        etf_profile = ETFProfile(instrument_id=fund.id, issuer="BlackRock")
+        db.add(etf_profile)
+        db.flush()
+        for index, spec in enumerate(snapshot_specs):
+            trusted = spec["trusted"]
+            source_provider = spec.get("source_provider", "ishares")
+            content_hash = spec.get("content_hash", f"{index + 1:064x}")
+            source_url = spec.get("source_url") or (
+                "https://www.blackrock.com/varnish-api/blk-one01-product-data/product-data/"
+                "api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE&"
+                "component=holdings.all&locale=en_US&portfolioId=239508&targetSite=us-ishares&"
+                "userType=individual&excludeContent=true&includeConfig=true"
+            )
+            parser_version = spec.get(
+                "parser_version",
+                "spdr:xlsx-workbook-v1" if source_provider == "spdr" else "ishares-json-v1",
+            )
+            row_count = spec.get("row_count", 1)
+            source_access = spec.get("source_access", "issuer_public_holdings_file")
+            artifact = ETFHoldingsRawArtifact(
+                etf_profile_id=etf_profile.id,
+                data_source_id=internal_source.id,
+                source_kind=spec["provenance"],
+                source_url=source_url,
+                source_identifier=spec.get("source_identifier", "IYF"),
+                content_hash=content_hash,
+                composition_date=date(2026, 11, 4),
+                fetched_at=datetime(2026, 11, 5, tzinfo=UTC),
+                payload_json={"rows": row_count},
+                parser_version=parser_version,
+                legal_metadata={
+                    "source_access": source_access,
+                    "native_composition_completeness_evidence": {
+                        "source_payload_hash": content_hash if trusted else None,
+                    },
+                },
+            )
+            db.add(artifact)
+            db.flush()
+            snapshot = ETFHoldingsSnapshot(
+                etf_profile_id=etf_profile.id,
+                source_artifact_id=artifact.id,
+                data_source_id=internal_source.id,
+                composition_date=date(2026, 11, 4),
+                source_url=source_url,
+                source_identifier=spec.get("source_identifier", "IYF"),
+                provenance=spec["provenance"],
+                source_provider=source_provider,
+                source_quality=("self_snapshotted_holdings" if trusted else "manual_import"),
+                completeness_status=("complete" if trusted else "unknown"),
+                snapshot_hash=f"snapshot-{index}",
+                row_count=row_count,
+                resolved_count=1,
+                unresolved_count=row_count - 1,
+                parser_version=parser_version,
+                extra_data={
+                    "source_tier": "issuer_native" if trusted else "manual_import",
+                    "transport_kind": "structured_api" if trusted else "manual_import",
+                    "schema_fingerprint": "28eb03d3abfbc829aaff641233fdde5ca6882976dce5bd6eb11b51f07c42583b",
+                    "legal_metadata": {
+                        "source_access": source_access if trusted else "manual_import",
+                        "source_provider": source_provider,
+                        "adapter_key": source_provider,
+                        "native_composition_completeness_evidence": {
+                            "status": "complete" if trusted else "unknown",
+                            "basis": "blackrock_holdings_all_container",
+                            "reason": None,
+                            "reported_rows": row_count if trusted else 0,
+                            "parsed_rows": row_count if trusted else 0,
+                            "all_reported_rows_parsed": trusted,
+                            "core_columns_aligned": trusted,
+                            "all_list_columns_aligned": trusted,
+                            "authoritative_total": None,
+                            "authoritative_total_present": False,
+                            "authoritative_total_matches": True,
+                            "continuation_clear": True,
+                            "verified": trusted,
+                            "source_payload_hash": content_hash if trusted else None,
+                        },
+                    },
+                },
+            )
+            db.add(snapshot)
+            db.flush()
+            db.add(
+                ETFHolding(
+                    snapshot_id=snapshot.id,
+                    constituent_instrument_id=instrument.id,
+                    position=1,
+                    reported_symbol="ACGL",
+                    reported_name="Arch Capital Group Ltd",
+                    cusip=spec.get("cusip", stored_cusip),
+                    sedol=spec.get("sedol", stored_sedol),
+                    isin=spec.get("isin", "BMG0450A1053"),
+                    holding_type="equity",
+                    row_type="security",
+                    source_row_hash=f"holding-{index}",
+                    is_resolved=True,
+                )
+            )
+            for extra_position in range(2, row_count + 1):
+                db.add(
+                    ETFHolding(
+                        snapshot_id=snapshot.id,
+                        position=extra_position,
+                        reported_symbol=f"OTHER{index}{extra_position}",
+                        reported_name="Other issuer security",
+                        holding_type="equity",
+                        row_type="security",
+                        source_row_hash=f"holding-{index}-extra-{extra_position}",
+                        is_resolved=False,
+                    )
+                )
+        db.add_all(
+            [
+                InstrumentIdentifier(
+                    instrument_id=instrument.id,
+                    data_source_id=internal_source.id,
+                    identifier_type=InstrumentIdentifierType.CUSIP,
+                    identifier_value=stored_cusip,
+                    is_active=True,
+                ),
+                InstrumentIdentifier(
+                    instrument_id=instrument.id,
+                    data_source_id=internal_source.id,
+                    identifier_type=InstrumentIdentifierType.SEDOL,
+                    identifier_value=stored_sedol,
+                    is_active=True,
+                ),
+            ]
+        )
+        db.flush()
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        ("case", "expected_status", "expected_reason"),
+        [
+            ("issuer", "resolved", None),
+            ("mixed_manual", "resolved", None),
+            ("manual", "identity_conflict", "stable_identity_or_listing_authority_missing"),
+            ("conflict", "identity_conflict", "stable_identity_or_listing_authority_missing"),
+            ("ambiguous", "identity_conflict", "stable_identity_or_listing_authority_missing"),
+            ("profile_conflict", "identity_conflict", "existing_placeholder_identity_conflict"),
+            (
+                "collision",
+                "identity_conflict",
+                "provider_identity_maps_to_other_canonical_instrument",
+            ),
+            ("domain", "identity_conflict", "existing_placeholder_identity_conflict"),
+            ("listing", "identity_conflict", "provider_profile_listing_mismatch"),
+        ],
+    )
+    async def test_exact_profile_can_reuse_only_unambiguous_issuer_security_identifiers(
+        self, db, instrument_type, monkeypatch, case, expected_status, expected_reason
+    ):
+        async_db = AsyncSessionAdapter(db)
+        instrument = Instrument(
+            symbol="ACGL",
+            name="Arch Capital Group Ltd",
+            currency="USD",
+            instrument_type_id=instrument_type.id,
+            is_active=True,
+            identity_status="provisional",
+        )
+        db.add(instrument)
+        db.flush()
+        exchange = db.query(Exchange).filter_by(mic="XNAS").one_or_none()
+        if exchange is None:
+            exchange = Exchange(mic="XNAS", name="Nasdaq")
+            db.add(exchange)
+            db.flush()
+        db.add(
+            InstrumentListing(
+                instrument_id=instrument.id,
+                exchange_id=exchange.id,
+                ticker="ACGL",
+                currency="USD",
+                is_primary=True,
+                is_active=True,
+                source="issuer_retained_evidence_test",
+            )
+        )
+        db.flush()
+        if case in {"issuer", "mixed_manual"}:
+            specs = [
+                {
+                    "provenance": "spdr_native_daily_holdings_workbook",
+                    "trusted": True,
+                    "source_provider": "spdr",
+                    "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
+                    "source_url": "https://issuer.example.test/spdr-7.xlsx",
+                    "isin": None,
+                },
+                {
+                    "provenance": "issuer_self_snapshotted_holdings",
+                    "trusted": True,
+                    "source_provider": "invesco",
+                    "source_access": "issuer_public_json_catalog_cusip",
+                    "source_url": "https://issuer.example.test/invesco-9.json",
+                    "sedol": None,
+                    "isin": None,
+                },
+                {
+                    "provenance": "issuer_self_snapshotted_holdings",
+                    "trusted": True,
+                    "source_provider": "ishares",
+                    "source_access": "issuer_public_holdings_file",
+                    "source_url": "https://issuer.example.test/ishares-11.json",
+                },
+                {
+                    "provenance": "spdr_native_daily_holdings_workbook",
+                    "trusted": True,
+                    "source_provider": "spdr",
+                    "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
+                    "source_url": "https://issuer.example.test/spdr-14.xlsx",
+                    "isin": None,
+                },
+                {
+                    "provenance": "issuer_self_snapshotted_holdings",
+                    "trusted": True,
+                    "source_provider": "ishares",
+                    "source_access": "issuer_public_holdings_file",
+                    "source_url": "https://www.blackrock.com/varnish-api/blk-one01-product-data/product-data/api/v2/get-product-data?appSubType=ISHARES&appType=PRODUCT_PAGE&component=holdings.all&locale=en_US&portfolioId=239508&targetSite=us-ishares&userType=individual&excludeContent=true&includeConfig=true",
+                    "source_identifier": "IYF",
+                    "parser_version": "ishares-json-v1",
+                    "content_hash": "a8586ee5c2fb9e8cf29fb9fff9779c9dce6cb31b2dc62152c40d9eed5c5f8f8d",
+                    "row_count": 148,
+                },
+                {
+                    "provenance": "spdr_native_daily_holdings_workbook",
+                    "trusted": True,
+                    "source_provider": "spdr",
+                    "source_access": "spdr_fund_scoped_daily_holdings_xlsx",
+                    "source_url": "https://issuer.example.test/spdr-22.xlsx",
+                    "isin": None,
+                },
+            ]
+            if case == "mixed_manual":
+                specs.append(
+                    {
+                        "provenance": "manual_import",
+                        "trusted": False,
+                        "source_provider": "manual_import",
+                        "source_access": "manual_import",
+                        "cusip": "111111111",
+                    }
+                )
+        elif case == "manual":
+            specs = [{"provenance": "manual_import", "trusted": False}]
+        elif case == "conflict":
+            specs = [
+                {
+                    "provenance": "issuer_self_snapshotted_holdings",
+                    "trusted": True,
+                    "cusip": "111111111",
+                }
+            ]
+        elif case == "ambiguous":
+            specs = [
+                {"provenance": "issuer_self_snapshotted_holdings", "trusted": True},
+                {
+                    "provenance": "issuer_self_snapshotted_holdings",
+                    "trusted": True,
+                    "cusip": "111111111",
+                },
+            ]
+        else:
+            specs = [{"provenance": "issuer_self_snapshotted_holdings", "trusted": True}]
+        self._seed_issuer_security_evidence(db, instrument, instrument_type, snapshot_specs=specs)
+        if case in {"issuer", "mixed_manual"}:
+            assert db.query(ETFHolding).filter_by(
+                constituent_instrument_id=instrument.id, reported_symbol="ACGL"
+            ).count() == (7 if case == "mixed_manual" else 6)
+        if case == "collision":
+            db.add(
+                Instrument(
+                    symbol="OTHERACGL",
+                    name="Other canonical instrument",
+                    currency="USD",
+                    instrument_type_id=instrument_type.id,
+                    is_active=True,
+                    identity_status="resolved",
+                    domain_key="cusip:G0450A105",
+                    primary_identifier_type="cusip",
+                    primary_identifier_value="G0450A105",
+                )
+            )
+        elif case == "domain":
+            instrument.domain_key = "figi:BBG000CONFLICT01"
+        db.flush()
+
+        profile = InstrumentProfile(
+            provider="massive",
+            symbol="ACGL",
+            canonical_symbol="ACGL",
+            name="Arch Capital Group Ltd",
+            currency="USD",
+            quote_type="EQUITY",
+            exchange="XNAS",
+            identifiers=(
+                [
+                    IdentifierRecord(
+                        identifier_type="cusip",
+                        identifier_value="111111111",
+                        is_primary=True,
+                    )
+                ]
+                if case == "profile_conflict"
+                else []
+            ),
+            listings=[
+                ListingRecord(
+                    provider_symbol="ACGL",
+                    exchange_code="XNYS" if case == "listing" else "XNAS",
+                    currency="USD",
+                    provider_instrument_type="EQUITY",
+                    is_primary=True,
+                )
+            ],
+        )
+
+        async def _search(*_args, **_kwargs):
+            return [{"symbol": "ACGL", "provider": "massive", "exchange": "XNAS"}]
+
+        async def _profile(*_args, **_kwargs):
+            return profile
+
+        monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+        monkeypatch.setattr("app.routers.instruments.get_provider_profile_async", _profile)
+
+        response = await acquire_instrument(
+            InstrumentAcquireRequest(
+                symbol="ACGL",
+                provider_candidate=ProviderCandidateBinding(
+                    provider="massive", symbol="ACGL", exchange="XNAS"
+                ),
+                request_id=f"acgl-retained-identifiers-{case}",
+            ),
+            async_db,
+        )
+
+        db.refresh(instrument)
+        assert response.status == expected_status, response.reason_code
+        if expected_reason:
+            assert response.reason_code == expected_reason
+            assert instrument.identity_status == "provisional"
+            assert instrument.domain_key == ("figi:BBG000CONFLICT01" if case == "domain" else None)
+        else:
+            assert response.instrument is not None
+            assert response.instrument.instrument_id == instrument.id
+            assert instrument.domain_key == "cusip:G0450A105"
+            assert instrument.identity_status == "resolved"
+            assert instrument.primary_identifier_type == "cusip"
+            assert instrument.primary_identifier_value == "G0450A105"
+
     @pytest.mark.asyncio
     async def test_cached_qualified_identity_reconciles_etv_without_provider_transport(
         self, db, instrument_type, monkeypatch

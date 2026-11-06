@@ -3756,10 +3756,56 @@ for _ishares_symbol in ("SOXX", "IBB", "ITA", "ITB"):
         },
     )
 
+
+def _merge_compatible_issuer_route_metadata(
+    metadata_by_symbol: dict[str, dict[str, Any]],
+    symbol: str,
+    *,
+    issuer: str,
+    provider_aliases: dict[str, Any],
+) -> bool:
+    """Add a route to compatible issuer metadata without replacing evidence.
+
+    Existing canonical metadata can carry identifiers without an adapter. Only
+    augment it when its issuer and any existing route fields agree exactly
+    with the registered route; ambiguous or conflicting metadata stays intact.
+    """
+
+    existing = metadata_by_symbol.get(symbol)
+    if existing is None:
+        metadata_by_symbol[symbol] = {
+            "issuer": issuer,
+            "provider_aliases": dict(provider_aliases),
+        }
+        return True
+    if not isinstance(existing, dict):
+        return False
+
+    existing_issuer = str(existing.get("issuer") or "").strip().casefold()
+    if existing_issuer != issuer.strip().casefold():
+        return False
+    existing_aliases = existing.get("provider_aliases")
+    if not isinstance(existing_aliases, dict):
+        return False
+    if any(
+        key in existing_aliases and existing_aliases[key] != value
+        for key, value in provider_aliases.items()
+    ):
+        return False
+
+    merged_aliases = dict(existing_aliases)
+    for key, value in provider_aliases.items():
+        merged_aliases.setdefault(key, value)
+    metadata_by_symbol[symbol] = {
+        **existing,
+        "provider_aliases": merged_aliases,
+    }
+    return True
+
+
 # The Select Sector SPDR family (plus SPY/DIA) shares the issuer's fund-scoped
-# daily workbook route. Keep this mapping explicit: ticker names alone are not
-# membership evidence, but they are sufficient to select the verified issuer
-# adapter whose response is independently identity-checked before persistence.
+# daily workbook route. Tickers select the already-registered adapter only;
+# the returned workbook must still prove the exact requested fund ticker.
 for _spdr_symbol in (
     "SPY",
     "SPYG",
@@ -3791,14 +3837,13 @@ for _spdr_symbol in (
     "XHB",
     "XOP",
 ):
-    KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL.setdefault(
+    _merge_compatible_issuer_route_metadata(
+        KNOWN_ETF_PROVIDER_METADATA_BY_SYMBOL,
         _spdr_symbol,
-        {
-            "issuer": "State Street Global Advisors",
-            "provider_aliases": {
-                "holdings_adapter": "spdr",
-                "holdings_source_provider": "spdr",
-            },
+        issuer="State Street Global Advisors",
+        provider_aliases={
+            "holdings_adapter": "spdr",
+            "holdings_source_provider": "spdr",
         },
     )
 

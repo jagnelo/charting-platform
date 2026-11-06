@@ -17,9 +17,11 @@ from app.config import settings
 from app.database import AsyncSessionLocal, get_db
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
+from app.models.etf_holdings import ETFHolding, ETFHoldingsRawArtifact, ETFHoldingsSnapshot
 from app.models.exchange import Exchange
 from app.models.instrument import EquityDetail, Instrument
 from app.models.instrument_identity import (
+    InstrumentIdentifier,
     InstrumentIdentifierType,
     InstrumentProviderSymbol,
 )
@@ -78,7 +80,11 @@ from app.services.market_data import (
     ohlcv_operation_cost_overrides,
     search_provider_instruments_async,
 )
-from app.services.market_data_identity import apply_domain_identity, choose_domain_key
+from app.services.market_data_identity import (
+    apply_domain_identity,
+    choose_domain_key,
+    make_domain_key,
+)
 from app.services.ohlcv_coverage import assess_ohlcv_coverage, missing_range_slices
 from app.services.provider_quota_coordinator import (
     ProviderQuotaAdmissionError,
@@ -506,6 +512,139 @@ async def discover_instruments(
     )
 
 
+async def _retained_issuer_security_identifiers(
+    db: AsyncSession,
+    instrument: Instrument,
+) -> dict[str, str]:
+    """Return issuer identifiers only when active IDs match resolved holdings.
+
+    ETF-held identifiers are a trusted fallback for an exact provider profile
+    that omits a security key. They are not accepted from arbitrary sources or
+    from unresolved/ambiguous holding evidence.
+    """
+
+    source_id = (
+        await db.execute(select(DataSource.id).where(DataSource.name == "etf_holdings_internal"))
+    ).scalar_one_or_none()
+    if source_id is None:
+        return {}
+
+    allowed_types = {
+        InstrumentIdentifierType.ISIN,
+        InstrumentIdentifierType.CUSIP,
+        InstrumentIdentifierType.SEDOL,
+    }
+    identifiers = (
+        (
+            await db.execute(
+                select(InstrumentIdentifier).where(
+                    InstrumentIdentifier.instrument_id == instrument.id,
+                    InstrumentIdentifier.data_source_id == source_id,
+                    InstrumentIdentifier.is_active.is_(True),
+                    InstrumentIdentifier.identifier_type.in_(allowed_types),
+                )
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not identifiers:
+        return {}
+
+    retained_rows = (
+        await db.execute(
+            select(ETFHolding, ETFHoldingsSnapshot, ETFHoldingsRawArtifact)
+            .outerjoin(ETFHoldingsSnapshot, ETFHoldingsSnapshot.id == ETFHolding.snapshot_id)
+            .outerjoin(
+                ETFHoldingsRawArtifact,
+                ETFHoldingsRawArtifact.id == ETFHoldingsSnapshot.source_artifact_id,
+            )
+            .where(
+                ETFHolding.constituent_instrument_id == instrument.id,
+                ETFHolding.is_resolved.is_(True),
+                ETFHolding.row_type == "security",
+                func.upper(func.trim(ETFHolding.reported_symbol))
+                == instrument.symbol.strip().upper(),
+            )
+        )
+    ).all()
+    if not retained_rows:
+        return {}
+
+    verified_rows = []
+    for row, snapshot, artifact in retained_rows:
+        if snapshot is None or artifact is None:
+            continue
+        metadata = snapshot.extra_data if isinstance(snapshot.extra_data, dict) else {}
+        legal = metadata.get("legal_metadata")
+        completeness = (
+            legal.get("native_composition_completeness_evidence")
+            if isinstance(legal, dict)
+            else None
+        )
+        artifact_hash = artifact.content_hash
+        provenance = snapshot.provenance
+        source_access = legal.get("source_access") if isinstance(legal, dict) else None
+        source_provider = snapshot.source_provider.strip().lower()
+        trusted_source_route = (
+            provenance == "issuer_self_snapshotted_holdings"
+            and isinstance(source_access, str)
+            and source_access.startswith("issuer_public_")
+        ) or (
+            provenance == "spdr_native_daily_holdings_workbook"
+            and source_access == "spdr_fund_scoped_daily_holdings_xlsx"
+            and source_provider == "spdr"
+        )
+        if (
+            not trusted_source_route
+            or snapshot.source_quality != "self_snapshotted_holdings"
+            or snapshot.completeness_status != "complete"
+            or snapshot.source_artifact_id is None
+            or snapshot.data_source_id != artifact.data_source_id
+            or artifact.source_kind != snapshot.provenance
+            or artifact.composition_date != snapshot.composition_date
+            or artifact.source_url != snapshot.source_url
+            or artifact.source_identifier != snapshot.source_identifier
+            or artifact.parser_version != snapshot.parser_version
+            or not isinstance(artifact_hash, str)
+            or re.fullmatch(r"[0-9a-f]{64}", artifact_hash) is None
+            or metadata.get("source_tier") != "issuer_native"
+            or not isinstance(legal, dict)
+            or not isinstance(completeness, dict)
+            or completeness.get("status") != "complete"
+            or completeness.get("verified") is not True
+            or completeness.get("all_reported_rows_parsed") is not True
+            or completeness.get("reported_rows") != snapshot.row_count
+            or completeness.get("parsed_rows") != snapshot.row_count
+            or snapshot.row_count <= 0
+            or completeness.get("source_payload_hash") != artifact_hash
+        ):
+            continue
+        verified_rows.append((row, snapshot, artifact))
+    if not verified_rows:
+        return {}
+
+    issuer_values: dict[str, set[str]] = {"isin": set(), "cusip": set(), "sedol": set()}
+    for holding, _, _ in verified_rows:
+        for identifier_type in issuer_values:
+            value = getattr(holding, identifier_type)
+            if value and str(value).strip():
+                issuer_values[identifier_type].add("".join(str(value).upper().split()))
+
+    retained: dict[str, str] = {}
+    for identifier in identifiers:
+        identifier_type = identifier.identifier_type.value
+        observed_values = issuer_values[identifier_type]
+        normalized_value = "".join(identifier.identifier_value.upper().split())
+        # A security identifier that disagrees across retained, resolved
+        # holdings is ambiguous; do not choose whichever row happens to sort
+        # first.
+        if len(observed_values) != 1 or normalized_value not in observed_values:
+            return {}
+        retained[identifier_type] = identifier.identifier_value
+    return retained
+
+
 @router.post("/acquire", response_model=InstrumentAcquireResponse)
 async def acquire_instrument(
     body: InstrumentAcquireRequest,
@@ -874,8 +1013,31 @@ async def acquire_instrument(
             (listing for listing in profile_listings if listing.is_primary), profile_listings[0]
         )
         exact_exchange_code = primary_profile_listing.exchange_code
-    profile_domain_key = choose_domain_key(
-        {item.identifier_type: item.identifier_value for item in profile.identifiers}
+    profile_identifier_values = {
+        str(
+            getattr(item.identifier_type, "value", item.identifier_type)
+        ).lower(): item.identifier_value
+        for item in profile.identifiers
+    }
+    retained_identifier_values = (
+        await _retained_issuer_security_identifiers(db, existing) if existing is not None else {}
+    )
+    for identifier_type in profile_identifier_values.keys() & retained_identifier_values.keys():
+        if "".join(str(profile_identifier_values[identifier_type]).upper().split()) != "".join(
+            retained_identifier_values[identifier_type].upper().split()
+        ):
+            profile_outcome.status = "failed"
+            profile_outcome.reason_code = "existing_placeholder_identity_conflict"
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="identity_conflict",
+                reason_code=profile_outcome.reason_code,
+                source_outcomes=outcomes,
+            )
+    identity_identifier_values = {**retained_identifier_values, **profile_identifier_values}
+    profile_domain_key = choose_domain_key(profile_identifier_values) or choose_domain_key(
+        identity_identifier_values
     )
     if (
         not provider_name
@@ -903,6 +1065,47 @@ async def acquire_instrument(
             reason_code=profile_outcome.reason_code,
             source_outcomes=outcomes,
         )
+    retained_identifier_fallback = (
+        existing is not None
+        and not choose_domain_key(profile_identifier_values)
+        and bool(retained_identifier_values)
+    )
+    if retained_identifier_fallback and existing is not None:
+        existing_primary_type = existing.primary_identifier_type
+        existing_primary_key = (
+            make_domain_key(existing_primary_type, existing.primary_identifier_value)
+            if existing_primary_type and existing.primary_identifier_value
+            else None
+        )
+        if existing_primary_key is not None and existing_primary_key != profile_domain_key:
+            profile_outcome.status = "failed"
+            profile_outcome.reason_code = "existing_placeholder_identity_conflict"
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="identity_conflict",
+                reason_code=profile_outcome.reason_code,
+                source_outcomes=outcomes,
+            )
+    if retained_identifier_fallback:
+        domain_owner = (
+            await db.execute(
+                select(Instrument.id).where(
+                    Instrument.domain_key == profile_domain_key,
+                    Instrument.id != existing.id,
+                )
+            )
+        ).scalar_one_or_none()
+        if domain_owner is not None:
+            profile_outcome.status = "failed"
+            profile_outcome.reason_code = "provider_identity_maps_to_other_canonical_instrument"
+            outcomes.append(profile_outcome)
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="identity_conflict",
+                reason_code=profile_outcome.reason_code,
+                source_outcomes=outcomes,
+            )
     canonical = await _find_existing_instrument_for_profile(db, profile)
     if existing is not None and canonical is not None and existing.id != canonical.id:
         profile_outcome.status = "failed"
@@ -927,14 +1130,57 @@ async def acquire_instrument(
         await apply_domain_identity(
             db,
             canonical,
-            identifiers={
-                item.identifier_type: item.identifier_value for item in profile.identifiers
-            },
+            identifiers=identity_identifier_values,
             provider_name=provider_name,
             provider_symbol=provider_symbol,
             exchange_mic=normalize_exchange_mic(profile.exchange),
             candidate_payload=build_profile_snapshot_payload(profile),
         )
+        if retained_identifier_fallback:
+            selected_identifier = next(
+                (
+                    (identifier_type, value)
+                    for identifier_type, value in retained_identifier_values.items()
+                    if make_domain_key(identifier_type, value) == profile_domain_key
+                ),
+                None,
+            )
+            if selected_identifier is not None and (
+                not canonical.primary_identifier_value
+                or canonical.primary_identifier_type
+                in {InstrumentIdentifierType.INTERNAL.value, InstrumentIdentifierType.CIK.value}
+            ):
+                identifier_type, identifier_value = selected_identifier
+                primary_identifiers = (
+                    (
+                        await db.execute(
+                            select(InstrumentIdentifier).where(
+                                InstrumentIdentifier.instrument_id == canonical.id,
+                                InstrumentIdentifier.is_active.is_(True),
+                                InstrumentIdentifier.is_primary.is_(True),
+                            )
+                        )
+                    )
+                    .scalars()
+                    .all()
+                )
+                for primary_identifier in primary_identifiers:
+                    primary_identifier.is_primary = False
+                canonical.primary_identifier_type = identifier_type
+                canonical.primary_identifier_value = identifier_value
+                persisted_identifier = (
+                    await db.execute(
+                        select(InstrumentIdentifier).where(
+                            InstrumentIdentifier.instrument_id == canonical.id,
+                            InstrumentIdentifier.identifier_type
+                            == InstrumentIdentifierType(identifier_type),
+                            InstrumentIdentifier.identifier_value == identifier_value,
+                            InstrumentIdentifier.is_active.is_(True),
+                        )
+                    )
+                ).scalar_one_or_none()
+                if persisted_identifier is not None:
+                    persisted_identifier.is_primary = True
         await db.commit()
     except IntegrityError:
         await db.rollback()

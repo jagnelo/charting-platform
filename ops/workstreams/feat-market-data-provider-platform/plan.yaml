@@ -14523,15 +14523,46 @@ previously_accepted_history_hold_deployment_impact: None; Root owns protected in
 
 
 # Current human-activated shared Provider acquisition/history-boundary repair; prior accepted checkpoints remain archived.
-goal: >-
-  Complete the shared Provider acquisition repair: expose truthful temporary quota/contract holds and known retry timing across discovery, selected identity and history; provide a read-only reviewed history-availability contract for the selected canonical instrument; preserve all native quota, identity, entitlement, class, operation, adjustment and history-boundary guards. Preserve the complete Provider and ETF roadmaps and all accepted/failure history. Stop at ready_for_human_review for Root review; do not integrate, promote, deploy, or make live provider requests.
+goal: 'Complete the shared Provider acquisition repair: expose truthful temporary quota/contract holds and known
+  retry timing across discovery, selected identity and history; provide a read-only reviewed history-availability
+  contract for the selected canonical instrument; preserve all native quota, identity, entitlement, class, operation,
+  adjustment and history-boundary guards. Preserve the complete Provider and ETF roadmaps and all accepted/failure
+  history. Stop at ready_for_human_review for Root review; do not integrate, promote, deploy, or make live provider
+  requests. The accepted current follow-up also refreshes stale derived W1/MN data after D1 backfill and reuses
+  only trustworthy retained issuer security identifiers for exact selected-symbol acquisition, preserving the full
+  roadmap and all identity safeguards.'
+
 scope:
-- Map known scope, rate-limit, quota-admission, coordinator-unavailable and unknown-quota outcomes consistently across provider search/discovery, exact selected identity and history acquisition. Include retry_at only where the typed error carries a conservative reviewed reset; unknown baselines and hard holds have no invented timer. Unexpected errors remain failed with safe diagnostics only.
-- Expose GET /api/v1/instruments/{instrument_id}/history-availability?timeframe=D1&adjusted=true with instrument_id, symbol, timeframe, adjusted, status, earliest_start, max_requested_bars and reason_code. Use the exact selected instrument/symbol fetch_ohlcv scope and real read-only resolver under request-driven/free-only and existing class, operation, adjustment, entitlement, review and hold gates.
-- Reuse the same provider-specific dry OHLCV cost estimators as ordinary history acquisition. Read-only availability performs no Source transport, quota reservation, runtime seeding, or policy/health mutation; unknown/malformed reviewed bounds stay held, and earliest_start reflects the deepest eligible reviewed connection bound rather than observed coverage.
-- Preserve existing canonical identity, selected-source lineage, request bounds, 2,000 inclusive per-request slots, native provider limits and all prior quota/hold semantics. No lifetime history cap or invented source depth is introduced.
-- Add meaningful no-network regressions for search-native-window held with known retry, unknown/hard no-timer, unexpected failed, request-driven history eligibility with real resolver/policy, bounds and no-eligible/unknown-bound cases. Preserve all prior acceptance criteria and the complete 24 Provider/14 ETF roadmap history.
-- Run the affected unit modules and normal workstream/static checks. Full backend/DDL, exact closing-tip CI, and Root's combined full_stack_browser/release profile remain mandatory and Root-owned; no local broad suite, Docker fixture, provider HTTP, real ledger, policy/hold, target, staging, master, deployment or sibling operation is in this checkpoint.
+- Map known scope, rate-limit, quota-admission, coordinator-unavailable and unknown-quota outcomes consistently
+  across provider search/discovery, exact selected identity and history acquisition. Include retry_at only where
+  the typed error carries a conservative reviewed reset; unknown baselines and hard holds have no invented timer.
+  Unexpected errors remain failed with safe diagnostics only.
+- Expose GET /api/v1/instruments/{instrument_id}/history-availability?timeframe=D1&adjusted=true with instrument_id,
+  symbol, timeframe, adjusted, status, earliest_start, max_requested_bars and reason_code. Use the exact selected
+  instrument/symbol fetch_ohlcv scope and real read-only resolver under request-driven/free-only and existing class,
+  operation, adjustment, entitlement, review and hold gates.
+- Reuse the same provider-specific dry OHLCV cost estimators as ordinary history acquisition. Read-only availability
+  performs no Source transport, quota reservation, runtime seeding, or policy/health mutation; unknown/malformed
+  reviewed bounds stay held, and earliest_start reflects the deepest eligible reviewed connection bound rather than
+  observed coverage.
+- Preserve existing canonical identity, selected-source lineage, request bounds, 2,000 inclusive per-request slots,
+  native provider limits and all prior quota/hold semantics. No lifetime history cap or invented source depth is
+  introduced.
+- Add meaningful no-network regressions for search-native-window held with known retry, unknown/hard no-timer, unexpected
+  failed, request-driven history eligibility with real resolver/policy, bounds and no-eligible/unknown-bound cases.
+  Preserve all prior acceptance criteria and the complete 24 Provider/14 ETF roadmap history.
+- Run the affected unit modules and normal workstream/static checks. Full backend/DDL, exact closing-tip CI, and
+  Root's combined full_stack_browser/release profile remain mandatory and Root-owned; no local broad suite, Docker
+  fixture, provider HTTP, real ledger, policy/hold, target, staging, master, deployment or sibling operation is
+  in this checkpoint.
+- Refresh stale persisted W1/MN derivations when canonical D1 history expands, including local reads of legacy stale
+  rows; materialize from canonical source bars only after the D1 signature changes, preserve provider coarse rows
+  and bounds, and make no provider calls on local reads.
+- For exact selected-instrument acquisition, reuse only unambiguous retained security identifiers supported by verified
+  native issuer snapshot/artifact provenance tied to the same normalized symbol; accept the shared internal artifact-store
+  identity and supported SPDR/Invesco/iShares provenance forms, while rejecting manual/unverified, conflicting,
+  ambiguous, or mismatched-listing evidence. Never use issuer CIK as a security identifier.
+
 owned_paths:
 - backend/app/routers/instruments.py
 - backend/app/schemas/instrument_acquisition.py
@@ -14554,24 +14585,47 @@ branch_tests:
   - "Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history bounds and no-eligible/unknown cases, no-network quota outcomes)"
   - "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration."
   - "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py (Root-approved immutable ETF clock-fix dependency from b25fc814ef301103337f343d57b859545fa5bb8f; three authentic VanEck freshness cases pass without changing payload fixtures or Provider product code)"
-branch_tests_reason: >-
-  The affected six unit modules passed 334/334 in 204.83s on the exact source hashes recorded in Root's conditional implementation review.
-  This includes the real resolver path with PROVIDER_REQUEST_DRIVEN_ONLY=true and the shared dynamic-cost estimator used by _fetch_provider;
-  the history endpoint proves eligible reviewed bounds with no execute_provider_call, quota file, or policy/health mutation. The discovery
-  service reports native window admission as held with the known retry_at, unknown quota contract as held without a retry, and unexpected
-  TypeError as failed. Ruff check/format and git diff checks passed. No external request, real ledger access, fixture or broad backend run occurred.
-  Root approved the exact ETF-owned test-only clock dependency at b25fc814ef301103337f343d57b859545fa5bb8f; its blob and SHA are pinned in the follow-up record.
+
+branch_tests_reason: 'The current focused follow-up passed 61/61 tests across the explicit-acquisition canonical
+  identity class, OHLCV router, and derived-timeframe service modules after formatting. Root independently verified
+  the actual persisted producer contract in an enforced PostgreSQL READ ONLY transaction: for instrument 359 and
+  all six retained native issuer links, the corrected helper returned CUSIP G0450A105 and SEDOL 2740542. The shared
+  etf_holdings_internal artifact store is not conflated with external snapshot source_provider. Ruff check, Ruff
+  format check, and git diff --check passed. No Source HTTP or writes occurred. Prior CI failures remain preserved;
+  exact closing-tip CI and combined release gates remain mandatory and pending.'
+
 acceptance_criteria:
 - id: HISTORY-SHARED-1
-  text: "Discovery, selected identity and history expose typed held/no_match/failed outcomes; known rate/window retry times are preserved, unknown/hard holds never invent retry_at, and unexpected failures remain failed with safe diagnostics."
+  text: Discovery, selected identity and history expose typed held/no_match/failed outcomes; known rate/window retry
+    times are preserved, unknown/hard holds never invent retry_at, and unexpected failures remain failed with safe
+    diagnostics.
 - id: HISTORY-SHARED-2
-  text: "History availability binds exact instrument_id and provider_symbol under fetch_ohlcv while PROVIDER_REQUEST_DRIVEN_ONLY=true, runs the real resolver in read-only mode with the same dry provider-specific OHLCV cost estimate as ordinary fetch, and performs no transport, reservation, seeding, or policy/health mutation."
+  text: History availability binds exact instrument_id and provider_symbol under fetch_ohlcv while PROVIDER_REQUEST_DRIVEN_ONLY=true,
+    runs the real resolver in read-only mode with the same dry provider-specific OHLCV cost estimate as ordinary
+    fetch, and performs no transport, reservation, seeding, or policy/health mutation.
 - id: HISTORY-SHARED-3
-  text: "The DTO returns the earliest reviewed bound and configured inclusive per-request bar cap for currently eligible connections; unresolved identity, no eligible connection and unknown/malformed bounds are held with earliest_start=null, not reported as unlimited or observed coverage."
+  text: The DTO returns the earliest reviewed bound and configured inclusive per-request bar cap for currently eligible
+    connections; unresolved identity, no eligible connection and unknown/malformed bounds are held with earliest_start=null,
+    not reported as unlimited or observed coverage.
 - id: HISTORY-SHARED-4
-  text: "Meaningful focused regressions cover known native window denial/retry, unknown no-timer, unexpected failure, production request-driven resolver eligibility, shorter/longer bounds, no-eligible/unknown-bound cases, and prior selected-history behavior; affected 334-test suite and static checks pass without external provider or real-ledger activity."
+  text: Meaningful focused regressions cover known native window denial/retry, unknown no-timer, unexpected failure,
+    production request-driven resolver eligibility, shorter/longer bounds, no-eligible/unknown-bound cases, and
+    prior selected-history behavior; affected 334-test suite and static checks pass without external provider or
+    real-ledger activity.
 - id: HISTORY-SHARED-5
-  text: "Current workstream accurately records exact implementation/test hashes and this focused evidence, preserves all prior accepted checkpoints and the 24 Provider/14 ETF roadmaps, and leaves full backend/DDL, exact closing-tip CI and Root combined release gates pending."
+  text: Current workstream accurately records exact implementation/test hashes and this focused evidence, preserves
+    all prior accepted checkpoints and the 24 Provider/14 ETF roadmaps, and leaves full backend/DDL, exact closing-tip
+    CI and Root combined release gates pending.
+- id: HISTORY-DERIVED-1
+  text: When canonical D1 history expands, existing W1/MN local reads refresh stale derived rows from canonical
+    bars only after the D1 signature changes, preserve provider-sourced coarse rows and identities, return expanded
+    history, and issue no external provider calls.
+- id: HISTORY-ISSUER-ID-1
+  text: Exact selected-symbol acquisition may reuse only unambiguous CUSIP/SEDOL/ISIN evidence linked to verified
+    native issuer snapshot/artifact provenance for that same symbol; shared etf_holdings_internal storage is distinct
+    from external source_provider, supported mixed native provenance is accepted, and manual/unverified, conflicting,
+    ambiguous, or wrong-listing evidence remains rejected.
+
 next_action: >-
   Freeze the single coherent review checkpoint for Root. Root owns exact closing-tip CI and combined full_stack_browser/release qualification;
   no broad local suite or live provider operation is authorized by this checkpoint.
@@ -14586,23 +14640,47 @@ progress:
   - HISTORY-SHARED-3
   - HISTORY-SHARED-4
   - HISTORY-SHARED-5
-  total: 5
-  current_phase: focused_implementation_ready_for_root_review
-  current_blocker: Exact closing-tip backend/DDL/branch CI and Root combined full_stack_browser/release qualification remain pending and Root-owned.
-  next_action: Root reviews this coherent frozen checkpoint and owns the exact-source and combined release gates.
+  - HISTORY-DERIVED-1
+  - HISTORY-ISSUER-ID-1
+  total: 7
+  current_phase: bounded_two_part_history_and_identity_checkpoint_accepted
+  current_blocker: Exact closing-tip CI and Root-owned combined staging/master/deployed qualification remain mandatory
+    and pending.
+  next_action: Freeze this coherent checkpoint; Root owns push, exact-tip CI, combined release gates, integration
+    and deployment.
+
 local_validation_profile: full_stack_browser
-local_validation_reason: >-
-  The cumulative branch profile remains full_stack_browser because of the previously approved shared calendar-readiness E2E test change.
-  This bounded source delta ran the six affected backend unit modules only (334/334); no full local backend, browser or visual matrix is claimed.
-  Root owns the combined full_stack_browser release profile.
-current_gate_checkpoint: >-
-  Root's conditional implementation review is /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-implementation-conditional-review.json.
-  The exact reviewed product/test hashes are recorded in that receipt. The affected unit modules passed 334/334 in 204.83s; Ruff check/format and
-  git diff --check passed. Exact closing-tip CI and combined release qualification are not yet run on this checkpoint and remain mandatory.
-human_closure_authorization: >-
-  Root's acceptance receipt /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json (SHA-256 e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681) records the human standing authorization as: "Human standing authorization to accept, reconcile, merge and deploy these development checkpoints autonomously; current explicit general history/dashboard repair activation." Root's delegated technical acceptance for this bounded Provider checkpoint is recorded in the same receipt. This is not a new human quote and does not accept the pending combined release gates or close the wider roadmap.
-closure_summary: >-
-  Accepted bounded Provider checkpoint: shared typed acquisition/history outcomes and read-only canonical instrument history availability, with exact eligibility, dry cost, bounds and per-request slot contract, plus the Root-approved immutable ETF VanEck test-clock dependency. Validated implementation SHA eb7b2a02e2ddfbb6304b3afeb036ae77b34cb445 has exact-source CI run 42148199207 green (5,908 backend unit and 626 integration cases reported); the bounded focused suite passed 334/334. The approved ETF dependency source b25fc814ef301103337f343d57b859545fa5bb8f has exact CI run 42147141948 green and its three affected nodes passed 3/3 in 29.07 seconds. No migrations or provider product-configuration changes were made in this checkpoint. Native free-only controls, quotas, holds, ledgers, datasets and all 24 Provider/14 ETF roadmap criteria remain preserved; the roadmap is not complete. TC causal-menu/visual qualification, exact CI for this closure tip, combined staging qualification, master promotion, private backup/cutover, genuine user journeys, guide and exact cleanup remain Root-owned and pending. integration_capture: exact branch HEAD.
+local_validation_reason: The cumulative validation tier remains full_integration and local category remains full_stack_browser.
+  This bounded current follow-up ran only 61 focused no-network unit cases for exact acquisition identity and stale
+  derived W1/MN reads; Root separately ran an enforced PostgreSQL READ ONLY verifier against actual retained instrument
+  359 and six issuer links. No complete backend, Docker, browser or visual matrix is claimed. Root owns the mandatory
+  exact-tip and combined release gates.
+
+current_gate_checkpoint: Root directly accepted this bounded two-part corrective checkpoint under the existing human
+  standing authorization after verifying the real retained ACGL provenance contract. The focused source/test selection
+  passed 61/61 after Ruff formatting; Root's PostgreSQL READ ONLY verifier against instrument 359 and all six retained
+  issuer links returned CUSIP G0450A105 and SEDOL 2740542. No source HTTP, production write, ledger/policy/quota/hold
+  change, or migration occurred. Exact closing-tip CI and the combined staging/master/deployed proof remain required
+  and Root-owned.
+
+human_closure_authorization: Root's direct same-turn acceptance states that Root accepts this bounded two-part corrective
+  checkpoint (derived freshness plus trustworthy retained issuer identity) under the existing human standing authorization,
+  subject to final focused acquisition checks and mandatory exact final-tip CI/combined staging/master/deployed
+  proof. This records delegated technical acceptance, not a new human quotation and not acceptance of pending release
+  gates or the full roadmap.
+
+closure_summary: 'Accepted bounded Provider checkpoint: (1) local W1/MN reads detect stale derived history after
+  canonical D1 expansion and refresh from canonical bars only after the persisted D1 signature changes, without
+  provider calls; (2) exact selected-symbol acquisition may reuse only unambiguous security identifiers supported
+  by verified same-symbol native issuer snapshot/artifact evidence, including the real shared etf_holdings_internal
+  storage contract and supported mixed SPDR/Invesco/iShares provenance, while manual/unverified/conflicting/ambiguous/mismatched
+  evidence remains rejected. The focused explicit-acquisition identity class, OHLCV router and derived-timeframe
+  service selection passed 61/61 after Ruff formatting; Ruff check, format check and diff check pass. Root''s enforced
+  PostgreSQL READ ONLY verifier against real instrument 359 and all six retained issuer links returned CUSIP G0450A105
+  and SEDOL 2740542; no HTTP or writes. No migration or provider configuration change. All 24 Provider/14 ETF roadmaps,
+  prior acceptances and failures remain preserved/open. Exact closing-tip CI and Root combined staging/master/deployed/genuine-flow
+  gates remain mandatory and pending. integration_capture: exact branch HEAD.'
+
 migration_impact: None; no schema or migration change.
 live_test_impact: No provider/issuer/SEC HTTP; no real-ledger access or quota/hold/policy mutation occurred.
 deployment_impact: None; Root owns integration, promotion, deployment and genuine user-flow verification.
@@ -14725,3 +14803,46 @@ staging16_remediation_import:
   preserved: Commits 7419aee45f1e3af9cd771a3b771889d956bd1cf1 and e6db90b2dca4a2369898179062217f752e750f90, their accepted records, prior CI failures, and all 24 Provider/14 ETF roadmaps.
   closure_summary: >-
     Imported exact degraded staging commit 16d76a8bddacffec9e8a85035cfea4e69ee0f529 into the Provider branch with a non-fast-forward merge under Root authorization solely to establish the remediation base. This is not green adoption. The accepted planner and router test bytes are unchanged. Prior staging CI 42164203301 remains red at the reviewed visual reference. New Provider/TC exact-tip CI, the one-case visual check, and new exact staging CI remain mandatory and Root-owned. No Source request, fixture, real-ledger, quota/policy/hold, production, sibling-worktree or staging mutation occurred. All 24 Provider/14 ETF roadmaps remain open. integration_capture: exact branch HEAD.
+
+context_adoption_a9:
+  status: adopted_exact_green_context_only
+  root_authorization: Direct Root instruction in the original Provider session for bounded four-feature context adoption.
+  exact_context:
+    sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    tree: ebdddf700b68d3508755efb983eda10b574c426a
+    staging_ci_run: 42184756530
+    master_provenance_run: 42194282702
+    canonical_validation_receipt: .ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json
+    canonical_validation_sha256: acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3
+  local_adoption:
+    merge_commit: 600cfb98635b26891b1db106a294af6dc6eb353b
+    imported_commit: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    merge_base: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+    method: Explicit non-fast-forward merge into the Provider worktree; no conflicts.
+    included_context: Exact green four-feature integrated context, including reviewed TC acquisition/history UI contract and approved visual reference update.
+  boundaries:
+    roadmaps_complete: false
+    deployment_or_genuine_user_flow_claimed: false
+    new_product_activation: false
+    product_or_test_validation_run: false
+  pending:
+    - Root private m920q backup/cutover and deployment verification
+    - Genuine deployed user-flow verification
+    - All remaining Provider and ETF roadmap criteria
+  closure_summary: >-
+    Adopted exact green four-feature context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 from the canonical receipt and Root authorization. This records context only; it does not activate new Provider work, claim backup/cutover/deployment or genuine user-flow completion, or close any roadmap. All 24 Provider and 14 ETF criteria remain preserved and open. integration_capture: exact branch HEAD.
+
+derived_refresh_issuer_identity_followup:
+  id: provider-derived-history-and-retained-issuer-identity-20261106
+  status: ready_for_integration
+  root_delegated_acceptance: Direct same-turn Root acceptance under existing human standing authorization; exact closing-tip CI and combined release remain pending.
+  focused_result: 61 passed, 0 failed, 0 skipped after final formatting.
+  retained_identity_readonly_receipt: /home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/retained-identity-readonly-checks/55cc6441c6957fc3b16d9c87fde82b3f46243ff6e62b8bf03731c717f868084b/receipt.json
+  retained_identity_read_only_result: PostgreSQL READ ONLY; instrument 359 and all six retained issuer links yielded CUSIP G0450A105 and SEDOL 2740542; no external calls or writes.
+  final_exact_tip_ci: pending; Root owns observation.
+  combined_staging_master_deployed_proof: pending; Root-owned.
+  provider_http_requests: 0
+  ledger_policy_quota_or_hold_mutation: false
+  migrations: none
+  wider_roadmaps_complete: false
+  integration_capture: exact branch HEAD

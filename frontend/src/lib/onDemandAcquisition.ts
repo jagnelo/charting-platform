@@ -103,6 +103,13 @@ export interface HistoryAcquisitionRequest {
   end: string
 }
 
+function retryAtFromResponse(response: {
+  retry_at?: string | null
+  source_outcomes: AcquisitionSourceOutcome[]
+}): string | null | undefined {
+  return response.retry_at ?? response.source_outcomes.find(outcome => outcome.retry_at)?.retry_at
+}
+
 const DAY_MS = 24 * 60 * 60 * 1000
 export const HISTORY_ACQUISITION_MAX_REQUESTED_BARS = 2000
 // Keep a rolling provider lookback clear of subsecond request/queue transit.
@@ -389,8 +396,7 @@ export async function acquireSelectedHistory(
         identity = await selectedIdentity
         if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
         if (identity.status === 'held') {
-          const retryAt = identity.retry_at
-            ?? identity.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+          const retryAt = retryAtFromResponse(identity)
           if (await lifecycle.wait(retryAt) !== 'ready') {
             if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
           } else {
@@ -469,8 +475,7 @@ export async function acquireSelectedHistory(
     })
     if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
     if (result.status === 'held') {
-      const retryAt = result.retry_at
-        ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+      const retryAt = retryAtFromResponse(result)
       const waited = await lifecycle.wait(retryAt)
       if (waited === 'ready') continue
       if (waited === 'superseded' || !isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
@@ -534,8 +539,7 @@ export async function resolveExistingInstrumentWithRetry(
   if (!isCurrent()) throw new DOMException('The selected ticker changed before identity resolution.', 'AbortError')
   let response = await resolveExistingInstrument(symbol)
   while (isCurrent() && response.status === 'held') {
-    const retryAt = response.retry_at
-      ?? response.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+    const retryAt = retryAtFromResponse(response)
     if (await lifecycle.wait(retryAt) !== 'ready') return response
     response = await resolveExistingInstrument(symbol)
   }
