@@ -89,7 +89,10 @@ async def enqueue_refresh_job(
     else:
         job.priority = min(job.priority, priority)
         job.status = "queued" if job.status in {"failed", "deferred", "expired"} else job.status
-        job.next_attempt_at = min(job.next_attempt_at, current)
+        existing_next_attempt = job.next_attempt_at
+        if existing_next_attempt.tzinfo is None or existing_next_attempt.utcoffset() is None:
+            existing_next_attempt = existing_next_attempt.replace(tzinfo=UTC)
+        job.next_attempt_at = min(existing_next_attempt, current)
         job.metadata_payload = {**(job.metadata_payload or {}), **(metadata_payload or {})}
     await db.flush()
     return job

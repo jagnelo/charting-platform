@@ -23,6 +23,7 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "focused_validation": "Backend ETF preparation/hook focused tests 29 passed; ETFHoldingsView unit tests 23 passed; frontend vue-tsc --noEmit passed; new ETF-only Playwright spec listed two tests but browser bodies were not run. Basket real PostgreSQL CRUD passed 1/1 with exact owned cleanup; separate receipt is in the current handoff/validation history.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
     "provider_contract": "Exact Provider-owned DTO files copied unchanged from authorized source 3d10c4c4662249b53a6e3fc497f1d260b59b2079; ETF hook implements the published signature and fields.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
@@ -40,8 +41,7 @@
       "frontend/src/lib/dataPreparation.ts",
       "frontend/tests/e2e/etf_holdings_preparation.spec.ts"
     ],
-    "status": "in_progress",
-    "focused_validation": "Backend ETF preparation/hook focused tests 29 passed; ETFHoldingsView unit tests 23 passed; frontend vue-tsc --noEmit passed; new ETF-only Playwright spec listed two tests but browser bodies were not run. Basket real PostgreSQL CRUD passed 1/1 with exact owned cleanup; separate receipt is in the current handoff/validation history."
+    "status": "in_progress"
   },
   "active_follow_up": {
     "id": "platform-usability-etf-holdings-2026-11-06",
@@ -77,7 +77,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -156,21 +156,61 @@
     "type": "ETF automatic holdings preparation and selected-profile integrity guard"
   },
   "dirty_paths": [
-    "backend/app/services/etf_holdings_refresh.py",
-    "frontend/src/views/ETFHoldingsView.vue",
-    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+    "backend/app/main.py",
+    "backend/app/providers/alpaca.py",
+    "backend/app/providers/massive.py",
+    "backend/app/routers/data_preparation.py",
+    "backend/app/routers/ohlcv.py",
+    "backend/app/schemas/data_preparation.py",
+    "backend/app/services/baskets.py",
+    "backend/app/services/bulk_fetch.py",
+    "backend/app/services/data_preparation.py",
+    "backend/app/services/derived_timeframes.py",
+    "backend/app/services/market_data.py",
+    "backend/app/services/market_refresh_queue.py",
+    "backend/app/services/market_series.py",
+    "backend/app/services/provider_runtime.py",
+    "backend/app/tasks/data_tasks.py",
+    "backend/app/workers/arq_worker.py",
+    "backend/tests/integration/test_data_preparation_queue_postgres.py",
+    "backend/tests/unit/providers/test_new_providers.py",
+    "backend/tests/unit/routers/test_data_preparation_router.py",
+    "backend/tests/unit/routers/test_ohlcv_router.py",
+    "backend/tests/unit/services/test_data_preparation_contracts.py",
+    "backend/tests/unit/services/test_data_preparation_history_planning.py",
+    "backend/tests/unit/services/test_data_preparation_service.py",
+    "backend/tests/unit/services/test_derived_timeframes.py",
+    "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
+    "backend/tests/unit/services/test_market_series_defaults.py",
+    "backend/tests/unit/workers/test_arq_worker.py",
+    "frontend/src/views/BasketsView.vue",
+    "frontend/tests/e2e/baskets_journey.spec.ts",
+    "frontend/tests/unit/views/test_baskets_view.test.ts",
     "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
     "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
     "ops/workstreams/feat-etf-holdings-constituents/session.json",
-    "backend/app/schemas/data_preparation.py",
-    "backend/app/services/data_preparation_contracts.py",
-    "backend/app/services/etf_holdings_preparation.py",
-    "backend/tests/unit/services/test_etf_holdings_preparation.py",
-    "backend/tests/unit/services/test_etf_holdings_preparation_hook.py"
+    "ops/workstreams/feat-etf-holdings-constituents/validation.jsonl"
   ],
   "docker": {
-    "available": false,
-    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
+    "accounting_complete": true,
+    "available": true,
+    "build_cache_bytes": null,
+    "container_count": 0,
+    "containers": [],
+    "known_bytes": 463900089,
+    "over_budget": false,
+    "projects": [
+      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
+      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+    ],
+    "testcontainer_sessions": [],
+    "threshold_bytes": 5000000000,
+    "unattributed_shared_layers_excluded": true,
+    "unique_image_bytes": 0,
+    "unknown_components": [],
+    "volume_bytes": 463900089,
+    "volume_count": 2,
+    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
   "docker_ready": {
     "ready": true,
@@ -193,7 +233,7 @@
   "goal_request_state": "active",
   "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "54a199c325319d80ad772c667b1aaf7bb128029a",
+  "head": "c87c3ce2e4469d88e731cad8c1ce3ef0c618b921",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -419,7 +459,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -1057,7 +1097,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "4aafe8de1e23723b6e060370e5b2aa83e3757cd415bfc974e09dde55f64bb5e5",
+  "plan_hash": "0d2917d04439e8bf9c614139cf9b5bc60075eb7c41bde9c5fc68f51af7b4e86a",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -1554,7 +1594,7 @@
     },
     "remaining_gates": [
       "Exact final closing-tip CI must be terminal green before integration.",
-      "Root owns accepted compatible ETF→TC staging, green staging and independent master gates.",
+      "Root owns accepted compatible ETF\u2192TC staging, green staging and independent master gates.",
       "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
     ],
     "retained_input_proof": {
@@ -1990,7 +2030,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -3469,7 +3509,7 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Normal green Provider staging adoption is still required before shared runtime wiring is available; the new ETF-only browser journey and Root-owned combined proof remain pending.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider source 55b956f40615f1623a0f7d084b9fc0a355727053 is consumed locally for development, but its required green staging release is pending before final shared-runtime integration; the new ETF-only browser journey and Root-owned combined profile remain pending.",
     "current_phase": "ETF hook uses the exact Provider DTOs, exact persisted-snapshot/capability checks, and typed retry preservation; focused service/view checks pass.",
     "total": 5
   },
@@ -3531,7 +3571,7 @@
   "remote": "54a199c325319d80ad772c667b1aaf7bb128029a",
   "remote_observation": "Pre-publication status was captured at local base45cc8206602d7823ca29e132d991d88b0bcbbc25 with origin feature66b9c6733a8de3d3fc5267a1079016b86bd76021; one coherent accepted-source publication is now authorized. Exact closing-tip CI and staging remain Root-owned.",
   "remote_sha": "54a199c325319d80ad772c667b1aaf7bb128029a",
-  "remote_synchronized": true,
+  "remote_synchronized": false,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -3759,5 +3799,37 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
-  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
+  "root_allocated_basket_ui_lifecycle_2026_11_06": {
+    "authority": "Root assigned the adjacent basket lifecycle to this existing ETF owner under the human-approved platform-usability plan; exact paths are in basket-ui-ownership-partition.json.",
+    "status": "in_progress",
+    "owner_paths": [
+      "backend/app/services/baskets.py",
+      "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
+      "frontend/src/views/BasketsView.vue",
+      "frontend/tests/unit/views/test_baskets_view.test.ts",
+      "frontend/tests/e2e/baskets_journey.spec.ts"
+    ],
+    "tc_owned_shared_paths_untouched": true,
+    "focused_validation": "BasketsView unit 16 passed; frontend type-check passed; backend ETF preparation/hook 31 and basket consumer 6 passed; Ruff check/format and narrative/workstream/hash guards passed; E2E lists 2 cases and browser bodies were not run.",
+    "source_http_requests": 0,
+    "docker_or_browser_run": false,
+    "production_quota_or_data_mutation": false,
+    "remaining": "Root owns combined functional/browser profile and shared API integration; full platform and ETF roadmaps remain open."
+  },
+  "root_released_provider_runtime_consumption": {
+    "source": "55b956f40615f1623a0f7d084b9fc0a355727053",
+    "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-runtime-development-consumption-contract.json",
+    "contract_sha256": "b23c835ede9b509a7063e6f971e543eca28e77d669b5234e64fb17286704e901",
+    "imported_files": 30,
+    "all_git_blob_and_sha256_checks_passed": true,
+    "dirty_path_overlap": [],
+    "producer_full_release_gates": "pending; not accepted/integrated/deployed",
+    "consumer_validation": {
+      "etf_preparation_and_hook": "31 passed",
+      "basket_consumer_lineage": "6 passed",
+      "provider_release_status": "development dependency only; full gates pending"
+    }
+  }
 }

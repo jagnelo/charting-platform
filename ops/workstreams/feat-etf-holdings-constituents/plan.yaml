@@ -5798,3 +5798,148 @@ root_allocated_etf_view_shared_preparation_consumption_2026_11_06:
   validation: ETFHoldingsView unit tests 23 passed; vue-tsc --noEmit passed; Playwright listed two focused ETF cases, no browser test bodies run.
   shared_test_handoff: TC-owned frontend/tests/e2e/on_demand_acquisition.spec.ts test at line 1051 still asserts automatic IWM /etf-holdings/IWM/acquire after selection; it must be reconciled to /data/ensure by its owner before the combined profile. No shared test or TC worktree was edited.
   remaining: Provider runtime import/wiring and Root-owned single combined functional/strict-visual profile are pending. No runtime, provider, production, source, quota, policy, or data operation is claimed.
+
+root_allocated_basket_ui_lifecycle_2026_11_06:
+  authority: Root assigned the adjacent Baskets lifecycle to the existing ETF owner under the human-approved platform-usability plan; exact partition is recorded in basket-ui-ownership-partition.json. This is not a separate release or a closure of the full roadmap.
+  source_base: c87c3ce2e4469d88e731cad8c1ce3ef0c618b921
+  owned_paths:
+  - backend/app/services/baskets.py
+  - backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py
+  - frontend/src/views/BasketsView.vue
+  - frontend/tests/unit/views/test_baskets_view.test.ts
+  - frontend/tests/e2e/baskets_journey.spec.ts
+  excluded_paths: TC retains shared shell, API client/types, stores, styles, Workstation/shared workspace and coordinator; request shared changes through Root.
+  acceptance:
+  - A normal resolved-symbol picker creates equal-weight and valid custom-weight baskets using canonical instrument IDs; unresolved recent text cannot be saved as an identity.
+  - Users can save, reload, switch without stale draft/lineage, edit members, discard or cancel edits, and cancel/confirm delete with a visible return state; system-managed or read-only baskets remain protected.
+  - Issuer-snapshot baskets retain dated composition, known_at, source provider/identifier/URL, provenance, source artifact and snapshot hashes in current and historical basket lineage without mutating the underlying ETF snapshot.
+  - Open chart prepares D1 history for each exact basket member through the shared coordinator, opens the current Workstation dashboard basket route, and does not report unavailable constituents as ready.
+  - Focused unit/API checks and the new actual-API browser journey cover lifecycle, read-only provenance, preparation, reload, and nonempty basket chart bars; no external source request, real quota/ledger or production mutation.
+  validation:
+    frontend_unit: "tests/unit/views/test_baskets_view.test.ts: 16 passed"
+    frontend_typecheck: "npm run type-check passed"
+    e2e_discovery: "tests/e2e/baskets_journey.spec.ts: 2 tests listed; browser bodies not run"
+    backend_focused: "tests/unit/services/test_etf_holdings_checkpoint_consumers.py::test_denied_refresh_preserves_history_and_rejects_current_analysis: 6 passed"
+    backend_lint: "Ruff check and format check passed for the two changed backend files"
+    existing_database_proof: "backend/tests/integration/api/test_baskets.py::test_manual_basket_crud_uses_real_async_session passed 1/1 in prior attempt004; this proof predates the lineage-only extension in this checkpoint"
+  non_actions: No browser, Docker, provider/source HTTP, quota, policy, production or sibling-worktree operation. Root owns the combined runtime/browser profile; the imported Provider runtime remains an unaccepted development dependency pending its required release gates.
+  status: in_progress
+  integration_capture: exact branch HEAD
+
+provider_runtime_dependency_55b956f40615:
+  authority: Root released exact Provider source for development consumption in the
+    existing ETF worktree; this is not Provider acceptance, integration, deployment,
+    or full release qualification.
+  source: 55b956f40615f1623a0f7d084b9fc0a355727053
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  state: released_for_exact_development_consumption_not_product_acceptance
+  contract_path: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider-runtime-development-consumption-contract.json
+  contract_sha256: b23c835ede9b509a7063e6f971e543eca28e77d669b5234e64fb17286704e901
+  source_description: actual authenticated preparation API, existing durable queue/worker,
+    provider/derived-series lineage integration and exact affected tests
+  producer_evidence:
+    focused_units: 440 passed, zero failed/skipped
+    independent_postgresql: 5 passed, zero failed/skipped
+    full_release_gates: pending; not waived
+  imported_method: git restore from the exact released commit into the own worktree
+    after verifying no dirty-path overlap; all imported Git blob IDs and SHA-256 values
+    match the contract.
+  file_count: 30
+  files:
+  - path: backend/app/main.py
+    git_blob: bcdb5e07415c1fd84504adec4f835d824d24b8ff
+    sha256: 12df279e453e6c8fcf7e05ede9208af027fa27645eb927cd4e84fa4dc742f4ca
+  - path: backend/app/providers/alpaca.py
+    git_blob: f04bb5b13374dfe4c5683acd70250d921bfbf5f5
+    sha256: 65cf8bf722a580c8c74d5562f73e57bc495196544590be8d71a1538b0182b3e6
+  - path: backend/app/providers/massive.py
+    git_blob: 9a80bb96d3a2ec6dcefbba641d970f67efdcc086
+    sha256: a0b960e36199e58e332eeee13a0423479a536f5ecb75336012aa0de47659800b
+  - path: backend/app/routers/data_preparation.py
+    git_blob: 514cee98b55f5b56af06071b4699d1d3358ef2ed
+    sha256: 0f0b85f6356521ccd16c4ca0d919a3572b1e76cb318ddc04b54af077153d5c35
+  - path: backend/app/routers/ohlcv.py
+    git_blob: d0921270b79f2ac24419a32833f75e5f441af96e
+    sha256: 420387926e48794e48cd452c04fbd9478b68980f0162762acdd434a019407b30
+  - path: backend/app/schemas/data_preparation.py
+    git_blob: c47953ea7d311d13d1d7de76d0777b8fc9dcb45f
+    sha256: 18ee504ef6f4f8e2f637f7cecd742d1b57bb402f7bf8cb6b6ff9ce0ca2fb08d4
+  - path: backend/app/services/bulk_fetch.py
+    git_blob: 91baf6302faa93c70e7546ba409dd68fa885935f
+    sha256: f03643ddca4282b0908167d1b569cd9672893a8ba121ac7bfbbcc572cce10ffb
+  - path: backend/app/services/data_preparation.py
+    git_blob: ca9401dfc0dbbf4ff1283b110e2f5669b3e59aa0
+    sha256: db6149a938393831c09d7013ffa020a9fdba74ef60e3bbba30f9b522a1c3f913
+  - path: backend/app/services/data_preparation_contracts.py
+    git_blob: 5c39b34a8b8a4ad310d2d5bb6023de2d0b5bd351
+    sha256: 220f3720ab383502a683dc5eb50fe90d9ab29113121102641061e580f50c60ca
+  - path: backend/app/services/derived_timeframes.py
+    git_blob: 3b2c6337ad25a533096f1a9ed213fcc7207d933f
+    sha256: d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5
+  - path: backend/app/services/etf_holdings_preparation.py
+    git_blob: f4470a83a237dc38e42680b3a45948e71dbe28b8
+    sha256: 30a9b581609d2ee584d81667afa388df62e5a9133895cc98a841015cd6eb7df1
+  - path: backend/app/services/etf_holdings_refresh.py
+    git_blob: 8ab7d7879661abb68309b668c61648cf212785cd
+    sha256: e258f61bcc7aa288897999cb421d320512439e101157ff0f91fe5be4b216fce3
+  - path: backend/app/services/market_data.py
+    git_blob: e92922a76451223b0b9526b3a146874b8c5a8cf9
+    sha256: 1c8cfb9afb462e12209a2d20881ac38eeb6537d375f2404b87b9b70c03088c6d
+  - path: backend/app/services/market_refresh_queue.py
+    git_blob: 935d9baabbe236b38b940a5bd1e887f3d2b9abeb
+    sha256: c9d34ef3cf511a74541d4b23809e6c04fe36b66b2b03ea6eec63cecfc9118a81
+  - path: backend/app/services/market_series.py
+    git_blob: 8dd80d1561ce9189b65d79fcb66157fe98f1fb82
+    sha256: 1f8fd73bf800e3a971a33bc7a426f81e39f597a8ab7903642ab0b2715929e9ec
+  - path: backend/app/services/provider_runtime.py
+    git_blob: c8243ac3ae256cdcf2e1f0209265b542fc0d1061
+    sha256: 8d0a69a8216277ac95d5c69fa81fa04a2d42b276e331c9bfb03b180b9a1eff30
+  - path: backend/app/tasks/data_tasks.py
+    git_blob: d0ca15b40ea2b916af328c15bc1368ec1c945e7f
+    sha256: 5958217d714a5a0fdcd82e831a9898cf4027e52dbe84815a47bcd82e6c912b65
+  - path: backend/app/workers/arq_worker.py
+    git_blob: 7be6ab23520d76abec18d397d5c2e994ba6f7b15
+    sha256: 3a36dacd7ea712454ac28e46e539971efe1f3698e86ed05802d6035fc2a9dd1a
+  - path: backend/tests/integration/test_data_preparation_queue_postgres.py
+    git_blob: a5619a9ca7ecd38d39b9b259187ef5dc18855ce2
+    sha256: 3f69ce2f9a963246618aa6c66d5cdb312e023c81ec378eafce8ed60a1f7e7980
+  - path: backend/tests/unit/providers/test_new_providers.py
+    git_blob: dea961137e8974516c2027d627e1e91c14a5b9c4
+    sha256: 743f26f4e9b39e9bc1fb1c7f7397f5fdb3c6ea5c01abfb08da07e9638cfd5a7c
+  - path: backend/tests/unit/routers/test_data_preparation_router.py
+    git_blob: 22ea722f21f8b7c65a6d0c312aa2b7fed9a76513
+    sha256: c24567191da090d300ee7f092bf27c7d1e698c1e514381657165aeead317fa83
+  - path: backend/tests/unit/routers/test_ohlcv_router.py
+    git_blob: 5ace6ff308dee76aea63fce913d37ebc3639d6ef
+    sha256: 967bc96ed8fe806eed44a12fcc03d9c850332d57ff2c597d4d83a3f2f4888bf0
+  - path: backend/tests/unit/services/test_data_preparation_contracts.py
+    git_blob: a2443735bba8fec38d57b093b77fb9f1f000f0b4
+    sha256: da98a31d2c4b6515498de8c87030dde4775bf1c6d98c7d74630797332886d2c5
+  - path: backend/tests/unit/services/test_data_preparation_history_planning.py
+    git_blob: f051b97d5e5f23f060ca07023d6640ff8acda030
+    sha256: f6863bd215c2339a4d0ea385fb7a7062c5ace1042a84edae31bc3df1cd369023
+  - path: backend/tests/unit/services/test_data_preparation_service.py
+    git_blob: 7f1471e1f96c435ee1b799cce7d1d8dd91d42f52
+    sha256: 20b02aa8bd6bc7c14cab91b18024e3950f311f8c1ad063297d6671b91a237de8
+  - path: backend/tests/unit/services/test_derived_timeframes.py
+    git_blob: 85811ade209a4adfbe1b095527453fa2608e9207
+    sha256: a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a
+  - path: backend/tests/unit/services/test_etf_holdings_preparation.py
+    git_blob: 8f0a484f033fc3a9c7700a7c96d99aa4469eb8e4
+    sha256: 2d44f15dfeb27e00cb0799ab4b1ce4b61d35ff3288c9757d6e6f9638fc7ae939
+  - path: backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+    git_blob: d745f4845a06708a8deaa5fd7f3a3c8a3a39b560
+    sha256: 2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0
+  - path: backend/tests/unit/services/test_market_series_defaults.py
+    git_blob: 28b3b18b56f643ae019668c0665bd59fca179bd9
+    sha256: 7bb4ca863f3fbdc8619d56fffae89992fadffb99ff0ac7ad3411d4ee7adfb928
+  - path: backend/tests/unit/workers/test_arq_worker.py
+    git_blob: b74e14bbc45893397e767cfd40d1966996a35e5f
+    sha256: b3e29e432709c99c8ef600058cef495b3a138bf414b0cb876762c0c9486a821b
+  consumer_validation:
+    etf_preparation_and_hook: "31 passed on the imported Provider runtime"
+    basket_lineage: "6 passed on the imported Provider runtime"
+    frontend_baskets: "16 unit tests passed; vue-tsc passed; browser spec discovery listed 2 tests"
+    narrative_and_workstream: "narrative invariant 1 passed; workstream and plan/hash/JSONL guards passed"
+  full_release_gates: pending; Root owns combined qualification and release; no acceptance
+    or deployment is claimed.

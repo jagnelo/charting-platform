@@ -5,6 +5,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.lib.time_utils import wire_datetime
 from app.models.basket import Basket, BasketMember, BasketSnapshot, BasketSnapshotMember
 from app.models.etf_holdings import (
     ETFHolding,
@@ -220,8 +221,22 @@ async def materialize_etf_holdings_basket(
         "etf_symbol": etf_instrument.symbol,
         "etf_name": etf_instrument.name,
         "snapshot_id": snapshot.id,
+        "snapshot_hash": snapshot.snapshot_hash,
         "provenance": snapshot.provenance,
         "source_provider": snapshot.source_provider,
+        "source_identifier": snapshot.source_identifier
+        or (snapshot.source_artifact.source_identifier if snapshot.source_artifact else None),
+        "source_url": snapshot.source_url
+        or (snapshot.source_artifact.source_url if snapshot.source_artifact else None),
+        "source_artifact_id": snapshot.source_artifact_id,
+        "source_artifact_hash": (
+            snapshot.source_artifact.content_hash if snapshot.source_artifact else None
+        ),
+        "composition_date": snapshot.composition_date.isoformat(),
+        "as_of_date": snapshot.as_of_date.isoformat() if snapshot.as_of_date else None,
+        "known_at": wire_datetime(snapshot.known_at),
+        "published_at": wire_datetime(snapshot.published_at),
+        "parser_version": snapshot.parser_version,
         "source_quality": snapshot.source_quality,
         "completeness_status": snapshot.completeness_status,
         "resolved_count": snapshot.resolved_count,
@@ -268,6 +283,7 @@ async def materialize_etf_holdings_basket(
         known_at=snapshot.known_at,
         source_type="etf_holdings",
         source_snapshot_id=snapshot.id,
+        source_metadata=basket.metadata_,
     )
     return await _load_basket_with_members(db, basket.id)
 
@@ -521,6 +537,7 @@ async def _record_basket_snapshot(
     known_at: datetime | None,
     source_type: str,
     source_snapshot_id: int | None = None,
+    source_metadata: dict | None = None,
 ) -> BasketSnapshot:
     existing = None
     if source_snapshot_id is not None:
@@ -548,6 +565,7 @@ async def _record_basket_snapshot(
         "basket_source_type": basket.source_type,
         "weighting_scheme": basket.weighting_scheme,
         "source_etf_profile_id": basket.source_etf_profile_id,
+        **(source_metadata or {}),
     }
     if existing is None:
         db.add(snapshot)
@@ -736,7 +754,8 @@ async def _load_etf_snapshot(
     stmt = (
         select(ETFHoldingsSnapshot)
         .options(
-            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument)
+            selectinload(ETFHoldingsSnapshot.rows).selectinload(ETFHolding.constituent_instrument),
+            selectinload(ETFHoldingsSnapshot.source_artifact),
         )
         .where(ETFHoldingsSnapshot.etf_profile_id == profile.id)
     )

@@ -92,7 +92,7 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
     db.flush()
 
     result = await materialize_derived_timeframes(AsyncSessionAdapter(db), instrument.id)
-    assert result == {"W1": 1, "MN": 1}
+    assert result == {"W1": 2, "MN": 1}
 
     weekly = (
         db.execute(
@@ -103,16 +103,19 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
         .scalars()
         .all()
     )
-    assert len(weekly) == 2
+    assert len(weekly) == 3
     assert weekly[0].is_derived is False
     assert weekly[0].close == Decimal("90")
     assert weekly[1].is_derived is True
+    assert weekly[2].is_derived is True
     assert weekly[1].source_timeframe == "D1"
     assert weekly[1].derivation_method == DERIVATION_METHOD
     assert weekly[1].data_source_id is None
     assert weekly[1].source_bar_count == 2
-    assert weekly[1].source_start.replace(tzinfo=UTC) == datetime(2025, 1, 9, tzinfo=UTC)
-    assert weekly[1].source_end.replace(tzinfo=UTC) == datetime(2025, 1, 10, tzinfo=UTC)
+    assert weekly[1].source_start.replace(tzinfo=UTC) == datetime(2025, 1, 2, tzinfo=UTC)
+    assert weekly[1].source_end.replace(tzinfo=UTC) == datetime(2025, 1, 3, tzinfo=UTC)
+    assert weekly[2].source_start.replace(tzinfo=UTC) == datetime(2025, 1, 9, tzinfo=UTC)
+    assert weekly[2].source_end.replace(tzinfo=UTC) == datetime(2025, 1, 10, tzinfo=UTC)
 
     weekly_state = (
         db.query(InstrumentDatasetState)
@@ -129,8 +132,8 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
         "source_timeframe": "D1",
         "derivation_method": DERIVATION_METHOD,
         "adjusted": True,
-        "derived_bar_count": 1,
-        "provider_periods_excluded": 1,
+        "derived_bar_count": 2,
+        "provider_periods_excluded": 0,
         "source_d1_signature": {
             "adjusted": True,
             "bar_count": 4,
@@ -140,6 +143,7 @@ async def test_materialize_derived_timeframes_persists_lineage_and_preserves_pro
             "market_series_ids": [],
             "source_watermarks": [],
         },
+        "source_market_series_id": None,
         "adjustment_provenance": {
             "mode": "split_adjusted",
             "source_kind": "derived_from_canonical_d1",

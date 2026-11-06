@@ -250,7 +250,7 @@ class AlpacaProvider:
             "start": _fmt_dt(start),
             "end": _fmt_dt(end),
             "limit": 1000,
-            "adjustment": "all" if adjusted else "raw",
+            "adjustment": "split" if adjusted else "raw",
         }
         if not is_crypto:
             params["feed"] = settings.ALPACA_DATA_FEED
@@ -317,8 +317,8 @@ class AlpacaProvider:
                             volume=b.get("v"),
                             vwap=b.get("vw"),
                             is_adjusted=adjusted,
-                            adjustment_basis=("provider_adjusted" if adjusted else "raw"),
-                            adjustment_version=("alpaca-all" if adjusted else "provider-native"),
+                            adjustment_basis=("split_adjusted" if adjusted else "raw"),
+                            adjustment_version=("alpaca-split" if adjusted else "provider-native"),
                             provenance={
                                 "provider": self.name,
                                 "endpoint": url,
