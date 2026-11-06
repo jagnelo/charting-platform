@@ -46,6 +46,7 @@
     "status": "in_progress"
   },
   "dirty_paths": [
+    "frontend/tests/e2e/strategy_study_journey.spec.ts",
     "ops/workstreams/feat-strategy-lab-v2/handoff.md",
     "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
     "ops/workstreams/feat-strategy-lab-v2/session.json",
@@ -101,14 +102,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
+  "head": "8d0b3013a42e38b0e65eed901e49c643c2747ddf",
   "implementation_sha": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
-  "last_checkpoint": "2026-11-06T19:49:44Z",
+  "last_checkpoint": "2026-11-06T20:00:38Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue the remaining Strategy-owned Study, Results, Code Library and exposed Strategy-view action review, adding focused offline regressions only for uncovered behavior. Keep the Study browser journey, Provider backend integration and single combined full qualification with Root; preserve the full local profile and deployed acceptance as pending until those exact gates pass.",
   "parent_branch": "staging",
-  "plan_hash": "cdabdee12e21defdec56b91793568f5cdc8b9bfe87c0ed07ca1ee30fec92f27c",
+  "plan_hash": "9ebd6c3a78a5a01d3f4111eaf052429be3213292b7e1fb317cd039ade95bec61",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -143,8 +144,8 @@
     "total": 6,
     "updated_at": "2026-11-06T19:39:16Z"
   },
-  "remote": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
-  "remote_sha": "66f8ac67370026341f47bdf3b06aa9abc1f158e7",
+  "remote": "8d0b3013a42e38b0e65eed901e49c643c2747ddf",
+  "remote_sha": "8d0b3013a42e38b0e65eed901e49c643c2747ddf",
   "remote_synchronized": true,
   "retained_docker_resources": [],
   "schema": 2,
