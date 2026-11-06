@@ -200,6 +200,7 @@
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes a direct Study Lab scalar through an explicit threshold condition",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: promotes direct single-output range centers as chart plots and latest columns",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: exposes lineage-preserving column and chart promotions for structured scalar and series artifacts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: keeps a late promotion result attached to its source run after selection changes",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: requires a named artifact when a direct events run contains multiple outputs",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: promotes a structured scalar through an explicit thresholded Boolean condition"
       ],

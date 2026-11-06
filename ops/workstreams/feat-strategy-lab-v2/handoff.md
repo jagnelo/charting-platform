@@ -19577,3 +19577,7 @@ The late-save regression was strengthened to cover both user edits while POST is
 ### Results mutation failure recovery (2026-11-06)
 
 Added focused ResearchResultsTool regressions for failed cancellation and failed snapshot rerun requests. Both assert the server error is surfaced and the action remains enabled for retry; successful retry updates the persisted run state/list. The isolated Results component suite passes 62/62. This adds component evidence for J10/J12 recovery but does not substitute for the actual browser lifecycle in Root's combined gate; no backend, database, browser, Docker or provider operation ran.
+
+### Results promotion feedback remains attached to its source run (2026-11-06)
+
+The selected-run detail previously rendered one global promotion message. If a promotion for run A completed after the user selected run B, its success or failure could be announced inside B's detail. Promotion feedback now carries its source run ID and renders only when that run is selected; the underlying promotion request and immutable source lineage are unchanged. The focused regression delays a successful run-A promotion, selects run B, verifies A's result is absent from B, then returns to A and verifies its outcome. ResearchResultsTool passes 63/63 with one Vitest worker. This is component evidence only; browser promotion lifecycle remains pending Root's combined qualification.

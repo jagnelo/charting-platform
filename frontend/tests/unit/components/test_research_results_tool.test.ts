@@ -538,6 +538,29 @@ describe('ResearchResultsTool', () => {
     expect((wrapper.vm as unknown as { promotionMessage: string }).promotionMessage).toBe('')
   })
 
+  it('keeps a late promotion result attached to its source run after selection changes', async () => {
+    const sourceRun = { id: 25, status: 'completed', code_version_id: 4, run_config: { execution_mode: 'breadth_history' }, dataset_manifest: {}, diagnostics: [], artifacts: [
+      { id: 12, name: 'breadth_history', artifact_type: 'breadth_history', payload: { value: { points: [], occurrences: [] } } },
+    ] }
+    const otherRun = { id: 26, status: 'completed', code_version_id: 5, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [] }
+    const promotion = deferred<{ id: number; name: string }>()
+    apiGet.mockResolvedValue([sourceRun, otherRun])
+    apiPost.mockImplementation((path: string) => path === '/analysis/breadth/python/runs/25/promote-scan' ? promotion.promise : Promise.resolve({}))
+    const wrapper = mountTool()
+    await flushPromises()
+
+    await wrapper.findAll('button').find(button => button.text() === 'Promote to EasyScan')!.trigger('click')
+    await wrapper.findAll('button.research-results-tool__run-select')[1].trigger('click')
+    promotion.resolve({ id: 56, name: 'Source run scan' })
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Research run 26 details"]').exists()).toBe(true)
+    expect(wrapper.text()).not.toContain('EasyScan “Source run scan” (#56) created')
+
+    await wrapper.findAll('button.research-results-tool__run-select')[0].trigger('click')
+    expect(wrapper.text()).toContain('EasyScan “Source run scan” (#56) created')
+  })
+
   it('renders persisted scatter and heatmap artifacts with native result surfaces', async () => {
     apiGet.mockResolvedValue([{ id: 13, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, diagnostics: [], artifacts: [
       { id: 5, name: 'relationship', artifact_type: 'scatter', payload: { value: { x: [1, 2], y: [3, 4] } } },

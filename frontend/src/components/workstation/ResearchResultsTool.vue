@@ -86,7 +86,7 @@
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
       <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventFilter(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as watchlist filter' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote events to alert' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
       <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
-      <p v-if="promotionMessage" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
+      <p v-if="promotionMessage && promotionRunId === selectedRun.id" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
       <details v-if="selectedRun.diagnostics?.length" class="research-results-tool__run-details"><summary>Diagnostics ({{ selectedRun.diagnostics.length }})</summary><pre>{{ formatMessages(selectedRun.diagnostics) }}</pre></details>
       <details v-if="selectedRun.warnings?.length" class="research-results-tool__run-details"><summary>Warnings ({{ selectedRun.warnings.length }})</summary><pre>{{ formatMessages(selectedRun.warnings) }}</pre></details>
@@ -384,12 +384,18 @@ let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
 let mutationGeneration = 0
 let comparisonGeneration = 0
+const promotionRunId = ref<number | null>(null)
 function isCurrentMutation(generation: number) { return mounted && generation === mutationGeneration }
-function beginPromotion() {
+function beginPromotion(runId: number) {
   const generation = mutationGeneration
+  promotionRunId.value = runId
   promoting.value = true
   promotionMessage.value = ''
   return generation
+}
+function setPromotionMessage(runId: number, message: string) {
+  promotionRunId.value = runId
+  promotionMessage.value = message
 }
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
@@ -1061,7 +1067,7 @@ async function cancel(run: ResearchRunSummary) {
   }
 }
 async function promoteScan(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1087,7 +1093,7 @@ async function ensurePromotedScan(run: ResearchRunSummary, generation = mutation
 }
 
 async function promoteAlert(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const scan = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1102,7 +1108,7 @@ async function promoteAlert(run: ResearchRunSummary) {
 }
 
 async function promoteGauge(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const scan = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1115,7 +1121,7 @@ async function promoteGauge(run: ResearchRunSummary) {
 }
 
 async function promoteSignal(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-signal`, {})
     if (!isCurrentMutation(generation)) return
@@ -1127,7 +1133,7 @@ async function promoteSignal(run: ResearchRunSummary) {
   }
 }
 async function promoteEventSignal(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-signal`, {})
     if (!isCurrentMutation(generation)) return
@@ -1147,7 +1153,7 @@ async function ensurePromotedEventFilter(run: ResearchRunSummary, generation = m
   return result
 }
 async function promoteEventFilter(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedEventFilter(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1159,7 +1165,7 @@ async function promoteEventFilter(run: ResearchRunSummary) {
   }
 }
 async function promoteEventAlert(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedEventFilter(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1173,7 +1179,7 @@ async function promoteEventAlert(run: ResearchRunSummary) {
   }
 }
 async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert' | 'signal') {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
@@ -1278,10 +1284,10 @@ async function promoteStructuredStudySignal(
 async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
   if (target === 'plot' && artifact.artifact_type === 'series' && !seriesCanBePlotted(artifact)) {
-    promotionMessage.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
+    setPromotionMessage(run.id, 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {
       if (target === 'signal') {
@@ -1430,10 +1436,10 @@ async function promoteStructuredSeriesCondition(
   if (artifact.artifact_type !== 'series' || !hasFiniteSeriesValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the series.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the series.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1532,10 +1538,10 @@ async function promoteStructuredScalarCondition(
   if (artifact.artifact_type !== 'scalar' || !hasFiniteScalarValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the scalar.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the scalar.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
     if (target === 'signal') {
@@ -1635,10 +1641,10 @@ async function promoteStructuredRangeCenterCondition(
   if (artifact.artifact_type !== 'range' || !hasFiniteRangeCenterValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the range center.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the range center.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1731,7 +1737,7 @@ async function promoteStructuredRangeCenterCondition(
   }
 }
 async function promoteStudy(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-study`, {})
     if (!isCurrentMutation(generation)) return
@@ -1743,7 +1749,7 @@ async function promoteStudy(run: ResearchRunSummary) {
   }
 }
 async function promotePlot(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, {})
     if (!isCurrentMutation(generation)) return
@@ -1755,7 +1761,7 @@ async function promotePlot(run: ResearchRunSummary) {
   }
 }
 async function promoteAggregatePlot(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, { aggregate: true })
     if (!isCurrentMutation(generation)) return
@@ -1767,7 +1773,7 @@ async function promoteAggregatePlot(run: ResearchRunSummary) {
   }
 }
 async function promoteColumn(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-column`, {})
     if (!isCurrentMutation(generation)) return
