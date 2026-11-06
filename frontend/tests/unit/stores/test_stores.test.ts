@@ -269,6 +269,69 @@ describe('useChartStore', () => {
     expect(store.historyBoundaryMessage).toContain('Loaded older D1 history')
   })
 
+  it.each([
+    { label: 'empty readback after complete', status: 'complete', freshBars: [] as any[] },
+    { label: 'duplicate readback after partial', status: 'partial', freshBars: null as any },
+  ])('does not claim exhaustion or repeat the same cursor after $label', async ({ status, freshBars }) => {
+    const cached = { ts: '2026-10-01T00:00:00.000Z', open: 10, high: 11, low: 9, close: 10.5, volume: 100 }
+    let pageReads = 0
+    let historyAttempts = 0
+    ;(api.get as ReturnType<typeof vi.fn>).mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: 42, symbol: 'SPY', stats: {} }) as any
+      if (path === '/instrument-indicators/42') return Promise.resolve({ indicators: [] }) as any
+      if (path === '/coverage/instruments/SPY/ohlcv') return Promise.resolve({
+        status: 'partial', bar_count: 1,
+        missing_slices: [{ start: '2024-01-01T00:00:00Z', end: cached.ts }],
+      }) as any
+      if (path === '/instruments/42/history-availability') return Promise.resolve({
+        instrument_id: 42, symbol: 'SPY', timeframe: 'D1', adjusted: true,
+        status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null,
+      }) as any
+      if (path === '/ohlcv/local/SPY/D1') {
+        if (!params?.before) return Promise.resolve([cached]) as any
+        pageReads += 1
+        if (pageReads === 1 || pageReads === 3) return Promise.resolve([]) as any
+        if (pageReads === 2) return Promise.resolve(freshBars ?? [cached]) as any
+      }
+      return Promise.resolve([]) as any
+    })
+    ;(api.post as ReturnType<typeof vi.fn>).mockImplementation((path: string, body: Record<string, any>) => {
+      if (path === '/instruments/acquire') return Promise.resolve({
+        status: 'resolved', instrument: { instrument_id: 42, symbol: 'SPY', identity_status: 'resolved' }, source_outcomes: [],
+      }) as any
+      if (path === '/instruments/42/history-acquisitions') {
+        historyAttempts += 1
+        return Promise.resolve({
+          status: historyAttempts === 1 ? status : 'no_data', instrument_id: 42, symbol: 'SPY', timeframe: 'D1', adjusted: true,
+          requested_start: body.start, requested_end: body.end,
+          coverage: { status: 'partial', bar_count: 1, missing_slices: [{ start: body.start, end: body.end }] },
+          bars: [], source_outcomes: [],
+        }) as any
+      }
+      throw new Error(`Unexpected request: ${path}`)
+    })
+
+    const store = useChartStore()
+    await store.loadBars('SPY', 'D1', 'candles', true)
+    await store.loadMoreBars()
+
+    expect(store.hasReachedStart).toBe(false)
+    expect(store.historyBoundaryMessage).toContain('refresh chart data before trying this range again.')
+    expect(historyAttempts).toBe(1)
+    const pageReadsAfterNoProgress = pageReads
+    await store.loadMoreBars()
+    expect(pageReads).toBe(pageReadsAfterNoProgress)
+    expect(historyAttempts).toBe(1)
+
+    // The existing explicit refresh is the bounded retry gesture for this
+    // same cursor; only authoritative no_data may then mark the source edge.
+    await store.refreshLocalBars()
+    await store.loadMoreBars()
+    expect(historyAttempts).toBe(2)
+    expect(store.hasReachedStart).toBe(true)
+    expect(store.historyBoundaryMessage).toContain('No older D1 history is available')
+  })
+
   it('resumes a known quota wait for older history and appends the completed local bars', async () => {
     const cached = { ts: new Date(Date.now() - 30 * 86_400_000).toISOString(), open: 10, high: 11, low: 9, close: 10.5, volume: 100 }
     const older = { ts: new Date(Date.now() - 60 * 86_400_000).toISOString(), open: 9, high: 10, low: 8, close: 9.5, volume: 90 }

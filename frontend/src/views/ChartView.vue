@@ -700,6 +700,10 @@ async function acquireSelectedChartHistory(
       selectedHistoryProgress.value = `The allowed history window for ${symbol} could not be confirmed; saved chart data remains visible.`
       return
     }
+    if (outcome.kind === 'coverage-unavailable') {
+      selectedHistoryProgress.value = `Saved history coverage for ${symbol} could not be confirmed; saved chart data remains visible.`
+      return
+    }
     if (outcome.kind === 'at-earliest-bound') {
       selectedHistoryProgress.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       return

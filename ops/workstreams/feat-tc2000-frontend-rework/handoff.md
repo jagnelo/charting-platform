@@ -26351,3 +26351,10 @@ Measured shared tab geometry follow-up: Root observed the library's `box-sizing:
 ## 2026-11-06 — Accepted history/dashboard checkpoint closure
 
 Root accepted the bounded implementation checkpoint under existing delegated authority (receipt SHA256 `2e655a7e4f93edf165be100c5be2c0c4453a653933be612d7a1a77b0353586da`). The approved local-reference successor includes only the reviewed PNG `partial-coverage-gap-visual-1440p-100-linux.png` (SHA256 `b504ea29e80a0bb06a3db9750e3846b853283f5347c5b6d98d2d1450c9c77ffb`). Exact source CI `42157099350` for `5180f97b7edba8910f779ebaea0ca312f96be98d` succeeded (receipt SHA256 `8ded4f21cc7c0767bf5d9117352977ec79dceca70c66fc812681fb23a4104cbe`). Final closing-tip CI remains mandatory and pending Root, as do Root-owned integration, deployment and genuine-flow gates. All nine roadmap items and ten repair criteria remain unchanged; no full-roadmap or official V25 completion is claimed. `integration_capture: exact branch HEAD`.
+
+
+## 2026-11-06 — Root-accepted history paging correction
+
+Root accepted the bounded follow-up under the existing delegated authority (receipt `tc-paging-correction-root-acceptance.json`, SHA256 `7d12317168ff2d177a7ee81644954e471ad1a446e6936db9c791c6d815c6e537`). Coverage responses that cannot prove completion now fail honestly; monthly older requests use whole calendar buckets within the existing slot limit; non-progressing older reads do not claim source exhaustion and repeated same-cursor reads stay suppressed until explicit refresh. A refresh performs a fresh bounded cursor read.
+
+The affected helper/store tests passed 88/88 and frontend type-check passed. No API/native quota/hold/entitlement, backend, source, data, reference, or tolerance change was made. Exact final-tip CI, new combined qualification, protected staging/master, deployment, and genuine user-flow proof remain Root-owned and pending. Prior beeb closure/history and the original nine-roadmap and ten repair criteria are preserved. `integration_capture: exact branch HEAD`.

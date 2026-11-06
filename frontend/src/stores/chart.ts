@@ -98,6 +98,7 @@ function createChartStore(storeId: string) {
     let inFlightLoad: { key: string; promise: Promise<void> } | null = null
     let olderHistoryAbortController: AbortController | null = null
     let renderedLoadScopeKey: string | null = null
+    let noProgressHistoryCursor: string | null = null
     // A chart can finish its initial indicator request after the user has
     // already added/edited a plot. Never let that late hydration replace the
     // user's newer stack (this is especially important while a plot is being
@@ -233,6 +234,9 @@ function createChartStore(storeId: string) {
       const requestScopeKey = chartLoadScopeKey(sym, tf, nextBarType, localOnly, normalizedTransformParams)
       const isCurrent = () => generation === _loadGeneration && symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && localOnlyMode.value === Boolean(localOnly) && JSON.stringify(transformParams.value) === transformKey
       const sameSelection = symbol.value === sym && timeframe.value === tf && barType.value === nextBarType && JSON.stringify(transformParams.value) === transformKey
+      // A deliberate chart reload is the explicit way to retry a completed
+      // older-history request that made no local progress.
+      noProgressHistoryCursor = null
       // UI refs can move ahead of loadBars (for example setBarType), so only a
       // previously successful request with the complete route/transform scope
       // may keep the currently rendered chart alive during a settled refresh.
@@ -445,20 +449,29 @@ function createChartStore(storeId: string) {
         return
       }
 
+      const oldestTs = bars.value[0].ts
+      const sym = symbol.value
+      const tf  = timeframe.value
+      const type = barType.value
+      const currentTransformParams = transformParams.value
+      const cursorKey = `${chartLoadScopeKey(sym, tf, type, localOnlyMode.value, currentTransformParams)}|${oldestTs}`
+      if (noProgressHistoryCursor === cursorKey) {
+        historyBoundaryMessage.value = `No new saved bars were confirmed for older ${tf} history for ${sym}. Refresh chart data before trying this range again.`
+        return
+      }
+
       isLoadingMore.value = true
       historyBoundaryMessage.value = ''
       historyRetryAt.value = null
       const historyController = new AbortController()
       olderHistoryAbortController?.abort()
       olderHistoryAbortController = historyController
-      const oldestTs = bars.value[0].ts
-      const sym = symbol.value
-      const tf  = timeframe.value
-      const type = barType.value
-      const currentTransformParams = transformParams.value
       const generation = _loadGeneration
       try {
-        let mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value, type, transformParams: currentTransformParams })
+        // The cursor is an explicit user pan. Re-read it locally instead of
+        // trusting a completed cached response that may have produced no new
+        // bars on the prior attempt.
+        let mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: localOnlyMode.value, type, transformParams: currentTransformParams, fresh: true })
         if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type) return
         if (!mapped.length && localOnlyMode.value) {
           isFetchingHistory.value = true
@@ -504,6 +517,12 @@ function createChartStore(storeId: string) {
             hasReachedStart.value = false
             return
           }
+          if (outcome.kind === 'coverage-unavailable') {
+            noProgressHistoryCursor = cursorKey
+            historyBoundaryMessage.value = `Saved older ${tf} history coverage for ${sym} could not be confirmed; refresh chart data before checking this range again.`
+            hasReachedStart.value = false
+            return
+          }
           if (outcome.kind === 'at-earliest-bound') {
             historyRetryAt.value = null
             historyBoundaryMessage.value = `The available ${tf} history for ${sym} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
@@ -511,7 +530,8 @@ function createChartStore(storeId: string) {
             return
           }
           if (outcome.kind === 'already-covered') {
-            historyBoundaryMessage.value = `Saved ${tf} history before ${sym}'s oldest bar is unavailable.`
+            noProgressHistoryCursor = cursorKey
+            historyBoundaryMessage.value = `No older ${tf} bars were returned for ${sym}; refresh chart data before checking this range again.`
             hasReachedStart.value = false
             return
           }
@@ -530,8 +550,9 @@ function createChartStore(storeId: string) {
           mapped = await fetchBarsPage(sym, tf, { before: oldestTs, localOnly: true, type, transformParams: currentTransformParams, fresh: true })
           if (_loadGeneration !== generation || symbol.value !== sym || timeframe.value !== tf || barType.value !== type) return
           if (!mapped.length) {
-            historyBoundaryMessage.value = `The older ${tf} request completed, but no additional saved bars were returned for ${sym}.`
-            hasReachedStart.value = true
+            noProgressHistoryCursor = cursorKey
+            historyBoundaryMessage.value = `The older ${tf} request completed without new saved bars for ${sym}; refresh chart data before trying this range again.`
+            hasReachedStart.value = false
             return
           }
           historyBoundaryMessage.value = outcome.result.status === 'partial'
@@ -545,11 +566,13 @@ function createChartStore(storeId: string) {
         const existingTimestamps = new Set(bars.value.map(bar => bar.ts))
         const distinctOlderBars = mapped.filter(bar => !existingTimestamps.has(bar.ts))
         if (!distinctOlderBars.length) {
-          historyBoundaryMessage.value ||= `No additional older ${tf} bars are available for ${sym}.`
-          hasReachedStart.value = true
+          noProgressHistoryCursor = cursorKey
+          historyBoundaryMessage.value = `The older ${tf} request returned no new saved bars for ${sym}; refresh chart data before trying this range again.`
+          hasReachedStart.value = false
           return
         }
         bars.value = [...distinctOlderBars, ...bars.value]
+        noProgressHistoryCursor = null
         // A short local page means the next explicit pan may cross into a
         // provider-admitted older slice. Do not treat page size as exhaustion.
         hasReachedStart.value = false
