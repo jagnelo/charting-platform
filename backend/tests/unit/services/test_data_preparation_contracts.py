@@ -27,9 +27,7 @@ def test_ensure_request_accepts_every_existing_chart_timeframe() -> None:
             }
         )
         assert request.timeframe is timeframe
-        assert request.target == InstrumentPreparationTarget(
-            kind="instrument", instrument_id=12
-        )
+        assert request.target == InstrumentPreparationTarget(kind="instrument", instrument_id=12)
 
 
 def test_analysis_contract_uses_existing_names_and_derives_rrg_warmup() -> None:
@@ -52,7 +50,12 @@ def test_analysis_contract_uses_existing_names_and_derives_rrg_warmup() -> None:
     assert "warmup_bars" not in analysis.model_dump()
 
     defaults = AnalysisPreparation(kind="rrg")
-    assert (defaults.lookback, defaults.sampling, defaults.tail_length, defaults.history_length) == (
+    assert (
+        defaults.lookback,
+        defaults.sampling,
+        defaults.tail_length,
+        defaults.history_length,
+    ) == (
         20,
         1,
         10,
@@ -149,4 +152,3 @@ def test_etf_hook_context_and_result_are_constructible_shared_types() -> None:
     result = DatasetPreparationResult(status="waiting", reason_code="quota_window")
     assert context.dataset is PreparationDataset.HOLDINGS
     assert result.retry_at is None
-

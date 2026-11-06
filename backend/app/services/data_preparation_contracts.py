@@ -51,4 +51,3 @@ class ETFHoldingsPreparer(Protocol):
         *,
         context: DatasetPreparationContext,
     ) -> DatasetPreparationResult: ...
-

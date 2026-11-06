@@ -174,6 +174,56 @@ async def test_provider_reset_defers_job_until_retry_at(db):
 
 
 @pytest.mark.asyncio
+async def test_preparation_join_preserves_live_provider_wait_but_legacy_join_requeues(db):
+    async_db = AsyncSessionAdapter(db)
+    now = datetime(2026, 9, 4, 12, tzinfo=UTC)
+    retry_at = now + timedelta(minutes=7)
+    job = await enqueue_refresh_job(
+        async_db,
+        request_key="prep-history:quota",
+        capability="price_history",
+        priority=100,
+        now=now,
+    )
+    claimed = (await claim_refresh_jobs(async_db, now=now))[0]
+    await retry_refresh_job(
+        async_db,
+        claimed,
+        "provider rate limit",
+        now=now,
+        retry_at=retry_at,
+    )
+
+    joined = await enqueue_refresh_job(
+        async_db,
+        request_key="prep-history:quota",
+        capability="price_history",
+        priority=10,
+        metadata_payload={"data_preparation_child": {"parent_refs": [{"parent_job_id": 7}]}},
+        now=now + timedelta(seconds=1),
+        preserve_deferred_deadline=True,
+    )
+    assert joined.id == job.id
+    assert joined.priority == 10
+    assert joined.status == "deferred"
+    assert joined.next_attempt_at == retry_at
+    assert joined.metadata_payload["defer_reason"] == "provider_reset"
+
+    # Existing non-preparation callers retain their established explicit
+    # requeue semantics; only shared preparation joins respect a live hold.
+    legacy_join = await enqueue_refresh_job(
+        async_db,
+        request_key="prep-history:quota",
+        capability="price_history",
+        priority=1,
+        now=now + timedelta(seconds=2),
+    )
+    assert legacy_join.id == job.id
+    assert legacy_join.status == "queued"
+    assert legacy_join.next_attempt_at == now + timedelta(seconds=2)
+
+
+@pytest.mark.asyncio
 async def test_expired_or_wrong_refresh_lease_cannot_mutate_job(db):
     async_db = AsyncSessionAdapter(db)
     now = datetime(2026, 9, 4, 12, tzinfo=UTC)

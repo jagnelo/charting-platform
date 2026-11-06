@@ -121,8 +121,12 @@ _OHLCV_CONFLICT_COLUMNS = [
 # background refresh jobs provide cross-worker coalescing; this map prevents
 # concurrent requests handled by one process from independently spending the
 # same provider quota before the first transaction commits its bars.
-_OHLCV_REFRESH_LOCKS: dict[tuple[int, str, datetime, datetime | None, bool, str | None], asyncio.Lock] = {}
-_OHLCV_REFRESH_LOCK_USERS: dict[tuple[int, str, datetime, datetime | None, bool, str | None], int] = {}
+_OHLCV_REFRESH_LOCKS: dict[
+    tuple[int, str, datetime, datetime | None, bool, str | None], asyncio.Lock
+] = {}
+_OHLCV_REFRESH_LOCK_USERS: dict[
+    tuple[int, str, datetime, datetime | None, bool, str | None], int
+] = {}
 _LATEST_PRICE_REFRESH_LOCKS: dict[int, asyncio.Lock] = {}
 _LATEST_PRICE_REFRESH_LOCK_USERS: dict[int, int] = {}
 
@@ -1004,7 +1008,9 @@ async def _fetch_ohlcv_impl(
     if source_provider:
         source_id = (
             await db.execute(
-                select(DataSource.id).where(func.lower(DataSource.name) == source_provider.strip().lower())
+                select(DataSource.id).where(
+                    func.lower(DataSource.name) == source_provider.strip().lower()
+                )
             )
         ).scalar_one_or_none()
         if source_id is None:

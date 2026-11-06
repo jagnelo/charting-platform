@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import asyncio
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
 from uuid import uuid4
@@ -968,3 +968,203 @@ async def test_weekly_and_monthly_coverage_tracks_rematerialized_derived_series(
         )
         assert min(item.start_at for item in weekly_dep.covered_ranges) < old_weekly_start
         assert monthly_dep.covered_start < old_monthly_start
+
+
+async def test_opposite_ratio_requests_lock_shared_children_in_one_order(
+    preparation_sessions, monkeypatch
+):
+    """Opposite leg and dataset order still coalesce without a PG deadlock."""
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services import data_preparation
+    from app.services.data_preparation import create_data_preparation_request
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        xlb = _canonical_instrument("XLB", stock_type_id, domain_prefix="ratio-lock")
+        spy = _canonical_instrument("SPY", stock_type_id, domain_prefix="ratio-lock")
+        session.add_all([xlb, spy])
+        await session.flush()
+        xlb_id, spy_id = xlb.id, spy.id
+        await session.commit()
+
+    original_lock = data_preparation._acquire_enqueue_lock
+    first_tasks: set[asyncio.Task] = set()
+    first_keys: list[str] = []
+    both_ready = asyncio.Event()
+
+    async def synchronized_first_child_lock(db, request_key):
+        task = asyncio.current_task()
+        if task not in first_tasks and request_key.startswith(("prep-identity:", "prep-history:")):
+            first_tasks.add(task)
+            first_keys.append(request_key)
+            if len(first_tasks) == 2:
+                both_ready.set()
+            await asyncio.wait_for(both_ready.wait(), timeout=15)
+        return await original_lock(db, request_key)
+
+    monkeypatch.setattr(data_preparation, "_acquire_enqueue_lock", synchronized_first_child_lock)
+    requests = [
+        (9101, xlb_id, ["history", "profile"], [xlb_id, spy_id]),
+        (9102, spy_id, ["profile", "history"], [spy_id, xlb_id]),
+    ]
+
+    async def create_in_session(owner_id, target_id, datasets, legs):
+        async with preparation_sessions() as session:
+            request = DataEnsureRequest.model_validate(
+                {
+                    "target": {"kind": "instrument", "instrument_id": target_id},
+                    "datasets": datasets,
+                    "analysis": {
+                        "kind": "ratio",
+                        "legs": [{"instrument_id": value} for value in legs],
+                    },
+                }
+            )
+            parent = await create_data_preparation_request(
+                session, owner_user_id=owner_id, request=request
+            )
+            await session.commit()
+            return parent.id
+
+    parent_ids = await asyncio.wait_for(
+        asyncio.gather(*(create_in_session(*item) for item in requests)), timeout=45
+    )
+    assert len(first_keys) == 2
+    assert first_keys[0] == first_keys[1]
+
+    shared_parent_ids = set(parent_ids)
+    history_maps, profile_maps = [], []
+    async with preparation_sessions() as session:
+        for parent_id, (_owner, _target, datasets, legs) in zip(parent_ids, requests, strict=True):
+            parent = await session.get(MarketRefreshJob, parent_id)
+            data = parent.metadata_payload["data_preparation"]
+            assert data["normalized_request"]["datasets"] == datasets
+            assert [
+                leg["instrument_id"] for leg in data["normalized_request"]["analysis"]["legs"]
+            ] == legs
+            dependencies = data["dependencies"]
+            assert {
+                item["instrument_id"] for item in dependencies if item["dataset"] == "history"
+            } == {xlb_id, spy_id}
+            history_maps.append(
+                {
+                    item["instrument_id"]: item["job_ids"][0]
+                    for item in dependencies
+                    if item["dataset"] == "history"
+                }
+            )
+            profile_maps.append(
+                {
+                    item["instrument_id"]: item["job_ids"][0]
+                    for item in dependencies
+                    if item["dataset"] == "profile"
+                }
+            )
+        assert history_maps[0] == history_maps[1]
+        assert profile_maps[0] == profile_maps[1]
+        child_ids = set(history_maps[0].values()) | set(profile_maps[0].values())
+        children = (
+            await session.execute(
+                select(MarketRefreshJob).where(MarketRefreshJob.id.in_(child_ids))
+            )
+        ).scalars()
+        for child in children:
+            refs = (child.metadata_payload.get("data_preparation_child") or {}).get(
+                "parent_refs", []
+            )
+            assert shared_parent_ids.issubset({int(ref["parent_job_id"]) for ref in refs})
+
+
+async def test_joined_deferred_history_keeps_native_retry_for_both_owners(
+    preparation_sessions,
+):
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import (
+        create_data_preparation_request,
+        get_data_preparation_response,
+    )
+    from app.services.market_refresh_queue import claim_refresh_jobs, retry_refresh_job
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        instrument = _canonical_instrument("DEFER", stock_type_id, domain_prefix="deferred-join")
+        session.add(instrument)
+        await session.flush()
+        instrument_id = instrument.id
+        request = DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "instrument", "instrument_id": instrument_id},
+                "datasets": ["history"],
+            }
+        )
+        first = await create_data_preparation_request(
+            session, owner_user_id=9201, request=request, priority="background"
+        )
+        first_id = first.id
+        child_id = next(
+            item["job_ids"][0]
+            for item in first.metadata_payload["data_preparation"]["dependencies"]
+            if item["dataset"] == "history"
+        )
+        await session.commit()
+
+    deferred_at = datetime.now(UTC)
+    provider_retry_at = deferred_at + timedelta(minutes=20)
+    async with preparation_sessions() as session:
+        child = next(
+            job for job in await claim_refresh_jobs(session, now=deferred_at) if job.id == child_id
+        )
+        await retry_refresh_job(
+            session,
+            child,
+            "provider native window is full",
+            now=deferred_at,
+            retry_at=provider_retry_at,
+        )
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        second = await create_data_preparation_request(
+            session,
+            owner_user_id=9202,
+            request=DataEnsureRequest.model_validate(
+                {
+                    "target": {"kind": "instrument", "instrument_id": instrument_id},
+                    "datasets": ["history"],
+                }
+            ),
+            priority="visible",
+        )
+        second_id = second.id
+        history = next(
+            item
+            for item in second.metadata_payload["data_preparation"]["dependencies"]
+            if item["dataset"] == "history"
+        )
+        assert history["job_ids"] == [child_id]
+        await session.commit()
+
+    async with preparation_sessions() as session:
+        child = await session.get(MarketRefreshJob, child_id)
+        assert child.status == "deferred"
+        assert child.priority == 10
+        assert child.next_attempt_at == provider_retry_at
+        assert child.metadata_payload["defer_reason"] == "provider_reset"
+        assert child.metadata_payload["provider_retry_at"] == provider_retry_at.isoformat()
+        refs = (child.metadata_payload.get("data_preparation_child") or {}).get("parent_refs", [])
+        assert {first_id, second_id}.issubset({int(ref["parent_job_id"]) for ref in refs})
+        for parent_id, owner_id in ((first_id, 9201), (second_id, 9202)):
+            parent = await session.get(MarketRefreshJob, parent_id)
+            response = await get_data_preparation_response(
+                session, parent=parent, owner_user_id=owner_id
+            )
+            history = next(
+                item for item in response.dependencies if item.dataset.value == "history"
+            )
+            assert history.status == "waiting"
+            assert history.reason_code == "provider_reset"
+            assert history.retry_at == provider_retry_at
+        not_due = await claim_refresh_jobs(session, now=provider_retry_at - timedelta(minutes=1))
+        assert all(job.id != child_id for job in not_due)
