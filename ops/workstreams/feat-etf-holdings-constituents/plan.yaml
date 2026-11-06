@@ -3,8 +3,24 @@ branch: feat/etf-holdings-constituents
 base_sha: 89bb5c05ad1635156285d392b7c39b3c341ad8f1
 parent_branch: staging
 parent_sha: 02a7bae34c2aed145b9e46137ef3b8f041de4d92
-latest_staging_merge_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
-latest_staging_parent_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7
+latest_staging_merge_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+latest_staging_parent_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+staging_adoption_139b350238b5_2026_11_06:
+  released_staging_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+  staging_ci: 42211787590
+  staging_state: terminal_green_required_jobs_including_exhaustive
+  master_provenance_ci: 42222793213
+  master_state: terminal_green
+  adoption: normal non-fast-forward merge into the assigned ETF branch
+  prior_feature_head: a3819bef8672ee66c51ebc9f49fda2f79eb1755c
+  merge_commit: b09448d88af51f9daa28f214bf5754685959622c
+  backend_tree_sha256: 2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc
+  frontend_tree_sha256: 9df32b87de20826dbe0e32c739d2cbf0d9e1a634
+  component_equivalence: backend and frontend trees byte-identical to released staging 139b350
+  private_deployment: Root reports deployed with business-row, schema, and quota preservation verified
+  genuine_ui_evidence: Root reports NVDA 498 D1 / 104 W1 / 25 MN; XLE 24 own holdings; IYF ACGL holding from provisional 0 to 498 candles on the same Dashboard with dated IYF provenance
+  remaining: Root-owned native-wait proof and final guide; broader ETF roadmap remains open
+  sibling_or_staging_mutation: false
 staging_adoption_a6558c497831_2026_10_31:
   released_staging_sha: a6558c4978311d7a21c3b29d3d8fd2f043610efb
   canonical_receipt: /home/m920q/charting-platform/.ai/staging-attempts/20261031T070709Z-a6558c497831.json
@@ -5650,7 +5666,7 @@ progress:
   completed: [SPR1, SPR2, SPR3]
   total: 3
   current_phase: Root accepted the bounded route-composition checkpoint; exact implementation CI and downstream release gates remain pending.
-  current_blocker: Exact implementation CI 42199229443 must become terminal green; combined staging/master gates and genuine deployed XLE proof remain mandatory and Root-owned. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories, and wider roadmap remain open.
+  current_blocker: Exact 139b350 staging/master gates and private deployment are complete per Root. Root-owned native-wait proof and final guide remain pending. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories, and wider roadmap remain open.
 integration_checkpoint:
   id: spdr-sector-route-metadata-composition-2026-11-06
   scope: Add the existing SPDR route aliases only to compatible same-issuer canonical route metadata, preserving existing fields and refusing conflicts.
@@ -5661,10 +5677,10 @@ integration_checkpoint:
   - backend/tests/unit/services/test_etf_holdings_adapters.py
   focused_validation: 5 focused route tests passed; Ruff check and format passed. No live provider calls or heavy profiles were run.
   source_contracts_unchanged: SPDR workbook URL construction and exact workbook fund-ticker identity validation are unchanged.
-  exact_source_ci: run_42199229443_pending_Root_terminal_green
+  exact_source_ci: exact released staging 139b350 CI 42211787590 and master provenance CI 42222793213 terminal green
   green_claimed: false
   root_acceptance: Root accepted the bounded SPDR route-composition correction under standing human-delegated checkpoint acceptance; no new human quote is asserted.
-  live_xle_acceptance: Root_owned_pending; no request or source result is claimed.
+  live_xle_acceptance: Root reports deployed XLE own holdings 24; remaining native-wait proof is pending.
   migration_impact: none
   product_configuration_or_policy_change: none
   full_roadmap_status: AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, datasets, histories, and other genuine user-flow work remain open and preserved.
@@ -5674,14 +5690,12 @@ closure_pending: false
 human_closure_authorization: Root accepted the bounded SPDR route-composition checkpoint under the existing standing human-delegated acceptance authority; this records Root's delegated acceptance and does not claim a new human statement.
 closure_summary: >-
   Root accepted the shared SPDR route-composition fix at tested implementation
-  ec861fdd9d7d22df8882c67271a2d07e6f877229. Five focused route tests, lint,
-  workstream/record and scope guards passed. The fix adds the existing SPDR
-  route aliases only to compatible same-issuer metadata, preserving existing
-  identifiers and leaving conflicting metadata unchanged; adapter URLs,
-  workbook parsing/fund identity, native contracts and quotas are unchanged.
-  No migrations, product configuration, policy/quota changes, or external
-  source calls occurred. Exact implementation CI 42199229443 must be terminal
-  green before Root pushes this records-only closure; combined staging/master
-  gates and genuine deployed XLE proof remain mandatory. The wider AC1-AC14
-  roadmap, 15 Tier-0 and 156 Tier-1 criteria, holds and historical evidence
-  remain open and unchanged. integration_capture: exact branch HEAD.
+  ec861fdd9d7d22df8882c67271a2d07e6f877229. Focused route tests and source
+  guards passed; exact synchronized staging 139b350 CI 42211787590 and master
+  provenance CI 42222793213 are terminal green. Root reports private deployment
+  and genuine NVDA, XLE, and IYF dashboard evidence with business-row, schema,
+  and quota preservation. Root-owned native-wait proof and final guide remain
+  pending. This adoption changes no product bytes beyond the already reviewed
+  shared route fix, and makes no Source request or policy/quota change. AC1-AC14,
+  15 Tier-0 and 156 Tier-1, holds and historical evidence remain open.
+  integration_capture: exact branch HEAD.
