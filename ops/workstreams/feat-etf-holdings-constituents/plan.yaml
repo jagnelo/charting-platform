@@ -5811,7 +5811,7 @@ root_allocated_basket_ui_lifecycle_2026_11_06:
   excluded_paths: TC retains shared shell, API client/types, stores, styles, Workstation/shared workspace and coordinator; request shared changes through Root.
   acceptance:
   - A normal resolved-symbol picker creates equal-weight and valid custom-weight baskets using canonical instrument IDs; unresolved recent text cannot be saved as an identity.
-  - Users can save, reload, switch without stale draft/lineage, edit members, discard or cancel edits, and cancel/confirm delete with a visible return state; system-managed or read-only baskets remain protected.
+  - Users can save, reload, switch without stale draft/lineage, edit members, discard or cancel edits, and cancel/confirm delete with a visible return state; system-managed or read-only baskets remain protected in the UI and reject direct edit/delete API requests without changing persisted lineage.
   - Issuer-snapshot baskets retain dated composition, known_at, source provider/identifier/URL, provenance, source artifact and snapshot hashes in current and historical basket lineage without mutating the underlying ETF snapshot.
   - Open chart prepares D1 history for each exact basket member through the shared coordinator, opens the current Workstation dashboard basket route, and does not report unavailable constituents as ready.
   - Focused unit/API checks and the new actual-API browser journey cover lifecycle, read-only provenance, preparation, reload, and nonempty basket chart bars; no external source request, real quota/ledger or production mutation.

@@ -150,7 +150,7 @@ test('ordinary basket lifecycle uses resolved instruments, persists edits, and o
   expect(loggedIn).toBeUndefined()
 })
 
-test('existing issuer snapshot basket displays read-only source lineage from basket APIs', async ({ page, loggedIn }) => {
+test('existing issuer snapshot basket displays read-only source lineage from basket APIs', async ({ page, request, loggedIn }) => {
   const basketResponsePromise = page.waitForResponse(response =>
     response.request().method() === 'GET' && new URL(response.url()).pathname === '/api/v1/baskets')
   await page.goto('/legacy/baskets')
@@ -163,6 +163,7 @@ test('existing issuer snapshot basket displays read-only source lineage from bas
     source_snapshot_id: number | null
     composition_date: string | null
     metadata?: Record<string, unknown>
+    members: Array<{ instrument_id: number }>
   }>
   const sourceBasket = baskets.find(basket => basket.is_system_managed && basket.source_snapshot_id)
   expect(sourceBasket, 'combined fixture must include an existing issuer snapshot basket').toBeTruthy()
@@ -185,5 +186,24 @@ test('existing issuer snapshot basket displays read-only source lineage from bas
   await expect(page.getByTestId('basket-snapshot-history')).toContainText(String(sourceBasket?.metadata?.known_at ?? ''))
   await expect(page.getByRole('button', { name: 'Delete' })).toHaveCount(0)
   await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled()
+
+  const token = await page.evaluate(() => localStorage.getItem('access_token'))
+  expect(token).toBeTruthy()
+  const headers = { Authorization: `Bearer ${token}` }
+  const editAttempt = await request.patch(`/api/v1/baskets/${sourceBasket!.id}`, {
+    headers,
+    data: { name: 'Must remain read-only' },
+  })
+  expect(editAttempt.status()).toBe(403)
+  const deleteAttempt = await request.delete(`/api/v1/baskets/${sourceBasket!.id}`, { headers })
+  expect(deleteAttempt.status()).toBe(403)
+  const unchanged = await request.get(`/api/v1/baskets/${sourceBasket!.id}`, { headers })
+  expect(unchanged.ok()).toBeTruthy()
+  const unchangedBody = await unchanged.json() as typeof sourceBasket
+  expect(unchangedBody?.source_snapshot_id).toBe(sourceBasket?.source_snapshot_id)
+  expect(unchangedBody?.composition_date).toBe(sourceBasket?.composition_date)
+  expect(unchangedBody?.metadata).toEqual(sourceBasket?.metadata)
+  expect(unchangedBody?.members.map(member => member.instrument_id))
+    .toEqual(sourceBasket?.members?.map((member: { instrument_id: number }) => member.instrument_id))
   expect(loggedIn).toBeUndefined()
 })
