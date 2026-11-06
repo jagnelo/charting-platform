@@ -1,6 +1,7 @@
 import asyncio
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
+from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy.dialects import postgresql
@@ -314,6 +315,15 @@ def _bar(ts: datetime, timeframe: Timeframe = Timeframe.D1):
     return SimpleNamespace(ts=ts, timeframe=timeframe)
 
 
+_NEW_YORK = ZoneInfo("America/New_York")
+
+
+def _xnys_bar_open(day: date, timeframe: Timeframe = Timeframe.D1):
+    return _bar(
+        datetime.combine(day, datetime.min.time(), tzinfo=_NEW_YORK).astimezone(UTC), timeframe
+    )
+
+
 def test_historical_range_repairs_only_an_obvious_internal_gap():
     start = datetime(2026, 1, 1, tzinfo=UTC)
     end = datetime(2026, 1, 12, tzinfo=UTC)
@@ -346,23 +356,220 @@ def test_daily_weekend_gap_is_not_treated_as_missing_history():
 def test_xnys_calendar_flags_a_missing_weekday_but_not_weekend_or_holiday():
     from app.services.ohlcv_coverage import missing_range_slices
 
+    weekday_start = datetime(2026, 1, 2, tzinfo=_NEW_YORK).astimezone(UTC)
+    weekday_end = datetime(2026, 1, 6, 16, tzinfo=_NEW_YORK).astimezone(UTC)
     weekday_gap = missing_range_slices(
-        [_bar(datetime(2026, 1, 2, tzinfo=UTC)), _bar(datetime(2026, 1, 6, tzinfo=UTC))],
+        [_xnys_bar_open(date(2026, 1, 2)), _xnys_bar_open(date(2026, 1, 6))],
         Timeframe.D1,
-        datetime(2026, 1, 2, tzinfo=UTC),
-        datetime(2026, 1, 6, tzinfo=UTC),
+        weekday_start,
+        weekday_end,
         calendar="XNYS",
     )
-    assert weekday_gap == [(datetime(2026, 1, 5, tzinfo=UTC), datetime(2026, 1, 5, tzinfo=UTC))]
+    assert weekday_gap == [
+        (
+            datetime(2026, 1, 5, tzinfo=_NEW_YORK).astimezone(UTC),
+            datetime(2026, 1, 6, tzinfo=_NEW_YORK).astimezone(UTC) - timedelta(microseconds=1),
+        )
+    ]
 
+    holiday_start = datetime(2026, 1, 16, tzinfo=_NEW_YORK).astimezone(UTC)
+    holiday_end = datetime(2026, 1, 20, 16, tzinfo=_NEW_YORK).astimezone(UTC)
     holiday_gap = missing_range_slices(
-        [_bar(datetime(2026, 1, 16, tzinfo=UTC)), _bar(datetime(2026, 1, 20, tzinfo=UTC))],
+        [_xnys_bar_open(date(2026, 1, 16)), _xnys_bar_open(date(2026, 1, 20))],
         Timeframe.D1,
-        datetime(2026, 1, 16, tzinfo=UTC),
-        datetime(2026, 1, 20, tzinfo=UTC),
+        holiday_start,
+        holiday_end,
         calendar="XNYS",
     )
     assert holiday_gap == []
+
+
+def test_xnys_daily_gap_coalesces_across_weekend_holiday_and_dst():
+    start = datetime(2026, 3, 6, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2026, 3, 11, 16, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [_xnys_bar_open(date(2026, 3, 6)), _xnys_bar_open(date(2026, 3, 11))]
+
+    slices = missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS")
+
+    assert slices == [
+        (
+            datetime(2026, 3, 9, tzinfo=_NEW_YORK).astimezone(UTC),
+            datetime(2026, 3, 11, tzinfo=_NEW_YORK).astimezone(UTC) - timedelta(microseconds=1),
+        )
+    ]
+    assert slices[0][0] < slices[0][1]
+    # The local-midnight bar timestamp after the DST transition is 04:00 UTC.
+    assert slices[0][0] == datetime(2026, 3, 9, 4, tzinfo=UTC)
+    assert _is_positive_repair_slice(*slices[0]) is True
+
+
+def test_xnys_daily_present_session_splits_true_interior_holes():
+    start = datetime(2026, 3, 9, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2026, 3, 13, 16, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [
+        _xnys_bar_open(date(2026, 3, 9)),
+        _xnys_bar_open(date(2026, 3, 11)),
+        _xnys_bar_open(date(2026, 3, 13)),
+    ]
+
+    slices = missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS")
+
+    assert len(slices) == 2
+    assert all(left < right for left, right in slices)
+    assert slices[0][1] < slices[1][0]
+
+
+def test_xnys_daily_presence_accepts_native_and_utc_midnight_labels():
+    start = datetime(2026, 3, 9, tzinfo=UTC)
+    end = datetime(2026, 3, 11, 23, 59, tzinfo=UTC)
+    sessions = [date(2026, 3, 9), date(2026, 3, 10), date(2026, 3, 11)]
+    representations = [
+        [_xnys_bar_open(session) for session in sessions],
+        [_bar(datetime.combine(session, datetime.min.time(), tzinfo=UTC)) for session in sessions],
+    ]
+
+    for cached in representations:
+        assert missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS") == []
+
+
+def test_xnys_partial_daily_window_ignores_unopened_and_incomplete_sessions():
+    start = datetime(2026, 3, 9, 12, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2026, 3, 11, 15, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [_xnys_bar_open(date(2026, 3, 10)), _xnys_bar_open(date(2026, 3, 11))]
+
+    assert missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS") == []
+
+
+def test_xnys_long_daily_cache_gap_stays_within_existing_slice_bound():
+    from app.services.ohlcv_coverage import _xnys_session_days
+
+    start = datetime(2024, 11, 8, tzinfo=UTC)
+    end = datetime(2026, 11, 5, 15, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [
+        _xnys_bar_open(session)
+        for session in sorted(_xnys_session_days(date(2026, 5, 11), date(2026, 11, 4)))
+    ]
+
+    slices = missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS")
+
+    assert len(cached) == 124
+    assert len(slices) == 1
+    assert len(slices) <= 8
+    assert slices[0][0] >= start
+    assert slices[0][0] < _xnys_bar_open(date(2026, 5, 11)).ts
+
+    # When the next requested session has closed, it is a second repair run;
+    # it stays separate from the long prefix across the present cached data.
+    after_close = datetime(2026, 11, 5, 17, tzinfo=_NEW_YORK).astimezone(UTC)
+    with_completed_tail = missing_range_slices(
+        cached, Timeframe.D1, start, after_close, calendar="XNYS"
+    )
+    assert len(with_completed_tail) == 2
+    assert with_completed_tail[-1] == (
+        _xnys_bar_open(date(2026, 11, 5)).ts,
+        after_close,
+    )
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "cached_starts"),
+    [
+        (Timeframe.W1, [date(2026, 5, 11) + timedelta(days=7 * index) for index in range(26)]),
+        (Timeframe.MN, [date(2026, month, 1) for month in range(5, 12)]),
+    ],
+)
+def test_xnys_weekly_and_monthly_short_cache_is_partial_and_acquirable(timeframe, cached_starts):
+    start = datetime(2024, 11, 8, tzinfo=UTC)
+    end = datetime(2026, 11, 5, 15, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [_xnys_bar_open(day, timeframe) for day in cached_starts]
+
+    assessment = assess_ohlcv_coverage(cached, timeframe, start, end, calendar="XNYS", now=end)
+
+    assert assessment.status is CoverageStatus.PARTIAL
+    assert assessment.bar_count == len(cached)
+    assert assessment.missing_slices
+    assert assessment.missing_slices[0][0] < cached[0].ts
+    assert assessment.missing_slices[0][0] >= start
+    assert _needs_fetch_for_range(cached, timeframe, start, end, calendar="XNYS") is True
+    if timeframe == Timeframe.MN:
+        # Calendar month ends are not approximated as 30-day intervals.
+        assert assessment.missing_slices[0] == (
+            datetime(2024, 12, 1, tzinfo=UTC),
+            datetime(2026, 5, 1, tzinfo=UTC) - timedelta(microseconds=1),
+        )
+
+
+@pytest.mark.parametrize("timeframe", [Timeframe.W1, Timeframe.MN])
+def test_xnys_complete_weekly_or_monthly_cache_does_not_replan_history(timeframe):
+    start = datetime(2024, 11, 8, tzinfo=UTC)
+    end = datetime(2026, 9, 30, 23, tzinfo=UTC)
+    if timeframe == Timeframe.W1:
+        first = date(2024, 11, 11)
+        # Through the requested period. Later cached bars may exist but must
+        # not change the complete historical selection.
+        cached_starts = [first + timedelta(days=7 * index) for index in range(103)]
+    else:
+        cursor = date(2024, 12, 1)
+        cached_starts = []
+        while cursor < date(2026, 11, 1):
+            cached_starts.append(cursor)
+            cursor = date(cursor.year + (cursor.month == 12), cursor.month % 12 + 1, 1)
+    cached = [_xnys_bar_open(day, timeframe) for day in cached_starts]
+
+    assert missing_range_slices(cached, timeframe, start, end, calendar="XNYS") == []
+    assert _needs_fetch_for_range(cached, timeframe, start, end, calendar="XNYS") is False
+
+
+@pytest.mark.parametrize(
+    ("timeframe", "start", "cached_start"),
+    [
+        (Timeframe.W1, datetime(2026, 10, 26, tzinfo=UTC), date(2026, 10, 26)),
+        (Timeframe.MN, datetime(2026, 10, 1, tzinfo=UTC), date(2026, 10, 1)),
+    ],
+)
+def test_xnys_unfinished_current_week_or_month_does_not_create_tail_gap(
+    timeframe, start, cached_start
+):
+    end = datetime(2026, 11, 5, 15, tzinfo=_NEW_YORK).astimezone(UTC)
+
+    assert (
+        missing_range_slices(
+            [_xnys_bar_open(cached_start, timeframe)],
+            timeframe,
+            start,
+            end,
+            calendar="XNYS",
+        )
+        == []
+    )
+
+
+def test_xnys_ad_hoc_nyse_closure_is_not_a_reselection_gap():
+    start = datetime(2025, 1, 6, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2025, 1, 10, 16, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [
+        _xnys_bar_open(day)
+        for day in (date(2025, 1, 6), date(2025, 1, 7), date(2025, 1, 8), date(2025, 1, 10))
+    ]
+
+    assert missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS") == []
+    assert _needs_fetch_for_range(cached, Timeframe.D1, start, end, calendar="XNYS") is False
+
+
+def test_xnys_unsupported_intraday_grid_uses_conservative_interval_fallback():
+    start = datetime(2026, 1, 5, tzinfo=UTC)
+    end = start + timedelta(hours=12)
+    cached = [_bar(start, Timeframe.H1)]
+
+    assert missing_range_slices(cached, Timeframe.H1, start, end, calendar="XNYS")
+
+
+def test_xnys_incomplete_current_session_does_not_create_false_tail():
+    start = datetime(2026, 11, 4, tzinfo=_NEW_YORK).astimezone(UTC)
+    end = datetime(2026, 11, 5, 15, tzinfo=_NEW_YORK).astimezone(UTC)
+    cached = [_xnys_bar_open(date(2026, 11, 4))]
+
+    assert missing_range_slices(cached, Timeframe.D1, start, end, calendar="XNYS") == []
 
 
 def test_coverage_planner_distinguishes_historical_ready_from_latest_stale():
@@ -391,10 +598,11 @@ def test_coverage_planner_distinguishes_historical_ready_from_latest_stale():
     assert historical.missing_slices == ()
 
 
-def test_coverage_planner_reports_cold_range_and_bounded_slice():
+@pytest.mark.parametrize("timeframe", [Timeframe.D1, Timeframe.W1, Timeframe.MN])
+def test_coverage_planner_reports_cold_range_and_bounded_slice(timeframe):
     start = datetime(2026, 1, 1, tzinfo=UTC)
     end = datetime(2026, 1, 5, tzinfo=UTC)
-    assessment = assess_ohlcv_coverage([], Timeframe.D1, start, end)
+    assessment = assess_ohlcv_coverage([], timeframe, start, end, calendar="XNYS")
 
     assert assessment.status is CoverageStatus.MISSING
     assert assessment.missing_slices == ((start, end),)

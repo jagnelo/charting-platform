@@ -103,7 +103,9 @@ class TestCoverageRouter:
             params={
                 "timeframe": "D1",
                 "start": "2026-01-02T00:00:00Z",
-                "end": "2026-01-05T00:00:00Z",
+                # Include Jan 5 after its 16:00 ET close so the selected
+                # series genuinely misses a completed XNYS session.
+                "end": "2026-01-06T00:00:00Z",
                 "mode": "historical",
                 "adjusted": "true",
             },
@@ -385,7 +387,7 @@ class TestCoverageRouter:
             "covered_start": "2026-01-01T00:00:00Z",
             "covered_end": "2026-01-10T00:00:00Z",
             "bar_count": 3,
-            "missing_slices": [{"start": "2026-01-05T00:00:00Z", "end": "2026-01-09T00:00:00Z"}],
+            "missing_slices": [{"start": "2026-01-05T05:00:00Z", "end": "2026-01-10T00:00:00Z"}],
             "explanation": "Local bars leave one or more bounded range slices unavailable.",
             "lineage": {
                 "provider_bar_count": 3,

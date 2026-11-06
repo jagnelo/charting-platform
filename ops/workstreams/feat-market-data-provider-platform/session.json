@@ -1349,5 +1349,58 @@
     "provider_product_code_changed": false,
     "exact_tip_ci": "pending; Root owns observation",
     "broader_roadmaps_complete": false
+  },
+  "history_coverage_planner_followup": {
+    "id": "provider-history-calendar-gap-planner-20261106",
+    "status": "ready_for_integration",
+    "objective": "Fix shared cached-history readiness for partial XNYS D1/W1/MN data while preserving the accepted 1cd checkpoint and all broader roadmaps.",
+    "implementation_sha_base": "1cd22a256eee27181964afc3afbfe511c0441e51",
+    "changed_file_sha256": {
+      "backend/app/services/ohlcv_coverage.py": "c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3",
+      "backend/tests/unit/services/test_market_data.py": "c4ff035bf826c9264db4711a97941ff2bc06043b7c208145179fc4a0c73ecca7",
+      "backend/tests/unit/services/test_provider_explicit_acquisition.py": "7ecefeaabe007c17d80da49bd5e1e88c00cc5c0608b83071c0dabb5deb7a5699"
+    },
+    "focused_tests": "test_market_data.py and test_provider_explicit_acquisition.py: 64 passed, 0 failed, 0 skipped in 2.99s",
+    "static": "Ruff check, Ruff format --check, git diff --check passed",
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-calendar-correction-root-acceptance.json",
+    "root_acceptance_sha256": "48f13b3236c375be99cd392a91c1a7bcfba2a370d011a3130072402c1d62c203",
+    "provider_http_requests": 0,
+    "fixture_or_real_ledger_access": false,
+    "quota_policy_hold_mutation": false,
+    "exact_closing_tip_ci": "pending; Root-owned",
+    "integration_capture": "exact branch HEAD",
+    "broader_roadmaps_complete": false
+  },
+  "coverage_router_ci_test_followup": {
+    "id": "provider-history-coverage-router-test-contract-20261106",
+    "status": "ready_for_integration",
+    "parent_checkpoint": "provider-history-calendar-gap-planner-20261106",
+    "accepted_product_commit": "7419aee45f1e3af9cd771a3b771889d956bd1cf1",
+    "product_hash_frozen": "c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3",
+    "test_hash": "d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78",
+    "preserved_red_ci": "42169503855 backend job 127733921845: 5,922 passed, one configured skip, two coverage-router expectation failures; no product failure claimed",
+    "focused_result": "coverage router plus the two accepted affected modules: 71 passed, 0 failed, 0 skipped in 8.97 seconds",
+    "root_accepts_test_correction_on_unchanged_product_hash": true,
+    "exact_new_tip_ci": "pending; Root owns push and observation",
+    "staging_and_release": "pending; Root-owned",
+    "integration_capture": "exact branch HEAD",
+    "broader_roadmaps_complete": false
+  },
+  "staging16_remediation_import": {
+    "status": "recorded_pending_new_exact_ci",
+    "root_authorization_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/staging16-visual-reviewed-reference-and-remediation-authorization.json",
+    "root_authorization_sha256": "2d8656dc4a7f0a1727528592de60b0173454be9695ff8fb47818a88c2883ee7c",
+    "imported_staging_commit": "16d76a8bddacffec9e8a85035cfea4e69ee0f529",
+    "merge_commit": "e1146553b798b0788296276cdf2293c039396a29",
+    "merge_base": "16d76a8bddacffec9e8a85035cfea4e69ee0f529",
+    "classification": "known-red remediation base; not green adoption",
+    "preserved_planner_sha256": "c52324b9337a7b86a7a1334ecb39f4bd622d3b9c2b37a35fa41a60f19109eda3",
+    "preserved_router_test_sha256": "d89d47d8f12ba17779bd8eea34d6315387f4680cb74242fbf7f2f434c3ce4d78",
+    "staging_ci_42164203301": "red at one reviewed stale visual reference; TC repair and Root one-case verification pending",
+    "new_exact_provider_tc_ci": "pending; Root-owned push/observation",
+    "new_exact_staging_qualification": "pending; Root-owned",
+    "tests_or_external_operations_run": false,
+    "integration_capture": "exact branch HEAD",
+    "roadmaps_complete": false
   }
 }
