@@ -1169,10 +1169,11 @@ progress:
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
       distinguishing component/API evidence from exact-source browser acceptance. Consume the
-      Root-released Provider runtime checkpoint 55b956f40615f1623a0f7d084b9fc0a355727053 only at
-      its exact 30 backend paths recorded in provider-runtime-consumption.json; the release is
-      qualified for development consumption, while the single combined full qualification remains
-      Root-owned and pending. Strategy consumes the authenticated durable ensure/status contract
+      Root-released Provider runtime successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 at the
+      exact active backend paths recorded in provider-runtime-consumption.json; 55b remains a
+      preserved historical import. The successor is released for development consumption, while
+      the single combined full qualification remains Root-owned and pending. Strategy consumes the
+      authenticated durable ensure/status contract
       through the existing shared TC data-preparation client; it does not duplicate worker,
       acquisition, quota, or provider behavior.
     owned_paths:
@@ -1199,23 +1200,22 @@ progress:
     preparation fan-out typecheck passed on the local source recorded in the handoff. The Study
     browser journey now includes a Python Library return through an immutable CodeVersion, but that
     new path has only been typechecked and discovered by Playwright --list; browser execution remains
-    pending. Root has released Provider runtime 55b956f40615f1623a0f7d084b9fc0a355727053 for
-    exact-path development consumption; Strategy imported and hash-verified the 30 listed backend
-    paths. Focused consumer checks pass, but Ruff format --check reports 11 imported paths would be
-    reformatted and staged git diff --check reports extra blank lines at EOF in five imported files.
-    The import remains byte-identical and must not be changed unilaterally in this consumer worktree;
-    exact affected paths are recorded in validation.jsonl. Root/Provider must resolve these source
-    qualification issues before relying on the repository's full backend lint gate. The full
-    cross-feature release qualification and actual-backend browser journey remain pending under
-    Root's single combined qualification; do not launch a duplicate Strategy Compose/browser stack.
-    The earlier Docker-socket preflight refusal remains historical and created no fixtures.
+    pending. Root released Provider successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 for exact
+    development consumption. All 15 paths changed since 55b and the complete 31-path active backend
+    export are recorded and hash-verified; the earlier 55b import and its Ruff/EOF-whitespace failures
+    remain historical. The successor's released Ruff check/format review resolves that style issue,
+    but full exact-source branch/combined release qualification remains pending. The focused Provider
+    boundary now passes 36/36 unit cases, and the Code Library stale-save regression passes within
+    its 15-case component suite. Root retains the single combined real-backend/browser qualification;
+    do not launch a duplicate Strategy stack. The earlier Docker-socket preflight refusal remains
+    historical and created no fixtures.
   updated_at: "2026-11-06T21:26:25Z"
   next_action: >-
-      Reconcile the exact-source Ruff format and staged whitespace discrepancies with Root/Provider
-      without changing the released import here; then continue only uncovered Study, Results, Code
-      Library and exposed Strategy-view actions with focused offline regressions. Keep the real
-      backend browser journey and full cross-feature qualification in Root's single combined slot;
-      leave full local and deployed acceptance pending until those exact gates pass.
+      Continue focused Strategy-owned Study, Results, Code Library and exposed Strategy-view actions
+      against active Provider 17d, beginning with late Code Library save response fencing and its
+      regression. Maintain the J10/J11/J12 action matrix, distinguish component/API evidence from
+      browser proof, and preserve full backend/browser/exact-CI qualification in Root's single
+      combined slot. Leave usability acceptance and deployed proof pending until those gates pass.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and

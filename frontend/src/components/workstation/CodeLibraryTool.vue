@@ -56,6 +56,7 @@
               <pre v-if="versionValidations[asset.id].diagnostics.length">{{ formatDiagnostics(versionValidations[asset.id].diagnostics) }}</pre>
               <small v-else>Outputs: {{ versionValidations[asset.id].output_contracts.join(', ') || 'none' }} · Dependencies: {{ versionValidations[asset.id].dependencies.join(', ') || 'none' }}</small>
             </div>
+            <small v-if="versionSaveNotices[asset.id]" role="status" aria-live="polite" aria-atomic="true">{{ versionSaveNotices[asset.id] }}</small>
             <small>Saving creates an immutable version; existing versions are never edited.</small>
           </details>
         </div>
@@ -138,6 +139,7 @@ const validatingNew = ref(false)
 const versionValidations = ref<Record<number, ValidationResult>>({})
 const versionValidationSources = ref<Record<number, string>>({})
 const versionValidationBases = ref<Record<number, number>>({})
+const versionSaveNotices = ref<Record<number, string>>({})
 const validatingAsset = ref<number | null>(null)
 let mounted = false
 let refreshGeneration = 0
@@ -348,6 +350,7 @@ async function saveVersion(asset: CodeAsset) {
   if (!source || !base) return
   const selectedBaseVersion = base.version_number
   savingVersion.value = asset.id
+  versionSaveNotices.value = { ...versionSaveNotices.value, [asset.id]: '' }
   error.value = ''
   try {
     const cachedValidationMatches = versionValidations.value[asset.id]?.valid
@@ -372,8 +375,19 @@ async function saveVersion(asset: CodeAsset) {
     const version = await api.post<CodeVersion>(`/code/assets/${asset.id}/versions`, { source, output_contract: base.output_contract, parameter_schema: base.parameter_schema, default_parameters: base.default_parameters })
     await invalidateCodeAssets(queryClient)
     assets.value = assets.value.map(item => item.id === asset.id ? { ...item, versions: [...item.versions, version] } : item)
-    selectedVersions.value = { ...selectedVersions.value, [asset.id]: version.version_number }
-    versionValidations.value = { ...versionValidations.value, [asset.id]: validation }
+    const latestDraft = (drafts.value[asset.id] ?? latestVersion(asset)?.source ?? '').trim()
+    const latestBase = asset.versions.find(item => item.version_number === selectedVersions.value[asset.id]) ?? latestVersion(asset)
+    if (latestDraft === source && latestBase?.version_number === selectedBaseVersion) {
+      selectedVersions.value = { ...selectedVersions.value, [asset.id]: version.version_number }
+      versionValidations.value = { ...versionValidations.value, [asset.id]: validation }
+      versionValidationSources.value = { ...versionValidationSources.value, [asset.id]: source }
+      versionValidationBases.value = { ...versionValidationBases.value, [asset.id]: version.version_number }
+    } else {
+      versionSaveNotices.value = {
+        ...versionSaveNotices.value,
+        [asset.id]: `Saved immutable version v${version.version_number} from base v${selectedBaseVersion}. Your current draft and selected base were kept; validate the current draft before saving it.`,
+      }
+    }
   } catch (cause: any) { error.value = cause?.message ?? 'Unable to create Python asset version' }
   finally { savingVersion.value = null }
 }

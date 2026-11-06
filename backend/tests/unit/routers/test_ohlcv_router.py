@@ -231,12 +231,8 @@ class TestOHLCVRouter:
         monthly = monthly_response.json()
         # The two isolated historical D1 observations do not prove a complete
         # wider feed, so the canonical route keeps the provider default intact.
-        assert [(row["ts"], row["close"]) for row in weekly] == [
-            ("2026-06-08T00:00:00Z", 999.0)
-        ]
-        assert [(row["ts"], row["close"]) for row in monthly] == [
-            ("2026-06-01T00:00:00Z", 999.0)
-        ]
+        assert [(row["ts"], row["close"]) for row in weekly] == [("2026-06-08T00:00:00Z", 999.0)]
+        assert [(row["ts"], row["close"]) for row in monthly] == [("2026-06-01T00:00:00Z", 999.0)]
         derived_weekly_response = client.get(
             f"/api/v1/ohlcv/local/{instrument.symbol}/{Timeframe.W1.value}",
             params={"limit": 5000, "view": "derived"},

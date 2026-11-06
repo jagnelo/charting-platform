@@ -121,9 +121,9 @@
   "last_checkpoint": "2026-11-06T21:27:45.155642Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Reconcile the 11-path exact-source Ruff format discrepancy with Root/Provider without changing the released import here; then continue only uncovered Study, Results, Code Library and exposed Strategy-view actions with focused offline regressions. Keep the real backend browser journey and full cross-feature qualification in Root's single combined slot; leave full local and deployed acceptance pending until those exact gates pass.",
+  "next_action": "Continue the remaining Strategy-owned Study/Results/Library and exposed Strategy-view lifecycle gaps with focused offline regressions against active Provider 17d. Preserve the J10/J11/J12 action matrix and distinguish component/API evidence from browser acceptance. Root owns the single combined backend/browser gate; full profile, exact-source CI, and deployed acceptance remain pending.",
   "parent_branch": "staging",
-  "plan_hash": "294d24e72bb43ceb9465d4edce414911a66922defb31f872bba955900f73991f",
+  "plan_hash": "f34a351010b0325b2cf4abb950e027540deda9d7a1bed7a9c547c2e0691d6d76",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -152,11 +152,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Exact-source branch CI 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 is terminal cancelled, not green. The focused Study/Results/Library and Strategy-view unit suites and Study preparation fan-out typecheck passed on the local source recorded in the handoff. The Study browser journey now includes a Python Library return through an immutable CodeVersion, but that new path has only been typechecked and discovered by Playwright --list; browser execution remains pending. Root has released Provider runtime 55b956f40615f1623a0f7d084b9fc0a355727053 for exact-path development consumption; Strategy imported and hash-verified the 30 listed backend paths. Focused consumer checks pass, but Ruff format --check on the exact imported source reports 11 listed paths would be reformatted; the import remains byte-identical and must not be changed unilaterally in this consumer worktree. Root/Provider must resolve this source qualification issue before relying on the repository's full backend lint gate. The full cross-feature release qualification and actual-backend browser journey remain pending under Root's single combined qualification; do not launch a duplicate Strategy Compose/browser stack. The earlier Docker-socket preflight refusal remains historical and created no fixtures.",
+    "current_blocker": "Exact-source branch CI 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 remains cancelled, not green. Root released Provider successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 for development consumption; all 15 changed paths since 55b and the complete 31-path active backend export are hash-pinned in provider-runtime-consumption.json. The 55b Ruff/EOF whitespace failures remain historical; Root's 17d exact-export Ruff check/format review is green, and local check/format also passes. Focused backend preparation/queue tests pass 36/36; CodeLibraryTool tests pass 15/15 including late-save context preservation. Exact-source branch CI and Root's combined actual-backend/browser qualification remain pending; no heavy fixture or duplicate browser stack was launched.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Reconcile the 11-path exact-source Ruff format discrepancy with Root/Provider without changing the released import here; then continue only uncovered Study, Results, Code Library and exposed Strategy-view actions with focused offline regressions. Keep the real backend browser journey and full cross-feature qualification in Root's single combined slot; leave full local and deployed acceptance pending until those exact gates pass.",
+    "next_action": "Continue the remaining Strategy-owned Study/Results/Library and exposed Strategy-view lifecycle gaps with focused offline regressions against active Provider 17d. Preserve the J10/J11/J12 action matrix and distinguish component/API evidence from browser acceptance. Root owns the single combined backend/browser gate; full profile, exact-source CI, and deployed acceptance remain pending.",
     "total": 6,
-    "updated_at": "2026-11-06T21:27:45.155642Z"
+    "updated_at": "2026-11-06T21:42:28Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -272,5 +272,6 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
-  "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
+  "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
+  "current_blocker": "Exact-source branch CI 42284687942 for 170ad0a9bd0283782ab6276cb2ceba2c692436c7 remains cancelled, not green. Root released Provider successor 17d628296e5a0f3bc1dac1abd564619ac62a0298 for development consumption; all 15 changed paths since 55b and the complete 31-path active backend export are hash-pinned in provider-runtime-consumption.json. The 55b Ruff/EOF whitespace failures remain historical; Root's 17d exact-export Ruff check/format review is green, and local check/format also passes. Focused backend preparation/queue tests pass 36/36; CodeLibraryTool tests pass 15/15 including late-save context preservation. Exact-source branch CI and Root's combined actual-backend/browser qualification remain pending; no heavy fixture or duplicate browser stack was launched."
 }

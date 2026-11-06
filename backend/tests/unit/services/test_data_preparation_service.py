@@ -27,15 +27,13 @@ def test_monthly_rrg_priority_floor_includes_both_lookbacks_and_result_tail():
         }
     )
     assert request.analysis.required_raw_bars == 50
-    assert _analysis_required_start(
-        request, now=datetime(2026, 11, 6, tzinfo=UTC)
-    ) == datetime(2022, 10, 1, tzinfo=UTC)
+    assert _analysis_required_start(request, now=datetime(2026, 11, 6, tzinfo=UTC)) == datetime(
+        2022, 10, 1, tzinfo=UTC
+    )
 
 
 @pytest.mark.asyncio
-async def test_preparation_request_uses_tracking_parent_and_shared_history_children(
-    db, instrument
-):
+async def test_preparation_request_uses_tracking_parent_and_shared_history_children(db, instrument):
     async_db = AsyncSessionAdapter(db)
     request = DataEnsureRequest.model_validate(
         {
@@ -58,7 +56,9 @@ async def test_preparation_request_uses_tracking_parent_and_shared_history_child
     await async_db.commit()
 
     metadata = parent.metadata_payload["data_preparation"]
-    assert metadata["reason_code"] is None, f"reason={metadata['reason_code']} target={request.target!r}"
+    assert (
+        metadata["reason_code"] is None
+    ), f"reason={metadata['reason_code']} target={request.target!r}"
     assert parent.capability == "data_preparation_request"
     assert parent.status == "tracking"
     assert metadata["owner_user_id"] == 81
@@ -229,9 +229,7 @@ async def test_poll_hides_tracking_job_from_a_different_owner(db, instrument):
     request = DataEnsureRequest.model_validate(
         {"target": {"kind": "instrument", "instrument_id": instrument.id}, "datasets": ["history"]}
     )
-    parent = await create_data_preparation_request(
-        async_db, owner_user_id=81, request=request
-    )
+    parent = await create_data_preparation_request(async_db, owner_user_id=81, request=request)
     with pytest.raises(HTTPException) as exc_info:
         await get_data_preparation_response(async_db, parent=parent, owner_user_id=82)
     assert exc_info.value.status_code == 404
@@ -268,7 +266,10 @@ async def test_parent_dependencies_survive_commit_and_fresh_session_reload():
 
         with sessions() as writer:
             request = DataEnsureRequest.model_validate(
-                {"target": {"kind": "instrument", "instrument_id": selected_id}, "datasets": ["history"]}
+                {
+                    "target": {"kind": "instrument", "instrument_id": selected_id},
+                    "datasets": ["history"],
+                }
             )
             parent = await create_data_preparation_request(
                 AsyncSessionAdapter(writer), owner_user_id=91, request=request
@@ -296,9 +297,7 @@ async def test_unknown_symbol_late_expands_history_after_acquisition_resolution(
     from app.models.instrument import Instrument
 
     async_db = AsyncSessionAdapter(db)
-    request = DataEnsureRequest.model_validate(
-        {"target": {"kind": "instrument", "symbol": "LATE"}}
-    )
+    request = DataEnsureRequest.model_validate({"target": {"kind": "instrument", "symbol": "LATE"}})
     parent = await create_data_preparation_request(async_db, owner_user_id=93, request=request)
     second_parent = await create_data_preparation_request(
         async_db, owner_user_id=94, request=request
@@ -417,15 +416,11 @@ async def test_group_and_ratio_requests_expand_each_canonical_member_and_leg(
 
 
 @pytest.mark.asyncio
-async def test_rrg_market_group_plans_all_sectors_and_explicit_spy_benchmark(
-    db, instrument_type
-):
+async def test_rrg_market_group_plans_all_sectors_and_explicit_spy_benchmark(db, instrument_type):
     from app.models.instrument import Instrument
     from app.models.workstation import MarketGroup, MarketGroupMember
 
-    symbols = [
-        "XLK", "XLY", "XLC", "XLF", "XLV", "XLI", "XLP", "XLE", "XLU", "XLRE", "XLB", "SPY"
-    ]
+    symbols = ["XLK", "XLY", "XLC", "XLF", "XLV", "XLI", "XLP", "XLE", "XLU", "XLRE", "XLB", "SPY"]
     instruments = [
         Instrument(
             symbol=symbol,
@@ -471,9 +466,7 @@ async def test_rrg_market_group_plans_all_sectors_and_explicit_spy_benchmark(
         if dependency["dataset"] == "history"
     ]
     assert len(history) == 12
-    assert {item["instrument_id"] for item in history} == {
-        item.id for item in instruments
-    }
+    assert {item["instrument_id"] for item in history} == {item.id for item in instruments}
 
     dedup_request = DataEnsureRequest.model_validate(
         {
@@ -573,14 +566,16 @@ async def test_rrg_family_default_and_custom_uncached_benchmark_have_own_identit
     await expand_resolved_identity_dependency(
         async_db, identity_job=identity_job, instrument_id=canonical.id
     )
-    expanded = db.get(MarketRefreshJob, custom_parent.id).metadata_payload[
-        "data_preparation"
-    ]["dependencies"]
+    expanded = db.get(MarketRefreshJob, custom_parent.id).metadata_payload["data_preparation"][
+        "dependencies"
+    ]
     benchmark_history = next(
         item for item in expanded if item["dataset"] == "history" and item.get("symbol") == "CUSTOM"
     )
     target_history = next(
-        item for item in expanded if item["dataset"] == "history" and item["instrument_id"] == instrument.id
+        item
+        for item in expanded
+        if item["dataset"] == "history" and item["instrument_id"] == instrument.id
     )
     assert benchmark_history["instrument_id"] == canonical.id
     assert benchmark_history["status"] == "queued"
@@ -636,18 +631,21 @@ async def test_ratio_preserves_known_leg_and_expands_only_unknown_denominator(
     await expand_resolved_identity_dependency(
         async_db, identity_job=identity_job, instrument_id=denominator.id
     )
-    expanded = db.get(MarketRefreshJob, parent.id).metadata_payload[
-        "data_preparation"
-    ]["dependencies"]
+    expanded = db.get(MarketRefreshJob, parent.id).metadata_payload["data_preparation"][
+        "dependencies"
+    ]
     denominator_history = next(
         item for item in expanded if item["dataset"] == "history" and item.get("symbol") == "DENOM"
     )
     assert denominator_history["instrument_id"] == denominator.id
     assert denominator_history["status"] == "queued"
-    assert sum(
-        item["dataset"] == "history" and item["instrument_id"] == instrument.id
-        for item in expanded
-    ) == 1
+    assert (
+        sum(
+            item["dataset"] == "history" and item["instrument_id"] == instrument.id
+            for item in expanded
+        )
+        == 1
+    )
 
 
 @pytest.mark.asyncio
@@ -670,19 +668,13 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
     parent = await create_data_preparation_request(async_db, owner_user_id=930, request=request)
     data = parent.metadata_payload["data_preparation"]
     identities = {
-        item["symbol"]: item
-        for item in data["dependencies"]
-        if item["dataset"] == "identity"
+        item["symbol"]: item for item in data["dependencies"] if item["dataset"] == "identity"
     }
     assert set(identities) == {"LEFT", "RIGHT"}
     assert len({job_id for item in identities.values() for job_id in item["job_ids"]}) == 2
-    owner_view = await get_data_preparation_response(
-        async_db, parent=parent, owner_user_id=930
-    )
+    owner_view = await get_data_preparation_response(async_db, parent=parent, owner_user_id=930)
     assert {
-        item.symbol
-        for item in owner_view.dependencies
-        if item.dataset.value == "identity"
+        item.symbol for item in owner_view.dependencies if item.dataset.value == "identity"
     } == {"LEFT", "RIGHT"}
     pending_by_symbol = {
         item["symbol"]: item
@@ -705,10 +697,12 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
     db.add(left)
     db.flush()
     left_job = db.get(MarketRefreshJob, identities["LEFT"]["job_ids"][0])
-    await expand_resolved_identity_dependency(async_db, identity_job=left_job, instrument_id=left.id)
-    expanded = db.get(MarketRefreshJob, parent.id).metadata_payload[
-        "data_preparation"
-    ]["dependencies"]
+    await expand_resolved_identity_dependency(
+        async_db, identity_job=left_job, instrument_id=left.id
+    )
+    expanded = db.get(MarketRefreshJob, parent.id).metadata_payload["data_preparation"][
+        "dependencies"
+    ]
     left_history = next(
         item for item in expanded if item["dataset"] == "history" and item.get("symbol") == "LEFT"
     )
@@ -734,10 +728,12 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
     db.add(right)
     db.flush()
     right_job = db.get(MarketRefreshJob, identities["RIGHT"]["job_ids"][0])
-    await expand_resolved_identity_dependency(async_db, identity_job=right_job, instrument_id=right.id)
-    final_dependencies = db.get(MarketRefreshJob, parent.id).metadata_payload[
-        "data_preparation"
-    ]["dependencies"]
+    await expand_resolved_identity_dependency(
+        async_db, identity_job=right_job, instrument_id=right.id
+    )
+    final_dependencies = db.get(MarketRefreshJob, parent.id).metadata_payload["data_preparation"][
+        "dependencies"
+    ]
     assert {
         item["symbol"]: (item["instrument_id"], item["status"])
         for item in final_dependencies
@@ -747,4 +743,3 @@ async def test_two_unknown_ratio_legs_keep_independent_late_dependencies(
         "LEFT": (left.id, "queued"),
         "RIGHT": (right.id, "queued"),
     }
-

@@ -67,7 +67,7 @@
       ],
       "api_evidence": [
         "TC-owned dataPreparationCoordinator.ensure uses POST /data/ensure with shared deduplication; no evaluator-side acquisition is added",
-        "Exact Provider runtime 55b956f40615f1623a0f7d084b9fc0a355727053 is imported under provider-runtime-consumption.json; its focused request-contract, parent/child-planning, owner-scoped service and worker-wakeup units passed 26/26, and StudyLabTool consumer units passed 62/62",
+        "Active Provider runtime 17d628296e5a0f3bc1dac1abd564619ac62a0298 is imported under provider-runtime-consumption.json; focused preparation/queue regression modules pass 36/36 and StudyLabTool consumer units previously passed 62/62. Historical 55b source evidence remains archived in the manifest.",
         "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
       ],
       "browser_evidence": "Pending Root combined qualification. The E2E journey checks the SPY ensure request precedes validation; it does not yet provide multi-symbol delayed-server browser coverage.",
@@ -247,14 +247,16 @@
         "edit source",
         "validate",
         "save as new immutable version",
-        "recover delayed/context-changed validation"
+        "recover delayed/context-changed validation",
+        "preserve a newer draft/base when the immutable save response is delayed"
       ],
-      "visible_outcome": "Validation is tied to the exact source/output/base-version snapshot; stale results cannot enable save; successful save creates a new version and leaves prior versions unchanged.",
+      "visible_outcome": "Validation is tied to the exact source/output/base-version snapshot; stale results cannot enable save. A delayed save still records the immutable version but cannot replace a newer draft or selected base, and announces which version was saved.",
       "unit_evidence": [
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the latest immutable study version in Study Lab",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: opens the selected historical immutable study version in Study Lab",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: revalidates a new asset draft when its source changes during validation",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: does not reuse a late validation after an existing asset draft changes",
+        "frontend/tests/unit/components/test_code_library_tool.test.ts :: keeps a newer draft and selected base when an immutable version save resolves late",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: announces successful source validation as a polite status",
         "frontend/tests/unit/components/test_code_library_tool.test.ts :: blocks a syntactically valid source whose output contract disagrees with the asset kind"
       ],

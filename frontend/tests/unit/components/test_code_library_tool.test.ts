@@ -79,6 +79,34 @@ describe('CodeLibraryTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
   })
 
+  it('keeps a newer draft and selected base when an immutable version save resolves late', async () => {
+    const pendingSave = deferred<unknown>()
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      if (path === '/code/assets/4/versions') return pendingSave.promise
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.find('summary').trigger('click')
+    const editor = wrapper.get('[aria-label="Python source for Streak study"]')
+    await editor.setValue("output.scalar('n', 2)")
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets/4/versions', expect.objectContaining({ source: "output.scalar('n', 2)" }))
+    await editor.setValue("output.scalar('n', 3)")
+    pendingSave.resolve({ id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: {}, default_parameters: {} })
+    await flushPromises()
+
+    expect((wrapper.get('[aria-label="Base version for Streak study"]').element as HTMLSelectElement).value).toBe('1')
+    expect((wrapper.get('[aria-label="Python source for Streak study"]').element as HTMLTextAreaElement).value).toBe("output.scalar('n', 3)")
+    expect(wrapper.text()).toContain('Saved immutable version v2 from base v1')
+    expect(wrapper.text()).toContain('v2')
+    expect(wrapper.find('.code-library-tool__validation').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
   it('opens the latest immutable study version in Study Lab', async () => {
     const wrapper = mount(CodeLibraryTool)
     await flushPromises()
