@@ -1825,7 +1825,7 @@ dependencies:
   Vehicle reconciliation and selected instrument-type response. TC consumes the returned identity/type before issuer holdings
   eligibility; ETF and Index ETF remain eligible, ETN remains excluded. No Provider source implementation was copied into
   this branch.
-scope_guard_baseline_sha: "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7"
+scope_guard_baseline_sha: "139b350238b5e1c8a170dce5af09a805301d857e"
 
 frozen_upstream_import_manifests: []
 approved_presentation_adaptations: []
@@ -4374,4 +4374,20 @@ known_retry_fallback_followup:
   focused_validation: 91/91 tests passed in the selected acquisition helper and chart store files; frontend vue-tsc --noEmit passed.
   scope: Reuse existing retry lifecycle validation and cancellation. Native quotas, holds, current-intent guards, API, backend, provider, data, references and tolerance are unchanged.
   pending: Root review, exact new-tip CI, and Root-owned browser/reconciliation/release gates.
+  integration_capture: exact branch HEAD
+
+context_adoption_139:
+  authority: Root-directed bounded green-context adoption under the existing human four-feature integration authorization; no new product activation.
+  source_sha: 139b350238b5e1c8a170dce5af09a805301d857e
+  local_merge_commit: e31fdd77d13f12ec740c321e7809104f4781f107
+  canonical_green_receipt: /home/m920q/charting-platform/.ai/validation/139b350238b5e1c8a170dce5af09a805301d857e.json
+  canonical_green_receipt_sha256: 3696ca6b1e85d492e08275ceac7b88ade3fe36bc554dbb9c0647721b8f7c51cd
+  staging_ci: 42211787590 (success; backend/frontend qualification, functional 202, strict visual 104)
+  master_provenance_ci: 42222793213 (success; exact same source SHA)
+  product_trees: frontend 9df32b87de20826dbe0e32c739d2cbf0d9e1a634; backend 2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc; both byte-identical to the released source.
+  branch_tests: Existing branch_tests and manifest descriptions are preserved unchanged.
+  imported_contracts: Provider/ETF history coverage, derived-timeframe and holdings adapters, plus their green qualification and workstream evidence.
+  coordinator_reported_runtime: Private deployment and business-row/schema/quota preservation verified by Root; genuine NVDA/XLE/IYF/AFG flows reported. Root native-wait proof and final guide remain in progress.
+  preserved: All nine roadmap criteria, ten repair criteria, previous accepted checkpoints and reference history remain unchanged; broader roadmap remains open.
+  status: Green context adopted only; no new feature work or independent deployment claim.
   integration_capture: exact branch HEAD
