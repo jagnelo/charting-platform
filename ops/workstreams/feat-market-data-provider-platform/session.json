@@ -23,7 +23,7 @@
   ],
   "active_checkpoint_id": "provider-shared-history-availability-and-discovery-holds-20261106",
   "active_session_id": "f093caba-0194-4527-b22b-0bfa26344c34",
-  "blocker": "The coherent branch checkpoint is ready for Root review; exact closing-tip CI and combined full_stack_browser qualification remain pending and Root-owned.",
+  "blocker": "Exact closing-tip CI and Root-owned combined staging/master/deployed proof remain mandatory and pending.",
   "branch": "feat/market-data-provider-platform",
   "canonical_bridge_cleanup_receipt": "/tmp/provider-etf-bridge-runtime-20261104/cleanup-and-preservation.json",
   "canonical_bridge_cleanup_sha256": "24a1bfa8b385a2a7be258f6c063f98b6a9bdbf36536944631586c1a3536b9bbb",
@@ -31,10 +31,10 @@
   "canonical_bridge_local_result_sha256": "699527697ae4bd265ef9ae1b2af4f1639fe4f8035c1ef97723731fa3ad8d56a6",
   "canonical_bridge_root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-canonical-bridge-fixture-root-acceptance-20261104.json",
   "canonical_bridge_root_acceptance_sha256": "b952689c8397e18e690dd2b4e938570e3c81e16870479cc618bce1458400afea",
-  "checkpoint_acceptance_decision": "Root conditionally reviewed the exact implementation hashes and authorizes one coherent checkpoint publication only; this is not exact CI, combined-profile, integration, or deployment acceptance.",
+  "checkpoint_acceptance_decision": "Root directly accepted the bounded derived-freshness and trustworthy retained-issuer-identity checkpoint under existing human standing authorization; final exact-tip CI and combined release gates remain pending.",
   "checkpoint_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-implementation-conditional-review.json",
   "checkpoint_acceptance_receipt_sha256": "1677017700d6f43a6bb3ab4c57a8287bc97e214aa7cfc40c217313df2367c0bf",
-  "checkpoint_acceptance_status": "Conditional implementation review permits coherent publication; exact closing-tip CI and combined release qualification remain pending.",
+  "checkpoint_acceptance_status": "Accepted bounded checkpoint; exact closing-tip CI and Root combined release qualification pending.",
   "checkpoint_authorization_state": "One coherent checkpoint publication is authorized. Exact-source CI, combined profile, protected integration, promotion and deployment remain Root-owned and gated.",
   "checkpoint_history": [
     {
@@ -252,7 +252,7 @@
       "status": "conditionally accepted bounded software checkpoint; full roadmap remains open"
     }
   ],
-  "checkpoint_status": "ready_for_human_review",
+  "checkpoint_status": "ready_for_integration",
   "claim": {
     "branch": "feat/market-data-provider-platform",
     "displaced_session_id": "60955b1d-3a9a-4167-a4d6-e0975d9d3fb5",
@@ -356,7 +356,7 @@
     "url": "https://github.com/jagnelo/charting-platform/actions/runs/41784665584"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Publish one bounded Provider follow-up adopting only the Root-approved immutable VanEck test-clock dependency, preserve the prior red CI and all roadmap history, and stop at ready_for_human_review with exact-tip CI pending.",
+  "goal_objective": "Complete the accepted bounded Provider follow-up: refresh stale derived W1/MN after D1 expansion and safely reuse verified same-symbol retained issuer security identifiers during exact acquisition; preserve all prior history and the full roadmap.",
   "goal_recorded_at": "2026-11-05T17:11:52Z",
   "goal_request": {
     "created_at": "2026-11-05T17:11:52Z",
@@ -462,11 +462,11 @@
     "root_review": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-Provider-314528-manifest-portability-CI-root-review-20261105.json",
     "source_sha": "314528777893f320f6e898085da3180561843f0c"
   },
-  "next_action": "Publish this coherent checkpoint once; freeze its exact tip for Root-owned CI and combined release qualification. No integration/deployment or provider request is owner-authorized.",
+  "next_action": "Freeze this coherent checkpoint. Root owns push, exact-tip CI, combined release qualification, integration and deployment.",
   "parent_branch": "staging",
   "pg_profile_result": "/tmp/provider-etv-20261103-r4/artifacts/result.json",
   "pg_profile_result_sha256": "3c98a0a77d8b8f40f923d289a4564645149971929865ae71290eeffb25cc45cc",
-  "plan_hash": "8417b483f3d40759986eb2d1bcb1924f667590b913bc8290aaf3860f71a1f72d",
+  "plan_hash": "93c8472b2d4abfea6896474a85398930e8ed9572ac698d1bb5f70576bf59d7d1",
   "planning_required": false,
   "planning_state": "ready",
   "prepared_backend_manifest": {
@@ -1143,7 +1143,7 @@
     }
   ],
   "state": "in_progress",
-  "status": "ready_for_human_review",
+  "status": "ready_for_integration",
   "takeover_history": [
     {
       "at": "2026-09-04T16:15:49.067134+00:00",
@@ -1402,5 +1402,19 @@
     "tests_or_external_operations_run": false,
     "integration_capture": "exact branch HEAD",
     "roadmaps_complete": false
-  }
+  },
+  "context_adoption_a9": {
+    "status": "adopted_exact_green_context_only",
+    "staging_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
+    "tree": "ebdddf700b68d3508755efb983eda10b574c426a",
+    "staging_ci_run": 42184756530,
+    "master_provenance_run": 42194282702,
+    "canonical_receipt": ".ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json",
+    "canonical_receipt_sha256": "acaba8c8f6e2ddab1e8d68240d3e9e2290c62cb49ea5008a305ab1326ad718b3",
+    "merge_commit": "600cfb98635b26891b1db106a294af6dc6eb353b",
+    "roadmaps_complete": false,
+    "deployment_or_genuine_flow_claimed": false,
+    "root_owns_backup_cutover_and_deployment": true
+  },
+  "derived_refresh_issuer_identity_followup": {"exact_closing_tip_ci": "pending; Root-owned", "focused_result": "61 passed after final formatting; Ruff check/format and git diff check passed.", "id": "provider-derived-history-and-retained-issuer-identity-20261106", "integration_capture": "exact branch HEAD", "result": "Real instrument 359 and six retained issuer links returned CUSIP G0450A105 and SEDOL 2740542 in PostgreSQL READ ONLY; no HTTP/writes.", "retained_identity_readonly_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/retained-identity-readonly-checks/55cc6441c6957fc3b16d9c87fde82b3f46243ff6e62b8bf03731c717f868084b/receipt.json", "roadmaps_complete": false, "root_acceptance": "Direct same-turn Root acceptance under existing standing authorization; no separate receipt supplied.", "status": "ready_for_integration"}
 }
