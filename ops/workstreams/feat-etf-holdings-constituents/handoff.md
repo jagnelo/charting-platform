@@ -1,3 +1,11 @@
+# Accepted checkpoint — VanEck authentic fixture clock — 2026-11-06
+
+Root accepted this bounded test-only checkpoint under the human standing authorization in `/home/m920q/charting-platform/.ai/staging-attempts/history-dashboard-repair-20261106/provider-etf-integration-checkpoint-acceptance.json` (SHA256 `e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681`). Validated implementation: `b25fc814ef301103337f343d57b859545fa5bb8f`; its exact-source CI `42147141948` is green. The three affected VanEck integration nodes passed with authentic workbook bytes and freshness policy unchanged. No product/configuration change or migration was made.
+
+The CI for this records-only closing tip is still mandatory and pending under Root ownership. Root also owns the combined visual, staging/master, deployment and genuine-user-flow gates. AC1–AC14, `15 Tier-0 and 156 Tier-1`, native qualification, and all holds remain open. `integration_capture: exact branch HEAD`.
+
+---
+
 # Current handoff — capability GET persisted snapshot — 2026-11-05
 
 The original owner session and claim are unchanged. Root released the branch at `45cc8206602d7823ca29e132d991d88b0bcbbc25` for this bounded follow-up. The capability GET path previously evaluated native identity against `ETFHoldingsSnapshotOut`; the strict verifier requires ORM-only `source_artifact_id`. The service now shares one latest-snapshot ORM query between capability and DTO rendering, preserving existing visibility, controlled-fixture exclusion, ordering, and eager loading. The optional snapshot keyword remains but is typed as the ORM model. No public DTO fields or native checks changed.
@@ -18188,3 +18196,12 @@ Root observed 192 focused backend tests, Ruff, and format passing. Exact-source 
 ## Exact-CI narrative blocker correction — 2026-11-05
 
 Exact closing CI42022408556, Backend job127228166659, failed only tests/unit/services/test_etf_holdings_adapters.py::test_current_workstream_narrative_counts_match_runtime_and_yaml_ledgers because session.progress.current_blocker lacked the required literal tier-count phrase. The plan blocker already contained the counts and the existing handoff contained “Both now contain 15 Tier-0 and 156 Tier-1”. The session blocker now also preserves the pending closing-tip CI and Root-owned release gates while explicitly stating `15 Tier-0 and 156 Tier-1`. The first local invocation was attempted from backend before the edit script was applied; its relative session path was missing and the exact test consequently failed against unchanged session data. After applying the session-only correction, the exact requested pytest node passed 1/1 in 3.21s with ENV_FILE=.env.dev, PYTHONDONTWRITEBYTECODE=1, UV_OFFLINE=1, UV_NO_SYNC=1, --no-cov, and cache disabled. No other test was run. No plan, backend, frontend, test, ledger, source, oracle, tolerance, or production data changed. The final exact closing-tip CI remains mandatory and Root-owned; no green result is claimed.
+# Current checkpoint — authentic VanEck fixture clock — 2026-11-06
+
+The three VanEck qualification/ordinary-refresh integration failures from Provider CI `42141483157` were caused by the authentic workbook's reported composition date (`2026-10-29`) aging outside the existing five-day daily freshness window as the calendar advanced. The fixtures and freshness policy remain unchanged. The two affected tests now freeze their application clock to `2026-11-01T12:00:00Z`, keeping the authentic source date inside the same existing window without manufacturing a newer date.
+
+The exact three PostgreSQL/SQLite nodes passed once (`3 passed`, `29.07s`, exit `0`) on source parent `375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d`. The PostgreSQL test used a private capped container (1 CPU, 1 GiB, 128 PIDs); provider proxies were dead-loopback, retries were zero, and no live Source request or ledger/production mutation occurred. Both authentic XLSX fixture hashes are recorded in the validation entry and remain unchanged. The exact test container was absent at post-run inspection; protected inventory counts were unchanged.
+
+This is a test-only checkpoint. Exact-source CI is pending under Root coordination; no broader full-suite, staging, integration, deployment, or roadmap completion is claimed. Preserve the prior checkpoint and the full AC1–AC14, `15 Tier-0 and 156 Tier-1`, all holds, histories, and genuine user-flow obligations.
+
+---

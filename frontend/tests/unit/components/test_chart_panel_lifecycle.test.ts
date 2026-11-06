@@ -264,6 +264,7 @@ describe('ChartPanel lifecycle fencing', () => {
       'C', 'D1', true,
       expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
       expect.any(Function), expect.any(Function), undefined,
+      expect.objectContaining({ signal: expect.any(Object) }),
     ))
     expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'C', canonical_only: true })
     wrapper.unmount()
@@ -320,6 +321,7 @@ describe('ChartPanel lifecycle fencing', () => {
       'C', 'D1', true,
       expect.objectContaining({ timeframe: 'D1', adjusted: true, start: expect.any(String), end: expect.any(String) }),
       expect.any(Function), expect.any(Function), expect.any(Promise),
+      expect.objectContaining({ signal: expect.any(Object) }),
     ))
     const panelHistoryCall = vi.mocked(acquireSelectedHistory).mock.calls.at(-1)!
     await expect(panelHistoryCall[6]).resolves.toMatchObject({

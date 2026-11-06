@@ -1854,13 +1854,16 @@ async def test_execute_provider_call_reports_quota_denial_before_transport(db, m
     async def fake_chain(*_args, **_kwargs):
         return [resolved]
 
-    async def deny_reservation(*_args, **_kwargs):
+    retry_at = datetime(2026, 11, 6, 12, 30, tzinfo=UTC)
+
+    async def deny_reservation(*_args, **kwargs):
+        kwargs["denial_details"]["retry_at"] = retry_at
         return None
 
     monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
     monkeypatch.setattr("app.services.provider_routing.reserve_provider_contract", deny_reservation)
 
-    with pytest.raises(ProviderQuotaAdmissionError, match="quota admission denied"):
+    with pytest.raises(ProviderQuotaAdmissionError, match="quota admission denied") as raised:
         await execute_provider_call(
             async_db,
             ProviderCapability.LATEST_PRICE,
@@ -1869,6 +1872,7 @@ async def test_execute_provider_call_reports_quota_denial_before_transport(db, m
             invoke=lambda *_args: pytest.fail("quota denial must precede provider transport"),
         )
 
+    assert raised.value.retry_at == retry_at
     assert db.execute(select(ProviderRequestLog)).scalars().all() == []
 
 

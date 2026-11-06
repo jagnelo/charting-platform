@@ -30,8 +30,15 @@ import type { WorkspaceWindowState } from '@/stores/workspace'
 
 const ToolWindowShell = defineComponent({
   name: 'ToolWindow',
-  setup(_, { slots }) {
-    return () => h('div', { class: 'tool-window-shell' }, slots.default?.())
+  props: ['title', 'symbol'],
+  emits: ['update:timeframe'],
+  setup(props, { slots, emit }) {
+    return () => h('div', { class: 'tool-window-shell', 'data-symbol': props.symbol }, [
+      props.symbol ? h('span', { class: 'tool-window__symbol' }, String(props.symbol)) : null,
+      h('button', { class: 'choose-weekly', onClick: () => emit('update:timeframe', 'W1') }, 'Weekly'),
+      h('button', { class: 'choose-monthly', onClick: () => emit('update:timeframe', 'MN') }, 'Monthly'),
+      slots.default?.(),
+    ])
   },
 })
 
@@ -120,6 +127,9 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
       if (path === '/instruments/TCNEW') {
         return Promise.resolve({ id: instrumentId, symbol: 'TCNEW', name: 'Controlled fixture symbol', stats: { week52_high: 12 } })
       }
+      if (path === `/instruments/${instrumentId}/history-availability`) {
+        return Promise.resolve({ instrument_id: instrumentId, symbol: 'TCNEW', timeframe: 'D1', adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
+      }
       if (path === '/instrument-indicators/990014') return Promise.resolve({ indicators: [] })
       if (path === '/ohlcv/local/TCNEW/D1') {
         const rows = historyAcquired ? [bar] : []
@@ -206,6 +216,63 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     expect(localReadbacks).toEqual([{ path: '/ohlcv/local/TCNEW/D1', returnedBars: 1 }])
     expect(wrapper.find('[data-testid="workstation-history-acquisition"]').exists()).toBe(false)
     expect(wrapper.find('[data-test="local-chart-surface"]').exists()).toBe(true)
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('leaves passive D1 mount alone and loads W1/MN on deliberate timeframe changes', async () => {
+    const instrumentId = 990021
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.linkedSymbol = 'SPY'
+    workspaceStore.linkedTimeframe = 'D1'
+    const tool = mountedChartTool('workstation-explicit-weekly-history')
+    workspaceStore.workspace = {
+      id: 1, user_id: 1, name: 'Test', is_default: true, position: 0, revision: 1, schema_version: 1, settings: { linked_timeframe: 'D1' },
+      tabs: [{ id: 1, stable_key: 'main', name: 'Main', position: 0, layout_config: {}, active_window_key: tool.instance_key, windows: [tool] }],
+    }
+    workspaceStore.activeTabKey = 'main'
+    apiGet.mockImplementation((path: string, params?: Record<string, unknown>) => {
+      if (path === '/instruments/SPY') return Promise.resolve({ id: instrumentId, symbol: 'SPY', stats: {} })
+      if (path === `/instrument-indicators/${instrumentId}`) return Promise.resolve({ indicators: [] })
+      if (path.startsWith('/ohlcv/local/SPY/')) return Promise.resolve([])
+      if (path === `/instruments/${instrumentId}/history-availability`) {
+        return Promise.resolve({ instrument_id: instrumentId, symbol: 'SPY', timeframe: params?.timeframe, adjusted: true, status: 'eligible', earliest_start: '2024-01-01T00:00:00Z', max_requested_bars: 2000, reason_code: null })
+      }
+      if (path === '/coverage/instruments/SPY/ohlcv' && ['D1', 'W1', 'MN'].includes(String(params?.timeframe))) {
+        return Promise.resolve({ status: 'missing', bar_count: 0, missing_slices: [{ start: '2024-01-01T00:00:00Z', end: '2026-01-01T00:00:00Z' }] })
+      }
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string, payload?: Record<string, unknown>) => {
+      if (path === '/instruments/acquire') return Promise.resolve({ status: 'resolved', instrument: { instrument_id: instrumentId, symbol: 'SPY', identity_status: 'resolved' }, source_outcomes: [] })
+      const timeframe = String(payload?.timeframe ?? 'W1')
+      return Promise.resolve({
+        status: 'complete', instrument_id: instrumentId, symbol: 'SPY', timeframe, adjusted: true,
+        requested_start: '2024-01-01T00:00:00Z', requested_end: '2026-01-01T00:00:00Z',
+        coverage: { status: 'ready', bar_count: timeframe === 'W1' ? 100 : 24, missing_slices: [] }, bars: [], source_outcomes: [],
+      })
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mountChartTool(tool, pinia, queryClient)
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalled()
+
+    await wrapper.get('.choose-weekly').trigger('click')
+    await flushPromises()
+
+    const historyCall = apiPost.mock.calls.find(([path]) => String(path).includes('/history-acquisitions'))
+    expect(historyCall?.[0]).toBe(`/instruments/${instrumentId}/history-acquisitions`)
+    expect(historyCall?.[1]).toMatchObject({ timeframe: 'W1', adjusted: true })
+    expect(wrapper.text()).toContain('Loaded 100 W1 bars for SPY.')
+    await wrapper.get('.choose-monthly').trigger('click')
+    await flushPromises()
+    const historyCalls = apiPost.mock.calls.filter(([path]) => String(path).includes('/history-acquisitions'))
+    expect(historyCalls.map(([, payload]) => (payload as { timeframe: string }).timeframe)).toEqual(['W1', 'MN'])
+    expect(wrapper.text()).toContain('Loaded 24 MN bars for SPY.')
+    expect(apiPost).toHaveBeenCalledTimes(4) // each explicit interval confirms identity, then acquires its bounded history
 
     wrapper.unmount()
     queryClient.clear()
@@ -424,6 +491,108 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     workspaceStore.setConstituentETF('XHB')
     await flushPromises()
     expect(wrapper.find('[data-testid="reported-holding-selection"]').exists()).toBe(false)
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('selects a resolved holding through the dashboard event with exact snapshot, row and as-of provenance', async () => {
+    const snapshot = {
+      id: 991203, etf_symbol: 'IGV', etf_name: 'Controlled fixture fund',
+      composition_date: '2026-11-02', known_at: '2026-11-03T08:15:00Z',
+      provenance: 'controlled_fixture_only', source_provider: 'test-fixture',
+    }
+    const holding = {
+      id: 991601, snapshot_id: snapshot.id, constituent_instrument_id: 991700,
+      constituent_symbol: 'UNXQ', constituent_name: 'Unlisted Example Software Corp',
+      reported_symbol: 'UNXQ', reported_name: 'Unlisted Example Software Corp',
+      position: 1, weight: '0.125', holding_type: 'equity', row_type: 'security',
+      source_row_id: 'igv-controlled-row-991601', is_resolved: true,
+    }
+    const page = { snapshot, holdings: [holding], total: 1, limit: 500, offset: 0, has_next: false }
+    apiGet.mockImplementation((path: string) => path === '/etf-holdings/IGV/holdings' ? Promise.resolve(page) : Promise.resolve([]))
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.setConstituentETF('IGV')
+    workspaceStore.linkedSymbol = 'UNXQ'
+    workspaceStore.etfHoldings = { IGV: page as never }
+    const tool: WorkspaceWindowState = {
+      id: 31, instance_key: 'constituent-list', tool_type: 'watchlist', title: 'Constituents',
+      link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' },
+          ChartTemplateControl: { template: '<div />' }, DrawingToolbar: { template: '<div />' },
+          ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+    await flushPromises()
+    expect(wrapper.get('.tool-window__symbol').text()).toBe('IGV')
+    expect(wrapper.get('.tool-window-shell').attributes('data-symbol')).toBe('IGV')
+    await wrapper.get('.watchlist__row').trigger('click')
+
+    const event = wrapper.emitted('holdingSelect')?.[0]
+    expect(event?.[0]).toBe('UNXQ')
+    expect(event?.[1]).toMatchObject({
+      instrumentId: 991700, canonicalSymbol: 'UNXQ', snapshotId: 991203,
+      compositionDate: '2026-11-02', knownAt: '2026-11-03T08:15:00Z',
+      holdingRowId: 991601, sourceRowId: 'igv-controlled-row-991601',
+    })
+    expect(wrapper.emitted('holdingDrilldown')).toBeUndefined()
+    expect(workspaceStore.constituentETF).toBe('IGV')
+    expect(apiPost).not.toHaveBeenCalled()
+
+    // The same composition surface must keep naming its retained fund while a
+    // constituent is the active chart symbol, then follow an independent fund
+    // selection as soon as the workspace context changes.
+    expect(workspaceStore.linkedSymbol).toBe('UNXQ')
+    expect(wrapper.get('.tool-window__symbol').text()).toBe('IGV')
+    workspaceStore.setConstituentETF('XHB')
+    await flushPromises()
+    expect(wrapper.get('.tool-window__symbol').text()).toBe('XHB')
+
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
+  it('labels the Industry surface with its retained ETF while a constituent remains the active chart symbol', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const workspaceStore = useWorkspaceStore(pinia)
+    workspaceStore.setConstituentETF('IGV')
+    workspaceStore.linkedSymbol = 'UNXQ'
+    const tool: WorkspaceWindowState = {
+      id: 32, instance_key: 'industry-list', tool_type: 'watchlist', title: 'Industries',
+      link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 1,
+    }
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          UPlotChart: EmptyChartStub, ChartPlotLibrary: { template: '<div />' },
+          ChartTemplateControl: { template: '<div />' }, DrawingToolbar: { template: '<div />' },
+          ToolWindow: ToolWindowShell, RouterLink: { template: '<a><slot /></a>' },
+        },
+      },
+    })
+    await flushPromises()
+
+    expect(wrapper.get('.tool-window__symbol').text()).toBe('IGV')
+    expect(wrapper.text()).toContain('No mapped ETF proxy for IGV')
+    workspaceStore.setConstituentETF('XHB')
+    await flushPromises()
+    expect(wrapper.get('.tool-window__symbol').text()).toBe('XHB')
+    expect(wrapper.text()).toContain('No mapped ETF proxy for XHB')
+    expect(workspaceStore.linkedSymbol).toBe('UNXQ')
 
     wrapper.unmount()
     queryClient.clear()

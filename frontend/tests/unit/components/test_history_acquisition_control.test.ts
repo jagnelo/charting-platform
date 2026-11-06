@@ -26,6 +26,10 @@ const resolvedIdentity = {
   request_id: 'resolve-id', status: 'resolved',
   instrument: { instrument_id: 43, symbol: 'OIH', identity_status: 'verified' }, source_outcomes: [],
 }
+const eligibleAvailability = (adjusted = true, earliestStart = '2024-01-01T00:00:00.000Z') => ({
+  instrument_id: 43, symbol: 'OIH', timeframe: 'D1', adjusted, status: 'eligible',
+  earliest_start: earliestStart, max_requested_bars: 2000, reason_code: null,
+})
 const partialHistory = {
   request_id: 'history-id', status: 'partial', instrument_id: 43, symbol: 'OIH', timeframe: 'D1', adjusted: true,
   requested_start: '2026-01-01T00:00:00.000Z', requested_end: '2026-01-31T23:59:59.999Z',
@@ -37,14 +41,19 @@ beforeEach(() => {
   vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
 })
 
-afterEach(() => vi.unstubAllGlobals())
+afterEach(() => {
+  vi.useRealTimers()
+  vi.unstubAllGlobals()
+})
 
 describe('HistoryAcquisitionControl', () => {
   it('uses one accessible click for bounded coverage, identity, then history stages', async () => {
     const coverage = deferred<typeof missingCoverage>()
     const identity = deferred<typeof resolvedIdentity>()
+    const availability = deferred<ReturnType<typeof eligibleAvailability>>()
     const history = deferred<typeof partialHistory>()
     vi.mocked(api.get).mockReturnValueOnce(coverage.promise as never)
+      .mockReturnValueOnce(availability.promise as never)
     vi.mocked(api.post).mockReturnValueOnce(identity.promise as never).mockReturnValueOnce(history.promise as never)
     const wrapper = mount(HistoryAcquisitionControl, {
       props: { symbol: 'OIH', timeframe: 'D1', adjusted: true },
@@ -63,7 +72,7 @@ describe('HistoryAcquisitionControl', () => {
     expect(api.get).toHaveBeenCalledTimes(1)
     const requestedRange = vi.mocked(api.get).mock.calls[0][1] as { start: string; end: string; timeframe: string }
     expect(requestedRange.timeframe).toBe('D1')
-    expect(Date.parse(requestedRange.end) - Date.parse(requestedRange.start)).toBeLessThanOrEqual(180 * 24 * 60 * 60 * 1000)
+    expect(Math.ceil((Date.parse(requestedRange.end) - Date.parse(requestedRange.start)) / 86_400_000) + 1).toBeLessThanOrEqual(2000)
 
     coverage.resolve(missingCoverage)
     await flushPromises()
@@ -75,14 +84,18 @@ describe('HistoryAcquisitionControl', () => {
 
     identity.resolve(resolvedIdentity)
     await flushPromises()
+    expect(button.text()).toBe('Checking instrument…')
+    expect(api.get).toHaveBeenCalledTimes(2)
+    availability.resolve(eligibleAvailability())
+    await flushPromises()
     expect(button.text()).toBe('Loading missing history…')
     expect(api.post).toHaveBeenCalledTimes(2)
     const historyRequest = vi.mocked(api.post).mock.calls[1][1] as { start: string; end: string }
     expect(vi.mocked(api.post).mock.calls[1][0]).toBe('/instruments/43/history-acquisitions')
-    expect(Date.parse(historyRequest.end) - Date.parse(historyRequest.start)).toBeLessThanOrEqual(180 * 24 * 60 * 60 * 1000)
+    expect(Math.ceil((Date.parse(historyRequest.end) - Date.parse(historyRequest.start)) / 86_400_000) + 1).toBeLessThanOrEqual(2000)
 
     history.resolve(partialHistory)
-    await flushPromises()
+    await vi.waitFor(() => expect(button.text()).toBe('Load missing history'))
     expect(button.text()).toBe('Load missing history')
     expect(wrapper.text()).toContain('Some history loaded; 0 range(s) remain unavailable.')
     expect(wrapper.emitted('loaded')?.[0]?.[0]).toMatchObject({ status: 'partial', instrument_id: 43 })
@@ -90,7 +103,7 @@ describe('HistoryAcquisitionControl', () => {
 
   it('defaults omitted adjustment mode to adjusted history and preserves an explicit raw choice', async () => {
     const run = async (adjusted?: boolean) => {
-      vi.mocked(api.get).mockReset().mockResolvedValueOnce(missingCoverage as never)
+      vi.mocked(api.get).mockReset().mockResolvedValueOnce(missingCoverage as never).mockResolvedValueOnce(eligibleAvailability(adjusted !== false) as never)
       vi.mocked(api.post)
         .mockReset()
         .mockResolvedValueOnce(resolvedIdentity as never)
@@ -125,7 +138,7 @@ describe('HistoryAcquisitionControl', () => {
 
     expect(api.get).toHaveBeenCalledTimes(1)
     expect(api.post).not.toHaveBeenCalled()
-    expect(wrapper.text()).toContain('already available locally')
+    expect(wrapper.text()).toContain('already saved locally')
     expect(wrapper.text()).toContain('No source request was sent')
     expect(wrapper.emitted('loaded')).toBeUndefined()
   })
@@ -152,12 +165,12 @@ describe('HistoryAcquisitionControl', () => {
     })
 
     await wrapper.get('[data-testid="history-load-missing"]').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('identity of OIH conflicts'))
 
     expect(api.get).toHaveBeenCalledTimes(1)
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(vi.mocked(api.post).mock.calls[0][0]).toBe('/instruments/acquire')
-    expect(wrapper.text()).toContain('identity of OIH is conflicting')
+    expect(wrapper.text()).toContain('identity of OIH conflicts')
     expect(wrapper.text()).toContain('No history was requested')
     expect(wrapper.emitted('loaded')).toBeUndefined()
   })
@@ -173,7 +186,7 @@ describe('HistoryAcquisitionControl', () => {
     })
 
     await wrapper.get('[data-testid="history-load-missing"]').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('could not be verified'))
 
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('could not be verified')
@@ -192,7 +205,7 @@ describe('HistoryAcquisitionControl', () => {
     })
 
     await wrapper.get('[data-testid="history-load-missing"]').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('could not be verified'))
 
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.text()).toContain('could not be verified')
@@ -201,7 +214,7 @@ describe('HistoryAcquisitionControl', () => {
   })
 
   it('keeps current chart bars untouched for a held history result', async () => {
-    vi.mocked(api.get).mockResolvedValueOnce(missingCoverage)
+    vi.mocked(api.get).mockResolvedValueOnce(missingCoverage).mockResolvedValueOnce(eligibleAvailability())
     vi.mocked(api.post)
       .mockResolvedValueOnce(resolvedIdentity)
       .mockResolvedValueOnce({ ...partialHistory, status: 'held' })
@@ -261,11 +274,54 @@ describe('HistoryAcquisitionControl', () => {
     expect(summary.attributes('tabindex')).toBeUndefined()
     expect(summary.element.tagName).toBe('SUMMARY')
 
-    await wrapper.get('[aria-label="History start date"]').setValue('2025-01-01')
+    await wrapper.get('[aria-label="History start date"]').setValue('2020-01-01')
     await wrapper.get('[aria-label="History end date"]').setValue('2026-01-01')
     expect(wrapper.get('[data-testid="history-load-missing"]').attributes('disabled')).toBeDefined()
-    expect(wrapper.text()).toContain('at most 180 days')
+    expect(wrapper.text()).toContain('2000 time slots')
     expect(api.get).not.toHaveBeenCalled()
     expect(api.post).not.toHaveBeenCalled()
+  })
+
+  it('clips a manual custom range to actual availability and reports the loaded boundary', async () => {
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(missingCoverage as never)
+      .mockResolvedValueOnce(eligibleAvailability(true, '2025-06-01T00:00:00.000Z') as never)
+      .mockResolvedValueOnce(missingCoverage as never)
+    vi.mocked(api.post)
+      .mockResolvedValueOnce(resolvedIdentity as never)
+      .mockResolvedValueOnce({
+        ...partialHistory,
+        requested_start: '2025-06-01T00:01:00.000Z',
+        requested_end: '2026-01-31T23:59:59.999Z',
+      } as never)
+    const wrapper = mount(HistoryAcquisitionControl, { props: { symbol: 'OIH', timeframe: 'D1', adjusted: true } })
+    await wrapper.get('[aria-label="History start date"]').setValue('2025-01-01')
+    await wrapper.get('[aria-label="History end date"]').setValue('2026-01-31')
+    await wrapper.get('[data-testid="history-load-missing"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[data-testid="history-load-missing"]').text()).toBe('Load missing history'))
+
+    const historyCall = vi.mocked(api.post).mock.calls[1]
+    expect(historyCall?.[0]).toBe('/instruments/43/history-acquisitions')
+    expect((historyCall?.[1] as { start: string }).start).toBe('2025-06-01T00:01:00.000Z')
+    expect(vi.mocked(api.get).mock.calls).toHaveLength(3)
+    expect(wrapper.text()).toContain(`The admitted range begins ${new Date('2025-06-01T00:00:00.000Z').toLocaleDateString()}`)
+    expect(wrapper.emitted('loaded')?.[0]?.[0]).toMatchObject({ status: 'partial', instrument_id: 43 })
+  })
+
+  it('keeps a hard-held availability manual-retryable without a timer or raw reason code', async () => {
+    vi.useFakeTimers()
+    vi.mocked(api.get)
+      .mockResolvedValueOnce(missingCoverage as never)
+      .mockResolvedValueOnce({ ...eligibleAvailability(), status: 'held', earliest_start: null, reason_code: 'provider_quota_admission_denied' } as never)
+    vi.mocked(api.post).mockResolvedValueOnce(resolvedIdentity as never)
+    const wrapper = mount(HistoryAcquisitionControl, { props: { symbol: 'OIH', timeframe: 'D1', adjusted: true } })
+    await wrapper.get('[data-testid="history-load-missing"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('temporarily held by the current admission limits'))
+
+    expect(wrapper.text()).toContain('temporarily held by the current admission limits')
+    expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
+    expect(vi.mocked(api.post)).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('loaded')).toBeUndefined()
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

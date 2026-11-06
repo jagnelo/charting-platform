@@ -69,6 +69,16 @@ class ProviderQuotaCoordinatorError(RuntimeError):
 class ProviderQuotaAdmissionError(ProviderQuotaCoordinatorError):
     """A provider operation lacks a complete reviewed cost/limit contract."""
 
+    def __init__(self, message: str, *, retry_at: datetime | None = None) -> None:
+        super().__init__(message)
+        self.retry_at = (
+            retry_at.replace(tzinfo=UTC)
+            if retry_at is not None and retry_at.tzinfo is None
+            else retry_at.astimezone(UTC)
+            if retry_at is not None
+            else None
+        )
+
 
 @dataclass(frozen=True)
 class QuotaReservation:
@@ -983,6 +993,40 @@ def _settled_units_since_baseline(connection, spec: dict[str, Any], baseline) ->
     )
 
 
+def _known_capacity_retry_at(
+    connection, spec: dict[str, Any], baseline, now: datetime
+) -> datetime | None:
+    """Return a conservative reset time only when reviewed usage is known."""
+
+    def aware_utc(value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+    seconds = int(spec["window_seconds"])
+    if not spec["rolling"]:
+        return aware_utc(_utc(spec["window_started_at"] + timedelta(seconds=seconds)))
+    # The provider baseline is an aggregate observation, so its individual
+    # request times are unavailable. Wait for that whole observed window to
+    # age out, and also for every later coordinator reservation in the active
+    # window. Rolling bucket membership uses an inclusive cutoff; add one
+    # second so callers never resume at a still-counted boundary.
+    candidates = [_utc(baseline["observed_at"] + timedelta(seconds=seconds + 1))]
+    active_rows = connection.execute(
+        select(_reservations.c.created_at).where(
+            _reservations.c.account_scope == spec["account_scope"],
+            _reservations.c.quota_group == spec["quota_group"],
+            _reservations.c.dimension == spec["dimension"],
+            _reservations.c.window_seconds == seconds,
+            _reservations.c.release_only.is_(False),
+            _reservations.c.state.in_(["pending", "settled", "uncertain"]),
+            _reservations.c.created_at >= _utc(now - timedelta(seconds=seconds)),
+        )
+    ).scalars()
+    candidates.extend(
+        _utc(created_at + timedelta(seconds=seconds + 1)) for created_at in active_rows
+    )
+    return aware_utc(max(candidates))
+
+
 def _active_reserved_units(connection, spec: dict[str, Any], now: datetime) -> int:
     predicates = [
         _windows.c.provider_name == _ACCOUNT_SCOPE_BUCKET,
@@ -1595,6 +1639,7 @@ def reserve_provider_quota(
     dimension_units: dict[str, int],
     usage_identity: str | None = None,
     now: datetime | None = None,
+    denial_details: dict[str, Any] | None = None,
 ) -> QuotaReservation | None:
     """Commit every reviewed provider dimension before starting HTTP transport.
 
@@ -1741,6 +1786,13 @@ def reserve_provider_quota(
                                 _windows.c.reserved_units == 0,
                                 _windows.c.consumed_units == 0,
                             )
+                        )
+                    if denial_details is not None and not spec["release_only"]:
+                        denial_details["retry_at"] = _known_capacity_retry_at(
+                            connection,
+                            spec,
+                            baselines[tuple(_window_values(spec).values())],
+                            current,
                         )
                     return None
 

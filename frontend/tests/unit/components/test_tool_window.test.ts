@@ -1,4 +1,4 @@
-import { mount } from '@vue/test-utils'
+import { DOMWrapper, mount } from '@vue/test-utils'
 import { describe, expect, it, vi } from 'vitest'
 
 import ToolWindow from '@/components/workstation/ToolWindow.vue'
@@ -29,9 +29,19 @@ describe('ToolWindow', () => {
     expect(wrapper.find('.tool-window__float-glyph').exists()).toBe(true)
   expect(wrapper.find('.tool-window__close-glyph').exists()).toBe(true)
     expect(wrapper.text()).not.toMatch(/[⋮□↗×]/)
-    await wrapper.find('[title="Tool menu"]').trigger('click')
-    expect(wrapper.find('[role="menu"]').isVisible()).toBe(true)
-    const menuFloat = wrapper.findAll('[role="menuitem"]').find(node => node.text() === 'Float')
+    const menuTrigger = wrapper.find('[title="Tool menu"]')
+    const menuId = menuTrigger.attributes('aria-controls')
+    await menuTrigger.trigger('click')
+    const menu = document.getElementById(menuId)
+    expect(menu).not.toBeNull()
+    expect(menu?.parentElement).toBe(document.body)
+    expect(menu?.getAttribute('aria-label')).toBe('Chart tool menu')
+    expect(menu?.isConnected).toBe(true)
+    const menuFloatElement = menu?.querySelector<HTMLElement>('[role="menuitem"]:nth-child(2)')
+    expect(menuFloatElement?.textContent).toBe('Float')
+    menuFloatElement?.dispatchEvent(new Event('pointerdown', { bubbles: true }))
+    expect(document.getElementById(menuId)).not.toBeNull()
+    const menuFloat = menuFloatElement ? new DOMWrapper(menuFloatElement) : undefined
     expect(menuFloat).toBeDefined()
     await menuFloat!.trigger('click')
 
@@ -82,13 +92,16 @@ describe('ToolWindow', () => {
     await firstTrigger.trigger('click')
     await secondTrigger.trigger('click')
 
-    expect(first.find(`#${firstMenuId}`).exists()).toBe(true)
-    expect(second.find(`#${secondMenuId}`).exists()).toBe(true)
+    expect(document.getElementById(firstMenuId)?.parentElement).toBe(document.body)
+    expect(document.getElementById(secondMenuId)?.parentElement).toBe(document.body)
     expect(firstTrigger.attributes('aria-expanded')).toBe('true')
     expect(secondTrigger.attributes('aria-expanded')).toBe('true')
 
     first.unmount()
+    expect(document.getElementById(firstMenuId)).toBeNull()
+    expect(document.getElementById(secondMenuId)).not.toBeNull()
     second.unmount()
+    expect(document.getElementById(secondMenuId)).toBeNull()
   })
 
   it('keeps timeframe linking distinct from symbol linking and uses MN for monthly bars', async () => {
@@ -132,34 +145,39 @@ describe('ToolWindow', () => {
 
   it('dismisses its tool menu when pointer focus moves outside the menu', async () => {
     const wrapper = mount(ToolWindow, { props: { title: 'Chart', linkGroup: 'blue' } })
-    await wrapper.find('[title="Tool menu"]').trigger('click')
-    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
+    const trigger = wrapper.find('[title="Tool menu"]')
+    const menuId = trigger.attributes('aria-controls')
+    await trigger.trigger('click')
+    expect(document.getElementById(menuId)).not.toBeNull()
 
     document.body.dispatchEvent(new Event('pointerdown', { bubbles: true }))
     await wrapper.vm.$nextTick()
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(document.getElementById(menuId)).toBeNull()
     wrapper.unmount()
   })
 
   it('supports keyboard navigation, activation, and return focus for the tool menu', async () => {
     const wrapper = mount(ToolWindow, { attachTo: document.body, props: { title: 'Chart', linkGroup: 'blue' } })
     const trigger = wrapper.find('[title="Tool menu"]')
+    const menuId = trigger.attributes('aria-controls')
     await trigger.trigger('keydown', { key: 'ArrowDown' })
-    const items = wrapper.findAll('[role="menuitem"]')
-    expect(wrapper.find('[role="menu"]').exists()).toBe(true)
-    expect(document.activeElement).toBe(items[0].element)
+    const menu = document.getElementById(menuId)!
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'))
+    expect(menu).not.toBeNull()
+    expect(document.activeElement).toBe(items[0])
 
-    await items[0].trigger('keydown', { key: 'ArrowDown' })
-    expect(document.activeElement).toBe(items[1].element)
-    await items[1].trigger('keydown', { key: 'End' })
-    expect(document.activeElement).toBe(items[2].element)
-    await items[2].trigger('keydown', { key: 'Enter' })
+    await new DOMWrapper(items[0]).trigger('keydown', { key: 'ArrowDown' })
+    expect(document.activeElement).toBe(items[1])
+    await new DOMWrapper(items[1]).trigger('keydown', { key: 'End' })
+    expect(document.activeElement).toBe(items[2])
+    await new DOMWrapper(items[2]).trigger('keydown', { key: 'Enter' })
     expect(wrapper.emitted('close')).toHaveLength(1)
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    expect(document.getElementById(menuId)).toBeNull()
 
     await trigger.trigger('click')
-    await wrapper.find('[role="menuitem"]').trigger('keydown', { key: 'Escape' })
-    expect(wrapper.find('[role="menu"]').exists()).toBe(false)
+    const escapeItem = document.getElementById(menuId)!.querySelector<HTMLElement>('[role="menuitem"]')!
+    await new DOMWrapper(escapeItem).trigger('keydown', { key: 'Escape' })
+    expect(document.getElementById(menuId)).toBeNull()
     expect(document.activeElement).toBe(trigger.element)
     wrapper.unmount()
   })
@@ -167,12 +185,14 @@ describe('ToolWindow', () => {
   it('opens the menu on the last item when ArrowUp is pressed on its trigger', async () => {
     const wrapper = mount(ToolWindow, { attachTo: document.body, props: { title: 'Chart' } })
     const trigger = wrapper.find('[aria-label="Open tool menu"]')
+    const menuId = trigger.attributes('aria-controls')
 
     await trigger.trigger('keydown', { key: 'ArrowUp' })
 
-    const items = wrapper.findAll('[role="menuitem"]')
+    const menu = document.getElementById(menuId)!
+    const items = Array.from(menu.querySelectorAll<HTMLElement>('[role="menuitem"]'))
     expect(items).toHaveLength(3)
-    expect(document.activeElement).toBe(items.at(-1)!.element)
+    expect(document.activeElement).toBe(items.at(-1))
     wrapper.unmount()
   })
 
@@ -188,7 +208,8 @@ describe('ToolWindow', () => {
       toJSON: () => ({}),
     })
     await wrapper.find('[title="Tool menu"]').trigger('click')
-    const menu = wrapper.find('[role="menu"]').element as HTMLElement
+    const menuId = wrapper.find('[title="Tool menu"]').attributes('aria-controls')
+    const menu = document.getElementById(menuId) as HTMLElement
     expect(menu.style.top).toBe('8px')
     expect(menu.style.maxHeight).toBe('134px')
     expect(addSpy).toHaveBeenCalledWith('scroll', expect.any(Function), true)
