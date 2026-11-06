@@ -1444,6 +1444,54 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('does not display a returned profile bound to a different selected ETF', async () => {
+    const selectedProfile = {
+      ...profile,
+      id: 3,
+      instrument_id: 12,
+      symbol: 'IWM',
+      name: 'iShares Russell 2000 ETF',
+      latest_composition_date: null,
+      latest_snapshot_id: null,
+      resolved_count: 0,
+      unresolved_count: 0,
+    }
+    vi.mocked(api.get).mockResolvedValueOnce([selectedProfile]).mockResolvedValueOnce([])
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        request_id: 'r',
+        status: 'resolved',
+        instrument: { instrument_id: 12, symbol: 'IWM', identity_status: 'resolved' },
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        request_id: 'r',
+        instrument_id: 12,
+        symbol: 'IWM',
+        outcome: 'cached',
+        refresh: false,
+        refresh_attempted: false,
+        refresh_succeeded: false,
+        profile,
+        snapshot: null,
+        capability: profile.holdings_capability,
+        source_provider: null,
+        source_operation: null,
+        provider_request_log_ids: [],
+      })
+
+    const wrapper = mount(ETFHoldingsView)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('IWM'))
+    await wrapper.get('[data-testid="etf-request-issuer"]').trigger('click')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('The holdings profile did not match IWM')
+    expect(wrapper.text()).not.toContain('SPY')
+    expect(api.get).not.toHaveBeenCalledWith('/etf-holdings/SPY/holdings', expect.anything())
+    wrapper.unmount()
+  })
+
   it('stops after a denied identity in the selected-fund action', async () => {
     const profileWithoutSnapshot = {
       ...profile,

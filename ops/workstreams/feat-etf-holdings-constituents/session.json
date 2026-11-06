@@ -1,44 +1,57 @@
 {
   "acceptance_criteria": [
     {
-      "id": "SPR1",
-      "text": "Compatible State Street sector metadata receives only the missing registered SPDR adapter/source aliases; all existing SEC and other canonical metadata is preserved, and conflicting issuer or adapter metadata is unchanged."
+      "id": "EHP1",
+      "text": "A resolved exact ETF request automatically schedules/executes its issuer-holdings dataset through the shared durable request path; selection does not require another Fetch/Refresh click and suggestion discovery alone does not fan out."
     },
     {
-      "id": "SPR2",
-      "text": "Route metadata resolves the eleven sector presets XLB, XLC, XLE, XLF, XLI, XLK, XLP, XLRE, XLU, XLV, and XLY to the existing SPDR adapter. XLE retains its existing SEC identifiers; no per-symbol product ID, new adapter, or identity bypass is introduced."
+      "id": "EHP2",
+      "text": "The ETF-owned preparation callable consumes the published Provider request/queue context and an already-resolved canonical Instrument, reuses existing issuer route/admission/cache/freshness/retry contracts, and returns truthful dataset state, coverage/progress, reason, retry time when known, and acquired-state information without editing shared Provider files."
     },
     {
-      "id": "SPR3",
-      "text": "Focused offline tests cover the full sector family, compatible metadata preservation, and conflicting issuer/adapter negatives; Ruff, workstream/scope, and diff checks pass. Workbook URL, exact workbook fund-ticker identity checks, quotas, holds, and wider roadmap remain unchanged; live XLE qualification is Root-owned and pending."
+      "id": "EHP3",
+      "text": "Holdings failure, hold, or missing route is independent from identity/profile/price-history success; no old fund rows are shown as the selected fund, stale snapshots remain dated and truthful, and selection-generation fencing prevents late responses from replacing the new context."
+    },
+    {
+      "id": "EHP4",
+      "text": "Native issuer provenance, composition date, known_at, raw/source lineage and exact fund identity survive cache reuse and reload for arbitrary supported issuer routes; cache hits avoid unnecessary source transport and existing quota/hold semantics remain authoritative."
+    },
+    {
+      "id": "EHP5",
+      "text": "Focused offline service/component tests and a new ETF-only journey spec cover automatic first availability, cached/reselect and delayed selection, independent holdings failure, unsupported/held route, truthful stale provenance, and no user-visible required fetch action; no unrelated files or external sources are used."
     }
   ],
   "active_changeset": {
-    "name": "SPDR sector route metadata composition",
-    "baseline": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
+    "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "name": "ETF automatic issuer-holdings preparation and context independence",
+    "provider_contract": "Exact Provider-owned DTO files copied unchanged from authorized source 3d10c4c4662249b53a6e3fc497f1d260b59b2079; ETF hook implements the published signature and fields.",
+    "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
-      "backend/app/services/etf_holdings_adapters.py",
-      "backend/tests/unit/services/test_etf_holdings_adapters.py"
+      "backend/app/schemas/data_preparation.py",
+      "backend/app/services/data_preparation_contracts.py",
+      "backend/app/services/etf_holdings_preparation.py",
+      "backend/app/services/etf_holdings_refresh.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "frontend/src/views/ETFHoldingsView.vue",
+      "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
     ],
-    "scope": "Merge existing SPDR route aliases only into compatible same-issuer metadata; preserve other aliases and leave issuer/adapter conflicts unchanged.",
-    "focused_validation": "5 focused route tests passed in 7.62s on the final implementation; Ruff check/format, workstream validation, broad-scope classification, diff check, and plan/session history assertions passed.",
-    "exact_source_ci": "run_42199229443_pending_Root_terminal_green",
-    "green_claimed": false,
-    "status": "Root_accepted_ready_for_integration; exact_implementation_CI_pending"
+    "status": "in_progress",
+    "focused_validation": "Backend 29 passed; ETFHoldingsView 21 passed; Ruff passed. First typed-retry test attempt exposed a missing fixture name, preserved, then corrected focused result passed."
   },
   "active_follow_up": {
-    "id": "spdr-sector-route-metadata-composition-2026-11-06",
-    "scope": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
-    "source_parent_sha": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
-    "status": "Root_accepted_ready_for_integration; exact_implementation_CI_pending"
+    "id": "platform-usability-etf-holdings-2026-11-06",
+    "scope": "Implement ETF-owned automatic issuer holdings preparation for the human-activated platform-usability release: connect a durable shared request to exact resolved ETF issuer routes, keep holdings independent from profile/history outcomes, and preserve truthful selected-fund cache/context/provenance.",
+    "source_parent_sha": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "status": "in_progress"
   },
   "active_goal": {
-    "created_at_epoch": 1793958254,
-    "objective": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
-    "status": "complete",
-    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
-    "token_budget": null,
-    "completed_goal_history_preserved": true
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793988287,
+    "objective": "Implement ETF-owned automatic issuer holdings preparation for the human-activated platform-usability release: connect a durable shared request to exact resolved ETF issuer routes, keep holdings independent from profile/history outcomes, and preserve truthful selected-fund cache/context/provenance.",
+    "status": "active",
+    "thread_id": "01a05a0a-55c3-751d-87d8-4e01f1f75043",
+    "token_budget": null
   },
   "active_session_id": "f206bbc5-abbf-473a-a44f-fb5706c81282",
   "branch": "feat/etf-holdings-constituents",
@@ -60,7 +73,7 @@
     "conditions": "Exact-source technical review; required cross-feature contracts; full local and exact-source CI tests; verified free operations only; quota-held, unreviewed, paid/trial and unsafe operations remain disabled.",
     "coordinator_owns_conditional_acceptance": true,
     "etf_checkpoint": "accepted_and_integrated_in_exact_green_staging_0e342512e53ba2268425294d61c50e219eaafa4f; full_fourteen_criterion_roadmap_remains_open",
-    "human_answer": "Yes\u2014approve that initial scope and handle checkpoint acceptance",
+    "human_answer": "Yes—approve that initial scope and handle checkpoint acceptance",
     "not_authorized": "The accepted initial ETF checkpoint does not close the full roadmap or authorize deployment/master promotion, paid/trial activation, operational trial, unsafe transport, or retained-data cleanup.",
     "provider_product_checkpoint": "accepted_and_released_in_green_staging_9b230ba4c97126a2937667138c6eb2a0aa297baf",
     "recorded_at": "2026-10-15T22:55:31Z"
@@ -81,8 +94,8 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
     "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
   },
-  "closure_pending": false,
-  "closure_summary": "Root accepted the shared SPDR route-composition fix at tested implementation ec861fdd9d7d22df8882c67271a2d07e6f877229. Five focused route tests, lint, workstream/record and scope guards passed. The fix adds the existing SPDR route aliases only to compatible same-issuer metadata, preserving existing identifiers and leaving conflicting metadata unchanged; adapter URLs, workbook parsing/fund identity, native contracts and quotas are unchanged. No migrations, product configuration, policy/quota changes, or external source calls occurred. Exact implementation CI 42199229443 must be terminal green before Root pushes this records-only closure; combined staging/master gates and genuine deployed XLE proof remain mandatory. The wider AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 criteria, holds and historical evidence remain open and unchanged. integration_capture: exact branch HEAD.",
+  "closure_pending": true,
+  "closure_summary": "ETF assigned platform-usability implementation is in progress; no completion is claimed. Root owns acceptance, integration, deployment and final genuine-flow proof. The original ETF roadmap and all holds/history remain preserved.",
   "continuation_goal": {
     "accounting_note": "This is the same unbudgeted ordinary ticker-selection goal in the original thread. Prior completed goal accounting and accepted checkpoints remain archived unchanged.",
     "created_at_epoch": 1793705535,
@@ -92,37 +105,68 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Exact staging 139b350 CI 42211787590 and master provenance CI 42222793213 are terminal green and were adopted normally. Root reports private deployment and genuine NVDA/XLE/IYF dashboard proof; native-wait proof and final guide remain Root-owned and pending. AC1-AC14, all Tier-0/Tier-1 criteria, holds, datasets, histories and wider roadmap remain open.",
-  "current_checkpoint_objective": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
-  "current_local_delta": {
-    "type": "test-only",
-    "paths": [
-      "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py"
-    ],
-    "test_file_sha256": "a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d",
-    "product_code_changed": false
+  "current_blocker_latest": "Provider contract blobs from exact source 3d10c4c4662249b53a6e3fc497f1d260b59b2079 are consumed unchanged; Provider runtime wiring still awaits normal green staging adoption. Backend preparation/hook tests passed 29/29, ETFHoldingsView passed 21/21, and typed quota retry propagation is covered. The ETF-only browser spec and Root-owned combined proof remain pending.",
+  "current_checkpoint_acceptance": {
+    "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
+    "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
+    "integration_capture": "exact branch HEAD",
+    "status": "in_progress"
   },
-  "dirty_paths": [],
-  "docker": {
-    "accounting_complete": true,
-    "available": true,
-    "build_cache_bytes": null,
-    "container_count": 0,
-    "containers": [],
-    "known_bytes": 463900089,
-    "over_budget": false,
-    "projects": [
-      "charting-dev-feat-etf-holdings-constituents-fdc36fa2",
-      "charting-stack-feat-etf-holdings-constituents-fdc36fa2"
+  "current_checkpoint_objective": "Implement ETF-owned automatic issuer holdings preparation for the human-activated platform-usability release: connect a durable shared request to exact resolved ETF issuer routes, keep holdings independent from profile/history outcomes, and preserve truthful selected-fund cache/context/provenance.",
+  "current_context_adoption": {
+    "adoption": "normal non-fast-forward merge in the existing ETF worktree; no conflicts",
+    "assigned_checkpoint": "platform-usability-etf-holdings-2026-11-06",
+    "backend_tree": "2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc",
+    "backend_tree_sha": "2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc",
+    "component_equivalence": "backend and frontend trees byte-identical to released 139b350",
+    "frontend_tree": "9df32b87de20826dbe0e32c739d2cbf0d9e1a634",
+    "frontend_tree_sha": "9df32b87de20826dbe0e32c739d2cbf0d9e1a634",
+    "master_provenance_ci": 42222793213,
+    "merge_commit": "b09448d88af51f9daa28f214bf5754685959622c",
+    "pre_adoption_head": "a3819bef8672ee66c51ebc9f49fda2f79eb1755c",
+    "released_sha": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "remaining": "Root-owned native-wait proof and final guide; wider ETF roadmap stays open",
+    "root_reported_private_deployment_and_ui_evidence": "NVDA 498 D1 / 104 W1 / 25 MN; XLE 24 own holdings; IYF ACGL from provisional 0 to 498 candles on same Dashboard with dated provenance; business-row/schema/quota preservation verified",
+    "source_baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "staging_ci": 42211787590,
+    "status": "adopted green context; new assigned platform-usability checkpoint active"
+  },
+  "current_local_delta": {
+    "focused_evidence": "Backend ETF preparation/helper/hook 29 passed; ETFHoldingsView unit suite 21 passed; Ruff check/format passed. The first typed-retry test invocation had 2 fixture setup failures (mock instrument lacked name), then the exact 2 tests passed and the corrected 29-test slice passed. No DB/browser/provider/production operation.",
+    "paths": [
+      "backend/app/schemas/data_preparation.py",
+      "backend/app/services/data_preparation_contracts.py",
+      "backend/app/services/etf_holdings_preparation.py",
+      "backend/app/services/etf_holdings_refresh.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation.py",
+      "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+      "frontend/src/views/ETFHoldingsView.vue",
+      "frontend/tests/unit/views/test_etf_holdings_view.test.ts"
     ],
-    "testcontainer_sessions": [],
-    "threshold_bytes": 5000000000,
-    "unattributed_shared_layers_excluded": true,
-    "unique_image_bytes": 0,
-    "unknown_components": [],
-    "volume_bytes": 463900089,
-    "volume_count": 2,
-    "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
+    "provider_dependency": {
+      "contract_blob": "5c39b34a8b8a4ad310d2d5bb6023de2d0b5bd351",
+      "schema_blob": "dfef0eca2393c6a32c16767c231dd4e4288b6801",
+      "source_commit": "3d10c4c4662249b53a6e3fc497f1d260b59b2079",
+      "unchanged": true
+    },
+    "type": "ETF automatic holdings preparation and selected-profile integrity guard"
+  },
+  "dirty_paths": [
+    "backend/app/services/etf_holdings_refresh.py",
+    "frontend/src/views/ETFHoldingsView.vue",
+    "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+    "ops/workstreams/feat-etf-holdings-constituents/handoff.md",
+    "ops/workstreams/feat-etf-holdings-constituents/plan.yaml",
+    "ops/workstreams/feat-etf-holdings-constituents/session.json",
+    "backend/app/schemas/data_preparation.py",
+    "backend/app/services/data_preparation_contracts.py",
+    "backend/app/services/etf_holdings_preparation.py",
+    "backend/tests/unit/services/test_etf_holdings_preparation.py",
+    "backend/tests/unit/services/test_etf_holdings_preparation_hook.py"
+  ],
+  "docker": {
+    "available": false,
+    "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
   },
   "docker_ready": {
     "ready": true,
@@ -137,15 +181,15 @@
     "validated_source_sha": "8e84e7a75fd7c60deb9255f5c9da9b5fe5475e85"
   },
   "goal_budget_policy": "unbounded_unless_human_authorized",
-  "goal_objective": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
-  "goal_recorded_at": "2026-11-03T11:32:15Z",
+  "goal_objective": "Advance feat/etf-holdings-constituents: Implement ETF-owned automatic issuer holdings preparation for the human-activated platform-usability release: connect a durable shared request to exact resolved ETF issuer routes, keep holdings independent from profile/history outcomes, and preserve truthful selected-fund cache/context/provenance.. Acceptance criteria: EHP1: A resolved exact ETF request automatically schedules/executes its issuer-holdings dataset through the shared durable request path; selection does not require another Fetch/Refresh click and suggestion discovery alone does not fan out.; EHP2: The ETF-owned preparation callable consumes the published Provider request/queue context and an already-resolved canonical Instrument, reuses existing issuer route/admission/cache/freshness/retry contracts, and returns truthful dataset state, coverage/progress, reason, retry time when known, and acquired-state information without editing shared Provider files.; EHP3: Holdings failure, hold, or missing route is independent from identity/profile/price-history success; no old fund rows are shown as the selected fund, stale snapshots remain dated and truthful, and selection-generation fencing prevents late responses from replacing the new context.; EHP4: Native issuer provenance, composition date, known_at, raw/source lineage and exact fund identity survive cache reuse and reload for arbitrary supported issuer routes; cache hits avoid unnecessary source transport and existing quota/hold semantics remain authoritative.; EHP5: Focused offline service/component tests and a new ETF-only journey spec cover automatic first availability, cached/reselect and delayed selection, independent holdings failure, unsupported/held route, truthful stale provenance, and no user-visible required fetch action; no unrelated files or external sources are used.. Required local profile: full_stack_browser. Stop at ready_for_human_review; do not integrate, promote, deploy, or modify another worktree.",
+  "goal_recorded_at": "2026-11-06T18:07:23Z",
   "goal_request": {
-    "objective": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts."
+    "objective": "Implement ETF-owned automatic issuer holdings preparation for the human-activated platform-usability release: connect a durable shared request to exact resolved ETF issuer routes, keep holdings independent from profile/history outcomes, and preserve truthful selected-fund cache/context/provenance."
   },
-  "goal_request_state": "complete",
-  "goal_state": "complete",
+  "goal_request_state": "active",
+  "goal_state": "active",
   "goal_unavailable_reason": null,
-  "head": "b09448d88af51f9daa28f214bf5754685959622c",
+  "head": "54a199c325319d80ad772c667b1aaf7bb128029a",
   "historical_accepted_vaneck_recovery_follow_up_20261029": {
     "baseline_head": "ccf95f3d6ab4a1cf4a5713800d391ce78badc9a5",
     "exact_implementation_ci": {
@@ -352,6 +396,14 @@
     "summary": "Root accepted the bounded ODC software checkpoint at tested source e589cda929b06c0af889344342c4ee73256bae7f under the recorded standing delegation; acceptance is documented at /home/m920q/charting-platform/.ai/staging-attempts/etf-on-demand-software-checkpoint-acceptance-20261028.md. Implementation commit 7157269abced8fc975f9dffd9441b81c11ebed08 and tested branch source are recorded separately. Root audit: 6124 unique backend IDs, 5568 unit pass/1 existing skip, 551 integration pass/4 skips, and 84.4% combined coverage. The two PostgreSQL-only DDL cases skipped under the assigned DSN passed separately 2/2 with TEST_DATABASE_URL unset and no coverage output; composite integration qualification is 553 pass/2 existing held skips. Functional 196 pass/2 existing skips, strict visual 104/104, and exact e589 CI 40591323573 passed. Root cleanup audit reports the project empty and protected resources preserved. Closing-record-tip CI is pending. No actual OIH/source request, quota reservation, target mutation, policy activation, or native qualification occurred. Preserve all14 roadmap criteria, 15 Tier-0 and 156 Tier-1, 74 fallback identities, 119 spent requests, holds/quarantines, raw/PIT lineage, and the 30-day observation.",
     "tested_source_sha": "e589cda929b06c0af889344342c4ee73256bae7f"
   },
+  "historical_completed_vaneck_clock_goal_before_a9_adoption_2026_11_06": {
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793929180,
+    "objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
+    "status": "complete",
+    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
+    "token_budget": null
+  },
   "historical_continuation_goal_before_quota_repair_2026_10_30": {
     "accounting_note": "New unbudgeted continuation goal in the same native thread after the bounded EICP checkpoint goal was completed; no usage reset or budget was imposed.",
     "created_at_epoch": 1792698482,
@@ -363,7 +415,7 @@
   "historical_continuation_goal_before_runner_repair_2026_10_30": {
     "accounting_note": "Existing unbudgeted native goal resumed in place for this bounded repair; no reset, replacement, or usage accounting change.",
     "created_at_epoch": 1793354839,
-    "objective": "Repair the ETF post-transport successor\u2019s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
+    "objective": "Repair the ETF post-transport successor’s strict spent-reservation verifier to bind the actual immutable VanEck historical quota_group=oih_first_sample and dimension=vaneck_oih_first_sample_requests_120s pair with unit=requests, preserving all existing scope, chronology, settled-state, no-receipt, and lineage checks. Reconcile the exact green staging cb8240f69647138a9fdbdd932620e81aeb39cff0 without staging writes, add actual retained-row shape and wrong-group/dimension regression tests, run focused regression and required exact branch validation/CI, then prepare a Root-reviewable final qualification proposal. Preserve all accepted checkpoint/archive/journal/full AC1-AC14 roadmap and live-source/target/quota holds. Do not perform live source requests or heavy fixtures without Root release.",
     "status": "active",
     "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
     "token_budget": null
@@ -667,57 +719,57 @@
     "released_staging_sha": "f04fb2a26c6363c6090e76c2658cfcfe7adabf61",
     "source_before_merge": "8e25283c7464ec429a96c7216eeeb0becc79de37"
   },
-  "human_closure_authorization": "Root accepted the bounded SPDR route-composition checkpoint under the existing standing human-delegated acceptance authority; this records Root delegated acceptance and does not claim a new human statement.",
+  "human_closure_authorization": "Implementation is authorized under the human-activated platform-usability plan; checkpoint acceptance and release remain pending.",
   "implementation_sha": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
   "implementation_source_baseline": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
   "integration_capture": "exact branch HEAD",
   "integration_checkpoint": {
-    "id": "vaneck-authentic-fixture-clock-2026-11-06",
-    "goal": "Make the three date-sensitive VanEck qualification and ordinary-refresh integration tests deterministic as their authentic 2026-10-29 fixtures age, without altering fixture evidence or freshness behavior.",
-    "status": "ready_for_human_review",
     "activation": "Root authorized this narrowly scoped repair under the existing active ETF owner session; no new human quote or acceptance is claimed.",
-    "failed_predecessor": {
-      "source": "2f152978",
-      "ci_run": 42141483157,
-      "result": "Backend unit 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed. All three failures were the two VanEck test functions, with the identity-successor test parameterized for PostgreSQL and SQLite."
-    },
     "diagnosis": "The unchanged authentic workbooks report composition date 2026-10-29. Under the existing five-day daily freshness window, that evidence is expired by 2026-11-06. The tests failed because their application clock advanced while fixture date and freshness contract correctly remained fixed.",
+    "exact_source_ci": {
+      "green_claimed": false,
+      "state": "pending_Root_owned"
+    },
+    "failed_predecessor": {
+      "ci_run": 42141483157,
+      "result": "Backend unit 5908 passed/1 skipped; integration 623 passed/2 skipped/3 failed. All three failures were the two VanEck test functions, with the identity-successor test parameterized for PostgreSQL and SQLite.",
+      "source": "2f152978"
+    },
+    "fixture_sha256": {
+      "backend/tests/fixtures/vaneck/oih_job6_identity.xlsx": "c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2",
+      "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx": "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653"
+    },
+    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, historical failures and accepted checkpoints remain preserved and open.",
+    "goal": "Make the three date-sensitive VanEck qualification and ordinary-refresh integration tests deterministic as their authentic 2026-10-29 fixtures age, without altering fixture evidence or freshness behavior.",
+    "id": "vaneck-authentic-fixture-clock-2026-11-06",
     "implementation": {
-      "type": "test-only clock fixture",
+      "fixture_bytes_changed": false,
+      "freshness_policy_changed": false,
       "frozen_now_utc": "2026-11-01T12:00:00Z",
       "production_code_changed": false,
-      "fixture_bytes_changed": false,
-      "freshness_policy_changed": false
+      "type": "test-only clock fixture"
     },
-    "test_file": "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
-    "test_file_sha256": "a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d",
-    "source_parent_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
-    "fixture_sha256": {
-      "backend/tests/fixtures/vaneck/oih_schema_continuity.xlsx": "11deec5585455293657854b25a8fc04e3e8c6d50cb35f5f759c6a58c4aae4653",
-      "backend/tests/fixtures/vaneck/oih_job6_identity.xlsx": "c29b4772408129a598cbff87ab61822d34ed3dbe4a2a61894437b128e00a20c2"
-    },
-    "validation_evidence": {
-      "affected_nodes": 3,
-      "result": "3 passed in 29.07s; exit 0",
-      "pytest_log": "/tmp/etf-vaneck-clock-repair-20261106/pytest.log",
-      "run_receipt": "/tmp/etf-vaneck-clock-repair-20261106/run-result.json",
-      "prelaunch": "/tmp/etf-vaneck-clock-repair-20261106/prelaunch.json",
-      "container_id": "80ecd2cf08010b8a610133f12e816dc42f49a28467c355dcd69016738edd9800",
-      "container_cleanup": "Post-run docker inspect returned no such object for the exact owned container ID. Before/after protected inventory counts were 33 containers, 26 images, 12 networks and 55 volumes; no new unowned container was present.",
-      "resource_bounds": "PostgreSQL: 1 CPU, 1 GiB memory, 1 GiB memory+swap, PIDs 128, 768 MiB private tmpfs; one worker, zero retries; external HTTP proxies loopback port 9."
-    },
-    "source_http_requests": 0,
+    "integration_capture": "exact branch HEAD",
     "production_or_ledger_mutation": false,
-    "exact_source_ci": {
-      "state": "pending_Root_owned",
-      "green_claimed": false
-    },
     "remaining_gates": [
       "Root-owned exact-source CI for the published checkpoint.",
       "Root-owned broader joint qualification and all later integration/deployment gates."
     ],
-    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, historical failures and accepted checkpoints remain preserved and open.",
-    "integration_capture": "exact branch HEAD"
+    "source_http_requests": 0,
+    "source_parent_sha": "375ce12f85ddb47b5f9fcde21e6e036ea5d80f4d",
+    "status": "ready_for_human_review",
+    "test_file": "backend/tests/integration/test_etf_holdings_provider_bridge_runtime.py",
+    "test_file_sha256": "a6974434078f020d109150c35df7f95f75ae0a4a77494af2f794e54195bb988d",
+    "validation_evidence": {
+      "affected_nodes": 3,
+      "container_cleanup": "Post-run docker inspect returned no such object for the exact owned container ID. Before/after protected inventory counts were 33 containers, 26 images, 12 networks and 55 volumes; no new unowned container was present.",
+      "container_id": "80ecd2cf08010b8a610133f12e816dc42f49a28467c355dcd69016738edd9800",
+      "prelaunch": "/tmp/etf-vaneck-clock-repair-20261106/prelaunch.json",
+      "pytest_log": "/tmp/etf-vaneck-clock-repair-20261106/pytest.log",
+      "resource_bounds": "PostgreSQL: 1 CPU, 1 GiB memory, 1 GiB memory+swap, PIDs 128, 768 MiB private tmpfs; one worker, zero retries; external HTTP proxies loopback port 9.",
+      "result": "3 passed in 29.07s; exit 0",
+      "run_receipt": "/tmp/etf-vaneck-clock-repair-20261106/run-result.json"
+    }
   },
   "interrupted_local_profile_execution": {
     "environment": {
@@ -762,16 +814,16 @@
     "sha": "802ef5b1e6a4246cc27f29da90950984878df947"
   },
   "latest_staging_baseline_adoption": {
-    "released_staging_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
     "canonical_receipt": "/home/m920q/charting-platform/.ai/validation/a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7.json",
     "canonical_receipt_sha256": "e0ba6d3e8505cf13b36d1bab8c7901adc9aab24aaf2332c5a77f537f2e067681",
-    "exact_staging_ci": 42184756530,
+    "deployment_or_target_claimed": false,
     "exact_master_provenance_ci": 42194282702,
+    "exact_staging_ci": 42184756530,
+    "integration_capture": "exact branch HEAD",
     "merge_conflicts": [],
     "merge_method": "normal non-fast-forward owner-branch merge",
-    "deployment_or_target_claimed": false,
-    "roadmap_activation": false,
-    "integration_capture": "exact branch HEAD"
+    "released_staging_sha": "a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7",
+    "roadmap_activation": false
   },
   "latest_staging_reconciliation": {
     "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261103T215939Z-4d4a278b1b08.json",
@@ -1001,7 +1053,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "8fd707d9fc31127c8d38e047320aeff31a3d24251c0d878e5041a825d1d7e487",
+  "plan_hash": "a85896a2dce73e6835d5bbcadfb94bdf2c89badb3729d270f36a6aca6f3d4c55",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -1137,6 +1189,19 @@
     ],
     "state": "root_accepted_bounded_software_checkpoint_implementation_7449f84e; closing_tip_CI_pending"
   },
+  "previous_active_changeset_spdr_sector_route_2026_11_06": {
+    "baseline": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
+    "exact_source_ci": "run_42199229443_pending_Root_terminal_green",
+    "focused_validation": "5 focused route tests passed in 7.62s on the final implementation; Ruff check/format, workstream validation, broad-scope classification, diff check, and plan/session history assertions passed.",
+    "green_claimed": false,
+    "name": "SPDR sector route metadata composition",
+    "scope": "Merge existing SPDR route aliases only into compatible same-issuer metadata; preserve other aliases and leave issuer/adapter conflicts unchanged.",
+    "source_paths": [
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py"
+    ],
+    "status": "Root_accepted_ready_for_integration; exact_implementation_CI_pending"
+  },
   "previous_active_follow_up_pre_calendar_repair_2026_10_31": {
     "adopted_staging_sha": "870d37dcc2b9715402ccfefce12a61020465ab35",
     "adoption": "Exact synchronized-green staging was fast-forward adopted in this same branch before the runner repair.",
@@ -1161,7 +1226,42 @@
     "tested_implementation_sha": "d31b84ab3514500729e3cf8b04e36a42c34e031c",
     "validation_tier": "full_integration"
   },
+  "previous_active_follow_up_spdr_sector_route_2026_11_06": {
+    "id": "spdr-sector-route-metadata-composition-2026-11-06",
+    "scope": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
+    "source_parent_sha": "e61d806e36508392a37d38f43584ad6fd3fd9e1d",
+    "status": "Root_accepted_ready_for_integration; exact_implementation_CI_pending"
+  },
+  "previous_active_goal_context_adoption_a9_2026_11_06": {
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793957192,
+    "objective": "Adopt exact green context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 into this ETF owner branch with one records-only handoff, preserve the full roadmap, and leave broader work unactivated.",
+    "status": "complete",
+    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
+    "token_budget": null
+  },
+  "previous_active_goal_spdr_sector_route_2026_11_06": {
+    "completed_goal_history_preserved": true,
+    "created_at_epoch": 1793958254,
+    "objective": "Compose the verified State Street SPDR adapter route into compatible pre-existing canonical issuer metadata so all eleven sector ETF presets can reach the existing exact-fund workbook flow without losing identifiers or overriding conflicts.",
+    "status": "complete",
+    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
+    "token_budget": null
+  },
+  "previous_checkpoint_acceptance_spdr_sector_route_2026_11_06": {
+    "checkpoint_id": "spdr-sector-route-metadata-composition-2026-11-06",
+    "exact_implementation_ci": "139b350 staging CI 42211787590 and master provenance CI 42222793213 terminal green; Root reports deployed",
+    "focused_evidence": "Five focused route tests passed; lint, workstream/record and scope guards passed.",
+    "integration_capture": "exact branch HEAD",
+    "root_delegated_acceptance": "Root accepted under standing human-delegated checkpoint acceptance; no new human quote is asserted.",
+    "status": "accepted_checkpoint_preserved; green context adopted; wider roadmap open",
+    "tested_implementation_sha": "ec861fdd9d7d22df8882c67271a2d07e6f877229"
+  },
   "previous_checkpoint_snapshot_2026_10_23T184439Z": "At2026-10-23T18:44:39Z: Exact c451 CI40001975210 remains terminal RED with 498 integration passed, 3 failed, 2 skipped and Frontend passed. Local correction commit cf97bc64a75969dd7e0fb300b4f05b3ebabc914c fixes the two duplicate-backfill status failures and uses an unread streamed 302 fixture; its SEC/bridge/provisioning units passed61/61. Accepted green staging a6b9cc8d4fc253d90a9e823e25f873edcaaf6d5e was merged conflict-free at c2c57b5bfe271c1ea963a145ab4e0c6d6180a9f2, with post-merge migration-compatibility19/19, workflow56/56, Ruff and format checks green. The one-shot DB slot refused at1425592KiB below1536MiB; no test resources created. Final workstream validation passed, including the exact 15 Tier-0 and 156 Tier-1 count sentinel, session/JSONL parsing, plan-hash match5df626c0d71297b397eb413543bc05b13e0979b864e52b44a82a338b4fe02c04, and diff check. Adoption-record commit/push and exact combined-source CI remain pending; DB proof, full_stack_browser and applicable live evidence remain open, full roadmap and holds preserved.",
+  "previous_goal_request_context_adoption_a9_2026_11_06": {
+    "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
+  },
+  "previous_latest_checkpoint_before_a9_2026_11_06": "Root accepted the narrow SPDR provenance-fixture correction after CI41956681710 exposed that the exact expected fund_identity omitted requested_source_url. The corrected isolated PostgreSQL node passed 1/1 in24.92s. Exact final-tip CI is pending and mandatory; Root owns observation. Earlier red CI and failed one-shot/source histories remain preserved; full roadmaps and holds remain open.",
   "previous_latest_staging_baseline_adoption_2026_11_02": {
     "backend_frontend_product_changes_in_adoption": "none; the following runner repair changes scripts and workflow tests only",
     "master_or_deployment_acceptance_claimed": false,
@@ -1173,6 +1273,20 @@
     "root_release_review": "/home/m920q/charting-platform/.ai/staging-attempts/etf-870d-master-runner-timeout-remediation-root-review-20261030.json",
     "root_release_review_sha256": "da4780ab9674c10b22e1533c55dd506d02f62ff030a09bfd7db91fe9cae3812d",
     "source_commit_before_merge": "a45d1e2e8312819c640693ad340d1fc4e917debb"
+  },
+  "previous_latest_staging_baseline_adoption_before_a9_2026_11_06": {
+    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261104T111148Z-4de1365cec4b.json",
+    "canonical_receipt_sha256": "ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea",
+    "exact_ci_run": 41805745211,
+    "master_or_deployment_claim": false,
+    "master_or_deployment_claimed": false,
+    "merge_conflicts": [],
+    "pre_adoption_feature_sha": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
+    "product_delta_imported": "Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adopted through normal same-branch merge; resulting backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c",
+    "release_state": "exact synchronized-green staging normally merged into the assigned ETF branch",
+    "released_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
+    "resulting_head": "3a8e205921071923e1517eabb7623f01ded77935",
+    "source_changes_after_merge": "Green staging ancestry is in the source; tested ETF implementation is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. No sibling source copy."
   },
   "previous_latest_staging_baseline_adoption_before_cb_2026_10_30": {
     "adoption_method": "merge_exact_released_origin_staging_into_existing_owned_branch",
@@ -1288,6 +1402,16 @@
     "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
     "total": 4
   },
+  "previous_session_closure_before_spdr_route_checkpoint_2026_11_06": {
+    "closure_pending": true,
+    "closure_summary": "Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules. The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.",
+    "human_closure_authorization": "Root accepted this bounded implementation under existing human-delegated authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. No new human quote is claimed."
+  },
+  "previous_session_closure_spdr_sector_route_2026_11_06": {
+    "closure_pending": false,
+    "closure_summary": "Root accepted the shared SPDR route-composition fix at tested implementation ec861fdd9d7d22df8882c67271a2d07e6f877229. Five focused route tests, lint, workstream/record and scope guards passed. The fix adds the existing SPDR route aliases only to compatible same-issuer metadata, preserving existing identifiers and leaving conflicting metadata unchanged; adapter URLs, workbook parsing/fund identity, native contracts and quotas are unchanged. No migrations, product configuration, policy/quota changes, or external source calls occurred. Exact implementation CI 42199229443 must be terminal green before Root pushes this records-only closure; combined staging/master gates and genuine deployed XLE proof remain mandatory. The wider AC1-AC14 roadmap, 15 Tier-0 and 156 Tier-1 criteria, holds and historical evidence remain open and unchanged. integration_capture: exact branch HEAD.",
+    "human_closure_authorization": "Root accepted the bounded SPDR route-composition checkpoint under the existing standing human-delegated acceptance authority; this records Root delegated acceptance and does not claim a new human statement."
+  },
   "previous_session_ids": [
     "197b239d-3322-4fc6-bf4b-0d0aecebf5e0",
     "5b434602-fc78-40c5-8f0a-0960badecb67",
@@ -1349,6 +1473,96 @@
       "exact closing-tip owner-branch CI after this records-only publication; Root verifies externally"
     ],
     "status": "root_accepted_bounded_software_checkpoint_ready_for_integration; closing_tip_CI_pending"
+  },
+  "previously_accepted_capability_get_checkpoint_2026_11_05": {
+    "acceptance_authorization": "accepted_by_root_under_existing_human_delegated_checkpoint_authority",
+    "acceptance_criteria": [
+      {
+        "id": "NCP1",
+        "text": "Derive current identity and analysis capability from the persisted native qualification evidence only when canonical instrument/fund, profile, provider/adapter, source URL and identifier, composition date, schema, completeness, payload hash, and captured-body or retained-continuation lineage match the selected snapshot; valid retained SPY7/IGV8 reads become current and usable without mutation."
+      },
+      {
+        "id": "NCP2",
+        "text": "Fail closed for missing evidence, wrong symbol/provider/date/schema/raw hash, incomplete composition, or missing retained artifact; Root verified all eight negative bindings for each retained SPY and IGV case against the exact new backend image."
+      },
+      {
+        "id": "NCP3",
+        "text": "Do not rewrite existing snapshots, jobs, or raw artifacts. Write a verified projection only when a new continuation snapshot is created; infer SPY daily cadence only from explicit source metadata and keep IGV cadence unspecified."
+      },
+      {
+        "id": "NCP4",
+        "text": "Qualify the exact runtime and paired served application through Root-pinned backend CI, the combined functional and strict-visual profile, served Enter/Go regressions, and protected-inventory evidence with assertions, references, tolerances, and zero-retry policy unchanged."
+      }
+    ],
+    "accepted_profile": {
+      "functional_proof_sha256": "c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a",
+      "protected_inventory_after_sha256": "85e117d60259a434f757dff195e77401a48ed0bf42ea80506dba64224c1f1ec4",
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+      "receipt_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+      "served_enter_go_proof_sha256": "c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7",
+      "strict_visual_proof_sha256": "265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e",
+      "summary": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired."
+    },
+    "backend_artifact": {
+      "backend_tree": "e1bc0af5c1da5151b67ebc88dfffb480897df5ff",
+      "image": "sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a",
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-6eae00eb-backend-artifact-20261105/artifact-receipt.json",
+      "receipt_sha256": "00511754d09713b7847bf3aa3e16733c5aaed35547dfcf67a7356436ab2723bf"
+    },
+    "exact_closing_tip_ci": {
+      "green_claimed": false,
+      "owner": "Root observes; no feature-session CI polling or rerun",
+      "required": true,
+      "state": "pending_after_this_records_only_publication"
+    },
+    "exact_runtime_ci": {
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json",
+      "receipt_sha256": "70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1",
+      "run": 42009540648,
+      "state": "terminal_green_on_tested_implementation_only",
+      "summary": "Exact runtime-source CI42009540648 on 6eae00eb is terminal green: Backend 5,880 passed/1 unchanged configured skip, integration 625 passed/2 configured skips, 84% combined coverage, both canonical DDL tests passed; Frontend Unit, E2E, and Branch-declared jobs succeeded. This is runtime-source CI, not the final closing-tip CI."
+    },
+    "existing_snapshot_job_raw_artifact_mutation": false,
+    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, datasets, historical failures, accepted archives, and genuine deployment/user-flow obligations remain open and preserved.",
+    "goal": "Close the accepted strict native capability-projection follow-up. Read the immutable native qualification evidence faithfully for selected-acquire consumers; retain historical source records and all broader ETF obligations.",
+    "id": "etf-native-capability-projection-20261105",
+    "integration_capture": "exact branch HEAD",
+    "intermediate_TC_runtime_ci": {
+      "qualification_note": "Not used as final closing-tip qualification; final exact closing CI remains mandatory.",
+      "receipt_sha256": "f43d9373c53cb8d6da95d657b3955d5aba8f8f5f9444e3e9bb76a4b44a36807c",
+      "run": 42013633810,
+      "state": "in_progress_at_pinned_observation_in_Root_receipt"
+    },
+    "local_profile_evidence": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired.",
+    "local_validation_profile": "full_stack_browser",
+    "paired_frontend_runtime_sha": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
+    "production_or_ledger_mutation": false,
+    "progress": {
+      "completed": [
+        "NCP1",
+        "NCP2",
+        "NCP3",
+        "NCP4"
+      ],
+      "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates.",
+      "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
+      "total": 4
+    },
+    "remaining_gates": [
+      "Exact final closing-tip CI must be terminal green before integration.",
+      "Root owns accepted compatible ETF→TC staging, green staging and independent master gates.",
+      "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
+    ],
+    "retained_input_proof": {
+      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json",
+      "sha256": "26d724cd47335e9c745cd89618c9d527214b0d75887871626792b308be82cbb4",
+      "summary": "Exact 6eae image offline check: SPY snapshot7/artifact22 505 rows and IGV snapshot8/artifact23 110 rows, both dated 2026-11-03 and current/identity-verified/usable; eight negative binding cases passed per fund. Existing historical metadata remained byte-for-byte unchanged; zero DB/network mounts and zero snapshot/source operations."
+    },
+    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
+    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
+    "source_http_requests": 0,
+    "status": "accepted_ready_for_integration_closing_tip_CI_pending",
+    "tested_implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce"
   },
   "previously_accepted_checkpoint_acceptance_criteria": [
     {
@@ -1772,7 +1986,7 @@
       "full_local_matrix": ".ai/validation/etf-full-profile-a198ef83-attempt6-b-matrix.md",
       "full_roadmap": "all fourteen original criteria, issuer onboarding and post-integration 30-day observation remain open",
       "hosted_CI": "pending; mandatory on the exact final published HEAD (D)",
-      "human_acceptance_delegation": "Yes\u2014approve that initial scope and handle checkpoint acceptance.",
+      "human_acceptance_delegation": "Yes—approve that initial scope and handle checkpoint acceptance.",
       "provider_release": "9b230ba4c97126a2937667138c6eb2a0aa297baf",
       "validated_implementation_sha": "79e0604c0a4b398a0fd92bdd4b099c308eee43eb"
     },
@@ -3250,14 +3464,10 @@
     }
   },
   "progress": {
-    "completed": [
-      "SPR1",
-      "SPR2",
-      "SPR3"
-    ],
-    "total": 3,
-    "current_phase": "Root accepted the bounded route-composition checkpoint; exact implementation CI and downstream release gates remain pending.",
-    "current_blocker": "Exact 139b350 staging/master gates and private deployment are complete per Root. Root-owned native-wait proof and final guide remain pending. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds, datasets, histories, and wider roadmap remain open."
+    "completed": [],
+    "current_blocker": "Normal green Provider staging adoption is still required before shared runtime wiring is available; the new ETF-only browser journey and Root-owned combined proof remain pending.",
+    "current_phase": "ETF hook uses the exact Provider DTOs, exact persisted-snapshot/capability checks, and typed retry preservation; focused service/view checks pass.",
+    "total": 5
   },
   "provider_release": {
     "boundary": "Provider and Strategy staging baseline only; ETF remains in_progress/not accepted. No live issuer/provider/SEC calls, quota spend, paid/trial activation, deployment, or ETF whole-roadmap acceptance.",
@@ -3314,10 +3524,10 @@
     "state": "terminal_green_all_required_jobs",
     "supported_reconcile": "make staging-reconcile exited0; synchronized; marker absent"
   },
-  "remote": "a3819bef8672ee66c51ebc9f49fda2f79eb1755c",
+  "remote": "54a199c325319d80ad772c667b1aaf7bb128029a",
   "remote_observation": "Pre-publication status was captured at local base45cc8206602d7823ca29e132d991d88b0bcbbc25 with origin feature66b9c6733a8de3d3fc5267a1079016b86bd76021; one coherent accepted-source publication is now authorized. Exact closing-tip CI and staging remain Root-owned.",
-  "remote_sha": "a3819bef8672ee66c51ebc9f49fda2f79eb1755c",
-  "remote_synchronized": false,
+  "remote_sha": "54a199c325319d80ad772c667b1aaf7bb128029a",
+  "remote_synchronized": true,
   "roadmap_acceptance_criteria": [
     {
       "id": "AC1",
@@ -3545,157 +3755,5 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-etf-holdings-constituents",
-  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a",
-  "previously_accepted_capability_get_checkpoint_2026_11_05": {
-    "acceptance_authorization": "accepted_by_root_under_existing_human_delegated_checkpoint_authority",
-    "acceptance_criteria": [
-      {
-        "id": "NCP1",
-        "text": "Derive current identity and analysis capability from the persisted native qualification evidence only when canonical instrument/fund, profile, provider/adapter, source URL and identifier, composition date, schema, completeness, payload hash, and captured-body or retained-continuation lineage match the selected snapshot; valid retained SPY7/IGV8 reads become current and usable without mutation."
-      },
-      {
-        "id": "NCP2",
-        "text": "Fail closed for missing evidence, wrong symbol/provider/date/schema/raw hash, incomplete composition, or missing retained artifact; Root verified all eight negative bindings for each retained SPY and IGV case against the exact new backend image."
-      },
-      {
-        "id": "NCP3",
-        "text": "Do not rewrite existing snapshots, jobs, or raw artifacts. Write a verified projection only when a new continuation snapshot is created; infer SPY daily cadence only from explicit source metadata and keep IGV cadence unspecified."
-      },
-      {
-        "id": "NCP4",
-        "text": "Qualify the exact runtime and paired served application through Root-pinned backend CI, the combined functional and strict-visual profile, served Enter/Go regressions, and protected-inventory evidence with assertions, references, tolerances, and zero-retry policy unchanged."
-      }
-    ],
-    "accepted_profile": {
-      "functional_proof_sha256": "c0e8e31e7292ddc9248dda12ad93b83ca35ab040f0b722f4af30db28de219c5a",
-      "protected_inventory_after_sha256": "85e117d60259a434f757dff195e77401a48ed0bf42ea80506dba64224c1f1ec4",
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-      "receipt_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
-      "served_enter_go_proof_sha256": "c7eae8d1c3e045c2572200498649ea012e5669e6458f259e57819a6fa1687be7",
-      "strict_visual_proof_sha256": "265e089deb4a25943494df8682c284d1ec7f31879928b6aa36750c121984730e",
-      "summary": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired."
-    },
-    "backend_artifact": {
-      "backend_tree": "e1bc0af5c1da5151b67ebc88dfffb480897df5ff",
-      "image": "sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a",
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-6eae00eb-backend-artifact-20261105/artifact-receipt.json",
-      "receipt_sha256": "00511754d09713b7847bf3aa3e16733c5aaed35547dfcf67a7356436ab2723bf"
-    },
-    "exact_closing_tip_ci": {
-      "green_claimed": false,
-      "owner": "Root observes; no feature-session CI polling or rerun",
-      "required": true,
-      "state": "pending_after_this_records_only_publication"
-    },
-    "exact_runtime_ci": {
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-exact-ci-root-review-20261105.json",
-      "receipt_sha256": "70c1c6c72415691266f6d0f289fc4d109bafa68a6fb976242ca3f3ff20be79f1",
-      "run": 42009540648,
-      "state": "terminal_green_on_tested_implementation_only",
-      "summary": "Exact runtime-source CI42009540648 on 6eae00eb is terminal green: Backend 5,880 passed/1 unchanged configured skip, integration 625 passed/2 configured skips, 84% combined coverage, both canonical DDL tests passed; Frontend Unit, E2E, and Branch-declared jobs succeeded. This is runtime-source CI, not the final closing-tip CI."
-    },
-    "existing_snapshot_job_raw_artifact_mutation": false,
-    "full_roadmap_status": "AC1-AC14, 15 Tier-0 and 156 Tier-1, all source/account/target holds, datasets, historical failures, accepted archives, and genuine deployment/user-flow obligations remain open and preserved.",
-    "goal": "Close the accepted strict native capability-projection follow-up. Read the immutable native qualification evidence faithfully for selected-acquire consumers; retain historical source records and all broader ETF obligations.",
-    "id": "etf-native-capability-projection-20261105",
-    "integration_capture": "exact branch HEAD",
-    "intermediate_TC_runtime_ci": {
-      "qualification_note": "Not used as final closing-tip qualification; final exact closing CI remains mandatory.",
-      "receipt_sha256": "f43d9373c53cb8d6da95d657b3955d5aba8f8f5f9444e3e9bb76a4b44a36807c",
-      "run": 42013633810,
-      "state": "in_progress_at_pinned_observation_in_Root_receipt"
-    },
-    "local_profile_evidence": "Root accepted the combined served backend sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend sha256:38a328905fc1cb71208ad143db89d7848495f6d3fcf96414b02f0d42aa505076 profile: 203 functional passed, 2 configured opt-in skips, 0 failed; 104 strict visual passed across 4 projects, 0 skips/failures; 2 served Enter/Go partial-local-hit regressions passed; all zero retries and references/tolerances unchanged. Protected containers, volumes, networks, and retained images were preserved; only two specifically authorized obsolete validation images were retired.",
-    "local_validation_profile": "full_stack_browser",
-    "paired_frontend_runtime_sha": "36e7ad2cb08c769a242773ab2b6be69fcc350774",
-    "production_or_ledger_mutation": false,
-    "progress": {
-      "completed": [
-        "NCP1",
-        "NCP2",
-        "NCP3",
-        "NCP4"
-      ],
-      "current_blocker": "Exact closing-tip CI for this records-only commit remains mandatory and Root-owned. Root also owns staging/master integration, deployment, and genuine post-deployment user-flow gates.",
-      "current_phase": "Root accepted the strict native capability-projection checkpoint; one records-only closure publication is being prepared.",
-      "total": 4
-    },
-    "remaining_gates": [
-      "Exact final closing-tip CI must be terminal green before integration.",
-      "Root owns accepted compatible ETF\u2192TC staging, green staging and independent master gates.",
-      "Root owns protected deployment and subsequent genuine deployed user-flow/source/account checks; broader AC1-AC14 and Tier-0/Tier-1 roadmap remains open."
-    ],
-    "retained_input_proof": {
-      "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-ETF-6eae-real-retained-input-root-acceptance-20261105.json",
-      "sha256": "26d724cd47335e9c745cd89618c9d527214b0d75887871626792b308be82cbb4",
-      "summary": "Exact 6eae image offline check: SPY snapshot7/artifact22 505 rows and IGV snapshot8/artifact23 110 rows, both dated 2026-11-03 and current/identity-verified/usable; eight negative binding cases passed per fund. Existing historical metadata remained byte-for-byte unchanged; zero DB/network mounts and zero snapshot/source operations."
-    },
-    "root_acceptance_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/shared-profile-root-acceptance.json",
-    "root_acceptance_sha256": "1f488c7c808e69541590979caba1e5d658aace63de58aa38258b4b2bfb02fb40",
-    "source_http_requests": 0,
-    "status": "accepted_ready_for_integration_closing_tip_CI_pending",
-    "tested_implementation_sha": "6eae00eb8380438da771fed0c42d19587e9520ce"
-  },
-  "historical_completed_vaneck_clock_goal_before_a9_adoption_2026_11_06": {
-    "completed_goal_history_preserved": true,
-    "created_at_epoch": 1793929180,
-    "objective": "Diagnose and repair the three VanEck native qualification/ordinary-refresh PostgreSQL and SQLite integration failures from Provider CI 42141483157, preserving source identity, body/date/quota/provenance and one-shot assertions; run only affected nodes and focused guards, then publish a coherent checkpoint for Root review.",
-    "status": "complete",
-    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
-    "token_budget": null
-  },
-  "current_context_adoption": {
-    "released_sha": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "staging_ci": 42211787590,
-    "master_provenance_ci": 42222793213,
-    "adoption": "normal non-fast-forward merge in the existing ETF worktree; no conflicts",
-    "pre_adoption_head": "a3819bef8672ee66c51ebc9f49fda2f79eb1755c",
-    "merge_commit": "b09448d88af51f9daa28f214bf5754685959622c",
-    "backend_tree_sha": "2dd5046fbc3edf9fe5d69659ae2dc2b1035177fc",
-    "frontend_tree_sha": "9df32b87de20826dbe0e32c739d2cbf0d9e1a634",
-    "component_equivalence": "backend and frontend trees byte-identical to released 139b350",
-    "root_reported_private_deployment_and_ui_evidence": "NVDA 498 D1 / 104 W1 / 25 MN; XLE 24 own holdings; IYF ACGL from provisional 0 to 498 candles on same Dashboard with dated provenance; business-row/schema/quota preservation verified",
-    "remaining": "Root-owned native-wait proof and final guide; wider ETF roadmap stays open",
-    "status": "context_adopted_only"
-  },
-  "previous_latest_staging_baseline_adoption_before_a9_2026_11_06": {
-    "canonical_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/20261104T111148Z-4de1365cec4b.json",
-    "canonical_receipt_sha256": "ca68f6e85086a9325a23ed3ec5166d67fbaf2de00210ced2dd49fa4057661eea",
-    "exact_ci_run": 41805745211,
-    "master_or_deployment_claim": false,
-    "master_or_deployment_claimed": false,
-    "merge_conflicts": [],
-    "pre_adoption_feature_sha": "2bc627c412838eeac70ece0ae4f0bcc5ff1552dc",
-    "product_delta_imported": "Exact green staging 4de1365cec4bc5897c2a76d16a0004853d747f9c adopted through normal same-branch merge; resulting backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c",
-    "release_state": "exact synchronized-green staging normally merged into the assigned ETF branch",
-    "released_staging_sha": "4de1365cec4bc5897c2a76d16a0004853d747f9c",
-    "resulting_head": "3a8e205921071923e1517eabb7623f01ded77935",
-    "source_changes_after_merge": "Green staging ancestry is in the source; tested ETF implementation is 3a8e205921071923e1517eabb7623f01ded77935 with backend tree fc3ede0cb4de1f554fe73c772fce74df403a427c. No sibling source copy."
-  },
-  "previous_latest_checkpoint_before_a9_2026_11_06": "Root accepted the narrow SPDR provenance-fixture correction after CI41956681710 exposed that the exact expected fund_identity omitted requested_source_url. The corrected isolated PostgreSQL node passed 1/1 in24.92s. Exact final-tip CI is pending and mandatory; Root owns observation. Earlier red CI and failed one-shot/source histories remain preserved; full roadmaps and holds remain open.",
-  "previous_active_goal_context_adoption_a9_2026_11_06": {
-    "completed_goal_history_preserved": true,
-    "created_at_epoch": 1793957192,
-    "objective": "Adopt exact green context a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7 into this ETF owner branch with one records-only handoff, preserve the full roadmap, and leave broader work unactivated.",
-    "status": "complete",
-    "thread_id": "01a05a0a-55c3-7510-b414-3c7907097078",
-    "token_budget": null
-  },
-  "previous_goal_request_context_adoption_a9_2026_11_06": {
-    "objective": "Prepare etf-holdings-integration-1 in feat/etf-holdings-constituents and its existing worktree. On resume first read /home/m920q/charting-platform/.ai/worktrees/staging/docs/feature-integration-coordination.md and the checkpoint section of docs/agent-orchestration.md in that coordinator checkout, then your own actual source/workstream. Record the central-first ETF resume task in your own plan/handoff/session while preserving every original roadmap requirement. Reconcile the recorded green evidence with current source and prepare the ETF_HOLDINGS shared-runtime bridge and consumer tests. Once Provider is integrated and exact staging CI is green, merge synchronized green staging into your own clean unfrozen branch, reconcile identity/entitlement/quota/budget/health and truthful current/degraded/stale/unavailable holdings lineage, validate the actual shared runtime and required full profile, and publish a clean review checkpoint. Preserve native/fallback truthfulness, issuer evidence, data retention and the later observation gate. Do not wait for full Provider completion or its 30-day trial. Stop at ready_for_human_review; the human accepts the checkpoint and the central coordinator owns staging integration. After all four checkpoints are green and the coordinator releases your source, merge that common green staging back into this same feature branch, validate and continue the full original roadmap. No staging writes, sibling edits, frozen-source changes, promotion, deployment or trial activation. Honor the existing writer claim and UV preflight; do not invent a token budget."
-  },
-  "previous_session_closure_before_spdr_route_checkpoint_2026_11_06": {
-    "human_closure_authorization": "Root accepted this bounded implementation under existing human-delegated authority; receipt /home/m920q/charting-platform/.ai/staging-attempts/ordinary-journey-repair-pair-6eae-36e7-20261105/live-followups-implementation-root-acceptance.json SHA256 f887a8231664c09ca820f263a7538549dd59696be4013daef48de25643e91398. No new human quote is claimed.",
-    "closure_summary": "Test-only VanEck fixture-clock repair: the three affected PostgreSQL/SQLite integration nodes pass (3 passed, 29.07s) using unchanged authentic 2026-10-29 workbook bytes and unchanged five-day freshness rules. The frozen test clock is 2026-11-01T12:00:00Z. No product code, Source HTTP, production/ledger mutation, or quota/policy change. Exact-source CI and broader qualification remain pending under Root coordination. AC1-AC14, 15 Tier-0 and 156 Tier-1, all holds and genuine deployment work remain open. integration_capture: exact branch HEAD.",
-    "closure_pending": true
-  },
-  "current_checkpoint_acceptance": {
-    "checkpoint_id": "spdr-sector-route-metadata-composition-2026-11-06",
-    "root_delegated_acceptance": "Root accepted under standing human-delegated checkpoint acceptance; no new human quote is asserted.",
-    "tested_implementation_sha": "ec861fdd9d7d22df8882c67271a2d07e6f877229",
-    "focused_evidence": "Five focused route tests passed; lint, workstream/record and scope guards passed.",
-    "exact_implementation_ci": "139b350 staging CI 42211787590 and master provenance CI 42222793213 terminal green; Root reports deployed",
-    "integration_capture": "exact branch HEAD",
-    "status": "accepted_checkpoint_preserved; green context adopted; wider roadmap open"
-  }
+  "worktree_id": "feat-etf-holdings-constituents-fdc36fa27a"
 }

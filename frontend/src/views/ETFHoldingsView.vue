@@ -1095,6 +1095,11 @@ async function runHoldingsAction(refresh: boolean) {
               : `The holdings request for ${fund.symbol} returned no profile. Previously stored snapshots remain available.`
       return
     }
+    if (result.profile.instrument_id !== resolvedFund.verifiedInstrumentId
+      || result.profile.symbol.trim().toUpperCase() !== fund.symbol.trim().toUpperCase()) {
+      holdingsActionError.value = `The holdings profile did not match ${fund.symbol}; previously stored snapshots remain available.`
+      return
+    }
     const returnedProfile = result.capability
       ? { ...result.profile, holdings_capability: result.capability }
       : result.profile
