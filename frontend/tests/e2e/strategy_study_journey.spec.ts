@@ -260,3 +260,112 @@ test('Results supports ordinary controls through a controlled persisted-run API'
   ])
   await browserDiagnostics.expectNoCriticalIssues()
 })
+
+test('Python Library supports create, import, clone, archive, export and filter through a controlled asset API', async ({ page, loggedIn, browserDiagnostics }) => {
+  const makeAsset = (id: number, stableKey: string, name: string, source: string, archived = false) => ({
+    id,
+    stable_key: stableKey,
+    name,
+    kind: 'study',
+    is_archived: archived,
+    versions: [{ id: id * 10, version_number: 1, source, output_contract: 'study', parameter_schema: {}, default_parameters: {} }],
+  })
+  const initialAsset = makeAsset(41, 'seed-study', 'Seed Study', "output.scalar('seed', 1)")
+  let assets = [initialAsset]
+  let nextAssetId = 42
+  const createRequests: Array<Record<string, unknown>> = []
+  let importRequest: Record<string, unknown> | null = null
+  let archiveRequest: { id: number; archived: boolean } | null = null
+
+  await page.route('**/api/v1/code/**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    const pathname = url.pathname
+    if (request.method() === 'GET' && pathname.endsWith('/code/assets')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(assets) })
+      return
+    }
+    if (request.method() === 'POST' && pathname.endsWith('/code/validate')) {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] }) })
+      return
+    }
+    if (request.method() === 'POST' && pathname.endsWith('/code/assets/import')) {
+      importRequest = request.postDataJSON() as Record<string, unknown>
+      const body = importRequest as { stable_key: string; name: string; versions: Array<Record<string, unknown>> }
+      const imported = { id: nextAssetId++, stable_key: body.stable_key, name: body.name, kind: 'study', is_archived: false, versions: body.versions.map((version, index) => ({ ...version, id: 500 + index })) }
+      assets = [...assets, imported]
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(imported) })
+      return
+    }
+    if (request.method() === 'POST' && pathname.endsWith('/code/assets')) {
+      const body = request.postDataJSON() as { stable_key: string; name: string; kind: string; initial_version: Record<string, unknown> }
+      createRequests.push(body)
+      const created = { id: nextAssetId++, stable_key: body.stable_key, name: body.name, kind: body.kind, is_archived: false, versions: [{ ...body.initial_version, id: 600 }] }
+      assets = [...assets, created]
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(created) })
+      return
+    }
+    const clone = pathname.match(/\/code\/assets\/(\d+)\/clone$/)
+    if (request.method() === 'POST' && clone) {
+      const source = assets.find(asset => asset.id === Number(clone[1]))!
+      const body = request.postDataJSON() as { stable_key: string; name: string }
+      const cloned = { ...source, id: nextAssetId++, stable_key: body.stable_key, name: body.name, versions: source.versions.map(version => ({ ...version, id: 700 })) }
+      assets = [...assets, cloned]
+      await route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(cloned) })
+      return
+    }
+    const archive = pathname.match(/\/code\/assets\/(\d+)\/archive$/)
+    if (request.method() === 'POST' && archive) {
+      const id = Number(archive[1])
+      const body = request.postDataJSON() as { is_archived: boolean }
+      archiveRequest = { id, archived: body.is_archived }
+      assets = assets.map(asset => asset.id === id ? { ...asset, is_archived: body.is_archived } : asset)
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(assets.find(asset => asset.id === id)) })
+      return
+    }
+    await route.continue()
+  })
+
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Python Library', exact: true }).click()
+  const library = page.locator('.code-library-tool:visible').last()
+  await expect(library.getByRole('listitem').filter({ hasText: 'Seed Study' })).toBeVisible()
+
+  await library.getByRole('button', { name: 'New', exact: true }).click()
+  const createForm = library.getByRole('form', { name: 'Create Python asset' })
+  await createForm.getByRole('textbox', { name: 'New Python asset name' }).fill('Created Study')
+  await createForm.getByRole('textbox', { name: 'New Python asset key' }).fill('created-study')
+  await createForm.getByRole('textbox', { name: 'New Python asset source' }).fill("output.scalar('value', 2)")
+  await createForm.getByRole('button', { name: 'Validate', exact: true }).click()
+  await expect(createForm.getByRole('status')).toContainText('Validated')
+  await createForm.getByRole('button', { name: 'Create asset', exact: true }).click()
+  const created = library.getByRole('listitem').filter({ hasText: 'Created Study' })
+  await expect(created).toBeVisible()
+  expect(createRequests).toHaveLength(1)
+  expect(createRequests[0]).toMatchObject({ stable_key: 'created-study', kind: 'study', initial_version: { source: "output.scalar('value', 2)", output_contract: 'study' } })
+
+  const exportReady = page.waitForEvent('download')
+  await library.getByRole('listitem').filter({ hasText: 'Seed Study' }).locator('button[title="Export asset"]').click()
+  expect((await exportReady).suggestedFilename()).toBe('seed-study.json')
+
+  const importedPayload = { stable_key: 'imported-study', name: 'Imported Study', kind: 'study', versions: [{ version_number: 1, source: "output.scalar('imported', 3)", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }
+  await library.locator('input[type="file"]').setInputFiles({ name: 'imported-study.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(importedPayload)) })
+  const imported = library.getByRole('listitem').filter({ hasText: 'Imported Study' })
+  await expect(imported).toBeVisible()
+  expect(importRequest).toEqual(importedPayload)
+
+  await created.locator('button[title="Clone asset"]').click()
+  const cloned = library.getByRole('listitem').filter({ hasText: 'Created Study copy' })
+  await expect(cloned).toBeVisible()
+  await cloned.getByRole('button', { name: 'Archive asset' }).click()
+  await expect(cloned.getByRole('button', { name: 'Unarchive asset' })).toHaveAttribute('aria-pressed', 'true')
+  expect(archiveRequest).toMatchObject({ archived: true })
+
+  await library.getByRole('searchbox', { name: 'Filter Python assets' }).fill('Imported')
+  await expect(imported).toBeVisible()
+  await expect(created).toHaveCount(0)
+  await browserDiagnostics.expectNoCriticalIssues()
+})

@@ -1204,12 +1204,12 @@ progress:
     and exact-export Ruff check/format, not full release acceptance. The Results retry story is
     typechecked and discovered by Playwright only; Root owns actual browser and combined backend
     qualification. Preserve the full 18-criterion roadmap and disabled operation holds.
-  updated_at: "2026-11-06T22:31:25Z"
+  updated_at: "2026-11-06T22:39:55Z"
   next_action: >-
-    Finish the controlled-API Results failure/retry story and reconcile its action matrix with the
-    active 99 backend dependency pin. Root owns actual browser and combined backend qualification;
-    do not treat authored Playwright discovery as browser acceptance or close the usability scope
-    before the exact-source integrated gates.
+    Deliver the three authored Study, Results, and Python Library journeys with the active99
+    dependency to Root's single combined qualification slot. On any actual integrated finding,
+    repair only the owned Strategy consumer boundary and preserve current full-profile assertions.
+    Do not treat controlled-API Playwright discovery as browser acceptance or close the scope early.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -2101,14 +2101,15 @@ roadmap_progress_history:
     dependency; all 35 backend paths are hash-verified against the v2 manifest. Root reports focused
     catalogue tests and Ruff check/format; exact-source full qualification remains pending. Research
     Results keeps promotion and delayed cancel/rerun feedback attached to the source run. The focused
-    Results and Library evidence is in the handoff; the Results failure/retry browser story is
-    typechecked and discovered only. Root owns real browser and combined backend qualification.
+    Results and Library evidence is in the handoff; three Study/Results/Library browser journeys are
+    typechecked and discovered only, with two using controlled APIs. Root owns real browser and
+    combined backend qualification.
     Preserve the full 18-criterion roadmap and disabled native, broker, capital, paid/trial and
     live-provider holds.
   next_action: >-
-    Finish the coherent 99 dependency and Results retry-story context, then deliver it to Root for
-    the single combined backend/browser slot. Treat controlled-API discovery as authored evidence
-    only and preserve all full-roadmap and disabled-operation holds.
+    Deliver the committed 99 dependency and three authored Study/Results/Library journeys to Root's
+    single combined backend/browser slot. Treat controlled-API discovery as authored evidence only,
+    repair actual Strategy-owned integrated findings, and preserve all full-roadmap and disabled holds.
 
 context_adoption_a9:
   source_sha: a9ee26d46ca057d4bbc0bf3fc51e3507157bf6a7

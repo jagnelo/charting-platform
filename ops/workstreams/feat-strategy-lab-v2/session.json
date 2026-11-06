@@ -123,7 +123,7 @@
   "local_validation_profile": "full_stack_browser",
   "next_action": "Continue auditing remaining Strategy-owned Study, Results and Python Library lifecycle actions for concrete context, recovery, persistence or return-navigation gaps; add focused regressions and update the owned journey matrix only for verified behavior. Keep browser and combined backend qualification in Root's single assigned slot and do not close usability acceptance before integrated evidence and Root review.",
   "parent_branch": "staging",
-  "plan_hash": "7c1984c2cdff88ee54bb79af872ea01e8aec11af98bd7b53b7dc273152fc4bb6",
+  "plan_hash": "9948be82a9e7abc833ce85f5a99160ee4b8d25242bf0b16e59790e992bd19f1c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -152,9 +152,9 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused checks and controlled-API browser stories do not establish real browser lifecycle or release acceptance. Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is the active development dependency: all35 exact backend paths are verified against the v2 source-derived-status manifest, with eight imported over the preserved17d pin and 55b history. Root reports 81 focused units and exact-export Ruff check/format; full release gates remain pending. The Study and Results browser stories are authored/discovered only, and actual browser execution remains Root-owned. Preserve all18 roadmap criteria and disabled native, forward, broker, capital, paid/trial, and live-provider holds.",
+    "current_blocker": "Root owns the single combined backend/browser qualification. The active Provider runtime dependency is 99ce73bbc67689aef5fc4fcffa76bcfebfa736da; all35 paths match its v2 status/blob/hash manifest, with 17d and55b preserved historically. Root reports81 focused Provider units and exact-export Ruff checks, not full qualification. Study, Results, and Library journeys are authored and typechecked/discovered only; the two new interaction stories use controlled APIs, not real backend or browser evidence. Preserve the full18-criterion roadmap and every disabled-operation hold.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Complete the controlled-API Results failure/retry story and coherently record the 99 active dependency pin; Root retains the only combined backend/browser qualification slot. Do not treat authored Playwright discovery as actual browser evidence or close the named scope before integrated evidence and Root review.",
+    "next_action": "Deliver the authored Study, Results, and Python Library journeys with the active99 dependency to Root\u2019s single combined browser/backend qualification slot. Repair only actual owned Strategy findings and preserve all full-profile assertions and roadmap holds.",
     "total": 6,
     "updated_at": "2026-11-06T22:31:25Z"
   },
@@ -273,5 +273,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "current_blocker": "Root owns the single combined backend/browser qualification for the human-approved Study usability scope; local focused checks and controlled-API browser stories do not establish real browser lifecycle or release acceptance. Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is the active development dependency: all35 exact backend paths are verified against the v2 source-derived-status manifest, with eight imported over the preserved17d pin and 55b history. Root reports 81 focused units and exact-export Ruff check/format; full release gates remain pending. The Study and Results browser stories are authored/discovered only, and actual browser execution remains Root-owned. Preserve all18 roadmap criteria and disabled native, forward, broker, capital, paid/trial, and live-provider holds."
+  "current_blocker": "Root owns the single combined backend/browser qualification. The active Provider runtime dependency is 99ce73bbc67689aef5fc4fcffa76bcfebfa736da; all35 paths match its v2 status/blob/hash manifest, with 17d and55b preserved historically. Root reports81 focused Provider units and exact-export Ruff checks, not full qualification. Study, Results, and Library journeys are authored and typechecked/discovered only; the two new interaction stories use controlled APIs, not real backend or browser evidence. Preserve the full18-criterion roadmap and every disabled-operation hold."
 }

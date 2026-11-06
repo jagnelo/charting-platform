@@ -238,7 +238,7 @@
       "api_evidence": [
         "GET /code/assets, POST /code/assets, POST /code/assets/import, POST /code/assets/{id}/archive; backend/tests/integration/api/test_code.py :: test_code_assets_support_archive_clone_and_round_trip_import and test_code_asset_kind_and_declared_output_contract_must_match"
       ],
-      "browser_evidence": "Pending Root's combined browser gate. The Strategy Study journey now opens the existing run asset, edits and validates its Library draft, saves a new immutable version, and returns to Study; create/import/clone/archive/export/filter error states remain component/API evidence only.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts with controlled asset API responses: create/validate, export, import, clone, archive and filter interactions have visible outcomes. This is UI wiring evidence only; real API behavior and browser execution remain pending Root's combined gate. The separate persisted Study journey exercises immutable version save and return to Study.",
       "approved_journey": [
         "J10 Study: immutable saved version and return into Study workflow",
         "J12 recovery: delayed validation/refresh failure"
