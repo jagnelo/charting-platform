@@ -9,6 +9,7 @@ export interface AcquisitionSourceOutcome {
   reason_code?: string | null
   result_count?: number | null
   error_type?: string | null
+  retry_at?: string | null
 }
 
 export interface InstrumentDiscoveryCandidate {
@@ -26,6 +27,7 @@ export interface InstrumentDiscoveryResponse {
   status: 'complete' | 'partial' | 'held' | 'unavailable' | 'no_match'
   candidates: InstrumentDiscoveryCandidate[]
   source_outcomes: AcquisitionSourceOutcome[]
+  retry_at?: string | null
 }
 
 export interface ProviderCandidateBinding {
@@ -49,6 +51,7 @@ export interface InstrumentAcquireResponse {
     primary_listing_mic?: string | null
   } | null
   source_outcomes: AcquisitionSourceOutcome[]
+  retry_at?: string | null
 }
 export interface InstrumentAcquireRequest {
   symbol: string
@@ -65,6 +68,17 @@ export interface HistoryCoverageSummary {
   missing_slices: HistoryCoverageSlice[]
 }
 
+export interface HistoryAvailabilityResponse {
+  instrument_id: number
+  symbol: string
+  timeframe: Timeframe
+  adjusted: boolean
+  status: 'eligible' | 'held'
+  earliest_start: string | null
+  max_requested_bars: number
+  reason_code: string | null
+}
+
 export interface HistoryAcquisitionResponse {
   request_id: string
   status: 'complete' | 'partial' | 'held' | 'no_data' | 'failed'
@@ -78,6 +92,7 @@ export interface HistoryAcquisitionResponse {
   coverage: HistoryCoverageSummary
   bars: OHLCVBar[]
   source_outcomes: AcquisitionSourceOutcome[]
+  retry_at?: string | null
   legal_metadata?: Record<string, unknown> | null
 }
 
@@ -90,6 +105,9 @@ export interface HistoryAcquisitionRequest {
 
 const DAY_MS = 24 * 60 * 60 * 1000
 export const HISTORY_ACQUISITION_MAX_REQUESTED_BARS = 2000
+// Keep a rolling provider lookback clear of subsecond request/queue transit.
+// This is only a transport safety margin; the server's bound remains the limit.
+export const HISTORY_BOUNDARY_TRANSPORT_MARGIN_MS = 60_000
 
 // Mirrors the Provider's accepted approximate TIMEFRAME_SECONDS semantics.
 // Its range budget is ceil(elapsed/timeframe) + 1 because both endpoints count.
@@ -107,9 +125,10 @@ export const HISTORY_TIMEFRAME_SECONDS: Record<Timeframe, number> = {
   MN: 2592000,
 }
 
-// Conservative application defaults fit the inclusive slot budget. Provider-
-// specific history coverage and entitlement limits remain backend-owned.
-export const HISTORY_RANGE_LIMIT_DAYS: Record<Timeframe, number> = {
+// Intraday defaults stay deliberately short. Daily, weekly and monthly default
+// to the admitted long-history window; the backend remains authoritative for
+// entitlement and native provider coverage.
+export const HISTORY_DEFAULT_RANGE_DAYS: Record<Timeframe, number> = {
   M1: 1,
   M5: 6,
   M15: 20,
@@ -118,14 +137,16 @@ export const HISTORY_RANGE_LIMIT_DAYS: Record<Timeframe, number> = {
   H2: 90,
   H4: 90,
   H12: 90,
-  D1: 180,
-  W1: 700,
-  MN: 700,
+// Target roughly two years by default. The current admitted window is always
+// read from the server before a history POST and may be shorter or longer.
+  D1: 728,
+  W1: 728,
+  MN: 728,
 }
 
 export function defaultHistoryRange(timeframe: Timeframe, now = new Date()) {
   const end = now
-  const start = new Date(now.getTime() - HISTORY_RANGE_LIMIT_DAYS[timeframe] * DAY_MS)
+  const start = new Date(now.getTime() - HISTORY_DEFAULT_RANGE_DAYS[timeframe] * DAY_MS)
   return { start: start.toISOString(), end: end.toISOString() }
 }
 
@@ -134,6 +155,31 @@ export function requestedHistoryBarSlots(timeframe: Timeframe, start: string, en
   const endTime = Date.parse(end)
   if (!Number.isFinite(startTime) || !Number.isFinite(endTime)) return Number.POSITIVE_INFINITY
   return Math.ceil((endTime - startTime) / (HISTORY_TIMEFRAME_SECONDS[timeframe] * 1000)) + 1
+}
+
+/** Construct one bounded older-history slice ending immediately before cache. */
+export function olderHistoryRange(
+  timeframe: Timeframe,
+  before: string,
+  slots = HISTORY_ACQUISITION_MAX_REQUESTED_BARS,
+  admittedWindowStart?: string,
+) {
+  const beforeTime = Date.parse(before)
+  if (!Number.isFinite(beforeTime) || !Number.isSafeInteger(slots) || slots < 2 || slots > HISTORY_ACQUISITION_MAX_REQUESTED_BARS) {
+    throw new RangeError(`Older history requires a valid cursor and 2-${HISTORY_ACQUISITION_MAX_REQUESTED_BARS} slots.`)
+  }
+  const interval = HISTORY_TIMEFRAME_SECONDS[timeframe] * 1000
+  const endTime = beforeTime - 1
+  const chunkStart = endTime - ((slots - 1) * interval)
+  const windowStart = admittedWindowStart ? Date.parse(admittedWindowStart) : Number.NaN
+  // When filling a short local cache, keep the first request inside the
+  // configured default window. Once the chart reaches that start, later
+  // explicit pans may request further bounded chunks for longer entitlements.
+  const startTime = Number.isFinite(windowStart) && endTime > windowStart
+    ? Math.max(chunkStart, windowStart)
+    : chunkStart
+  if (startTime >= endTime) throw new RangeError('Older history cursor is already at the admitted window start.')
+  return { start: new Date(startTime).toISOString(), end: new Date(endTime).toISOString() }
 }
 
 export function historyRangeFitsBarBudget(timeframe: Timeframe, start: string, end: string) {
@@ -149,7 +195,6 @@ export function historyRangeIsAllowed(timeframe: Timeframe, start: string, end: 
     && endTime > startTime
     && startTime <= nowTime
     && endTime <= nowTime
-    && endTime - startTime <= HISTORY_RANGE_LIMIT_DAYS[timeframe] * DAY_MS
     && historyRangeFitsBarBudget(timeframe, start, end)
     && /(?:Z|[+-]\d{2}:\d{2})$/i.test(start)
     && /(?:Z|[+-]\d{2}:\d{2})$/i.test(end)
@@ -172,13 +217,63 @@ export interface ETFProfileAcquireResponse {
   message?: string | null
 }
 
-export type SelectedHistoryStage = 'coverage' | 'identity' | 'history'
+export type SelectedHistoryStage = 'coverage' | 'identity' | 'history' | 'waiting'
+
+export type KnownRetryWaitResult = 'ready' | 'stopped' | 'superseded'
+
+export interface KnownTemporaryRetryLifecycle {
+  wait(retryAt: string | null | undefined): Promise<KnownRetryWaitResult>
+}
+
+/** One advancing, server-timed retry lifecycle shared by selected-data tasks. */
+export function createKnownTemporaryRetryLifecycle(
+  isCurrent: () => boolean,
+  onWaiting?: (retryAt: string) => void,
+  signal?: AbortSignal,
+): KnownTemporaryRetryLifecycle {
+  let previousRetryAt = 0
+  return {
+    async wait(retryAt) {
+      const dueAt = retryAt ? Date.parse(retryAt) : Number.NaN
+      if (!Number.isFinite(dueAt) || dueAt <= Date.now() || dueAt <= previousRetryAt) return 'stopped'
+      previousRetryAt = dueAt
+      onWaiting?.(retryAt!)
+      while (Date.now() < dueAt) {
+        if (!isCurrent() || signal?.aborted) return 'superseded'
+        const remaining = dueAt - Date.now()
+        await new Promise<void>(resolve => {
+          const timer = setTimeout(() => {
+            signal?.removeEventListener('abort', abort)
+            resolve()
+          }, Math.min(remaining, 2_147_000_000))
+          const abort = () => {
+            clearTimeout(timer)
+            signal?.removeEventListener('abort', abort)
+            resolve()
+          }
+          if (signal?.aborted) abort()
+          else signal?.addEventListener('abort', abort, { once: true })
+        })
+      }
+      return isCurrent() && !signal?.aborted ? 'ready' : 'superseded'
+    },
+  }
+}
 
 export type SelectedHistoryOutcome =
   | { kind: 'already-covered'; coverage: HistoryCoverageSummary }
-  | { kind: 'identity-unavailable'; coverage: HistoryCoverageSummary; status: InstrumentAcquireResponse['status'] }
+  | { kind: 'identity-unavailable'; coverage: HistoryCoverageSummary; status: InstrumentAcquireResponse['status']; reasonCode?: string | null; retryAt?: string | null }
+  | { kind: 'admission-held'; coverage: HistoryCoverageSummary }
+  | { kind: 'admission-unavailable'; coverage: HistoryCoverageSummary }
+  | { kind: 'at-earliest-bound'; coverage: HistoryCoverageSummary; earliestStart: string }
   | { kind: 'acquired'; coverage: HistoryCoverageSummary; result: HistoryAcquisitionResponse }
   | { kind: 'superseded' }
+
+export interface SelectedHistoryOptions {
+  retryLifecycle?: KnownTemporaryRetryLifecycle
+  signal?: AbortSignal
+  onRetryWait?: (retryAt: string) => void
+}
 
 /**
  * Run the same bounded local-coverage -> canonical-identity -> admitted-history
@@ -190,41 +285,130 @@ export async function acquireSelectedHistory(
   timeframe: Timeframe,
   adjusted: boolean,
   range: HistoryAcquisitionRequest,
-  onStage?: (stage: SelectedHistoryStage) => void,
+  onStage?: (stage: SelectedHistoryStage, retryAt?: string) => void,
   isCurrent: () => boolean = () => true,
   selectedIdentity?: Promise<InstrumentAcquireResponse>,
+  options: SelectedHistoryOptions = {},
 ): Promise<SelectedHistoryOutcome> {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) throw new TypeError('A selected ticker is required for history acquisition.')
-  onStage?.('coverage')
-  const coverage = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
-    timeframe,
-    start: range.start,
-    end: range.end,
-    mode: 'historical',
-    adjusted,
-  })
-  if (!isCurrent()) return { kind: 'superseded' }
-  if (!Array.isArray(coverage.missing_slices) || coverage.missing_slices.length === 0) {
-    return { kind: 'already-covered', coverage }
-  }
+  const lifecycle = options.retryLifecycle ?? createKnownTemporaryRetryLifecycle(
+    isCurrent,
+    retryAt => {
+      options.onRetryWait?.(retryAt)
+      onStage?.('waiting', retryAt)
+    },
+    options.signal,
+  )
+  let identity: InstrumentAcquireResponse | null = null
 
-  onStage?.('identity')
-  const identity = await (selectedIdentity ?? resolveExistingInstrument(normalized))
-  if (!isCurrent()) return { kind: 'superseded' }
-  if (identity.status !== 'resolved' || !identity.instrument
-    || identity.instrument.symbol.trim().toUpperCase() !== normalized
-    || !Number.isSafeInteger(identity.instrument.instrument_id) || identity.instrument.instrument_id <= 0) {
-    return { kind: 'identity-unavailable', coverage, status: identity.status }
-  }
+  while (isCurrent() && !options.signal?.aborted) {
+    onStage?.('coverage')
+    const coverage = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
+      timeframe,
+      start: range.start,
+      end: range.end,
+      mode: 'historical',
+      adjusted,
+    })
+    if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+    if (!Array.isArray(coverage.missing_slices) || coverage.missing_slices.length === 0) {
+      return { kind: 'already-covered', coverage }
+    }
 
-  onStage?.('history')
-  const result = await acquireInstrumentHistory(identity.instrument.instrument_id, {
-    ...range,
-    timeframe,
-    adjusted,
-  })
-  return { kind: 'acquired', coverage, result }
+    if (!identity) {
+      onStage?.('identity')
+      if (selectedIdentity) {
+        identity = await selectedIdentity
+        if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+        if (identity.status === 'held') {
+          const retryAt = identity.retry_at
+            ?? identity.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+          if (await lifecycle.wait(retryAt) !== 'ready') {
+            if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+          } else {
+            identity = await resolveExistingInstrumentWithRetry(normalized, lifecycle, isCurrent)
+          }
+        }
+      } else identity = await resolveExistingInstrumentWithRetry(normalized, lifecycle, isCurrent)
+      if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+    }
+
+    if (!identity || identity.status !== 'resolved' || !identity.instrument
+      || identity.instrument.symbol.trim().toUpperCase() !== normalized
+      || !Number.isSafeInteger(identity.instrument.instrument_id) || identity.instrument.instrument_id <= 0) {
+      return {
+        kind: 'identity-unavailable',
+        coverage,
+        status: identity?.status ?? 'failed',
+        reasonCode: identity?.reason_code ?? identity?.source_outcomes.find(outcome => outcome.status === 'held')?.reason_code,
+        retryAt: identity?.retry_at ?? identity?.source_outcomes.find(outcome => outcome.retry_at)?.retry_at ?? null,
+      }
+    }
+
+    const availability = await api.get<HistoryAvailabilityResponse>(
+      `/instruments/${identity.instrument.instrument_id}/history-availability`,
+      { timeframe, adjusted },
+    )
+    if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+    if (availability.instrument_id !== identity.instrument.instrument_id
+      || availability.symbol.trim().toUpperCase() !== normalized
+      || availability.timeframe !== timeframe
+      || availability.adjusted !== adjusted
+      || !['eligible', 'held'].includes(availability.status)
+      || !Number.isSafeInteger(availability.max_requested_bars)
+      || availability.max_requested_bars < 1) {
+      return { kind: 'admission-unavailable', coverage }
+    }
+    if (availability.status === 'held') return { kind: 'admission-held', coverage }
+    if (availability.earliest_start === null || !Number.isFinite(Date.parse(availability.earliest_start))) {
+      return { kind: 'admission-unavailable', coverage }
+    }
+
+    let admittedRange = { ...range }
+    const earliestTime = Date.parse(availability.earliest_start) + HISTORY_BOUNDARY_TRANSPORT_MARGIN_MS
+    const rangeEnd = Date.parse(admittedRange.end)
+    if (rangeEnd <= earliestTime) {
+      return { kind: 'at-earliest-bound', coverage, earliestStart: availability.earliest_start }
+    }
+    const intervalMs = HISTORY_TIMEFRAME_SECONDS[timeframe] * 1000
+    const slotLimit = Math.min(HISTORY_ACQUISITION_MAX_REQUESTED_BARS, availability.max_requested_bars)
+    let rangeStart = Date.parse(admittedRange.start)
+    rangeStart = Math.max(rangeStart, earliestTime)
+    rangeStart = Math.max(rangeStart, rangeEnd - ((slotLimit - 1) * intervalMs))
+    if (rangeStart >= rangeEnd) return { kind: 'admission-unavailable', coverage }
+    if (rangeStart !== Date.parse(admittedRange.start)) {
+      admittedRange = { ...admittedRange, start: new Date(rangeStart).toISOString() }
+      const boundedCoverage = await api.get<HistoryCoverageSummary>(`/coverage/instruments/${encodeURIComponent(normalized)}/ohlcv`, {
+        timeframe,
+        start: admittedRange.start,
+        end: admittedRange.end,
+        mode: 'historical',
+        adjusted,
+      })
+      if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+      if (!Array.isArray(boundedCoverage.missing_slices) || boundedCoverage.missing_slices.length === 0) {
+        return { kind: 'already-covered', coverage: boundedCoverage }
+      }
+    }
+
+    onStage?.('history')
+    const result = await acquireInstrumentHistory(identity.instrument.instrument_id, {
+      ...admittedRange,
+      timeframe,
+      adjusted,
+    })
+    if (!isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+    if (result.status === 'held') {
+      const retryAt = result.retry_at
+        ?? result.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+      const waited = await lifecycle.wait(retryAt)
+      if (waited === 'ready') continue
+      if (waited === 'superseded' || !isCurrent() || options.signal?.aborted) return { kind: 'superseded' }
+    }
+    return { kind: 'acquired', coverage, result }
+  }
+  return { kind: 'superseded' }
 }
 
 export function makeAcquisitionRequestId(): string {
@@ -273,6 +457,22 @@ export function resolveExistingInstrument(symbol: string): Promise<InstrumentAcq
   })
 }
 
+export async function resolveExistingInstrumentWithRetry(
+  symbol: string,
+  lifecycle: KnownTemporaryRetryLifecycle,
+  isCurrent: () => boolean = () => true,
+): Promise<InstrumentAcquireResponse> {
+  if (!isCurrent()) throw new DOMException('The selected ticker changed before identity resolution.', 'AbortError')
+  let response = await resolveExistingInstrument(symbol)
+  while (isCurrent() && response.status === 'held') {
+    const retryAt = response.retry_at
+      ?? response.source_outcomes.find(outcome => outcome.status === 'held' && outcome.retry_at)?.retry_at
+    if (await lifecycle.wait(retryAt) !== 'ready') return response
+    response = await resolveExistingInstrument(symbol)
+  }
+  return response
+}
+
 export function acquireInstrumentHistory(
   instrumentId: number,
   request: HistoryAcquisitionRequest,
@@ -289,7 +489,7 @@ export function acquireInstrumentHistory(
   }
   if (endTime <= startTime) throw new RangeError('History acquisition requires an end after start.')
   if (!historyRangeIsAllowed(request.timeframe, request.start, request.end)) {
-    throw new RangeError(`History acquisition range must stay within the ${HISTORY_RANGE_LIMIT_DAYS[request.timeframe]} day limit and ${HISTORY_ACQUISITION_MAX_REQUESTED_BARS} inclusive slots.`)
+    throw new RangeError(`History acquisition range must stay within ${HISTORY_ACQUISITION_MAX_REQUESTED_BARS} inclusive slots.`)
   }
   return api.post(`/instruments/${instrumentId}/history-acquisitions`, {
     ...request,

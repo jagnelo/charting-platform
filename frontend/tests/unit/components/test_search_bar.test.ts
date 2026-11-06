@@ -511,6 +511,176 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({ status: 'resolved', instrument: { instrument_id: 83, symbol: 'F' } })
   })
 
+  it('waits for a known temporary discovery retry and completes the pending Enter intent', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    const retryAt = new Date(Date.now() + 5000).toISOString()
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ status: 'held', retry_at: retryAt, candidates: [], source_outcomes: [{ status: 'held', retry_at: retryAt, reason_code: 'provider_quota_admission_denied' }] })
+      .mockResolvedValueOnce({ status: 'complete', candidates: [{ symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }], source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'resolved', instrument: { instrument_id: 83, symbol: 'F', identity_status: 'verified' }, source_outcomes: [] })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('checking again after'), { interval: 1, timeout: 100 })
+    expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
+    expect(wrapper.emitted('select')).toBeUndefined()
+
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    await enter
+    await vi.waitFor(() => expect(wrapper.emitted('select')?.[0]?.[0]).toBe('F'))
+    expect(api.post).toHaveBeenCalledTimes(3)
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', instrument_id: 83, explicitlyResolved: true })
+  })
+
+  it('continues a deliberate Enter through successive advancing temporary holds until discovery resolves', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    const firstRetryAt = new Date(Date.now() + 5000).toISOString()
+    const secondRetryAt = new Date(Date.now() + 10000).toISOString()
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ status: 'held', retry_at: firstRetryAt, candidates: [], source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'held', retry_at: secondRetryAt, candidates: [], source_outcomes: [] })
+      .mockResolvedValueOnce({
+        status: 'complete',
+        candidates: [{ symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        status: 'resolved', instrument: { instrument_id: 83, symbol: 'F', identity_status: 'verified' }, source_outcomes: [],
+      })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(1)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('checking again after'), { interval: 1, timeout: 100 })
+
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(2)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('checking again after'), { interval: 1, timeout: 100 })
+
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    await enter
+    await vi.waitFor(() => expect(wrapper.emitted('select')?.[0]?.[0]).toBe('F'))
+
+    expect(api.post).toHaveBeenCalledTimes(4)
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', instrument_id: 83, explicitlyResolved: true })
+    expect(wrapper.text()).not.toContain('provider_quota_admission_denied')
+  })
+
+  it('continues deliberate candidate identity verification through successive known holds', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    const firstRetryAt = new Date(Date.now() + 5000).toISOString()
+    const secondRetryAt = new Date(Date.now() + 10000).toISOString()
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        status: 'complete',
+        candidates: [{ symbol: 'UNXQ', name: 'Example equity', exchange: 'XNYS', type: 'Common Stock', provider: 'fixture', instrument_id: null, identity_status: 'provider_candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({ status: 'held', retry_at: firstRetryAt, source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'held', retry_at: secondRetryAt, source_outcomes: [] })
+      .mockResolvedValueOnce({
+        status: 'resolved', instrument: { instrument_id: 77, symbol: 'UNXQ', identity_status: 'verified' }, source_outcomes: [],
+      })
+    const wrapper = mountSearchBar({
+      props: {
+        modelValue: 'UNXQ', allowSourceDiscovery: true, sourceDiscoveryOnly: true,
+        readonly: true, openOnMount: true, requiredResolvedSymbol: 'UNXQ',
+      },
+      global: { stubs: { RouterLink: true } },
+    })
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
+    const candidate = wrapper.get('.search-source-candidate')
+    await candidate.trigger('click')
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(2)
+
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(3)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('checking again after'), { interval: 1, timeout: 100 })
+
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.emitted('select')?.[0]?.[0]).toBe('UNXQ'))
+    expect(api.post).toHaveBeenCalledTimes(4)
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'UNXQ', instrument_id: 77, explicitlyResolved: true })
+  })
+
+  it('does not spin when a later temporary hold repeats an expired retry time', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    const retryAt = new Date(Date.now() + 5000).toISOString()
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({ status: 'held', retry_at: retryAt, candidates: [], source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'held', retry_at: retryAt, candidates: [], source_outcomes: [] })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.text()).toContain('checking again after'), { interval: 1, timeout: 100 })
+
+    vi.advanceTimersByTime(5000)
+    await flushPromises()
+    await enter
+    vi.advanceTimersByTime(60000)
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(2)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.text()).toContain('temporarily held')
+  })
+
+  it('cancels a pending discovery retry when the query changes', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValue([])
+    vi.mocked(api.post).mockResolvedValueOnce({
+      status: 'held', retry_at: new Date(Date.now() + 500).toISOString(), candidates: [],
+      source_outcomes: [{ status: 'held', retry_at: new Date(Date.now() + 500).toISOString(), reason_code: 'provider_quota_admission_denied' }],
+    })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('F')
+    const enter = input.trigger('keydown.enter')
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    expect(api.post).toHaveBeenCalledTimes(1)
+
+    await input.setValue('NVDA')
+    await enter
+    vi.advanceTimersByTime(1000)
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.get('input').element).toHaveProperty('value', 'NVDA')
+  })
+
   it('does not resolve ambiguous exact remote listings on ordinary Enter', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])

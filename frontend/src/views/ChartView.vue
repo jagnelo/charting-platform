@@ -367,6 +367,8 @@ const comparisonTargets = ref<Array<{
 let comparisonSeq = 0
 let selectionGeneration = 0
 let lifecycleGeneration = 0
+let selectedHistoryAbortController: AbortController | null = null
+let selectedHistoryScopeTimeframe: Timeframe | null = null
 const selectedHistoryProgress = ref('')
 const selectedHistoryError = ref('')
 
@@ -577,6 +579,7 @@ async function selectChartSymbol(
 ) {
   const generation = lifecycleGeneration
   const selection = ++selectionGeneration
+  selectedHistoryAbortController?.abort()
   const selectionIndicatorEdit = chartStore.indicatorEditGeneration
   const isCurrentSelection = () => isCurrentLifecycle(generation) && selection === selectionGeneration
   const selectedChartStore = activePanelStore.value
@@ -589,6 +592,9 @@ async function selectChartSymbol(
     recentStore.add(symbol)
   }
   if (holdingContext) currentTf.value = 'D1'
+  const historyController = new AbortController()
+  selectedHistoryAbortController = historyController
+  selectedHistoryScopeTimeframe = currentTf.value
   const path = `/legacy/chart/${encodeURIComponent(symbol)}`
   const hasHoldingQuery = Object.keys(route.query).some(key => key.startsWith('holding_'))
   if (holdingContext) {
@@ -600,7 +606,7 @@ async function selectChartSymbol(
     // Single panel: load into the global chart store
     await chartStore.loadBars(symbol, currentTf.value, chartStore.barType, true)
     if (!isCurrentSelection()) return
-    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity)
+    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
     const inst = chartStore.instrument
     if (inst) {
       await drawStore.loadDrawings(inst.id, currentTf.value)
@@ -627,7 +633,7 @@ async function selectChartSymbol(
       await pStore.loadBars(symbol, p.timeframe, pStore.barType, true)
       if (!isCurrentSelection()) return
     }
-    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity)
+    if (acquireHistory) void acquireSelectedChartHistory(symbol, selectedChartStore, isCurrentSelection, confirmedIdentity, historyController.signal)
     const activeStore = usePanelStore(layoutStore.activePanelId)
     const activeInst = activeStore.instrument
     if (activeInst) {
@@ -645,17 +651,24 @@ async function acquireSelectedChartHistory(
   selectedChartStore: typeof chartStore,
   isCurrentSelection: () => boolean,
   confirmedIdentity?: InstrumentAcquireResponse,
+  signal?: AbortSignal,
 ) {
   const timeframe = selectedChartStore.timeframe
   const isCurrentChartScope = () => isCurrentSelection()
+    && !signal?.aborted
     && selectedChartStore.symbol.trim().toUpperCase() === symbol.trim().toUpperCase()
     && selectedChartStore.timeframe === timeframe
     && (layoutStore.layout === '1' ? selectedChartStore === chartStore : activePanelStore.value === selectedChartStore)
   const range = defaultHistoryRange(timeframe)
-  const stages: Record<SelectedHistoryStage, string> = {
-    coverage: `Checking local ${timeframe} history for ${symbol}…`,
-    identity: `Confirming ${symbol}…`,
-    history: `Loading missing ${timeframe} history for ${symbol}…`,
+  const setStage = (stage: SelectedHistoryStage, retryAt?: string) => {
+    if (!isCurrentChartScope()) return
+    selectedHistoryProgress.value = stage === 'waiting'
+      ? `Waiting to retry ${timeframe} history for ${symbol} after ${new Date(retryAt!).toLocaleTimeString()}…`
+      : stage === 'coverage'
+        ? `Checking local ${timeframe} history for ${symbol}…`
+        : stage === 'identity'
+          ? `Confirming ${symbol}…`
+          : `Loading missing ${timeframe} history for ${symbol}…`
   }
   try {
     const outcome = await acquireSelectedHistory(
@@ -663,9 +676,10 @@ async function acquireSelectedChartHistory(
       timeframe,
       true,
       { timeframe, adjusted: true, start: range.start, end: range.end },
-      stage => { if (isCurrentChartScope()) selectedHistoryProgress.value = stages[stage] },
+      setStage,
       isCurrentChartScope,
       confirmedIdentity ? Promise.resolve(confirmedIdentity) : undefined,
+      { signal },
     )
     if (!isCurrentChartScope() || outcome.kind === 'superseded') return
     if (outcome.kind === 'already-covered') {
@@ -676,6 +690,18 @@ async function acquireSelectedChartHistory(
       selectedHistoryProgress.value = outcome.status === 'held'
         ? `History for ${symbol} is currently unavailable; saved chart data remains visible.`
         : `The canonical identity for ${symbol} could not be confirmed; no history was requested.`
+      return
+    }
+    if (outcome.kind === 'admission-held') {
+      selectedHistoryProgress.value = `History for ${symbol} is temporarily held; saved chart data remains visible.`
+      return
+    }
+    if (outcome.kind === 'admission-unavailable') {
+      selectedHistoryProgress.value = `The allowed history window for ${symbol} could not be confirmed; saved chart data remains visible.`
+      return
+    }
+    if (outcome.kind === 'at-earliest-bound') {
+      selectedHistoryProgress.value = `The available ${timeframe} history for ${symbol} begins ${new Date(outcome.earliestStart).toLocaleDateString()}.`
       return
     }
     const result = outcome.result
@@ -725,6 +751,11 @@ function stripLegacyRadarDetectionQuery() {
 }
 
 watch(currentTf, async (tf) => {
+  if (selectedHistoryScopeTimeframe !== tf) {
+    selectedHistoryAbortController?.abort()
+    selectedHistoryAbortController = null
+    selectedHistoryScopeTimeframe = null
+  }
   const generation = lifecycleGeneration
   if (!chartStore.symbol) return
   lastClose.value = currentPrice.value
@@ -876,6 +907,9 @@ onMounted(async () => {
 onUnmounted(() => {
   lifecycleGeneration += 1
   selectionGeneration += 1
+  selectedHistoryAbortController?.abort()
+  selectedHistoryAbortController = null
+  selectedHistoryScopeTimeframe = null
   comparisonSeq += 1
   document.removeEventListener('click', onDocClick, true)
   compactViewportQuery?.removeEventListener('change', onCompactViewportChange)
