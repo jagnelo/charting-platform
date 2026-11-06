@@ -2,50 +2,42 @@
   "schema": 1,
   "branch": "feat/market-data-provider-platform",
   "plan_tests": [
-    "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback for ticker-shaped misses after the existing bounded fuzzy search; no pagination or canonical write)",
-    "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (preserve admitted provider provenance for fresh cached pages, including zero-row pages)",
-    "backend/tests/unit/routers/test_instruments_router.py plus backend/tests/unit/services/test_provider_persistence.py (exact discovery, empty cache, identity/domain/filter negatives, admission holds, and no early canonical state)",
-    "backend/tests/unit/services/test_provider_explicit_acquisition.py (typed quota holds, safe unexpected-error logging, and successful history regression)",
-    "Complete backend/DDL and exact-source branch CI remain mandatory on the published closing tip; Root owns the combined full_stack_browser release profile and protected integration."
+    "backend/app/routers/instruments.py::discover_instruments (one admitted exact-profile fallback after bounded fuzzy search; typed quota holds and known retry_at are preserved)",
+    "backend/app/services/market_data.py::search_provider_instruments_async and _fresh_search_from_cache (empty-cache provenance plus typed held/no_match/failed outcomes; unknown quota has no invented retry)",
+    "backend/app/routers/instruments.py::get_instrument_history_availability (exact selected instrument/symbol fetch_ohlcv scope, true request-driven resolver, reviewed dry cost and no transport/reservation/mutation)",
+    "Six affected router, persistence, explicit-acquisition, quota, routing and runtime unit modules (334 cases; history bounds and no-eligible/unknown cases, no-network quota outcomes)",
+    "Complete backend/DDL, exact-source branch CI and Root combined full_stack_browser/release gates remain mandatory and pending; Root owns protected integration."
   ],
   "commands": [
     {
-      "id": "focused-exact-ticker-discovery",
-      "command": "uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py -q",
+      "id": "focused-shared-acquisition-history-contract",
+      "command": "uv run --no-sync --project backend pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_provider_persistence.py backend/tests/unit/services/test_provider_explicit_acquisition.py backend/tests/unit/services/test_provider_quota_coordinator.py backend/tests/unit/services/test_provider_routing.py backend/tests/unit/services/test_provider_runtime.py -q --tb=short",
       "covers": [
         1,
         2,
-        3
-      ],
-      "scope_note": "Focused router/provider-search regression suite with mocked providers; includes exact fallback, cached empty page, identity/filter/hold and no-write checks. No Source HTTP or full fixture.",
-      "selected": 67,
-      "passed": 67,
-      "failed": 0,
-      "errors": 0,
-      "skipped": 0,
-      "elapsed_seconds": 27.67,
-      "source_sha256": {
-        "backend/app/routers/instruments.py": "0424332617b9eb188ac413f2d077da3794b77e0f7b7a5a47c1b969aab55bf818",
-        "backend/app/services/market_data.py": "b4a3ef40aa6c620ae1447921da28d1f1cb16d04b5db641508348b4b2e85f0b13",
-        "backend/tests/unit/routers/test_instruments_router.py": "e1158c55bb26052adf5af3c0c845b18f9c4a1f8815e0a76b40ae4e3f0a4d6699"
-      }
-    },
-    {
-      "id": "focused-history-acquisition-outcomes",
-      "command": "uv run --no-sync --project backend pytest backend/tests/unit/services/test_provider_explicit_acquisition.py -q",
-      "covers": [
+        3,
         4
       ],
-      "scope_note": "Focused ordinary history endpoint regressions for typed quota holds, safe unexpected-error logging, and unchanged successful history behavior.",
-      "selected": 18,
-      "passed": 18,
+      "scope_note": "Focused router, persistence, explicit-acquisition, quota, routing and resolver suite; source calls are mocked or forbidden. No Source HTTP, real ledger, fixture or broad backend run.",
+      "selected": 334,
+      "passed": 334,
       "failed": 0,
       "errors": 0,
       "skipped": 0,
-      "elapsed_seconds": 2.96,
+      "elapsed_seconds": 204.83,
       "source_sha256": {
-        "backend/app/routers/instruments.py": "c11663d3c6438400bf59891ff5c92b5cc6786e9af784f0d776015b57291e56eb",
-        "backend/tests/unit/services/test_provider_explicit_acquisition.py": "ae581413007f5237f0cd0122b2d65f1d8b8c14b2e52fe2fc03df4527b7559619"
+        "backend/app/routers/instruments.py": "dd744e318ca49a9da4c1d579855b77f3c5147f884cef610b7eb72de65cd51b57",
+        "backend/app/schemas/instrument_acquisition.py": "41173b4f6446a9f3b90c905eb3aeaf5cb99c2b5ce8809150234b08fdc4c9ea35",
+        "backend/app/services/market_data.py": "03af6569419c6efcc4dfd4e49036d351550c09c0c45dabbd7bf917a3df5841ed",
+        "backend/app/services/provider_quota_coordinator.py": "4d8309c50742396ac91d8202f7b90ed756839d92ec71b64967f11b326dcfd70b",
+        "backend/app/services/provider_routing.py": "a03f3ebd0bf5443625015ddbede85d830794c166f8ad8e5f093775990e60276a",
+        "backend/app/services/provider_runtime.py": "8922d7a29e910130bda52425e62cf6d46335a16035f6672440b2d071153e27f2",
+        "backend/tests/unit/routers/test_instruments_router.py": "cad6447b0a1efdb7b0474a31fa23338dbd875561a11e3d2b4b9efc66619ab594",
+        "backend/tests/unit/services/test_provider_explicit_acquisition.py": "b41c28171021b2740d64618875c3c3b35587fe8b6892d170aab4bdb3bc4ea758",
+        "backend/tests/unit/services/test_provider_persistence.py": "87937b83c614ba610db04577efea063c0bc87f5ea21b68fbfaf66e3bf00996f6",
+        "backend/tests/unit/services/test_provider_quota_coordinator.py": "9e1b133f69f7a128a5fd729035dbf024a16d6405bb8d025cb40fa5d936c0eda7",
+        "backend/tests/unit/services/test_provider_routing.py": "ce1f4f2775dc95b07b99dd7efa7e41d4117033cf5550eca980520c9b324f8372",
+        "backend/tests/unit/services/test_provider_runtime.py": "7cc5c08c32057069ba3c4359e453a74191f41c3704f14cc19da113977bc6ed44"
       }
     },
     {

@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
@@ -140,6 +140,46 @@ async def test_durable_quota_reservation_rejects_over_limit(db):
     assert second is None
     row = db.query(ProviderQuotaWindow).one()
     assert row.reserved_units == 2
+
+
+@pytest.mark.asyncio
+async def test_known_rolling_runtime_window_denial_exposes_retry_boundary(db):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(name="quota-retry-test", is_active=True)
+    db.add(source)
+    db.flush()
+    now = datetime(2026, 11, 6, 12, 0, tzinfo=UTC)
+    first = await reserve_provider_quota(
+        async_db,
+        data_source_id=source.id,
+        capability="instrument_search",
+        quota_group="massive_requests",
+        dimension="requests_per_minute",
+        units=1,
+        limit_units=1,
+        window_seconds=60,
+        now=now,
+        rolling=True,
+    )
+    assert first is not None
+
+    denial: dict = {}
+    second = await reserve_provider_quota(
+        async_db,
+        data_source_id=source.id,
+        capability="instrument_metadata",
+        quota_group="massive_requests",
+        dimension="requests_per_minute",
+        units=1,
+        limit_units=1,
+        window_seconds=60,
+        now=now + timedelta(seconds=1),
+        rolling=True,
+        denial_details=denial,
+    )
+
+    assert second is None
+    assert denial["retry_at"] == now + timedelta(seconds=61)
 
 
 @pytest.mark.asyncio

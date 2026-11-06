@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
 import pytest
@@ -21,7 +22,12 @@ from app.models.provider_observation import (
 from app.models.provider_runtime import ProviderCapability, ProviderHealthState, ProviderPolicy
 from app.providers.base import IdentifierRecord, InstrumentProfile, ProviderSearchResult
 from app.services import instrument_mastering, instrument_sync, market_data, provider_observations
-from app.services.provider_runtime import ProviderExecutionResult, ResolvedProvider
+from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+from app.services.provider_runtime import (
+    ProviderExecutionResult,
+    ProviderQuotaUnknownError,
+    ResolvedProvider,
+)
 from tests.unit.conftest import AsyncSessionAdapter
 
 
@@ -350,6 +356,125 @@ async def test_search_fetch_persists_and_then_reuses_cache(db, monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_search_native_quota_window_is_held_with_known_retry(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    resolved = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+    retry_at = datetime.now(UTC) + timedelta(seconds=37)
+    calls: list[str] = []
+
+    async def _uncached(*_args, **_kwargs):
+        return None
+
+    async def _resolve(*_args, **_kwargs):
+        return [resolved]
+
+    async def _denied(*_args, provider_name=None, **_kwargs):
+        calls.append(provider_name)
+        raise ProviderQuotaAdmissionError("native request window is full", retry_at=retry_at)
+
+    monkeypatch.setattr(market_data, "_fresh_search_from_cache", _uncached)
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _resolve)
+    monkeypatch.setattr(market_data, "execute_provider_call", _denied)
+    outcomes: list[dict] = []
+
+    results = await market_data.search_provider_instruments_async(
+        async_db, "XLB", source_outcomes=outcomes
+    )
+
+    assert results == []
+    assert calls == ["massive"]
+    assert outcomes == [
+        {
+            "provider": "massive",
+            "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+            "operation": "search_instruments",
+            "status": "held",
+            "reason_code": "provider_quota_admission_denied",
+            "error_type": "ProviderQuotaAdmissionError",
+            "retry_at": retry_at,
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_search_unexpected_provider_error_remains_failed(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    resolved = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+
+    async def _uncached(*_args, **_kwargs):
+        return None
+
+    async def _resolve(*_args, **_kwargs):
+        return [resolved]
+
+    async def _broken(*_args, **_kwargs):
+        raise TypeError("implementation bug")
+
+    monkeypatch.setattr(market_data, "_fresh_search_from_cache", _uncached)
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _resolve)
+    monkeypatch.setattr(market_data, "execute_provider_call", _broken)
+    outcomes: list[dict] = []
+
+    results = await market_data.search_provider_instruments_async(
+        async_db, "XLB", source_outcomes=outcomes
+    )
+
+    assert results == []
+    assert outcomes == [
+        {
+            "provider": "massive",
+            "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+            "operation": "search_instruments",
+            "status": "failed",
+            "reason_code": "provider_request_failed",
+            "error_type": "TypeError",
+        }
+    ]
+
+
+@pytest.mark.asyncio
+async def test_search_unknown_quota_contract_is_held_without_retry(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    resolved = _resolved_provider(
+        db, provider_name="massive", capability=ProviderCapability.INSTRUMENT_SEARCH
+    )
+
+    async def _uncached(*_args, **_kwargs):
+        return None
+
+    async def _resolve(*_args, **_kwargs):
+        return [resolved]
+
+    async def _unknown(*_args, **_kwargs):
+        raise ProviderQuotaUnknownError("native reset contract is unknown")
+
+    monkeypatch.setattr(market_data, "_fresh_search_from_cache", _uncached)
+    monkeypatch.setattr(market_data, "resolve_provider_chain", _resolve)
+    monkeypatch.setattr(market_data, "execute_provider_call", _unknown)
+    outcomes: list[dict] = []
+
+    results = await market_data.search_provider_instruments_async(
+        async_db, "XLB", source_outcomes=outcomes
+    )
+
+    assert results == []
+    assert outcomes == [
+        {
+            "provider": "massive",
+            "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+            "operation": "search_instruments",
+            "status": "held",
+            "reason_code": "provider_quota_contract_unknown",
+            "error_type": "ProviderQuotaUnknownError",
+        }
+    ]
+
+
+@pytest.mark.asyncio
 async def test_single_provider_cached_search_outcome_counts_persisted_candidates(db, monkeypatch):
     async_db = AsyncSessionAdapter(db)
     massive = _resolved_provider(
@@ -497,6 +622,37 @@ async def test_profile_fetch_without_existing_instrument_persists_by_creating_on
     assert profile is not None
     assert instrument_row.name == "Tesla"
     assert len(snapshots) == 1
+
+
+@pytest.mark.asyncio
+async def test_profile_fetch_can_preserve_typed_errors_for_selected_acquire(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    error = ProviderQuotaAdmissionError("native window is full")
+
+    async def _no_cached_profile(*_args, **_kwargs):
+        return None
+
+    async def _denied(*_args, **_kwargs):
+        raise error
+
+    monkeypatch.setattr(market_data, "_fresh_profile_from_cache", _no_cached_profile)
+    monkeypatch.setattr(market_data, "execute_provider_call", _denied)
+
+    assert (
+        await market_data.get_provider_profile_async(
+            async_db, "QXHOLD", provider_name="massive", persist=False
+        )
+        is None
+    )
+    with pytest.raises(ProviderQuotaAdmissionError) as raised:
+        await market_data.get_provider_profile_async(
+            async_db,
+            "QXHOLD",
+            provider_name="massive",
+            persist=False,
+            raise_provider_errors=True,
+        )
+    assert raised.value is error
 
 
 @pytest.mark.asyncio
