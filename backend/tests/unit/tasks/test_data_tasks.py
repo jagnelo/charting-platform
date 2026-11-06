@@ -84,3 +84,34 @@ async def test_nightly_history_refresh_materializes_coarse_views_when_provider_r
     materialize.assert_awaited_once_with(session, instrument.id)
     assert session.commits == 1
     assert session.rollbacks == 0
+
+
+@pytest.mark.asyncio
+async def test_core_refresh_scheduler_uses_shared_workstation_maintenance_planner(monkeypatch):
+    queued = []
+
+    async def fake_maintenance(ctx, *, include_discovered):
+        queued.append((ctx, include_discovered))
+        return {"mode": "shared_preparation_queue", "queued": 4}
+
+    monkeypatch.setattr(data_tasks, "enqueue_workstation_maintenance", fake_maintenance)
+
+    result = await data_tasks.enqueue_core_refresh_jobs({"redis": "unused"})
+
+    assert result == {"mode": "shared_preparation_queue", "queued": 4}
+    assert queued == [({"redis": "unused"}, True)]
+
+
+@pytest.mark.asyncio
+async def test_workstation_maintenance_skips_controlled_e2e_market_data(monkeypatch):
+    monkeypatch.setattr(data_tasks.settings, "E2E_SEED_MARKET_DATA", True)
+
+    class NoDatabase:
+        def __call__(self):
+            raise AssertionError("E2E-owned fixtures must not run live maintenance planning")
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", NoDatabase())
+
+    result = await data_tasks.enqueue_workstation_maintenance({})
+
+    assert result == {"skipped": True, "reason": "controlled fixture mode owns workstation data"}

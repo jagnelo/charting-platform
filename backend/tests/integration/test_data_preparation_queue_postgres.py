@@ -1169,3 +1169,133 @@ async def test_joined_deferred_history_keeps_native_retry_for_both_owners(
             assert history.retry_at == provider_retry_at
         not_due = await claim_refresh_jobs(session, now=provider_retry_at - timedelta(minutes=1))
         assert all(job.id != child_id for job in not_due)
+
+
+async def test_startup_maintenance_uses_shared_planner_and_catalogue_defaults(
+    preparation_sessions, monkeypatch
+):
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.models.user import User
+    from app.models.watchlist import Watchlist, WatchlistItem
+    from app.models.workstation import Workspace, WorkspaceTab, WorkspaceWindow
+    from app.services.data_preparation import _TRACKING_CAPABILITY
+    from app.tasks import data_tasks
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(data_tasks.settings, "E2E_SEED_MARKET_DATA", False)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        saved = _canonical_instrument("SAVEDX", stock_type_id, domain_prefix="saved-list")
+        panel = _canonical_instrument("PANELX", stock_type_id, domain_prefix="saved-panel")
+        discovered = _canonical_instrument("DISCOVX", stock_type_id, domain_prefix="discovered")
+        user = User(
+            username=f"maintenance-{uuid4().hex[:8]}",
+            email=f"maintenance-{uuid4().hex[:8]}@example.test",
+            hashed_password="test-only",
+        )
+        session.add_all([saved, panel, discovered, user])
+        await session.flush()
+        watchlist = Watchlist(user_id=user.id, name="Saved", position=0)
+        workspace = Workspace(
+            user_id=user.id,
+            name="Saved analysis",
+            is_default=True,
+            position=0,
+            tabs=[
+                WorkspaceTab(
+                    stable_key="saved-analysis",
+                    name="Saved analysis",
+                    position=0,
+                    windows=[
+                        WorkspaceWindow(
+                            instance_key="saved-panel",
+                            tool_type="chart",
+                            title="Saved panel",
+                            configuration={"symbol": "PANELX", "timeframe": "D1"},
+                            position=0,
+                        )
+                    ],
+                )
+            ],
+        )
+        session.add_all(
+            [
+                watchlist,
+                workspace,
+                WatchlistItem(watchlist=watchlist, instrument=saved, position=0),
+            ]
+        )
+        saved_id, discovered_id = saved.id, discovered.id
+        await session.commit()
+
+    result = await data_tasks.enqueue_workstation_maintenance({}, include_discovered=True)
+    assert result["mode"] == "shared_preparation_queue"
+    assert result["default"] > 0
+    assert result["background"] > 0
+
+    async with preparation_sessions() as session:
+        parents = list(
+            (
+                await session.execute(
+                    select(MarketRefreshJob).where(
+                        MarketRefreshJob.capability == _TRACKING_CAPABILITY
+                    )
+                )
+            ).scalars()
+        )
+        assert parents
+        assert all(
+            (job.metadata_payload or {}).get("data_preparation", {}).get("role")
+            == "system_maintenance_tracking"
+            for job in parents
+        )
+        requests = [
+            (job.metadata_payload or {}).get("data_preparation", {}).get("normalized_request", {})
+            for job in parents
+        ]
+        assert any(
+            request.get("target") == {"kind": "market_group", "group_key": "sp500-sectors"}
+            and (request.get("analysis") or {}).get("kind") == "rrg"
+            and (request.get("analysis") or {}).get("benchmark_symbol") == "SPY"
+            for request in requests
+        )
+        assert any(
+            (request.get("analysis") or {}).get("kind") == "ratio"
+            and [leg.get("symbol") for leg in request["analysis"]["legs"]] == ["SPY", "RSP"]
+            for request in requests
+        )
+        assert any(
+            request.get("target", {}).get("kind") == "instrument"
+            and request["target"].get("instrument_id") == saved_id
+            and job.priority == 50
+            for job in parents
+            for request in [
+                (job.metadata_payload or {})
+                .get("data_preparation", {})
+                .get("normalized_request", {})
+            ]
+        )
+        assert any(
+            request.get("target", {}).get("kind") == "instrument"
+            and request["target"].get("symbol") == "PANELX"
+            and job.priority == 50
+            for job in parents
+            for request in [
+                (job.metadata_payload or {})
+                .get("data_preparation", {})
+                .get("normalized_request", {})
+            ]
+        )
+        assert any(
+            request.get("target", {}).get("kind") == "instrument"
+            and request["target"].get("instrument_id") == discovered_id
+            and request.get("datasets") == ["history"]
+            and job.priority == 100
+            for job in parents
+            for request in [
+                (job.metadata_payload or {})
+                .get("data_preparation", {})
+                .get("normalized_request", {})
+            ]
+        )

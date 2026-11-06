@@ -11,6 +11,7 @@ from app.services.data_preparation import (
     _analysis_required_start,
     _resolve_requested_instruments,
     create_data_preparation_request,
+    create_maintenance_data_preparation_request,
     expand_resolved_identity_dependency,
     get_data_preparation_response,
 )
@@ -357,6 +358,35 @@ async def test_data_preparation_idempotency_is_owner_scoped_and_payload_bound(db
             idempotency_key="same-request",
         )
     assert exc_info.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_system_maintenance_uses_shared_planner_without_owner_status_access(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    request = DataEnsureRequest.model_validate(
+        {"target": {"kind": "instrument", "instrument_id": instrument.id}, "datasets": ["history"]}
+    )
+    first = await create_maintenance_data_preparation_request(
+        async_db,
+        request=request,
+        idempotency_key="daily-core:2026-11-06:instrument-1",
+        priority="background",
+    )
+    second = await create_maintenance_data_preparation_request(
+        async_db,
+        request=request,
+        idempotency_key="daily-core:2026-11-06:instrument-1",
+        priority="background",
+    )
+
+    assert first.id == second.id
+    data = first.metadata_payload["data_preparation"]
+    assert data["role"] == "system_maintenance_tracking"
+    assert data["owner_user_id"] is None
+    assert data["dependencies"][0]["dataset"] == "history"
+    with pytest.raises(HTTPException) as exc_info:
+        await get_data_preparation_response(async_db, parent=first, owner_user_id=1)
+    assert exc_info.value.status_code == 404
 
 
 @pytest.mark.asyncio

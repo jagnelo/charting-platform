@@ -319,28 +319,17 @@ async def task_refresh_instrument_data(ctx: dict, instrument_id: int, timeframe:
 
 
 async def task_bootstrap_core_workstation(ctx: dict):
-    """Hydrate the immutable US Top Down universe on a fresh deployment."""
+    """Queue fresh default/saved workstation inputs through durable preparation."""
 
-    from app.database import AsyncSessionLocal
-    from app.services.workstation_bootstrap import bootstrap_core_workstation_data
+    from app.tasks.data_tasks import enqueue_workstation_maintenance
 
-    async with AsyncSessionLocal() as db:
-        result = await bootstrap_core_workstation_data(db, redis=ctx.get("redis"))
-        logger.info(
-            "Core workstation bootstrap complete: history=%d holdings=%d skipped=%s",
-            sum(
-                1
-                for item in (result.get("history") or {}).values()
-                if item.get("status") in {"loaded", "ready"}
-            ),
-            sum(
-                1
-                for item in (result.get("holdings") or {}).values()
-                if item.get("status") in {"loaded", "ready"}
-            ),
-            result.get("skipped", False),
-        )
-        return result
+    result = await enqueue_workstation_maintenance(ctx, include_discovered=False)
+    logger.info(
+        "Core workstation preparation queued: default=%d background=%d",
+        result.get("default", 0),
+        result.get("background", 0),
+    )
+    return result
 
 
 # ── Scheduled tasks (cron) ───────────────────────────────────────────────────
@@ -600,8 +589,8 @@ async def worker_startup(ctx: dict):
     job = await redis.enqueue_job(
         "task_bootstrap_core_workstation",
         # Bump this id when bootstrap semantics change so a completed result
-        # from an older deployment cannot suppress the corrected sweep.
-        _job_id="core-workstation-bootstrap-startup-v4",
+        # from an older deployment cannot suppress the corrected planner pass.
+        _job_id="core-workstation-bootstrap-startup-v5",
         _expires=3600,
     )
     logger.info("Queued core workstation bootstrap at worker startup: job=%s", job)

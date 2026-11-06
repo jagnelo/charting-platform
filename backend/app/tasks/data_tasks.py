@@ -2,6 +2,8 @@
 Background data tasks — bulk historical fetches.
 """
 
+import hashlib
+import json
 import logging
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
@@ -16,6 +18,14 @@ from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
+from app.models.watchlist import Watchlist, WatchlistItem
+from app.models.workstation import (
+    MarketGroup,
+    MarketGroupMember,
+    Workspace,
+    WorkspaceTab,
+    WorkspaceWindow,
+)
 from app.providers.errors import bounded_redact_provider_message
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv
@@ -25,7 +35,6 @@ from app.services.market_refresh_queue import (
     _acquire_enqueue_lock,
     claim_refresh_jobs,
     complete_refresh_job,
-    core_refresh_request_key,
     enqueue_refresh_job,
     retry_refresh_job,
 )
@@ -139,32 +148,208 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
 
 
 async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
-    """Queue whole-universe D1 work without doing provider I/O in an evaluator."""
+    """Queue catalogue, saved-input and discovered-universe work on the shared planner."""
+
+    return await enqueue_workstation_maintenance(ctx, include_discovered=True)
+
+
+async def enqueue_workstation_maintenance(ctx: dict, *, include_discovered: bool = False) -> dict:
+    """Persist default and user workstation preparation without source I/O.
+
+    Visible API requests retain priority 10, default/core and saved-list work
+    uses 50, and the remaining active universe uses 100. All datasets go
+    through the shared request planner and existing refresh queue.
+    """
+
+    del ctx  # Queue construction is database-only; workers perform provider I/O.
+    from pydantic import ValidationError
+
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import create_maintenance_data_preparation_request
+    from app.services.top_down_taxonomy import seed_top_down_taxonomy
+    from app.services.workstation_bootstrap import (
+        CORE_WORKSTATION_INSTRUMENTS,
+        ensure_core_workstation_identities,
+    )
+    from app.services.workstation_tool_catalogue import (
+        default_maintenance_request_specs,
+        maintenance_request_specs,
+    )
 
     scheduled_at = datetime.now(UTC)
-    run_date = scheduled_at.date()
+    run_date = scheduled_at.date().isoformat()
+    if settings.E2E_SEED_MARKET_DATA:
+        return {"skipped": True, "reason": "controlled fixture mode owns workstation data"}
     async with AsyncSessionLocal() as db:
-        instruments = (
-            (await db.execute(select(Instrument).where(Instrument.is_active.is_(True))))
-            .scalars()
-            .all()
-        )
-        for instrument in instruments:
-            await enqueue_refresh_job(
-                db,
-                request_key=core_refresh_request_key(instrument.id, run_date=run_date),
-                capability="price_history",
-                instrument_id=instrument.id,
-                timeframe=Timeframe.D1.value,
-                priority=100,
-                metadata_payload={
-                    "schedule": "core_session_daily",
-                    "run_date": run_date.isoformat(),
-                },
-                now=scheduled_at,
+        # These routines only establish local canonical identities and group
+        # membership; they do not query any provider.
+        await ensure_core_workstation_identities(db)
+        await seed_top_down_taxonomy(db)
+        await db.flush()
+
+        default_specs = default_maintenance_request_specs()
+        workspace_rows = (
+            await db.execute(
+                select(
+                    Workspace.id,
+                    WorkspaceWindow.tool_type,
+                    WorkspaceWindow.configuration,
+                )
+                .join(WorkspaceTab, WorkspaceTab.workspace_id == Workspace.id)
+                .join(WorkspaceWindow, WorkspaceWindow.tab_id == WorkspaceTab.id)
             )
+        ).all()
+        for _workspace_id, tool_type, configuration in workspace_rows:
+            default_specs.extend(maintenance_request_specs(tool_type, configuration))
+
+        existing_group_keys = set((await db.execute(select(MarketGroup.stable_key))).scalars())
+        default_specs = [
+            spec
+            for spec in default_specs
+            if spec.get("target", {}).get("kind") != "market_group"
+            or spec["target"].get("group_key") in existing_group_keys
+        ]
+
+        referenced_symbols: set[str] = set()
+        referenced_group_keys: set[str] = set()
+        for spec in default_specs:
+            target = spec.get("target") or {}
+            if target.get("kind") == "instrument" and target.get("symbol"):
+                referenced_symbols.add(str(target["symbol"]).upper())
+            if target.get("kind") == "market_group":
+                referenced_group_keys.add(str(target["group_key"]))
+            analysis = spec.get("analysis") or {}
+            if analysis.get("benchmark_symbol"):
+                referenced_symbols.add(str(analysis["benchmark_symbol"]).upper())
+            for leg in analysis.get("legs") or []:
+                if leg.get("symbol"):
+                    referenced_symbols.add(str(leg["symbol"]).upper())
+        referenced_ids = (
+            set(
+                (
+                    await db.execute(
+                        select(Instrument.id).where(
+                            Instrument.is_active.is_(True),
+                            Instrument.is_synthetic.is_(False),
+                            Instrument.symbol.in_(referenced_symbols),
+                        )
+                    )
+                ).scalars()
+            )
+            if referenced_symbols
+            else set()
+        )
+        if referenced_group_keys:
+            referenced_ids.update(
+                (
+                    await db.execute(
+                        select(MarketGroupMember.instrument_id)
+                        .join(MarketGroup, MarketGroup.id == MarketGroupMember.market_group_id)
+                        .join(Instrument, Instrument.id == MarketGroupMember.instrument_id)
+                        .where(
+                            MarketGroup.stable_key.in_(referenced_group_keys),
+                            Instrument.is_active.is_(True),
+                            Instrument.is_synthetic.is_(False),
+                        )
+                    )
+                ).scalars()
+            )
+
+        # Any symbol retained in a user's saved list is a default-readiness
+        # dependency, independent of whether that user currently has a browser.
+        saved_instrument_ids = set(
+            (
+                await db.execute(
+                    select(WatchlistItem.instrument_id)
+                    .join(Watchlist, Watchlist.id == WatchlistItem.watchlist_id)
+                    .join(Instrument, Instrument.id == WatchlistItem.instrument_id)
+                    .where(Instrument.is_active.is_(True))
+                    .where(Instrument.is_synthetic.is_(False))
+                    .distinct()
+                )
+            ).scalars()
+        )
+        core_symbols = {symbol.upper() for symbol, _name, _kind in CORE_WORKSTATION_INSTRUMENTS}
+        core_instrument_ids = set(
+            (
+                await db.execute(
+                    select(Instrument.id).where(
+                        Instrument.is_active.is_(True),
+                        Instrument.is_synthetic.is_(False),
+                        Instrument.symbol.in_(core_symbols),
+                    )
+                )
+            ).scalars()
+        )
+        prioritized_ids = saved_instrument_ids | core_instrument_ids | referenced_ids
+        for instrument_id in sorted(prioritized_ids):
+            default_specs.append(
+                {
+                    "target": {"kind": "instrument", "instrument_id": instrument_id},
+                    "timeframe": "D1",
+                    "adjusted": True,
+                }
+            )
+
+        active_ids = set(
+            (
+                await db.execute(
+                    select(Instrument.id).where(
+                        Instrument.is_active.is_(True), Instrument.is_synthetic.is_(False)
+                    )
+                )
+            ).scalars()
+        )
+        background_ids = active_ids - prioritized_ids
+        if include_discovered:
+            for instrument_id in sorted(background_ids):
+                default_specs.append(
+                    {
+                        "target": {"kind": "instrument", "instrument_id": instrument_id},
+                        "timeframe": "D1",
+                        "adjusted": True,
+                        "datasets": ["history"],
+                        "_priority": "background",
+                    }
+                )
+
+        queued = {"default": 0, "background": 0}
+        seen: set[str] = set()
+        for spec in default_specs:
+            priority = str(spec.pop("_priority", "default"))
+            target = spec.get("target") or {}
+            if (
+                target.get("kind") == "market_group"
+                and target.get("group_key") not in existing_group_keys
+            ):
+                continue
+            try:
+                request = DataEnsureRequest(**spec)
+            except (ValidationError, TypeError, ValueError):
+                continue
+            normalized = request.model_dump(mode="json")
+            marker = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+            if marker in seen:
+                continue
+            seen.add(marker)
+            digest = hashlib.sha256(marker.encode("utf-8")).hexdigest()[:24]
+            await create_maintenance_data_preparation_request(
+                db,
+                request=request,
+                idempotency_key=f"workstation:{run_date}:{digest}",
+                priority=priority,
+            )
+            queued[priority] += 1
+            if len(seen) % 100 == 0:
+                await db.commit()
         await db.commit()
-        return {"queued": len(instruments), "mode": "enqueue_only"}
+        return {
+            "queued": sum(queued.values()),
+            "default": queued["default"],
+            "background": queued["background"],
+            "mode": "shared_preparation_queue",
+            "run_date": run_date,
+        }
 
 
 def _refresh_queue_batch_limit(limit: int | None = None) -> int:

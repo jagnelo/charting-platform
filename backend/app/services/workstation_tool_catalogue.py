@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from copy import deepcopy
 from typing import Any, Literal
 
@@ -220,3 +221,84 @@ def default_maintenance_tool_dependencies() -> list[dict[str, Any]]:
         {"key": item["key"], "tool_type": item["tool_type"], "configuration": item["configuration"]}
         for item in tool_catalogue()["tools"]
     ]
+
+
+_RATIO_EXPRESSION = re.compile(r"^=\s*([A-Z0-9._-]{1,32})\s*/\s*([A-Z0-9._-]{1,32})\s*$")
+
+
+def maintenance_request_specs(
+    tool_type: str, configuration: dict[str, Any] | None
+) -> list[dict[str, Any]]:
+    """Project a tool's canonical settings into shared-planner request inputs.
+
+    This is intentionally a read-only semantic projection. The planner still
+    resolves identities, checks dataset eligibility and owns all durable jobs.
+    """
+
+    config = deepcopy(configuration or {})
+    timeframe = config.get("timeframe", "D1")
+    adjusted = config.get("adjusted", True) is not False
+    if tool_type == "chart":
+        expression = config.get("expression")
+        if isinstance(expression, str) and (match := _RATIO_EXPRESSION.fullmatch(expression)):
+            left, right = (symbol.upper() for symbol in match.groups())
+            return [
+                {
+                    "target": {"kind": "instrument", "symbol": left},
+                    "timeframe": timeframe,
+                    "adjusted": adjusted,
+                    "analysis": {
+                        "kind": "ratio",
+                        "legs": [{"symbol": left}, {"symbol": right}],
+                    },
+                }
+            ]
+        symbols = [config.get("symbol"), *(config.get("comparison_symbols") or [])]
+        return [
+            {
+                "target": {"kind": "instrument", "symbol": str(symbol).strip().upper()},
+                "timeframe": timeframe,
+                "adjusted": adjusted,
+            }
+            for symbol in dict.fromkeys(symbols)
+            if isinstance(symbol, str) and symbol.strip()
+        ]
+    if tool_type == "relative_rotation":
+        group_key, benchmark = config.get("group_key"), config.get("benchmark")
+        if not isinstance(group_key, str) or not group_key.strip():
+            return []
+        analysis: dict[str, Any] = {"kind": "rrg"}
+        if isinstance(benchmark, str) and benchmark.strip():
+            analysis["benchmark_symbol"] = benchmark.strip().upper()
+        return [
+            {
+                "target": {"kind": "market_group", "group_key": group_key.strip()},
+                "timeframe": timeframe,
+                "adjusted": adjusted,
+                "analysis": analysis,
+            }
+        ]
+    group_key = config.get("market_group") or config.get("group_key")
+    if tool_type in {"watchlist", "breadth"} and isinstance(group_key, str) and group_key.strip():
+        return [
+            {
+                "target": {"kind": "market_group", "group_key": group_key.strip()},
+                "timeframe": timeframe,
+                "adjusted": adjusted,
+            }
+        ]
+    return []
+
+
+def default_maintenance_request_specs() -> list[dict[str, Any]]:
+    """Project default tool dependencies from the same catalogue served to clients."""
+
+    specs: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for item in default_maintenance_tool_dependencies():
+        for spec in maintenance_request_specs(item["tool_type"], item["configuration"]):
+            marker = repr(sorted((key, repr(value)) for key, value in spec.items()))
+            if marker not in seen:
+                seen.add(marker)
+                specs.append(spec)
+    return specs

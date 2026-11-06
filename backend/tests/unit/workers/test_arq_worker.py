@@ -924,6 +924,23 @@ async def test_core_workstation_bootstrap_delegates_when_enabled(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_core_workstation_task_queues_shared_preparation_requests(monkeypatch):
+    from app.tasks import data_tasks
+
+    calls = []
+
+    async def fake_enqueue(ctx, *, include_discovered):
+        calls.append((ctx, include_discovered))
+        return {"queued": 3, "default": 3, "background": 0}
+
+    monkeypatch.setattr(data_tasks, "enqueue_workstation_maintenance", fake_enqueue)
+    result = await arq_worker.task_bootstrap_core_workstation({"redis": "test"})
+
+    assert result["queued"] == 3
+    assert calls == [({"redis": "test"}, False)]
+
+
+@pytest.mark.asyncio
 async def test_core_workstation_bootstrap_is_explicitly_skippable(monkeypatch):
     monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_ENABLED", False)
 
@@ -952,7 +969,7 @@ async def test_worker_startup_queues_bootstrap_without_running_it_inline(monkeyp
         (
             "task_bootstrap_core_workstation",
             (),
-            {"_job_id": "core-workstation-bootstrap-startup-v4", "_expires": 3600},
+            {"_job_id": "core-workstation-bootstrap-startup-v5", "_expires": 3600},
         )
     ]
 
