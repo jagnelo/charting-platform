@@ -1,5 +1,110 @@
 # feat/market-data-provider-platform
 
+## 2026-11-06 — platform-usability release: shared preparation contract (active)
+
+The human activated the complete platform-usability plan in the original
+Provider session. Root owns combined acceptance and release. This Provider
+checkpoint owns shared backend preparation, durable dependency/job planning,
+the actual ARQ worker path, provider-neutral range planning, and Provider
+workstream records. It does not own frontend code or ETF-specific implementation.
+
+### Implemented shared contract for TC and ETF
+
+The first Provider-owned wire and callable types are implemented in
+`backend/app/schemas/data_preparation.py` and
+`backend/app/services/data_preparation_contracts.py`.
+
+**Request DTO (`DataEnsureRequest`)**
+
+- `target`: discriminated object with `kind: instrument | market_group |
+  family`. Instrument target requires exactly one of `instrument_id` or
+  canonical `symbol`; a non-unique listing resolves to `waiting` with
+  `reason_code=selection_required`, before any ingestion. Group/family use the
+  repository's stable `group_key` / `family_key`.
+- `datasets`: optional unique array of `identity | profile | history |
+  holdings | fundamentals`. Omitted means supported useful defaults; ETF
+  holdings is included only for a resolved ETF and the real ETF handler must
+  exist.
+- `timeframe` reuses the full existing `app.models.ohlcv.Timeframe` enum for
+  all chart flows, plus `adjusted` and optional `start_at/end_at`. Omitted
+  range means latest useful data first, then progressive history to the
+  deepest currently admitted reviewed bound.
+- `analysis.kind` is `ratio` or `rrg`. For `ratio`, `analysis.legs` is exactly
+  two instrument targets and both legs are resolved and prepared. The model
+  also uses existing names `lookback`, integer `sampling`, `tail_length`, and
+  `history_length`, with optional `benchmark_symbol`. Server-side
+  `required_raw_bars` derives the raw warmup from existing RRG math
+  `(lookback * 2 + 1) * sampling`; clients cannot claim warmup coverage.
+- Optional `Idempotency-Key` is scoped to the authenticated user. It only
+  coalesces an identical normalized request; it does not alter provider quota
+  identity or bypass existing request/native limits.
+
+**Response DTO (`DataEnsureResponse`)**
+
+- `request_id: UUID`, `status: queued | running | partial | ready | waiting |
+  unavailable | failed`, `created_at`, `updated_at`, monotonically increasing
+  `version`, and `target`.
+- `dependencies[]`: `dependency_id`, `depends_on[]`, `instrument_id`,
+  `dataset`, `status: queued | running | ready | waiting | unavailable |
+  failed`, `requested_start/end`, `covered_start/end`, `reason_code`, nullable
+  known `retry_at`, and `updated_at`.
+- top-level `completed`, `total`, and `last_progress_at`. `ready` means all
+  requested applicable dependencies are complete; `partial` means useful
+  dependencies are ready while others are held/unavailable; `waiting` means
+  the request is still actionable but has no currently ready dependency;
+  `unavailable` means no safe route exists; `failed` is reserved for unexpected
+  errors and exposes only a safe code/request reference.
+
+`GET /api/v1/data/requests/{request_id}` returns the same durable DTO only to
+the authenticated owner. Equivalent acquisition work may share existing queue
+jobs across requests, while request visibility and user-owned state remain
+private. No raw provider messages, credentials or source payloads are exposed.
+A missing downstream handler is unavailable, never synthetic success.
+
+### ETF callable boundary
+
+The Provider-owned module exports the callable Protocol and concrete context
+and result types in `app.services.data_preparation_contracts`:
+
+```python
+async def prepare_etf_holdings(
+    db: AsyncSession,
+    instrument: Instrument,
+    *,
+    context: DatasetPreparationContext,
+) -> DatasetPreparationResult: ...
+```
+
+`DatasetPreparationContext` carries only request/dependency identity, dataset,
+full timeframe, adjustment, normalized range, priority, and deadline. The
+result carries status, covered range, safe reason, only known `retry_at`, and
+acquired version. There is no cancellation/progress abstraction in this hook;
+the existing durable queue owns progress and retry state. ETF implements the
+callable in its owned service and Root wires the import only after a real
+implementation exists. The hook must use existing native issuer qualification,
+quota, free-only and identity gates. Provider will not edit ETF files, claim
+holdings success, or ship a fake hook.
+
+Durability reuses `MarketRefreshJob`: one opaque parent tracking job stores
+owner-scoped normalized request/dependency/status metadata, and existing child
+jobs represent executable dataset work. A parent tracking row is never treated
+as price work. No second request/dependency table or migration is planned.
+
+### Current progress and next action
+
+- Existing claim `f093caba-0194-4527-b22b-0bfa26344c34` was retained. The
+  automatic UV session preflight completed with the isolated offline cache;
+  native goal `1793988315` is active and unbudgeted. Prior goals and accepted
+  history remain recorded.
+- Exact green/deployed context `139b350238b5e1c8a170dce5af09a805301d857e`
+  remains adopted; backend/frontend trees are unchanged by this task so far.
+- The DTO and hook contracts above are implemented and covered by six focused
+  offline tests. Next: persist the owner-scoped request envelope and dependency
+  graph in `MarketRefreshJob` metadata, with executable dataset work represented
+  by existing shared queue jobs; then connect the current ARQ worker and API.
+- No provider request, real quota/ledger/policy access, Docker fixture, or
+  sibling/staging/master/production write has occurred.
+
 ## 2026-10-25 — accepted staging consumption and SEC first-qualification review
 
 - Preflight identified the assigned implementation worktree and existing
