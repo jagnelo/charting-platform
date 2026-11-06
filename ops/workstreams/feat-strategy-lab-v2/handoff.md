@@ -19525,3 +19525,8 @@ The Strategy Results API projection was also rechecked on the same source: `test
 ### Strategy Results detail owner-denial regression (2026-11-06)
 
 Added a focused I/O-free router regression proving `GET /research/runs/{id}` includes both the run ID and authenticated `user_id` predicates and returns the standard 404 for a run not visible to the caller. Together with the existing result-detail projection test, both focused API regressions pass (2/2); Ruff check/format and `git diff --check` pass. This protects the normal Results access-denial contract while keeping artifact counts derived from the persisted result collection. It is not PostgreSQL or deployed API evidence; Root's combined profile remains required.
+
+
+### Strategy Results list projection and owner scope (2026-11-06)
+
+Added an I/O-free list-route regression for the adjacent persisted Results pane. The test verifies the authenticated owner predicate is present, the list reports the count of artifacts materialized for a run, and the default list response still omits full artifact payloads. Combined with the detail-count and foreign-owner 404 tests, all three focused Research router cases pass; Ruff and diff checks pass. This protects list/detail count consistency and owner-scoped Results reads at unit level. Database-backed persistence and the Root-owned combined profile remain pending.
