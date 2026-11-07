@@ -264,6 +264,7 @@
       :tab-key="workspaceStore.activeTabKey"
       :active-window-key="workspaceStore.activeTab?.active_window_key"
       :reload-key="workspaceReloadKey"
+      :persist-layout="persistMaximizedLayout"
       :render-tool="renderDockTool"
       @changed="persistGoldenLayout"
       @active-window-changed="(windowKey, sourceTabKey) => { if (!sourceTabKey || sourceTabKey === workspaceStore.activeTabKey) workspaceStore.setActiveWindow(windowKey) }"
@@ -2734,12 +2735,13 @@ async function reconcilePopoutPlacement(windowKey: string, popup: Window, initia
   }
 }
 
-function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => void; maximized: Readonly<Ref<boolean>>; close: () => void }): VNode {
+function renderDockTool(dockTool: { instance_key: string; title: string; tool_type: string }, actions: { toggleMaximize: () => Promise<void>; maximized: Readonly<Ref<boolean>>; maximizing: Readonly<Ref<boolean>>; close: () => void }): VNode {
   const tool = workspaceStore.activeTab?.windows.find(window => window.instance_key === dockTool.instance_key)
   if (!tool) return h('div', { class: 'workstation__missing-tool' }, `Missing persisted tool: ${dockTool.instance_key}`)
   return h(WorkstationToolContent, {
     tool,
     maximizedState: actions.maximized,
+    maximizingState: actions.maximizing,
     activeWindowKey: workspaceStore.activeTab?.active_window_key,
     factoryLayout: workspaceStore.activeTabKey,
     onActivate: () => workspaceStore.setActiveWindow(dockTool.instance_key),
@@ -2792,6 +2794,13 @@ function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: s
   // install completes.
   if (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey) return
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
+}
+
+function persistMaximizedLayout() {
+  // Maximize/restore is an explicit workspace action. Flush the layout emitted
+  // by Golden Layout before its toolbar reports the new state, so an immediate
+  // reload cannot interrupt the snapshot debounce or its conflict merge.
+  return workspaceStore.saveSnapshot()
 }
 
 async function resetFactoryWorkspace() {

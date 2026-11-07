@@ -147,6 +147,46 @@ describe('WorkspaceLayoutHost', () => {
     expect(listeners.size).toBe(0)
   })
 
+  it('publishes maximize state only after the workspace snapshot is saved', async () => {
+    let resolveSave!: (saved: boolean) => void
+    const pendingSave = new Promise<boolean>(resolve => { resolveSave = resolve })
+    const renderTool = vi.fn((_tool: any, _actions: any) => h('div'))
+    const wrapper = mount(WorkspaceLayoutHost, {
+      props: {
+        layout: { root: { type: 'row', content: [] } } as any,
+        persistLayout: () => pendingSave,
+        renderTool,
+      },
+    })
+    const listeners = new Map<string, () => void>()
+    const stack = {
+      isMaximised: false,
+      on: (event: string, listener: () => void) => listeners.set(event, listener),
+      off: (event: string) => listeners.delete(event),
+      toggleMaximise() {
+        this.isMaximised = !this.isMaximised
+        listeners.get(this.isMaximised ? 'maximised' : 'minimised')?.()
+      },
+    }
+    goldenLayouts[0].factory!({ parent: { parentItem: stack } }, { instance_key: 'relative-rotation', title: 'Relative Rotation', tool_type: 'relative_rotation' })
+    const actions = renderTool.mock.calls[0][1] as {
+      maximized: { value: boolean }
+      maximizing: { value: boolean }
+      toggleMaximize: () => Promise<void>
+    }
+
+    const toggling = actions.toggleMaximize()
+    expect(stack.isMaximised).toBe(true)
+    expect(actions.maximizing.value).toBe(true)
+    expect(actions.maximized.value).toBe(false)
+
+    resolveSave(true)
+    await toggling
+    expect(actions.maximizing.value).toBe(false)
+    expect(actions.maximized.value).toBe(true)
+    wrapper.unmount()
+  })
+
   it('does not reinstall when the normalised layout fingerprint is unchanged', async () => {
     const layout = { root: { type: 'row', content: [] } } as any
     const wrapper = mount(WorkspaceLayoutHost, { props: { layout, renderTool: () => h('div') } })

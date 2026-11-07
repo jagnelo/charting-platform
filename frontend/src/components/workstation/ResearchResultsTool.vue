@@ -382,7 +382,10 @@ const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
 const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.value.length === 2
   ? `${comparisonRuns.value.map(run => `${run.id}:${run.status}:${run.artifact_count ?? run.artifacts.length}`).join('|')}|retry:${comparisonAttempt.value}`
   : '')
-const surfaceVisible = ref(true)
+// Dock tools can mount while their tab is hidden. Do not start a query until
+// IntersectionObserver confirms the pane is visible; otherwise the first
+// request can race the hidden-tab transition and leave the empty state loading.
+const surfaceVisible = ref(typeof IntersectionObserver === 'undefined')
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 const runsQueryKey = researchRunsQueryKey
 const queryClient = useQueryClient()

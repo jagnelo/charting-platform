@@ -1205,13 +1205,15 @@ progress:
       Strategy bounded-range fix. Earlier Provider pins remain historical. This is development
       consumption, not release acceptance. Consume the authenticated durable ensure/status contract through the exact
       TC-owned shared preparation client without duplicating worker, acquisition, quota, or provider
-      behavior. The TC runtime history preserves the earlier AEA, D5, and5a pins. The prior TC ce2262ab common-runtime pin imported19 declared paths over5a and all66 entries were verified;
-      the current common-runtime pin is exact source 77190340a4a2335e8f7f9a30ee32ded599a714ef under
-      tc-77190340-common-runtime-development-consumption-contract.json. Strategy consumed its declared
-      nineteen delta paths and verified the active66-file manifest; the 4cfee and earlier pins remain
-      historical. The two ETF-owned SearchBar files already matched
-      their exact a0c5250 dependency and were left unchanged. Prior D5/5a/ce test evidence is not fresh4c qualification; exact-source CI and combined browser acceptance remain pending. This is
-      development consumption, not browser acceptance. Author the separately reserved Strategy workstation
+      behavior. The TC runtime history preserves the earlier AEA, D5, 5a, ce, 5a783e and771 pins. The
+      current common-runtime pin is exact source45ea51bfa78b6ae167462b518358164a5a3e29f4 under
+      tc-45ea51bf-common-runtime-development-consumption-contract.json (manifest SHA256
+      1126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c). Strategy consumed only its
+      ten declared paths after all ten old_guards passed and verified all77 manifest SHA/blob/executable
+      bits. This release adds sector catalogue hydration, basket-member preparation before cached reads,
+      query coalescing, and persisted maximize/restore. It remains development consumption only; Root's
+      frontend build is not browser or release acceptance. Prior imports and evidence remain historical.
+      Author the separately reserved Strategy workstation
       lifecycle journey; its public-UI browser body remains pending Root's combined slot. Repair the
       seven Root-reserved Dashboard product
       files and focused tests: prepare profile/history before reads, submit independent per-target
@@ -1259,7 +1261,11 @@ progress:
     journeys and assertions with relay CPU raised from0.25 to1.0; it ended1pass/2fail in182.7s with
     nr_throttled unchanged. The ordinary high-low Study prepare/validate/run/results journey passed.
     The RRG maximize/reload Restore action and the initial Study Results empty-state loading assertion
-    still fail; neither is accepted or release evidence. Local Strategy work additionally fixes the
+    still fail; neither is accepted or release evidence. Root's trace shows the Results list GET was
+    pending at capture but does not establish why it failed to settle. Strategy now gates that initial
+    query on the pane's first positive visibility observation and has a focused hidden-to-visible
+    component regression; exact-current-source browser verification is pending. Local Strategy work also
+    fixes the
     R25-proven lookback truncation: an explicit bounded date range now uses the existing5000-row
     per-series safety cap while unbounded/set-based members retain their existing500-row budget.
     Focused Strategy component tests, research-router tests, type-check and Playwright discovery have
@@ -1267,12 +1273,12 @@ progress:
     check pass now. This local candidate has not run in a browser. Root owns the next fixture run and
     common dock/RRG repair; preserve the18-criterion roadmap and disabled holds.
   next_action: >-
-    Freeze and hand this coherent Strategy candidate to Root, including the bounded lookback repair,
-    truthful deferred-evaluation UI, current TC771/Providerdcd development imports, and corrected
-    Study/Results/workstation locators. Root should run only the assigned affected journeys on its
-    existing fixture; retain the two R26 failures until their actual causes are fixed and verified.
-    Do not start another fixture or treat the single R26 Study pass, focused tests, or type-check as
-    browser/full-profile acceptance. Preserve all18 roadmap criteria and disabled native, broker,
+    Hand Root the next coherent Strategy candidate, including the bounded lookback repair, truthful
+    deferred-evaluation UI, the Results visibility-gated initial query, exact TC45/Providerdcd
+    development imports, and corrected Study/Results/workstation locators. Root should run only the
+    assigned affected journeys on its existing fixture; retain the R26 failures until their causes are
+    fixed and verified. Do not start another fixture or treat the single R26 Study pass, focused tests,
+    or type-check as browser/full-profile acceptance. Preserve all18 roadmap criteria and disabled native, broker,
     capital, paid/trial, and provider-live holds.
   updated_at: "2026-11-07T05:36:55Z"
 roadmap_goal: >-

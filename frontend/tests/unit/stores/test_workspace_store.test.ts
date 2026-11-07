@@ -99,6 +99,28 @@ describe('workspace store layout tabs', () => {
     expect(store.marketAnalysisRefreshedAt).toEqual(expect.any(String))
   })
 
+  it('joins active-panel reads to the shell refresh without cancelling its generation', async () => {
+    const sharedResponse = deferred<unknown>()
+    apiGet.mockReturnValue(sharedResponse.promise)
+    const store = useWorkspaceStore()
+
+    const shellRefresh = store.refreshMarketAnalysis()
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledTimes(6))
+    const panelReads = Promise.all([
+      store.loadGroupSnapshot('sp500-sectors', 'SPY'),
+      store.loadBreadth('sp500-sectors'),
+      store.loadBreadthHistory('sp500-sectors'),
+    ])
+
+    expect(apiGet).toHaveBeenCalledTimes(6)
+    sharedResponse.resolve({ group_key: 'sp500-sectors', rows: [], points: [], coverage: 1 })
+    await Promise.all([shellRefresh, panelReads])
+
+    expect(store.groupSnapshots['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+    expect(store.breadth['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+    expect(store.breadthHistory['sp500-sectors']).toEqual(expect.objectContaining({ group_key: 'sp500-sectors' }))
+  })
+
   it('does not start queued market-analysis loaders while the document is hidden', async () => {
     Object.defineProperty(document, 'visibilityState', { configurable: true, value: 'hidden' })
     const store = useWorkspaceStore()
@@ -132,6 +154,30 @@ describe('workspace store layout tabs', () => {
       sourceWindowId: expect.any(String),
     }))
     store.disconnect()
+  })
+
+  it('flushes a scheduled workspace snapshot immediately and avoids a second debounce write', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'relative-rotation',
+        layout_config: { root: { type: 'stack', maximised: true, content: [] } },
+        windows: [{ id: 30, instance_key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    apiPut.mockResolvedValue({ ...store.workspace, revision: 5 })
+    vi.useFakeTimers()
+    store.scheduleSnapshot()
+
+    const saved = await store.saveSnapshot()
+    await vi.runAllTimersAsync()
+
+    expect(saved).toBe(true)
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    expect(apiPut.mock.calls[0][1].tabs[0].layout_config.root.maximised).toBe(true)
+    vi.useRealTimers()
   })
 
   it('refreshes a follower from a leader refresh event without starting its own announcement', async () => {

@@ -1,5 +1,5 @@
 <template>
-<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
+<ToolWindow :window-key="tool.instance_key" :title="tool.title || tool.tool_type" :symbol="toolHeaderSymbol" :link-group="localLinkGroup" :timeframe-link-group="timeframeLinkGroup" :timeframe="tool.tool_type === 'chart' ? activeTimeframe : ''" :active="isActiveToolWindow" :maximized="maximizedState?.value ?? false" :maximizing="maximizingState?.value ?? false" :scrollable-body="tool.instance_key === 'relative-rotation' || tool.tool_type === 'relative_rotation'" :favorite-available="tool.tool_type === 'chart' && favoriteStore.loaded && chartStore.instrument?.id != null" :favorite-active="favoriteStore.isFavorite(chartStore.instrument?.id)" @toggle-favorite="toggleChartFavorite" @pointerdown.capture="emit('activate')" @float="emit('float', tool.instance_key)" @maximize="emit('maximize', tool.instance_key)" @close="emit('close', tool.instance_key)" @update:link-group="handleLinkGroupChange" @update:timeframe-link-group="setTimeframeLinkGroup" @update:timeframe="setTimeframe">
     <span v-if="personalWatchlistError" class="workstation-tool-content__mutation-error" role="alert" aria-live="assertive">{{ personalWatchlistError }}</span>
     <small v-if="isIndustryTool && industryProfilePreparation?.message" class="industry-list__load-state" role="status" aria-live="polite">{{ industryProfilePreparation.message }}</small>
     <div v-if="isBenchmarkUniverse" class="benchmark-surface">
@@ -1191,6 +1191,7 @@ const props = defineProps<{
   activeWindowKey?: string | null
   factoryLayout?: string | null
   maximizedState?: Readonly<Ref<boolean>>
+  maximizingState?: Readonly<Ref<boolean>>
 }>()
 // Golden Layout can destroy a virtual tool while its shared column/asset
 // requests are still resolving. Keep response publication scoped to the
@@ -1892,6 +1893,13 @@ function handlePersonalRowAction(action: 'chart' | 'compare' | 'ratio' | 'note' 
 
 onMounted(async () => {
   void loadBreadthPythonSeriesAssets()
+  // Sector membership is already a local curated catalogue. Load it directly
+  // for the visible list so a slow snapshot/breadth refresh cannot leave the
+  // ordinary symbol choices empty. The store coalesces this with the shell's
+  // shared refresh when both start together.
+  if (isSectorTool.value && !workspaceStore.marketGroups['sp500-sectors']) {
+    void workspaceStore.loadMarketGroup('sp500-sectors', { useCache: true })
+  }
   if ((props.tool.tool_type === 'chart' || isFavoritesTool.value) && !favoriteStore.loaded && !favoriteStore.loading) {
     void favoriteStore.load()
   }

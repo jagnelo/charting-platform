@@ -19872,3 +19872,27 @@ Next: hand Root the coherent source containing the bounded-lookback fix and trut
 evaluation display. Root/TC own the still-failing Results initial mount and RRG Restore issues. The
 current local candidate has not run in a browser; full combined qualification, all original18
 roadmap criteria, and native/broker/capital/paid/trial/provider-live holds remain open.
+
+### TC45 shared runtime consumption and Results visibility gate (2026-11-07)
+
+Root released TC `45ea51bfa78b6ae167462b518358164a5a3e29f4` under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-45ea51bf-common-runtime-development-consumption-contract.json`
+(SHA256 `1126b87449853c3e9b52aff4a19d0efd786ad833d16d52b2b76f28914f8dde6c`). The ten Strategy
+`import_paths` were guarded against their exact771 predecessor bytes, then imported from the frozen
+source. All77 manifest entries match consumer SHA256, Git blob and executable-bit semantics. This
+development dependency adds sector catalogue hydration, basket-member preparation before cached
+reads, shared analysis-query coalescing and persisted maximize/restore. Root's frontend build is not
+browser or release acceptance; no import-only commit was made.
+
+The R26 Results trace has a single `/research/runs` list GET recorded as pending at capture, with no
+response status/body; that does not establish whether the delay was in the relay, API or UI request
+lifecycle. Strategy's `ResearchResultsTool` now waits for the first positive IntersectionObserver
+visibility result before enabling the initial runs query when the API is available. This avoids
+starting list reads for a mounted-but-hidden dock pane. A focused regression verifies no request while
+hidden, then one request and the useful empty state once visible. The full Results component module
+passes68/68, frontend type-check exits0, and `git diff --check` passes. No browser body ran.
+
+The R26 ordinary high-low Study journey passed on its recorded frontend771/backenddcd pins, but that
+does not qualify this local source. The RRG Restore and initial Results-loading failures remain open
+until Root runs this exact candidate and resolves actual fixture evidence. The full18-criterion
+roadmap and all disabled native/broker/capital/paid/trial/provider-live holds remain unchanged.
