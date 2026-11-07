@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -179,9 +179,9 @@ async def _native_usage_job_for_operation_baseline(
         (item for item in usage_chain if item.provider_name == normalized_provider),
         None,
     )
-    if usage is None or not policy_allows_account_usage_bootstrap(
-        usage.policy, "fetch_account_usage"
-    ):
+    if usage is None:
+        return None, "native_usage_provider_not_resolved", True
+    if not policy_allows_account_usage_bootstrap(usage.policy, "fetch_account_usage"):
         return None, "native_usage_bootstrap_not_admitted", True
 
     usage_policy_dimensions = quota_dimensions(usage.policy)
@@ -288,7 +288,7 @@ async def _native_usage_prerequisite_for_operation(
     priority: int,
     request_id: str,
     now: datetime,
-) -> tuple[MarketRefreshJob | None, str | None, bool]:
+) -> tuple[MarketRefreshJob | None, str | None, bool, dict | None]:
     """Find the first admitted provider operation needing native refresh."""
 
     from app.services.provider_runtime import resolve_provider_chain
@@ -316,8 +316,252 @@ async def _native_usage_prerequisite_for_operation(
             now=now,
         )
         if needed:
-            return job, reason, True
-    return None, None, False
+            baseline, _baseline_reason = await _native_operation_baseline_states(
+                db,
+                resolved.provider_name,
+                capability=capability,
+                operation=operation,
+                now=now,
+            )
+            dimension_names = []
+            if baseline is not None:
+                _policy, states = baseline
+                dimension_names = [
+                    str(dimension.get("name") or "")
+                    for dimension, state in states
+                    if state.get("status") == "unknown" and str(dimension.get("name") or "")
+                ]
+            return (
+                job,
+                reason,
+                True,
+                {
+                    "provider_name": resolved.provider_name,
+                    "capability": capability.value,
+                    "operation": operation,
+                    "dimension_names": dimension_names,
+                },
+            )
+    return None, None, False, None
+
+
+async def resume_native_usage_held_identity_jobs(
+    db: AsyncSession,
+    *,
+    provider_name: str,
+    now: datetime | None = None,
+) -> int:
+    """Requeue held identity/profile children after their exact native pool verifies.
+
+    This only revisits durable children whose prior result was a native-usage
+    admission hold.  It requires the same provider to be currently eligible
+    for the exact identity/profile operation and every recorded unknown quota
+    dimension to have a verified baseline before changing queue or parent state.
+    """
+
+    normalized_provider = str(provider_name or "").strip().lower()
+    if not normalized_provider:
+        return 0
+    current = now or datetime.now(UTC)
+    reasons = {
+        "native_usage_bootstrap_not_admitted",
+        "native_usage_provider_not_resolved",
+        "native_usage_refresh_not_enabled_for_provider",
+    }
+    rows = (
+        (
+            await db.execute(
+                select(MarketRefreshJob)
+                .where(
+                    MarketRefreshJob.capability == ProviderCapability.INSTRUMENT_METADATA.value,
+                    MarketRefreshJob.status == "completed",
+                    MarketRefreshJob.result_summary["reason_code"].as_string().in_(reasons),
+                    or_(
+                        MarketRefreshJob.metadata_payload["data_preparation_child"][
+                            "native_usage_hold"
+                        ]["provider_name"].as_string()
+                        == normalized_provider,
+                        MarketRefreshJob.metadata_payload["data_preparation_child"][
+                            "native_usage_hold"
+                        ]["provider_name"]
+                        .as_string()
+                        .is_(None),
+                    ),
+                )
+                .with_for_update(skip_locked=True)
+                .execution_options(populate_existing=True)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    resumed = 0
+    for job in rows:
+        child = deepcopy((job.metadata_payload or {}).get("data_preparation_child") or {})
+        if child.get("kind") != "identity_profile":
+            continue
+        hold = child.get("native_usage_hold")
+        if isinstance(hold, dict):
+            if str(hold.get("provider_name") or "").strip().lower() != normalized_provider:
+                continue
+            try:
+                capability = ProviderCapability(str(hold.get("capability") or ""))
+            except ValueError:
+                continue
+            operation = str(hold.get("operation") or "")
+            dimension_names = {
+                str(value).strip()
+                for value in (hold.get("dimension_names") or [])
+                if str(value).strip()
+            }
+        else:
+            # Recover children held by an older build, before the exact provider
+            # and dimension were retained in the child metadata.
+            refresh_profile = (
+                bool(child.get("refresh_profile")) and child.get("instrument_id") is not None
+            )
+            capability = (
+                ProviderCapability.INSTRUMENT_METADATA
+                if refresh_profile
+                else ProviderCapability.INSTRUMENT_SEARCH
+            )
+            operation = "get_instrument_profile" if refresh_profile else "search_instruments"
+            dimension_names = set()
+        instrument_id = (
+            int(child["instrument_id"])
+            if capability == ProviderCapability.INSTRUMENT_METADATA
+            and child.get("instrument_id") is not None
+            else None
+        )
+        symbol = str(child.get("symbol") or "").strip().upper()
+        if not operation or not symbol:
+            continue
+        with bind_explicit_provider_acquisition(
+            request_id=f"native-usage-resume:{job.id}:{normalized_provider}",
+            operations=frozenset({(capability, operation)}),
+            instrument_id=instrument_id,
+            symbol=symbol,
+            provider_names=frozenset({normalized_provider}),
+        ):
+            from app.services.provider_runtime import resolve_provider_chain
+
+            chain = await resolve_provider_chain(
+                db,
+                capability,
+                operation=operation,
+                instrument_id=instrument_id,
+                provider_symbol=symbol,
+                read_only=True,
+            )
+        if not any(item.provider_name == normalized_provider for item in chain):
+            continue
+        baseline, baseline_reason = await _native_operation_baseline_states(
+            db,
+            normalized_provider,
+            capability=capability,
+            operation=operation,
+            now=current,
+        )
+        if baseline is None or baseline_reason:
+            continue
+        _policy, states = baseline
+        by_name = {str(dimension.get("name") or ""): state for dimension, state in states}
+        required_dimensions = dimension_names or set(by_name)
+        if not required_dimensions or any(
+            by_name.get(name, {}).get("status") != "verified" for name in required_dimensions
+        ):
+            continue
+
+        refs = list(child.get("parent_refs") or [])
+        if not refs and child.get("parent_job_id") is not None:
+            refs = [{"parent_job_id": child["parent_job_id"]}]
+        from app.services.data_preparation import (
+            _TRACKING_ROLES,
+            _aggregate_status,
+            _lock_parent_for_update,
+        )
+
+        parent_updated = False
+        for parent_id in sorted(
+            {int(ref.get("parent_job_id") or 0) for ref in refs if ref.get("parent_job_id")}
+        ):
+            parent = await _lock_parent_for_update(db, parent_id)
+            if parent is None:
+                continue
+            data = deepcopy((parent.metadata_payload or {}).get("data_preparation") or {})
+            if data.get("role") not in _TRACKING_ROLES:
+                continue
+            dependencies = list(data.get("dependencies") or [])
+            changed = False
+            identity_dependency_ids = {
+                str(item.get("dependency_id"))
+                for item in dependencies
+                if item.get("dataset") == "identity"
+                and job.id in [int(value) for value in item.get("job_ids", [])]
+            }
+            for dependency in dependencies:
+                references_job = job.id in [int(value) for value in dependency.get("job_ids", [])]
+                waiting_for_identity = (
+                    dependency.get("dataset") == "history"
+                    and bool(
+                        identity_dependency_ids.intersection(
+                            str(value) for value in (dependency.get("depends_on") or [])
+                        )
+                    )
+                    and dependency.get("reason_code") in reasons
+                )
+                if references_job and dependency.get("dataset") in {"identity", "profile"}:
+                    dependency.update(
+                        {
+                            "status": "queued",
+                            "reason_code": None,
+                            "retry_at": None,
+                            "updated_at": current.isoformat(),
+                        }
+                    )
+                    changed = True
+                elif waiting_for_identity:
+                    dependency.update(
+                        {
+                            "status": "waiting",
+                            "reason_code": "identity_dependency_pending",
+                            "retry_at": None,
+                            "updated_at": current.isoformat(),
+                        }
+                    )
+                    changed = True
+            if changed:
+                data["dependencies"] = dependencies
+                data["status"] = _aggregate_status(dependencies)
+                data["version"] = int(data.get("version") or 1) + 1
+                data["last_progress_at"] = current.isoformat()
+                parent.metadata_payload = {
+                    **deepcopy(parent.metadata_payload or {}),
+                    "data_preparation": data,
+                }
+                parent_updated = True
+        if not parent_updated:
+            continue
+        child.pop("native_usage_hold", None)
+        payload = deepcopy(job.metadata_payload or {})
+        payload["data_preparation_child"] = child
+        job.metadata_payload = payload
+        job.status = "queued"
+        job.next_attempt_at = current
+        job.leased_until = None
+        job.lease_token = None
+        job.last_error = None
+        job.finished_at = None
+        job.result_summary = {
+            "outcome": "queued",
+            "preparation_status": "queued",
+            "reason_code": "native_usage_baseline_verified",
+            "resumed_at": current.isoformat(),
+        }
+        resumed += 1
+    if resumed:
+        await db.flush()
+    return resumed
 
 
 async def _defer_refresh_job_for_native_usage(
@@ -387,6 +631,10 @@ async def _run_native_usage_refresh_job(db, request: dict) -> dict:
         provider_names=frozenset({provider_name}),
     ):
         usage_result = await refresh_provider_account_usage(db, provider_name=provider_name)
+    if usage_result.get("status") == "refreshed" and usage_result.get("providers") == [
+        provider_name
+    ]:
+        await resume_native_usage_held_identity_jobs(db, provider_name=provider_name)
     target_dimensions = {
         str(item.get("name") or "")
         for item in (request.get("dimensions") or [])
@@ -1907,6 +2155,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 usage_job,
                                 usage_hold,
                                 usage_needed,
+                                usage_context,
                             ) = await _native_usage_prerequisite_for_operation(
                                 db,
                                 capability=ProviderCapability.INSTRUMENT_METADATA,
@@ -1919,15 +2168,30 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             )
                             if usage_needed and usage_hold is not None:
                                 profile_preflight_held = True
+                                child_payload = deepcopy(job.metadata_payload or {})
+                                child_metadata = deepcopy(
+                                    child_payload.get("data_preparation_child") or {}
+                                )
+                                if usage_context is not None:
+                                    child_metadata["native_usage_hold"] = {
+                                        **usage_context,
+                                        "reason_code": usage_hold,
+                                    }
+                                    child_payload["data_preparation_child"] = child_metadata
+                                    job.metadata_payload = child_payload
                                 result_summary = {
-                                    "preparation_status": "unavailable",
+                                    "preparation_status": "held",
                                     "reason_code": usage_hold,
                                     "instrument_id": selected.id,
+                                    "native_usage_prerequisite": {
+                                        **(usage_context or {}),
+                                        "reason_code": usage_hold,
+                                    },
                                 }
                                 await record_identity_preparation_outcome(
                                     db,
                                     identity_job=job,
-                                    status="unavailable",
+                                    status="held",
                                     reason_code=usage_hold,
                                     dataset_filter=PreparationDataset.PROFILE,
                                 )
@@ -2029,6 +2293,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 usage_job,
                                 usage_hold,
                                 usage_needed,
+                                usage_context,
                             ) = await _native_usage_prerequisite_for_operation(
                                 db,
                                 capability=ProviderCapability.INSTRUMENT_SEARCH,
@@ -2040,16 +2305,31 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 now=datetime.now(UTC),
                             )
                             if usage_needed and usage_hold is not None:
+                                child_payload = deepcopy(job.metadata_payload or {})
+                                child_metadata = deepcopy(
+                                    child_payload.get("data_preparation_child") or {}
+                                )
+                                if usage_context is not None:
+                                    child_metadata["native_usage_hold"] = {
+                                        **usage_context,
+                                        "reason_code": usage_hold,
+                                    }
+                                    child_payload["data_preparation_child"] = child_metadata
+                                    job.metadata_payload = child_payload
                                 await record_identity_preparation_outcome(
                                     db,
                                     identity_job=job,
-                                    status="unavailable",
+                                    status="held",
                                     reason_code=usage_hold,
                                 )
                                 result_summary = {
-                                    "preparation_status": "unavailable",
+                                    "preparation_status": "held",
                                     "reason_code": usage_hold,
                                     "symbol": symbol,
+                                    "native_usage_prerequisite": {
+                                        **(usage_context or {}),
+                                        "reason_code": usage_hold,
+                                    },
                                 }
                             elif usage_needed and usage_job is not None:
                                 retry_at = await _defer_refresh_job_for_native_usage(
@@ -2658,11 +2938,18 @@ async def refresh_provider_account_usage_snapshots(ctx: dict) -> dict:
                     ),
                     provider_names=frozenset({provider.strip().lower()}),
                 ):
-                    results.append(
-                        await refresh_provider_account_usage(
-                            db, provider_name=provider.strip().lower()
+                    provider_name = provider.strip().lower()
+                    result = await refresh_provider_account_usage(db, provider_name=provider_name)
+                    if result.get("status") == "refreshed" and result.get("providers") == [
+                        provider_name
+                    ]:
+                        resumed = await resume_native_usage_held_identity_jobs(
+                            db, provider_name=provider_name
                         )
-                    )
+                        if resumed:
+                            await db.commit()
+                            result["resumed_preparation_jobs"] = resumed
+                    results.append(result)
             except Exception as exc:  # noqa: BLE001 - keep one provider failure from suppressing others.
                 results.append(
                     {

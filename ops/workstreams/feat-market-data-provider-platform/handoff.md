@@ -33561,3 +33561,26 @@ rows. The current common dependency pointer is D954; ETF `b0db1656` and Strategy
 `f6521237` imports remain unchanged. No tests, browser, native calls, database or
 policy operations were run. This is development context only; exact-source CI,
 Root integration/release gates, and the full Provider roadmap remain open.
+
+## 2026-11-07 — native account-usage admission and identity recovery
+
+Root's no-seed review found that the authenticated admin account-usage refresh
+called the provider service without a sealed request-driven scope. The route
+now binds only `ACCOUNT_USAGE/fetch_account_usage`, and binds one named provider
+when the request names one. Native bootstrap holds for identity/profile work
+are now persisted as waiting rather than terminal unavailable, with the
+provider, target capability/operation, unknown dimensions, and reason retained
+on the existing queue child and result summary.
+
+After an account-usage refresh, the existing worker/admin/scheduled refresh
+paths recheck held identity children without transport. A child is requeued
+only if the same provider remains eligible for its exact symbol operation and
+the exact recorded native quota dimensions report verified. Older completed
+holds without the new metadata are also recovered by deriving the exact search
+or profile operation and passing the same resolver and baseline checks. The
+parent identity/profile dependencies return to queued; dependent history stays
+waiting on identity. No zero/fake baseline, hold bypass, real-ledger mutation,
+or provider request was made. Focused route/resolver/queue verification passed
+18/18; Ruff and diff checks passed. Root owns rebuilding and replaying the
+existing no-seed runtime, exact-source CI, and combined release gates. The
+complete Provider roadmap remains in progress.

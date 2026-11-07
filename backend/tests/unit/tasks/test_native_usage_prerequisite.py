@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import UTC, datetime
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
@@ -5,8 +6,10 @@ from unittest.mock import AsyncMock
 import pytest
 
 from app.config import settings
+from app.models.market_data_foundation import MarketRefreshJob
 from app.models.provider_runtime import ProviderCapability
 from app.tasks import data_tasks
+from tests.unit.conftest import AsyncSessionAdapter
 
 
 def _usage_policy():
@@ -275,6 +278,8 @@ async def test_durable_usage_job_calls_existing_refresh_and_requires_verified_wi
         return_value=((SimpleNamespace(), [(dimension, {"status": "verified"})]), None)
     )
     monkeypatch.setattr(data_tasks, "_native_operation_baseline_states", states)
+    resume = AsyncMock(return_value=0)
+    monkeypatch.setattr(data_tasks, "resume_native_usage_held_identity_jobs", resume)
 
     result = await data_tasks._run_native_usage_refresh_job(
         object(),
@@ -430,7 +435,7 @@ async def test_cold_metadata_worker_defers_before_search_or_profile_transport(
             return None
 
     usage_job = SimpleNamespace(id=101, status="queued", next_attempt_at=now)
-    preflight = AsyncMock(return_value=(usage_job, None, True))
+    preflight = AsyncMock(return_value=(usage_job, None, True, None))
     retry = AsyncMock()
     profile_fetch = AsyncMock()
     acquire = AsyncMock()
@@ -460,3 +465,263 @@ async def test_cold_metadata_worker_defers_before_search_or_profile_transport(
     retry.assert_awaited_once()
     profile_fetch.assert_not_awaited()
     acquire.assert_not_awaited()
+
+
+@pytest.mark.parametrize("profile_only", [False, True])
+@pytest.mark.asyncio
+async def test_native_usage_bootstrap_hold_stays_waiting_and_records_resume_scope(
+    monkeypatch, profile_only
+):
+    now = datetime(2026, 11, 7, 12, tzinfo=UTC)
+    owner = SimpleNamespace(id=33, is_active=True)
+    instrument = SimpleNamespace(
+        id=17,
+        symbol="SPY",
+        identity_status="resolved",
+        domain_key="us-equity:ARCX:SPY",
+        primary_identifier_type="composite_figi",
+        primary_identifier_value="BBG000BDTBL9",
+    )
+    parent = SimpleNamespace(
+        metadata_payload={
+            "data_preparation": {
+                "role": "owner_request_tracking",
+                "owner_user_id": owner.id,
+            }
+        }
+    )
+    selected_id = instrument.id if profile_only else None
+    job = SimpleNamespace(
+        id=92,
+        capability=ProviderCapability.INSTRUMENT_METADATA.value,
+        instrument_id=selected_id,
+        timeframe=None,
+        status="leased",
+        next_attempt_at=now,
+        lease_token="metadata-hold-lease",
+        priority=10,
+        metadata_payload={
+            "data_preparation_child": {
+                "kind": "identity_profile",
+                "request_id": "request-profile-hold" if profile_only else "request-search-hold",
+                "dependency_id": "dependency-profile-hold"
+                if profile_only
+                else "dependency-identity-hold",
+                "symbol": "SPY",
+                "instrument_id": selected_id,
+                "refresh_profile": profile_only,
+                "required_profile_fields": [],
+                "parent_refs": [{"parent_job_id": 700, "owner_user_id": owner.id}],
+            }
+        },
+    )
+
+    class Session:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_args):
+            return False
+
+        async def get(self, model, identifier):
+            if model.__name__ == "MarketRefreshJob" and identifier == 700:
+                return parent
+            if model.__name__ == "User" and identifier == owner.id:
+                return owner
+            if model.__name__ == "Instrument" and identifier == instrument.id:
+                return instrument
+            return None
+
+        async def refresh(self, _job):
+            return None
+
+        async def commit(self):
+            return None
+
+    operation = "get_instrument_profile" if profile_only else "search_instruments"
+    capability = (
+        ProviderCapability.INSTRUMENT_METADATA
+        if profile_only
+        else ProviderCapability.INSTRUMENT_SEARCH
+    )
+    hold_context = {
+        "provider_name": "alpaca",
+        "capability": capability.value,
+        "operation": operation,
+        "dimension_names": ["market_data_requests_per_minute"],
+    }
+    preflight = AsyncMock(
+        return_value=(None, "native_usage_bootstrap_not_admitted", True, hold_context)
+    )
+    record_outcome = AsyncMock()
+    complete = AsyncMock()
+    profile_fetch = AsyncMock()
+    acquire = AsyncMock()
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", Session)
+    monkeypatch.setattr(data_tasks, "claim_refresh_jobs", AsyncMock(return_value=[job]))
+    monkeypatch.setattr(data_tasks, "_native_usage_prerequisite_for_operation", preflight)
+    monkeypatch.setattr(
+        "app.services.data_preparation.record_identity_preparation_outcome", record_outcome
+    )
+    monkeypatch.setattr(data_tasks, "complete_refresh_job", complete)
+    monkeypatch.setattr("app.services.market_data.get_provider_profile_async", profile_fetch)
+    monkeypatch.setattr("app.routers.instruments.acquire_instrument", acquire)
+
+    result = await data_tasks.process_refresh_jobs({})
+
+    assert result["claimed"] == 1
+    assert result["completed"] == 1
+    assert result["retried"] == 0
+    assert job.metadata_payload["data_preparation_child"]["native_usage_hold"] == {
+        **hold_context,
+        "reason_code": "native_usage_bootstrap_not_admitted",
+    }
+    assert record_outcome.await_args.kwargs["status"] == "held"
+    assert record_outcome.await_args.kwargs["reason_code"] == "native_usage_bootstrap_not_admitted"
+    assert complete.await_args.kwargs["result_summary"]["preparation_status"] == "held"
+    assert complete.await_args.kwargs["result_summary"]["native_usage_prerequisite"] == {
+        **hold_context,
+        "reason_code": "native_usage_bootstrap_not_admitted",
+    }
+    assert profile_fetch.await_count == 0
+    acquire.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("baseline_status", "expected_resumed", "has_recorded_hold"),
+    [("verified", 1, True), ("unknown", 0, True), ("verified", 1, False)],
+)
+async def test_verified_native_usage_resumes_only_matching_held_identity_child(
+    db, monkeypatch, baseline_status, expected_resumed, has_recorded_hold
+):
+    now = datetime(2026, 11, 7, 12, tzinfo=UTC)
+    parent = MarketRefreshJob(
+        request_key="native-resume-parent",
+        capability="data_preparation_request",
+        priority=10,
+        status="completed",
+        attempts=0,
+        next_attempt_at=now,
+        metadata_payload={
+            "data_preparation": {
+                "role": "owner_request_tracking",
+                "owner_user_id": 29,
+                "version": 2,
+                "dependencies": [
+                    {
+                        "dependency_id": "identity-dep",
+                        "dataset": "identity",
+                        "status": "waiting",
+                        "reason_code": "native_usage_bootstrap_not_admitted",
+                        "job_ids": [],
+                    },
+                    {
+                        "dependency_id": "profile-dep",
+                        "dataset": "profile",
+                        "status": "unavailable",
+                        "reason_code": "native_usage_bootstrap_not_admitted",
+                        "job_ids": [],
+                    },
+                    {
+                        "dependency_id": "history-dep",
+                        "dataset": "history",
+                        "status": "unavailable",
+                        "reason_code": "native_usage_bootstrap_not_admitted",
+                        "depends_on": ["identity-dep"],
+                        "job_ids": [],
+                    },
+                ],
+            }
+        },
+    )
+    db.add(parent)
+    db.flush()
+    child = MarketRefreshJob(
+        request_key="native-resume-identity-child",
+        capability=ProviderCapability.INSTRUMENT_METADATA.value,
+        priority=10,
+        status="completed",
+        attempts=1,
+        next_attempt_at=now,
+        result_summary={
+            "preparation_status": "held",
+            "reason_code": "native_usage_bootstrap_not_admitted",
+        },
+        metadata_payload={
+            "data_preparation_child": {
+                "kind": "identity_profile",
+                "request_id": "owner-request-29",
+                "symbol": "SPY",
+                "instrument_id": 17,
+                "refresh_profile": True,
+                "parent_refs": [{"parent_job_id": parent.id, "owner_user_id": 29}],
+                "native_usage_hold": {
+                    "provider_name": "alpaca",
+                    "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                    "operation": "get_instrument_profile",
+                    "dimension_names": ["market_data_requests_per_minute"],
+                    "reason_code": "native_usage_bootstrap_not_admitted",
+                },
+            }
+        },
+    )
+    db.add(child)
+    db.flush()
+    if not has_recorded_hold:
+        child_payload = deepcopy(child.metadata_payload)
+        child_payload["data_preparation_child"].pop("native_usage_hold")
+        child.metadata_payload = child_payload
+        db.flush()
+    parent_data = deepcopy(parent.metadata_payload["data_preparation"])
+    for dependency in parent_data["dependencies"]:
+        if dependency["dataset"] in {"identity", "profile"}:
+            dependency["job_ids"] = [child.id]
+    parent.metadata_payload = {"data_preparation": parent_data}
+    db.flush()
+
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+
+    async def resolved_chain(_db, capability, **kwargs):
+        from app.services.provider_runtime import _EXPLICIT_ACQUISITION_CONTEXT
+
+        scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+        assert scope is not None
+        assert scope.provider_names == frozenset({"alpaca"})
+        assert scope.operations == frozenset({(capability, kwargs["operation"])})
+        assert kwargs["read_only"] is True
+        return [SimpleNamespace(provider_name="alpaca")]
+
+    async def baseline(_db, provider, *, capability, operation, now):
+        assert provider == "alpaca"
+        assert capability is ProviderCapability.INSTRUMENT_METADATA
+        assert operation == "get_instrument_profile"
+        return (
+            (
+                SimpleNamespace(),
+                [({"name": "market_data_requests_per_minute"}, {"status": baseline_status})],
+            ),
+            None,
+        )
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", resolved_chain)
+    monkeypatch.setattr(data_tasks, "_native_operation_baseline_states", baseline)
+
+    resumed = await data_tasks.resume_native_usage_held_identity_jobs(
+        AsyncSessionAdapter(db), provider_name="alpaca", now=now
+    )
+
+    assert resumed == expected_resumed
+    if expected_resumed:
+        assert child.status == "queued"
+        assert child.result_summary["reason_code"] == "native_usage_baseline_verified"
+        assert "native_usage_hold" not in child.metadata_payload["data_preparation_child"]
+        statuses = {
+            item["dataset"]: (item["status"], item.get("reason_code"))
+            for item in parent.metadata_payload["data_preparation"]["dependencies"]
+        }
+        assert statuses["identity"] == ("queued", None)
+        assert statuses["profile"] == ("queued", None)
+        assert statuses["history"] == ("waiting", "identity_dependency_pending")
+    else:
+        assert child.status == "completed"

@@ -1022,6 +1022,8 @@ async def test_provider_account_usage_refresh_task_uses_only_explicit_deduplicat
         ["marketdata_app", " marketdata_app ", ""],
     )
     calls = []
+    resume = AsyncMock(return_value=0)
+    monkeypatch.setattr(data_tasks, "resume_native_usage_held_identity_jobs", resume)
 
     class SessionContext:
         async def __aenter__(self):
@@ -1047,6 +1049,7 @@ async def test_provider_account_usage_refresh_task_uses_only_explicit_deduplicat
         "results": [{"status": "refreshed", "providers": ["marketdata_app"]}],
     }
     assert calls == [("db", "marketdata_app")]
+    resume.assert_awaited_once_with("db", provider_name="marketdata_app")
 
 
 @pytest.mark.asyncio
@@ -1066,6 +1069,8 @@ async def test_provider_account_usage_refresh_continues_after_one_provider_failu
             return None
 
     calls = []
+    resume = AsyncMock(return_value=0)
+    monkeypatch.setattr(data_tasks, "resume_native_usage_held_identity_jobs", resume)
 
     async def fake_refresh(_db, *, provider_name):
         calls.append(provider_name)
@@ -1088,6 +1093,7 @@ async def test_provider_account_usage_refresh_continues_after_one_provider_failu
         "status": "refreshed",
         "providers": ["second_provider"],
     }
+    resume.assert_awaited_once_with("db", provider_name="second_provider")
 
 
 def test_provider_account_usage_refresh_is_registered_only_as_an_opt_in_cron(monkeypatch):
