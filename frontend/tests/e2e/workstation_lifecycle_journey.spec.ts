@@ -510,7 +510,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await create.getByLabel('New Python asset name').fill(assetName)
     await create.getByLabel('New Python asset key').fill(`factory-journey-${Date.now()}`)
     await create.getByLabel('New Python asset kind').selectOption('study')
-    await create.getByLabel('New Python asset source').fill("output.scalar('catalogue_value', 1)")
+    await create.getByRole('textbox', { name: 'New Python asset source', exact: true }).fill("output.scalar('catalogue_value', 1)")
     await create.getByRole('button', { name: 'Validate', exact: true }).click()
     await expect(create).toContainText('Validated', { timeout: 20_000 })
     await create.getByRole('button', { name: 'Create asset', exact: true }).click()
