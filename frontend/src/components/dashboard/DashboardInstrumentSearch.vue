@@ -119,7 +119,16 @@ const showDropdown = computed(() =>
 )
 
 watch(() => props.modelValue, value => {
-  if (value !== query.value) query.value = value ?? ''
+  if (value !== query.value) {
+    query.value = value ?? ''
+    searchSeq++
+    resolveSeq++
+    if (timer) clearTimeout(timer)
+    timer = null
+    loading.value = false
+    results.value = []
+    error.value = ''
+  }
 })
 
 watch(showDropdown, (val) => {
@@ -151,9 +160,28 @@ async function onInput() {
   const seq = ++searchSeq
   timer = setTimeout(async () => {
     if (!mounted || seq !== searchSeq) return
+    const requestedQuery = trimmedQuery.value
     loading.value = true
+    if (/^[A-Za-z0-9][A-Za-z0-9.-]{0,19}$/.test(requestedQuery)) {
+      // Resolve an already-known exact ticker independently from external
+      // discovery. A held discovery source must not block a canonical local
+      // listing that the existing resolver can prove. Prefixes and ambiguous
+      // identities still fall through to the candidate flow below.
+      const localResolveSeq = ++resolveSeq
+      void resolveExistingInstrument(requestedQuery).then(response => {
+        const instrument = response.instrument
+        const exactSymbol = instrument?.symbol.trim().toUpperCase()
+        if (!mounted || seq !== searchSeq || localResolveSeq !== resolveSeq
+          || exactSymbol !== requestedQuery.toUpperCase()) return
+        if (response.status !== 'resolved' || !Number.isSafeInteger(instrument?.instrument_id)
+          || (instrument?.instrument_id ?? 0) <= 0) return
+        commit(instrument!.symbol)
+      }).catch(() => {
+        // External discovery remains the ordinary fallback for unknown or
+        // temporarily unavailable local identity lookups.
+      })
+    }
     try {
-      const requestedQuery = trimmedQuery.value
       const loaded = await discoverInstruments(requestedQuery, [], 10)
       if (mounted && seq === searchSeq) {
         results.value = loaded.candidates
@@ -242,9 +270,14 @@ async function selectExpression() {
 }
 
 function commit(value: string) {
+  searchSeq++
+  resolveSeq++
+  if (timer) clearTimeout(timer)
+  timer = null
   query.value = value
   results.value = []
   error.value = ''
+  loading.value = false
   dismissed.value = true
   emit('update:modelValue', value)
   emit('select', value)

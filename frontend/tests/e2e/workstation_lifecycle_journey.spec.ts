@@ -285,6 +285,9 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(firstRow).not.toContainText(/Loading|Unavailable/i)
     if (title === 'WatchList' || title === 'Fundamentals WatchList') {
       await expect(firstRow).toHaveAttribute('aria-label', /SPY .+Last:.*\d/)
+    } else if (title === 'My Favorites') {
+      await expect(spyRow).toBeVisible({ timeout: 20_000 })
+      await assertFavoritePriceAndReturnAgainstCanonicalApi(page, tool, spyRow)
     } else {
       await assertUsefulWatchlistNumbers(tool)
     }
@@ -368,15 +371,34 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await tool.getByLabel('Scan universe value').fill(String(instrumentId))
     const scanName = `Lifecycle Gauge ${Date.now()}`
     await tool.getByLabel('Scan name').fill(scanName)
+    const runResponsePromise = page.waitForResponse(response =>
+      response.request().method() === 'POST' && /^\/api\/v1\/screeners\/\d+\/run$/.test(new URL(response.url()).pathname),
+      { timeout: 30_000 },
+    )
     await tool.getByRole('button', { name: 'Run', exact: true }).click()
+    const runResponse = await runResponsePromise
+    expect(runResponse.ok(), 'the ordinary EasyScan run request must be accepted').toBe(true)
+    const runPath = new URL(runResponse.url()).pathname
+    const scanId = Number(runPath.match(/^\/api\/v1\/screeners\/(\d+)\/run$/)?.[1])
+    expect(Number.isSafeInteger(scanId) && scanId > 0).toBe(true)
+    const createdResult = await runResponse.json() as { id?: number }
+    const resultId = Number(createdResult.id)
+    expect(Number.isSafeInteger(resultId) && resultId > 0).toBe(true)
+    const terminalResult = await waitForTerminalEasyScanResult(page, scanId, resultId)
+    const terminalCoverage = terminalResult.result_data?._coverage as { evaluated_count: number; universe_count: number }
+    const terminalMatches = terminalResult.matched_ids?.length ?? 0
+
     await expect(tool.locator('.easy-scan__result')).toBeVisible({ timeout: 30_000 })
     await expect(tool.locator('.easy-scan__result')).toContainText(/\d+\/\d+ evaluated/)
     await expect(tool.locator('.easy-scan__result')).not.toContainText('0/0 evaluated')
     const scanSummary = (await tool.locator('.easy-scan__result > span').first().innerText()).match(/(\d+) matches · (\d+)\/(\d+) evaluated/)
     expect(scanSummary).not.toBeNull()
-    expect(Number(scanSummary![2])).toBeGreaterThan(0)
-    expect(Number(scanSummary![3])).toBeGreaterThanOrEqual(Number(scanSummary![2]))
-    expect(Number(scanSummary![1])).toBeLessThanOrEqual(Number(scanSummary![2]))
+    expect(Number(scanSummary![1])).toBe(terminalMatches)
+    expect(Number(scanSummary![2])).toBe(terminalCoverage.evaluated_count)
+    expect(Number(scanSummary![3])).toBe(terminalCoverage.universe_count)
+    expect(terminalCoverage.evaluated_count).toBeGreaterThan(0)
+    expect(terminalCoverage.universe_count).toBeGreaterThanOrEqual(terminalCoverage.evaluated_count)
+    expect(terminalMatches).toBeLessThanOrEqual(terminalCoverage.evaluated_count)
     retainedGaugeScanName = scanName
     return { tool, scanName }
   } else if (kind === 'gauge') {
@@ -508,6 +530,54 @@ async function assertUsefulWatchlistNumbers(tool: ReturnType<Page['locator']>) {
       return /^-?\d+(?:\.\d+)?%$/.test(normalized) && Number.isFinite(Number(normalized.slice(0, -1)))
     }).length
   }, { timeout: 30_000 }).toBeGreaterThanOrEqual(2)
+}
+
+async function assertFavoritePriceAndReturnAgainstCanonicalApi(page: Page, tool: ReturnType<Page['locator']>, row: ReturnType<Page['locator']>) {
+  const canonical = await authenticatedJson(page, '/api/v1/ohlcv/local/SPY/D1?limit=31')
+  expect(canonical.status).toBe(200)
+  const bars = canonical.body as Array<{ close?: number }>
+  expect(bars.length).toBeGreaterThanOrEqual(2)
+  const latest = Number(bars.at(-1)?.close)
+  const previous = Number(bars.at(-2)?.close)
+  expect(Number.isFinite(latest) && latest > 0).toBe(true)
+  expect(Number.isFinite(previous) && previous > 0).toBe(true)
+
+  const headerLabels = await tool.locator('.watchlist__header button').evaluateAll(buttons =>
+    buttons.map(button => button.getAttribute('aria-label') ?? ''),
+  )
+  expect(headerLabels).toEqual(expect.arrayContaining(['Sort by Last', 'Sort by Chg %']))
+  const accessibleRow = await row.getAttribute('aria-label')
+  expect(accessibleRow).toBeTruthy()
+  const priceText = accessibleRow!.match(/(?:^|\. )Last: ([\d,]+(?:\.\d+)?)(?:\.|$)/)?.[1]
+  const returnText = accessibleRow!.match(/(?:^|\. )Chg %: (-?[\d,]+(?:\.\d+)?)%(?:\.|$)/)?.[1]
+  expect(priceText, 'the configured Last column must expose a finite value').toBeTruthy()
+  expect(returnText, 'the configured Chg % column must expose a finite return').toBeTruthy()
+  expect(Number(priceText!.replaceAll(',', ''))).toBe(Number(latest.toFixed(2)))
+  expect(Number(returnText!.replaceAll(',', ''))).toBe(Number((((latest - previous) / previous) * 100).toFixed(2)))
+}
+
+async function waitForTerminalEasyScanResult(page: Page, scanId: number, resultId: number) {
+  let terminal: {
+    id?: number
+    matched_ids?: number[]
+    result_data?: Record<string, any>
+  } | null = null
+  await expect.poll(async () => {
+    const response = await authenticatedJson(page, `/api/v1/screeners/${scanId}/results?limit=10`)
+    expect(response.status).toBe(200)
+    const results = response.body as Array<{ id?: number; matched_ids?: number[]; result_data?: Record<string, any> }>
+    const current = results.find(result => Number(result.id) === resultId)
+    if (!current) return false
+    const status = String(current.result_data?._status ?? '')
+    if (status === 'failed' || status === 'canceled') throw new Error(`EasyScan result ${resultId} ended ${status}`)
+    const coverage = current.result_data?._coverage as { evaluated_count?: number; universe_count?: number } | undefined
+    if (status !== 'completed' || !coverage || !Number.isInteger(coverage.evaluated_count)
+      || !Number.isInteger(coverage.universe_count) || Number(coverage.evaluated_count) <= 0
+      || Number(coverage.universe_count) < Number(coverage.evaluated_count)) return false
+    terminal = current
+    return true
+  }, { timeout: 60_000, intervals: [250, 500, 1_000] }).toBe(true)
+  return terminal!
 }
 
 function isWorkspaceSnapshotWithTab(request: import('@playwright/test').Request, stableKey: string, name: string) {

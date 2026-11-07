@@ -2636,6 +2636,30 @@ button.holding-row:hover { background: color-mix(in srgb, var(--tc-accent) 6%, v
 .evolution-row__label span, .evolution-row__meta { color: var(--tc-text-muted); }
 .empty-state, .state-line, .notice { color: var(--tc-text-muted); }
 .search-field input, .toolbar input, .toolbar select { border-color: var(--tc-border-strong); border-radius: var(--tc-radius); background: var(--tc-input-bg); color: var(--tc-text); font-family: var(--tc-font-family); }
+.holdings-acquisition-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.holdings-acquisition-actions > p { flex: 1 1 100%; margin: 0; }
+.holdings-acquisition-actions > button {
+  flex: 1 1 13rem;
+  max-width: 100%;
+  border: 1px solid var(--tc-border-strong);
+  border-radius: var(--tc-radius);
+  background: var(--tc-control-bg);
+  color: var(--tc-accent-soft);
+  cursor: pointer;
+  font: inherit;
+  padding: 7px 10px;
+}
+.holdings-acquisition-actions > button:not(:disabled):hover {
+  border-color: var(--tc-accent);
+  background: color-mix(in srgb, var(--tc-accent) 10%, var(--tc-control-bg));
+}
+.holdings-acquisition-actions > button:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
+.holdings-acquisition-actions > button:disabled { color: var(--tc-text-subtle); opacity: .58; cursor: default; }
 .holdings-view :is(button, input, select, textarea, a):focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 @media (max-width: 1100px) {
   .holdings-view {

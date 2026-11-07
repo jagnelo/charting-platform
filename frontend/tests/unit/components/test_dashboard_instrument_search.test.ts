@@ -40,6 +40,18 @@ function discovery(candidates: ReturnType<typeof candidate>[], status = 'complet
   return { request_id: 'request-test', status, candidates, source_outcomes: [] }
 }
 
+function existingResolution(symbol: string, instrumentId = 17) {
+  return {
+    status: 'resolved',
+    instrument: { instrument_id: instrumentId, symbol, identity_status: 'verified' },
+    source_outcomes: [],
+  }
+}
+
+function noExistingResolution(status = 'no_match') {
+  return { status, instrument: null, source_outcomes: [] }
+}
+
 async function flushPromises() {
   await Promise.resolve()
   await Promise.resolve()
@@ -58,6 +70,7 @@ describe('DashboardInstrumentSearch', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.useFakeTimers()
+    resolveExisting.mockResolvedValue(noExistingResolution())
     resolveExpression.mockRejectedValue(new Error('Expression could not be resolved'))
   })
 
@@ -153,10 +166,9 @@ describe('DashboardInstrumentSearch', () => {
   it('resolves one unique exact ticker without exposing provider choices', async () => {
     discover.mockResolvedValueOnce(discovery([candidate('AAPL', 17)]))
     resolveDiscovered.mockResolvedValueOnce({
-      status: 'resolved',
-      instrument: { instrument_id: 17, symbol: 'AAPL', identity_status: 'verified' },
-      source_outcomes: [],
+      ...existingResolution('AAPL'),
     })
+    resolveExisting.mockResolvedValueOnce(noExistingResolution())
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     await wrapper.find('input').setValue('AAPL')
@@ -165,13 +177,14 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
 
     expect(resolveDiscovered).toHaveBeenCalledWith(candidate('AAPL', 17))
-    expect(resolveExisting).not.toHaveBeenCalled()
+    expect(resolveExisting).toHaveBeenCalledWith('AAPL')
     expect(wrapper.emitted('select')?.[0]).toEqual(['AAPL'])
     expect(document.body.textContent).not.toContain('controlled-source')
   })
 
   it('does not auto-resolve an exact-looking candidate from incomplete discovery', async () => {
     discover.mockResolvedValueOnce(discovery([candidate('AAPL', null)], 'partial'))
+    resolveExisting.mockResolvedValueOnce(noExistingResolution())
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     await wrapper.find('input').setValue('AAPL')
@@ -179,7 +192,7 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
 
     expect(resolveDiscovered).not.toHaveBeenCalled()
-    expect(resolveExisting).not.toHaveBeenCalled()
+    expect(resolveExisting).toHaveBeenCalledWith('AAPL')
     expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(1)
     expect(document.body.textContent).toContain('NASDAQ')
     expect(document.body.textContent).toContain('Some instrument candidates may be missing')
@@ -190,13 +203,14 @@ describe('DashboardInstrumentSearch', () => {
       candidate('ABC', null, 'NYSE'),
       candidate('ABC', null, 'NASDAQ'),
     ]))
+    resolveExisting.mockResolvedValueOnce(noExistingResolution('identity_conflict'))
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     await wrapper.find('input').setValue('ABC')
     vi.advanceTimersByTime(230)
     await flushPromises()
 
-    expect(resolveExisting).not.toHaveBeenCalled()
+    expect(resolveExisting).toHaveBeenCalledWith('ABC')
     expect(resolveDiscovered).not.toHaveBeenCalled()
     expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(2)
   })
@@ -224,6 +238,57 @@ describe('DashboardInstrumentSearch', () => {
     expect(discover).toHaveBeenNthCalledWith(2, 'M', [], 10)
     expect(document.body.textContent).toContain('MSFT Corp')
     expect(document.body.textContent).not.toContain('AAPL Corp')
+    expect(resolveDiscovered).not.toHaveBeenCalled()
+  })
+
+  it('selects an exact cached listing while external discovery remains held', async () => {
+    let resolveHeldDiscovery!: (value: unknown) => void
+    discover.mockReturnValueOnce(new Promise(resolve => { resolveHeldDiscovery = resolve }))
+    resolveExisting.mockResolvedValueOnce(existingResolution('XLB', 42))
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
+    const input = wrapper.find('input')
+
+    await input.setValue('XLB')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+
+    expect(resolveExisting).toHaveBeenCalledWith('XLB')
+    expect(wrapper.emitted('select')?.[0]).toEqual(['XLB'])
+    expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['XLB'])
+    expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(0)
+
+    resolveHeldDiscovery(discovery([], 'held'))
+    await flushPromises()
+    expect(wrapper.emitted('select')).toHaveLength(1)
+    expect(document.body.querySelector('.dash-search-error')).toBeNull()
+  })
+
+  it('ignores a late exact cached resolution after a newer search intent', async () => {
+    let resolveOld!: (value: unknown) => void
+    resolveExisting
+      .mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }))
+      .mockResolvedValueOnce(noExistingResolution())
+    discover
+      .mockResolvedValueOnce(discovery([], 'held'))
+      .mockResolvedValueOnce(discovery([candidate('NEWT', null)], 'partial'))
+    const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
+    const input = wrapper.find('input')
+
+    await input.setValue('XLB')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+    expect(resolveExisting).toHaveBeenNthCalledWith(1, 'XLB')
+
+    await input.setValue('NEW')
+    vi.advanceTimersByTime(230)
+    await flushPromises()
+    resolveOld(existingResolution('XLB', 42))
+    await flushPromises()
+
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(input.element).toHaveProperty('value', 'NEW')
+    expect(document.body.textContent).toContain('NEWT Corp')
     expect(resolveDiscovered).not.toHaveBeenCalled()
   })
 

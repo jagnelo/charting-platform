@@ -14,15 +14,15 @@
     "add_tool_consumer": "frontend/src/stores/workspace.ts:/workspaces/tool-catalogue",
     "etf_matrix_provenance": {
       "canonical_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
-      "source_commit": "eea6d7862959120b92e1252352595deff4ef254b",
-      "source_blob": "ddaf5e859e1d6cfb7b7410956df2136a7279637e",
-      "source_sha256": "506d780655baf1450d22c56439ebbeb6360bff3ca371c713e32b84ad0a4a2f28"
+      "source_commit": "2450abb9f683cb415e62937dc433cf3d104872bb",
+      "source_blob": "13cea48ae33e3c58453e15521c3c532e53cb37ee",
+      "source_sha256": "bde2843edb0c44b15386355f9d372823743b63f60098ec40dfc9a85c8275cbfd"
     },
     "strategy_matrix_provenance": {
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-      "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
-      "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
-      "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
+      "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
+      "source_blob": "e11d6cf2b74b5fbbe0259a7e3e06af14b87c8313",
+      "source_sha256": "ad228e7f840a8ba5470ddfc284735c6b052d664703f80f72d42e5c48582fd191"
     },
     "provider_runtime_import": {
       "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
@@ -31,16 +31,16 @@
       "qualification": "Exact Provider 22c31 development backend import is present; producer CI, combined browser and release acceptance remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "5e49669e455dcbc89a767bbefd38a0682e06f999",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5e49669e455dcbc89a767bbefd38a0682e06f999.json",
-      "manifest_sha256": "75131b2bb1e6f5624134716c315e0f10d46f438b14ae758e04ded73e96a5b0f7",
-      "qualification": "Exact ETF 5e496 development import is present, including the S&P journey test; browser execution and release acceptance remain Root-owned and pending."
+      "source_commit": "2450abb9f683cb415e62937dc433cf3d104872bb",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2450abb9f683cb415e62937dc433cf3d104872bb.json",
+      "manifest_sha256": "8338ce5202711f0ef1c61ef0f85ec5b52566e6227de40b9e91fa90704b5ae4a7",
+      "qualification": "Exact ETF 2450abb9 development import is present; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "8ae5f9aca10803f300b6d5a41a3bced447f70ebc",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ae5f9aca10803f300b6d5a41a3bced447f70ebc.json",
-      "manifest_sha256": "f625db8197f511cb60d07c9f04a278699db1cc5e2751fee62c5c4340152edff9",
-      "qualification": "Exact Strategy 8ae5f9ac development import is present, including cached-first dashboard widgets and whole-flow witnesses; browser execution and release acceptance remain Root-owned and pending."
+      "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2.json",
+      "manifest_sha256": "bf0b6986fd07322837f8a502b7774d465b7f9753824229d373b199680bf65910",
+      "qualification": "Exact Strategy b7e13e77 development import is present; authored Dashboard Advanced Chart/Details and lifecycle journeys remain pending Root browser execution and release acceptance."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -96,6 +96,18 @@
         "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/55851d2b953ce38de5afe59ba90b613ffde08f87.json",
         "manifest_sha256": "068d5e3bbc2f57878e33c8b0c355f216831d90e2b09ec978483bff0f0cdbd2de",
         "qualification": "Exact current Strategy-owned 25-path source and updated Settings/Rows public-disclosure journey are imported; browser execution and release acceptance remain Root-owned and pending."
+      },
+      "strategy_8ae5f9ac": {
+        "source_commit": "8ae5f9aca10803f300b6d5a41a3bced447f70ebc",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8ae5f9aca10803f300b6d5a41a3bced447f70ebc.json",
+        "manifest_sha256": "f625db8197f511cb60d07c9f04a278699db1cc5e2751fee62c5c4340152edff9",
+        "qualification": "Superseded by the exact frozen owner successor in the current development import pin; retained as history."
+      },
+      "etf_5e49669e": {
+        "source_commit": "5e49669e455dcbc89a767bbefd38a0682e06f999",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5e49669e455dcbc89a767bbefd38a0682e06f999.json",
+        "manifest_sha256": "75131b2bb1e6f5624134716c315e0f10d46f438b14ae758e04ded73e96a5b0f7",
+        "qualification": "Superseded by the exact frozen owner successor in the current development import pin; retained as history."
       }
     }
   },
@@ -108,7 +120,7 @@
     "owned_actions": 12,
     "etf_actions": 16,
     "strategy_actions": 48,
-    "journey_cases": 66,
+    "journey_cases": 67,
     "critical_review_slots": 9,
     "control_surfaces": 57
   },
@@ -202,7 +214,8 @@
       ],
       "journey": "TC09",
       "case_refs": [
-        "TC09-dashboard"
+        "TC09-dashboard",
+        "TC09-dashboard-advanced-details"
       ],
       "journey_ids": [
         "TC01",
@@ -2390,39 +2403,50 @@
       "journey_count": 16,
       "status": "owner_matrix_imported_browser_pending",
       "canonical_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
-      "source_commit": "eea6d7862959120b92e1252352595deff4ef254b",
-      "source_blob": "ddaf5e859e1d6cfb7b7410956df2136a7279637e",
-      "source_sha256": "506d780655baf1450d22c56439ebbeb6360bff3ca371c713e32b84ad0a4a2f28"
+      "source_commit": "2450abb9f683cb415e62937dc433cf3d104872bb",
+      "source_blob": "13cea48ae33e3c58453e15521c3c532e53cb37ee",
+      "source_sha256": "bde2843edb0c44b15386355f9d372823743b63f60098ec40dfc9a85c8275cbfd"
     },
     {
       "owner": "feat-strategy-lab-v2",
       "matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/strategy-journey-matrix.json",
       "journey_refs": [
-        "J01 first-use/return: persistent workspace and automatic preparation",
         "J10 Study: edit/validate/run/results/cancel/return supported workflow",
-        "J10 Study: immutable saved version and return into Study workflow",
-        "J10 Study: read-only persisted result handoff",
+        "J12 recovery: reload and delayed result restoration",
         "J10 Study: results/cancel/return supported workflow",
-        "J10 Study: return via immutable version, validate and run",
-        "J11 supporting: every reachable secondary page",
-        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit",
-        "J12 recovery: delayed validation/refresh failure",
-        "J12 recovery: invalid route identity and failed read retry",
         "J12 recovery: pagination, filters, delayed failures and retry",
-        "J12 recovery: reload and delayed result restoration"
+        "J10 Study: immutable saved version and return into Study workflow",
+        "J12 recovery: delayed validation/refresh failure",
+        "J01 first-use/return: persistent workspace and automatic preparation",
+        "J10 Study: return via immutable version, validate and run",
+        "J11 supporting: every reachable secondary page, with Strategy execution limits explicit",
+        "J10 Study: read-only persisted result handoff",
+        "J11 supporting: every reachable secondary page",
+        "J12 recovery: invalid route identity and failed read retry",
+        "J01 first-use/return: persistent workspace and useful seeded content",
+        "J11 supporting: normal-user Dashboard widget configuration and restore",
+        "J11 supporting: recoverable edits without losing a saved Dashboard configuration",
+        "J12 recovery: explicit cancel and retry",
+        "J11 supporting: visible widget-layout persistence",
+        "J12 recovery: restore saved layout and retry",
+        "J01 first-use/return: identity-aware instrument selection",
+        "J11 supporting: listing-safe Dashboard configuration",
+        "J12 recovery: stale search response fencing",
+        "J01 first-use/return: useful cached market context",
+        "J11 supporting: independent history-backed widget preparation and persisted dashboard configuration"
       ],
-      "journey_count": 13,
+      "journey_count": 18,
       "status": "owner_matrix_imported_browser_pending",
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-      "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
-      "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
-      "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8",
+      "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
+      "source_blob": "e11d6cf2b74b5fbbe0259a7e3e06af14b87c8313",
+      "source_sha256": "ad228e7f840a8ba5470ddfc284735c6b052d664703f80f72d42e5c48582fd191",
       "browser_specs": [
         {
           "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-          "source_commit": "b555268b8237d1c50e34b39320b4cb18a8bd9a03",
-          "source_blob": "8c8b735f2384676e478ef1a2637f0d1e20eb8b4c",
-          "source_sha256": "ef84f5f843479bcf9f6203ee55b1945017dab1d2898769e66140731fdc20801e",
+          "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
+          "source_blob": "9ceac2f8edabadb9299add98bcb9d03f4bb17a7f",
+          "source_sha256": "12990dcfdcc32ede04ff9352f93c577b3da243347e5a865cfee9af1d2783702a",
           "execution_status": "authored_pending_combined_browser_run",
           "cases": [
             {
@@ -2448,6 +2472,22 @@
               "name": "duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
               "journeys": [
                 "TC07"
+              ]
+            }
+          ]
+        },
+        {
+          "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+          "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
+          "source_blob": "8767d03b75548333762f84d2726f4496905d6f39",
+          "source_sha256": "3c03f4c4d17907cf907633282b636833d91aa5e0c063632cfa1af80269e4e0b2",
+          "execution_status": "authored_pending_root_run",
+          "cases": [
+            {
+              "name": "Dashboard Advanced Chart and Instrument Details stay useful on cached data while each preparation is pending and after reload",
+              "journeys": [
+                "TC08",
+                "TC09"
               ]
             }
           ]
@@ -2665,7 +2705,8 @@
         "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
         "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts",
-        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts"
+        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
       ],
       "pending_reason": "Current code starts Market Map universe and comparison-leg preparation independently of its local analysis read; Breadth starts group and configured snapshot benchmark preparation alongside local reads; EasyScan and Gauge prepare the exact saved screener/timeframe. Focused tests cover these contracts and progress refresh. Root still owns full visible analysis journeys, cross-tool D1/W1/MN data outcomes, and combined browser acceptance.",
       "journey_ids": [
@@ -2685,7 +2726,8 @@
         "TC08-market-map",
         "TC08-breadth",
         "TC08-gauge",
-        "TC04-basket-preparation"
+        "TC04-basket-preparation",
+        "TC09-dashboard-advanced-details"
       ],
       "critical_review_slot": "TC08-critical-review"
     },
@@ -2697,7 +2739,8 @@
       ],
       "evidence_status": "pending_route_action_matrix",
       "evidence": [
-        "frontend/tests/unit/router/test_application_routes.test.ts"
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
       ],
       "pending_reason": "Route contract is mapped; complete route/action user journeys and secondary-page presentation review remain pending.",
       "journey_ids": [
@@ -2727,7 +2770,8 @@
         "TC09-strategy-history-unit",
         "TC09-strategy-coverage-unit",
         "TC04-basket-lifecycle",
-        "TC04-basket-snapshot"
+        "TC04-basket-snapshot",
+        "TC09-dashboard-advanced-details"
       ],
       "critical_review_slot": "TC09-critical-review"
     }
@@ -6771,6 +6815,17 @@
       "test_name": "opens and closes the full status disclosure with its native summary control",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC09-dashboard-advanced-details",
+      "journey_ids": [
+        "TC08",
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "test_name": "Dashboard Advanced Chart and Instrument Details stay useful on cached data while each preparation is pending and after reload",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
     }
   ],
   "critical_review_slots": [

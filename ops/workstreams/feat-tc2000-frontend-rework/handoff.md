@@ -26591,3 +26591,8 @@ Root R57 showed that visual saved conditions can return an asynchronous Python r
 ## 2026-11-07 — Keep Workstation primary actions visible at 1024 CSS pixels
 
 Root's R61 native-viewport screenshot showed Refresh and Sign out beyond the initial 1024 CSS pixel viewport at 125% desktop scaling. The Workstation header now uses a narrow-width rule to reduce menu/search spacing and constrain optional status summaries while keeping Refresh and Sign out non-shrinking. Existing status disclosures retain full detail; no shell actions or application semantics changed. `vue-tsc --noEmit`, strict TC scope, workstream, journey inventory, and diff checks passed. Root's actual 1024/1280/1920 action-bounds and screenshot check remains pending; no browser was started locally.
+
+
+# 2026-11-07 — Root final UI domain successors assembled
+
+Imported the exact six TC paths from Strategy b7e13e77 and one TC view path from ETF 2450abb9. Verified every row in the 27-file Strategy and 11-file ETF manifests, including source blob/hash and staged mode; also verified all 86 d954 common-runtime rows and all 67 Provider 22c31 rows remained exact. The active pin now retains Provider 22c31 and replaces only the superseded Strategy/ETF entries with b7/2450; historical manifests remain untouched. Updated the TC-owned owner-matrix snapshots and exact source provenance, and added the authored Advanced Chart/Instrument Details browser case to TC08/TC09 with execution pending. Scope, workstream, journey-matrix (including self-test), and staged diff checks pass. No browser or full test suite ran; Root owns current-source compilation, affected journey execution, combined qualification, and release gates. The full platform roadmap remains open.
