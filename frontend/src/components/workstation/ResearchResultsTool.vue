@@ -292,6 +292,12 @@ function mergeResearchRuns(...groups: ResearchRunSummary[][]) {
   }
   return [...byId.values()]
 }
+function publishAcceptedRunMutation(run: ResearchRunSummary) {
+  queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current =>
+    mergeResearchRuns([run], current ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),
+  )
+  void queryClient.invalidateQueries({ queryKey: runsQueryKey })
+}
 function reconcileResearchRunsWithCache(
   serverRuns: ResearchRunSummary[],
   cachedRuns: ResearchRunSummary[],
@@ -1028,19 +1034,12 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   error.value = ''
   try {
     const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
+    publishAcceptedRunMutation(queued)
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = mergeResearchRuns([queued], runs.value)
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
-      [queued],
-      (current ?? []).filter(item => item.id !== queued.id),
-    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
     runs.value = nextRuns
     if (selectedRun.value?.id === selectedRunIdAtStart) selectedRun.value = queued
     await runsQuery.refetch()
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
-      [queued],
-      (current ?? []).filter(item => item.id !== queued.id),
-    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
   } catch (cause: any) {
     if (mounted && generation === mutationGeneration) error.value = `Unable to queue rerun for run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
@@ -1053,6 +1052,7 @@ async function cancel(run: ResearchRunSummary) {
   error.value = ''
   try {
     const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
+    publishAcceptedRunMutation({ ...run, ...canceled, status: canceled.status ?? 'canceled' })
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))

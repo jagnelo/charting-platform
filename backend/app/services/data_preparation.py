@@ -11,7 +11,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
@@ -2058,10 +2058,16 @@ async def get_data_preparation_response(
     if not dependencies:
         status = str(data.get("status") or "unavailable")
     created_at = _as_utc(parent.created_at or datetime.now(UTC))
-    updated_at = max(
-        (item.updated_at for item in dependency_responses),
-        default=_as_utc(parent.updated_at or created_at),
-    )
+    if dependency_responses:
+        # Avoid evaluating an ORM timestamp fallback eagerly. The parent may
+        # have an expired ``updated_at`` after an onupdate SQL expression, and
+        # descriptor access from this async function would attempt an implicit
+        # synchronous database read even when dependency timestamps exist.
+        updated_at = max(item.updated_at for item in dependency_responses)
+    else:
+        if "updated_at" in inspect(parent).expired_attributes:
+            await db.refresh(parent, attribute_names=["updated_at"])
+        updated_at = _as_utc(parent.updated_at or created_at)
     progress_at = _as_utc(
         datetime.fromisoformat(data.get("last_progress_at") or created_at.isoformat())
     )

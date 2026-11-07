@@ -1372,24 +1372,40 @@ describe('StudyLabTool', () => {
     expect(apiPost).not.toHaveBeenCalledWith('/research/runs/101/cancel', {})
   })
 
-  it('cancels a run that is created after the Study Lab tool is destroyed', async () => {
+  it('keeps a late-created run durable and publishes it to the open Results surface after Study Lab closes', async () => {
     let resolveRun!: (value: unknown) => void
+    const createdRun = { id: 202, code_version_id: 52, status: 'queued', run_config: { symbol: 'SPY' }, dataset_manifest: { symbol: 'SPY' }, artifact_count: 0, artifacts: [] }
+    let listReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve(listReads++ === 0 ? [] : [createdRun])
+      if (path === '/research/runs/202') return Promise.resolve(createdRun)
+      return Promise.resolve({})
+    })
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 52 }] })
       if (path === '/research/runs') return new Promise(resolve => { resolveRun = resolve })
-      if (path === '/research/runs/202/cancel') return Promise.resolve({ id: 202, status: 'canceled', artifacts: [] })
       return Promise.resolve({})
     })
-    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const results = mount(ResearchResultsTool, {
+      global: {
+        plugins: [[VueQueryPlugin, { queryClient }]],
+        stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } },
+      },
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
     await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.anything()))
     wrapper.unmount()
 
-    resolveRun({ id: 202, status: 'queued', artifacts: [] })
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/202/cancel', {}))
+    resolveRun(createdRun)
+    await vi.waitFor(() => expect(results.find('[aria-label="Run 202, queued, 0 artifacts"]').exists()).toBe(true))
+    expect(queryClient.getQueryData(['workstation', 'research-run', 202])).toMatchObject(createdRun)
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/202/cancel', {})
+    results.unmount()
   })
 
   it('surfaces an empty polling response instead of caching undefined', async () => {
@@ -1986,10 +2002,10 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs/91/rerun?snapshot=false', {})
   })
 
-  it('does not publish a late rerun response after the Study Lab tool unmounts', async () => {
-    const run = { id: 150, status: 'completed', code_version_id: 4, artifacts: [] }
+  it('publishes a late durable Study rerun to Results after the Study Lab tool unmounts', async () => {
+    const run = { id: 150, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] }
     const rerun = deferred<typeof run>()
-    apiGet.mockResolvedValue(undefined)
+    apiGet.mockImplementation((path: string) => path === '/research/runs' ? Promise.resolve([run]) : Promise.resolve(undefined))
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
@@ -1997,7 +2013,11 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/150/rerun?snapshot=true') return rerun.promise
       return Promise.resolve({})
     })
-    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const results = mount(ResearchResultsTool, {
+      global: { plugins: [[VueQueryPlugin, { queryClient }]], stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } } },
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await flushPromises()
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
@@ -2011,5 +2031,8 @@ describe('StudyLabTool', () => {
     await flushPromises()
 
     expect((wrapper.vm as unknown as { run: typeof run | null }).run).toEqual(run)
+    await vi.waitFor(() => expect(results.find('[aria-label="Run 151, queued, 0 artifacts"]').exists()).toBe(true))
+    expect(queryClient.getQueryData(['workstation', 'research-run', 151])).toMatchObject({ id: 151, status: 'queued' })
+    results.unmount()
   })
 })

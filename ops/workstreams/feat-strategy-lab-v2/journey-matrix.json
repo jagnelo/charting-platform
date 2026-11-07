@@ -83,8 +83,8 @@
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: does not certify a draft for execution when preparation is unavailable during validation"
       ],
       "api_evidence": [
-        "TC shared runtime ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9 is consumed under the exact development contract. dataPreparationCoordinator.ensure posts /data/ensure and polls owner-scoped /data/requests/{request_id}, validates identity/coverage/lineage/time fields, and honors pending-work state. The19 declared delta paths over5a were imported and all66 entries verified; no browser or full-profile acceptance is implied.",
-        "Current Provider saved-screener runtime dffcf2e2cda4a3046b5e224fb4c7607574156797 is active in provider-runtime-consumption.json; owner-scoped saved-screener preparation uses restartable bounded expansion. Root reports75 focused units and real-PostgreSQL proof; exact source CI and combined qualification remain pending.",
+        "TC shared runtime4cfee47689ebeffa05ccae5f1b7cc690f6a871b8 is consumed under its exact development contract. dataPreparationCoordinator.ensure posts /data/ensure and polls owner-scoped /data/requests/{request_id}, validates identity/coverage/lineage/time fields, and honors pending-work state. The four declared delta paths over ce2262ab were imported and all66 active entries verified; Root reports90 focused owner tests/type checks and five browser cases, but family-latency/uncached-timing and combined acceptance remain pending.",
+        "Current Provider runtime b0eae5974801e320b3da858d7e1a33829b206430 is active in provider-runtime-consumption.json; the two declared queue-claim/continuation-reference paths over5cdc were imported and all47 active entries verified. Root reports real-PostgreSQL second-owner ensure and continuation-parent-reference regressions plus the20-case ETF fixture module passed; exact-source CI and combined qualification remain pending.",
         "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
       ],
       "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate. A separate authored controlled-API journey changes the selected symbol while the previous SPY poll is held, verifies that the old request is aborted and its late result cannot replace the new XLB/QQQ outcomes, and confirms unavailable data never reaches source validation or run dispatch. This remains discovery-only until Root runs the combined browser gate. Both controlled preparation API fixtures now include symbol identity, covered_ranges, and has_pending_work matching the released Provider074 response contract; the shared validator remains unchanged.",
@@ -105,13 +105,14 @@
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: validates, starts an immutable isolated study run, and renders artifacts",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: renders schema-defined parameter controls and sends typed values to the immutable run",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: requires an explicit universe before running aggregate factory studies",
-        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reuses an opened immutable Study definition version without creating a duplicate asset"
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reuses an opened immutable Study definition version without creating a duplicate asset",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a late-created run durable and publishes it to the open Results surface after Study Lab closes"
       ],
       "api_evidence": [
         "POST /code/assets and POST /research/runs are covered by backend/tests/integration/api/test_code.py :: test_research_run_is_queued_for_isolated_runner and test_research_run_job_preserves_json_parameters_for_isolated_runner",
         "Run materialization/control validation: backend/tests/integration/api/test_code.py :: test_research_run_honors_study_dataset_controls_and_records_them and test_research_run_rejects_unsupported_study_dataset_controls"
       ],
-      "browser_evidence": "The ordinary immutable-version Study/Results/Library flow and F8p high_low_breakouts path are authored in frontend/tests/e2e/strategy_study_journey.spec.ts. F8p asserts a SPY history ensure request with D1 split-adjusted intent and requires the same request_id to reach server status ready before /code/validate; it checks typed lookback10 run config, completed status and both high/low metrics. On timeout it attaches persisted run readback/status, retaining the90-second completion bound. Both browser bodies remain pending Root combined execution; no native/broker behavior is included.",
+      "browser_evidence": "The ordinary immutable-version Study/Results/Library flow and F8p high_low_breakouts path are authored in frontend/tests/e2e/strategy_study_journey.spec.ts. F8p asserts a SPY history ensure request with D1 split-adjusted intent and requires the same request_id to reach server status ready before /code/validate; it checks typed lookback10 run config, completed status and both high/low metrics. On timeout it attaches persisted run readback/status, retaining the90-second completion bound. Both browser bodies remain pending Root combined execution; no native/broker behavior is included. An additional authored public-UI case closes Study Lab while POST /research/runs is pending, then requires the returned durable run to appear in the still-open Results tool without a cancel request; discovered but unexecuted pending Root’s existing fixture rerun.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -188,16 +189,18 @@
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: reports a rerun failure without disabling a subsequent retry",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: propagates rerun and cancel mutations through the shared results cache",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: preserves a newer run selection when a slower rerun response resolves",
-        "frontend/tests/unit/components/test_research_results_tool.test.ts :: does not publish a late rerun response after the tool unmounts",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: identifies the source run when a delayed cancellation fails after selection changes",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: identifies the source run when a delayed rerun fails after selection changes",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: labels terminal and in-flight states with recovery guidance",
-        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reruns a completed study against its snapshot or latest canonical data"
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: reruns a completed study against its snapshot or latest canonical data",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: keeps an accepted rerun in shared Results cache after the tool unmounts",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: keeps an accepted cancellation in shared Results cache after the tool unmounts",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: publishes a late durable Study rerun to Results after the Study Lab tool unmounts"
       ],
       "api_evidence": [
         "POST /research/runs/{id}/cancel and POST /research/runs/{id}/rerun?snapshot={true|false}; API list/run invariants are exercised by backend/tests/integration/api/test_code.py :: test_research_rerun_snapshot_retains_manifest and test_research_runs_list_is_user_scoped_and_newest_first"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API: first cancel and snapshot-rerun requests fail, the run-specific error remains visible and retryable, retries succeed, and latest rerun of queued successor 8100 uses its own request mode. This is authored-only UI interaction evidence, not actual backend/browser acceptance; Root's combined gate remains pending.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled persisted-run API: first cancel and snapshot-rerun requests fail, the run-specific error remains visible and retryable, retries succeed, and latest rerun of queued successor 8100 uses its own request mode. This is authored-only UI interaction evidence, not actual backend/browser acceptance; Root's combined gate remains pending. Late accepted rerun/cancel responses are additionally covered at the shared-query-cache layer after unmount; no separate close-during-rerun/cancel browser body has run, and Root owns the browser qualification.",
       "approved_journey": [
         "J10 Study: results/cancel/return supported workflow",
         "J12 recovery: pagination, filters, delayed failures and retry"
@@ -502,19 +505,26 @@
   "approved_plan": " /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/APPROVED-PLAN.md",
   "tc_common_runtime": {
     "owner": "TC",
-    "current_source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json",
-    "contract_sha256": "b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c",
+    "current_source": "4cfee47689ebeffa05ccae5f1b7cc690f6a871b8",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-4cfee476-common-runtime-development-consumption-contract.json",
+    "contract_sha256": "dfe2e5cec52458f76fccfb71a0af9d5627e46f810c84fd8c8b2bfc232e2c754f",
     "active_manifest_entries": 66,
-    "qualification": "Exact development consumption only; TC/ETF prior focused results are historical and do not qualify ce2262ab browser, full-profile, source CI, or release acceptance.",
-    "delta_paths_over_previous": 19,
-    "previous_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
-    "historical_delta_paths_over_d5": 10
+    "qualification": "Exact development consumption only; the four declared paths over ce2262ab and all66 active manifest entries were hash/blob/status/mode verified. Root reports90 focused owner tests/type checks and five browser cases; remaining family-latency/uncached-timing and combined release qualification remain pending.",
+    "delta_paths_over_previous": 4,
+    "previous_source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+    "historical_delta_paths_over_d5": 10,
+    "superseded_runtime": {
+      "source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json",
+      "contract_sha256": "b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c",
+      "delta_paths_over_previous": 19,
+      "previous_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2"
+    }
   },
   "workstation_lifecycle": {
     "owner": "Strategy browser-spec author; TC owns shared workstation product and global matrix",
     "spec": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-    "source_pin": "TC ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9; Provider dffcf2e2cda4a3046b5e224fb4c7607574156797 development dependencies; ETF SearchBar remains exact a0c5250 dependency",
+    "source_pin": "TC 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8; Provider b0eae5974801e320b3da858d7e1a33829b206430 development dependencies; ETF SearchBar remains exact a0c5250 dependency",
     "status": "authored_discovery_only_browser_pending_root_combined_slot",
     "journeys": [
       {

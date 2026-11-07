@@ -50,13 +50,14 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification on the current Provider dffcf2e2 and TC ce2262ab consumer sources. Strategy Study/Results/Library suites remain145/145, Research router14/14, and reserved Dashboard207/207; no browser body/full profile ran. Provider dffcf2e2 is the current saved-screener development dependency: all47 active manifest entries match source by Git blob, SHA256, and status_from139, with exactly8 authorized consumer deltas over b1a94d98. Root reports75 focused units, real-PostgreSQL proof, and Ruff0.4.7 check/format; exact-source CI and combined acceptance remain pending. The older b1 F8p run42332618010 was cancelled at45m without run ID, terminal status, preparation response, or backend error; current StudyLabTool prepares selected data before Validate/Run, so that historical runtime cause remains unknown. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
+  "current_blocker": "Root owns the affected Strategy normal-user browser reruns and combined backend/browser qualification. Provider b0eae597 is the active exact development dependency; only its two declared paths over5cdc were imported, and all47 active hashes/blobs/status/modes verify. Root reports second-owner ensure, continuation-parent-reference, and ETF20-case evidence; these are development evidence, not full CI or combined acceptance. TC common-runtime4cfee476 is the active66-file dependency; its four declared paths overce2262 were imported and all66 hashes/blobs/status/modes verify. Study/Results focused component suites pass129/129 and frontend type-check passes; authored Study browser bodies remain unexecuted here. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library suites remain145/145, Research router14/14, and reserved Dashboard207/207. The four workstation lifecycle bodies and Study journey remain authored/discovery-only; no browser body/full profile ran. Provider dffcf2e2 is pinned across47 manifest entries and TC ce2262ab across66; Root-reported75 focused units, real-PostgreSQL proof, and Ruff checks are provenance only, while exact-source CI and combined acceptance remain pending.",
+    "heavy_profile": "Root owns affected normal user-flow browser reruns and the combined profile. Study/Results focused component suites pass129/129 and frontend type-check passes; these do not count as browser execution. Provider b0eae597 is the exact active two-path development import and TC common-runtime4cfee476 is the active four-path successor; prior dependency history is preserved.",
     "id": "strategy-study-usability-2026-11-06",
-    "status": "in_progress"
+    "status": "in_progress",
+    "next_action": "Root to run the assigned Study normal-user browser cases in the existing fixture against the current frozen source, including F8p prepare-to-run and late create/rerun/cancel Results arrival; include Provider b0eae597 durable queue/continuation behavior in Root-owned same-fixture checks. Preserve the90-second completion bound, all18 roadmap criteria, and disabled holds."
   },
   "dirty_paths": [],
   "docker": {
@@ -94,12 +95,12 @@
   "goal_unavailable_reason": null,
   "head": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
   "implementation_sha": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
-  "last_checkpoint": "2026-11-07T03:48:12Z",
+  "last_checkpoint": "2026-11-07T05:10:24Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand the Strategy-owned Study F8p preparation/run-status witness, four corrected workstation lifecycle stories, and current Provider/TC development pins to Root for the single combined backend/browser qualification. Type-check and discovery pass; no browser body has run. Keep exact90-second completion criterion, all18 roadmap items, and disabled holds.",
+  "next_action": "Root to run the assigned Study normal-user browser cases in the existing fixture against the current frozen source, including F8p prepare-to-run and late create/rerun/cancel Results arrival; include Provider b0eae597 durable queue/continuation behavior in Root-owned same-fixture checks. Preserve the90-second completion bound, all18 roadmap criteria, and disabled holds.",
   "parent_branch": "staging",
-  "plan_hash": "daa79157e0bde7db425468843607bf629958a64c4cac369209ed9759d16d345f",
+  "plan_hash": "0fe1c3d27ccb0efcb071e9a347d3665d33532834faf61a861fd11966dc717e49",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -128,11 +129,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification on the current Provider dffcf2e2 and TC ce2262ab consumer sources. Strategy Study/Results/Library suites remain145/145, Research router14/14, and reserved Dashboard207/207; no browser body/full profile ran. Provider dffcf2e2 is the current saved-screener development dependency: all47 active manifest entries match source by Git blob, SHA256, and status_from139, with exactly8 authorized consumer deltas over b1a94d98. Root reports75 focused units, real-PostgreSQL proof, and Ruff0.4.7 check/format; exact-source CI and combined acceptance remain pending. The older b1 F8p run42332618010 was cancelled at45m without run ID, terminal status, preparation response, or backend error; current StudyLabTool prepares selected data before Validate/Run, so that historical runtime cause remains unknown. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
+    "current_blocker": "Root owns the affected Strategy normal-user browser reruns and combined backend/browser qualification. Provider b0eae597 is the active exact development dependency; only its two declared paths over5cdc were imported, and all47 active hashes/blobs/status/modes verify. Root reports second-owner ensure, continuation-parent-reference, and ETF20-case evidence; these are development evidence, not full CI or combined acceptance. TC common-runtime4cfee476 is the active66-file dependency; its four declared paths overce2262 were imported and all66 hashes/blobs/status/modes verify. Study/Results focused component suites pass129/129 and frontend type-check passes; authored Study browser bodies remain unexecuted here. Preserve all18 criteria and disabled native/broker/capital/paid/trial/live-provider holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand the Strategy-owned Study F8p preparation/run-status witness, four corrected workstation lifecycle stories, and current Provider/TC development pins to Root for the single combined backend/browser qualification. Type-check and discovery pass; no browser body has run. Keep exact90-second completion criterion, all18 roadmap items, and disabled holds.",
+    "next_action": "Root to run the assigned Study normal-user browser cases in the existing fixture against the current frozen source, including F8p prepare-to-run and late create/rerun/cancel Results arrival; include Provider b0eae597 durable queue/continuation behavior in Root-owned same-fixture checks. Preserve the90-second completion bound, all18 roadmap criteria, and disabled holds.",
     "total": 9,
-    "updated_at": "2026-11-07T04:26:15Z"
+    "updated_at": "2026-11-07T05:31:50Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -249,5 +250,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T04:26:15Z"
+  "updated_at": "2026-11-07T05:31:50Z"
 }

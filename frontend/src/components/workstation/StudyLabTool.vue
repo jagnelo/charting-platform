@@ -1255,24 +1255,19 @@ async function saveAndRun() {
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
-    // A virtual tool can be destroyed while the durable run request is in
-    // flight (for example when a user changes layouts or closes a pop-out).
-    // Do not let that late response strand a queued job that no visible tool
-    // owns. The cancellation is deliberately sent after the create response
-    // so the server can identify the exact run even if the component vanished.
-    if (disposed || generation !== runGeneration) {
-      if (createdRun?.id) {
-        try { await api.post(`/research/runs/${createdRun.id}/cancel`, {}) } catch { /* best-effort cleanup */ }
-      }
-      return
-    }
-    run.value = createdRun
+    // Run creation is durable even if this virtual tool closes while the
+    // request is in flight. Publish the exact created row to shared caches and
+    // refresh any still-open Results surface; closing a view is not a cancel
+    // action. Component-local state and polling remain fenced below.
+    queryClient.setQueryData(researchRunQueryKey(createdRun.id), createdRun)
     cacheResearchRunInList(createdRun)
+    void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
+    if (disposed || generation !== runGeneration) return
+    run.value = createdRun
     persistedRunId.value = createdRun.id
     persistedRunName.value = nameSnapshot
     persistedRunParameterSchema.value = parameterSchemaSnapshot
     runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
-    void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
     scheduleRunPolling(createdRun.id, generation)
     const persistedConfiguration: Record<string, unknown> = {
       ...(props.configuration ?? {}),
@@ -1897,12 +1892,12 @@ async function rerun(snapshot: boolean) {
   promotionStatus.value = ''
   try {
     const rerunResult = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
+    queryClient.setQueryData(researchRunQueryKey(rerunResult.id), rerunResult)
+    cacheResearchRunInList(rerunResult)
+    void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
     if (!disposed && generation === runGeneration) {
       run.value = rerunResult
-      queryClient.setQueryData(researchRunQueryKey(rerunResult.id), rerunResult)
-      cacheResearchRunInList(rerunResult)
       persistedRunId.value = rerunResult.id
-      void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
       emit('configuration', {
         ...(props.configuration ?? {}),
         study_run_id: rerunResult.id,
@@ -1925,11 +1920,11 @@ async function cancel() {
   cancelBusy.value = true
   try {
     const canceled = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {})
-    if (disposed || generation !== runGeneration) return
-    run.value = canceled
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
     cacheResearchRunInList(canceled)
     void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
+    if (disposed || generation !== runGeneration) return
+    run.value = canceled
     await runQuery.refetch()
     if (disposed || generation !== runGeneration) return
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)

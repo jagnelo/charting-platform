@@ -714,3 +714,58 @@ test('Python Library supports create, import, clone, archive, export and filter 
   await expect(created).toHaveCount(0)
   await browserDiagnostics.expectNoCriticalIssues()
 })
+
+test('closing Study Lab while run creation is pending preserves the durable run in Results', async ({ page, loggedIn, browserDiagnostics }) => {
+  test.setTimeout(150_000)
+  let signalCreateStarted!: () => void
+  let releaseCreate!: () => void
+  const createStarted = new Promise<void>(resolve => { signalCreateStarted = resolve })
+  const createGate = new Promise<void>(resolve => { releaseCreate = resolve })
+  const cancellationRequests: string[] = []
+  await page.route('**/api/v1/research/runs', async route => {
+    const request = route.request()
+    if (request.method() === 'POST') {
+      signalCreateStarted()
+      await createGate
+    }
+    await route.continue()
+  })
+  page.on('request', request => {
+    if (request.method() === 'POST' && new URL(request.url()).pathname.endsWith('/cancel')) {
+      cancellationRequests.push(new URL(request.url()).pathname)
+    }
+  })
+
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  const results = page.locator('.research-results-tool:visible').last()
+  await expect(results.getByRole('list', { name: 'Persisted research runs' })).toBeVisible({ timeout: 15_000 })
+  const study = page.locator('.study-lab-tool:visible').last()
+  await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  const validationResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/code/validate'))
+  await study.getByRole('button', { name: 'Validate study', exact: true }).click()
+  expect((await validationResponse).ok()).toBe(true)
+  await expect(study).toContainText('Validated for isolated execution', { timeout: 90_000 })
+
+  const createdResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/research/runs'))
+  await study.getByRole('button', { name: 'Run study', exact: true }).click()
+  await createStarted
+  const studyWindow = page.locator('.tool-window').filter({ has: study })
+  await studyWindow.getByRole('button', { name: 'Close tool', exact: true }).click()
+  await expect(study).toBeHidden()
+
+  releaseCreate()
+  const created = await createdResponse
+  expect(created.status()).toBe(202)
+  const run = await created.json() as { id: number }
+  const runRow = results.getByRole('button', { name: new RegExp(`^Run ${run.id},`) })
+  await expect(runRow).toBeVisible({ timeout: 15_000 })
+  expect(await runRow.getAttribute('aria-label')).not.toContain('canceled')
+  expect(cancellationRequests).toEqual([])
+  await browserDiagnostics.expectNoCriticalIssues()
+})

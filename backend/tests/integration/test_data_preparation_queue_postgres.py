@@ -1772,3 +1772,171 @@ async def test_saved_screener_universe_expands_in_restartable_batches_without_ea
         changed_snapshot = changed_view.metadata_payload["data_preparation"]["screener_snapshot"]
         assert changed_view.id != parent_id
         assert changed_snapshot["snapshot_id"] != snapshot_id
+
+
+async def test_ensure_response_does_not_implicitly_load_expired_parent_timestamp(
+    preparation_sessions,
+):
+    from sqlalchemy import inspect
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import (
+        create_data_preparation_request,
+        get_data_preparation_response,
+    )
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        instrument = _canonical_instrument(
+            "EXPIRED-TIMESTAMP", stock_type_id, domain_prefix="expired-timestamp"
+        )
+        session.add(instrument)
+        await session.flush()
+        request = DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "instrument", "instrument_id": instrument.id},
+                "datasets": ["history"],
+                "timeframe": "D1",
+            }
+        )
+        parent = await create_data_preparation_request(session, owner_user_id=891, request=request)
+        parent_id = parent.id
+        await session.commit()
+
+        # Match the request path after an onupdate SQL expression expires this
+        # column: the ORM descriptor must not perform an implicit async read.
+        session.expire(parent, ["updated_at"])
+        assert "updated_at" in inspect(parent).expired_attributes
+        response = await get_data_preparation_response(session, parent=parent, owner_user_id=891)
+        assert response.request_id == parent.metadata_payload["data_preparation"]["request_id"]
+        assert response.total == 1
+        assert response.updated_at is not None
+
+        persisted_parent = await session.get(MarketRefreshJob, parent_id)
+        assert persisted_parent is parent
+
+
+async def test_duplicate_ensure_returns_while_shared_history_child_is_leased(
+    preparation_sessions, monkeypatch
+):
+    from types import SimpleNamespace
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.models.ohlcv import Timeframe
+    from app.routers import data_preparation as data_preparation_router
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import load_owner_request
+    from app.tasks import data_tasks
+
+    started = asyncio.Event()
+    release = asyncio.Event()
+
+    async def no_wakeup():
+        return None
+
+    async def fixed_plan(_db, job, _instrument, _timeframe, preparation, *, priority):
+        assert priority == 10
+        return (
+            (
+                job.start_at + timedelta(days=2),
+                job.end_at,
+                job.start_at,
+                job.end_at,
+                None,
+                None,
+            ),
+            preparation,
+            None,
+            None,
+            None,
+        )
+
+    async def slow_local_fetch(*_args, **_kwargs):
+        if not started.is_set():
+            started.set()
+            await release.wait()
+        return []
+
+    monkeypatch.setattr(data_preparation_router, "_wake_refresh_worker", no_wakeup)
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    monkeypatch.setattr(data_tasks, "_history_chunk_plan_with_native_admission", fixed_plan)
+    monkeypatch.setattr(data_tasks, "fetch_ohlcv", slow_local_fetch)
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        instrument = _canonical_instrument("ENSURELOCK", stock_type_id, domain_prefix="ensure-lock")
+        session.add(instrument)
+        await session.flush()
+        request = DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "instrument", "instrument_id": instrument.id},
+                "datasets": ["history"],
+                "timeframe": Timeframe.D1.value,
+                "adjusted": True,
+                "start_at": "2024-01-02T00:00:00Z",
+                "end_at": "2024-01-05T00:00:00Z",
+            }
+        )
+        first_response = await data_preparation_router.ensure_data(
+            request,
+            idempotency_key=None,
+            db=session,
+            current_user=SimpleNamespace(id=991),
+        )
+        first_parent = await load_owner_request(
+            session, request_id=first_response.request_id, owner_user_id=991
+        )
+        first_parent_id = first_parent.id
+        shared_job_id = first_parent.metadata_payload["data_preparation"]["dependencies"][0][
+            "job_ids"
+        ][0]
+
+    worker = asyncio.create_task(data_tasks.process_refresh_jobs({"redis": None}, limit=1))
+    second_parent_id = None
+    try:
+        await asyncio.wait_for(started.wait(), timeout=10)
+        async with preparation_sessions() as session:
+            second_response = await asyncio.wait_for(
+                data_preparation_router.ensure_data(
+                    request,
+                    idempotency_key=None,
+                    db=session,
+                    current_user=SimpleNamespace(id=992),
+                ),
+                timeout=5,
+            )
+            second_parent = await load_owner_request(
+                session, request_id=second_response.request_id, owner_user_id=992
+            )
+            second_parent_id = second_parent.id
+            second_job_id = second_parent.metadata_payload["data_preparation"]["dependencies"][0][
+                "job_ids"
+            ][0]
+            assert second_job_id == shared_job_id
+            assert second_response.has_pending_work is True
+    finally:
+        release.set()
+        worker_result = await asyncio.wait_for(worker, timeout=20)
+
+    assert worker_result["completed"] == 1
+    async with preparation_sessions() as session:
+        shared_job = await session.get(MarketRefreshJob, shared_job_id)
+        assert shared_job.status == "completed"
+        child = shared_job.metadata_payload["data_preparation_child"]
+        refs = child["parent_refs"]
+        assert {int(ref["parent_job_id"]) for ref in refs} == {first_parent_id, second_parent_id}
+        parent_dependencies = []
+        for parent_id in (first_parent_id, second_parent_id):
+            parent = await session.get(MarketRefreshJob, parent_id)
+            dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+            parent_dependencies.append(dependency)
+        continuation_ids = parent_dependencies[0]["background_job_ids"]
+        assert len(continuation_ids) == 1
+        assert parent_dependencies[1]["background_job_ids"] == continuation_ids
+        continuation = await session.get(MarketRefreshJob, continuation_ids[0])
+        assert continuation is not None
+        assert {
+            int(ref["parent_job_id"])
+            for ref in continuation.metadata_payload["data_preparation_child"]["parent_refs"]
+        } == {first_parent_id, second_parent_id}
