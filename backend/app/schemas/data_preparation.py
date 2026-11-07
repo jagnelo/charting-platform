@@ -51,8 +51,18 @@ class FamilyPreparationTarget(BaseModel):
     family_key: str = Field(min_length=1, max_length=180)
 
 
+class ScreenerPreparationTarget(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["screener"]
+    screener_id: int = Field(gt=0)
+
+
 PreparationTarget = Annotated[
-    InstrumentPreparationTarget | MarketGroupPreparationTarget | FamilyPreparationTarget,
+    InstrumentPreparationTarget
+    | MarketGroupPreparationTarget
+    | FamilyPreparationTarget
+    | ScreenerPreparationTarget,
     Field(discriminator="kind"),
 ]
 
@@ -136,6 +146,12 @@ class DataEnsureRequest(BaseModel):
         if self.datasets is not None and len(self.datasets) != len(set(self.datasets)):
             raise ValueError("datasets must not contain duplicates")
         self.required_profile_fields = list(dict.fromkeys(self.required_profile_fields))
+        if (
+            isinstance(self.target, ScreenerPreparationTarget)
+            and self.datasets is not None
+            and PreparationDataset.HISTORY not in self.datasets
+        ):
+            raise ValueError("screener preparation requires the history dataset")
         if (
             self.required_profile_fields
             and self.datasets is not None

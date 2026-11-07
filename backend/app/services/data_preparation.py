@@ -8,7 +8,7 @@ import json
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from uuid import uuid4
+from uuid import NAMESPACE_URL, uuid4, uuid5
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -22,6 +22,7 @@ from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, Ma
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.provider_observation import InstrumentProfileSnapshot
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
+from app.models.screener import ScreenerDefinition
 from app.models.synthetic_constituent import SyntheticConstituent
 from app.models.workstation import MarketGroup, MarketGroupMember
 from app.schemas.data_preparation import (
@@ -30,6 +31,7 @@ from app.schemas.data_preparation import (
     PreparationCoveredRange,
     PreparationDataset,
     PreparationDependencyResponse,
+    ScreenerPreparationTarget,
 )
 from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
 
@@ -46,6 +48,8 @@ _DATASET_ENQUEUE_ORDER = {
     PreparationDataset.FUNDAMENTALS: 4,
 }
 _PENDING_PREPARATION_JOB_STATUSES = frozenset({"queued", "leased", "retry", "deferred"})
+_SCREENER_EXPANSION_CAPABILITY = "data_preparation_screener_expansion"
+_SCREENER_EXPANSION_BATCH_SIZE = 50
 
 
 @dataclass(frozen=True)
@@ -53,6 +57,7 @@ class _InstrumentPlan:
     instrument_ids: list[int]
     unresolved_symbols: list[str]
     reason_code: str | None = None
+    screener_snapshot: dict | None = None
 
 
 def _digest(value: object) -> str:
@@ -258,6 +263,73 @@ async def _resolve_symbol(db: AsyncSession, symbol: str) -> tuple[int | None, st
     if len(rows) > 1:
         return None, "selection_required"
     return None, "identity_not_resolved"
+
+
+async def _prepare_screener_snapshot(
+    db: AsyncSession,
+    *,
+    target: ScreenerPreparationTarget,
+    request: DataEnsureRequest,
+    owner_user_id: int | None,
+) -> tuple[DataEnsureRequest, dict | None, str | None]:
+    """Capture an owner-scoped screener definition and its current membership."""
+
+    if owner_user_id is None:
+        raise HTTPException(status_code=404, detail={"code": "screener_not_found"})
+    screener = (
+        await db.execute(
+            select(ScreenerDefinition).where(
+                ScreenerDefinition.id == target.screener_id,
+                ScreenerDefinition.user_id == owner_user_id,
+            )
+        )
+    ).scalar_one_or_none()
+    if screener is None:
+        raise HTTPException(status_code=404, detail={"code": "screener_not_found"})
+
+    saved_timeframe = Timeframe(screener.timeframe)
+    if "timeframe" in request.model_fields_set and request.timeframe != saved_timeframe:
+        raise HTTPException(
+            status_code=422,
+            detail={"code": "screener_timeframe_mismatch", "timeframe": saved_timeframe.value},
+        )
+    effective_request = request.model_copy(update={"timeframe": saved_timeframe})
+
+    from app.services.screener_engine import _resolve_universe_members
+
+    member_ids, reason = await _resolve_universe_members(db, screener)
+    member_ids = sorted({int(value) for value in member_ids})
+    if reason or not member_ids:
+        return effective_request, None, reason or "empty_screener_universe"
+
+    updated_at = screener.updated_at
+    definition = {
+        "screener_id": screener.id,
+        "owner_user_id": screener.user_id,
+        "updated_at": updated_at.isoformat() if updated_at else None,
+        "universe_type": screener.universe_type,
+        "universe_watchlist_id": screener.universe_watchlist_id,
+        "universe_asset_class_id": screener.universe_asset_class_id,
+        "universe_basket_id": screener.universe_basket_id,
+        "universe_instrument_ids": list(screener.universe_instrument_ids or []),
+        "timeframe": saved_timeframe.value,
+        "conditions": deepcopy(screener.conditions or {}),
+    }
+    membership_fingerprint = _digest(member_ids)
+    snapshot_id = _digest(
+        {"definition": definition, "membership_fingerprint": membership_fingerprint}
+    )
+    return (
+        effective_request,
+        {
+            "snapshot_id": snapshot_id,
+            "definition": definition,
+            "membership_fingerprint": membership_fingerprint,
+            "member_ids": member_ids,
+            "member_count": len(member_ids),
+        },
+        None,
+    )
 
 
 async def _resolve_requested_instruments(
@@ -769,6 +841,217 @@ async def _enqueue_history_dependency(
     return job
 
 
+async def _enqueue_screener_expansion_job(
+    db: AsyncSession,
+    *,
+    parent_job_id: int,
+    request_id: str,
+    dependency_id: str,
+    owner_user_id: int,
+    snapshot_id: str,
+    request_fingerprint: str,
+    cursor: int,
+    priority: int,
+    now: datetime,
+) -> MarketRefreshJob:
+    """Queue one bounded page of a frozen screener membership snapshot."""
+
+    key = "prep-screener-expansion:" + _digest(
+        [owner_user_id, snapshot_id, request_fingerprint, cursor]
+    )
+    await _acquire_enqueue_lock(db, key)
+    prior_refs = await _existing_parent_refs(db, key)
+    job = await enqueue_refresh_job(
+        db,
+        request_key=key,
+        capability=_SCREENER_EXPANSION_CAPABILITY,
+        priority=priority,
+        metadata_payload={
+            "data_preparation_child": {
+                "kind": "screener_expansion",
+                "owner_user_id": owner_user_id,
+                "snapshot_id": snapshot_id,
+                "request_fingerprint": request_fingerprint,
+                "cursor": cursor,
+                "parent_refs": prior_refs,
+            }
+        },
+        now=now,
+        preserve_deferred_deadline=True,
+    )
+    ref = {
+        "parent_job_id": parent_job_id,
+        "owner_user_id": owner_user_id,
+        "request_id": request_id,
+        "dependency_id": dependency_id,
+    }
+    payload = deepcopy(job.metadata_payload or {})
+    child = deepcopy(payload.get("data_preparation_child") or {})
+    refs = list(child.get("parent_refs") or prior_refs)
+    if ref not in refs:
+        refs.append(ref)
+    child["parent_refs"] = refs
+    payload["data_preparation_child"] = child
+    job.metadata_payload = payload
+    await db.flush()
+    return job
+
+
+async def _enqueue_instrument_dependencies(
+    db: AsyncSession,
+    *,
+    parent_job_id: int,
+    request_id: str,
+    owner_user_id: int | None,
+    instrument_ids: list[int],
+    request: DataEnsureRequest,
+    datasets: list[PreparationDataset],
+    required_profile_fields: list[str],
+    priority: int,
+    now: datetime,
+    stable_dependency_scope: str | None = None,
+) -> list[dict]:
+    """Create the normal identity/profile/history/holdings children for IDs."""
+
+    ordered_datasets = sorted(datasets, key=lambda item: _DATASET_ENQUEUE_ORDER[item])
+
+    def dependency_id(instrument_id: int, dataset: str) -> str:
+        if stable_dependency_scope is None:
+            return str(uuid4())
+        return str(
+            uuid5(
+                NAMESPACE_URL,
+                f"{stable_dependency_scope}:{parent_job_id}:{instrument_id}:{dataset}",
+            )
+        )
+
+    dependencies: list[dict] = []
+    for instrument_id in sorted(set(instrument_ids)):
+        instrument = await db.get(Instrument, instrument_id)
+        identity_job = None
+        identity_is_qualified = bool(
+            instrument is not None
+            and instrument.identity_status == "resolved"
+            and instrument.domain_key
+            and instrument.primary_identifier_type not in {None, "internal", "cik"}
+            and instrument.primary_identifier_value
+        )
+        profile_is_fresh = (
+            await _profile_is_fresh(
+                db,
+                instrument_id,
+                now=now,
+                required_profile_fields=required_profile_fields,
+            )
+            if instrument is not None
+            else False
+        )
+        if instrument is not None and (
+            not identity_is_qualified
+            or PreparationDataset.PROFILE in datasets
+            and not profile_is_fresh
+        ):
+            identity_job = await _enqueue_identity_profile_job(
+                db,
+                parent_job_id=parent_job_id,
+                request_id=request_id,
+                symbol=instrument.symbol,
+                instrument_id=instrument_id,
+                refresh_profile=PreparationDataset.PROFILE in datasets and not profile_is_fresh,
+                required_profile_fields=required_profile_fields,
+                owner_user_id=owner_user_id,
+                priority=priority,
+                now=now,
+            )
+        identity_dependency_id = dependency_id(instrument_id, PreparationDataset.IDENTITY.value)
+        for dataset in ordered_datasets:
+            dep_id = (
+                identity_dependency_id
+                if dataset is PreparationDataset.IDENTITY
+                else dependency_id(instrument_id, dataset.value)
+            )
+            current_status, reason = await _dataset_initial_state(
+                db,
+                instrument_id,
+                dataset,
+                now=now,
+                required_profile_fields=required_profile_fields,
+            )
+            status = current_status
+            job_ids: list[int] = []
+            if identity_job and dataset in {
+                PreparationDataset.IDENTITY,
+                PreparationDataset.PROFILE,
+            }:
+                status, reason = "queued", None
+                job_ids.append(identity_job.id)
+            dependency = {
+                "dependency_id": dep_id,
+                "depends_on": [],
+                "instrument_id": instrument_id,
+                "symbol": instrument.symbol if instrument is not None else None,
+                "dataset": dataset.value,
+                "status": status,
+                "reason_code": reason,
+                "requested_start": request.start_at.isoformat() if request.start_at else None,
+                "requested_end": request.end_at.isoformat() if request.end_at else None,
+                "covered_start": None,
+                "covered_end": None,
+                "retry_at": None,
+                "job_ids": job_ids,
+                "updated_at": now.isoformat(),
+            }
+            if dataset is PreparationDataset.HISTORY:
+                warmup_job: MarketRefreshJob | None = None
+                prerequisite_job_ids = [identity_job.id] if identity_job else []
+                if request.timeframe in {Timeframe.W1, Timeframe.MN}:
+                    warmup_job = await _enqueue_history_dependency(
+                        db,
+                        parent_job_id=parent_job_id,
+                        request_id=request_id,
+                        dependency_id=dep_id,
+                        instrument_id=instrument_id,
+                        request=request,
+                        priority=priority,
+                        timeframe=Timeframe.D1,
+                        wait_for_job_ids=prerequisite_job_ids or None,
+                        now=now,
+                    )
+                    dependency["depends_on"] = [f"history:{instrument_id}:D1"]
+                    dependency["job_ids"].append(warmup_job.id)
+                    prerequisite_job_ids.append(warmup_job.id)
+                history_job = await _enqueue_history_dependency(
+                    db,
+                    parent_job_id=parent_job_id,
+                    request_id=request_id,
+                    dependency_id=dep_id,
+                    instrument_id=instrument_id,
+                    request=request,
+                    priority=priority,
+                    timeframe=request.timeframe,
+                    wait_for_job_ids=prerequisite_job_ids or None,
+                    derived_only=warmup_job is not None,
+                    now=now,
+                )
+                dependency["job_ids"].append(history_job.id)
+                dependency["status"] = "queued"
+                dependency["reason_code"] = None
+            elif dataset is PreparationDataset.HOLDINGS and status == "queued":
+                holdings_job = await _enqueue_etf_holdings_job(
+                    db,
+                    parent_job_id=parent_job_id,
+                    request_id=request_id,
+                    dependency_id=dep_id,
+                    instrument_id=instrument_id,
+                    request=request,
+                    priority=priority,
+                    now=now,
+                )
+                dependency["job_ids"].append(holdings_job.id)
+            dependencies.append(dependency)
+    return dependencies
+
+
 async def create_data_preparation_request(
     db: AsyncSession,
     *,
@@ -785,8 +1068,28 @@ async def create_data_preparation_request(
         raise ValueError("system maintenance requests must not have an owner user id")
 
     now = _as_utc(now or datetime.now(UTC))
+    screener_snapshot = None
+    resolution_reason = None
+    if isinstance(request.target, ScreenerPreparationTarget):
+        if system_maintenance:
+            raise HTTPException(status_code=404, detail={"code": "screener_not_found"})
+        request, screener_snapshot, resolution_reason = await _prepare_screener_snapshot(
+            db,
+            target=request.target,
+            request=request,
+            owner_user_id=owner_user_id,
+        )
     normalized = request.model_dump(mode="json")
-    fingerprint = _digest(normalized)
+    fingerprint = (
+        _digest(
+            {
+                "request": normalized,
+                "screener_snapshot_id": screener_snapshot["snapshot_id"],
+            }
+        )
+        if screener_snapshot
+        else _digest(normalized)
+    )
     request_id = str(uuid4())
     idempotency_hash = _digest(idempotency_key.strip()) if idempotency_key else None
     request_key = (
@@ -811,11 +1114,19 @@ async def create_data_preparation_request(
             raise HTTPException(status_code=409, detail={"code": "idempotency_key_conflict"})
         return existing
 
-    instrument_plan = await _resolve_requested_instruments(db, request)
+    instrument_plan = (
+        _InstrumentPlan([], [], resolution_reason, screener_snapshot)
+        if isinstance(request.target, ScreenerPreparationTarget)
+        else await _resolve_requested_instruments(db, request)
+    )
     instrument_ids = instrument_plan.instrument_ids
     unresolved_symbols = instrument_plan.unresolved_symbols
     resolution_reason = instrument_plan.reason_code
-    datasets = request.datasets or await _default_datasets(db, instrument_ids)
+    datasets = request.datasets or (
+        [PreparationDataset.HISTORY]
+        if isinstance(request.target, ScreenerPreparationTarget)
+        else await _default_datasets(db, instrument_ids)
+    )
     required_profile_fields = (
         request.required_profile_fields if PreparationDataset.PROFILE in datasets else []
     )
@@ -833,7 +1144,15 @@ async def create_data_preparation_request(
                 "request_id": request_id,
                 "fingerprint": fingerprint,
                 "normalized_request": normalized,
-                "target": normalized["target"],
+                "target": {
+                    **normalized["target"],
+                    **(
+                        {"snapshot_id": screener_snapshot["snapshot_id"]}
+                        if screener_snapshot
+                        else {}
+                    ),
+                },
+                "screener_snapshot": screener_snapshot,
                 "status": "waiting" if resolution_reason else "queued",
                 "reason_code": resolution_reason,
                 "version": 1,
@@ -857,6 +1176,52 @@ async def create_data_preparation_request(
         return parent
 
     dependencies: list[dict] = []
+    if screener_snapshot:
+        dependency_id = str(uuid4())
+        expansion_job = await _enqueue_screener_expansion_job(
+            db,
+            parent_job_id=parent.id,
+            request_id=request_id,
+            dependency_id=dependency_id,
+            owner_user_id=int(owner_user_id),
+            snapshot_id=str(screener_snapshot["snapshot_id"]),
+            request_fingerprint=fingerprint,
+            cursor=0,
+            priority=parent.priority,
+            now=now,
+        )
+        dependencies.append(
+            {
+                "dependency_id": dependency_id,
+                "depends_on": [],
+                "instrument_id": None,
+                "symbol": None,
+                "dataset": PreparationDataset.HISTORY.value,
+                "status": "queued",
+                "reason_code": "screener_universe_expansion_pending",
+                "requested_start": request.start_at.isoformat() if request.start_at else None,
+                "requested_end": request.end_at.isoformat() if request.end_at else None,
+                "covered_start": None,
+                "covered_end": None,
+                "retry_at": None,
+                "job_ids": [expansion_job.id],
+                "updated_at": now.isoformat(),
+            }
+        )
+        data = deepcopy((parent.metadata_payload or {})["data_preparation"])
+        data["dependencies"] = dependencies
+        data["screener_expansion"] = {
+            "snapshot_id": screener_snapshot["snapshot_id"],
+            "expanded_members": 0,
+            "member_count": screener_snapshot["member_count"],
+            "next_cursor": 0,
+        }
+        data["status"] = "queued"
+        data["last_progress_at"] = now.isoformat()
+        parent.metadata_payload = {"data_preparation": data}
+        await db.flush()
+        return parent
+
     # Every transaction acquires shared child locks in one global order.
     # The request's ratio-leg order stays in normalized_request; only lock
     # acquisition is sorted to avoid opposite-leg PostgreSQL deadlocks.
@@ -930,125 +1295,20 @@ async def create_data_preparation_request(
                 }
             )
 
-    ordered_datasets = sorted(datasets, key=lambda item: _DATASET_ENQUEUE_ORDER[item])
-    for instrument_id in sorted(set(instrument_ids)):
-        instrument = await db.get(Instrument, instrument_id)
-        identity_job = None
-        identity_is_qualified = bool(
-            instrument is not None
-            and instrument.identity_status == "resolved"
-            and instrument.domain_key
-            and instrument.primary_identifier_type not in {None, "internal", "cik"}
-            and instrument.primary_identifier_value
+    dependencies.extend(
+        await _enqueue_instrument_dependencies(
+            db,
+            parent_job_id=parent.id,
+            request_id=request_id,
+            owner_user_id=owner_user_id,
+            instrument_ids=instrument_ids,
+            request=request,
+            datasets=datasets,
+            required_profile_fields=required_profile_fields,
+            priority=parent.priority,
+            now=now,
         )
-        profile_is_fresh = (
-            await _profile_is_fresh(
-                db,
-                instrument_id,
-                now=now,
-                required_profile_fields=required_profile_fields,
-            )
-            if instrument is not None
-            else False
-        )
-        if instrument is not None and (
-            not identity_is_qualified
-            or PreparationDataset.PROFILE in datasets
-            and not profile_is_fresh
-        ):
-            identity_job = await _enqueue_identity_profile_job(
-                db,
-                parent_job_id=parent.id,
-                request_id=request_id,
-                symbol=instrument.symbol,
-                instrument_id=instrument_id,
-                refresh_profile=PreparationDataset.PROFILE in datasets and not profile_is_fresh,
-                required_profile_fields=required_profile_fields,
-                owner_user_id=owner_user_id,
-                priority=parent.priority,
-                now=now,
-            )
-        for dataset in ordered_datasets:
-            dependency_id = str(uuid4())
-            current_status, reason = await _dataset_initial_state(
-                db,
-                instrument_id,
-                dataset,
-                now=now,
-                required_profile_fields=required_profile_fields,
-            )
-            status = current_status
-            job_ids: list[int] = []
-            if identity_job and dataset in {
-                PreparationDataset.IDENTITY,
-                PreparationDataset.PROFILE,
-            }:
-                status, reason = "queued", None
-                job_ids.append(identity_job.id)
-            dependency = {
-                "dependency_id": dependency_id,
-                "depends_on": [],
-                "instrument_id": instrument_id,
-                "symbol": instrument.symbol if instrument is not None else None,
-                "dataset": dataset.value,
-                "status": status,
-                "reason_code": reason,
-                "requested_start": request.start_at.isoformat() if request.start_at else None,
-                "requested_end": request.end_at.isoformat() if request.end_at else None,
-                "covered_start": None,
-                "covered_end": None,
-                "retry_at": None,
-                "job_ids": job_ids,
-                "updated_at": now.isoformat(),
-            }
-            if dataset is PreparationDataset.HISTORY:
-                warmup_job: MarketRefreshJob | None = None
-                prerequisite_job_ids = [identity_job.id] if identity_job else []
-                if request.timeframe in {Timeframe.W1, Timeframe.MN}:
-                    warmup_job = await _enqueue_history_dependency(
-                        db,
-                        parent_job_id=parent.id,
-                        request_id=request_id,
-                        dependency_id=dependency_id,
-                        instrument_id=instrument_id,
-                        request=request,
-                        priority=parent.priority,
-                        timeframe=Timeframe.D1,
-                        wait_for_job_ids=prerequisite_job_ids or None,
-                        now=now,
-                    )
-                    dependency["depends_on"] = [f"history:{instrument_id}:D1"]
-                    dependency["job_ids"].append(warmup_job.id)
-                    prerequisite_job_ids.append(warmup_job.id)
-                history_job = await _enqueue_history_dependency(
-                    db,
-                    parent_job_id=parent.id,
-                    request_id=request_id,
-                    dependency_id=dependency_id,
-                    instrument_id=instrument_id,
-                    request=request,
-                    priority=parent.priority,
-                    timeframe=request.timeframe,
-                    wait_for_job_ids=prerequisite_job_ids or None,
-                    derived_only=warmup_job is not None,
-                    now=now,
-                )
-                dependency["job_ids"].append(history_job.id)
-                dependency["status"] = "queued"
-                dependency["reason_code"] = None
-            elif dataset is PreparationDataset.HOLDINGS and status == "queued":
-                holdings_job = await _enqueue_etf_holdings_job(
-                    db,
-                    parent_job_id=parent.id,
-                    request_id=request_id,
-                    dependency_id=dependency_id,
-                    instrument_id=instrument_id,
-                    request=request,
-                    priority=parent.priority,
-                    now=now,
-                )
-                dependency["job_ids"].append(holdings_job.id)
-            dependencies.append(dependency)
+    )
 
     data = deepcopy((parent.metadata_payload or {})["data_preparation"])
     data["dependencies"] = dependencies
@@ -1078,6 +1338,148 @@ async def create_maintenance_data_preparation_request(
         system_maintenance=True,
         now=now,
     )
+
+
+async def process_screener_expansion_batch(
+    db: AsyncSession, *, job: MarketRefreshJob, now: datetime | None = None
+) -> dict:
+    """Expand one saved-screener membership page into ordinary data jobs."""
+
+    child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+    if child.get("kind") != "screener_expansion":
+        return {"preparation_status": "unavailable", "reason_code": "invalid_expansion_job"}
+    cursor = max(0, int(child.get("cursor") or 0))
+    snapshot_id = str(child.get("snapshot_id") or "")
+    request_fingerprint = str(child.get("request_fingerprint") or "")
+    refs = sorted(
+        list(child.get("parent_refs") or []),
+        key=lambda ref: (int(ref.get("parent_job_id") or 0), str(ref.get("dependency_id") or "")),
+    )
+    valid_parents: list[tuple[dict, MarketRefreshJob, dict, DataEnsureRequest]] = []
+    for ref in refs:
+        parent = await db.get(MarketRefreshJob, int(ref.get("parent_job_id") or 0))
+        if parent is None:
+            continue
+        data = (parent.metadata_payload or {}).get("data_preparation") or {}
+        snapshot = data.get("screener_snapshot") or {}
+        if (
+            data.get("role") != _OWNER_TRACKING_ROLE
+            or data.get("owner_user_id") != ref.get("owner_user_id")
+            or ref.get("owner_user_id") != child.get("owner_user_id")
+            or data.get("fingerprint") != request_fingerprint
+            or snapshot.get("snapshot_id") != snapshot_id
+        ):
+            continue
+        try:
+            request = DataEnsureRequest.model_validate(data["normalized_request"])
+        except (KeyError, ValueError):
+            continue
+        if not isinstance(request.target, ScreenerPreparationTarget):
+            continue
+        valid_parents.append((ref, parent, data, request))
+    if not valid_parents:
+        return {"preparation_status": "unavailable", "reason_code": "preparation_owner_unavailable"}
+
+    snapshot = valid_parents[0][2].get("screener_snapshot") or {}
+    member_ids = [int(value) for value in snapshot.get("member_ids") or []]
+    if not member_ids or _digest(member_ids) != snapshot.get("membership_fingerprint"):
+        return {"preparation_status": "unavailable", "reason_code": "screener_snapshot_invalid"}
+    end_cursor = min(cursor + _SCREENER_EXPANSION_BATCH_SIZE, len(member_ids))
+    page_ids = member_ids[cursor:end_cursor]
+    current = _as_utc(now or datetime.now(UTC))
+    additions_by_parent: dict[int, list[dict]] = {}
+
+    # Enqueue child work before locking parent rows, matching the queue's
+    # child-before-parent lock order used by other preparation continuations.
+    for ref, parent, data, request in valid_parents:
+        additions_by_parent[parent.id] = await _enqueue_instrument_dependencies(
+            db,
+            parent_job_id=parent.id,
+            request_id=str(data["request_id"]),
+            owner_user_id=int(data["owner_user_id"]),
+            instrument_ids=page_ids,
+            request=request,
+            datasets=[PreparationDataset(value) for value in (request.datasets or ["history"])],
+            required_profile_fields=list(request.required_profile_fields),
+            priority=parent.priority,
+            now=current,
+            stable_dependency_scope=snapshot_id,
+        )
+
+    next_job = None
+    if end_cursor < len(member_ids):
+        for ref, parent, data, _request in valid_parents:
+            candidate = await _enqueue_screener_expansion_job(
+                db,
+                parent_job_id=parent.id,
+                request_id=str(data["request_id"]),
+                dependency_id=str(ref["dependency_id"]),
+                owner_user_id=int(data["owner_user_id"]),
+                snapshot_id=snapshot_id,
+                request_fingerprint=request_fingerprint,
+                cursor=end_cursor,
+                priority=parent.priority,
+                now=current,
+            )
+            next_job = candidate
+
+    for ref, original_parent, _old_data, _request in valid_parents:
+        parent = await _lock_parent_for_update(db, original_parent.id)
+        if parent is None:
+            continue
+        data = deepcopy((parent.metadata_payload or {}).get("data_preparation") or {})
+        if (
+            data.get("fingerprint") != request_fingerprint
+            or (data.get("screener_snapshot") or {}).get("snapshot_id") != snapshot_id
+        ):
+            continue
+        dependencies = list(data.get("dependencies") or [])
+        known_ids = {str(item.get("dependency_id")) for item in dependencies}
+        for dependency in additions_by_parent.get(parent.id, []):
+            if str(dependency.get("dependency_id")) not in known_ids:
+                dependencies.append(dependency)
+                known_ids.add(str(dependency.get("dependency_id")))
+        for dependency in dependencies:
+            if str(dependency.get("dependency_id")) != str(ref.get("dependency_id")):
+                continue
+            if dependency.get("dataset") != PreparationDataset.HISTORY.value:
+                continue
+            job_ids = list(dependency.get("job_ids") or [])
+            if job.id not in job_ids:
+                job_ids.append(job.id)
+            if next_job is not None and next_job.id not in job_ids:
+                job_ids.append(next_job.id)
+            dependency["job_ids"] = job_ids
+            dependency["status"] = "queued" if next_job is not None else "ready"
+            dependency["reason_code"] = (
+                "screener_universe_expansion_pending" if next_job is not None else None
+            )
+            dependency["retry_at"] = None
+            dependency["updated_at"] = current.isoformat()
+            break
+        data["dependencies"] = dependencies
+        data["screener_expansion"] = {
+            "snapshot_id": snapshot_id,
+            "expanded_members": end_cursor,
+            "member_count": len(member_ids),
+            "next_cursor": end_cursor if next_job is not None else None,
+        }
+        data["status"] = _aggregate_status(dependencies)
+        data["version"] = int(data.get("version") or 1) + 1
+        data["last_progress_at"] = current.isoformat()
+        parent.metadata_payload = {
+            **deepcopy(parent.metadata_payload or {}),
+            "data_preparation": data,
+        }
+    return {
+        "preparation_status": "ready",
+        "snapshot_id": snapshot_id,
+        "expanded_start": cursor,
+        "expanded_end": end_cursor,
+        "member_count": len(member_ids),
+        "has_more": next_job is not None,
+        "next_cursor": end_cursor if next_job is not None else None,
+    }
 
 
 async def expand_resolved_identity_dependency(

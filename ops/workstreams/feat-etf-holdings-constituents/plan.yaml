@@ -5722,8 +5722,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider46462f55, Provider test-only b1a94d98 and TC5a are consumed exactly (45/45, 45/45, and53/53 manifest records). SearchBar now preserves canonical acquire identity through Enter-during-discovery, prepares a uniquely identified provisional local row, and blocks strict reported-symbol mismatches;42 focused cases pass. The S&P layout-copy journey locates the new tab by stable key against the actual pre-existing workspace tab set. Four browser cases remain discovered, not executed; Root owns combined qualification.
-  current_blocker: ETF/basket/S&P browser bodies and the combined profile remain pending Root; Provider b1 exact CI is still pending. Preserve current identities, listing ambiguity, cached data and all original roadmap criteria.
+  current_phase: Provider dffcf2e2 and TC ce2262ab are consumed from their exact Root manifests (47/47 and66/66 current-file records). The owned Workstation unknown-ticker fixture now follows POST /data/ensure and covered-range-triggered local readback. Frontend type-check, 56 focused SearchBar/Workstation tests and seven-case Playwright discovery pass; browser bodies remain unrun.
+  current_blocker: The assigned Workstation browser case has not yet run against the corrected fixture; Root owns the combined browser execution and final source qualification. Preserve all selected identity, M1 coverage/readback, no-direct-write, listing ambiguity, cached data and the complete roadmap.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
   scope: Implement the ETF-owned holdings preparation callable and ETFHoldingsView automatic request/provenance behavior under the complete human-activated platform-usability plan.
@@ -6287,3 +6287,33 @@ search_bar_exact_prefetch_checkpoint_2026_11_07:
   focused_validation: SearchBar unit tests42/42 passed; frontend vue-tsc --noEmit passed; exact S&P spec Playwright discovery found2 tests; workstream validation passed.
   behavior: Unique exact canonical local search and unique exact discovered provider candidate trigger shared-coordinator preparation without forcing selection/navigation. A resolved symbol differing from the exact query is rejected. A uniquely identified provisional local instrument is prepared for identity/profile/history. Enter during exact discovery preserves and commits the returned canonical ID/type/acquire response; required reported-symbol mismatch blocks local preparation and selection. Prefix and ambiguous candidates do not prepare; duplicate local exact listings in chart and picker modes require deliberate click or keyboard choice; stale search responses cannot prepare a prior query.
   pending: No browser body was run. Root owns shared bundle integration and combined runtime/profile acceptance; Provider b1 exact CI42332618010 remains pending.
+
+provider_runtime_dependency_active_dffcf2e2:
+  authority: Root released exact Provider source dffcf2e2cda4a3046b5e224fb4c7607574156797 for development consumption only; Provider records and unrelated paths were not imported.
+  previous_active_dependency: b1a94d9854e06f8235074141bf56d333f6350057
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdffcf2e2-runtime-development-consumption-contract.json
+  manifest_sha256: e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0
+  changed_paths_since_previous: [backend/app/schemas/data_preparation.py, backend/app/services/data_preparation.py, backend/app/services/screener_engine.py, backend/app/tasks/data_tasks.py, backend/tests/integration/test_data_preparation_queue_postgres.py, backend/tests/unit/conftest.py, backend/tests/unit/services/test_data_preparation_contracts.py, backend/tests/unit/services/test_data_preparation_service.py]
+  active_manifest_records: 47
+  verification: all47 current path/status_from139/Git-blob/SHA256 records match exact source dffcf; only the eight declared delta paths were imported.
+  consumer_validation: ETF preparation and hook modules passed31/31 against the imported source; no Provider-wide suite or integration fixture was run.
+  state: Development dependency only; exact closing-source CI and Root combined acceptance remain pending.
+
+tc_common_runtime_dependency_active_ce2262ab:
+  authority: Root released exact TC source ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9 for development consumption; imported only the ETF consumer's declared paths, without TC records.
+  previous_active_dependency: 5a783e745b211cfe8b3dd20cb77d275149f15de2
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json
+  manifest_sha256: b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c
+  changed_paths_since_previous: exactly the ETF consumer's 19 paths declared by the manifest.
+  active_manifest_records: 66
+  verification: all66 current path/status_from139/Git-blob/SHA256/executable-bit records match exact source ce2262ab; only the declared19 delta paths were imported.
+  consumer_validation: frontend type-check passed; SearchBar and Workstation history-acquisition unit modules passed56/56; Playwright discovery lists7 tests in the owned acquisition spec. Browser bodies were not run.
+  state: Development dependency only; Root owns combined browser qualification and final release gates.
+
+workstation_unknown_ticker_shared_ensure_fixture_2026_11_07:
+  authority: Root assigned sole ETF ownership of frontend/tests/e2e/on_demand_acquisition.spec.ts for the reported Workstation browser case.
+  prior_failure: Provider b1 run42332618010 was cancelled at the E2E job limit; the case had no after-acquisition M1 one-bar local readback.
+  diagnosis: The fixture waited on the obsolete per-instrument history-acquisitions endpoint. Current Workstation selection uses the shared POST /data/ensure request and refreshes local bars from covered-range progress.
+  correction: Fixture now returns an exact resolved-instrument M1 adjusted-history progress response, asserts one M1 ensure for the selected canonical ID, verifies one returned local bar, and rejects legacy history calls or direct OHLCV writes.
+  validation: Frontend type-check passed; SearchBar and Workstation history-acquisition unit modules56/56 passed; acquisition Playwright discovery lists7 cases. No browser body or fixture was run.
+  pending: Root owns combined browser execution; no browser pass is claimed.

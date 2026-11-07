@@ -18,6 +18,7 @@ export type PreparationTarget =
   | PreparationInstrument
   | { kind: 'market_group'; group_key: string }
   | { kind: 'family'; family_key: string }
+  | { kind: 'screener'; screener_id: number }
 
 interface PreparationAnalysisParameters {
   lookback?: number
@@ -167,6 +168,8 @@ export class PreparationProgressRefreshQueue {
 export interface PreparationOptions {
   signal?: AbortSignal
   onProgress?: (progress: PreparationProgress) => void
+  /** Local-only identity for mutable saved definitions; never sent as wire data. */
+  contextKey?: string
 }
 
 const ACTIVE_POLL_MS = 750
@@ -187,6 +190,35 @@ function stableValue(value: unknown): string {
     return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableValue(item)}`).join(',')}}`
   }
   return JSON.stringify(value)
+}
+
+export interface SavedScreenerPreparationContext {
+  id: number
+  updated_at: string
+  universe_type: string
+  universe_watchlist_id?: number | null
+  universe_asset_class_id?: number | null
+  universe_basket_id?: number | null
+  universe_instrument_ids?: number[] | null
+  timeframe: string
+  conditions: Record<string, unknown>
+  schedule?: string | null
+}
+
+/** Stable local fence shared by EasyScan and Gauge; never added to the wire. */
+export function savedScreenerPreparationContextKey(definition: SavedScreenerPreparationContext): string {
+  return stableValue({
+    id: definition.id,
+    updated_at: definition.updated_at,
+    universe_type: definition.universe_type,
+    universe_watchlist_id: definition.universe_watchlist_id ?? null,
+    universe_asset_class_id: definition.universe_asset_class_id ?? null,
+    universe_basket_id: definition.universe_basket_id ?? null,
+    universe_instrument_ids: definition.universe_instrument_ids ?? [],
+    timeframe: definition.timeframe,
+    conditions: definition.conditions,
+    schedule: definition.schedule ?? null,
+  })
 }
 
 function abortableDelay(milliseconds: number, signal: AbortSignal): Promise<void> {
@@ -240,6 +272,9 @@ function validateIdentity(identity: { instrument_id?: number; symbol?: string },
 
 function validateRequest(request: DataEnsureRequest): void {
   if (request.target.kind === 'instrument') validateIdentity(request.target, 'Preparation target')
+  if (request.target.kind === 'screener' && (!Number.isSafeInteger(request.target.screener_id) || request.target.screener_id <= 0)) {
+    throw new Error('Saved screener preparation requires a positive screener identity.')
+  }
   if (request.timeframe !== undefined && !PREPARATION_TIMEFRAMES.has(request.timeframe)) {
     throw new Error('Preparation timeframe is not supported by the data-preparation contract.')
   }
@@ -386,7 +421,7 @@ export class DataPreparationCoordinator {
     } catch (error) {
       return Promise.reject(error)
     }
-    const key = stableValue(request)
+    const key = stableValue([request, options.contextKey ?? null])
     let entry = this.inFlight.get(key)
     if (!entry) {
       entry = { request, controller: new AbortController(), subscribers: new Set(), promise: null }
@@ -494,7 +529,7 @@ export function preparationStatusMessage(response: DataEnsureResponse, now = Dat
 function userSafeReasonMessage(reasonCode: string): string | null {
   const code = reasonCode.toLowerCase()
   if (code.includes('quota') || code.includes('capacity')) return 'The data source is temporarily at its request capacity.'
-  if (code.includes('credential') || code.includes('not_configured')) return 'Data access is not currently available for this request.'
+  if (code.includes('credential') || code.includes('not_configured')) return 'The required source credentials are not available for this request.'
   if (code.includes('entitlement') || code.endsWith('_not_entitled')) return 'The current data-source entitlement does not include this request.'
   if (code.includes('identity') || code.includes('instrument') || code.includes('canonical') || code.includes('profile')) return 'The instrument identity and listing details could not be confirmed for this request.'
   if (code.includes('history_depth') || code.includes('history_bound')) return 'The permitted history range could not be confirmed.'

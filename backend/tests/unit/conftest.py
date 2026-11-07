@@ -167,6 +167,9 @@ class AsyncSessionAdapter:
     async def execute(self, *args, **kwargs):
         return self._session.execute(*args, **kwargs)
 
+    async def scalar(self, *args, **kwargs):
+        return self._session.scalar(*args, **kwargs)
+
     async def run_sync(self, fn, *args, **kwargs):
         return fn(self._session, *args, **kwargs)
 

@@ -23,9 +23,9 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "focused_validation": "Provider732 imported exactly: ETF preparation/hook/checkpoint-consumer modules 46 passed; ETFHoldingsView unit 24 passed; frontend type-check passed; SPDR workbook parser 1 passed; ETF browser discovery 4 listed, bodies not run. Basket view unit 20 passed in prior focused run; browser/combined profile remains Root-owned.",
+    "focused_validation": "Current: frontend type-check passed; SearchBar and Workstation history-acquisition unit modules56/56 passed; the assigned on_demand_acquisition Playwright spec lists7 tests. Provider dffcf and TC ce2262ab manifests verify47/47 and66/66. Browser bodies and final combined qualification remain pending Root.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
-    "provider_contract": "Provider ETF preparation hook continues to use the published shared contracts; exact Provider runtime dependency advanced from 074 to Root-released 732da0f9. The 732 import is development-only, and no Provider workstream records were imported.",
+    "provider_contract": "The ETF preparation hook consumes the published Provider contracts; the current exact development runtime dependency is Root-released dffcf2e2, imported only through its eight declared paths. Earlier 732/464/b1 dependency records remain preserved; no Provider workstream records were imported.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
       "backend/app/schemas/data_preparation.py",
@@ -133,7 +133,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "Exact TC D5 development import is verified and the reserved S&P 500 analysis spec type-checks and lists two cases. Its browser bodies and final cross-feature qualification remain pending Root; all roadmap criteria remain open.",
+  "current_blocker_latest": "Exact dffcf Provider and ce2262ab TC development imports are verified. The assigned Workstation unknown-ticker fixture now follows POST /data/ensure; type-check and focused SearchBar/Workstation tests pass, with seven acquisition tests discovered. Browser bodies and combined acceptance remain Root-owned and pending; all roadmap criteria remain open.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -4321,14 +4321,15 @@
   },
   "current_tc_common_runtime_dependency": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "changed_paths_imported": 10,
-    "current_manifest_records_verified": 53,
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json",
-    "manifest_sha256": "4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290",
-    "previous_active_source": "d5e8d628eb42318656d8b578a24390db4be17cca",
-    "source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
-    "state": "Exact Root-released development dependency; full TC/Provider release acceptance and Root combined browser profile remain pending.",
-    "all_status_from139_git_blob_sha256_mode_exact": true
+    "changed_paths_imported": 19,
+    "current_manifest_records_verified": 66,
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-ce2262ab-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "b2a41e1bb3734b2a48d8bf828e55dacb1aac8b9d8d44bd7bd6484467b0e6be2c",
+    "previous_active_source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
+    "source": "ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9",
+    "state": "Exact Root-released development dependency; combined browser profile and final release qualification remain pending.",
+    "all_status_from139_git_blob_sha256_executable_bit_exact": true,
+    "consumer_import_paths": "Exactly the19 ETF paths in the Root manifest; all66 manifest files verified; no excluded owner paths imported."
   },
   "historical_provider_runtime_consumption_732": {
     "source": "732da0f9f84ee495ee58ca3b9f8311839291ff59",
@@ -4370,5 +4371,32 @@
     "previous_active_source": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
     "source": "d5e8d628eb42318656d8b578a24390db4be17cca",
     "state": "exact development dependency; Root final release qualification pending"
+  },
+  "historical_tc_common_runtime_dependency_5a783e74": {
+    "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "changed_paths_imported": 10,
+    "current_manifest_records_verified": 53,
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290",
+    "previous_active_source": "d5e8d628eb42318656d8b578a24390db4be17cca",
+    "source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
+    "state": "Exact Root-released development dependency; full TC/Provider release acceptance and Root combined browser profile remain pending.",
+    "all_status_from139_git_blob_sha256_mode_exact": true
+  },
+  "current_provider_runtime_dependency_dffcf2e2": {
+    "source": "dffcf2e2cda4a3046b5e224fb4c7607574156797",
+    "previous_source": "b1a94d9854e06f8235074141bf56d333f6350057",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdffcf2e2-runtime-development-consumption-contract.json",
+    "manifest_sha256": "e6894199dbc54abc0c4f25b6f6dd24e871091f5a9d2d6ccbcc3243bb324dc5e0",
+    "changed_paths_imported": 8,
+    "manifest_records_verified": 47,
+    "state": "Root-authorized development dependency only; exact-source and combined release gates remain pending."
+  },
+  "current_workstation_acquisition_fixture_repair": {
+    "test": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+    "test_sha256": "f79638da13af85234df3d327679b2e050fa8a080a35cbe158f50e3c3f228b6b5",
+    "failure_source": "Provider b1 CI42332618010; no after-acquisition M1 one-bar local readback.",
+    "cause": "The test stubbed the obsolete per-instrument history-acquisitions API; current Workstation submits POST /data/ensure and refreshes the local read API from covered-range progress.",
+    "state": "Fixture aligned to current shared contract; Playwright body remains pending Root combined execution."
   }
 }

@@ -41,13 +41,14 @@
     </div>
     <p v-if="error" class="easy-scan__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-if="plotDropStatus" class="easy-scan__drop-status" role="status" aria-live="polite" aria-atomic="true">{{ plotDropStatus }}</p>
-    <p v-else-if="busy" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
-    <div v-else-if="result" class="easy-scan__result">
+    <p v-if="preparationNotice" class="easy-scan__preparation-notice" role="status" aria-live="polite" aria-atomic="true">{{ preparationNotice }}</p>
+    <p v-if="busy" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true"><span>{{ status }}</span><button v-if="pythonResearchRunId" type="button" @click="cancelPythonRun">Cancel</button></p>
+    <div v-if="result" class="easy-scan__result">
       <label v-if="resultHistory.length" class="easy-scan__history">Result <select v-model="selectedResultId" aria-label="Scan result history"><option value="">Latest</option><option v-for="item in resultHistory" :key="item.id" :value="String(item.id)">{{ item.run_at ? new Date(item.run_at).toLocaleString() : `Run ${item.id}` }}</option></select></label>
       <span><b>{{ result.matched_ids?.length ?? 0 }}</b> matches · {{ coverageText }}</span>
       <span class="easy-scan__alert"><select v-model="alertTrigger" aria-label="Scan alert trigger"><option value="entered">Entry</option><option value="left">Exit</option><option value="both">Entry/exit</option></select><button type="button" :disabled="busy || !scanId" @click="createAlert">{{ alertCreated ? 'Alert active' : 'Alert' }}</button></span>
     </div>
-    <p v-else class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true">Save a price/volume condition, then run it against local canonical data.</p>
+    <p v-else-if="!busy" class="easy-scan__state" role="status" aria-live="polite" aria-atomic="true">Save a price/volume condition, then run it against local canonical data.</p>
   </section>
 </template>
 
@@ -55,6 +56,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { PreparationProgressRefreshQueue, dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, savedScreenerPreparationContextKey, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import ConditionGroupEditor from '@/components/workstation/ConditionGroupEditor.vue'
 import { createDefaultTechnicalCondition } from '@/lib/technicalConditions'
 import { CHART_PLOT_DRAG_MIME, createTechnicalConditionDragPayload, readChartPlotDrag, writeTechnicalConditionDrag, technicalConditionFromPlot } from '@/lib/workstation/plotDrag'
@@ -63,6 +65,21 @@ import type { Timeframe } from '@/types'
 
 type ConditionAsset = { stable_key: string; name: string; version: number; payload: { condition?: Record<string, unknown>; python_code_version_id?: number } }
 type ScanResult = { id?: number; run_at?: string; matched_ids?: number[]; result_data?: Record<string, unknown>; error?: string | null }
+type SavedScanDefinition = {
+  id: number
+  name: string
+  universe_type: 'all' | 'watchlist' | 'basket' | 'custom' | string
+  universe_watchlist_id?: number | null
+  universe_asset_class_id?: number | null
+  universe_basket_id?: number | null
+  universe_instrument_ids?: number[] | null
+  timeframe: string
+  conditions: Record<string, unknown>
+  schedule?: string | null
+  is_active?: boolean
+  created_at?: string
+  updated_at: string
+}
 
 const props = withDefaults(defineProps<{ sourceWindowKey?: string }>(), { sourceWindowKey: 'easy-scan' })
 const queryClient = useQueryClient()
@@ -88,10 +105,12 @@ const scanSchedule = ref<'manual' | 'daily_close' | 'weekly_close'>('manual')
 const busy = ref(false)
 const status = ref('')
 const error = ref('')
+const preparationNotice = ref('')
 const result = ref<ScanResult | null>(null)
 const resultHistory = ref<ScanResult[]>([])
 const selectedResultId = ref('')
 const scanId = ref<number | null>(null)
+const resultContextKey = ref('')
 const alertTrigger = ref('entered')
 const alertCreated = ref(false)
 const cancelRequested = ref(false)
@@ -101,6 +120,9 @@ const advancedToggle = ref<HTMLButtonElement | null>(null)
 const advancedRoot = ref<HTMLElement | null>(null)
 let mounted = false
 let loadGeneration = 0
+let preparationController: AbortController | null = null
+let preparationContextKey = ''
+let preparationRefreshQueue = new PreparationProgressRefreshQueue()
 const pythonResearchRunId = computed(() => {
   const value = result.value?.result_data?._python_research_run_id
   return Number.isInteger(value) ? value as number : null
@@ -208,20 +230,22 @@ async function saveCondition() {
 }
 async function run() {
   if ((!selectedKey.value && !selectedPythonVersion.value) || !scanName.value) return
-  busy.value = true; error.value = ''; result.value = null; resultHistory.value = []; selectedResultId.value = ''; scanId.value = null; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
+  busy.value = true; error.value = ''; preparationNotice.value = ''; alertCreated.value = false; cancelRequested.value = false; status.value = 'Preparing local EasyScan…'
   try {
-    let scan: { id: number }
     const universe: Record<string, unknown> = { universe_type: universeType.value, timeframe: scanTimeframe.value }
     if (scanSchedule.value !== 'manual') universe.schedule = scanSchedule.value === 'daily_close' ? '0 16 * * 1-5' : '0 16 * * 5'
     if (universeType.value === 'watchlist' || universeType.value === 'basket') {
       const id = Number(universeValue.value)
-      if (!Number.isInteger(id) || id <= 0) throw new Error('Enter a valid universe ID')
+      if (!Number.isSafeInteger(id) || id <= 0) throw new Error(`Enter a valid ${universeType.value} ID`)
       universe[universeType.value === 'watchlist' ? 'universe_watchlist_id' : 'universe_basket_id'] = id
     } else if (universeType.value === 'custom') {
-      const ids = universeValue.value.split(',').map(item => Number(item.trim())).filter(id => Number.isInteger(id) && id > 0)
-      if (!ids.length) throw new Error('Enter one or more instrument IDs')
-      universe.universe_instrument_ids = ids
+      const tokens = universeValue.value.split(',').map(item => item.trim()).filter(Boolean)
+      if (!tokens.length || tokens.some(value => !/^\d+$/.test(value) || !Number.isSafeInteger(Number(value)) || Number(value) <= 0)) {
+        throw new Error('Enter valid positive instrument IDs for the custom scan universe.')
+      }
+      universe.universe_instrument_ids = [...new Set(tokens.map(Number))]
     }
+    let scan: { id: number }
     try {
       scan = await api.post<{ id: number }>(selectedPythonVersion.value
         ? `/screeners/from-python-condition/${encodeURIComponent(selectedPythonVersion.value)}`
@@ -237,6 +261,7 @@ async function run() {
       if (!found) throw cause
       scan = found
     }
+    const priorResultContext = resultContextKey.value
     scanId.value = scan.id
     // Publish the canonical scan immediately. Several already-mounted Gauge and
     // EasyScan tools can have overlapping list requests; a late response from
@@ -247,6 +272,18 @@ async function run() {
       next.push({ id: scan.id, name: scanName.value })
       return next.sort((left, right) => left.name.localeCompare(right.name))
     })
+    const savedDefinition = await api.get<SavedScanDefinition>(`/screeners/${scan.id}`)
+    if (!savedDefinition) throw new Error('The saved scan definition is unavailable; no scan was run.')
+    if (!mounted) return
+    assertSavedScanMatchesIntent(savedDefinition, universe)
+    const savedContext = savedScreenerContextKey(savedDefinition)
+    if (priorResultContext && priorResultContext !== savedContext) {
+      result.value = null
+      resultHistory.value = []
+      selectedResultId.value = ''
+    }
+    resultContextKey.value = savedContext
+    startSavedScreenerPreparation(savedDefinition, savedContext)
     // Market Gauge and other tools share the saved-scan query. Invalidate it
     // immediately so an already-mounted tab sees newly-created/reused scans
     // without requiring a manual refresh or remount.
@@ -269,8 +306,86 @@ async function run() {
     }
     await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', scan.id] })
     await loadResultHistory(scan.id)
-  } catch (cause: any) { error.value = cause?.message ?? 'Unable to run scan' }
+  } catch (cause: any) { if (mounted) error.value = cause?.message ?? 'Unable to run scan' }
   finally { busy.value = false }
+}
+
+function canonicalValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalValue)
+  if (!value || typeof value !== 'object') return value
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right)).map(([key, item]) => [key, canonicalValue(item)]))
+}
+
+function expectedSavedCondition(): Record<string, unknown> {
+  const selectedCondition = conditions.value.find(item => item.stable_key === selectedKey.value)
+  const versionId = selectedPythonVersion.value
+    ? Number(selectedPythonVersion.value)
+    : selectedCondition?.payload?.python_code_version_id
+  if (Number.isInteger(versionId) && Number(versionId) > 0) return { type: 'python_condition', code_version_id: Number(versionId) }
+  const condition = selectedCondition?.payload?.condition
+  if (!condition || typeof condition !== 'object' || Array.isArray(condition)) throw new Error('The selected condition has no saved executable definition.')
+  return condition
+}
+
+function assertSavedScanMatchesIntent(saved: SavedScanDefinition, universe: Record<string, unknown>) {
+  const same = (left: unknown, right: unknown) => JSON.stringify(canonicalValue(left)) === JSON.stringify(canonicalValue(right))
+  const sameUniverse = saved.universe_type === universe.universe_type
+    && saved.timeframe === universe.timeframe
+    && (saved.universe_watchlist_id ?? null) === (universe.universe_watchlist_id ?? null)
+    && (saved.universe_basket_id ?? null) === (universe.universe_basket_id ?? null)
+    && (saved.universe_asset_class_id ?? null) === (universe.universe_asset_class_id ?? null)
+    && same([...(saved.universe_instrument_ids ?? [])].sort((a, b) => a - b), [...((universe.universe_instrument_ids as number[] | undefined) ?? [])].sort((a, b) => a - b))
+    && (saved.schedule ?? null) === (universe.schedule ?? null)
+  if (!sameUniverse || !same(saved.conditions, expectedSavedCondition())) {
+    throw new Error('This scan name is already saved with different condition, universe, or timeframe inputs. Choose a different name to keep the saved scan unchanged.')
+  }
+  if (!isPreparationTimeframe(saved.timeframe)) throw new Error('The saved scan timeframe is not supported for history preparation.')
+}
+
+function startSavedScreenerPreparation(saved: SavedScanDefinition, contextKey: string): void {
+  if (!isPreparationTimeframe(saved.timeframe)) throw new Error('The saved scan timeframe is not supported for history preparation.')
+  preparationController?.abort()
+  const controller = new AbortController()
+  preparationController = controller
+  preparationContextKey = contextKey
+  preparationRefreshQueue = new PreparationProgressRefreshQueue()
+  let receivedInitialProgress = false
+  preparationNotice.value = `Preparing saved scan “${saved.name}”…`
+  const isCurrent = () => mounted && preparationController === controller && preparationContextKey === contextKey
+  void dataPreparationCoordinator.ensure({
+    target: { kind: 'screener', screener_id: saved.id },
+    datasets: ['history'],
+    timeframe: saved.timeframe,
+  }, {
+    signal: controller.signal,
+    contextKey,
+    onProgress: progress => {
+      if (!isCurrent()) return
+      preparationNotice.value = `${preparationStatusMessage(progress.response)} ${progress.completed}/${progress.total} data tasks.`
+      const refreshAnalysis = receivedInitialProgress && shouldRefreshAnalysisProgress(progress.response)
+      receivedInitialProgress = true
+      if (refreshAnalysis) {
+        void preparationRefreshQueue.request(progress.response, async () => {
+          if (!isCurrent() || resultContextKey.value !== contextKey) return
+          const refreshed = await api.post<ScanResult>(`/screeners/${saved.id}/run`, {})
+          if (!isCurrent() || resultContextKey.value !== contextKey) return
+          result.value = refreshed
+          await queryClient.invalidateQueries({ queryKey: ['workstation', 'screener-history', saved.id] })
+          if (isCurrent() && resultContextKey.value === contextKey) await loadResultHistory(saved.id)
+        })
+      }
+    },
+  }).then(response => {
+    if (isCurrent()) preparationNotice.value = `${preparationStatusMessage(response)} Scan coverage will report any missing local data.`
+  }).catch(cause => {
+    if (isCurrent() && !(cause instanceof DOMException && cause.name === 'AbortError')) {
+      preparationNotice.value = 'History preparation could not be started. The scan still uses its available local coverage.'
+    }
+  })
+}
+
+function savedScreenerContextKey(saved: SavedScanDefinition): string {
+  return savedScreenerPreparationContextKey(saved)
 }
 async function loadResultHistory(id: number) {
   try {
@@ -319,6 +434,7 @@ onBeforeUnmount(() => {
   const state = String(result.value?.result_data?._status ?? '')
   mounted = false
   loadGeneration += 1
+  preparationController?.abort()
   if (runId && !['completed', 'failed', 'canceled'].includes(state)) void api.post(`/research/runs/${runId}/cancel`, {})
 })
 </script>
@@ -338,7 +454,7 @@ onBeforeUnmount(() => {
 .easy-scan__advanced > button { justify-self: start; padding: 2px 6px; }
 input, select, button { min-width: 0; border: 1px solid #34434e; background: #172027; color: #d2dce3; font: inherit; }
 input { padding: 2px 4px; } button { cursor: pointer; } button:disabled { cursor: default; opacity: .5; }
-.easy-scan__state, .easy-scan__result, .easy-scan__error, .easy-scan__drop-status { margin: 2px 0; color: #8498a6; } .easy-scan__result { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__drop-status { color: #9ec6a0; }.easy-scan__history { display:flex; align-items:center; gap:3px; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button,.easy-scan__history select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
+.easy-scan__state, .easy-scan__result, .easy-scan__error, .easy-scan__drop-status, .easy-scan__preparation-notice { margin: 2px 0; color: #8498a6; } .easy-scan__result { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }.easy-scan__result b { color: #78b9e4; } .easy-scan__error { color: #e99a9a; }.easy-scan__drop-status { color: #9ec6a0; }.easy-scan__preparation-notice { color: #9bb6c3; }.easy-scan__history { display:flex; align-items:center; gap:3px; }.easy-scan__alert { display:flex; gap:3px; margin-top:4px; }.easy-scan__alert select,.easy-scan__alert button,.easy-scan__history select { border:1px solid #34434e; background:#172027; color:#d2dce3; font:inherit; }
 @container (max-width: 560px) {
   .easy-scan__builder { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   .easy-scan__controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }

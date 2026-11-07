@@ -1539,3 +1539,236 @@ async def test_system_maintenance_reenters_shared_preparation_for_later_observat
         assert len(children) == 2
         assert all(job.capability == "price_history" for job in children)
         assert len({job.request_key for job in children}) == 2
+
+
+async def test_saved_screener_universe_expands_in_restartable_batches_without_early_ready(
+    preparation_sessions, monkeypatch
+):
+    from datetime import timedelta
+
+    from fastapi import HTTPException
+    from sqlalchemy import update
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.models.screener import ScreenerDefinition
+    from app.models.user import User
+    from app.models.watchlist import Watchlist
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import (
+        create_data_preparation_request,
+        get_data_preparation_response,
+        load_owner_request,
+    )
+    from app.services.screener_engine import _get_universe
+    from app.tasks import data_tasks
+
+    async with preparation_sessions() as session:
+        stock_type_id, _etf_type_id = await _create_instrument_types(session)
+        owner = User(
+            username=f"screener-owner-{uuid4().hex[:8]}",
+            email=f"screener-owner-{uuid4().hex[:8]}@example.test",
+            hashed_password="test-only",
+            is_active=True,
+        )
+        session.add(owner)
+        await session.flush()
+        other_owner = User(
+            username=f"screener-other-{uuid4().hex[:8]}",
+            email=f"screener-other-{uuid4().hex[:8]}@example.test",
+            hashed_password="test-only",
+            is_active=True,
+        )
+        session.add(other_owner)
+        await session.flush()
+        instruments = [
+            _canonical_instrument(f"Q{index:04d}", stock_type_id, domain_prefix="scrn")
+            for index in range(55)
+        ]
+        session.add_all(instruments)
+        await session.flush()
+        screener = ScreenerDefinition(
+            user_id=owner.id,
+            name="All known instruments",
+            conditions={"operator": "AND", "conditions": []},
+            universe_type="all",
+            timeframe="D1",
+        )
+        session.add(screener)
+        await session.flush()
+        engine_members = sorted(await _get_universe(session, screener))
+        request = DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "screener", "screener_id": screener.id},
+                "datasets": ["history"],
+            }
+        )
+        parent = await create_data_preparation_request(
+            session, owner_user_id=owner.id, request=request
+        )
+        parent_id = parent.id
+        request_owner_id = owner.id
+        data = parent.metadata_payload["data_preparation"]
+        equivalent_parent = await create_data_preparation_request(
+            session, owner_user_id=owner.id, request=request
+        )
+        equivalent_data = equivalent_parent.metadata_payload["data_preparation"]
+        assert equivalent_parent.id != parent_id
+        assert (
+            equivalent_data["screener_snapshot"]["snapshot_id"]
+            == data["screener_snapshot"]["snapshot_id"]
+        )
+        assert equivalent_data["dependencies"][0]["job_ids"] == data["dependencies"][0]["job_ids"]
+        equivalent_parent_id = equivalent_parent.id
+        assert data["screener_snapshot"]["member_ids"] == engine_members
+        assert len(data["dependencies"]) == 1
+        assert data["status"] == "queued"
+        assert data["dependencies"][0]["dataset"] == "history"
+        assert data["dependencies"][0]["status"] == "queued"
+
+        with pytest.raises(HTTPException) as cross_owner:
+            await create_data_preparation_request(
+                session, owner_user_id=other_owner.id, request=request
+            )
+        assert cross_owner.value.status_code == 404
+        with pytest.raises(HTTPException) as status_owner:
+            await load_owner_request(
+                session,
+                request_id=data["request_id"],
+                owner_user_id=other_owner.id,
+            )
+        assert status_owner.value.status_code == 404
+
+        foreign_watchlist = Watchlist(user_id=other_owner.id, name="Private")
+        session.add(foreign_watchlist)
+        await session.flush()
+        invalid_screens = [
+            ScreenerDefinition(
+                user_id=owner.id,
+                name="Empty custom",
+                conditions={},
+                universe_type="custom",
+                universe_instrument_ids=[],
+                timeframe="D1",
+            ),
+            ScreenerDefinition(
+                user_id=owner.id,
+                name="Foreign private watchlist",
+                conditions={},
+                universe_type="watchlist",
+                universe_watchlist_id=foreign_watchlist.id,
+                timeframe="D1",
+            ),
+        ]
+        session.add_all(invalid_screens)
+        await session.flush()
+        for invalid_screen, expected_reason in zip(
+            invalid_screens,
+            ("empty_custom_universe", "watchlist_unavailable"),
+            strict=True,
+        ):
+            unavailable = await create_data_preparation_request(
+                session,
+                owner_user_id=owner.id,
+                request=DataEnsureRequest.model_validate(
+                    {
+                        "target": {"kind": "screener", "screener_id": invalid_screen.id},
+                        "datasets": ["history"],
+                    }
+                ),
+            )
+            unavailable_data = unavailable.metadata_payload["data_preparation"]
+            assert unavailable_data["status"] == "unavailable"
+            assert unavailable_data["reason_code"] == expected_reason
+            assert unavailable_data["dependencies"] == []
+        await session.commit()
+
+    monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
+    first_page = await data_tasks.process_refresh_jobs({"redis": None}, limit=1)
+    assert first_page["completed"] == 1
+
+    async with preparation_sessions() as session:
+        parent = await session.get(MarketRefreshJob, parent_id)
+        data = parent.metadata_payload["data_preparation"]
+        expansion = data["screener_expansion"]
+        assert expansion["expanded_members"] == 50
+        assert expansion["next_cursor"] == 50
+        assert sum(item["dataset"] == "history" for item in data["dependencies"]) == 51
+        assert data["status"] == "queued"
+        # Hold these source children outside this deterministic expansion test.
+        await session.execute(
+            update(MarketRefreshJob)
+            .where(MarketRefreshJob.capability == "price_history")
+            .values(next_attempt_at=datetime.now(UTC) + timedelta(days=1))
+        )
+        await session.commit()
+
+    restarted_page = await data_tasks.process_refresh_jobs({"redis": None}, limit=1)
+    assert restarted_page["completed"] == 1
+
+    async with preparation_sessions() as session:
+        parent = await session.get(MarketRefreshJob, parent_id)
+        data = parent.metadata_payload["data_preparation"]
+        expansion = data["screener_expansion"]
+        assert expansion["expanded_members"] == 55
+        assert expansion["next_cursor"] is None
+        history_dependencies = [
+            item for item in data["dependencies"] if item["dataset"] == "history"
+        ]
+        instrument_dependencies = [
+            item for item in history_dependencies if item.get("instrument_id") is not None
+        ]
+        assert len(instrument_dependencies) == 55
+        assert {item["instrument_id"] for item in instrument_dependencies} == set(engine_members)
+        response = await get_data_preparation_response(
+            session, parent=parent, owner_user_id=request_owner_id
+        )
+        assert response.status != "ready"
+        assert response.has_pending_work is True
+        assert response.total == 56
+        assert all(item.status == "queued" for item in response.dependencies if item.instrument_id)
+        snapshot_id = response.target["snapshot_id"]
+        dependency_ids = {item.dependency_id for item in response.dependencies}
+        await session.commit()
+
+        equivalent_parent = await session.get(MarketRefreshJob, equivalent_parent_id)
+        equivalent_data = equivalent_parent.metadata_payload["data_preparation"]
+        assert equivalent_data["screener_expansion"]["expanded_members"] == 55
+        assert (
+            len(
+                [
+                    item
+                    for item in equivalent_data["dependencies"]
+                    if item["dataset"] == "history" and item.get("instrument_id") is not None
+                ]
+            )
+            == 55
+        )
+
+    # A new session observes the durable snapshot and its complete dependency graph.
+    async with preparation_sessions() as session:
+        parent = await session.get(MarketRefreshJob, parent_id)
+        response = await get_data_preparation_response(
+            session, parent=parent, owner_user_id=request_owner_id
+        )
+        assert response.target["snapshot_id"] == snapshot_id
+        assert {item.dependency_id for item in response.dependencies} == dependency_ids
+        assert response.has_pending_work is True
+
+        screener = await session.get(
+            ScreenerDefinition, parent.metadata_payload["data_preparation"]["target"]["screener_id"]
+        )
+        screener.conditions = {"operator": "OR", "conditions": [{"type": "price_threshold"}]}
+        await session.flush()
+        changed_view = await create_data_preparation_request(
+            session,
+            owner_user_id=request_owner_id,
+            request=DataEnsureRequest.model_validate(
+                {
+                    "target": {"kind": "screener", "screener_id": screener.id},
+                    "datasets": ["history"],
+                }
+            ),
+        )
+        changed_snapshot = changed_view.metadata_payload["data_preparation"]["screener_snapshot"]
+        assert changed_view.id != parent_id
+        assert changed_snapshot["snapshot_id"] != snapshot_id

@@ -473,45 +473,76 @@ async def _compute_indicator_cached(
 # ── Universe loading ──────────────────────────────────────────────────────────
 
 
-async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[int]:
-    if screener.universe_type == "custom" and screener.universe_instrument_ids:
+async def _resolve_universe_members(
+    db: AsyncSession, screener: ScreenerDefinition
+) -> tuple[list[int], str | None]:
+    """Resolve one saved screener universe without widening invalid scopes."""
+
+    if screener.universe_type == "custom":
+        if not screener.universe_instrument_ids:
+            return [], "empty_custom_universe"
         stmt = select(Instrument.id).where(
             Instrument.id.in_(screener.universe_instrument_ids),
             Instrument.is_active.is_(True),
             Instrument.is_synthetic.is_(False),
         )
-        return list((await db.execute(stmt)).scalars().all())
+        ids = list((await db.execute(stmt)).scalars().all())
+        return ids, None if ids else "empty_custom_universe"
 
-    if screener.universe_type == "watchlist" and screener.universe_watchlist_id:
-        wl = await db.get(Watchlist, screener.universe_watchlist_id)
-        if wl:
-            items_result = await db.execute(
-                select(WatchlistItem.instrument_id)
-                .join(Instrument, Instrument.id == WatchlistItem.instrument_id)
-                .where(
-                    WatchlistItem.watchlist_id == wl.id,
-                    Instrument.is_active.is_(True),
-                    Instrument.is_synthetic.is_(False),
+    if screener.universe_type == "watchlist":
+        if not screener.universe_watchlist_id:
+            return [], "watchlist_unavailable"
+        wl = (
+            await db.execute(
+                select(Watchlist).where(
+                    Watchlist.id == screener.universe_watchlist_id,
+                    Watchlist.user_id == screener.user_id,
                 )
             )
-            return list(items_result.scalars().all())
+        ).scalar_one_or_none()
+        if wl is None:
+            return [], "watchlist_unavailable"
+        items_result = await db.execute(
+            select(WatchlistItem.instrument_id)
+            .join(Instrument, Instrument.id == WatchlistItem.instrument_id)
+            .where(
+                WatchlistItem.watchlist_id == wl.id,
+                Instrument.is_active.is_(True),
+                Instrument.is_synthetic.is_(False),
+            )
+        )
+        ids = list(items_result.scalars().all())
+        return ids, None if ids else "empty_watchlist"
 
-    if screener.universe_type == "basket" and screener.universe_basket_id:
+    if screener.universe_type == "basket":
+        if not screener.universe_basket_id:
+            return [], "basket_unavailable"
+        basket = (
+            await db.execute(
+                select(Basket).where(
+                    Basket.id == screener.universe_basket_id,
+                    (Basket.user_id == screener.user_id) | (Basket.is_system_managed.is_(True)),
+                )
+            )
+        ).scalar_one_or_none()
+        if basket is None:
+            return [], "basket_unavailable"
         items_result = await db.execute(
             select(BasketMember.instrument_id)
-            .join(Basket, Basket.id == BasketMember.basket_id)
             .join(Instrument, Instrument.id == BasketMember.instrument_id)
             .where(
-                Basket.id == screener.universe_basket_id,
-                (Basket.user_id == screener.user_id) | (Basket.is_system_managed.is_(True)),
+                BasketMember.basket_id == basket.id,
                 Instrument.is_active.is_(True),
                 Instrument.is_synthetic.is_(False),
             )
             .order_by(BasketMember.position.asc())
         )
-        return list(items_result.scalars().all())
+        ids = list(items_result.scalars().all())
+        return ids, None if ids else "empty_basket"
 
-    if screener.universe_type == "asset_class" and screener.universe_asset_class_id:
+    if screener.universe_type == "asset_class":
+        if not screener.universe_asset_class_id:
+            return [], "asset_class_unavailable"
         from app.models.asset_class import InstrumentType
 
         stmt = (
@@ -523,13 +554,23 @@ async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[
                 Instrument.is_synthetic.is_(False),
             )
         )
-        return list((await db.execute(stmt)).scalars().all())
+        ids = list((await db.execute(stmt)).scalars().all())
+        return ids, None if ids else "empty_asset_class"
 
-    stmt = select(Instrument.id).where(
-        Instrument.is_active.is_(True),
-        Instrument.is_synthetic.is_(False),  # synthetics are excluded from screeners
-    )
-    return list((await db.execute(stmt)).scalars().all())
+    if screener.universe_type == "all":
+        stmt = select(Instrument.id).where(
+            Instrument.is_active.is_(True),
+            Instrument.is_synthetic.is_(False),  # synthetics are excluded from screeners
+        )
+        ids = list((await db.execute(stmt)).scalars().all())
+        return ids, None if ids else "empty_all_universe"
+
+    return [], "unsupported_universe_type"
+
+
+async def _get_universe(db: AsyncSession, screener: ScreenerDefinition) -> list[int]:
+    ids, _reason = await _resolve_universe_members(db, screener)
+    return ids
 
 
 # ── Calendar-aware price-change period lookback ───────────────────────────────
