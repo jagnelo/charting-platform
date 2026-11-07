@@ -15483,21 +15483,20 @@ provider_r50_sector_rrg_and_us_session_calendar:
     checks: all 11 sector paths are finite, distinct and evolving after D1/W1/MN derivation; each ten-point RRG tail has at least five nontrivial final segments
     idempotence: sector D1 row IDs stable across a repeated seed; E2E-disabled mode performs no database I/O
   calendar_behavior:
-    scope: supported XNYS holiday basis for US regular sessions and coverage; explicit dated exceptions retain precedence
-    checked: Thanksgiving closure, published 13:00 early closes, DST conversion, non-US sessions, unknown exchange, Saturday New Year handling
+    scope: supported XNYS holiday basis for US regular cash-equity MICs only (XNYS/ARCX/XNAS/BATS); explicit dated exceptions retain precedence
+    checked: Thanksgiving closure, published 13:00 early closes, DST conversion, non-US and unknown-US MIC sessions, unknown exchange, Saturday New Year handling
     new_year_saturday: no prior-Friday closure is generated
+    factor_application: each sector factor is applied once to an unfactored close baseline, including the final eight-session branch
   focused_validation:
     command: backend/.venv/bin/pytest backend/tests/unit/services/test_e2e_seed.py backend/tests/unit/services/test_exchange_catalog.py::test_known_exchange_gets_versioned_weekday_session_baseline backend/tests/unit/services/test_exchange_catalog.py::test_us_regular_session_uses_holidays_early_closes_and_explicit_overrides backend/tests/unit/services/test_exchange_catalog.py::test_us_holiday_basis_does_not_apply_to_non_us_venues_or_unknown_ids backend/tests/unit/services/test_market_data.py::test_xnys_thanksgiving_closure_and_saturday_new_year_observation backend/tests/unit/services/test_market_data.py::test_xnys_daily_gap_coalesces_across_weekend_holiday_and_dst -q
-    result: 14 passed in 28.62s
-    ruff_check_format_diff: passed on all six changed Python paths
+    result: 14 passed in 28.58s after the bounded review corrections
+    ruff_check_format_diff: passed on the four changed Python paths; the unchanged coverage module remains part of the reviewed scope
     source_sha256:
-      backend/app/services/e2e_seed.py: aa547de50098ce40cae7ca7152a950f79e929bcdf3e52fa5a0eb58e3f5c6d6ea
-      backend/app/services/exchange_sessions.py: 8fa5947fe3785470a0a5770fa99ba89120a0b226045ec028dfb1cc363f6765ce
-      backend/app/services/ohlcv_coverage.py: 483b7a7b862a3dd1ea0b9f8afdb45fdab9ad6ad8d08b266a1ece93177b154918
+      backend/app/services/e2e_seed.py: b5f0de5424f36ee5b08ee7b201c08903e798a7b807394dca67ae8d024e41c317
+      backend/app/services/exchange_sessions.py: a07e0b9165f18da5314a8ab587cdbe7e0a5b44650a657876f8d24cd3ab155831
     test_sha256:
-      backend/tests/unit/services/test_e2e_seed.py: d57acd8e4d5d2ab3770c8b2fd081c9527fae2ee63cd71ac49fdc2d46acfde6d6
-      backend/tests/unit/services/test_exchange_catalog.py: 8f1fa864170856ed42c9b927345999269a031e2bb517b8e8c3ba56669cd762e5
-      backend/tests/unit/services/test_market_data.py: 1af74e5e49557198f3dc6de7fa94a31516367159c2d909dab630501fca727b76
+      backend/tests/unit/services/test_e2e_seed.py: f8f348e6ade63a14ed542e597d7cb6490fba6327939e37284c572d1131d4b55b
+      backend/tests/unit/services/test_exchange_catalog.py: 0db64ad27be70bec384b4fce55300fda243687f8411eee5adadb00a43879da91
   no_provider_http_or_external_data_write: true
   root_fresh_database_or_browser_qualification: pending Root-owned
   exact_source_ci_and_combined_release: pending Root-owned

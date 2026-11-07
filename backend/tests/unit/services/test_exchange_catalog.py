@@ -204,4 +204,31 @@ async def test_us_holiday_basis_does_not_apply_to_non_us_venues_or_unknown_ids(d
     canadian_window = await resolve_session_window(async_db, canadian.id, date(2026, 11, 26))
     assert canadian_window is not None
     assert (canadian_window.opens_at.hour, canadian_window.closes_at.hour) == (14, 21)
+
+    unknown_us = Exchange(
+        mic="XUNK",
+        name="Unclassified US venue",
+        country_code="US",
+        timezone="America/New_York",
+        market_open="09:30",
+        market_close="16:00",
+        currency="USD",
+    )
+    db.add(unknown_us)
+    db.flush()
+    db.add(
+        ExchangeSessionRule(
+            exchange_id=unknown_us.id,
+            session_code="regular",
+            weekday=3,
+            opens_at=time(9, 30),
+            closes_at=time(16),
+            valid_from=date(2000, 1, 1),
+            provenance={"source": "test"},
+        )
+    )
+    db.flush()
+    unknown_us_window = await resolve_session_window(async_db, unknown_us.id, date(2026, 11, 26))
+    assert unknown_us_window is not None
+    assert (unknown_us_window.opens_at.hour, unknown_us_window.closes_at.hour) == (14, 21)
     assert await resolve_session_window(async_db, 999_999, date(2026, 11, 26)) is None

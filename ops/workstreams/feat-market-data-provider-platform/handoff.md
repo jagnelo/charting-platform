@@ -33490,3 +33490,19 @@ no-seed operator procedure remains at
 `/tmp/provider-genuine-phase-bootstrap-20261107.md` (SHA-256
 `96a7787242ea51a2a4a5fe6c30991d662d6589c890f8e9630942d9f75538ef4e`); no
 bootstrap helper has been executed and no database or service was changed.
+
+### Root review corrections for the R50/calendar successor
+
+Root's review of `1160c2557` found two bounded issues, both corrected in this
+successor. The built-in XNYS fallback now applies only to US regular cash-equity
+MICs XNYS, ARCX, XNAS, and BATS; an unknown US venue keeps its own session
+rule, while explicit dated exceptions continue to win. The final eight-day
+sector path now computes its positive-streak baseline separately and applies
+the sector factor exactly once per close. SPY still uses its unchanged baseline
+and exact 520-bar digest/streak. Updated sector digests pin the intentional
+versioned fixture output.
+
+The same focused 14-test selection passed in 28.58s, including the new
+unknown-US-MIC regression. Ruff check/format and `git diff --check` pass for the
+four modified Python files. No fresh DB, provider call, or external/production
+write was performed; Root owns the prepared fresh-database visual check.

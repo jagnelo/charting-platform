@@ -16,6 +16,8 @@ from app.models.market_data_foundation import (
     ExchangeSessionRule,
 )
 
+_XNYS_CALENDAR_CASH_EQUITY_MICS = frozenset({"XNYS", "ARCX", "XNAS", "BATS"})
+
 
 @dataclass(frozen=True, slots=True)
 class SessionWindow:
@@ -52,8 +54,10 @@ async def resolve_session_window(
     }:
         return None
     uses_us_regular_calendar = (
-        exchange.country_code or ""
-    ).upper() == "US" and session_code == "regular"
+        (exchange.country_code or "").upper() == "US"
+        and (exchange.mic or "").upper() in _XNYS_CALENDAR_CASH_EQUITY_MICS
+        and session_code == "regular"
+    )
     if uses_us_regular_calendar and exception is None:
         from app.services.ohlcv_coverage import _xnys_early_closes, _xnys_holidays
 

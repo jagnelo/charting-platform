@@ -230,7 +230,7 @@ def _e2e_sector_relative_factor(symbol: str, index: int, *, anchor_index: int) -
     def log_relative_path(day_index: int) -> float:
         return (
             0.14 * math.sin((2.0 * math.pi * day_index / 720.0) + phase)
-            + 0.035 * math.sin((2.0 * math.pi * day_index / 22.0) + short_phase)
+            + 0.05 * math.sin((2.0 * math.pi * day_index / 16.0) + short_phase)
             + 0.012 * math.sin((2.0 * math.pi * day_index / 87.0) - phase * 0.6)
         )
 
@@ -573,14 +573,16 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         slope = 0.00035 + (sum(ord(char) for char in symbol) % 7) * 0.00003
         bars: list[OHLCVBar] = []
         previous = base
+        previous_unfactored = base
         for index, day in enumerate(trading_days):
             cycle = math.sin(index / 17.0 + len(symbol)) * 0.008
-            close = base * (1 + slope * index + cycle)
+            unfactored_close = base * (1 + slope * index + cycle)
             # Keep a deterministic positive streak at the end for Study Lab.
             if index >= len(trading_days) - 8:
-                close = previous * (1.0 + 0.004 + (index % 3) * 0.001)
+                unfactored_close = previous_unfactored * (1.0 + 0.004 + (index % 3) * 0.001)
+            close = unfactored_close
             if symbol in _E2E_SECTOR_RRG_SYMBOLS:
-                close *= _e2e_sector_relative_factor(
+                close = unfactored_close * _e2e_sector_relative_factor(
                     symbol,
                     len(long_rrg_days) + index,
                     anchor_index=len(long_rrg_days) - 1,
@@ -608,6 +610,7 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                 )
             )
             previous = close
+            previous_unfactored = unfactored_close
 
         # Extend only the controlled SPY/sector RRG fixture. Keep the existing
         # recent 520-row generator above unchanged; older history ends exactly
