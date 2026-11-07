@@ -101,16 +101,21 @@ async def test_refresh_queue_process_delegates_to_bounded_worker_task(monkeypatc
     monkeypatch.setattr(settings, "MARKET_DATA_REFRESH_SCHEDULE_ENABLED", True)
     calls = []
 
+    async def fake_enqueue(ctx):
+        calls.append(("enqueue", ctx))
+        return {"queued": 2}
+
     async def fake_process(ctx):
-        calls.append(ctx)
+        calls.append(("process", ctx))
         return {"claimed": 4, "completed": 3, "retried": 1}
 
+    monkeypatch.setattr(data_tasks, "enqueue_core_refresh_jobs", fake_enqueue)
     monkeypatch.setattr(data_tasks, "process_refresh_jobs", fake_process)
 
     result = await arq_worker.scheduled_refresh_queue_process({"redis": "test"})
 
     assert result == {"claimed": 4, "completed": 3, "retried": 1}
-    assert calls == [{"redis": "test"}]
+    assert calls == [("enqueue", {"redis": "test"}), ("process", {"redis": "test"})]
 
 
 @pytest.mark.asyncio
@@ -924,6 +929,23 @@ async def test_core_workstation_bootstrap_delegates_when_enabled(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_core_workstation_task_queues_shared_preparation_requests(monkeypatch):
+    from app.tasks import data_tasks
+
+    calls = []
+
+    async def fake_enqueue(ctx, *, include_discovered):
+        calls.append((ctx, include_discovered))
+        return {"queued": 3, "default": 3, "background": 0}
+
+    monkeypatch.setattr(data_tasks, "enqueue_workstation_maintenance", fake_enqueue)
+    result = await arq_worker.task_bootstrap_core_workstation({"redis": "test"})
+
+    assert result["queued"] == 3
+    assert calls == [({"redis": "test"}, False)]
+
+
+@pytest.mark.asyncio
 async def test_core_workstation_bootstrap_is_explicitly_skippable(monkeypatch):
     monkeypatch.setattr(settings, "CORE_WORKSTATION_BOOTSTRAP_ENABLED", False)
 
@@ -952,7 +974,7 @@ async def test_worker_startup_queues_bootstrap_without_running_it_inline(monkeyp
         (
             "task_bootstrap_core_workstation",
             (),
-            {"_job_id": "core-workstation-bootstrap-startup-v4", "_expires": 3600},
+            {"_job_id": "core-workstation-bootstrap-startup-v5", "_expires": 3600},
         )
     ]
 

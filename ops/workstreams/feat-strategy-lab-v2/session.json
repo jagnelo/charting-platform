@@ -38,6 +38,7 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
+  "current_blocker": "The authored Strategy consumer checkpoint is prepared against exact Provider074 and TC-aea dependencies. Type-check, the three focused Study/Results/Library component suites (145/145), Playwright discovery (five stories), and the unchanged frontend-provider boundary guard (1/1) pass. Root owns execution of the combined backend/browser/strict-visual profile; no browser or full profile has run on this dirty source. Preserve the full18-criterion roadmap and all disabled-operation holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
@@ -45,44 +46,7 @@
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress"
   },
-  "dirty_paths": [
-    "backend/app/main.py",
-    "backend/app/providers/alpaca.py",
-    "backend/app/providers/massive.py",
-    "backend/app/routers/data_preparation.py",
-    "backend/app/routers/ohlcv.py",
-    "backend/app/schemas/data_preparation.py",
-    "backend/app/services/bulk_fetch.py",
-    "backend/app/services/data_preparation.py",
-    "backend/app/services/data_preparation_contracts.py",
-    "backend/app/services/derived_timeframes.py",
-    "backend/app/services/etf_holdings_preparation.py",
-    "backend/app/services/etf_holdings_refresh.py",
-    "backend/app/services/market_data.py",
-    "backend/app/services/market_refresh_queue.py",
-    "backend/app/services/market_series.py",
-    "backend/app/services/provider_runtime.py",
-    "backend/app/tasks/data_tasks.py",
-    "backend/app/workers/arq_worker.py",
-    "backend/tests/integration/test_data_preparation_queue_postgres.py",
-    "backend/tests/unit/providers/test_new_providers.py",
-    "backend/tests/unit/routers/test_data_preparation_router.py",
-    "backend/tests/unit/routers/test_ohlcv_router.py",
-    "backend/tests/unit/services/test_data_preparation_contracts.py",
-    "backend/tests/unit/services/test_data_preparation_history_planning.py",
-    "backend/tests/unit/services/test_data_preparation_service.py",
-    "backend/tests/unit/services/test_derived_timeframes.py",
-    "backend/tests/unit/services/test_etf_holdings_preparation.py",
-    "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
-    "backend/tests/unit/services/test_market_series_defaults.py",
-    "backend/tests/unit/workers/test_arq_worker.py",
-    "ops/workstreams/feat-strategy-lab-v2/handoff.md",
-    "ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-    "ops/workstreams/feat-strategy-lab-v2/plan.yaml",
-    "ops/workstreams/feat-strategy-lab-v2/provider-runtime-consumption.json",
-    "ops/workstreams/feat-strategy-lab-v2/session.json",
-    "ops/workstreams/feat-strategy-lab-v2/validation.jsonl"
-  ],
+  "dirty_paths": [],
   "docker": {
     "available": false,
     "reason": "permission denied while trying to connect to the docker API at unix:///var/run/docker.sock"
@@ -116,14 +80,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "e572a711cb9960201464c854badd4b2d37c020fe",
-  "implementation_sha": "af2cd20116bc9ae89a75ca23c10c8cf4c2634a9b",
+  "head": "424305344d72dc2efa12ac9c2e972aa3ace23cc1",
+  "implementation_sha": "424305344d72dc2efa12ac9c2e972aa3ace23cc1",
   "last_checkpoint": "2026-11-06T22:49:25Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Deliver the authored Study, Results, and Python Library browser stories, including delayed independent preparation and fail-closed validation behavior, with the active99 dependency to Root's single combined qualification slot. Keep controlled-API stories qualified as authored only; preserve all full-profile assertions and roadmap holds.",
+  "next_action": "Hold this coherent consumer context for Root's single combined qualification. After its exact-source evidence arrives, repair only concrete Strategy-owned findings; do not claim Playwright discovery as browser acceptance or close the full roadmap.",
   "parent_branch": "staging",
-  "plan_hash": "3decdf55eb4e39f003a2240a12a4b42732ff6b86eef906805f202fa1b34fe040",
+  "plan_hash": "852922d46967b8b5c782421ddbcdde7be28850db79071a5094bee0ce7cbbfcc7",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -152,11 +116,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser qualification. The active Provider runtime dependency is 99ce73bbc67689aef5fc4fcffa76bcfebfa736da; all35 paths match its v2 status/blob/hash manifest, with 17d and55b preserved historically. Root reports81 focused Provider units and exact-export Ruff checks, not full qualification. Study, Results, and Library journeys are authored and typechecked/discovered only; the controlled Results, Library, and delayed multi-target preparation interactions are not real backend or browser evidence. Preserve the full18-criterion roadmap and every disabled-operation hold.",
+    "current_blocker": "The authored Strategy consumer checkpoint is prepared against exact Provider074 and TC-aea dependencies. Type-check, the three focused Study/Results/Library component suites (145/145), Playwright discovery (five stories), and the unchanged frontend-provider boundary guard (1/1) pass. Root owns execution of the combined backend/browser/strict-visual profile; no browser or full profile has run on this dirty source. Preserve the full18-criterion roadmap and all disabled-operation holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Deliver the authored Study, Results, and Python Library journeys with the active99 dependency to Root\u2019s single combined browser/backend qualification slot. Repair only actual owned Strategy findings and preserve all full-profile assertions and roadmap holds.",
+    "next_action": "Hold this coherent consumer context for Root's single combined qualification. After its exact-source evidence arrives, repair only concrete Strategy-owned findings; do not claim Playwright discovery as browser acceptance or close the full roadmap.",
     "total": 6,
-    "updated_at": "2026-11-06T22:49:25Z"
+    "updated_at": "2026-11-07T00:46:00Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -272,6 +236,5 @@
     "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/session.json"
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
-  "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "current_blocker": "Root owns the single combined backend/browser qualification. The active Provider runtime dependency is 99ce73bbc67689aef5fc4fcffa76bcfebfa736da; all35 paths match its v2 status/blob/hash manifest, with 17d and55b preserved historically. Root reports81 focused Provider units and exact-export Ruff checks, not full qualification. Study, Results, and Library journeys are authored and typechecked/discovered only; the controlled Results, Library, and delayed multi-target preparation interactions are not real backend or browser evidence. Preserve the full18-criterion roadmap and every disabled-operation hold."
+  "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
 }

@@ -2,10 +2,13 @@
 Background data tasks — bulk historical fetches.
 """
 
+import hashlib
+import json
 import logging
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from uuid import uuid4
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,6 +19,14 @@ from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability
+from app.models.watchlist import Watchlist, WatchlistItem
+from app.models.workstation import (
+    MarketGroup,
+    MarketGroupMember,
+    Workspace,
+    WorkspaceTab,
+    WorkspaceWindow,
+)
 from app.providers.errors import bounded_redact_provider_message
 from app.services.derived_timeframes import materialize_derived_timeframes
 from app.services.market_data import fetch_ohlcv
@@ -25,7 +36,6 @@ from app.services.market_refresh_queue import (
     _acquire_enqueue_lock,
     claim_refresh_jobs,
     complete_refresh_job,
-    core_refresh_request_key,
     enqueue_refresh_job,
     retry_refresh_job,
 )
@@ -33,6 +43,111 @@ from app.services.market_universe import reconcile_us_universe, record_core_dail
 from app.services.provider_runtime import ProviderNoDataError, bind_explicit_provider_acquisition
 
 logger = logging.getLogger(__name__)
+
+
+def _maintenance_observation_bucket(observed_at: datetime) -> str:
+    """Use the same hourly freshness bucket as shared latest-history jobs."""
+
+    if observed_at.tzinfo is None:
+        observed_at = observed_at.replace(tzinfo=UTC)
+    return observed_at.astimezone(UTC).strftime("%Y-%m-%dT%H")
+
+
+async def _latest_completed_session_end(db, exchange_id: int, observed_at: datetime):
+    """Resolve the latest actually closed regular session from stored calendars."""
+
+    from app.models.exchange import Exchange
+    from app.services.exchange_sessions import is_session_complete, resolve_session_window
+
+    exchange = await db.get(Exchange, exchange_id)
+    if exchange is None or not exchange.timezone:
+        return None
+    try:
+        local_today = observed_at.astimezone(ZoneInfo(exchange.timezone)).date()
+    except ZoneInfoNotFoundError:
+        return None
+    for days_back in range(15):
+        window = await resolve_session_window(
+            db, exchange_id, local_today - timedelta(days=days_back)
+        )
+        if window is not None and is_session_complete(window, now=observed_at):
+            return window
+    return None
+
+
+async def _maintenance_history_end_at(
+    db,
+    *,
+    instrument_ids: set[int],
+    timeframe: Timeframe,
+    observed_at: datetime,
+    primary_exchange_ids: dict[int, set[int]],
+    publication_end_cache: dict[tuple[int, Timeframe], datetime | None] | None = None,
+):
+    """Bound maintenance to published session/bar time, not a live wall clock.
+
+    Daily and derived weekly/monthly work advances only after a regular session
+    closes. Intraday work advances to its latest completed interval while the
+    venue is open. Closed sessions therefore share the previous observation
+    and do not create repeated source requests.
+    """
+
+    if not instrument_ids or any(not primary_exchange_ids.get(value) for value in instrument_ids):
+        return None
+    exchange_ids = set().union(*(primary_exchange_ids[value] for value in instrument_ids))
+    if not exchange_ids:
+        return None
+    from app.models.exchange import Exchange
+    from app.services.exchange_sessions import resolve_session_window
+
+    cutoffs: list[datetime] = []
+    for exchange_id in sorted(exchange_ids):
+        cache_key = (exchange_id, timeframe)
+        if publication_end_cache is not None and cache_key in publication_end_cache:
+            cached_cutoff = publication_end_cache[cache_key]
+            if cached_cutoff is None:
+                return None
+            cutoffs.append(cached_cutoff)
+            continue
+        exchange = await db.get(Exchange, exchange_id)
+        if exchange is None or not exchange.timezone:
+            if publication_end_cache is not None:
+                publication_end_cache[cache_key] = None
+            return None
+        try:
+            local_today = observed_at.astimezone(ZoneInfo(exchange.timezone)).date()
+        except ZoneInfoNotFoundError:
+            if publication_end_cache is not None:
+                publication_end_cache[cache_key] = None
+            return None
+        session_today = await resolve_session_window(db, exchange_id, local_today)
+        cutoff = None
+        interval_seconds = TIMEFRAME_SECONDS.get(timeframe)
+        if (
+            interval_seconds is not None
+            and timeframe not in {Timeframe.D1, Timeframe.W1, Timeframe.MN}
+            and session_today is not None
+            and session_today.opens_at <= observed_at < session_today.closes_at
+        ):
+            elapsed = (observed_at - session_today.opens_at).total_seconds()
+            completed_intervals = int(elapsed // interval_seconds)
+            if completed_intervals > 0:
+                cutoff = session_today.opens_at + timedelta(
+                    seconds=interval_seconds * (completed_intervals - 1)
+                )
+        if cutoff is None:
+            latest = await _latest_completed_session_end(db, exchange_id, observed_at)
+            if latest is None:
+                if publication_end_cache is not None:
+                    publication_end_cache[cache_key] = None
+                return None
+            cutoff = latest.closes_at
+        cutoff = cutoff.astimezone(UTC)
+        if publication_end_cache is not None:
+            publication_end_cache[cache_key] = cutoff
+        cutoffs.append(cutoff)
+    return min(cutoffs)
+
 
 # Timeframes to refresh nightly (recent bars only, not full re-fetch)
 NIGHTLY_REFRESH_TIMEFRAMES: list[Timeframe] = [
@@ -139,32 +254,291 @@ async def fetch_all_instruments_history(ctx: dict) -> dict:
 
 
 async def enqueue_core_refresh_jobs(ctx: dict) -> dict:
-    """Queue whole-universe D1 work without doing provider I/O in an evaluator."""
+    """Queue catalogue, saved-input and discovered-universe work on the shared planner."""
+
+    return await enqueue_workstation_maintenance(ctx, include_discovered=True)
+
+
+async def enqueue_workstation_maintenance(ctx: dict, *, include_discovered: bool = False) -> dict:
+    """Persist default and user workstation preparation without source I/O.
+
+    Visible API requests retain priority 10, default/core and saved-list work
+    uses 50, and the remaining active universe uses 100. All datasets go
+    through the shared request planner and existing refresh queue.
+    """
+
+    del ctx  # Queue construction is database-only; workers perform provider I/O.
+    from pydantic import ValidationError
+
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import create_maintenance_data_preparation_request
+    from app.services.top_down_taxonomy import seed_top_down_taxonomy
+    from app.services.workstation_bootstrap import (
+        CORE_WORKSTATION_INSTRUMENTS,
+        ensure_core_workstation_identities,
+    )
+    from app.services.workstation_tool_catalogue import (
+        default_maintenance_request_specs,
+        maintenance_request_specs,
+    )
 
     scheduled_at = datetime.now(UTC)
-    run_date = scheduled_at.date()
+    run_date = scheduled_at.date().isoformat()
+    observation_bucket = _maintenance_observation_bucket(scheduled_at)
+    if settings.E2E_SEED_MARKET_DATA:
+        return {"skipped": True, "reason": "controlled fixture mode owns workstation data"}
     async with AsyncSessionLocal() as db:
-        instruments = (
-            (await db.execute(select(Instrument).where(Instrument.is_active.is_(True))))
-            .scalars()
-            .all()
+        # These routines only establish local canonical identities and group
+        # membership; they do not query any provider.
+        await ensure_core_workstation_identities(db)
+        await seed_top_down_taxonomy(db)
+        await db.flush()
+
+        default_specs = default_maintenance_request_specs()
+        workspace_rows = (
+            await db.execute(
+                select(
+                    Workspace.id,
+                    WorkspaceWindow.tool_type,
+                    WorkspaceWindow.configuration,
+                )
+                .join(WorkspaceTab, WorkspaceTab.workspace_id == Workspace.id)
+                .join(WorkspaceWindow, WorkspaceWindow.tab_id == WorkspaceTab.id)
+            )
+        ).all()
+        for _workspace_id, tool_type, configuration in workspace_rows:
+            default_specs.extend(maintenance_request_specs(tool_type, configuration))
+
+        existing_group_keys = set((await db.execute(select(MarketGroup.stable_key))).scalars())
+        default_specs = [
+            spec
+            for spec in default_specs
+            if spec.get("target", {}).get("kind") not in {"market_group", "family"}
+            or str(spec["target"].get("group_key") or spec["target"].get("family_key") or "")
+            in existing_group_keys
+        ]
+
+        referenced_symbols: set[str] = set()
+        referenced_group_keys: set[str] = set()
+        for spec in default_specs:
+            target = spec.get("target") or {}
+            if target.get("kind") == "instrument" and target.get("symbol"):
+                referenced_symbols.add(str(target["symbol"]).upper())
+            if target.get("kind") in {"market_group", "family"}:
+                group_key = target.get("group_key") or target.get("family_key")
+                if group_key:
+                    referenced_group_keys.add(str(group_key))
+            analysis = spec.get("analysis") or {}
+            if analysis.get("benchmark_symbol"):
+                referenced_symbols.add(str(analysis["benchmark_symbol"]).upper())
+            for leg in analysis.get("legs") or []:
+                if leg.get("symbol"):
+                    referenced_symbols.add(str(leg["symbol"]).upper())
+        referenced_ids = (
+            set(
+                (
+                    await db.execute(
+                        select(Instrument.id).where(
+                            Instrument.is_active.is_(True),
+                            Instrument.is_synthetic.is_(False),
+                            Instrument.symbol.in_(referenced_symbols),
+                        )
+                    )
+                ).scalars()
+            )
+            if referenced_symbols
+            else set()
         )
-        for instrument in instruments:
-            await enqueue_refresh_job(
+        symbol_to_id = (
+            {
+                str(symbol).upper(): int(instrument_id)
+                for instrument_id, symbol in (
+                    await db.execute(
+                        select(Instrument.id, Instrument.symbol).where(
+                            Instrument.is_active.is_(True),
+                            Instrument.is_synthetic.is_(False),
+                            Instrument.symbol.in_(referenced_symbols),
+                        )
+                    )
+                ).all()
+            }
+            if referenced_symbols
+            else {}
+        )
+        group_to_ids: dict[str, set[int]] = {}
+        if referenced_group_keys:
+            for group_key, instrument_id in (
+                await db.execute(
+                    select(MarketGroup.stable_key, MarketGroupMember.instrument_id)
+                    .join(MarketGroup, MarketGroup.id == MarketGroupMember.market_group_id)
+                    .join(Instrument, Instrument.id == MarketGroupMember.instrument_id)
+                    .where(
+                        MarketGroup.stable_key.in_(referenced_group_keys),
+                        Instrument.is_active.is_(True),
+                        Instrument.is_synthetic.is_(False),
+                    )
+                )
+            ).all():
+                group_to_ids.setdefault(str(group_key), set()).add(int(instrument_id))
+            referenced_ids.update(
+                instrument_id for ids in group_to_ids.values() for instrument_id in ids
+            )
+
+        # Any symbol retained in a user's saved list is a default-readiness
+        # dependency, independent of whether that user currently has a browser.
+        saved_instrument_ids = set(
+            (
+                await db.execute(
+                    select(WatchlistItem.instrument_id)
+                    .join(Watchlist, Watchlist.id == WatchlistItem.watchlist_id)
+                    .join(Instrument, Instrument.id == WatchlistItem.instrument_id)
+                    .where(Instrument.is_active.is_(True))
+                    .where(Instrument.is_synthetic.is_(False))
+                    .distinct()
+                )
+            ).scalars()
+        )
+        core_symbols = {symbol.upper() for symbol, _name, _kind in CORE_WORKSTATION_INSTRUMENTS}
+        core_instrument_ids = set(
+            (
+                await db.execute(
+                    select(Instrument.id).where(
+                        Instrument.is_active.is_(True),
+                        Instrument.is_synthetic.is_(False),
+                        Instrument.symbol.in_(core_symbols),
+                    )
+                )
+            ).scalars()
+        )
+        prioritized_ids = saved_instrument_ids | core_instrument_ids | referenced_ids
+        for instrument_id in sorted(prioritized_ids):
+            default_specs.append(
+                {
+                    "target": {"kind": "instrument", "instrument_id": instrument_id},
+                    "timeframe": "D1",
+                    "adjusted": True,
+                }
+            )
+
+        active_ids = set(
+            (
+                await db.execute(
+                    select(Instrument.id).where(
+                        Instrument.is_active.is_(True), Instrument.is_synthetic.is_(False)
+                    )
+                )
+            ).scalars()
+        )
+        from app.models.listing import InstrumentListing
+
+        primary_exchange_ids: dict[int, set[int]] = {}
+        if active_ids:
+            for instrument_id, exchange_id in (
+                await db.execute(
+                    select(InstrumentListing.instrument_id, InstrumentListing.exchange_id).where(
+                        InstrumentListing.instrument_id.in_(active_ids),
+                        InstrumentListing.is_active.is_(True),
+                        InstrumentListing.is_primary.is_(True),
+                        InstrumentListing.exchange_id.is_not(None),
+                    )
+                )
+            ).all():
+                primary_exchange_ids.setdefault(int(instrument_id), set()).add(int(exchange_id))
+        background_ids = active_ids - prioritized_ids
+        if include_discovered:
+            for instrument_id in sorted(background_ids):
+                default_specs.append(
+                    {
+                        "target": {"kind": "instrument", "instrument_id": instrument_id},
+                        "timeframe": "D1",
+                        "adjusted": True,
+                        "datasets": ["history"],
+                        "_priority": "background",
+                    }
+                )
+
+        queued = {"default": 0, "background": 0}
+        seen: set[str] = set()
+        publication_end_cache: dict[tuple[int, Timeframe], datetime | None] = {}
+        for spec in default_specs:
+            priority = str(spec.pop("_priority", "default"))
+            target = spec.get("target") or {}
+            if (
+                target.get("kind") == "market_group"
+                and target.get("group_key") not in existing_group_keys
+            ):
+                continue
+            try:
+                request = DataEnsureRequest(**spec)
+            except (ValidationError, TypeError, ValueError):
+                continue
+            if request.end_at is None:
+                request_instrument_ids: set[int] = set()
+                target = spec.get("target") or {}
+                if target.get("kind") == "instrument":
+                    if target.get("instrument_id"):
+                        request_instrument_ids.add(int(target["instrument_id"]))
+                    elif target.get("symbol"):
+                        symbol_id = symbol_to_id.get(str(target["symbol"]).upper())
+                        if symbol_id is not None:
+                            request_instrument_ids.add(symbol_id)
+                elif target.get("kind") in {"market_group", "family"}:
+                    group_key = str(target.get("group_key") or target.get("family_key") or "")
+                    request_instrument_ids.update(group_to_ids.get(group_key, set()))
+                analysis = spec.get("analysis") or {}
+                if analysis.get("benchmark_symbol"):
+                    benchmark_id = symbol_to_id.get(str(analysis["benchmark_symbol"]).upper())
+                    if benchmark_id is not None:
+                        request_instrument_ids.add(benchmark_id)
+                for leg in analysis.get("legs") or []:
+                    if leg.get("instrument_id"):
+                        request_instrument_ids.add(int(leg["instrument_id"]))
+                    elif leg.get("symbol"):
+                        leg_id = symbol_to_id.get(str(leg["symbol"]).upper())
+                        if leg_id is not None:
+                            request_instrument_ids.add(leg_id)
+                published_end = await _maintenance_history_end_at(
+                    db,
+                    instrument_ids=request_instrument_ids,
+                    timeframe=request.timeframe,
+                    observed_at=scheduled_at,
+                    primary_exchange_ids=primary_exchange_ids,
+                    publication_end_cache=publication_end_cache,
+                )
+                if published_end is not None:
+                    request = request.model_copy(update={"end_at": published_end})
+            normalized = request.model_dump(mode="json")
+            marker = json.dumps(normalized, sort_keys=True, separators=(",", ":"))
+            if marker in seen:
+                continue
+            seen.add(marker)
+            digest = hashlib.sha256(marker.encode("utf-8")).hexdigest()[:24]
+            await create_maintenance_data_preparation_request(
                 db,
-                request_key=core_refresh_request_key(instrument.id, run_date=run_date),
-                capability="price_history",
-                instrument_id=instrument.id,
-                timeframe=Timeframe.D1.value,
-                priority=100,
-                metadata_payload={
-                    "schedule": "core_session_daily",
-                    "run_date": run_date.isoformat(),
-                },
+                request=request,
+                # Keep parent dedupe aligned with the shared history child's
+                # established publication/freshness bucket. A repeated pass
+                # in this bucket reuses the parent; a later due observation
+                # on the same date can bind fresh child work.
+                idempotency_key=(
+                    f"workstation:{request.end_at.isoformat()}:{digest}"
+                    if request.end_at is not None
+                    else f"workstation:{observation_bucket}:{digest}"
+                ),
+                priority=priority,
                 now=scheduled_at,
             )
+            queued[priority] += 1
+            if len(seen) % 100 == 0:
+                await db.commit()
         await db.commit()
-        return {"queued": len(instruments), "mode": "enqueue_only"}
+        return {
+            "queued": sum(queued.values()),
+            "default": queued["default"],
+            "background": queued["background"],
+            "mode": "shared_preparation_queue",
+            "run_date": run_date,
+        }
 
 
 def _refresh_queue_batch_limit(limit: int | None = None) -> int:
@@ -544,23 +918,43 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     parent_refs = list(preparation.get("parent_refs") or [])
                     selected_parent = None
                     owner = None
+                    selected_parent_is_system = False
                     for parent_ref in parent_refs:
                         candidate_parent = await db.get(
                             MarketRefreshJob, int(parent_ref.get("parent_job_id") or 0)
                         )
-                        candidate_owner = (
-                            await db.get(User, int(parent_ref.get("owner_user_id") or 0))
-                            if parent_ref.get("owner_user_id")
+                        candidate_data = (
+                            (candidate_parent.metadata_payload or {}).get("data_preparation")
+                            if candidate_parent is not None
                             else None
                         )
-                        if (
-                            candidate_parent is not None
+                        candidate_role = (
+                            candidate_data.get("role") if isinstance(candidate_data, dict) else None
+                        )
+                        candidate_owner_id = parent_ref.get("owner_user_id")
+                        candidate_owner = (
+                            await db.get(User, int(candidate_owner_id))
+                            if candidate_owner_id
+                            else None
+                        )
+                        owner_request_is_active = bool(
+                            candidate_role == "owner_request_tracking"
                             and candidate_owner is not None
                             and candidate_owner.is_active
+                            and candidate_data.get("owner_user_id") == candidate_owner.id
+                        )
+                        system_request_is_valid = bool(
+                            candidate_role == "system_maintenance_tracking"
+                            and candidate_owner_id is None
+                            and candidate_data.get("owner_user_id") is None
+                        )
+                        if candidate_parent is not None and (
+                            owner_request_is_active or system_request_is_valid
                         ):
                             selected_parent, owner = candidate_parent, candidate_owner
+                            selected_parent_is_system = system_request_is_valid
                             break
-                    if selected_parent is None or owner is None:
+                    if selected_parent is None or (owner is None and not selected_parent_is_system):
                         await record_identity_preparation_outcome(
                             db,
                             identity_job=job,

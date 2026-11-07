@@ -1176,10 +1176,14 @@ async function validate() {
   try {
     const prepared = await prepareStudyDataset(datasetIntent)
     if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
+    if (!prepared) {
+      validation.value = null
+      if (!preparationStatus.value) preparationStatus.value = 'Study data is not ready. Resolve the preparation status before validating this study.'
+      return
+    }
     validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate })
     if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
     validatedSource.value = sourceToValidate
-    if (!prepared && !preparationStatus.value) preparationStatus.value = 'Study data is not ready. Resolve the preparation status before running this study.'
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to validate study source' }
   finally { busy.value = false }

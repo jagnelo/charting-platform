@@ -3,36 +3,85 @@
   "dependency": "provider-runtime-development-consumption",
   "state": "imported_for_strategy_consumer_development; full_release_qualification_pending",
   "root_authority": {
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract-v2.json",
-    "contract_sha256": "5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52",
-    "superseded_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract.json",
-    "superseded_contract_sha256": "f7dd8e46b3761b685ba9e85be3e5fb26d98a6d6e4b0734cdae9d140d201dc955",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider074-runtime-development-consumption-contract.json",
+    "contract_sha256": "f01f558d28fe6dc5864a4c46187de3fac0906b536d72dec1ed6cb92c8fdf3cfc",
+    "superseded_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract-v2.json",
+    "superseded_contract_sha256": "5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52",
     "state": "released_for_exact_development_consumption_not_product_acceptance",
     "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance"
   },
   "producer": "original Provider session/worktree",
-  "source_commit": "99ce73bbc67689aef5fc4fcffa76bcfebfa736da",
+  "source_commit": "07490844c39d56e7023294f5e8798e4da2acdce0",
   "base_commit": "139b350238b5e1c8a170dce5af09a805301d857e",
-  "scope": "compatible has_pending_work completion field plus authenticated canonical tool catalogue/factory alignment on the released17d runtime",
+  "scope": "existing shared preparation runtime plus publication-aware idle maintenance, ownerless identity processing, accurate deferred/runnable progress, canonical RRG defaults and controlled deep-monthly fixture",
   "qualification": {
-    "previous_source_evidence": "55b and 17d import/qualification receipts remain in historical_sources; those results are not fresh qualification of99.",
-    "successor_evidence": "Root reports81 focused units including the unchanged99 catalogue interface and exact-source Ruff check/format on the35-file export. This worktree independently verified every active Git blob and SHA256 against v2; it did not rerun those producer checks.",
-    "full_release_gates": "pending Root combined cross-feature qualification; no product acceptance, integration, or deployment claim",
+    "previous_source_evidence": "55b, 17d, and 99 imports and receipts remain preserved in historical_sources; their evidence is not fresh qualification of 074.",
+    "successor_evidence": {
+      "owner_maintenance": "84cc35 source:82focusedunits+3realPostgreSQLcases, nativeHTTP0",
+      "owner_fixture": "07490844 source:7seedermodulecases including immutable12recent-series digests, canonicalW1/MN and actual finite10-tail RRG outputs for all11pairs atD1/W1/MN",
+      "root_exact_export": "provider074-exact-development-review.json",
+      "full_release": "pending; no acceptance, integration, CI or deployment claim"
+    },
+    "local_import_verification": "All38 active contract entries matched both the source Git blob and SHA256 after restoring exactly the11 changed_paths_since_previous from source074; no Provider tests were rerun here.",
+    "full_release_gates": "pending; no acceptance, integration, CI or deployment claim",
     "qualification_owner": "Root combined cross-feature release gate"
   },
   "strategy_consumer": {
     "component": "frontend/src/components/workstation/StudyLabTool.vue",
     "client_path": "frontend/src/lib/dataPreparation.ts",
-    "client_owner": "TC; existing imported shared client unchanged",
-    "client_release_commit": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
-    "client_sha256": "c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d",
+    "client_owner": "TC; exact three-module library import only",
+    "client_release_commit": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
+    "client_sha256": "a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce",
     "flow": [
+      "The TC-owned api.ts, authSession.ts, and dataPreparation.ts modules provide session-bound requests, auth-boundary observer cancellation, and strict durable preparation DTO validation; only these three library modules are imported here.",
       "Study builds independent selected-symbol/member and benchmark history requests from the captured dataset intent.",
-      "The existing shared client POSTs /data/ensure and polls owner-scoped GET /data/requests/{request_id} until a typed terminal outcome.",
-      "Study awaits all target outcomes before normal validation/run dispatch, fences changed intents and aborts only obsolete client subscriptions.",
+      "The existing shared client POSTs /data/ensure and polls owner-scoped GET /data/requests/{request_id}; terminal partial/deferred status honors has_pending_work and retry timing.",
+      "Study awaits all target outcomes before source validation/run dispatch, fences changed intents and aborts only obsolete client subscriptions.",
       "Provider owns durable queueing, worker scheduling, provider policy and series lineage; Strategy does not duplicate or activate these operations."
     ],
-    "qualification_boundary": "Focused consumer checks do not replace Root actual-backend browser/full cross-feature qualification."
+    "qualification_boundary": "This exact three-module library import is development-only; TC App/store authentication changes and full application auth isolation are excluded, and Root combined cross-feature qualification remains pending.",
+    "prior_client_pins": [
+      {
+        "source": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
+        "path": "frontend/src/lib/dataPreparation.ts",
+        "sha256": "c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d",
+        "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend-preparation-consumption-contract.json",
+        "contract_sha256": "1ce93a4baed17691eb87f67277adf3573f369dfeb5cca2c993db34c98376c77c",
+        "superseded_by": "aea0be57abd036dd308a18f9dd07b976767cb8a9"
+      }
+    ],
+    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
+    "client_contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
+    "client_files": [
+      {
+        "path": "frontend/src/lib/api.ts",
+        "status_from139": "M",
+        "git_blob": "81b12b469db6f4d5c543887f72952d8accf31688",
+        "sha256": "b657ee72d3e7947508dc4148e3e370c73bddb190bebcb3eef45fb4efa3099519"
+      },
+      {
+        "path": "frontend/src/lib/authSession.ts",
+        "status_from139": "A",
+        "git_blob": "08a2ca831c277009bcf139699d22e569f5d1dac0",
+        "sha256": "8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8"
+      },
+      {
+        "path": "frontend/src/lib/dataPreparation.ts",
+        "status_from139": "A",
+        "git_blob": "d80c749cf193b36e58aaffbf376b282b9771ace0",
+        "sha256": "a7201e3c9b68148b498871fd4fc9b2a6504478cd44c2455bb47d4402da9cb1ce"
+      }
+    ],
+    "client_scope": "only the three compatible shared frontend library modules; not the entire TC feature or complete application authentication boundary",
+    "client_import_verification": {
+      "changed_paths_since_previous": [
+        "frontend/src/lib/api.ts",
+        "frontend/src/lib/authSession.ts",
+        "frontend/src/lib/dataPreparation.ts"
+      ],
+      "all_blobs_and_sha256_match": true,
+      "checked_at": "2026-11-07T00:32:16Z"
+    }
   },
   "imported_files": [
     {
@@ -86,8 +135,8 @@
     {
       "path": "backend/app/services/data_preparation.py",
       "status_from139": "A",
-      "git_blob": "e5570ed0b290924b8fdf3cbf46688560308137a8",
-      "sha256": "778d451c7cfde65caf8baf8771377d1e56fe13b23223da38fa5ec31223c78f5b"
+      "git_blob": "22122d5cf2e48e15b0cc0c96862f3c36042c6097",
+      "sha256": "72ae97296a9d40054c794c85976cf8be7738d8771df7a02b8021416f07f178c3"
     },
     {
       "path": "backend/app/services/data_preparation_contracts.py",
@@ -100,6 +149,12 @@
       "status_from139": "M",
       "git_blob": "3b2c6337ad25a533096f1a9ed213fcc7207d933f",
       "sha256": "d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5"
+    },
+    {
+      "path": "backend/app/services/e2e_seed.py",
+      "status_from139": "M",
+      "git_blob": "aa87d6d9e78e398a28b6495ef89e5817db26cf5f",
+      "sha256": "3233defc6e832232bbedc389369ff8fb43857454720c8661b77d25fa1bc8b8aa"
     },
     {
       "path": "backend/app/services/etf_holdings_preparation.py",
@@ -140,26 +195,26 @@
     {
       "path": "backend/app/services/workstation_tool_catalogue.py",
       "status_from139": "A",
-      "git_blob": "109c5bf1c7e772d2c0bcff1bcda87c407a7209bf",
-      "sha256": "ee0d9fdc5aeeca3a99de008f795cff3cb68e2d6c9ae7b7d5ac90bab7ff72fc39"
+      "git_blob": "279a44ecea8ab0901741da0efaff3d06773d729d",
+      "sha256": "7a111059b60764c3f44ce01e562f4e4030447a0afa7e4673c237d44ba76e396f"
     },
     {
       "path": "backend/app/tasks/data_tasks.py",
       "status_from139": "M",
-      "git_blob": "d0ca15b40ea2b916af328c15bc1368ec1c945e7f",
-      "sha256": "5958217d714a5a0fdcd82e831a9898cf4027e52dbe84815a47bcd82e6c912b65"
+      "git_blob": "1ffe06cea94dee31daf3ed564148fb405f8a02a9",
+      "sha256": "3047cae1c212e6e3eb37d64ab26b7d9b09ec7f651edb6af3d57ab4a8242c4ec1"
     },
     {
       "path": "backend/app/workers/arq_worker.py",
       "status_from139": "M",
-      "git_blob": "7be6ab23520d76abec18d397d5c2e994ba6f7b15",
-      "sha256": "3a36dacd7ea712454ac28e46e539971efe1f3698e86ed05802d6035fc2a9dd1a"
+      "git_blob": "8cef37e55479112b0d057305b680e01cb6112c5a",
+      "sha256": "08a681809f7e425eac56ea5cad104bc1e34ba12f0df1d0417c3d41bff51226fd"
     },
     {
       "path": "backend/tests/integration/test_data_preparation_queue_postgres.py",
       "status_from139": "A",
-      "git_blob": "73c3fbdc89167e37cb3312fee7e18c94c041bb38",
-      "sha256": "368a464f3c97ed34a5b3feae8b0624c1c4fe4438434bb6afc54b3d63ff5508b3"
+      "git_blob": "d2a5dd61fbf92c2fcab2179e1cdf27f4aaa75797",
+      "sha256": "a735488309428d8000584a96aa46ada8484944f2b9e0504b6b1596108c29f022"
     },
     {
       "path": "backend/tests/unit/providers/test_new_providers.py",
@@ -200,14 +255,20 @@
     {
       "path": "backend/tests/unit/services/test_data_preparation_service.py",
       "status_from139": "A",
-      "git_blob": "57ad8c04c864f529644eb94c868985b3f857ec6d",
-      "sha256": "4da18d076bc0406a730dce82e4f53153dcd8cc0a7988e1f5a47f80e6d1f47df5"
+      "git_blob": "95dd6787e0d6eaa55e7db91fab8df0e2f4ec8098",
+      "sha256": "b8428f546c909c87b7fd1a6d8e3799d42785eff9a110e9d8365e5bbd675a3454"
     },
     {
       "path": "backend/tests/unit/services/test_derived_timeframes.py",
       "status_from139": "M",
       "git_blob": "85811ade209a4adfbe1b095527453fa2608e9207",
       "sha256": "a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a"
+    },
+    {
+      "path": "backend/tests/unit/services/test_e2e_seed.py",
+      "status_from139": "M",
+      "git_blob": "64e880b31a3c76d090f2e0c6cb8aca6e84535523",
+      "sha256": "4e6ab2897bd997535a7e7726e5d1d86df4e9b3a1b152d0454a9dee26dda69661"
     },
     {
       "path": "backend/tests/unit/services/test_etf_holdings_preparation.py",
@@ -236,14 +297,20 @@
     {
       "path": "backend/tests/unit/services/test_workstation_tool_catalogue.py",
       "status_from139": "A",
-      "git_blob": "69ed83fbe58725bf12f9fa689c2be808268bfe40",
-      "sha256": "e576d7294ba666d57ea6ba3933f2659b88aa7a58f8261464c1b8f6841a69233e"
+      "git_blob": "bcbeff75f63564353e86b447fb5d7be2f5911c13",
+      "sha256": "9ada1348e3136e707de13eec5699d2ffdb9dc217d15f3ccb6b7da6f1bf1d845a"
+    },
+    {
+      "path": "backend/tests/unit/tasks/test_data_tasks.py",
+      "status_from139": "M",
+      "git_blob": "6b5dbdbba5f3b0a5f4af2e27d5fa8db2abd30623",
+      "sha256": "3d2271a807e7bc30d7c2510c01d9faeb730422f7c3aff3d9b5e5eaca97425a28"
     },
     {
       "path": "backend/tests/unit/workers/test_arq_worker.py",
       "status_from139": "M",
-      "git_blob": "b74e14bbc45893397e767cfd40d1966996a35e5f",
-      "sha256": "b3e29e432709c99c8ef600058cef495b3a138bf414b0cb876762c0c9486a821b"
+      "git_blob": "1b3578e9d1fbb612bc3ad7f3dc4ff235a181b6b6",
+      "sha256": "29ed8466dd10417310afadcc00cbd7d6b736806576a6e31974270c6bba25d886"
     }
   ],
   "excluded": [
@@ -256,11 +323,11 @@
   "preserve": "existing own dirty frontend/domain work; exact immutable imports documented in each consumer own workstream; one final combined release",
   "no_new_tables_or_migration": true,
   "import_verification": {
-    "method": "git restore --source=99ce73bbc67689aef5fc4fcffa76bcfebfa736da --worktree -- exactly the eight changed_paths_since_previous; then verify Git blob and SHA256 for all35 active v2 manifest entries",
-    "path_count": 35,
-    "changed_paths_count": 8,
+    "method": "git restore --source=07490844c39d56e7023294f5e8798e4da2acdce0 --worktree -- exactly the11 changed_paths_since_previous; then verify Git blob and SHA256 for all38 active manifest entries",
+    "path_count": 38,
+    "changed_paths_count": 11,
     "git_blob_and_sha256_verified": true,
-    "checked_at": "2026-11-06T22:26:14Z"
+    "checked_at": "2026-11-07T00:20:06Z"
   },
   "historical_sources": [
     {
@@ -686,7 +753,7 @@
     },
     {
       "source_commit": "99ce73bbc67689aef5fc4fcffa76bcfebfa736da",
-      "superseded_by": "99ce73bbc67689aef5fc4fcffa76bcfebfa736da",
+      "superseded_by": "07490844c39d56e7023294f5e8798e4da2acdce0",
       "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract-v2.json",
       "contract_sha256": "5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52",
       "qualification": {
@@ -926,27 +993,28 @@
         ],
         "full_release_qualification": "pending Root combined exact-source gate; no acceptance, integration, or deployment claim"
       },
-      "note": "Preserved historical active pin; superseded by the exact99 v2 export. Product bytes and earlier55b history remain unchanged."
+      "note": "Preserved historical active99 v2 file-hash pin and import receipt; superseded by exact074 export. Product bytes and prior55b/17d history remain preserved."
     }
   ],
   "successor": {
     "previous_source": "99ce73bbc67689aef5fc4fcffa76bcfebfa736da",
     "changed_paths_since_previous": [
-      "backend/app/routers/workspaces.py",
-      "backend/app/schemas/data_preparation.py",
       "backend/app/services/data_preparation.py",
+      "backend/app/services/e2e_seed.py",
       "backend/app/services/workstation_tool_catalogue.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/app/workers/arq_worker.py",
       "backend/tests/integration/test_data_preparation_queue_postgres.py",
-      "backend/tests/unit/routers/test_workspace_tool_catalogue.py",
       "backend/tests/unit/services/test_data_preparation_service.py",
-      "backend/tests/unit/services/test_workstation_tool_catalogue.py"
+      "backend/tests/unit/services/test_e2e_seed.py",
+      "backend/tests/unit/services/test_workstation_tool_catalogue.py",
+      "backend/tests/unit/tasks/test_data_tasks.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
     ],
     "successor_scope": [
-      "has_pending_work boolean on accepted existing durable jobs",
-      "single authenticated21-tool server catalogue",
-      "factory configuration projects canonical defaults; preserves8layouts38windowidentities"
+      "existing shared preparation runtime plus publication-aware idle maintenance, ownerless identity processing, accurate deferred/runnable progress, canonical RRG defaults and controlled deep-monthly fixture"
     ],
-    "full_release_qualification": "pending Root combined exact-source gate; no acceptance, integration, or deployment claim"
+    "full_release_qualification": "pending; no acceptance, integration, CI or deployment claim"
   },
   "superseded_manifest_contracts": [
     {
@@ -954,6 +1022,14 @@
       "sha256": "f7dd8e46b3761b685ba9e85be3e5fb26d98a6d6e4b0734cdae9d140d201dc955",
       "superseded_by": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract-v2.json",
       "reason": "The first99 export omitted required status_from139 fields. The v2 manifest supplies source-derived status for all35 entries; source commit, product blobs, eight changed paths, and reported test/style evidence are unchanged."
+    },
+    {
+      "path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider99-runtime-development-consumption-contract-v2.json",
+      "sha256": "5b26b7fcca8b131d7f38daa192006b7e07bf26da6d757e866c9b816d96e88a52",
+      "superseded_by": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider074-runtime-development-consumption-contract.json",
+      "reason": "The exact074 development successor replaces the active99 v2 runtime pin; all38 current file records retain the established status_from139/git_blob/sha256 schema. The original99 and earlier manifests remain preserved as historical evidence."
     }
-  ]
+  ],
+  "supersedes_manifest": "provider99-runtime-development-consumption-contract-v2.json",
+  "metadata_correction": null
 }

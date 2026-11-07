@@ -21,7 +21,7 @@
   "browser_gate": {
     "status": "pending",
     "spec": "frontend/tests/e2e/strategy_study_journey.spec.ts",
-    "qualification": "The current spec contains the end-to-end normal-user Study/Library journey plus controlled Results and delayed multi-target preparation interactions. These authored stories have only been typechecked/listed; they have not run in a browser on this source. Root owns the single combined backend/browser/strict-visual qualification. Historical deployed journeys on earlier source do not qualify this branch source."
+    "qualification": "The spec contains the normal-user Study/Library immutable-version and saved-Results journey, controlled Results/Library lifecycle interactions, delayed independent preparation, fail-closed unavailable-data handling, and stale-context cancellation. Source validation and Playwright discovery pass, but no browser has run on this candidate. Root owns the single combined backend/browser/strict-visual qualification; older-source deployed journeys do not qualify this branch source."
   },
   "journeys": [
     {
@@ -63,14 +63,15 @@
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps later preparation outcomes when one target request rejects",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: aborts all obsolete preparation subscriptions when the benchmark context changes",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: aborts stale preparation when the selected symbol changes during validation",
-        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a saved result visible and does not create a run when selected data preparation is unavailable"
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: keeps a saved result visible and does not create a run when selected data preparation is unavailable",
+        "frontend/tests/unit/components/test_study_lab_tool.test.ts :: does not certify a draft for execution when preparation is unavailable during validation"
       ],
       "api_evidence": [
-        "TC-owned dataPreparationCoordinator.ensure uses POST /data/ensure with shared deduplication; no evaluator-side acquisition is added",
-        "Active Provider runtime 99ce73bbc67689aef5fc4fcffa76bcfebfa736da is imported under provider-runtime-consumption.json using the corrected v2 contract and its required status_from139 fields; Root reports81 focused units and exact-export Ruff check/format. Earlier 17d and 55b imports/evidence remain archived in the manifest; the full combined release gate remains pending.",
+        "TC-owned api.ts/authSession.ts/dataPreparation.ts exact three-module library source aea0be57abd036dd308a18f9dd07b976767cb8a9; dataPreparationCoordinator.ensure posts /data/ensure and polls owner-scoped /data/requests/{request_id}, validates symbol/covered_ranges/lineage/timestamps, and uses has_pending_work/retry times; the import is development-only and excludes TC App/store auth.",
+        "Active Provider runtime 07490844c39d56e7023294f5e8798e4da2acdce0 is imported under provider-runtime-consumption.json using the exact074 contract and its required four-field status_from139/git_blob/sha256 entries. Root reports82 maintenance units+3 PostgreSQL cases at84cc and7 seed cases at074; this worktree verified all38 active hashes without rerunning Producer tests. The99 v2,17d, and55b imports/evidence remain archived; full combined release qualification remains pending.",
         "Actual PostgreSQL queue/worker execution and Study browser proof against the assembled application remain pending Root's single combined qualification"
       ],
-      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate.",
+      "browser_evidence": "Authored in frontend/tests/e2e/strategy_study_journey.spec.ts against a controlled preparation API: holds SPY while XLK and QQQ benchmark requests become ready, proves all three ensure requests were submitted before the hold resolves, and verifies unavailable SPY blocks validation and Run. This is authored-only UI interaction evidence; real backend/browser qualification remains pending Root's combined gate. A separate authored controlled-API journey changes the selected symbol while the previous SPY poll is held, verifies that the old request is aborted and its late result cannot replace the new XLB/QQQ outcomes, and confirms unavailable data never reaches source validation or run dispatch. This remains discovery-only until Root runs the combined browser gate. Both controlled preparation API fixtures now include symbol identity, covered_ranges, and has_pending_work matching the released Provider074 response contract; the shared validator remains unchanged.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]

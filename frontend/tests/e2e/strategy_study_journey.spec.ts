@@ -126,17 +126,19 @@ test('Study preparation submits every universe member and benchmark while one me
   const allSubmitted = new Promise<void>(resolve => { resolveAllSubmitted = resolve })
   let resolveHeldPrimary!: () => void
   const heldPrimary = new Promise<void>(resolve => { resolveHeldPrimary = resolve })
-  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number) => ({
+  const responseFor = (requestId: string, status: 'queued' | 'ready' | 'unavailable', version: number, symbol: string) => ({
     request_id: requestId,
     status,
+    has_pending_work: status === 'queued',
     created_at: '2026-11-06T12:00:00Z',
     updated_at: '2026-11-06T12:00:01Z',
     version,
-    target: { kind: 'instrument' },
+    target: { kind: 'instrument', symbol },
     dependencies: [{
       dependency_id: `${requestId}:history`,
       depends_on: [],
       instrument_id: null,
+      symbol,
       dataset: 'history',
       status,
       requested_start: null,
@@ -146,6 +148,7 @@ test('Study preparation submits every universe member and benchmark while one me
       reason_code: status === 'unavailable' ? 'no_eligible_history_provider' : null,
       retry_at: null,
       updated_at: '2026-11-06T12:00:01Z',
+      covered_ranges: [],
     }],
     completed: status === 'queued' ? 0 : 1,
     total: 1,
@@ -160,7 +163,7 @@ test('Study preparation submits every universe member and benchmark while one me
       submittedTargets.push(body.target)
       if (submittedTargets.length === 3) resolveAllSubmitted()
       const symbol = body.target.symbol ?? `target-${submittedTargets.length}`
-      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1)) })
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, 'queued', 1, symbol)) })
       return
     }
     const poll = url.pathname.match(/\/data\/requests\/study-([^/]+)$/)
@@ -168,7 +171,7 @@ test('Study preparation submits every universe member and benchmark while one me
       const symbol = decodeURIComponent(poll[1])
       if (symbol === 'SPY') await heldPrimary
       const status = symbol === 'SPY' ? 'unavailable' : 'ready'
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, status, 2)) })
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(`study-${symbol}`, status, 2, symbol)) })
       return
     }
     await route.continue()
@@ -213,6 +216,122 @@ test('Study preparation submits every universe member and benchmark while one me
   await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('Some selected Study data is not ready')
   expect(validationRequests).toBe(0)
   expect(runRequests).toBe(0)
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
+test('Study ignores obsolete preparation after the selected symbol changes and validates the new context', async ({ page, loggedIn, browserDiagnostics }) => {
+  const submittedTargets: string[] = []
+  let resolveInitialSubmission!: () => void
+  const initialSubmission = new Promise<void>(resolve => { resolveInitialSubmission = resolve })
+  let resolveCurrentSubmission!: () => void
+  const currentSubmission = new Promise<void>(resolve => { resolveCurrentSubmission = resolve })
+  let resolveOldPoll!: () => void
+  const oldPoll = new Promise<void>(resolve => { resolveOldPoll = resolve })
+  let releaseOldPoll!: () => void
+  const heldOldPoll = new Promise<void>(resolve => { releaseOldPoll = resolve })
+  const requestSymbols = new Map<string, string>()
+  const responseFor = (requestId: string, status: 'queued' | 'ready', version: number, symbol: string) => ({
+    request_id: requestId,
+    status,
+    has_pending_work: status === 'queued',
+    created_at: '2026-11-07T00:00:00Z',
+    updated_at: '2026-11-07T00:00:01Z',
+    version,
+    target: { kind: 'instrument', symbol },
+    dependencies: [{
+      dependency_id: `${requestId}:history`,
+      depends_on: [],
+      instrument_id: null,
+      symbol,
+      dataset: 'history',
+      status,
+      requested_start: null,
+      requested_end: null,
+      covered_start: null,
+      covered_end: null,
+      reason_code: null,
+      retry_at: null,
+      updated_at: '2026-11-07T00:00:01Z',
+      covered_ranges: [],
+    }],
+    completed: status === 'queued' ? 0 : 1,
+    total: 1,
+    last_progress_at: '2026-11-07T00:00:01Z',
+  })
+
+  await page.route('**/api/v1/data/**', async route => {
+    const request = route.request()
+    const url = new URL(request.url())
+    if (request.method() === 'POST' && url.pathname.endsWith('/data/ensure')) {
+      const body = request.postDataJSON() as { target: { symbol?: string } }
+      const symbol = body.target.symbol ?? 'unknown'
+      submittedTargets.push(symbol)
+      if (submittedTargets.length === 2) resolveInitialSubmission()
+      if (submittedTargets.length === 4) resolveCurrentSubmission()
+      const requestId = `context-${symbol}-${submittedTargets.length}`
+      requestSymbols.set(requestId, symbol)
+      await route.fulfill({ status: 202, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, 'queued', 1, symbol)) })
+      return
+    }
+    const poll = url.pathname.match(/\/data\/requests\/(context-[^/]+)$/)
+    if (request.method() === 'GET' && poll) {
+      const requestId = decodeURIComponent(poll[1])
+      if (requestId === 'context-SPY-1') {
+        resolveOldPoll()
+        await heldOldPoll
+        try {
+          await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, 'ready', 2, requestSymbols.get(requestId)!)) })
+        } catch {
+          // The test deliberately aborts this obsolete poll when the user changes context.
+        }
+        return
+      }
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(responseFor(requestId, 'ready', 2, requestSymbols.get(requestId)!)) })
+      return
+    }
+    await route.continue()
+  })
+
+  let validationRequests = 0
+  let runRequests = 0
+  page.on('request', request => {
+    if (request.method() !== 'POST') return
+    const pathname = new URL(request.url()).pathname
+    if (pathname.endsWith('/code/validate')) validationRequests += 1
+    if (pathname.endsWith('/research/runs')) runRequests += 1
+  })
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  const study = page.locator('.study-lab-tool:visible').last()
+  await expect(study).toBeVisible({ timeout: 15_000 })
+  await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+  await study.getByRole('textbox', { name: 'Study benchmark' }).fill('QQQ')
+  const validate = study.getByRole('button', { name: 'Validate study' })
+  await validate.click()
+  await initialSubmission
+  await oldPoll
+  await expect(study.getByRole('list', { name: 'Study data preparation outcomes' })).toContainText('QQQ: Requested data is ready.')
+
+  const obsoletePollAborted = page.waitForEvent('requestfailed', request => new URL(request.url()).pathname.endsWith('/data/requests/context-SPY-1'))
+  await study.getByRole('textbox', { name: 'Study symbol' }).fill('XLB')
+  await obsoletePollAborted
+  releaseOldPoll()
+  await expect(validate).toBeEnabled()
+
+  await validate.click()
+  await currentSubmission
+  expect(submittedTargets).toEqual(['SPY', 'QQQ', 'XLB', 'QQQ'])
+  const outcomes = study.getByRole('list', { name: 'Study data preparation outcomes' })
+  await expect(outcomes).toContainText('XLB: Requested data is ready.')
+  await expect(outcomes).toContainText('QQQ: Requested data is ready.')
+  await expect(outcomes).not.toContainText('SPY:')
+  await expect(study).toContainText('Validated for isolated execution', { timeout: 15_000 })
+  expect(validationRequests).toBe(1)
+  expect(runRequests).toBe(0)
+
   await browserDiagnostics.expectNoCriticalIssues()
 })
 

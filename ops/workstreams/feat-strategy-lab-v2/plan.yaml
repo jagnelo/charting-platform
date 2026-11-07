@@ -1170,14 +1170,16 @@ progress:
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
       distinguishing component/API evidence from exact-source browser acceptance. Consume the
-      Root-released Provider runtime successor 99ce73bbc67689aef5fc4fcffa76bcfebfa736da at the
-      exact active 35 backend paths recorded in provider-runtime-consumption.json. Its eight
-      changed paths were imported over the archived 17d export; both 17d and 55b remain historical
-      import receipts. The 99 successor is released for development consumption, while
+      Root-released Provider runtime successor 07490844c39d56e7023294f5e8798e4da2acdce0 at the
+      exact active 38 backend paths recorded in provider-runtime-consumption.json. Its eleven
+      changed paths were imported over the archived 99 v2 export; 99, 17d, and 55b remain historical
+      import receipts. The 074 successor is released for development consumption, while
       the single combined full qualification remains Root-owned and pending. Strategy consumes the
       authenticated durable ensure/status contract
       through the existing shared TC data-preparation client; it does not duplicate worker,
-      acquisition, quota, or provider behavior.
+      acquisition, quota, or provider behavior. The active TC shared client pin is the exact
+      three-module library release aea0be57abd036dd308a18f9dd07b976767cb8a9; the earlier single-file
+      877 import is retained as history. TC App/store authentication changes are not imported.
     owned_paths:
       - frontend/src/components/workstation/StudyLabTool.vue
       - frontend/src/components/workstation/ResearchResultsTool.vue
@@ -1198,20 +1200,24 @@ progress:
     status: in_progress
   current_blocker: >-
     No exact-source branch CI or Root combined backend/browser acceptance exists for the current
-    99 dependency plus the authored Study preparation, Results recovery, and Library lifecycle
-    stories. The 99 active dependency pin contains
-    eight imported paths over 17d and all 35 exact exported files with source-derived status fields;
-    the 17d and 55b manifests and failures remain historical. Root reports focused catalogue tests
-    and exact-export Ruff check/format, not full release acceptance. These authored Study, Results,
+    074 dependency plus the authored Study preparation, Results recovery, and Library lifecycle
+    stories. The 074 active dependency pin contains eleven imported paths over 99 v2 and all 38 exact
+    exported files with source-derived status fields; 99, 17d, and 55b manifests and failures remain
+    historical. Root reports 82 maintenance units and 3 PostgreSQL cases at 84cc plus 7 seed cases at 074,
+    not full release acceptance. These authored Study, Results,
     and Library stories are typechecked and discovered by Playwright only; Root owns actual browser
-    and combined backend qualification. Preserve the full 18-criterion roadmap and disabled holds.
-  updated_at: "2026-11-06T22:49:25Z"
+    and combined backend qualification. The active TC library import is exact source
+    aea0be57abd036dd308a18f9dd07b976767cb8a9 for api.ts/authSession.ts/dataPreparation.ts; its strict
+    DTO requires symbol, covered_ranges/lineage, timestamps, and honest pending-work state. The
+    Strategy Study component suite passes63/63 after the fail-closed Validate repair; browser stories
+    remain authored/discovered only. Preserve the full 18-criterion roadmap and disabled holds.
+  updated_at: "2026-11-07T00:42:50Z"
   next_action: >-
-    Deliver the authored Study, Results, and Python Library browser stories, including delayed
-    independent preparation and fail-closed validation behavior, with the active99 dependency to
-    Root's single combined qualification slot. On any actual integrated finding,
-    repair only the owned Strategy consumer boundary and preserve current full-profile assertions.
-    Do not treat controlled-API Playwright discovery as browser acceptance or close the scope early.
+    Root owns the single combined qualification of the current Provider074 and TC-aea inputs plus
+    the Strategy Study/Results/Library changes. Keep the authored five-story Playwright inventory
+    pending until that exact combined run executes; repair only actual integrated Strategy findings.
+    Preserve all full-profile assertions, the complete 18-criterion roadmap, and disabled-operation
+    holds. Do not treat controlled-API Playwright discovery as browser acceptance or close the scope early.
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -1343,15 +1349,17 @@ dependencies:
     feat/tc2000-frontend-rework owns the workstation, unified Python/DSL,
     immutable CodeVersion, Study Lab, and current Strategy Lab paths. Consume
     staged code/output contracts; do not edit its active files before staging or
-    create a parallel editor/research runner. This checkpoint consumes only
-    `frontend/src/lib/dataPreparation.ts` from exact TC commit
+    create a parallel editor/research runner. This checkpoint first consumed
+    `frontend/src/lib/dataPreparation.ts` from TC commit
     `877df044d2496c5f1be0e86b4dd49503cc6e55db` (SHA256
-    `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), under
-    `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/frontend-preparation-consumption-contract.json`.
-    The imported shared client remains unchanged. Provider DTOs are at `3d10`; the
-    exact Provider backend preparation runtime is now imported under the explicit
-    development release in provider-runtime-consumption.json. Combined end-to-end
-    proof remains Root-owned and pending.
+    `c1157a680c5a461647b82b18bd9923c53d36a401dd3397c2361e91b125d43a0d`), preserved as prior
+    shared-client history. The current active import is the exact three-module TC library release
+    `aea0be57abd036dd308a18f9dd07b976767cb8a9` (`api.ts`, `authSession.ts`, and `dataPreparation.ts`)
+    under `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json`.
+    This excludes TC App/store authentication changes and does not claim full application auth isolation.
+    Provider DTOs are at `3d10`; the exact Provider backend preparation runtime is imported under the
+    explicit development release in provider-runtime-consumption.json. Combined end-to-end proof
+    remains Root-owned and pending.
   - >-
     An exact-pinned stable or release-candidate Nautilus v2 build may publish
     local backtests after its four backtest conformance checks pass, and may

@@ -223,7 +223,8 @@ describe('StudyLabTool', () => {
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
 
     heldPrimary.resolve({ status: 'unavailable' })
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
     expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('SPY: Requested data is unavailable.')
     expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.')
     expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.')
@@ -273,7 +274,8 @@ describe('StudyLabTool', () => {
     await wrapper.get('button[aria-label="Validate study"]').trigger('click')
     await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
     await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
 
     const outcomes = wrapper.get('[aria-label="Study data preparation outcomes"]').text()
     expect(outcomes).toContain('SPY: Preparation request timed out.')
@@ -354,6 +356,24 @@ describe('StudyLabTool', () => {
     expect(wrapper.text()).toContain('Run #77')
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
     expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('does not certify a draft for execution when preparation is unavailable during validation', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { symbol: 'SPY', timeframe: 'D1' }, artifacts: [{ id: 1, name: 'saved', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve([]))
+    ensurePreparation.mockResolvedValue({ status: 'unavailable' })
+    const wrapper = mountTool({ activeSymbol: 'XLB', configuration: { study_run_id: 77, study_run_name: 'Saved study' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready'))
+
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(wrapper.text()).toContain('Run #77')
+    expect(wrapper.text()).toContain('saved scalar result: 4')
     wrapper.unmount()
   })
 
