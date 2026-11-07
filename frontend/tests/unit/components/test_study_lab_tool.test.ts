@@ -1,4 +1,5 @@
 import { flushPromises, mount } from '@vue/test-utils'
+import { defineComponent, h, reactive, nextTick } from 'vue'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -75,6 +76,38 @@ describe('StudyLabTool', () => {
     expect(wrapper.find('[aria-label="Study adjustment"]').element).toHaveProperty('value', 'raw')
     expect(wrapper.find('[aria-label="Study session"]').element).toHaveProperty('value', 'all')
     expect(wrapper.find('[aria-label="Study as of"]').element).toHaveProperty('value', '2024-02-01T15:30')
+  })
+
+  it('applies a completed parent configuration update without recursive intermediate emissions', async () => {
+    const configuration = reactive<Record<string, unknown>>({
+      symbol: 'SPY',
+      benchmark: 'QQQ',
+      timeframe: 'D1',
+      adjustment: 'split_adjusted',
+      session: 'regular',
+      symbols: 'SPY,XLK',
+    })
+    const onConfiguration = vi.fn((next: Record<string, unknown>) => {
+      // Match WorkstationView.updateToolConfiguration: keep the reactive config
+      // object, but apply the replacement as a synchronous delete/assign batch.
+      for (const key of Object.keys(configuration)) delete configuration[key]
+      Object.assign(configuration, next)
+    })
+    const Parent = defineComponent({
+      setup: () => () => h(StudyLabTool, { activeSymbol: 'SPY', configuration, onConfiguration }),
+    })
+    const wrapper = mount(Parent, {
+      global: { plugins: [[VueQueryPlugin, { queryClient: new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } }) }]] },
+    })
+
+    configuration.timeframe = 'W1'
+    await nextTick()
+    await flushPromises()
+
+    expect(wrapper.get('[aria-label="Study timeframe"]').element).toHaveProperty('value', 'W1')
+    expect(configuration.timeframe).toBe('W1')
+    expect(onConfiguration.mock.calls.length).toBeLessThanOrEqual(2)
+    wrapper.unmount()
   })
 
   it('associates parameter schema errors with the invalid schema field', async () => {
