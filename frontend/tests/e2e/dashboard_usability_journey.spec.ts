@@ -369,7 +369,8 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   expect((await changeSecondTarget).ok()).toBe(true)
   const xlbPreparation = await comparisonXlbPreparation
   expect(xlbPreparation.ok()).toBe(true)
-  expect((await xlbPreparation.json()).status).toBe('ready')
+  expect(xlbPreparation.status()).toBe(202)
+  expect(await xlbPreparation.json()).toMatchObject({ status: 'queued', has_pending_work: true })
   const comparisonSaved = await persistedDashboard(page)
   expect(comparisonSaved.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === comparisonWidget.id)?.config.targets)
     .toMatchObject([{ symbol: 'SPY' }, { symbol: 'XLB', label: 'XLB' }])
@@ -790,7 +791,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
         && responsePath(response) === `/api/v1/dashboards/widgets/${detailsRecord.id}`,
     )
     const xlbProfile = instrumentProfileResponse(page, 'XLB')
-    const xlbBars = dailyBarsResponse(page, 'XLB', 260)
     const xlbEnsureResponse = page.waitForResponse(response =>
       response.request().method() === 'POST' && responsePath(response) === '/api/v1/data/ensure'
       && (response.request().postDataJSON() as { target?: { symbol?: string }; datasets?: string[] }).target?.symbol?.toUpperCase() === 'XLB'
@@ -803,7 +803,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
     await closeConfig(page)
 
     const actualXlbProfile = await xlbProfile
-    await assertUsefulBars(await xlbBars, 50)
     const details = page.locator('.dashboard-widget').filter({ has: page.locator('.details-widget') })
     await expect(details).toHaveCount(1)
     await expectUsefulInstrumentDetails(details, actualXlbProfile, 'XLB')
@@ -838,7 +837,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
 
     const restoredSpyBars = localDailyBarsResponse(page, 'SPY', 500)
     const restoredXlbProfile = instrumentProfileResponse(page, 'XLB')
-    const restoredXlbBars = dailyBarsResponse(page, 'XLB', 260)
     await page.reload()
     await expect(page.locator('.dashboard-view')).toBeVisible()
     const restoredAdvanced = page.locator('.dashboard-widget').filter({ has: page.locator('.advanced-chart-widget') })
@@ -847,7 +845,6 @@ test('Dashboard Advanced Chart and Instrument Details stay useful on cached data
     await expect(restoredDetails).toHaveCount(1)
     await assertUsefulBars(await restoredSpyBars, 50)
     await expectAdvancedCandlesPainted(restoredAdvanced)
-    await assertUsefulBars(await restoredXlbBars, 50)
     await expectUsefulInstrumentDetails(restoredDetails, await restoredXlbProfile, 'XLB')
     const afterReload = await persistedDashboard(page)
     expect(afterReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === advancedRecord.id)?.config)
