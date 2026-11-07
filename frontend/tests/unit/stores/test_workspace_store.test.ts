@@ -1476,6 +1476,43 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.windows[0].configuration).not.toHaveProperty('instrument_id')
   })
 
+  it('preserves an independent Study Lab draft through shared-symbol hydration and broadcasts', () => {
+    const store = useWorkspaceStore()
+    vi.spyOn(store, 'scheduleSnapshot').mockImplementation(() => {})
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8, schema_version: 1,
+      settings: { linked_symbols: { blue: { symbol: 'SPY' } } },
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', link_group: 'blue', configuration: { symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1' }, style: {}, state_schema_version: 1, position: 1 },
+          { id: 32, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 2 },
+          { id: 33, instance_key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 3 },
+        ],
+      }],
+    }
+
+    // Workstation startup republishes the hydrated shared symbol before the
+    // panels settle. That broadcast must not replace the saved Study draft.
+    store.publishSymbol({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
+    expect(store.workspace?.tabs[0].windows.find(window => window.tool_type === 'study_lab')?.configuration).toEqual({
+      symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1',
+    })
+
+    // A normal linked chart selection still updates every other linked tool's
+    // serializable fallback while the independent Study dataset remains XLB.
+    expect(store.selectToolSymbol('chart', 'XLK', 42)).toBe(true)
+    const windows = store.workspace?.tabs[0].windows ?? []
+    expect(windows.find(window => window.instance_key === 'chart')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(windows.find(window => window.tool_type === 'study_lab')?.configuration).toEqual({
+      symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1',
+    })
+    expect(windows.find(window => window.instance_key === 'notes')?.configuration.symbol).toBe('XLK')
+    expect(windows.find(window => window.instance_key === 'watchlist')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(store.linkedSymbol).toBe('XLK')
+  })
+
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {
     const store = useWorkspaceStore()
     store.workspace = {

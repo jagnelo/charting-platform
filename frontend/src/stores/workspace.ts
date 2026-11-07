@@ -1651,6 +1651,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       for (const tab of workspace.value.tabs) {
         for (const tool of tab.windows) {
           if (tool.link_group !== event.group) continue
+          // Study Lab's configuration.symbol is its editable dataset draft,
+          // not a fallback for the shared chart selection. Keep it intact while
+          // the tool continues to receive the shared symbol through its link.
+          if (tool.tool_type === 'study_lab') continue
           const hasMatchingSymbol = tool.configuration.symbol === event.symbol
           const hasMatchingInstrument = typeof event.instrumentId === 'number'
             ? tool.configuration.instrument_id === event.instrumentId
