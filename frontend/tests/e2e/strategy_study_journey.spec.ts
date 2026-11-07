@@ -11,6 +11,14 @@ async function activateDockToolTab(page: Page, title: string) {
   await expect(tab).toHaveClass(/lm_active/)
 }
 
+async function authenticatedJson(page: Page, path: string) {
+  return page.evaluate(async url => {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} })
+    return { status: response.status, body: await response.json() }
+  }, path)
+}
+
 async function openStudyResultsTool(page: Page) {
   await page.goto('/chart')
   await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
@@ -314,9 +322,9 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   const acceptedRun = await returnedRunAccepted.json() as { id?: number }
   expect(Number.isInteger(acceptedRun.id)).toBe(true)
   await expect(returnedStudy.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
-  const returnedRunDetailResponse = await page.request.get(new URL(`/api/v1/research/runs/${acceptedRun.id}`, page.url()).toString())
-  expect(returnedRunDetailResponse.ok()).toBe(true)
-  const returnedRunDetail = await returnedRunDetailResponse.json() as {
+  const returnedRunDetailRead = await authenticatedJson(page, `/api/v1/research/runs/${acceptedRun.id}`)
+  expect(returnedRunDetailRead.status).toBe(200)
+  const returnedRunDetail = returnedRunDetailRead.body as {
     status?: string
     evaluation_status?: string
     run_config?: { symbol?: string; start_date?: string; end_date?: string }

@@ -331,7 +331,7 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
 current_blocker: "No external blocker to TC-owned implementation. Shared preparation entrypoints and R48 presentation have focused source checks; remaining route/action journeys, factory recreation and complete rendered review are still open. Root owns exact CI and combined qualification."
-current_checkpoint_status: "Current TC platform scope remains active. Provider runtime 580571e41b9797589bf205b61d337f8c92ec04c6, Strategy domain 5703f21497e628576e9d381dede28dbaa0ca719d and ETF domain eedc1a9369a702ddfb588786fc77b5657c978e42 are imported from exact Root releases for development; all active manifests and blobs match. Shared calendar/readiness request deduplication and narrow Constituent pane flow have focused checks, but actual current-source browser review is pending. Market-map/gauge/scan preparation, complete tool recreation, supporting-route lifecycle/presentation journeys, exact-source CI and combined profile remain open."
+current_checkpoint_status: "Bounded R68 Gauge race repair on frozen predecessor 851b4dbe556c2d03951fd20a245aefc2000d3c6b: serialize a fresh metrics read behind an older in-flight Gauge response, retain last completed metrics while pending, and import the exact Strategy 48aa35a2 test successor. Focused Gauge tests pass 12/12 and frontend type-check passes; Root-owned rendered journeys, exact-tip CI, combined qualification, and all remaining platform-usability criteria remain pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -4286,7 +4286,7 @@ closing_tip_ci:
   run_id: null
   scope: "Exact closing TC source after the active platform-usability implementation checkpoint."
   status: "pending Root observation after publication"
-current_candidate_ci_status: Current TC source adds the generic RRG marker paint-order fix for Root R53's concrete W1 XLI overlap, the overlapping historical/latest-marker unit regression, and stronger TC03 chart exploration, pan, and indicator-promotion case mappings. The focused RRG component module passed 21/21, frontend type-check and current journey/workstream/scope guards pass, and Provider dd05 remains an exact development dependency only. Root's full RRG rerun, all other rendered journeys, exact-tip CI, combined qualification, native proof, and release remain pending.
+current_candidate_ci_status: "R68 Gauge repair on 851b4dbe556c2d03951fd20a245aefc2000d3c6b serializes the post-completion metrics read behind any older in-flight response and retains the last completed gauge during refresh. The deterministic deferred-response regression passes in MarketGaugeTool 12/12; vue-tsc passes. The exact Strategy48aa35a2 three-test import is verified across all27 manifest files. TC scope/workstream/journey validators pass, and Playwright discovery lists19 tests across the three imported journey files without running a browser. Root-owned rendered journeys, exact-tip CI, combined qualification and the full platform-usability acceptance remain pending."
 history_dashboard_scope_archive:
   path: ops/workstreams/feat-tc2000-frontend-rework/checkpoint-archives/history-dashboard-repair-scope-archive-20261106.json
   sha256: 2880cdb5ef6a0074b6204267b51ba9f676160bad2ef1ecff1385db1d5819d6cd
@@ -5193,9 +5193,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 6f81120613ffbb1e43a5dc05c51ef2315afe9421
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6f81120613ffbb1e43a5dc05c51ef2315afe9421.json
-  manifest_sha256: 640f4163f7f32671d2e86b1d3f2e15b73a70a58d6d91e2fa8554d99704eb906d
+- source_sha: 48aa35a2fddaae3eec36029831c23c66f77d032f
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/48aa35a2fddaae3eec36029831c23c66f77d032f.json
+  manifest_sha256: ba1f9b1732f4d9404a16187f6df7936c4f325c87c8c34f6f1c381cf3d1390d29
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

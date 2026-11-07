@@ -11,6 +11,8 @@
     <p v-if="error" class="market-gauge__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
     <p v-else-if="preparationNotice" class="market-gauge__preparation" role="status" aria-live="polite" aria-atomic="true">{{ preparationNotice }}</p>
     <p v-if="scanReplacementPending" class="market-gauge__preparation" role="status" aria-live="polite" aria-atomic="true">A replacement scan is {{ latestScanStatus }}; the last completed gauge remains visible.</p>
+    <p v-else-if="latestGaugeRefreshPending" class="market-gauge__preparation" role="status" aria-live="polite" aria-atomic="true">Refreshing gauge metrics for the completed scan; the last completed gauge remains visible.</p>
+    <p v-else-if="gaugeRefreshNotice" class="market-gauge__preparation" role="status" aria-live="polite" aria-atomic="true">{{ gaugeRefreshNotice }}</p>
     <p v-else-if="scansQuery.isPending.value && !gauge" class="market-gauge__state" role="status" aria-live="polite" aria-atomic="true">Loading saved scans…</p>
     <template v-if="gauge">
       <div class="market-gauge__reading"><b>{{ percentage }}</b><span>{{ gauge.matched_count }} matches</span></div>
@@ -56,7 +58,7 @@ type Gauge = {
   freshness_detail: Record<string, number>
   exclusions: Array<{ code?: string; message: string }>
 }
-type ScanResult = { id?: number; result_data?: Record<string, unknown> }
+type ScanResult = { id?: number; run_at?: string | null; result_data?: Record<string, unknown> }
 const selectedId = ref('')
 const gaugeRoot = ref<HTMLElement | null>(null)
 const surfaceVisible = ref(true)
@@ -66,6 +68,12 @@ let preparationController: AbortController | null = null
 let preparationContextKey = ''
 let preparationRefreshQueue = new PreparationProgressRefreshQueue()
 let visibilityObserver: IntersectionObserver | null = null
+let gaugeRefreshGeneration = 0
+let gaugeRefreshPending = false
+let gaugeRefreshDrain: Promise<void> | null = null
+const lastCompletedGauge = ref<Gauge | null>(null)
+const latestGaugeRefreshPending = ref(false)
+const gaugeRefreshNotice = ref('')
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const scansQuery = useQuery({
   queryKey: ['workstation', 'screeners'],
@@ -113,7 +121,9 @@ const gaugeQuery = useQuery({
   refetchOnWindowFocus: true,
 })
 const scans = computed(() => scansQuery.data.value ?? [])
-const gauge = computed(() => gaugeQuery.data.value ?? null)
+const gauge = computed(() => (scanReplacementPending.value || latestGaugeRefreshPending.value || Boolean(gaugeRefreshNotice.value))
+  ? lastCompletedGauge.value ?? gaugeQuery.data.value ?? null
+  : gaugeQuery.data.value ?? lastCompletedGauge.value ?? null)
 const loading = computed(() => scansQuery.isFetching.value || savedScanQuery.isFetching.value || scanResultsQuery.isFetching.value || gaugeQuery.isFetching.value)
 const error = computed(() => {
   if (savedScanQuery.error.value) return 'The saved EasyScan definition is unavailable; existing gauge results remain visible.'
@@ -123,17 +133,73 @@ const error = computed(() => {
 const percentage = computed(() => gauge.value?.percentage == null ? '—' : `${(gauge.value.percentage * 100).toFixed(1)}%`)
 const freshnessKind = computed(() => normalizeWorkstationFreshness(gauge.value?.freshness) || 'unavailable')
 const freshnessLabel = computed(() => formatWorkstationFreshness(gauge.value?.freshness))
-watch([selectedId, surfaceVisible, documentVisible], () => {
+watch(() => gaugeQuery.data.value, value => {
+  if (value && !scanReplacementPending.value && !latestGaugeRefreshPending.value) lastCompletedGauge.value = value
+})
+function requestLatestGaugeRefresh(expectedId = selectedId.value): Promise<void> {
+  if (!expectedId || expectedId !== selectedId.value || !surfaceVisible.value || !documentVisible.value) return Promise.resolve()
+  latestGaugeRefreshPending.value = true
+  gaugeRefreshNotice.value = ''
+  gaugeRefreshPending = true
+  if (!gaugeRefreshDrain) {
+    gaugeRefreshDrain = (async () => {
+      while (gaugeRefreshPending) {
+        gaugeRefreshPending = false
+        const id = selectedId.value
+        const generation = gaugeRefreshGeneration
+        const isCurrent = () => generation === gaugeRefreshGeneration
+          && id === selectedId.value
+          && surfaceVisible.value
+          && documentVisible.value
+
+        // A GET started for the previous queued result can still be in flight
+        // when Results publishes completion. Let it settle, then issue one
+        // fresh metrics read so its late zero values cannot be the last write.
+        if (gaugeQuery.isFetching.value) await gaugeQuery.refetch({ cancelRefetch: false })
+        if (!isCurrent()) return
+        // Requests received while the stale GET was draining are covered by
+        // this post-drain read and should coalesce into it.
+        gaugeRefreshPending = false
+        await gaugeQuery.refetch()
+        if (!isCurrent()) return
+        const latestResult = latestScanResult.value
+        if (gaugeQuery.data.value
+          && latestResult?.result_data?._status === 'completed'
+          && (!latestResult.run_at || gaugeQuery.data.value.run_at === latestResult.run_at)) {
+          lastCompletedGauge.value = gaugeQuery.data.value
+          latestGaugeRefreshPending.value = false
+          gaugeRefreshNotice.value = ''
+        } else if (latestResult?.result_data?._status === 'completed') {
+          latestGaugeRefreshPending.value = false
+          gaugeRefreshNotice.value = 'The completed scan is not reflected in gauge metrics yet; the last completed gauge remains visible.'
+        }
+      }
+    })().finally(() => {
+      gaugeRefreshDrain = null
+      if (gaugeRefreshPending) void requestLatestGaugeRefresh()
+    })
+  }
+  return gaugeRefreshDrain
+}
+watch([selectedId, surfaceVisible, documentVisible], ([id, visible, docVisible], [previousId]) => {
+  gaugeRefreshGeneration += 1
+  gaugeRefreshPending = false
+  if (id !== previousId) {
+    lastCompletedGauge.value = null
+    latestGaugeRefreshPending.value = false
+    gaugeRefreshNotice.value = ''
+  }
   preparationController?.abort()
   preparationController = null
   preparationContextKey = ''
   preparationNotice.value = ''
   preparationRefreshQueue = new PreparationProgressRefreshQueue()
+  if (visible && docVisible && latestGaugeRefreshPending.value) void requestLatestGaugeRefresh(id)
 })
 watch([selectedId, latestScanStatus], ([id, status], [previousId, previousStatus]) => {
   if (id && id === previousId && ['queued', 'pending', 'running', 'leased'].includes(previousStatus)
     && !['queued', 'pending', 'running', 'leased'].includes(status)) {
-    void gaugeQuery.refetch()
+    void requestLatestGaugeRefresh(id)
   }
 })
 watch([() => savedScanQuery.data.value, surfaceVisible, documentVisible], ([definition, visible]) => {
@@ -172,7 +238,7 @@ watch([() => savedScanQuery.data.value, surfaceVisible, documentVisible], ([defi
           if (!isCurrent()) return
           await scanResultsQuery.refetch()
           if (!isCurrent() || scanReplacementPending.value) return
-          await gaugeQuery.refetch()
+          await requestLatestGaugeRefresh(String(definition.id))
         })
       }
     },
@@ -189,7 +255,7 @@ async function refresh() {
   if (selectedId.value) {
     await savedScanQuery.refetch()
     await scanResultsQuery.refetch()
-    if (!scanReplacementPending.value) await gaugeQuery.refetch()
+    if (!scanReplacementPending.value) await requestLatestGaugeRefresh()
   }
 }
 onMounted(() => {
@@ -202,6 +268,8 @@ onMounted(() => {
   }
 })
 onBeforeUnmount(() => {
+  gaugeRefreshGeneration += 1
+  gaugeRefreshPending = false
   preparationController?.abort()
   preparationController = null
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
