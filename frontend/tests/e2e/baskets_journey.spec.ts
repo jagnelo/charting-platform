@@ -179,14 +179,18 @@ test('opening a basket submits each member preparation independently while cache
   const token = await page.evaluate(() => localStorage.getItem('access_token'))
   expect(token).toBeTruthy()
   const headers = { Authorization: `Bearer ${token}` }
-  const canonicalMembers = await Promise.all(['SPY', 'QQQ'].map(symbol =>
+  // QQQ and RSP are non-default members: the default SPY dashboard's own
+  // startup/history preparations must not enter the basket-open observation.
+  // Read both actual selected adjusted ranges and overlap before creating the basket.
+  const basketMemberSymbols = ['QQQ', 'RSP'] as const
+  const canonicalMembers = await Promise.all(basketMemberSymbols.map(symbol =>
     resolveCanonicalInstrument(request, headers, symbol)))
   const cachedBarsBySymbol = new Map(await Promise.all(canonicalMembers.map(async member => [
     member.symbol.toUpperCase(),
     await readCachedAdjustedBars(request, headers, member.symbol),
   ] as const)))
-  const firstCachedBars = cachedBarsBySymbol.get('SPY')!
-  const secondCachedBars = cachedBarsBySymbol.get('QQQ')!
+  const firstCachedBars = cachedBarsBySymbol.get(basketMemberSymbols[0])!
+  const secondCachedBars = cachedBarsBySymbol.get(basketMemberSymbols[1])!
   const firstByTimestamp = new Map(firstCachedBars.map(bar => [Date.parse(bar.ts), bar.close]))
   const secondByTimestamp = new Map(secondCachedBars.map(bar => [Date.parse(bar.ts), bar.close]))
   const cachedCommonTimestamps = [...firstByTimestamp.keys()]

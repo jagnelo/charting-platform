@@ -137,6 +137,18 @@ function assertActualBars(symbol: string, bars: Bar[], minimumCount = 2): void {
   expect(invalidBars, `${symbol} bars must all have finite timestamps and positive closes`).toEqual([])
 }
 
+function assertIsoInstant(actual: string | null, expected: number | null, label: string): void {
+  if (expected === null) {
+    expect(actual, label).toBeNull()
+    return
+  }
+  expect(actual, label).not.toBeNull()
+  if (actual === null) throw new Error(`${label} is missing`)
+  const timestamp = Date.parse(actual)
+  expect(Number.isFinite(timestamp), `${label} must be a valid ISO instant`).toBe(true)
+  expect(timestamp, `${label} must match the independently derived instant exactly`).toBe(expected)
+}
+
 function assertRatioMatchesAdjustedIntersection(
   primary: string,
   benchmark: string,
@@ -162,8 +174,8 @@ function assertRatioMatchesAdjustedIntersection(
 
   expect(response.points.length, `${primary}/${benchmark} must contain every split-adjusted timestamp intersection`).toBe(expected.length)
   expect(response.coverage).toBeGreaterThan(0)
-  expect(response.overlap_start).toBe(expected.length ? new Date(expected[0].timestamp).toISOString() : null)
-  expect(response.overlap_end).toBe(expected.length ? new Date(expected.at(-1)!.timestamp).toISOString() : null)
+  assertIsoInstant(response.overlap_start, expected.length ? expected[0].timestamp : null, `${primary}/${benchmark} overlap start`)
+  assertIsoInstant(response.overlap_end, expected.length ? expected.at(-1)!.timestamp : null, `${primary}/${benchmark} overlap end`)
   expect(response.coverage_preflight).toMatchObject({
     status: 'full',
     item_count: 2,
