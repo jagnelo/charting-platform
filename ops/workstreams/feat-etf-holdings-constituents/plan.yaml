@@ -5722,7 +5722,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider46462f55 is consumed exactly (45/45 manifest records). TC5a is now the active exact development dependency (53/53 manifest entries verified; ten delta paths imported), including Duplicate layout/Rename labels. Five affected TC unit modules pass207/207, type-check passes, and four owned basket/S&P browser cases are discovered. Browser bodies and final release qualification remain Root-owned.
+  current_phase: Provider46462f55 and TC5a are consumed exactly (45/45 and53/53 manifest records). Five changed TC unit modules pass207/207 and type-check passes. The owned basket lifecycle covers custom/equal actual-API creation; while first-member preparation is held, its browser story now verifies real basket bars appear in the shared chart and an OHLC/date tooltip matches the returned data. Four browser cases are discovered; bodies and combined qualification remain Root-owned.
   current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06

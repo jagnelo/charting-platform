@@ -675,9 +675,9 @@
           "browser_evidence": {
             "path": "frontend/tests/e2e/baskets_journey.spec.ts",
             "case": "ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles",
-            "coverage": "The API-backed browser story now holds the first accepted /data/ensure response, requires later resolved-member submissions to arrive before releasing it, and checks the basket chart returns nonempty finite bars while that response is held. Body remains unrun by this owner; this is authored acceptance coverage, not runtime evidence.",
+            "coverage": "The actual-API story holds the first accepted member ensure response, verifies all other resolved-member requests submit, then checks the real basket endpoint returns finite bars while held and the visible shared primary chart displays an ordinary OHLC/date tooltip matching that response. Browser body remains Root-owned. Spec SHA256 76d1b9cedef51121c326a72707415d9997568bc824ebb1a2944c006e75625327.",
             "body_run": false,
-            "status": "pending TC shared-chart implementation and Root combined browser profile"
+            "status": "pending Root combined seeded-backend browser profile; exact TC5a shared runtime is imported."
           },
           "contract_gap_owner": "TC owns the chart/basket-load integration in the shared chart path. The currently identified entry point is frontend/src/stores/chart.ts::chartStore.loadBars() BASKET:<id> branch; ETF does not add another coordinator or queue."
         },

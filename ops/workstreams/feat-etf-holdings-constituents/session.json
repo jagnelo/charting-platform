@@ -1140,8 +1140,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "e3c98b4cf714f2c6dca03caa083ecfcb81921420f3d5dc7908a791fffd3d8170",
-  "plan_sha256": "e3c98b4cf714f2c6dca03caa083ecfcb81921420f3d5dc7908a791fffd3d8170",
+  "plan_hash": "1695f8c5e5aee091f2863ed5023b5b3879624fd266e8a8005568a2541e9eed3c",
+  "plan_sha256": "1695f8c5e5aee091f2863ed5023b5b3879624fd266e8a8005568a2541e9eed3c",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -3552,8 +3552,8 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "Root combined seeded-backend browser qualification and exact release gates remain pending; Provider464 exact CI status remains Root-owned. All 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
-    "current_phase": "Consumed only the ten declared TC5a delta paths over D5 and verified all53 manifest entries including status_from139, Git blob, SHA256 and mode. The exact source includes accessible Duplicate layout/Rename labels. Five changed TC test modules pass207/207, type-check passes, and four owned browser tests are discovered; browser bodies and Root combined qualification remain pending.",
+    "current_blocker": "Root combined seeded-backend browser qualification and final release gates remain pending; the full 15 Tier-0/156 Tier-1 and broader ETF/platform roadmaps remain open.",
+    "current_phase": "Provider464 and TC5a are exact development imports. Five changed TC unit modules pass207/207 and type-check passes. Basket journey now proves the actual cached basket series is visible while first-member preparation is held, matching its ordinary OHLC/date tooltip to backend bars. Four owned browser cases discovered; bodies await Root combined execution.",
     "total": 5
   },
   "provider_release": {

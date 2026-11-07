@@ -18398,3 +18398,8 @@ The S&P spec preserves native zero-argument `CanvasRenderingContext2D.stroke` wi
 Imported only the ten `changed_paths_since_previous` from Root-released source `5a783e745b211cfe8b3dd20cb77d275149f15de2`. All53 current manifest records matched source status, Git blob, SHA256 and mode; the Radar preview and Settings test files were new relative to D5 and absent locally before import. Manifest SHA256 `4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290`. The exact source supplies the accessible `Duplicate layout` and `Rename layout` labels used by the owned S&P journey.
 
 The five affected TC unit modules passed207/207 and frontend type-check passed. Playwright discovery lists four ETF-owned basket/S&P tests; browser bodies remain unrun pending Root's combined profile. TC5a is development-only, not release/staging/deployment acceptance; previous D5 evidence remains archived.
+
+
+## Basket cached-chart visible-data witness — 2026-11-07
+
+The authenticated basket lifecycle story now verifies the selected cached basket series in the visible shared chart while the first accepted member preparation remains held: it checks real finite basket bars, the visible primary renderer, and an ordinary OHLC/date tooltip matching those backend bars. Basket spec SHA256 `76d1b9cedef51121c326a72707415d9997568bc824ebb1a2944c006e75625327`. Type-check passed and Playwright discovery lists4 owned tests; no browser body was run. Root owns the combined profile and runtime acceptance.

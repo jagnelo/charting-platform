@@ -168,6 +168,38 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
       syntheticBars = await basketChartResponse.json() as Array<{ timestamp: string; close: number }>
       expect(syntheticBars.length).toBeGreaterThan(0)
       expect(syntheticBars.every(bar => Number.isFinite(bar.close))).toBeTruthy()
+
+      // The held preparation must not prevent the already available basket
+      // series from reaching the visible shared chart. Tie its ordinary OHLC
+      // tooltip back to the real basket response, not merely a mounted canvas.
+      const primaryChart = page.locator('.tool-window[data-window-key="primary-chart"]')
+      await expect(primaryChart).toBeVisible()
+      const chartRoot = primaryChart.locator('.chart-root')
+      await expect(chartRoot).toBeVisible()
+      const renderer = chartRoot.locator('.uplot-wrapper .uplot')
+      await expect(renderer).toBeVisible()
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        if (await chartRoot.getAttribute('data-date-pointer-mode') === 'on_with_values') break
+        await chartRoot.focus()
+        await chartRoot.press('.')
+      }
+      await expect(chartRoot).toHaveAttribute('data-date-pointer-mode', 'on_with_values')
+      const rendererBox = await renderer.boundingBox()
+      expect(rendererBox).toBeTruthy()
+      const tooltip = primaryChart.locator('.ohlcv-info')
+      const priorTooltip = await tooltip.getAttribute('aria-label')
+      await page.mouse.move(rendererBox!.x + rendererBox!.width * 0.58, rendererBox!.y + rendererBox!.height * 0.46)
+      await expect(tooltip).toBeVisible()
+      await expect.poll(async () => (await tooltip.getAttribute('aria-label')) !== priorTooltip).toBe(true)
+      const label = (await tooltip.getAttribute('aria-label')) ?? ''
+      const tooltipDate = label.split('.')[0]
+      const tooltipClose = label.match(/close ([0-9]+(?:\.[0-9]+)?)/i)?.[1]
+      expect(tooltipClose, 'visible basket OHLC tooltip exposes a close').toBeTruthy()
+      expect(syntheticBars.some(bar => {
+        const timestamp = new Date(bar.timestamp)
+        const date = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}`
+        return date === tooltipDate && bar.close.toFixed(4) === tooltipClose
+      }), 'visible basket tooltip matches the held-window API response').toBeTruthy()
     } finally {
       releaseFirstEnsure()
     }
