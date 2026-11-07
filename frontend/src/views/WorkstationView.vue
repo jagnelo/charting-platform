@@ -3204,8 +3204,9 @@ onMounted(async () => {
   }
   // Start shared panel refresh concurrently. It must not gate the selected
   // chart's local-first hydration on first use or a route restore.
+  let initialMarketRefresh: Promise<void> | null = null
   if (isPopout.value) await refreshMarketData()
-  else void refreshMarketData()
+  else initialMarketRefresh = refreshMarketData()
   if (!componentMounted) return
   if (isPopout.value && popoutTool.value) {
     const tool = popoutTool.value
@@ -3281,7 +3282,10 @@ onMounted(async () => {
   }
   await nextTick()
   if (!componentMounted) return
-  if (!isPopout.value) await refreshMarketData()
+  // Finish the startup refresh that already began above. Starting another
+  // refetch here duplicated all shared group/snapshot reads after the chart
+  // had hydrated, and repeated mounts could keep the list surfaces busy.
+  if (initialMarketRefresh) await initialMarketRefresh
   if (!componentMounted) return
 })
 

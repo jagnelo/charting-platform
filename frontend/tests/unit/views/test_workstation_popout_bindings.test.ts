@@ -2915,6 +2915,7 @@ describe('WorkstationView pop-out bindings', () => {
     })
     await vi.waitFor(() => expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalled())
     await vi.waitFor(() => expect(harness.chart.loadBars).toHaveBeenCalledWith('SPY', 'D1', 'candles', true))
+    expect(harness.workspace.refreshMarketAnalysis).toHaveBeenCalledTimes(1)
     expect(harness.chart.bars).toEqual([cachedBar])
     finishInitialRefresh()
     await flushPromises()

@@ -26471,3 +26471,8 @@ The configured Workstation breadth group now loads its local snapshot first, the
 ## 2026-11-07 — Workstation activation and layout rendering successor
 
 Virtual Golden Layout tabs now publish the exact clicked window key, and mounted tests cover pointer activation and asynchronous tool-body mounting. Chart resizing uses the measured plot wrapper; watchlist controls flow at narrow sizes; repeated Market Map readiness requests are deduplicated. The nested SFC inventory now counts controls beyond nested template closes and fails when a newly exposed control is unmapped. The focused 190-test slice, Vue type-check, strict provider-boundary test, workstream/scope/journey guards, and diff check passed. Provider33e1 and ETF055 are exact development imports. Root browser proof for ordinary tab activation, analysis journeys, and remaining UI scope is pending; no full release acceptance is claimed.
+
+
+## 2026-11-07 — Single shared top-down refresh on Workstation mount
+
+Root R12 network evidence showed repeated group/snapshot reads. Workstation mount now starts the shared refresh concurrently with local-first chart hydration and awaits that same promise at completion, removing the second mount-time refetch. A focused regression asserts exactly one shared refresh while the cached chart remains usable; it passed 1/1 with Vue type-check. Root rendered list visibility and end-to-end latency are still pending; no complete family/list journey is claimed. `integration_capture: exact branch HEAD`.
