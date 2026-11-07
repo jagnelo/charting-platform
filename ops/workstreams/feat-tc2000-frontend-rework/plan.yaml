@@ -1519,6 +1519,8 @@ owned_paths:
 - frontend/src/views/AlertsView.vue
 - frontend/src/lib/dataPreparation.ts
 - frontend/src/components/radar/RadarDetailPreviewChart.vue
+- frontend/package.json
+- frontend/package-lock.json
 excluded_paths:
 - .env.example
 - backend/.env.example
@@ -4664,9 +4666,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 07490844c39d56e7023294f5e8798e4da2acdce0
 approved_development_dependency_imports:
-- source_sha: 46462f5531d689acf4c8004517dc4fb345d822ba
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/46462f5531d689acf4c8004517dc4fb345d822ba.json
-  manifest_sha256: 3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d
+- source_sha: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5cdc5ee06e26b191d889212b8cd1554d28abbc8f.json
+  manifest_sha256: 11464ff23ddf51066970a47a3f68c8e51d7180a0333040671845ef9b8aa08f9d
   paths:
   - backend/app/main.py
   - backend/app/providers/alpaca.py
@@ -4687,10 +4689,12 @@ approved_development_dependency_imports:
   - backend/app/services/market_refresh_queue.py
   - backend/app/services/market_series.py
   - backend/app/services/provider_runtime.py
+  - backend/app/services/screener_engine.py
   - backend/app/services/workstation_tool_catalogue.py
   - backend/app/tasks/data_tasks.py
   - backend/app/workers/arq_worker.py
   - backend/tests/integration/test_data_preparation_queue_postgres.py
+  - backend/tests/unit/conftest.py
   - backend/tests/unit/providers/test_new_providers.py
   - backend/tests/unit/routers/test_data_preparation_router.py
   - backend/tests/unit/routers/test_ohlcv_router.py
@@ -4713,9 +4717,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 134c63f535bb78c84da7c90063f81aca91843ba0
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/134c63f535bb78c84da7c90063f81aca91843ba0.json
-  manifest_sha256: a0d8d58f3dc8d8bfd361e62337c5f7b4b13cd6a5c8f49e124cfe7169ad0012bd
+- source_sha: 8dfeed8d9092bbf90e54f283afe1d96e71c23511
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8dfeed8d9092bbf90e54f283afe1d96e71c23511.json
+  manifest_sha256: 0a71d697a2fb03b15bce0ce42c38948d523240a91d5d4a83dd4fb0844172e9c0
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
@@ -4724,9 +4728,15 @@ approved_development_dependency_imports:
   - frontend/src/components/dashboard/DashboardQuoteWidget.vue
   - frontend/src/stores/dashboard.ts
   - frontend/src/views/DashboardView.vue
+  - frontend/tests/e2e/dashboard_usability_journey.spec.ts
   - frontend/tests/unit/components/test_dashboard_advanced_chart_lifecycle.test.ts
   - frontend/tests/unit/components/test_dashboard_instrument_search.test.ts
   - frontend/tests/unit/components/test_dashboard_instrument_widget_lifecycles.test.ts
   - frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts
   - frontend/tests/unit/stores/test_dashboard_store.test.ts
   - frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts
+- source_sha: b555268b8237d1c50e34b39320b4cb18a8bd9a03
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b555268b8237d1c50e34b39320b4cb18a8bd9a03.json
+  manifest_sha256: 53f3f7401278b453a33f5bbbd36f01b96f931dd4dd6a158766ebdc8050201a01
+  paths:
+  - frontend/tests/e2e/workstation_lifecycle_journey.spec.ts

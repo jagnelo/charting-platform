@@ -3160,16 +3160,24 @@
     },
     {
       "source": "frontend/src/views/DashboardView.vue",
-      "control_count": 27,
-      "signature_sha256": "34b69790aa595cc54952bc708bea6d6299b784d52004cd06cc2386c63f0b8e2d",
+      "control_count": 28,
+      "signature_sha256": "6a0f5a729ea64881896dab0949038036f8833c07577426e06fb3a3e164fcd3ff",
       "journeys": [
         "TC09"
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/views/DashboardView.vue"
+        "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts",
+        "frontend/tests/e2e/dashboard_usability_journey.spec.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Strategy8dfeed adds the explicit Cancel control for rejected widget-config saves; its focused unit and authored recovery journey are mapped, but current-source browser execution remains pending.",
+      "source_owner": "feat-strategy-lab-v2",
+      "source_pin": {
+        "source_commit": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
+        "source_blob": "a3e4e1e1d73aefd418721ebef931df9a814e99c9",
+        "source_sha256": "1425c4fb8b632be2e24066c092e07e4e7970ee6e09b64150101374375c7cff2e"
+      },
+      "action_review": "Adds one visible cancel action that abandons the failed pending config, invalidates the stale save generation and restores the saved settings; owner journey includes Cancel or Retry recovery."
     },
     {
       "source": "frontend/src/views/LoginView.vue",
@@ -3405,15 +3413,22 @@
     {
       "source": "frontend/src/components/common/SearchBar.vue",
       "control_count": 4,
-      "signature_sha256": "23ead94769ff8f0e7e5fc2c96806e85b722cc60fb229864c9fd169954858d62f",
+      "signature_sha256": "006c9ecb2fab1a07f56d726d1606d567573406afe49f0bf59a70a4fdf50811a2",
       "journeys": [
         "TC02"
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/components/common/SearchBar.vue"
+        "frontend/tests/unit/components/test_search_bar.test.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "ETF a0c525 changes pending exact-Enter behavior without changing the four template controls; 43 focused owner tests pass, while current-source browser execution remains pending.",
+      "source_owner": "feat-etf-holdings-constituents",
+      "source_pin": {
+        "source_commit": "a0c5250ee962452f55ad6410f4af6404f2bcc045",
+        "source_blob": "38b7fd3bbdf998553ca0c407a6c7a6050c3f04b6",
+        "source_sha256": "3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2"
+      },
+      "action_review": "The Enter-during-discovery repair preserves explicit prefix candidate choice and waits only for a current exact query; source action surface and control count are unchanged from the previous released SearchBar template."
     },
     {
       "source": "frontend/src/components/common/SparkTfSelector.vue",

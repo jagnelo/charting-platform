@@ -3196,7 +3196,10 @@ onMounted(async () => {
       }
     }
   }
-  await refreshMarketData()
+  // Start shared panel refresh concurrently. It must not gate the selected
+  // chart's local-first hydration on first use or a route restore.
+  if (isPopout.value) await refreshMarketData()
+  else void refreshMarketData()
   if (!componentMounted) return
   if (isPopout.value && popoutTool.value) {
     const tool = popoutTool.value

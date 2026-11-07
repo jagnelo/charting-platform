@@ -1772,3 +1772,46 @@ async def test_saved_screener_universe_expands_in_restartable_batches_without_ea
         changed_snapshot = changed_view.metadata_payload["data_preparation"]["screener_snapshot"]
         assert changed_view.id != parent_id
         assert changed_snapshot["snapshot_id"] != snapshot_id
+
+
+async def test_ensure_response_does_not_implicitly_load_expired_parent_timestamp(
+    preparation_sessions,
+):
+    from sqlalchemy import inspect
+
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.schemas.data_preparation import DataEnsureRequest
+    from app.services.data_preparation import (
+        create_data_preparation_request,
+        get_data_preparation_response,
+    )
+
+    async with preparation_sessions() as session:
+        stock_type_id, _ = await _create_instrument_types(session)
+        instrument = _canonical_instrument(
+            "EXPIRED-TIMESTAMP", stock_type_id, domain_prefix="expired-timestamp"
+        )
+        session.add(instrument)
+        await session.flush()
+        request = DataEnsureRequest.model_validate(
+            {
+                "target": {"kind": "instrument", "instrument_id": instrument.id},
+                "datasets": ["history"],
+                "timeframe": "D1",
+            }
+        )
+        parent = await create_data_preparation_request(session, owner_user_id=891, request=request)
+        parent_id = parent.id
+        await session.commit()
+
+        # Match the request path after an onupdate SQL expression expires this
+        # column: the ORM descriptor must not perform an implicit async read.
+        session.expire(parent, ["updated_at"])
+        assert "updated_at" in inspect(parent).expired_attributes
+        response = await get_data_preparation_response(session, parent=parent, owner_user_id=891)
+        assert response.request_id == parent.metadata_payload["data_preparation"]["request_id"]
+        assert response.total == 1
+        assert response.updated_at is not None
+
+        persisted_parent = await session.get(MarketRefreshJob, parent_id)
+        assert persisted_parent is parent
