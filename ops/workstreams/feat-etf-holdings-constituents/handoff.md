@@ -18351,3 +18351,13 @@ No Source HTTP, production DB/ledger, provider policy/quota, Docker/browser fixt
 ## Canonical ETF constituent dashboard route — 2026-11-07
 
 Changed ETF-owned selected-row navigation from `/legacy/chart/{symbol}` to `/chart/{symbol}` without changing `holdingDrilldownRouteQuery` or `holdingDrilldownRouteState`. Unit assertions cover resolved holdings, stale-parent history, and exact confirmed unresolved-row resolution; all 24 ETF view tests pass. The ETF browser story now clicks View history and checks the dashboard route and exact snapshot/date/known-at/source/instrument/row query. Type-check passes and Playwright discovery lists four tests, but no browser body was run here. Journey matrix reflects the canonical route. TC owns startup consumption of the handoff; Root owns combined qualification.
+
+
+## Provider 732 exact development dependency — 2026-11-07
+
+Root released `732da0f9f84ee495ee58ca3b9f8311839291ff59` under the corrected current manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract-v2.json` (SHA256 `d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123`, authority: `Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance`). The original v1 manifest `/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract.json` (SHA256 `96e2c7d0844a859be271b56e94bfc79e9eb8d3a683e41a8e8bd5d0ad6c98e8cf`) is retained as invalid metadata history because it omitted the required authority field. Imported only the 13 declared changed product paths over Provider074; all43 manifest entries match current file Git blobs and SHA256, including `status_from139`. Provider workstream records were excluded. This is a development dependency, not Producer acceptance or release qualification; Producer-reported32 focused cases were not rerun here. No live source, production, policy, quota or ledger operation occurred. Focused ETF consumer checks remain pending, as does the separate TC frontend companion. Root owns full CI and combined qualification.
+
+
+### Provider732 ETF consumer check — 2026-11-07
+
+After the exact import, `tests/unit/services/test_etf_holdings_preparation.py`, `test_etf_holdings_preparation_hook.py`, and `test_etf_holdings_checkpoint_consumers.py` passed 46/46 (five upstream deprecation warnings). This is the ETF-owned consumer slice only; no Provider suite, Docker/PostgreSQL fixture, browser, source HTTP, or production/ledger operation was run. The separate TC frontend companion and Root combined profile remain pending.

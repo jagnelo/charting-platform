@@ -5722,7 +5722,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: ETF holding drilldowns now use the canonical /chart route while preserving selected snapshot/row provenance; focused ETF view tests and type-check pass. Provider/TC shared dependencies remain development imports, and the Root-owned combined browser/native profile is pending.
+  current_phase: Provider732 is imported as the exact development delta; the focused ETF preparation/hook and basket-consumer service tests pass 46/46, with the ETF canonical dashboard route and provenance unit/type checks already green. Root combined qualification remains pending.
   current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
@@ -5740,8 +5740,21 @@ integration_checkpoint:
   - frontend/src/lib/api.ts
   - frontend/src/lib/authSession.ts
   - frontend/src/lib/dataPreparation.ts
-  excluded_shared_paths:
+  root_released_provider_import_paths:
+  - backend/app/providers/massive.py
+  - backend/app/schemas/data_preparation.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
   - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/unit/providers/test_new_providers.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_provider_quota_coordinator.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  excluded_shared_paths:
   - backend/app/routers/data_ensure.py
   - backend/app/workers/arq_worker.py
   - frontend/src/lib/onDemandAcquisition.ts
@@ -5759,8 +5772,8 @@ integration_checkpoint:
   source_http_requests: 0
   real_quota_or_production_mutation: false
   full_platform_release_gates: Root-owned after the assigned domains implement their slices; no full roadmaps are marked complete here.
-  remaining: Provider074 remains a development import pending its full release gates; TC owns application/store integration and the stale shared API-client signal-identity test; Root owns the combined functional/visual profile and genuine-source proof.
-  focused_validation: "Backend ETF preparation/helper/hook: 29 passed with known quota retry propagation; Ruff check/format passed. ETFHoldingsView unit suite: 23 passed; frontend vue-tsc --noEmit passed; Playwright discovery listed both ETF preparation cases. The browser cases were not executed. Basket PostgreSQL CRUD passed 1/1 in its separately recorded attempt004 with exact cleanup. No provider request, production operation, or combined browser profile was run for this view handoff."
+  remaining: Provider732 is a Root-authorized development dependency only; TC owns the pending shared frontend companion and Workstation handoff parsing, while Root owns full release gates, combined profile and genuine-source proof.
+  focused_validation: "After exact Provider732 development import, ETF preparation, hook, and checkpoint-consumer service modules passed 46/46. ETFHoldingsView unit suite passed 24/24, type-check passed, SPDR US DOLLAR parser regression passed 1/1, and Playwright discovery listed four ETF cases without executing browser bodies. Basket view unit suite previously passed 20/20 and its separate PG CRUD proof remains recorded. No live provider/production operation or combined browser profile was run."
   integration_capture: exact branch HEAD
 status: in_progress
 closure_pending: true
@@ -6140,7 +6153,7 @@ provider_runtime_dependency_99ce73:
   state: development dependency only; Provider full release, exact final CI, and combined
     acceptance remain pending.
 
-provider_runtime_dependency_active_07490844:
+historical_provider_runtime_dependency_07490844:
   authority: Root released exact Provider source07490844c39d56e7023294f5e8798e4da2acdce0
     for development consumption in this same worktree; this is not product acceptance,
     integration, deployment, or full release qualification.
@@ -6165,4 +6178,36 @@ provider_runtime_dependency_active_07490844:
   excluded_source_records: the three Provider-owned workstream record paths are not product files and were not imported.
   producer_evidence: 84cc35 maintenance 82 focused units and3 PostgreSQL cases; 074 fixture7 cases including default finite RRG outputs for all11 pairs at D1/W1/MN. These are Producer-reported development evidence, not final release qualification.
   consumer_validation: not rerun during import; shared preparation and Root combined profile remain pending.
+  full_release_gates: pending; Root owns exact CI, combined qualification, staging/master and release.
+
+
+provider_runtime_dependency_active_732da0f9:
+  authority: Root released exact Provider source 732da0f9f84ee495ee58ca3b9f8311839291ff59 for development consumption only; no producer workstream records or unrelated source paths imported.
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: 07490844c39d56e7023294f5e8798e4da2acdce0
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract-v2.json
+  manifest_sha256: d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123
+  authority: Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance
+  superseded_manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract.json
+  superseded_manifest_sha256: 96e2c7d0844a859be271b56e94bfc79e9eb8d3a683e41a8e8bd5d0ad6c98e8cf
+  superseded_manifest_reason: first export omitted the established authority field; preserved as invalid metadata history only.
+  changed_paths_since_previous:
+    - backend/app/providers/massive.py
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/instrument_mastering.py
+    - backend/app/services/market_data.py
+    - backend/app/services/provider_runtime.py
+    - backend/app/tasks/data_tasks.py
+    - backend/tests/unit/providers/test_new_providers.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+    - backend/tests/unit/services/test_market_data.py
+    - backend/tests/unit/services/test_provider_quota_coordinator.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  active_import_file_records: 43
+  source_file_verification: all43 path/status_from139/Git-blob/SHA256 records match the released source; only the 13 declared changed product paths were imported.
+  exact_provider_path_allowances: the 13 manifest-listed paths above only; no wildcard shared-path exception.
+  producer_evidence: Provider reported 32 focused cases; this is not independently rerun here or final release qualification.
+  consumer_validation: ETF preparation/hook and checkpoint-consumer focused modules passed 46/46 against imported Provider732; TC shared frontend companion and Root combined profile remain pending.
   full_release_gates: pending; Root owns exact CI, combined qualification, staging/master and release.

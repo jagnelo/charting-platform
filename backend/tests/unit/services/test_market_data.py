@@ -1,12 +1,14 @@
 import asyncio
 from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
+from unittest.mock import AsyncMock
 from zoneinfo import ZoneInfo
 
 import pytest
 from sqlalchemy.dialects import postgresql
 
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
+from app.providers.base import InstrumentProfile
 from app.services import market_data
 from app.services.market_data import (
     _bar_as_dict,
@@ -54,6 +56,65 @@ def test_cached_ranges_tolerate_expected_provider_availability_failures():
         )
         is True
     )
+
+
+@pytest.mark.asyncio
+async def test_required_industry_profile_falls_through_generic_source_to_massive_sic(
+    db, monkeypatch
+):
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    async_db = AsyncSessionAdapter(db)
+    generic = InstrumentProfile(
+        provider="alpaca",
+        symbol="XLB",
+        canonical_symbol="XLB",
+        name="Materials Select Sector SPDR",
+        extra={"sector": "Materials"},
+    )
+    sic = InstrumentProfile(
+        provider="massive",
+        symbol="XLB",
+        canonical_symbol="XLB",
+        name="Materials Select Sector SPDR",
+        extra={"sic_code": "6726", "sic_description": "Investment offices"},
+    )
+    monkeypatch.setattr(market_data, "_fresh_profile_from_cache", AsyncMock(return_value=generic))
+    monkeypatch.setattr(
+        market_data,
+        "resolve_provider_chain",
+        AsyncMock(
+            return_value=[
+                SimpleNamespace(provider_name="alpaca"),
+                SimpleNamespace(provider_name="massive"),
+            ]
+        ),
+    )
+    executions = []
+
+    async def fake_execute(*_args, provider_name, **_kwargs):
+        executions.append(provider_name)
+        return SimpleNamespace(result=generic if provider_name == "alpaca" else sic)
+
+    ingested = []
+
+    async def fake_ingest(_db, profile, **_kwargs):
+        ingested.append(profile.provider)
+
+    monkeypatch.setattr(market_data, "execute_provider_call", fake_execute)
+    monkeypatch.setattr(market_data, "ingest_provider_profile", fake_ingest)
+
+    result = await market_data.get_provider_profile_async(
+        async_db,
+        "XLB",
+        instrument_id=55,
+        required_profile_fields=["industry"],
+        raise_provider_errors=True,
+    )
+
+    assert result is sic
+    assert executions == ["alpaca", "massive"]
+    assert ingested == ["alpaca", "massive"]
 
 
 def _semantic_bar() -> OHLCVBar:

@@ -23,9 +23,9 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "focused_validation": "ETFHoldingsView canonical /chart provenance route: 24 unit tests passed; frontend type-check passed; E2E spec lists 4 browser cases with bodies pending Root combined profile.",
+    "focused_validation": "Provider732 imported exactly: ETF preparation/hook/checkpoint-consumer modules 46 passed; ETFHoldingsView unit 24 passed; frontend type-check passed; SPDR workbook parser 1 passed; ETF browser discovery 4 listed, bodies not run. Basket view unit 20 passed in prior focused run; browser/combined profile remains Root-owned.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
-    "provider_contract": "Exact Provider-owned DTO files copied unchanged from authorized source 3d10c4c4662249b53a6e3fc497f1d260b59b2079; ETF hook implements the published signature and fields.",
+    "provider_contract": "Provider ETF preparation hook continues to use the published shared contracts; exact Provider runtime dependency advanced from 074 to Root-released 732da0f9. The 732 import is development-only, and no Provider workstream records were imported.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
       "backend/app/schemas/data_preparation.py",
@@ -133,7 +133,7 @@
     "token_budget": null,
     "updated_at_epoch": 1793716359
   },
-  "current_blocker_latest": "ETF holding history now routes through /chart with snapshot/row provenance preserved; TC's matching Workstation handoff parser and Root combined browser/native profile remain pending.",
+  "current_blocker_latest": "Provider732 is pinned as an exact development dependency and 46 focused ETF service/consumer tests pass. TC shared frontend companion and Workstation holding-context parsing, plus Root combined browser/native qualification, remain pending.",
   "current_checkpoint_acceptance": {
     "checkpoint_id": "platform-usability-etf-holdings-2026-11-06",
     "human_activation": "Complete platform-usability plan explicitly activated; implementation only, no checkpoint accepted yet.",
@@ -1091,7 +1091,7 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "63078d3f8e539472a8335f5f5733430b5edf92dd568a4c4b6fdbe37aac929734",
+  "plan_hash": "78a96dd6bd8153707366ad88725a585ac86574d425bc96e472f78c81dff307c9",
   "plan_sha256": "a35e2bd12fc7a3b8ddfe6ff951d0cb879f15fd999d266f908cbdfe3747948624",
   "planning_required": false,
   "planning_state": "ready",
@@ -3503,8 +3503,8 @@
   },
   "progress": {
     "completed": [],
-    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider074 and TC aea0 remain development imports; Root combined browser/native qualification and TC Workstation handoff parsing remain pending.",
-    "current_phase": "ETF selected-row drilldown uses canonical /chart and preserves the existing lineage query/state; focused unit and type checks pass.",
+    "current_blocker": "15 Tier-0 and 156 Tier-1 ETF roadmap criteria remain open. Provider732 is development-only; TC shared frontend companion and Root combined browser/native qualification remain pending.",
+    "current_phase": "Provider732 exact 13-path delta imported over074 and all43 manifest entries verified; focused ETF preparation/hook/consumer modules pass 46/46.",
     "total": 5
   },
   "provider_release": {
@@ -4184,7 +4184,20 @@
       "provider_release_status": "development dependency only; full gates pending"
     }
   },
-  "root_released_provider_runtime_consumption": {
+  "root_released_tc_shared_library_consumption": {
+    "source": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
+    "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
+    "contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
+    "previous_877_pin_preserved": true,
+    "imported_paths": [
+      "frontend/src/lib/api.ts",
+      "frontend/src/lib/authSession.ts",
+      "frontend/src/lib/dataPreparation.ts"
+    ],
+    "exact_blobs_verified": true,
+    "state": "development-only; no TC application, shared store, browser, or release acceptance claimed"
+  },
+  "historical_provider_runtime_consumption_074": {
     "source": "07490844c39d56e7023294f5e8798e4da2acdce0",
     "base": "139b350238b5e1c8a170dce5af09a805301d857e",
     "previous_source": "99ce73bbc67689aef5fc4fcffa76bcfebfa736da",
@@ -4212,17 +4225,35 @@
     ],
     "state": "development dependency only; Producer release gates and Root combined qualification remain pending"
   },
-  "root_released_tc_shared_library_consumption": {
-    "source": "aea0be57abd036dd308a18f9dd07b976767cb8a9",
-    "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-aea-shared-library-development-consumption-contract.json",
-    "contract_sha256": "528e1db8a4edac0edf6b377cda4542218bf10e472652984a6322cd191229c64e",
-    "previous_877_pin_preserved": true,
-    "imported_paths": [
-      "frontend/src/lib/api.ts",
-      "frontend/src/lib/authSession.ts",
-      "frontend/src/lib/dataPreparation.ts"
+  "root_released_provider_runtime_consumption": {
+    "source": "732da0f9f84ee495ee58ca3b9f8311839291ff59",
+    "base": "139b350238b5e1c8a170dce5af09a805301d857e",
+    "previous_source": "07490844c39d56e7023294f5e8798e4da2acdce0",
+    "contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract-v2.json",
+    "contract_sha256": "d6508b43f603ef2d92d6dc00b63d53a4b9248b53ede7ad643eda8eab3ad00123",
+    "changed_paths_since_previous": [
+      "backend/app/providers/massive.py",
+      "backend/app/schemas/data_preparation.py",
+      "backend/app/services/data_preparation.py",
+      "backend/app/services/instrument_mastering.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/providers/test_new_providers.py",
+      "backend/tests/unit/services/test_data_preparation_service.py",
+      "backend/tests/unit/services/test_market_data.py",
+      "backend/tests/unit/services/test_provider_quota_coordinator.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
+      "backend/tests/unit/tasks/test_native_usage_prerequisite.py"
     ],
-    "exact_blobs_verified": true,
-    "state": "development-only; no TC application, shared store, browser, or release acceptance claimed"
+    "imported_file_count": 13,
+    "verified_manifest_file_count": 43,
+    "all_path_status_from139_git_blob_sha256_exact": true,
+    "provider_workstream_records_not_imported": true,
+    "state": "Root-authorized development dependency only; producer full release and consumer/joint gates remain pending",
+    "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance",
+    "superseded_metadata_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract.json",
+    "superseded_metadata_contract_sha256": "96e2c7d0844a859be271b56e94bfc79e9eb8d3a683e41a8e8bd5d0ad6c98e8cf",
+    "superseded_metadata_reason": "First export omitted the established authority field; preserved only as invalid metadata history."
   }
 }

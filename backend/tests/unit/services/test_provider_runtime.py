@@ -4428,3 +4428,71 @@ def test_semaphore_rebuilds_when_policy_concurrency_changes():
 
     assert second is not first
     assert second._value == 5
+
+
+@pytest.mark.asyncio
+async def test_marketstack_status_uses_operation_scoped_configuration_and_holds(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    monkeypatch.setattr(settings, "MARKETSTACK_API_KEY", "configured-key")
+    monkeypatch.setattr(settings, "MARKETSTACK_DISCOVERY_EXCHANGE", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_LIMIT", 100)
+    monkeypatch.setattr(settings, "MARKETSTACK_REVIEWED_MONTHLY_RESET", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_QUOTA_EVIDENCE", "")
+    monkeypatch.setattr(settings, "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_AUTHORIZED", True)
+    monkeypatch.setattr(
+        settings,
+        "MARKETSTACK_PROVIDER_ARCHIVE_TERMS_EVIDENCE",
+        "unit-test-reviewed-private-use",
+    )
+    monkeypatch.setattr(
+        settings,
+        "PROVIDER_CHECKPOINT_OPERATION_HOLDS",
+        {"marketstack": {"discover_universe_page": "discovery remains held"}},
+    )
+
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "marketstack")).scalar_one()
+    for capability in (
+        ProviderCapability.PRICE_HISTORY,
+        ProviderCapability.LATEST_PRICE,
+        ProviderCapability.UNIVERSE_DISCOVERY,
+    ):
+        policy = db.execute(
+            select(ProviderPolicy).where(
+                ProviderPolicy.data_source_id == source.id,
+                ProviderPolicy.capability == capability,
+            )
+        ).scalar_one()
+        policy.is_enabled = True
+        entitlement = db.execute(
+            select(ProviderEntitlement).where(
+                ProviderEntitlement.data_source_id == source.id,
+                ProviderEntitlement.capability == capability,
+            )
+        ).scalar_one()
+        entitlement.live_probe_status = "passed"
+
+    statuses = {
+        row["capability"]: row
+        for row in await list_provider_status(async_db)
+        if row["provider"] == "marketstack"
+        and row["capability"]
+        in {
+            ProviderCapability.PRICE_HISTORY.value,
+            ProviderCapability.LATEST_PRICE.value,
+            ProviderCapability.UNIVERSE_DISCOVERY.value,
+        }
+    }
+    for capability in (ProviderCapability.PRICE_HISTORY, ProviderCapability.LATEST_PRICE):
+        row = statuses[capability.value]
+        assert row["credentials_configured"] is True
+        assert "MARKETSTACK_DISCOVERY_EXCHANGE" not in row["required_environment_variables"]
+        assert "MARKETSTACK_DISCOVERY_EXCHANGE" not in row["missing_environment_variables"]
+        assert row["routing_eligible"] is True
+
+    discovery = statuses[ProviderCapability.UNIVERSE_DISCOVERY.value]
+    assert discovery["credentials_configured"] is False
+    assert "MARKETSTACK_DISCOVERY_EXCHANGE" in discovery["required_environment_variables"]
+    assert "MARKETSTACK_DISCOVERY_EXCHANGE" in discovery["missing_environment_variables"]
+    assert discovery["routing_eligible"] is False
+    assert discovery["checkpoint_hold_reason"] == "discovery remains held"

@@ -208,6 +208,9 @@ def bind_explicit_provider_acquisition(
     allowed_operations = {
         (ProviderCapability.INSTRUMENT_SEARCH, "search_instruments"),
         (ProviderCapability.INSTRUMENT_METADATA, "get_instrument_profile"),
+        # Server-owned quota refresh jobs are queued only from an explicit
+        # eligible operation and remain restricted to their configured source.
+        (ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage"),
         (ProviderCapability.PRICE_HISTORY, "fetch_ohlcv"),
         # Durable server-owned preparation can invoke the existing bounded
         # multi-provider history planner for one exact canonical instrument.
@@ -4400,11 +4403,15 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "operation_costs_configured": provider_contract_operation_costs_configured(
                     policy, data_source
                 ),
-                "credentials_configured": provider_is_configured(data_source.name),
-                "required_environment_variables": list(
-                    provider_required_settings(data_source.name)
+                "credentials_configured": provider_is_configured(
+                    data_source.name, diagnostic_operation
                 ),
-                "missing_environment_variables": provider_missing_settings(data_source.name),
+                "required_environment_variables": list(
+                    provider_required_settings(data_source.name, diagnostic_operation)
+                ),
+                "missing_environment_variables": provider_missing_settings(
+                    data_source.name, diagnostic_operation
+                ),
                 "required_routing_control_variables": list(routing_control_settings),
                 "missing_routing_control_variables": missing_routing_controls,
                 "entitlement_state": (
@@ -4419,7 +4426,7 @@ async def list_provider_status(db: AsyncSession) -> list[dict[str, Any]]:
                 "routing_eligible": bool(
                     policy.is_enabled
                     and (quota_known or bootstrap_only)
-                    and provider_is_configured(data_source.name)
+                    and provider_is_configured(data_source.name, diagnostic_operation)
                     and not missing_routing_controls
                     and str(entitlement.live_probe_status or "not_run").strip().lower()
                     in _POSITIVE_LIVE_PROBE_STATUSES
