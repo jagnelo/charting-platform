@@ -1,5 +1,38 @@
 # feat/market-data-provider-platform
 
+## 2026-11-07 — source-specific history-bound witness guard and TC context
+
+The unknown-depth history repair now limits a provider witness to the exact
+`history_depth_unknown` entitlement result. A matching earliest-history
+observation cannot override a concrete exceeded floor or an invalid/future or
+malformed contract. The regression derives `history_depth_exceeded` from an
+actual two-year entitlement and verifies that a matching witness is rejected.
+
+The witness clamp uses listing and provider-symbol `effective_at` lifecycle
+dates. The existing producer path maps provider IPO/effective dates into those
+fields and records `known_at` separately as the observation time; `known_at` is
+not queried or used as a history boundary. Bounded requests remain independently
+eligible per source when another provider has no computable floor. The Twelve
+Data endpoint is a one-credit, exact symbol/timeframe/MIC operation through
+normal provider admission. Its account-specific permitted use is unresolved and
+Root-owned; no live calls, quota/ledger/policy changes, or provider activation
+occurred. Known eligible Alpaca remains independently usable under its own
+reviewed history and native quota contract.
+
+Focused verification passed 54 tests across history planning, provider routing,
+and the two Twelve Data witness adapter cases. Ruff check/format, `py_compile`,
+and `git diff --check` passed on six Python paths. No broad suite, database,
+provider request, or production operation was run.
+
+Imported the six Provider-declared files from TC source
+`2666aa559afbff7cff8dff6b50ead357ae1f654f` after all 86 manifest rows and all
+six old-byte guards matched; imported Git blobs, hashes, and modes match 6/6.
+This is exact development consumption only. The current TC dependency pointer
+is `2666aa55`; ETF `b0db1656` and Strategy `f6521237` remain the other current
+pins. Earlier common imports remain historical. Exact-source CI, Root's native
+permitted-use review, combined browser/release qualification, and the broader
+Provider roadmap remain pending/open.
+
 ## 2026-11-07 — R23 selected-series and date-bound coverage repair
 
 Root's retained R23 trace showed two shared backend defects. The RRG analysis

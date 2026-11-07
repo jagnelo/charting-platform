@@ -1,12 +1,17 @@
 <template>
   <section class="rotation-tool" role="region" tabindex="0" :aria-label="`Relative rotation vs ${rotationBenchmark}`" :aria-busy="loading">
-    <header><strong>Relative Rotation · {{ rotationBenchmark }}</strong><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option><option v-for="family in familyKeys" :key="family.key" :value="family.key">{{ family.label }}</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" :disabled="isFamily" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>History <input v-model.number="historyLength" aria-label="Rotation history length" type="number" min="0" max="5000" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ historyLength ? ` · ${historyLength} history points` : '' }}{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></header>
-    <p v-if="loading && !rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">{{ preparationMessage || 'Calculating aligned local ratios…' }}</p>
-    <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
-    <p v-else-if="!rows.length" class="rotation-tool__state" role="status" aria-live="polite" aria-atomic="true">{{ preparationMessage || `No ${isFamily ? 'family-leg' : 'sector'} rotation rows are available.` }}</p>
+    <header class="rotation-tool__header">
+      <div class="rotation-tool__header-main"><strong>Relative Rotation · {{ rotationBenchmark }}</strong>
+        <details class="rotation-tool__settings"><summary>Settings</summary><div class="rotation-tool__settings-panel"><div class="rotation-tool__controls"><label>Universe <select v-model="groupKey" aria-label="Rotation universe"><option value="sp500-sectors">S&amp;P 500 sectors</option><option value="us-benchmarks">US benchmarks</option><option v-for="family in familyKeys" :key="family.key" :value="family.key">{{ family.label }}</option></select></label><label>Benchmark <input v-model.trim="benchmark" aria-label="Rotation benchmark" :disabled="isFamily" /></label><label>Timeframe <select v-model="timeframe" aria-label="Rotation timeframe"><option value="D1">Daily</option><option value="W1">Weekly</option><option value="MN">Monthly</option></select></label><label>Sampling <input v-model.number="sampling" aria-label="Rotation sampling" type="number" min="1" max="30" /></label><label>Lookback <input v-model.number="lookback" aria-label="Rotation lookback" type="number" min="2" max="252" /></label><label>Tail <input v-model.number="tailLength" aria-label="Rotation tail length" type="number" min="1" max="100" /></label><label>History <input v-model.number="historyLength" aria-label="Rotation history length" type="number" min="0" max="5000" /></label><label>As of <input v-model="asOf" aria-label="Rotation as of" type="date" /></label><label class="rotation-tool__adjusted"><input v-model="adjusted" aria-label="Rotation split adjusted" type="checkbox" /> Adjusted</label></div><small>Trend: ratio return over {{ lookback }} sampled observations · Momentum: change in that trend{{ historyLength ? ` · ${historyLength} history points` : '' }}{{ asOf ? ` · As of ${asOf}` : '' }}{{ freshness ? ` · ${formatWorkstationFreshness(freshness)}` : '' }}</small></div></details>
+        <details v-if="rows.length" class="rotation-tool__rows-disclosure"><summary>Rows · {{ rows.length }}</summary><div class="rotation-tool__table" role="region" aria-label="Relative rotation rows"><div class="rotation-tool__head" role="group" aria-label="Sort relative rotation rows"><button type="button" :aria-label="sortLabel('symbol')" @click="setSort('symbol')">{{ isFamily ? 'Leg' : 'Sector' }}{{ sortMark('symbol') }}</button><button type="button" :aria-label="sortLabel('state')" @click="setSort('state')">State{{ sortMark('state') }}</button><span class="rotation-tool__warning-heading">Warnings</span><button type="button" :aria-label="sortLabel('trend')" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" :aria-label="sortLabel('momentum')" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" :aria-label="sortLabel('heading')" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" :aria-label="sortLabel('distance')" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" :aria-label="sortLabel('velocity')" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" :aria-label="sortLabel('transition')" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" :aria-label="sortLabel('time_in_state')" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" :aria-label="sortLabel('coverage')" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" :aria-label="sortLabel('tail')" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.role ?? row.instrument_id ?? row.symbol" type="button" class="rotation-tool__row" :aria-label="rotationRowLabel(row)" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div></details>
+      </div>
+      <CompactStatusNotice v-if="rotationStatusDetail" class="rotation-tool__status" :kind="error ? 'alert' : 'status'" :summary="rotationStatusSummary" :detail="rotationStatusDetail" />
+    </header>
+    <p v-if="loading && !rows.length" class="rotation-tool__state">{{ rotationStatusSummary }}</p>
+    <p v-else-if="error" class="rotation-tool__state rotation-tool__state--error">{{ rotationStatusSummary }}</p>
+    <p v-else-if="!rows.length" class="rotation-tool__state">{{ rotationStatusSummary }}</p>
     <template v-else>
       <div class="rotation-tool__plot-shell" @mousemove="onPlotMove" @mouseleave="hovered = null" @click="selectHovered">
-        <p v-if="preparationMessage || loading" class="rotation-tool__updating" role="status" aria-live="polite" aria-atomic="true">{{ preparationMessage || 'Updating ratios…' }}</p>
         <div
           ref="plotHost"
           class="rotation-tool__plot"
@@ -24,7 +29,6 @@
           <strong>{{ hovered.symbol }}</strong><span>{{ hovered.point.timestamp }}</span><span>Trend {{ percent(hovered.point.trend) }} · Momentum {{ percent(hovered.point.momentum) }}</span>
         </div>
       </div>
-      <div class="rotation-tool__table" role="region" aria-label="Relative rotation rows"><div class="rotation-tool__head" role="group" aria-label="Sort relative rotation rows"><button type="button" :aria-label="sortLabel('symbol')" @click="setSort('symbol')">{{ isFamily ? 'Leg' : 'Sector' }}{{ sortMark('symbol') }}</button><button type="button" :aria-label="sortLabel('state')" @click="setSort('state')">State{{ sortMark('state') }}</button><span class="rotation-tool__warning-heading">Warnings</span><button type="button" :aria-label="sortLabel('trend')" @click="setSort('trend')">Trend{{ sortMark('trend') }}</button><button type="button" :aria-label="sortLabel('momentum')" @click="setSort('momentum')">Momentum{{ sortMark('momentum') }}</button><button type="button" :aria-label="sortLabel('heading')" @click="setSort('heading')">Heading{{ sortMark('heading') }}</button><button type="button" :aria-label="sortLabel('distance')" @click="setSort('distance')">Distance{{ sortMark('distance') }}</button><button type="button" :aria-label="sortLabel('velocity')" @click="setSort('velocity')">Velocity{{ sortMark('velocity') }}</button><button type="button" :aria-label="sortLabel('transition')" @click="setSort('transition')">Transition{{ sortMark('transition') }}</button><button type="button" :aria-label="sortLabel('time_in_state')" @click="setSort('time_in_state')">Time{{ sortMark('time_in_state') }}</button><button type="button" :aria-label="sortLabel('coverage')" @click="setSort('coverage')">Coverage{{ sortMark('coverage') }}</button><button type="button" :aria-label="sortLabel('tail')" @click="setSort('tail')">Tail{{ sortMark('tail') }}</button></div><button v-for="row in sortedRows" :key="row.role ?? row.instrument_id ?? row.symbol" type="button" class="rotation-tool__row" :aria-label="rotationRowLabel(row)" @click="emit('select', row.symbol, row.instrument_id)"><strong>{{ row.symbol }}</strong><span :class="`rotation-tool__state-${row.state}`">{{ row.state ?? 'Unavailable' }}</span><span v-if="row.warnings?.length" class="rotation-tool__warning" :title="row.warnings.map(warning => warning.message).join('\n')"><WorkstationGlyph kind="warning" /> {{ row.warnings.length }}</span><span v-else class="rotation-tool__warning-placeholder" aria-hidden="true" /><span>{{ percent(row.trend) }}</span><span>{{ percent(row.momentum) }}</span><span>{{ row.heading == null ? '—' : `${row.heading.toFixed(0)}°` }}</span><span>{{ percent(row.distance) }}</span><span>{{ percent(row.velocity) }}</span><span>{{ row.transition ?? '—' }}</span><span>{{ row.time_in_state ?? '—' }}</span><span>{{ percent(row.coverage) }}</span><span>{{ row.tail.length }}</span></button></div>
     </template>
   </section>
 </template>
@@ -36,7 +40,6 @@
 .rotation-tool__row > * { white-space: nowrap; }
 .rotation-tool__warning-heading { box-sizing: border-box; min-width: 0; padding: 0 8px 0 3px; color: #9baab5; font-weight: 600; text-align: left; text-transform: uppercase; }
 .rotation-tool__warning { color: #e7bc68; }
-@media(max-height:700px){.rotation-tool{min-height:520px;grid-template-rows:auto minmax(240px,1.4fr) minmax(150px,.6fr)}}
 </style>
 
 <script setup lang="ts">
@@ -45,9 +48,10 @@ import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
-import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationStatusMessage, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, PreparationProgressRefreshQueue, preparationMessageSummary, preparationStatusMessage, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import { formatWorkstationFreshness } from '@/lib/workstation/freshness'
 import WorkstationGlyph from './WorkstationGlyph.vue'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 
 interface Tail { timestamp: string; trend: number; momentum: number }
 interface Row { role?: string; label?: string; instrument_id?: number | null; symbol: string; state: string | null; trend: number | null; momentum: number | null; heading?: number | null; distance?: number | null; velocity?: number | null; transition?: string | null; time_in_state?: number | null; coverage: number; tail: Tail[]; history: Tail[]; warnings?: Array<{ code: string; message: string }> }
@@ -75,6 +79,10 @@ const historyLength = ref(Math.min(5000, Math.max(0, Number(props.configuration?
 const sampling = ref(Math.min(30, Math.max(1, Number(props.configuration?.sampling ?? 1) || 1)))
 const asOf = ref(configString('as_of', ''))
 const adjusted = ref(props.configuration?.adjusted !== false)
+const rotationStatusDetail = computed(() => error.value || preparationMessage.value || (loading.value
+  ? rows.value.length ? 'Updating ratios…' : 'Calculating aligned local ratios…'
+  : !rows.value.length ? `No ${isFamily.value ? 'family-leg' : 'sector'} rotation rows are available.` : ''))
+const rotationStatusSummary = computed(() => preparationMessageSummary(rotationStatusDetail.value, 'RRG'))
 const plotInstructionsId = `relative-rotation-plot-help-${useId()}`
 const plotHost = ref<HTMLElement | null>(null)
 const hovered = ref<{ symbol: string; point: PlotPoint; left: number; top: number } | null>(null)
@@ -245,7 +253,7 @@ function drawPlot() {
     return curve.map((tail, index) => ({ ...tail, symbol: row.symbol, color: colors[row.state ?? ''] ?? '#8796a1', last: index === curve.length - 1 }))
   }).filter(point => Number.isFinite(point.trend) && Number.isFinite(point.momentum))
   hovered.value = null
-  const width = Math.max(200, plotHost.value.clientWidth), height = Math.max(130, plotHost.value.clientHeight)
+  const width = Math.max(160, plotHost.value.clientWidth), height = Math.max(64, plotHost.value.clientHeight)
   // uPlot's aligned-data x array must be ascending even though this tool draws
   // the ratio points itself as an XY scatter plot. Keep the hidden y-series
   // paired with its x value, and use the same full finite domain for the
@@ -325,11 +333,16 @@ function drawPlot() {
       ctx.fillStyle = point.color
       ctx.fillText(point.symbol, labelX, labelY)
     }
-    // Labels may be placed over nearly coincident latest points. Paint markers
-    // last so their state-colored centers stay visible through label backdrops.
-    for (const point of points) {
+    // Paint every older point first. If markers are drawn row-by-row, a later
+    // row's historical point can cover an earlier row's latest marker. Keep
+    // all current centers above the complete history layer and label backdrops.
+    for (const point of points.filter(candidate => !candidate.last)) {
       const x = chart.valToPos(point.trend, 'x', true), y = chart.valToPos(point.momentum, 'y', true)
-      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, (point.last ? 3.5 : 2) * pixelRatio, 0, Math.PI * 2); ctx.fill()
+      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, 2 * pixelRatio, 0, Math.PI * 2); ctx.fill()
+    }
+    for (const point of points.filter(candidate => candidate.last)) {
+      const x = chart.valToPos(point.trend, 'x', true), y = chart.valToPos(point.momentum, 'y', true)
+      ctx.fillStyle = point.color; ctx.beginPath(); ctx.arc(x, y, 3.5 * pixelRatio, 0, Math.PI * 2); ctx.fill()
     }
   }] } }
   plot = new uPlot({ width, height, cursor: { drag: { x: true, y: true } }, scales: {
@@ -489,8 +502,27 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.rotation-tool__plot:focus-visible{outline:2px solid #eef3fb;outline-offset:-2px}.rotation-tool__updating{position:absolute;z-index:1;top:6px;right:8px;margin:0;padding:3px 6px;border:1px solid #394750;border-radius:3px;background:#171f25e8;color:#c0ccd3;pointer-events:none}
+.rotation-tool{position:relative;display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}
+.rotation-tool__header{position:static;display:flex;flex:0 0 auto;align-items:center;justify-content:space-between;gap:5px;min-width:0;padding:3px 6px;border-bottom:1px solid #2d3841}
+.rotation-tool__header-main{display:flex;align-items:center;gap:5px;min-width:0}
+.rotation-tool__header strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rotation-tool__status{flex:0 1 auto;min-width:0;max-width:58%}
+.rotation-tool__settings,.rotation-tool__rows-disclosure{position:static;flex:0 0 auto}
+.rotation-tool__settings>summary,.rotation-tool__rows-disclosure>summary{padding:3px 5px;border:1px solid #394750;border-radius:2px;background:#172027;color:#c8d4dc;cursor:pointer;white-space:nowrap;list-style:none}
+.rotation-tool__settings>summary::-webkit-details-marker,.rotation-tool__rows-disclosure>summary::-webkit-details-marker{display:none}
+.rotation-tool__settings>summary::before{content:'▸';margin-right:4px}.rotation-tool__settings[open]>summary::before{content:'▾'}
+.rotation-tool__settings-panel{position:absolute;top:38px;left:6px;z-index:5;width:min(340px,calc(100vw - 24px));max-height:calc(100% - 44px);overflow:auto;padding:8px;border:1px solid #526674;background:#172027;box-shadow:0 4px 12px #000b}
+.rotation-tool__settings-panel small{display:block;margin-top:6px;color:#82929d}
+.rotation-tool__controls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-items:center}
+.rotation-tool__controls label{display:flex;align-items:center;gap:3px;min-width:0;color:#9aabb6}
+.rotation-tool__controls input,.rotation-tool__controls select{box-sizing:border-box;min-width:0;width:78px;max-width:100%;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:2px 3px}
+.rotation-tool__controls label:first-child{grid-column:1/-1}.rotation-tool__controls label:first-child select{width:150px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}
+.rotation-tool__rows-disclosure{position:static}
+.rotation-tool__rows-disclosure[open]>.rotation-tool__table{position:absolute;z-index:6;right:0;bottom:6px;width:min(100%,900px);height:min(52vh,280px);max-height:calc(100% - 48px);min-height:64px;overflow:auto;border:1px solid #526674;background:#172027;box-shadow:0 4px 14px #000b}
+.rotation-tool__plot-shell{position:relative;flex:1 1 auto;min-height:64px;background:#101419;overflow:hidden}
+.rotation-tool__plot{width:100%;height:100%}.rotation-tool__plot:focus-visible{outline:2px solid #eef3fb;outline-offset:-2px}
+.rotation-tool__state{display:grid;flex:1 1 auto;min-height:48px;place-items:center;margin:0;color:#8596a1;text-align:center;padding:8px}.rotation-tool__state--error{color:#e28c8c}
 .rotation-tool__sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-.rotation-tool{display:grid;height:100%;min-height:0;grid-template-rows:auto minmax(180px,1fr) minmax(110px,.55fr);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:#11161b;color:#cad4db;font:10px "Segoe UI",Arial,sans-serif}.rotation-tool header{display:grid;gap:4px;padding:7px;border-bottom:1px solid #2d3841}.rotation-tool header small{color:#82929d}.rotation-tool__controls{display:flex;flex-wrap:wrap;gap:4px;align-items:center}.rotation-tool__controls label{display:flex;align-items:center;gap:2px;color:#9aabb6}.rotation-tool__controls input,.rotation-tool__controls select{min-width:0;width:58px;border:1px solid #3a4954;background:#172027;color:#dce6ed;font:inherit;padding:1px 3px}.rotation-tool__controls label:first-child select{width:112px}.rotation-tool__controls label:nth-child(7) input{width:100px}.rotation-tool__adjusted input{width:auto}.rotation-tool__state{display:grid;place-items:center;color:#8596a1}.rotation-tool__state--error{color:#e28c8c}.rotation-tool__plot-shell{position:relative;min-height:0;background:#101419;overflow:hidden}.rotation-tool__plot{width:100%;height:100%}.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}.rotation-tool__table{min-height:0;overflow:auto;overscroll-behavior:contain}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}
-@media(max-height:700px){.rotation-tool{grid-template-rows:auto minmax(150px,1fr) minmax(90px,.5fr)}}
+.rotation-tool__tooltip{position:absolute;z-index:2;display:grid;gap:2px;min-width:190px;padding:5px 7px;border:1px solid #526674;background:#172027;color:#dce6ed;box-shadow:0 3px 12px #0008;pointer-events:none}.rotation-tool__tooltip span{color:#9aabb6}
+.rotation-tool__table{height:100%;overflow:auto;overscroll-behavior:contain}.rotation-tool__head,.rotation-tool__row{display:grid;grid-template-columns:54px 78px 58px 68px 76px 66px 76px 76px 104px 58px 72px 42px;align-items:center;gap:5px;padding:5px 7px;min-width:720px}.rotation-tool__head{position:sticky;top:0;background:#20282f;color:#9baab5;font-weight:600;text-transform:uppercase}.rotation-tool__head button{border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer}.rotation-tool__head button:hover{color:#e4eef3}.rotation-tool__row{width:100%;border:0;border-bottom:1px solid #20282f;background:transparent;color:inherit;text-align:left;cursor:pointer}.rotation-tool__row:hover{background:#1d4057}.rotation-tool__state-leading{color:#61c58c}.rotation-tool__state-weakening{color:#e7bc68}.rotation-tool__state-improving{color:#6dbbe6}.rotation-tool__state-lagging{color:#df8181}
 </style>

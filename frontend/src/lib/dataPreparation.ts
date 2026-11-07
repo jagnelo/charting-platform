@@ -526,6 +526,24 @@ export function preparationStatusMessage(response: DataEnsureResponse, now = Dat
   return 'Preparing requested data…'
 }
 
+/** Keep dense toolbars short while the full honest result remains in details. */
+export function preparationMessageSummary(message: string, subject: string): string {
+  const text = message.trim().toLowerCase()
+  if (!text) return ''
+
+  const retryTime = /(?:resume at|retry after)\s+([^.;]+)/i.exec(message)?.[1]?.trim()
+  if (/temporarily (?:paused|at its request capacity)|temporarily waiting/.test(text)) {
+    return retryTime ? `${subject} waiting · ${retryTime}` : `${subject} waiting`
+  }
+  if (/credential|entitlement|source access/.test(text)) return `${subject} source unavailable`
+  if (/identity|listing details|canonical instrument/.test(text)) return `${subject} identity check`
+  if (/could not be completed|request failed|update failed/.test(text)) return `${subject} update failed`
+  if (/unavailable|no (?:current )?snapshot|not available/.test(text)) return `${subject} unavailable`
+  if (/preparing|checking|updating|queued|running/.test(text)) return `${subject} preparing`
+  if (/available locally|is ready|requested data is ready/.test(text)) return `${subject} ready`
+  return `${subject} status`
+}
+
 function userSafeReasonMessage(reasonCode: string): string | null {
   const code = reasonCode.toLowerCase()
   if (code.includes('quota') || code.includes('capacity')) return 'The data source is temporarily at its request capacity.'
