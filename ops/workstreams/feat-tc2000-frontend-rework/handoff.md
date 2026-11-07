@@ -26618,3 +26618,7 @@ Root R68 captured an older `/analysis/gauges/{id}` response returning queued 0/0
 
 
 The R68 checkpoint's exact Strategy manifest verification and current TC scope/workstream/journey validators passed; Playwright discovery listed 19 tests across the imported Dashboard, Study, and workstation lifecycle specs. These are static/test-discovery results only; no browser execution or Root acceptance is claimed.
+
+## 2026-11-07 — Start selected-chart preparation before cold local read completes
+
+The cold ChartView regression used a confirmed `instrument_id` target even though the new behavior submits preparation before the first local identity read completes. It now models the supported NVDA symbol target, verifies D1 and the absence of artificial date bounds, and waits for the local read and progress refresh independently. The mounted test confirms preparation starts while identity is still unresolved, keeps existing bars, and displays newly prepared bars after progress; the stale-symbol cancellation case remains in the focused module. The ChartView radar handoff module passed 18/18 and `vue-tsc --noEmit` passed. Workstream, strict TC scope, journey self-test, and diff checks passed. Root owns the rendered R69 follow-up and full qualification; no browser or native operation was run.

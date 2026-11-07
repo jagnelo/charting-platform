@@ -5193,9 +5193,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 48aa35a2fddaae3eec36029831c23c66f77d032f
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/48aa35a2fddaae3eec36029831c23c66f77d032f.json
-  manifest_sha256: ba1f9b1732f4d9404a16187f6df7936c4f325c87c8c34f6f1c381cf3d1390d29
+- source_sha: 4a18b4d759f02949f33da6ba91b0c93277f19592
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4a18b4d759f02949f33da6ba91b0c93277f19592.json
+  manifest_sha256: 91c90d8fe308e59a23598ccddc8fc80c90d9e18e9253644e2e023459cf3926d2
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

@@ -37,10 +37,10 @@
       "qualification": "Exact ETF 2450abb9 development import is present; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "48aa35a2fddaae3eec36029831c23c66f77d032f",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/48aa35a2fddaae3eec36029831c23c66f77d032f.json",
-      "manifest_sha256": "ba1f9b1732f4d9404a16187f6df7936c4f325c87c8c34f6f1c381cf3d1390d29",
-      "qualification": "Exact Strategy 48aa35a2 three-path test successor is imported with its full 27-entry manifest hash-verified; authored journeys and exact-source browser/release acceptance remain pending Root."
+      "source_commit": "4a18b4d759f02949f33da6ba91b0c93277f19592",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4a18b4d759f02949f33da6ba91b0c93277f19592.json",
+      "manifest_sha256": "91c90d8fe308e59a23598ccddc8fc80c90d9e18e9253644e2e023459cf3926d2",
+      "qualification": "Exact Strategy current-symbol selector test successor is imported with all 27 manifest rows verified; current-source browser execution and release acceptance remain pending Root."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -120,6 +120,12 @@
         "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/6f81120613ffbb1e43a5dc05c51ef2315afe9421.json",
         "manifest_sha256": "640f4163f7f32671d2e86b1d3f2e15b73a70a58d6d91e2fa8554d99704eb906d",
         "qualification": "Exact Strategy 6f811206 test-only successor and all 27 manifest entries are imported and hash-verified; authored browser journeys, exact-source CI, combined qualification, and release acceptance remain pending Root."
+      },
+      "strategy_48aa": {
+        "source_commit": "48aa35a2fddaae3eec36029831c23c66f77d032f",
+        "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/48aa35a2fddaae3eec36029831c23c66f77d032f.json",
+        "manifest_sha256": "ba1f9b1732f4d9404a16187f6df7936c4f325c87c8c34f6f1c381cf3d1390d29",
+        "qualification": "Exact Strategy 48aa35a2 three-path test successor is imported with its full 27-entry manifest hash-verified; authored journeys and exact-source browser/release acceptance remain pending Root."
       }
     }
   },

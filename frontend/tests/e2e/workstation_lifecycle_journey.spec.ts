@@ -364,9 +364,9 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
   } else if (kind === 'coverage') {
     const coverage = tool.locator('.coverage-summary')
     await expect(coverage).toBeVisible({ timeout: 20_000 })
-    const publicActiveSymbol = page.locator('.chart-header .symbol-info .sym').last()
+    const publicActiveSymbol = page.getByRole('combobox', { name: 'Active symbol', exact: true })
     await expect(publicActiveSymbol).toBeVisible()
-    const activeSymbol = (await publicActiveSymbol.innerText()).trim().toUpperCase()
+    const activeSymbol = (await publicActiveSymbol.inputValue()).trim().toUpperCase()
     expect(activeSymbol).toMatch(/^[A-Z0-9._-]+$/)
     await expect(coverage).toHaveAttribute('aria-label', `${activeSymbol} coverage`)
     const canonicalCoverageRead = await authenticatedJson(page, `/api/v1/coverage/instruments/${encodeURIComponent(activeSymbol)}`)
