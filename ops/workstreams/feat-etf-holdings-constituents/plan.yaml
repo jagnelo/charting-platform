@@ -6498,9 +6498,9 @@ provider_runtime_dependency_active_dd70319e:
   state: Development dependency only; Root's backend/browser and full release qualifications remain pending.
 
 approved_development_dependency_imports:
-- source_sha: e902e83597661de1e5a636a2d94902b0fe01b747
-  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e902e83597661de1e5a636a2d94902b0fe01b747.json
-  manifest_sha256: a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f
+- source_sha: d954436898a254ba9bb461ebc86a55f248172d5d
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/d954436898a254ba9bb461ebc86a55f248172d5d.json
+  manifest_sha256: 40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc
   paths:
   - frontend/package-lock.json
   - frontend/package.json
@@ -6703,7 +6703,7 @@ rrg_r52_d1_tail_sampling_2026_11_07:
   strategy_review: Read-only review of workstation_lifecycle_journey.spec.ts:149-205 shows a single rounded-center pixel exact RGB/alpha check. R51 raster has11 markers; the minimum exact opaque state-color count in each3x3 center neighborhood is4, while XLC center is [230,180,107,255] vs [231,188,104]. Recommend an interior neighborhood check requiring an exact opaque state-color pixel while preserving marker count, latest-frame, and clipping checks; no sibling edit made.
   remaining: Root owns the normal D1/W1/MN plus full layout lifecycle replay, Results acceptance, exact CI, and release gates.
 
-tc_common_runtime_dependency_active_e902e835:
+historical_tc_common_runtime_dependency_e902e835:
   authority: Root released exact TC source e902e83597661de1e5a636a2d94902b0fe01b747
     for development consumption only; combined browser, exact CI, and release qualification
     remain Root-owned.
@@ -6721,5 +6721,25 @@ tc_common_runtime_dependency_active_e902e835:
     before import and released hash/blob afterward.
   scope: TC common UI/diagnostic dependency; no other common or owner paths were copied
     by this import.
+  state: Root-released development dependency only; combined qualification remains
+    pending Root.
+
+tc_common_runtime_dependency_active_d9544368:
+  authority: Root released exact TC source d954436898a254ba9bb461ebc86a55f248172d5d
+    for development consumption only; combined browser, exact CI, and release qualification
+    remain Root-owned.
+  source: d954436898a254ba9bb461ebc86a55f248172d5d
+  previous_active_dependency: e902e83597661de1e5a636a2d94902b0fe01b747
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-d9544368-common-runtime-development-consumption-contract.json
+  manifest_sha256: 40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/d954436898a254ba9bb461ebc86a55f248172d5d.json
+  current_manifest_records_verified: 86
+  consumer_import_paths:
+  - frontend/src/views/WorkstationView.vue
+  verification: All86 source manifest Git blobs and SHA256 values verify; the sole
+    ETF WorkstationView import passed its e902 old guard and matches the released
+    bytes and executable mode.
+  scope: TC responsive narrow-header presentation only; no ETF-owned path or behavior
+    was changed by this import.
   state: Root-released development dependency only; combined qualification remains
     pending Root.

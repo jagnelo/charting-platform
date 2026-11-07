@@ -18628,3 +18628,8 @@ Local focused check: the two imported unit modules collected178 tests;177 passed
 Root visual review R60 found the selected ETF acquisition actions adjacent and visually unstyled. `ETFHoldingsView.vue` now gives the scoped Check saved holdings / Load or Refresh holdings controls TC-token borders, spacing, wrapping, hover, focus-visible, and disabled states; automatic preparation, identity, provenance, and action handlers are unchanged.
 
 Consumed only the two ETF-declared EasyScan paths from TC `e902e83597661de1e5a636a2d94902b0fe01b747`. Both old guards passed before import; the full86-row source manifest and local copy SHA256 `a87a59f7c1e76e1c8273e2949b67d676d72a43ee2b691463f82482567c71683f` verify. No other TC files were copied. Focused ETF view unit tests passed29/29 and frontend type-check passed. Root owns selected-ETF visual inspection and all combined browser/release gates; no browser, provider request, or data operation was run here.
+
+
+## TC d954 narrow-header context — 2026-11-07
+
+Consumed the sole ETF-declared path `frontend/src/views/WorkstationView.vue` from TC `d954436898a254ba9bb461ebc86a55f248172d5d` after its e902 byte guard passed. All86 source manifest Git blob/SHA256 rows verify; local manifest copy SHA256 is `40d280acde2d67ee082998c63f5ee8c3941219080de67dfb9a6a3a190f6e2ddc`. The change is responsive header layout only. Root owns the 1024px visual inspection, combined browser qualification, and release gates.
