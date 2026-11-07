@@ -26445,3 +26445,8 @@ The backward-compatible `/legacy/chart/:symbol` route now follows cached-first s
 ## 2026-11-07 — Revalidated dated holding context on dashboard reload
 
 A replayed dated holding URL now restores its compact historical caption only after the normal canonical identity lookup independently matches the context ID. The route value never supplies the ID for selection/acquisition, and the ETF is not re-established as current membership. Mismatched identity clears the lineage. The accessible detail retains instrument/snapshot/holding row/source row/reported symbol and name/type/composition/known-at/provider/provenance. Workstation and ChartView route tests passed 105/105 with type-check green; the first focused run caught and then corrected omitted source-row detail. No live account or source request was made.
+
+
+## 2026-11-07 — Reversible layout deletion recovery
+
+Deleting a saved layout now captures its configuration, window identities, and original position for a bounded same-workspace Undo. Restoring regenerates local IDs, rejects cross-workspace or identity collisions, and persists the restored layout. The workspace-store and mounted Workstation tests passed 183/183; frontend type-check and workstream/scope/journey/diff guards passed. Full browser roundtrip, complete route/action journey acceptance, exact-tip CI, and Root-owned combined release gates remain open. `integration_capture: exact branch HEAD`.

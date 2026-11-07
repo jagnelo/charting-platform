@@ -77,6 +77,9 @@ const harness = vi.hoisted(() => {
     selectIndustry: vi.fn(),
     closeTool: vi.fn(),
     cloneActiveTab: vi.fn(),
+    captureTabRecovery: vi.fn(),
+    deleteTab: vi.fn(),
+    restoreDeletedTab: vi.fn(),
     resetFactoryWorkspace: vi.fn(),
     openTool: vi.fn(),
     isEditorTarget: vi.fn(() => false),
@@ -585,6 +588,42 @@ describe('WorkstationView pop-out bindings', () => {
     expect(harness.workspace.resetFactoryWorkspace).toHaveBeenCalledTimes(1)
     confirm.mockRestore()
     wrapper.unmount()
+  })
+
+  it('offers an accessible undo for a confirmed layout deletion in the same workspace', async () => {
+    routeState.path = '/'
+    routeState.params = {}
+    const baseTab = harness.workspace.workspace.tabs[0]
+    const deletedTab = { ...baseTab, id: 2, stable_key: 'layout-recovery', name: 'Saved layout', position: 1 }
+    harness.workspace.workspace.tabs = [baseTab, deletedTab]
+    const recovery = { workspace_id: 1, tab: deletedTab, position: 1 }
+    harness.workspace.captureTabRecovery.mockReturnValue(recovery)
+    harness.workspace.deleteTab.mockImplementation((stableKey: string) => {
+      harness.workspace.workspace.tabs = harness.workspace.workspace.tabs.filter(tab => tab.stable_key !== stableKey)
+      return true
+    })
+    harness.workspace.restoreDeletedTab.mockReturnValue(true)
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true)
+    const wrapper = mount(WorkstationView, {
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    try {
+      await wrapper.get('button[title="Manage workspace layouts"]').trigger('click')
+      await wrapper.get('button[aria-label="Delete layout Saved layout"]').trigger('click')
+      expect(confirm).toHaveBeenCalledWith('Delete layout “Saved layout”?')
+      expect(harness.workspace.deleteTab).toHaveBeenCalledWith('layout-recovery')
+      const recoveryNotice = wrapper.get('.workstation__layout-recovery')
+      expect(recoveryNotice.attributes('role')).toBe('status')
+      expect(recoveryNotice.text()).toContain('Deleted layout “Saved layout”.')
+
+      await recoveryNotice.get('button[role="menuitem"]').trigger('click')
+      expect(harness.workspace.restoreDeletedTab).toHaveBeenCalledWith(recovery)
+      expect(wrapper.find('.workstation__layout-recovery').exists()).toBe(false)
+    } finally {
+      confirm.mockRestore()
+      wrapper.unmount()
+    }
   })
 
   it('announces an unavailable pop-out tool as an assertive recovery alert', async () => {
