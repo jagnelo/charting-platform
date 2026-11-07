@@ -126,7 +126,7 @@
       @plot-drop="addPlotColumn"
       @condition-drop="addConditionColumn"
     />
-    <section v-else-if="tool.tool_type === 'watchlist' && (tool.configuration.personal === true || isFavoritesTool)" class="personal-watchlist-tool" role="region" :aria-label="isFavoritesTool ? 'My Favorites Quick List' : 'Personal watchlists'" :aria-busy="(isFavoritesTool ? favoriteStore.loading : ((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy)) ? 'true' : 'false'">
+    <section v-else-if="isPersonalWatchlistTool" class="personal-watchlist-tool" role="region" :aria-label="isFavoritesTool ? 'My Favorites Quick List' : 'Personal watchlists'" :aria-busy="(isFavoritesTool ? favoriteStore.loading : ((watchlistStore.loading && !selectedPersonalWatchlist && !flaggedItemsSelected && !selectedCombo) || personalListBusy || personalWatchlistBusy)) ? 'true' : 'false'">
       <div v-if="isFavoritesTool" class="personal-watchlist-tool__controls">
         <span>{{ favoriteStore.favorites.length }} symbols · My Favorites</span>
         <span v-if="favoriteStore.error" class="personal-watchlist-tool__error" role="alert">{{ favoriteStore.error }}</span>
@@ -1911,7 +1911,7 @@ onMounted(async () => {
     await watchlistStore.loadWatchlists()
     if (disposed) return
   }
-  if (props.tool.tool_type !== 'watchlist' || (props.tool.configuration.personal !== true && !isFavoritesTool.value)) return
+  if (!isPersonalWatchlistTool.value) return
   if (isFavoritesTool.value) {
     if (!favoriteStore.loaded) await favoriteStore.load()
     if (disposed) return
@@ -3575,6 +3575,13 @@ const isConstituentTool = computed(() => workspaceToolRole(props.tool) === 'cons
   || props.tool.instance_key === 'constituent-list'
   || (props.tool.title ?? '').toLowerCase().includes('constituent')
   || (props.tool.title ?? '').toLowerCase().includes('component'))
+// A persisted generic watchlist flag must not override a factory semantic role.
+// Older or cloned Industry/Constituent windows can carry `personal: true`; keep
+// rendering their dated domain surface even when its source rows are empty.
+const isPersonalWatchlistTool = computed(() => props.tool.tool_type === 'watchlist'
+  && !isIndustryTool.value
+  && !isConstituentTool.value
+  && (props.tool.configuration.personal === true || isFavoritesTool.value))
 const showsETFCompositionContext = computed(() => isConstituentTool.value || isIndustryTool.value)
 const toolHeaderSymbol = computed(() => showsETFCompositionContext.value && selectedETF.value
   ? selectedETF.value
