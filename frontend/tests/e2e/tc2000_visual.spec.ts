@@ -190,7 +190,7 @@ test.describe('TC2000 Version 25 board-guided visual parity', () => {
     const menu = page.getByRole('menu', { name: 'Workspace layouts' })
     await expect(menu).toBeVisible()
     await expect(menu.getByRole('menuitem', { name: 'Duplicate active layout', exact: true })).toBeVisible()
-    await expect(menu.getByRole('menuitem', { name: 'Export', exact: true })).toBeVisible()
+    await expect(menu.getByRole('menuitem', { name: 'Export workspace', exact: true })).toBeVisible()
     await expect(page).toHaveScreenshot('application-shell-menu-open.png', {
       animations: 'disabled',
       caret: 'hide',

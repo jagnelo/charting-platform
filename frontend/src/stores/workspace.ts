@@ -1075,6 +1075,12 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const workspace = ref<WorkspaceState | null>(null)
   const workspaces = ref<WorkspaceSummary[]>([])
   const activeTabKey = ref<string>('us-top-down')
+  function workspaceActiveTabKey(state: WorkspaceState): string {
+    const saved = typeof state.settings.active_tab_key === 'string' ? state.settings.active_tab_key : null
+    return state.tabs.some(tab => tab.stable_key === saved)
+      ? saved!
+      : state.tabs[0]?.stable_key ?? 'us-top-down'
+  }
   const linkedSymbol = ref('SPY')
   /**
    * Shared selection is keyed by link group. `linkedSymbol` remains the blue/default
@@ -1463,7 +1469,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       workspace.value = latest
       persistedWorkspace = cloneSerializable(latest)
       if (!latest.tabs.some(tab => tab.stable_key === activeTabKey.value)) {
-        activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+        activeTabKey.value = workspaceActiveTabKey(latest)
       }
       error.value = null
     } catch (cause: any) {
@@ -1821,7 +1827,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       persistedWorkspace = cloneSerializable(workspace.value)
       snapshotSaveStatus.value = 'saved'
       snapshotSaveError.value = null
-      activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
+      activeTabKey.value = workspaceActiveTabKey(workspace.value)
       // Link selections are shared workspace state. Restore each concrete
       // group's last symbol plus Yellow's last received symbol from settings;
       // older workspaces fall back to the persisted symbols on their tools.
@@ -1931,7 +1937,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       persistedWorkspace = cloneSerializable(next)
       snapshotSaveStatus.value = 'saved'
       snapshotSaveError.value = null
-      activeTabKey.value = next.tabs[0]?.stable_key ?? 'us-top-down'
+      activeTabKey.value = workspaceActiveTabKey(next)
       error.value = null
       await refreshWorkspaces()
       return next
@@ -2009,10 +2015,16 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   }
 
   function snapshotPayload(current: WorkspaceState) {
+    const activeTab = current.tabs.find(tab => tab.stable_key === activeTabKey.value)
     return {
       base_revision: current.revision,
       name: current.name,
-      settings: current.settings,
+      // Active layout is part of the user's workspace context. Older snapshots
+      // simply omit this key and continue to open the first available tab.
+      settings: {
+        ...current.settings,
+        active_tab_key: activeTab?.stable_key ?? current.tabs[0]?.stable_key ?? 'us-top-down',
+      },
       schema_version: current.schema_version,
       tabs: current.tabs.map(tab => ({
         stable_key: tab.stable_key,
@@ -3242,7 +3254,7 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             const recovery = await preserveConflictRecovery(current)
             workspace.value = latest
             persistedWorkspace = cloneSerializable(latest)
-            activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
+            activeTabKey.value = workspaceActiveTabKey(latest)
             error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
             snapshotSaveStatus.value = 'error'
             snapshotSaveError.value = error.value

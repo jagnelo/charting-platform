@@ -55,10 +55,19 @@ test('supporting notes — save, edit, reload, and return without leaking betwee
   const reloadedNote = page.getByRole('region', { name: 'SPY notes' })
   await expect(reloadedNote.getByRole('textbox', { name: 'Instrument note' })).toHaveValue(editedDraft, { timeout: 15_000 })
 
+  const qqqInstrumentResponse = page.waitForResponse(response => {
+    const url = new URL(response.url())
+    return response.request().method() === 'GET'
+      && url.pathname === '/api/v1/instruments/QQQ'
+      && response.ok()
+  })
   await page.goto('/chart/QQQ')
+  const qqqInstrument = await qqqInstrumentResponse.then(response => response.json() as Promise<{ id: number; symbol: string }>)
+  expect(qqqInstrument.symbol).toBe('QQQ')
+  expect(qqqInstrument.id).toBeGreaterThan(0)
   const qqqNote = page.getByRole('region', { name: 'QQQ notes' })
   await expect(qqqNote.getByRole('textbox', { name: 'Instrument note' })).toHaveValue('', { timeout: 15_000 })
-  await expect(qqqNote.locator('.note-tool__status')).toContainText('No note')
+  await expect(qqqNote.locator('.note-tool__status')).toHaveText('QQQ · No note', { timeout: 15_000 })
 
   await page.goto('/chart/SPY')
   await expect(page.getByRole('region', { name: 'SPY notes' }).getByRole('textbox', { name: 'Instrument note' })).toHaveValue(editedDraft, { timeout: 15_000 })

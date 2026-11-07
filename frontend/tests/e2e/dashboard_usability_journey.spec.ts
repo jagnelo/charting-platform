@@ -216,13 +216,11 @@ function deferredGate() {
   return { promise, release }
 }
 
-async function expectComparisonTooltip(page: Page, chart: Locator, symbols: string[]) {
+async function expectComparisonTooltip(chart: Locator, symbols: string[]) {
   await chart.scrollIntoViewIfNeeded()
   const plot = chart.locator('.uplot')
   await expect(plot).toBeVisible()
-  const bounds = await plot.boundingBox()
-  expect(bounds).not.toBeNull()
-  await page.mouse.move(bounds!.x + bounds!.width * 0.65, bounds!.y + bounds!.height * 0.5)
+  await plot.hover()
   const tooltip = chart.locator('.chart-tooltip')
   await expect(tooltip).toBeVisible()
   for (const symbol of symbols) {
@@ -424,7 +422,7 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   const comparison = page.locator('.dashboard-widget').filter({ hasText: 'Comparison Chart' }).locator('.line-chart-widget')
   await expectSeriesPainted(comparison, '#64b5f6')
   await expectSeriesPainted(comparison, '#81c784')
-  await expectComparisonTooltip(page, comparison, ['SPY', 'XLB'])
+  await expectComparisonTooltip(comparison, ['SPY', 'XLB'])
   // Partial is a valid durable preparation state when the independently checked
   // cached bars and both plotted series already provide useful comparison data.
   expect(['ready', 'queued', 'running', 'waiting', 'partial']).toContain(preparationBody.status)
@@ -466,7 +464,7 @@ test('Dashboard creates useful seeded quote and chart widgets and restores saved
   const restoredComparisonChart = page.locator('.dashboard-widget').filter({ hasText: 'Comparison Chart' }).locator('.line-chart-widget')
   await expectSeriesPainted(restoredComparisonChart, '#64b5f6')
   await expectSeriesPainted(restoredComparisonChart, '#81c784')
-  await expectComparisonTooltip(page, restoredComparisonChart, ['SPY', 'XLB'])
+  await expectComparisonTooltip(restoredComparisonChart, ['SPY', 'XLB'])
   const comparisonAfterReload = await persistedDashboard(page)
   expect(comparisonAfterReload.tabs.flatMap(tab => tab.widgets).find(widget => widget.id === comparisonWidget.id)?.config.targets)
     .toMatchObject([{ symbol: 'SPY' }, { symbol: 'XLB', label: 'XLB' }])

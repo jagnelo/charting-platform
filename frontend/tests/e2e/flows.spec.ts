@@ -445,7 +445,11 @@ test.describe('Chart', () => {
     // conceal the desktop hit-target regression. Exercise both ordinary
     // controls while the populated chip and Plots trigger coexist.
     await expect(comparisonChip).toContainText(/[+-]\d+\.\d{2}%/, { timeout: 15_000 })
-    await chart.getByRole('button', { name: 'Chart plot library', exact: true }).click()
+    const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
+    await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible()
     const plotsMenu = chart.locator('.chart-plots__menu:visible')
     await expect(plotsMenu).toBeVisible()
     await plotsMenu.getByRole('button', { name: 'Close chart plot library' }).click()
@@ -692,7 +696,7 @@ test.describe('Chart', () => {
     const workspaceMenu = page.getByRole('menu', { name: 'Workspace layouts' })
     await expect(workspaceMenu).toBeVisible({ timeout: 10_000 })
     const downloadPromise = page.waitForEvent('download')
-    await workspaceMenu.getByRole('menuitem', { name: 'Export', exact: true }).click()
+    await workspaceMenu.getByRole('menuitem', { name: 'Export workspace', exact: true }).click()
     const download = await downloadPromise
     const exportPath = await download.path()
     expect(exportPath).not.toBeNull()
@@ -1207,6 +1211,31 @@ test.describe('Chart', () => {
     await expect(helpDialog).toHaveCount(0)
     await expect(helpTrigger).toHaveAttribute('aria-expanded', 'false')
     await expect(activeSymbol).toBeFocused()
+    await browserDiagnostics.expectNoCriticalIssues()
+  })
+
+  test('F9e-shell-public-navigation — application menu activation mounts Watchlist, Alerts, and Settings', async ({ page, browserDiagnostics }) => {
+    const destinations = [
+      { path: '/legacy/watchlist', label: 'Watchlist', view: '.watchlist-view' },
+      { path: '/legacy/alerts', label: 'Alerts', view: '.alerts-view' },
+      { path: '/legacy/settings', label: 'Settings', view: '.settings-view' },
+    ]
+
+    for (const destination of destinations) {
+      // Each destination is reached through the real application menu. The
+      // direct route is only used to restore the shared Workstation starting
+      // point for the next ordinary menu activation.
+      await page.goto('/chart')
+      const trigger = page.getByRole('button', { name: 'Open application navigation' })
+      await expect(trigger).toBeVisible()
+      await trigger.click()
+      const menu = page.getByRole('menu', { name: 'Application navigation' })
+      await expect(menu).toBeVisible()
+      await menu.getByRole('menuitem', { name: destination.label, exact: true }).click()
+      await expect(page).toHaveURL(new RegExp(`${destination.path}$`))
+      await expect(page.locator(destination.view)).toBeVisible()
+    }
+
     await browserDiagnostics.expectNoCriticalIssues()
   })
 
@@ -3793,6 +3822,9 @@ test.describe('TC2000 workstation', () => {
     const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
     await expect(plots).toBeVisible({ timeout: 15_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible()
     const indicatorSave = page.waitForResponse(response => {
       const request = response.request()
       if (request.method() !== 'PUT' || !request.url().includes('/api/v1/instrument-indicators/')) return false
@@ -3801,7 +3833,7 @@ test.describe('TC2000 workstation', () => {
         return response.ok() && (payload.indicators?.some(indicator => indicator.type === 'rsi') ?? false)
       } catch { return false }
     })
-    await chart.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     const indicatorSaveResponse = await indicatorSave
     const indicatorSaveRequest = indicatorSaveResponse.request()
     const savedIndicatorPayload = indicatorSaveRequest.postDataJSON() as { indicators?: Array<{ type?: string }> }
@@ -6688,13 +6720,18 @@ test.describe('TC2000 workstation', () => {
     // user-facing drag source is the active visible chart, not DOM order.
     const chart = page.locator('.chart-tool:visible').last()
     await expect(chart).toBeVisible({ timeout: 10_000 })
-    await chart.locator('button[aria-label="Chart plot library"]').click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    const plots = chart.getByRole('button', { name: 'Chart plot library', exact: true })
+    await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     // Plot insertion closes the fixed plot-library menu so chart gestures are
     // immediately available. Reopen it before starting the real drag path.
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
-    await chart.locator('button[aria-label="Chart plot library"]').click()
-    await expect(chart.locator('.chart-plots__menu')).toBeVisible({ timeout: 10_000 })
+    await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect.poll(() => plot.count(), { timeout: 10_000 }).toBeGreaterThan(0)
     await expect(plot).toBeVisible({ timeout: 10_000 })
@@ -6728,9 +6765,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     const plot = chart.locator('.chart-plots li').filter({ hasText: 'RSI' }).last()
     await expect(plot).toBeVisible({ timeout: 10_000 })
     await chart.getByRole('combobox', { name: 'Promotion plot' }).selectOption({ index: 1 })
@@ -6809,9 +6851,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('signal')
     await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
@@ -6833,9 +6880,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('filter')
     const targetPicker = page.getByRole('combobox', { name: 'Plot promotion watchlist' })
@@ -6877,9 +6929,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('ema')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('ema')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('alert')
     await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
@@ -6906,9 +6963,14 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('sma')
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('sma')
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('scan')
     await page.getByRole('combobox', { name: 'Plot promotion operator' }).selectOption('gte')
@@ -6932,14 +6994,19 @@ test.describe('TC2000 workstation', () => {
     await expect(chart).toBeVisible({ timeout: 10_000 })
     const plots = chart.locator('button[aria-label="Chart plot library"]')
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    const plotLibrary = chart.getByRole('dialog', { name: 'Chart plot library panel' })
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     const indicatorSave = page.waitForResponse(response => {
       const path = new URL(response.url()).pathname
       return response.request().method() === 'PUT' && /^\/api\/v1\/instrument-indicators\/\d+$/.test(path) && response.ok()
     })
-    await chart.locator('select[aria-label="Add indicator plot"]').selectOption('rsi')
+    await plotLibrary.getByRole('combobox', { name: 'Add indicator plot' }).selectOption('rsi')
     await indicatorSave
     await expect(chart.locator('.chart-plots__menu')).toHaveCount(0, { timeout: 10_000 })
     await plots.click()
+    await expect(plots).toHaveAttribute('aria-expanded', 'true')
+    await expect(plotLibrary).toBeVisible({ timeout: 10_000 })
     await chart.locator('select[aria-label="Promotion plot"]').selectOption({ index: 1 })
     await page.getByRole('combobox', { name: 'Plot promotion target' }).selectOption('gauge')
     await page.getByRole('spinbutton', { name: 'Plot promotion threshold' }).fill('70')

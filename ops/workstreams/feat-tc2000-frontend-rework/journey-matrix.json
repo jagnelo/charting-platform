@@ -31,16 +31,16 @@
       "qualification": "Exact Provider 22c31 development backend import is present; producer CI, combined browser and release acceptance remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "2450abb9f683cb415e62937dc433cf3d104872bb",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2450abb9f683cb415e62937dc433cf3d104872bb.json",
-      "manifest_sha256": "8338ce5202711f0ef1c61ef0f85ec5b52566e6227de40b9e91fa90704b5ae4a7",
-      "qualification": "Exact ETF 2450abb9 development import is present; browser execution and release acceptance remain Root-owned and pending."
+      "source_commit": "fb378d7aa45e2741ad78475f84a9c0c7e8c78166",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fb378d7aa45e2741ad78475f84a9c0c7e8c78166.json",
+      "manifest_sha256": "84d132b9b6c4ebd4edb0ee10443b71df1aabda72f88585df5ab56f44578a6967",
+      "qualification": "Exact ETF fb378d7a development import is present and all ten manifest rows are hash-verified; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "4a18b4d759f02949f33da6ba91b0c93277f19592",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4a18b4d759f02949f33da6ba91b0c93277f19592.json",
-      "manifest_sha256": "91c90d8fe308e59a23598ccddc8fc80c90d9e18e9253644e2e023459cf3926d2",
-      "qualification": "Exact Strategy current-symbol selector test successor is imported with all 27 manifest rows verified; current-source browser execution and release acceptance remain pending Root."
+      "source_commit": "bc98876bf78673e4d2c223e0f4796d783b6a9b98",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bc98876bf78673e4d2c223e0f4796d783b6a9b98.json",
+      "manifest_sha256": "712191082ecb288079f349e70a981a1adfb46e4aa7e69d5080d329878119552c",
+      "qualification": "Exact Strategy bc98876b development successor is imported with all 27 manifest rows verified; Root browser qualification remains pending."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -138,7 +138,7 @@
     "owned_actions": 12,
     "etf_actions": 16,
     "strategy_actions": 48,
-    "journey_cases": 67,
+    "journey_cases": 68,
     "critical_review_slots": 9,
     "control_surfaces": 57
   },
@@ -284,7 +284,8 @@
       ],
       "journey": "TC09",
       "case_refs": [
-        "TC09-alerts"
+        "TC09-alerts",
+        "TC09-public-app-navigation"
       ],
       "journey_ids": [
         "TC09"
@@ -416,7 +417,8 @@
       ],
       "journey": "TC09",
       "case_refs": [
-        "TC09-watchlists"
+        "TC09-watchlists",
+        "TC09-public-app-navigation"
       ],
       "journey_ids": [
         "TC09"
@@ -431,7 +433,8 @@
       ],
       "journey": "TC09",
       "case_refs": [
-        "TC09-settings"
+        "TC09-settings",
+        "TC09-public-app-navigation"
       ],
       "journey_ids": [
         "TC09"
@@ -5181,7 +5184,7 @@
     {
       "source": "frontend/src/views/WorkstationView.vue",
       "control_count": 48,
-      "signature_sha256": "7e607d5a355617bb5e6ebb90c98cc19fd2efc5fc1bf7871d9566ad3fd9b4496e",
+      "signature_sha256": "9d1ef53fe6e8b09de4e9cfc2153b37cae2cc02000502cd56b4d27c49f0b0a5b9",
       "journeys": [
         "TC01",
         "TC02",
@@ -5191,22 +5194,25 @@
       ],
       "evidence_status": "source_mapped_browser_pending",
       "evidence": [
-        "frontend/src/views/WorkstationView.vue"
+        "frontend/src/views/WorkstationView.vue",
+        "frontend/tests/e2e/flows.spec.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "pending_reason": "Workstation controls are mapped to specific journeys; Root-owned browser execution and current rendered review remain pending.",
       "journey_ids": [
         "TC01",
         "TC02",
         "TC06",
         "TC07",
-        "TC08"
+        "TC08",
+        "TC09"
       ],
       "case_refs": [
         "TC01-session-boundary",
         "TC02-workstation-search",
         "TC06-catalogue-recreate",
         "TC07-layout-lifecycle",
-        "TC08-study-run"
+        "TC08-study-run",
+        "TC09-public-app-navigation"
       ]
     },
     {
@@ -6262,7 +6268,7 @@
         "TC02"
       ],
       "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
-      "test_name": "chart search discovers an unknown ticker automatically and deliberate identity selection starts bounded history",
+      "test_name": "Workstation search resolves an unknown ticker and reports shared history preparation without stale chart data",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC02-critical-review"
     },
@@ -6891,6 +6897,16 @@
       ],
       "test_path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
       "test_name": "Dashboard Advanced Chart and Instrument Details stay useful on cached data while each preparation is pending and after reload",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-public-app-navigation",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F9e-shell-public-navigation — application menu activation mounts Watchlist, Alerts, and Settings",
       "execution_status": "authored_pending_root_run",
       "critical_review_slot": "TC09-critical-review"
     }

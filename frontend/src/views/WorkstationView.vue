@@ -33,7 +33,6 @@
             role="menuitem"
             tabindex="-1"
             :aria-current="isApplicationNavigationItemActive(item) ? 'page' : undefined"
-            @click="closeShellMenus()"
           >
             <span aria-hidden="true">{{ item.icon }}</span>
             <span>{{ item.label }}</span>
@@ -575,6 +574,10 @@ const openableTools = computed(() => workspaceStore.toolCatalogue ?? [])
 const applicationNavigation = sharedShellNavigation
 const isApplicationNavigationItemActive = (item: typeof applicationNavigation[number]) =>
   isSharedNavigationItemActive(route.path, item.match)
+// Keep RouterLink mounted until its own navigation handler has committed the
+// destination. Closing the v-if menu during pointerdown/click can detach the
+// link before Vue Router processes the ordinary activation.
+watch(() => route.fullPath, () => closeShellMenus())
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState === 'visible')
 let removeVisibilityListener: (() => void) | null = null
 const popoutGeometryPollers = new Map<string, ReturnType<typeof window.setInterval>>()
@@ -1139,11 +1142,12 @@ function selectWorkspaceTab(stableKey: string) {
 
 async function replaceDockAfterWorkspaceChange() {
   if (isPopout.value) return
+  const alreadyReplacingWorkspace = workspaceReplacementPending.value
   workspaceReplacementPending.value = true
   await nextTick()
   workspaceReloadKey.value += 1
   await nextTick()
-  workspaceReplacementPending.value = false
+  workspaceReplacementPending.value = alreadyReplacingWorkspace
   await nextTick()
 }
 
@@ -2362,6 +2366,7 @@ async function importWorkspace(event: Event) {
   const file = input.files?.[0]
   input.value = ''
   if (!file) return
+  const alreadyReplacingWorkspace = workspaceReplacementPending.value
   workspaceReplacementPending.value = true
   await nextTick()
   try {
@@ -2374,7 +2379,7 @@ async function importWorkspace(event: Event) {
   } catch {
     workspaceStore.error = 'The workspace file is not valid JSON.'
   } finally {
-    workspaceReplacementPending.value = false
+    workspaceReplacementPending.value = alreadyReplacingWorkspace
     await nextTick()
   }
 }
@@ -2407,8 +2412,50 @@ async function remountDockAfterSnapshot(
   // completed layout from the server-confirmed workspace.
   for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
   Object.assign(mountedConfiguration, publishedConfiguration)
-  workspaceReloadKey.value += 1
+  // A virtual root can emit one final layout callback as it is destroyed.
+  // Keep the host out of the DOM until that callback is fenced, then mount it
+  // from the server-confirmed workspace snapshot and configuration.
+  const wasReplacing = workspaceReplacementPending.value
+  workspaceReplacementPending.value = true
+  try {
+    await nextTick()
+    workspaceReloadKey.value += 1
+    await nextTick()
+  } finally {
+    workspaceReplacementPending.value = wasReplacing
+    await nextTick()
+  }
+}
+
+async function saveToolConfigurationAndRemount(
+  windowKey: string,
+  mountedConfiguration: Record<string, unknown>,
+  publishedConfiguration: Record<string, unknown>,
+) {
+  // Fence virtual-root layout callbacks for the entire publish/save/remount
+  // transaction. A callback from the old root must not replace an accepted
+  // selected-member source with the factory's previous group configuration.
+  const wasReplacing = workspaceReplacementPending.value
+  workspaceReplacementPending.value = true
   await nextTick()
+  try {
+    updateToolConfiguration(windowKey, publishedConfiguration)
+    await saveWorkspaceSnapshotIfSupported()
+    // Saving can replace the canonical workspace object with the API response.
+    // Keep the just-accepted semantic source on that current object before the
+    // dock remounts, even if a delayed stateChanged event raced the response.
+    const savedWindow = workspaceStore.workspace?.tabs
+      .flatMap(tab => tab.windows)
+      .find(window => window.instance_key === windowKey)
+    if (savedWindow) {
+      for (const key of Object.keys(savedWindow.configuration)) delete savedWindow.configuration[key]
+      Object.assign(savedWindow.configuration, publishedConfiguration)
+    }
+    await remountDockAfterSnapshot(mountedConfiguration, publishedConfiguration)
+  } finally {
+    workspaceReplacementPending.value = wasReplacing
+    await nextTick()
+  }
 }
 
 type StudyDefinitionOpen = {
@@ -2484,19 +2531,7 @@ async function publishMapAnalysis(publication: MapAnalysisPublication) {
         custom_universe_watchlist_id: analysisSourceId,
         ...selectedConfiguration,
       }
-      updateToolConfiguration(existing.window.instance_key, publishedConfiguration)
-      await saveWorkspaceSnapshotIfSupported()
-      // saveSnapshot replaces the canonical workspace object with the server
-      // response. Golden Layout may still hold the pre-save tool object, so
-      // mirror the accepted configuration into that mounted object as well.
-      for (const key of Object.keys(mountedConfiguration)) delete mountedConfiguration[key]
-      Object.assign(mountedConfiguration, publishedConfiguration)
-      // A snapshot replacement can leave Golden Layout's virtual root bound
-      // to the pre-save object. Reinstall this completed layout from the
-      // server-confirmed workspace so the visible breadth controls and the
-      // persisted configuration cannot diverge.
-      workspaceReloadKey.value += 1
-      await nextTick()
+      await saveToolConfigurationAndRemount(existing.window.instance_key, mountedConfiguration, publishedConfiguration)
       return
     }
     const definition = await catalogueTool('breadth')
@@ -2845,7 +2880,7 @@ function persistGoldenLayout(layout: Record<string, unknown>, visibleToolKeys: s
   // Vue is switching the active tab. Never write that old tree into the newly
   // selected tab; the host will emit a fresh snapshot after its replacement
   // install completes.
-  if (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey) return
+  if (workspaceReplacementPending.value || (sourceTabKey && sourceTabKey !== workspaceStore.activeTabKey)) return
   workspaceStore.applyActiveLayout(layout, visibleToolKeys)
 }
 

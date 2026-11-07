@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "No external blocker to TC-owned implementation. Shared preparation entrypoints and R48 presentation have focused source checks; remaining route/action journeys, factory recreation and complete rendered review are still open. Root owns exact CI and combined qualification."
-current_checkpoint_status: "Bounded R68 Gauge race repair on frozen predecessor 851b4dbe556c2d03951fd20a245aefc2000d3c6b: serialize a fresh metrics read behind an older in-flight Gauge response, retain last completed metrics while pending, and import the exact Strategy 48aa35a2 test successor. Focused Gauge tests pass 12/12 and frontend type-check passes; Root-owned rendered journeys, exact-tip CI, combined qualification, and all remaining platform-usability criteria remain pending."
+current_blocker: "No local focused-check blocker. Root-owned browser execution, current shell navigation visual/runtime review, exact-tip CI, combined qualification, native proof, and release gates remain pending."
+current_checkpoint_status: "TC public application-menu navigation fix and source assembly: remove synchronous menu unmount from RouterLink, close menus on committed route change; add pending ordinary-click coverage for Watchlist, Alerts, Settings. The exact ETF fb378 and Strategy bc988 imports are verified. Focused tests/type/inventory/scope checks pass; Root rendered journeys and exact-tip CI remain pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -3924,11 +3924,7 @@ prior_accepted_b8_progress:
   - F8Y3
   - F8Y4
   total: 4
-  current_phase: The b8 software/artifact checkpoint remains Root-accepted. Exactly 35 authorized local PNG successors are
-    recorded. The first feb0d8 strict visual matrix was 103/104 with one terminal 404 screenshot mismatch; fresh immutable-tip
-    104-case strict visuals and exact final CI are pending. Bounded b8 software/artifact checkpoint accepted; the exact Root-authorized
-    34-image local reference successor and deterministic 404 terminal-state readiness are prepared. Fresh immutable-tip 104
-    strict visuals and exact closing-tip CI are pending.
+  current_phase: "TC public application-menu navigation fix and source assembly: remove synchronous menu unmount from RouterLink, close menus on committed route change; add pending ordinary-click coverage for Watchlist, Alerts, Settings. The exact ETF fb378 and Strategy bc988 imports are verified. Focused tests/type/inventory/scope checks pass; Root rendered journeys and exact-tip CI remain pending."
   current_blocker: No product blocker. One exact Root-authorized terminal 404 screenshot was added after the 103/104 matrix;
     all other103 visuals passed. Fresh104 strict visuals and exact closing-tip CI are pending. Protected integration, deployment,
     and genuine-source checks remain Root-owned. No source blocker. Attempt20 strict visuals were 70/104; the 34 reviewed
@@ -4106,9 +4102,7 @@ prior_accepted_typed_enter_checkpoint_archive:
     not genuine Provider/issuer proof. Exact closing-tip CI, protected integration, deployment, genuine-source validation,
     official V25 parity, and the wider nine-item roadmap remain pending or Root-owned. The retained 52fa backend was the already-qualified
     fixture component, not a newly combined Provider/ETF release.'
-  current_blocker: No implementation or local-profile blocker. Exact closing-tip branch CI and Root-owned protected integration/deployment
-    and genuine Provider/issuer proof remain pending; the retained 52fa backend was a qualified test component, not a newly
-    combined Provider/ETF release.
+  current_blocker: "No local focused-check blocker. Root-owned browser execution, current shell navigation visual/runtime review, exact-tip CI, combined qualification, native proof, and release gates remain pending."
   current_checkpoint_status: 'Root accepted the bounded ordinary typed-ticker Enter software/profile checkpoint under the
     existing standing delegation. Source 6e1ed68d2e1c10968716cb362fd56fda9f83ec75 (frontend tree d292e856b06c40c1beeb20f9633900914bab72e4)
     passed the complete local profile: functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104
@@ -4615,11 +4609,7 @@ platform_usability_checkpoint_20261106:
   boundaries: No new app server/hidden agents/sibling edits; no provider HTTP, real
     quota/ledger, data-hold, production, staging or master writes from TC. No duplicate
     heavy stack or broad suite replay during implementation.
-  next_action: Root to build and verify the current focused common-runtime successor,
-    including ordinary dock-tab activation, lazy tool body mounting, responsive chart
-    sizing, and all eight saved sector families. TC then continues the remaining analysis,
-    shared-search, lifecycle, and route/action journeys. Combined browser/visual qualification
-    and exact-tip CI remain Root-owned and pending.
+  next_action: "Freeze this coherent TC candidate after Root confirms the current browser/source boundary. Do not claim public-route runtime acceptance until Root executes the authored menu-click journey; continue the wider approved platform roadmap afterward."
   integration_capture: exact branch HEAD
   progress_refresh_and_laptop_rrg_followup:
     objective: Refresh exact RRG and ratio analyses as successive useful preparation
@@ -5178,24 +5168,23 @@ approved_development_dependency_imports:
   - backend/tests/unit/tasks/test_data_tasks.py
   - backend/tests/unit/tasks/test_native_usage_prerequisite.py
   - backend/tests/unit/workers/test_arq_worker.py
-- source_sha: 2450abb9f683cb415e62937dc433cf3d104872bb
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/2450abb9f683cb415e62937dc433cf3d104872bb.json
-  manifest_sha256: 8338ce5202711f0ef1c61ef0f85ec5b52566e6227de40b9e91fa90704b5ae4a7
+- source_sha: fb378d7aa45e2741ad78475f84a9c0c7e8c78166
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/fb378d7aa45e2741ad78475f84a9c0c7e8c78166.json
+  manifest_sha256: 84d132b9b6c4ebd4edb0ee10443b71df1aabda72f88585df5ab56f44578a6967
   paths:
   - frontend/src/components/workstation/InstrumentNoteTool.vue
   - frontend/src/views/BasketsView.vue
   - frontend/src/views/ETFHoldingsView.vue
   - frontend/tests/e2e/baskets_journey.spec.ts
   - frontend/tests/e2e/etf_holdings_preparation.spec.ts
-  - frontend/tests/e2e/on_demand_acquisition.spec.ts
   - frontend/tests/e2e/sp500_analysis_journey.spec.ts
   - frontend/tests/e2e/supporting_features_journey.spec.ts
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: 4a18b4d759f02949f33da6ba91b0c93277f19592
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/4a18b4d759f02949f33da6ba91b0c93277f19592.json
-  manifest_sha256: 91c90d8fe308e59a23598ccddc8fc80c90d9e18e9253644e2e023459cf3926d2
+- source_sha: bc98876bf78673e4d2c223e0f4796d783b6a9b98
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bc98876bf78673e4d2c223e0f4796d783b6a9b98.json
+  manifest_sha256: 712191082ecb288079f349e70a981a1adfb46e4aa7e69d5080d329878119552c
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue
