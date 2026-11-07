@@ -20021,3 +20021,12 @@ and tool type, including `breadth-summary`/`breadth` and
 content check, then restores the original viewport before comparing responsive
 watchlist columns. Type-check and Playwright discovery pass; all browser bodies
 remain pending Root's combined run. No TC-owned product path changed.
+
+
+### R40 Study draft restore precedence and workstation rename oracle (2026-11-07)
+
+Root's R40 browser evidence on frontend `a52f87847c0ff1c2fb1770dcbc046724b2fb8d9b` / backend `23b6aba94476fed5eeb54d9073dadb373d169aaa` showed workspace GET returning draft `XLB` with immutable run `7`, followed by a component PUT that changed the draft back to linked `SPY`. The Strategy fix tracks a configured draft symbol from complete workspace snapshots before linked-context watchers run. Async saved-run detail loading does not replace that independent draft; a direct symbol edit, including clearing the field, retains the normal linked-context behavior. The focused regression mounts with linked `SPY`, delivers the persisted `XLB` snapshot while the run-detail GET is pending, resolves the saved `SPY` run, exercises parent delete/assign echoes and linked-symbol changes, then remounts and checks both identities.
+
+The Strategy-owned workstation lifecycle spec also now locates `Rename layout` by its stable accessible textbox instead of an ancestor whose accessible name changes during typing. It preserves the original Undo-only save and reload assertions. Local commits `bfb853ab12c0537b297cf553cda79e3a15ef8d17` and `ab46db86965dcc59f1121416ca52950f2ccc8514` contain this work and the preceding factory-coverage checkpoint `7a7f6d6bf8510e6d248b77024b0deadd0d3598c6`.
+
+On exact local source `ab46db86965dcc59f1121416ca52950f2ccc8514`, the Study component module passed `68/68`, frontend type-check exited0, and Playwright discovery listed all14 Study/workstation journeys; discovery did not execute browser bodies. Root's later R42 report is a separate RRG paint/layout diagnostic and provides no Study regression verdict. The Study reload journey still needs Root's browser execution on this exact source; joint qualification and the full original18-criterion roadmap remain open. No browser fixture, backend, provider, target, or service operation ran in this Strategy turn.
