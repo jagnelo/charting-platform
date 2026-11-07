@@ -340,11 +340,12 @@ async def test_ensure_internal_identifier_repairs_duplicate_internal_rows(db, in
         is_primary=True,
         is_active=True,
     )
+    stale_two_value = "legacy:" + ("A" * 73)
     stale_two = InstrumentIdentifier(
         instrument_id=instrument.id,
         data_source_id=None,
         identifier_type=InstrumentIdentifierType.INTERNAL,
-        identifier_value="legacy:AAPL",
+        identifier_value=stale_two_value,
         is_primary=False,
         is_active=True,
     )
@@ -372,9 +373,14 @@ async def test_ensure_internal_identifier_repairs_duplicate_internal_rows(db, in
     assert len(active) == 1
     assert active[0].identifier_value == f"instrument:{instrument.id}"
     assert active[0].is_primary is True
-    assert any(
-        "__superseded__" in row.identifier_value for row in identifiers if row.id != active[0].id
-    )
+    inactive = [row for row in identifiers if row.id != active[0].id]
+    assert {row.identifier_value for row in inactive} == {stale_two_value}
+    assert all(not row.is_active and not row.is_primary for row in inactive)
+
+    # Re-running the repair must not grow/mutate historical values.
+    await ensure_internal_identifier(async_db, instrument)
+    db.flush()
+    assert {row.identifier_value for row in inactive} == {stale_two_value}
     assert instrument.primary_identifier_type == InstrumentIdentifierType.INTERNAL.value
     assert instrument.primary_identifier_value == f"instrument:{instrument.id}"
 

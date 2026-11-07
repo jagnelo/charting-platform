@@ -1738,6 +1738,7 @@ owned_paths:
 - backend/tests/live/test_etf_holdings_live_providers.py
 - backend/tests/unit/tasks/test_etf_holdings_tasks.py
 - backend/tests/unit/workers/test_arq_worker.py
+- backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
 - docs/etf-provider-universe.md
 - ops/workstreams/feat-etf-holdings-constituents/plan.yaml
 - ops/workstreams/feat-etf-holdings-constituents/implementation-plan.md
@@ -6760,7 +6761,7 @@ provider_runtime_dependency_active_e08bdf4a:
   verification: All73 source manifest rows match the released Git tree/blob/SHA256; the exact four declared deltas match local bytes, blob, SHA256, and executable-bit semantics. Other manifest paths were preserved and not overwritten.
   state: Root-authorized development dependency only; no native replay/source request/production mutation or release acceptance. Exact CI and combined browser gates remain Root-owned.
 
-provider_runtime_dependency_active_ad114d20:
+provider_runtime_dependency_historical_ad114d20:
   authority: Root released exact Provider source ad114d20eff04992f384b5a57bb3999e3da6d6f7 for ETF development consumption only; Provider owns the XHB redirect-admission diagnosis and all native/release operations.
   previous_active_dependency: e08bdf4aac086845603091cd0638903a47136d3b
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerad114d20-runtime-development-consumption-contract.json
@@ -6801,3 +6802,31 @@ native_xhb_current_rows_proof_successor_2026_11_07:
   preserved: Current snapshot/date/completeness/source provenance, price paint and tooltip, resolved-equity dashboard drilldown, lineage clearing, reload and all original strict BWET assertions.
   validation: Root-owned browser execution pending; local Playwright discovery and workstream/diff guards only.
   non_actions: No product changes, browser body, Source HTTP, database, runtime, policy, quota, production or sibling-worktree operation.
+
+provider_runtime_dependency_active_9b196304:
+  authority: Root released exact Provider source 9b196304b573e323fb349fe4d7badfe2d8208f95 for ETF development consumption only; combined acceptance and release remain Root-owned.
+  previous_active_dependency: 13630db12d4f0f5810b9baa73725f75fb7e653cc
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json
+  manifest_sha256: fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/9b196304b573e323fb349fe4d7badfe2d8208f95.json
+  current_manifest_records_verified: 76
+  consumer_import_paths:
+  - backend/app/services/data_preparation.py
+  - backend/app/services/instrument_mastering.py
+  - backend/app/services/market_data.py
+  - backend/app/services/market_refresh_queue.py
+  - backend/app/services/market_series.py
+  - backend/app/services/provider_runtime.py
+  - backend/app/tasks/data_tasks.py
+  - backend/tests/unit/services/test_data_preparation_contracts.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+  - backend/tests/unit/services/test_etf_holdings_bootstrap.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+  - backend/tests/unit/services/test_market_refresh_queue.py
+  - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/tasks/test_data_tasks.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  verification: All76 manifest status/Git-blob/SHA256 rows verified against exact source; all17 ETF paths passed their old-byte/executable-bit guards and match the released blobs. Focused ETF/shared-preparation unit checks passed179 cases; Playwright discovery lists the updated native successor, with no browser body run here.
+  state: Root-released development dependency only; native, exact CI, combined browser, and product acceptance remain pending.

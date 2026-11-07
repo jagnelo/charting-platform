@@ -261,32 +261,30 @@ async def _retained_history_coverage(
     requested_end: datetime | None,
 ) -> tuple[OhlcvCoverageAssessment | None, list[PreparationCoveredRange]]:
     """Assess only the ordinary selected series before requiring a provider."""
-    if requested_start is None or requested_end is None:
-        return None, []
-
     from app.services.market_data import _coverage_calendar, _default_series_bar_condition
 
     instrument = await db.get(Instrument, instrument_id)
     if instrument is None:
         return None, []
-    start, end = _as_utc(requested_start), _as_utc(requested_end)
-    bars = list(
-        (
-            await db.execute(
-                select(OHLCVBar)
-                .where(
-                    OHLCVBar.instrument_id == instrument_id,
-                    OHLCVBar.timeframe == timeframe,
-                    OHLCVBar.ts >= start,
-                    OHLCVBar.ts <= end,
-                    _default_series_bar_condition(instrument_id, timeframe, adjusted),
-                )
-                .order_by(OHLCVBar.ts)
-            )
-        ).scalars()
+    start = _as_utc(requested_start) if requested_start is not None else None
+    end = _as_utc(requested_end) if requested_end is not None else None
+    statement = select(OHLCVBar).where(
+        OHLCVBar.instrument_id == instrument_id,
+        OHLCVBar.timeframe == timeframe,
+        _default_series_bar_condition(instrument_id, timeframe, adjusted),
     )
+    if start is not None:
+        statement = statement.where(OHLCVBar.ts >= start)
+    if end is not None:
+        statement = statement.where(OHLCVBar.ts <= end)
+    bars = list((await db.execute(statement.order_by(OHLCVBar.ts))).scalars())
+    if not bars:
+        return None, []
+
+    observed_start = start or _as_utc(bars[0].ts)
+    observed_end = end or _as_utc(bars[-1].ts)
     assessment = assess_ohlcv_coverage(
-        bars, timeframe, start, end, calendar=_coverage_calendar(instrument)
+        bars, timeframe, observed_start, observed_end, calendar=_coverage_calendar(instrument)
     )
     gaps = assessment.missing_slices
     ranges: list[PreparationCoveredRange] = []
@@ -329,6 +327,11 @@ async def _retained_history_coverage(
         segment.append(bar)
         previous = timestamp
     append_segment()
+    # An open-ended ensure has no claimable full range. Keep actual selected
+    # series segments available to the status response, but let the worker's
+    # reviewed provider floor and continuation determine readiness.
+    if requested_start is None or requested_end is None:
+        return None, ranges
     return assessment, ranges
 
 
@@ -1934,6 +1937,13 @@ async def record_identity_preparation_outcome(
 ) -> None:
     """Persist a terminal/waiting identity outcome without hiding other data."""
 
+    # Rollbacks expire ORM attributes. Use an explicit async refresh rather
+    # than letting a synchronous attribute read trigger MissingGreenlet, but
+    # leave a loaded in-memory update alone (for example a newly recorded hold).
+    identity_state = inspect(identity_job, raiseerr=False)
+    if identity_state is not None and "metadata_payload" in identity_state.expired_attributes:
+        await db.refresh(identity_job, attribute_names=["metadata_payload"])
+    identity_job_id = identity_job.id
     preparation = (identity_job.metadata_payload or {}).get("data_preparation_child") or {}
     refs = list(preparation.get("parent_refs") or [])
     if parent_job_id is not None:
@@ -1943,7 +1953,7 @@ async def record_identity_preparation_outcome(
     for ref in refs:
         await _record_parent_identity_outcome(
             db,
-            identity_job=identity_job,
+            identity_job_id=identity_job_id,
             parent_id=int(ref["parent_job_id"]),
             status=status,
             reason_code=reason_code,
@@ -1956,7 +1966,7 @@ async def record_identity_preparation_outcome(
 async def _record_parent_identity_outcome(
     db: AsyncSession,
     *,
-    identity_job: MarketRefreshJob,
+    identity_job_id: int,
     parent_id: int,
     status: str,
     reason_code: str | None,
@@ -1978,12 +1988,12 @@ async def _record_parent_identity_outcome(
         str(dependency["dependency_id"])
         for dependency in dependencies
         if dependency.get("dataset") == PreparationDataset.IDENTITY.value
-        and identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
+        and identity_job_id in [int(value) for value in dependency.get("job_ids", [])]
     }
     for dependency in dependencies:
         if dataset_filter is not None and dependency.get("dataset") != dataset_filter.value:
             continue
-        references_job = identity_job.id in [int(value) for value in dependency.get("job_ids", [])]
+        references_job = identity_job_id in [int(value) for value in dependency.get("job_ids", [])]
         waiting_for_identity = dependency.get(
             "reason_code"
         ) == "identity_dependency_pending" and bool(
@@ -2290,6 +2300,11 @@ async def get_data_preparation_response(
                     # Keep an old provider hold visible while exposing useful
                     # cached portions and the exact remaining gaps.
                     item_status = "partial"
+            elif retained_ranges:
+                # Open-ended requests cannot be called complete, but their
+                # actual selected-series observations remain useful coverage
+                # even before a worker has completed its first bounded chunk.
+                coverage_ranges = retained_ranges
             elif child_jobs or background_jobs:
                 if timeframe_enum in {Timeframe.W1, Timeframe.MN}:
                     coverage_ranges = await _persisted_derived_coverage_ranges(

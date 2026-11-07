@@ -311,14 +311,25 @@ async function assertSelectedBars(page: Page, request: APIRequestContext, symbol
   await page.mouse.move(box!.x + box!.width * 0.62, box!.y + box!.height * 0.48)
   const tooltip = chart.locator('.ohlcv-info')
   await expect(tooltip).toBeVisible()
-  const close = (await tooltip.locator('.tt-item').filter({ hasText: /^C\s/ }).innerText()).replace(/^C\s*/, '').trim()
-  const bar = bars.find(item => item.close.toFixed(4) === close)
-  expect(bar, `${symbol} tooltip close should match a persisted selected-symbol bar`).toBeTruthy()
-  const date = await page.evaluate(ts => {
+  const tooltipDate = (await tooltip.locator('.tt-date').innerText()).trim()
+  const persistedDates = await page.evaluate(timestamps => timestamps.map(ts => {
     const value = new Date(ts)
     return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`
-  }, bar!.ts)
-  await expect(tooltip.locator('.tt-date')).toHaveText(date)
+  }), bars.map(bar => bar.ts))
+  const dateMatches = bars.filter((_bar, index) => persistedDates[index] === tooltipDate)
+  expect(dateMatches, `${symbol} tooltip date should identify one persisted selected-symbol D1 bar`).toHaveLength(1)
+  const bar = dateMatches[0]!
+  const tooltipOhlc = Object.fromEntries(await Promise.all(([
+    ['O', bar.open], ['H', bar.high], ['L', bar.low], ['C', bar.close],
+  ] as const).map(async ([field, value]) => {
+    const rendered = (await tooltip.locator('.tt-item').filter({ hasText: new RegExp(`^${field}\\s`) }).innerText())
+      .replace(new RegExp(`^${field}\\s*`), '').trim()
+    return [field, { rendered, persisted: value.toFixed(4) }]
+  }))) as Record<string, { rendered: string; persisted: string }>
+  for (const field of ['O', 'H', 'L', 'C']) {
+    expect(tooltipOhlc[field]!.rendered, `${symbol} tooltip ${field} should match the date-bound persisted bar`)
+      .toBe(tooltipOhlc[field]!.persisted)
+  }
   return bars
 }
 

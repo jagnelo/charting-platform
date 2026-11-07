@@ -18699,3 +18699,31 @@ workstream validator and `git diff --check` passed. No browser body, Source
 HTTP, runtime, database or production operation ran. Root owns XHB/IGV variant
 derivation and browser execution. Successor SHA256
 `b0a48ae2d5e2c0f91ae531d908aa0f15de947f80e4f663a8217e4cb4a707b81d`.
+
+
+## Provider 9b runtime import and native tooltip date binding — 2026-11-07
+
+Consumed only the17 ETF-declared paths from Provider source
+`9b196304b573e323fb349fe4d7badfe2d8208f95`; the previous ad114 pin remains in
+the historical plan/session records. The exact manifest copy is
+`development-dependency-imports/9b196304b573e323fb349fe4d7badfe2d8208f95.json`
+(SHA256 `fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353`).
+All76 manifest status/blob/SHA rows were checked against source; all17 ETF
+paths passed their old-byte/executable-bit guards and match the released source.
+An initial preflight incorrectly compared the scoped76-row manifest to all175
+commit paths; it made no writes, and the corrected per-row check passed.
+Focused preparation-contract/service and ETF bootstrap/bridge tests passed
+166/166; deeper-default worker and refresh-queue tests passed13/13 (179 total).
+These are focused local unit checks, not Provider release or native acceptance.
+
+Root review `root-native-XHB-tooltip-price-collision-review.json` identified
+two XHB bars with the same close on different dates. The successor no longer
+uses close as a bar key: it matches the chart tooltip's displayed D1 date to
+the browser-formatted API timestamps, requires one matching persisted bar, and
+compares tooltip O/H/L/C with that bar at the chart's four-decimal display
+precision. Price paint and all selected-fund, snapshot, provenance, row,
+drilldown and reload assertions remain. Playwright discovery lists one test;
+no browser body or Source HTTP was run. Original strict proof SHA256 remains
+`3df9ef6bdaf4dfb3261ba21ef30cf733654ca917a0efa5a40bc48825f30eaabe`; current
+successor SHA256 is `52d122de949d0f88228f86dc304d6a50d630439f3a47cd5d875bc1f0d0f94bb6`.
+Root owns the native browser execution and all release gates.

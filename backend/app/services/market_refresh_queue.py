@@ -203,7 +203,11 @@ async def retry_refresh_job(
     backoff = min(max_backoff_seconds, 2 ** min(job.attempts, 10))
     is_quota_defer = retry_at is not None
     backoff_at = current + timedelta(seconds=backoff)
-    next_attempt_at = max(backoff_at, retry_at) if retry_at is not None else backoff_at
+    # A provider-supplied reset (or a locally computed application-bucket
+    # refill time) is already the conservative next-admission boundary. Do not
+    # extend it with generic exponential backoff: after repeated attempts that
+    # can strand otherwise eligible durable work for an unrelated hour.
+    next_attempt_at = max(current, retry_at) if retry_at is not None else backoff_at
     metadata_payload = {
         **(job.metadata_payload or {}),
         "defer_reason": "provider_reset" if is_quota_defer else None,

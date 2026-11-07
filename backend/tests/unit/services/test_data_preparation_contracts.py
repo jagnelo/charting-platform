@@ -167,3 +167,32 @@ def test_etf_hook_context_and_result_are_constructible_shared_types() -> None:
     result = DatasetPreparationResult(status="waiting", reason_code="quota_window")
     assert context.dataset is PreparationDataset.HOLDINGS
     assert result.retry_at is None
+
+
+@pytest.mark.asyncio
+async def test_identity_outcome_refreshes_expired_job_metadata_asynchronously(db) -> None:
+    from app.models.market_data_foundation import MarketRefreshJob
+    from app.services.data_preparation import record_identity_preparation_outcome
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    job = MarketRefreshJob(
+        request_key="expired-identity-outcome",
+        capability="instrument_metadata",
+        status="leased",
+        attempts=1,
+        next_attempt_at=datetime(2026, 11, 7, 12, tzinfo=UTC),
+        lease_token="lease-expired-identity",
+        metadata_payload={"data_preparation_child": {"parent_refs": []}},
+    )
+    db.add(job)
+    db.flush()
+    db.expire(job, ["metadata_payload"])
+    session = AsyncSessionAdapter(db)
+    await record_identity_preparation_outcome(
+        session,
+        identity_job=job,
+        status="unavailable",
+        reason_code="identity_not_resolved",
+    )
+
+    assert job.metadata_payload == {"data_preparation_child": {"parent_refs": []}}

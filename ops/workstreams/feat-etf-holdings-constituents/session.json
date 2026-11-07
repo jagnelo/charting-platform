@@ -4536,7 +4536,7 @@
     "verification": "All64 status_from139/SHA256/Git blob/executable-bit rows match the source; exact6 ETF paths passed released old guards and match source.",
     "state": "Root-released development dependency only; producer, joint browser, and release gates remain pending."
   },
-  "current_provider_runtime_dependency": {
+  "historical_provider_runtime_dependency_ad114d20": {
     "authority": "Root released exact Provider source ad114d20eff04992f384b5a57bb3999e3da6d6f7 for ETF development consumption only; Provider owns the XHB redirect-admission diagnosis and all native/release operations.",
     "source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7",
     "previous_source": "e08bdf4aac086845603091cd0638903a47136d3b",
@@ -4571,6 +4571,38 @@
     "verification": "All74 manifest rows match the released source tree/status/Git blob/SHA256/executable-bit semantics; all22 ETF-declared paths passed old guards and match released bytes. backend/tests/unit/services/test_etf_holdings_preparation_hook.py is outside the ETF import list and remains byte-identical to 3969; it was preserved.",
     "state": "Root-authorized development dependency only. Four focused offline regressions pass; no native request/replay, quota/policy change, production mutation, integration, or deployment. Provider owns XHB admission diagnosis and Root owns combined qualification."
   },
+  "current_provider_runtime_dependency": {
+    "authority": "Root released exact Provider source 9b196304b573e323fb349fe4d7badfe2d8208f95 for ETF development consumption only; combined acceptance and release remain Root-owned.",
+    "source": "9b196304b573e323fb349fe4d7badfe2d8208f95",
+    "previous_source": "13630db12d4f0f5810b9baa73725f75fb7e653cc",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider9b196304-runtime-development-consumption-contract.json",
+    "manifest_sha256": "fc1cbb7bd2fa5f5d0dcaf30177270ebab81f0572c2b50b1d381086441e32b353",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/9b196304b573e323fb349fe4d7badfe2d8208f95.json",
+    "changed_paths_imported": [
+        "backend/app/services/data_preparation.py",
+        "backend/app/services/instrument_mastering.py",
+        "backend/app/services/market_data.py",
+        "backend/app/services/market_refresh_queue.py",
+        "backend/app/services/market_series.py",
+        "backend/app/services/provider_runtime.py",
+        "backend/app/tasks/data_tasks.py",
+        "backend/tests/unit/services/test_data_preparation_contracts.py",
+        "backend/tests/unit/services/test_data_preparation_service.py",
+        "backend/tests/unit/services/test_data_preparation_worker_deeper_default.py",
+        "backend/tests/unit/services/test_etf_holdings_bootstrap.py",
+        "backend/tests/unit/services/test_etf_holdings_provider_bridge.py",
+        "backend/tests/unit/services/test_market_refresh_queue.py",
+        "backend/tests/unit/services/test_market_series_defaults.py",
+        "backend/tests/unit/services/test_provider_runtime.py",
+        "backend/tests/unit/tasks/test_data_tasks.py",
+        "backend/tests/unit/workers/test_arq_worker.py"
+    ],
+    "source_manifest_records_verified": 76,
+    "consumer_import_paths_verified": 17,
+    "verification": "All76 manifest-listed status/Git-blob/SHA256 records match exact source; all17 ETF imports passed old-byte and executable-bit guards and match released blobs.",
+    "focused_validation": "179 focused preparation-contract/service, ETF bootstrap/bridge, worker deeper-default, and refresh-queue unit cases passed; the corrected native successor lists one Playwright case, with browser execution Root-owned.",
+    "state": "Root-released development dependency only. No native request, production mutation, integration, deployment, or combined acceptance is claimed; Root owns release qualification."
+},
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
     "owned_paths": [

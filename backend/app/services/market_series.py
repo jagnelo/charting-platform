@@ -280,6 +280,8 @@ async def select_default_series_for_complete_range(
         and current_series.is_active
         and series_adjustment_is_compatible(current_series, adjusted)
     ):
+        if current_series.session_code != series.session_code:
+            return False
         current_bounds = (
             await db.execute(
                 select(func.min(OHLCVBar.ts), func.max(OHLCVBar.ts)).where(
@@ -323,6 +325,129 @@ async def select_default_series_for_complete_range(
     }
     await db.flush()
     return True
+
+
+async def select_default_series_for_latest_contiguous_suffix(
+    db: AsyncSession,
+    *,
+    instrument_id: int,
+    timeframe: str,
+    adjusted: bool,
+    market_series_id: int,
+    requested_start: datetime,
+    end: datetime,
+) -> bool:
+    """Select one coherent alternate when its latest contiguous suffix is useful.
+
+    A genuine older gap may intersect a bounded first backfill chunk even when
+    the same series has a deeper, complete suffix through the current range.
+    This selects that one series for ordinary reads while leaving the older
+    gap visible to the acquisition job; it never combines provider series.
+    """
+    series = await db.get(MarketSeries, market_series_id)
+    if (
+        series is None
+        or series.instrument_id != instrument_id
+        or series.timeframe != timeframe
+        or not series.is_active
+        or not series.is_canonical
+        or not series_adjustment_is_compatible(series, adjusted)
+    ):
+        return False
+
+    instrument = await db.get(Instrument, instrument_id)
+    if instrument is None:
+        return False
+    default = (
+        await db.execute(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument_id,
+                MarketSeriesDefault.timeframe == timeframe,
+                MarketSeriesDefault.is_adjusted.is_(adjusted),
+            )
+        )
+    ).scalar_one_or_none()
+    current_series = (
+        await db.get(MarketSeries, default.market_series_id)
+        if default is not None and default.market_series_id is not None
+        else None
+    )
+    if (
+        current_series is not None
+        and current_series.is_active
+        and current_series.session_code != series.session_code
+    ):
+        return False
+    bars = list(
+        (
+            await db.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == instrument_id,
+                    OHLCVBar.market_series_id == market_series_id,
+                    OHLCVBar.timeframe == Timeframe(timeframe),
+                    OHLCVBar.is_adjusted.is_(adjusted),
+                    OHLCVBar.is_derived.is_(False),
+                    OHLCVBar.ts >= requested_start,
+                    OHLCVBar.ts <= end,
+                )
+                .order_by(OHLCVBar.ts)
+            )
+        )
+        .scalars()
+        .all()
+    )
+    if not bars:
+        return False
+
+    from app.services.market_data import _coverage_calendar
+    from app.services.ohlcv_coverage import assess_ohlcv_coverage
+
+    timeframe_value = Timeframe(timeframe)
+    calendar = _coverage_calendar(instrument)
+    coverage = assess_ohlcv_coverage(
+        bars,
+        timeframe_value,
+        requested_start,
+        end,
+        calendar=calendar,
+    )
+
+    def as_utc(value: datetime) -> datetime:
+        return value.replace(tzinfo=UTC) if value.tzinfo is None else value.astimezone(UTC)
+
+    normalized_bars = [(as_utc(bar.ts), bar) for bar in bars]
+    if coverage.status.value == "ready":
+        suffix_start = normalized_bars[0][0]
+    else:
+        if not coverage.missing_slices:
+            return False
+        last_gap_end = coverage.missing_slices[-1][1]
+        suffix_start = next(
+            (stamp for stamp, _bar in normalized_bars if stamp > last_gap_end), None
+        )
+        if suffix_start is None:
+            return False
+
+    suffix_coverage = assess_ohlcv_coverage(
+        [bar for stamp, bar in normalized_bars if stamp >= suffix_start],
+        timeframe_value,
+        suffix_start,
+        end,
+        calendar=calendar,
+    )
+    if suffix_coverage.status.value != "ready":
+        return False
+
+    return await select_default_series_for_complete_range(
+        db,
+        instrument_id=instrument_id,
+        timeframe=timeframe,
+        adjusted=adjusted,
+        market_series_id=market_series_id,
+        start=suffix_start,
+        end=end,
+    )
 
 
 def series_key(scope: SeriesScope) -> str:

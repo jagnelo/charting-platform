@@ -2066,6 +2066,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
 
     async with AsyncSessionLocal() as db:
         jobs = await claim_refresh_jobs(db, limit=_refresh_queue_batch_limit(limit))
+        claimed_leases = {id(job): (job.id, getattr(job, "lease_token", None)) for job in jobs}
         # Persist the lease and release its row locks before doing any
         # provider work. Request handlers may coalesce another owner onto a
         # leased child while the worker is waiting on a slow transport.
@@ -2075,8 +2076,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
         lease_lost = 0
         more_jobs = len(jobs) >= _refresh_queue_batch_limit(limit)
         next_wakeup_at: datetime | None = None
+        previous_job_rollback = False
         for job in jobs:
             try:
+                if previous_job_rollback:
+                    # A rollback expires every ORM object in this session, not
+                    # only the job whose work failed.
+                    await db.refresh(job)
+                    previous_job_rollback = False
                 if job.capability == ProviderCapability.ACCOUNT_USAGE.value:
                     request = (job.metadata_payload or {}).get(
                         "provider_account_usage_refresh"
@@ -2699,6 +2706,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             from app.services.market_data import _coverage_calendar
                             from app.services.market_series import (
                                 select_default_series_for_complete_range,
+                                select_default_series_for_latest_contiguous_suffix,
                             )
                             from app.services.ohlcv_coverage import assess_ohlcv_coverage
 
@@ -2729,18 +2737,32 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 for bar in selected_range_bars
                                 if bar.market_series_id is not None
                             }
-                            if selected_coverage.status.value == "ready" and len(series_ids) == 1:
-                                default_series_selected = (
-                                    await select_default_series_for_complete_range(
-                                        db,
-                                        instrument_id=instrument.id,
-                                        timeframe=timeframe.value,
-                                        adjusted=bool(preparation.get("adjusted", True)),
-                                        market_series_id=next(iter(series_ids)),
-                                        start=selected_range_start,
-                                        end=full_range_end,
+                            if len(series_ids) == 1:
+                                selected_series_id = next(iter(series_ids))
+                                if selected_coverage.status.value == "ready":
+                                    default_series_selected = (
+                                        await select_default_series_for_complete_range(
+                                            db,
+                                            instrument_id=instrument.id,
+                                            timeframe=timeframe.value,
+                                            adjusted=bool(preparation.get("adjusted", True)),
+                                            market_series_id=selected_series_id,
+                                            start=selected_range_start,
+                                            end=full_range_end,
+                                        )
                                     )
-                                )
+                                if not default_series_selected:
+                                    default_series_selected = (
+                                        await select_default_series_for_latest_contiguous_suffix(
+                                            db,
+                                            instrument_id=instrument.id,
+                                            timeframe=timeframe.value,
+                                            adjusted=bool(preparation.get("adjusted", True)),
+                                            market_series_id=selected_series_id,
+                                            requested_start=selected_range_start,
+                                            end=full_range_end,
+                                        )
+                                    )
                             if next_job_id is None:
                                 complete_range_bars = (
                                     selected_range_bars
@@ -2903,12 +2925,23 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                 )
                 lease_lost += 1
             except Exception as exc:
+                original_error = exc
+                original_error_message = str(exc)
                 try:
+                    await db.rollback()
+                    previous_job_rollback = True
+                    await db.refresh(job)
+                    claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
+                    if job.id != claimed_job_id or job.lease_token != claimed_lease_token:
+                        raise RefreshLeaseLostError(
+                            f"refresh job {claimed_job_id} lease is no longer valid"
+                        )
                     await retry_refresh_job(
                         db,
                         job,
-                        str(exc),
-                        retry_at=getattr(exc, "retry_at", None),
+                        original_error_message,
+                        retry_at=getattr(original_error, "retry_at", None),
+                        lease_token=claimed_lease_token,
                     )
                 except RefreshLeaseLostError as lease_exc:
                     logger.info(
@@ -2917,6 +2950,14 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         bounded_redact_provider_message(lease_exc),
                     )
                     lease_lost += 1
+                except Exception as retry_exc:
+                    logger.error(
+                        "Could not persist retry for refresh job %s after %s: %s",
+                        getattr(job, "id", "unknown"),
+                        type(original_error).__name__,
+                        type(retry_exc).__name__,
+                    )
+                    raise retry_exc from original_error
                 else:
                     retried += 1
                     if job.next_attempt_at is not None:
