@@ -15307,9 +15307,9 @@ family_readiness_request_scoped_metadata_reuse_20261107:
     - Standalone coverage remains on the same lookup semantics; no cross-request or process cache, schema, DTO, provider or quota changes.
   focused_validation:
     command: backend/.venv/bin/pytest backend/tests/unit/routers/test_analysis_router.py -q
-    result: 35 passed in 3.07s
+    result: 36 passed in 3.24s
     ruff_check_format_diff: passed
-    query_reuse_regression: two provider metadata selects on first lookup; no additional selects on a repeated lookup in the same request session
+    query_reuse_regressions: helper-level repeat plus actual eight-family endpoint; exactly one DataSource and one ProviderEntitlement select across the response
   expected_readiness_round_trips_saved: 14 across the eight-family matrix, based on eliminating seven repeated DataSource and seven repeated ProviderEntitlement selects; not measured on the loaded browser path
   boundaries:
     provider_http_or_data_writes: false

@@ -38,12 +38,14 @@ from app.routers.analysis import (
     _truncate_bars_at,
     _volume_ratio_50,
     _wire_datetime,
+    benchmark_family_readiness,
 )
 from app.routers.market_groups import (
     _historical_profile_payloads,
     _holdings_snapshot_at,
     holdings_snapshot_source_filter,
 )
+from app.services.top_down_taxonomy import benchmark_family_registry
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -125,6 +127,64 @@ async def test_family_readiness_reuses_provider_metadata_within_one_request(db):
     assert first[0][source.id].name == "marketstack"
     assert first[1]["marketstack"].id == source.id
     assert first[2][(source.id, ProviderCapability.PRICE_HISTORY)].id == entitlement.id
+
+
+@pytest.mark.asyncio
+async def test_family_readiness_loads_shared_provider_metadata_once_for_all_families(
+    db, monkeypatch
+):
+    families = benchmark_family_registry()
+    for metadata in families:
+        db.add(
+            MarketGroup(
+                stable_key=metadata["logical_key"],
+                group_type="benchmark_family",
+                name=metadata["name"],
+                provenance={
+                    "official_index": {
+                        "symbol": metadata["official_index_symbol"],
+                        "name": metadata["official_index_name"],
+                    },
+                    "proxy_mappings": {
+                        role: metadata.get(role)
+                        for role in ("cap_weight", "equal_weight", "value", "growth")
+                    },
+                },
+            )
+        )
+    db.flush()
+
+    async def _no_provider_evidence(_db):
+        return []
+
+    monkeypatch.setattr("app.routers.analysis.latest_availability", _no_provider_evidence)
+
+    class CountingAsyncSession:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+            self.info = sync_session.info
+            self.table_reads = {"data_source": 0, "provider_entitlement": 0}
+
+        async def execute(self, statement):
+            sql = str(statement).lower()
+            for table in self.table_reads:
+                if f"from {table}" in sql:
+                    self.table_reads[table] += 1
+            return self.sync_session.execute(statement)
+
+        def __getattr__(self, name):
+            return getattr(self.sync_session, name)
+
+    request_session = CountingAsyncSession(db)
+    response = await benchmark_family_readiness(
+        as_of=None,
+        limit=16,
+        _=None,
+        db=request_session,
+    )
+
+    assert response.family_count == len(families)
+    assert request_session.table_reads == {"data_source": 1, "provider_entitlement": 1}
 
 
 def test_role_readiness_cannot_be_ready_without_point_in_time_evidence():
