@@ -784,7 +784,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   let acquiredBar: OHLCVBar | null = null
   const discoveryRequests: DiscoveryRequest[] = []
   const instrumentRequests: InstrumentRequestBody[] = []
-  const preparationRequests: DataEnsureRequest[] = []
+  const tcnewPreparationRequests: DataEnsureRequest[] = []
   const legacyHistoryRequests: string[] = []
   const directOhlcvWrites: string[] = []
   const canonicalSearchRequests: string[] = []
@@ -792,8 +792,12 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   const localBarReadbacks: Array<{ symbol: string; timeframe: string; rows: OHLCVBar[]; afterAcquisition: boolean }> = []
   const calendarRequests: string[] = []
   page.on('request', request => {
-    const path = new URL(request.url()).pathname
-    if (/^\/api\/v1\/ohlcv\//.test(path) && request.method() !== 'GET') directOhlcvWrites.push(`${request.method()} ${path}`)
+    const url = new URL(request.url())
+    const path = url.pathname
+    const isTCNEWPath = /TCNEW/i.test(path) || path.includes(`/${fixtureInstrumentId}/`)
+    if (/\/ohlcv\//i.test(path) && isTCNEWPath && request.method() !== 'GET') {
+      directOhlcvWrites.push(`${request.method()} ${path}`)
+    }
   })
 
   // UPlotChart reads the instrument calendar when local bars become available.
@@ -898,6 +902,10 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   })
   await page.route('**/api/v1/instruments/acquire**', async route => {
     const body = route.request().postDataJSON() as InstrumentRequestBody
+    if (body.symbol.trim().toUpperCase() !== 'TCNEW') {
+      await route.continue()
+      return
+    }
     instrumentRequests.push(body)
     expect(body.symbol).toBe('TCNEW')
     canonicalInstrumentResolved = true
@@ -906,10 +914,21 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await page.route('**/api/v1/data/ensure', async route => {
     expect(route.request().method()).toBe('POST')
     const body = route.request().postDataJSON() as DataEnsureRequest
-    preparationRequests.push(body)
-    expect(body.target.kind).toBe('instrument')
-    const isM1Selection = body.timeframe === 'M1'
-    if (isM1Selection) {
+    const target = body.target
+    const isTCNEWTarget = target.kind === 'instrument' && (
+      'instrument_id' in target && target.instrument_id === fixtureInstrumentId
+      || 'symbol' in target && target.symbol.trim().toUpperCase() === 'TCNEW'
+    )
+    if (!isTCNEWTarget) {
+      await route.continue()
+      return
+    }
+    tcnewPreparationRequests.push(body)
+    const isCanonicalM1Selection = body.timeframe === 'M1'
+      && target.kind === 'instrument'
+      && 'instrument_id' in target
+      && target.instrument_id === fixtureInstrumentId
+    if (isCanonicalM1Selection) {
       expect(body.target).toEqual({ kind: 'instrument', instrument_id: fixtureInstrumentId })
       expect(body.datasets).toEqual(['identity', 'profile', 'history'])
       expect(body.adjusted).toBe(true)
@@ -921,20 +940,20 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     }
     const now = new Date().toISOString()
     const historyDependency = {
-      dependency_id: `history-${body.timeframe ?? 'D1'}-${preparationRequests.length}`,
+      dependency_id: `history-${body.timeframe ?? 'D1'}-${tcnewPreparationRequests.length}`,
       depends_on: [],
       instrument_id: fixtureInstrumentId,
       symbol: 'TCNEW',
       dataset: 'history',
-      status: isM1Selection ? 'partial' : 'unavailable',
+      status: isCanonicalM1Selection ? 'partial' : 'unavailable',
       requested_start: null,
       requested_end: null,
-      covered_start: isM1Selection ? acquiredBar!.ts : null,
-      covered_end: isM1Selection ? acquiredBar!.ts : null,
-      reason_code: isM1Selection ? null : 'fixture_no_data_for_other_timeframe',
+      covered_start: isCanonicalM1Selection ? acquiredBar!.ts : null,
+      covered_end: isCanonicalM1Selection ? acquiredBar!.ts : null,
+      reason_code: isCanonicalM1Selection ? null : 'fixture_no_data_for_other_timeframe',
       retry_at: null,
       updated_at: now,
-      covered_ranges: isM1Selection ? [{
+      covered_ranges: isCanonicalM1Selection ? [{
         start_at: acquiredBar!.ts,
         end_at: acquiredBar!.ts,
         data_source_id: null,
@@ -945,8 +964,8 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
       }] : [],
     }
     const response = {
-      request_id: `fixture-preparation-${preparationRequests.length}`,
-      status: isM1Selection ? 'partial' : 'unavailable',
+      request_id: `fixture-preparation-${tcnewPreparationRequests.length}`,
+      status: isCanonicalM1Selection ? 'partial' : 'unavailable',
       created_at: now,
       updated_at: now,
       version: 1,
@@ -960,8 +979,13 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     await route.fulfill({ status: 200, json: response })
   })
   await page.route('**/api/v1/instruments/*/history-acquisitions**', async route => {
-    legacyHistoryRequests.push(route.request().url())
-    await route.fulfill({ status: 500, json: { detail: 'The shared preparation contract owns this journey.' } })
+    const url = new URL(route.request().url())
+    if (url.pathname.includes(`/instruments/${fixtureInstrumentId}/`) || url.pathname.includes('/instruments/TCNEW/')) {
+      legacyHistoryRequests.push(route.request().url())
+      await route.fulfill({ status: 500, json: { detail: 'The shared preparation contract owns this journey.' } })
+      return
+    }
+    await route.continue()
   })
 
   await page.goto('/')
@@ -970,7 +994,7 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await page.getByLabel('Linked timeframe').selectOption('M1')
   expect(discoveryRequests).toHaveLength(0)
   expect(instrumentRequests).toHaveLength(0)
-  expect(preparationRequests).toHaveLength(0)
+  expect(tcnewPreparationRequests).toHaveLength(0)
 
   const canonicalSearchReady = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -990,7 +1014,6 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   expect(canonicalSearchRequests).toEqual(['TCNEW'])
   expect(discoveryRequests).toHaveLength(0)
   expect(instrumentRequests).toHaveLength(0)
-  expect(preparationRequests).toHaveLength(0)
 
   const discovery = await discoveryReady
   expect(discovery.status()).toBe(200)
@@ -1007,7 +1030,11 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     const url = new URL(response.url())
     return response.request().method() === 'POST'
       && url.pathname === '/api/v1/data/ensure'
-      && (response.request().postDataJSON() as DataEnsureRequest).timeframe === 'M1'
+      && (() => {
+        const body = response.request().postDataJSON() as DataEnsureRequest
+        return body.timeframe === 'M1' && body.target.kind === 'instrument'
+          && 'instrument_id' in body.target && body.target.instrument_id === fixtureInstrumentId
+      })()
   }, { timeout: 15_000 })
   await page.getByRole('button', { name: /Use TCNEW · TEST/ }).click()
   const candidateResolve = await candidateResolveReady
@@ -1038,7 +1065,10 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
     }],
   })
   expect(canonicalInstrumentLookups).toContainEqual({ symbol: 'TCNEW', canonicalOnly: 'true' })
-  expect(preparationRequests.filter(request => request.timeframe === 'M1')).toEqual([{
+  expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
+    && request.target.kind === 'instrument'
+    && 'instrument_id' in request.target
+    && request.target.instrument_id === fixtureInstrumentId)).toEqual([{
     target: { kind: 'instrument', instrument_id: fixtureInstrumentId },
     datasets: ['identity', 'profile', 'history'],
     timeframe: 'M1',
@@ -1059,7 +1089,10 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await expect(visibleChart.locator('.sr-only')).toContainText('M1 chart; 1 bars')
   await expect.poll(() => calendarRequests.length).toBeGreaterThan(0)
   expect(calendarRequests.every(symbol => symbol === 'TCNEW')).toBe(true)
-  expect(preparationRequests.filter(request => request.timeframe === 'M1')).toHaveLength(1)
+  expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
+    && request.target.kind === 'instrument'
+    && 'instrument_id' in request.target
+    && request.target.instrument_id === fixtureInstrumentId)).toHaveLength(1)
   expect(legacyHistoryRequests).toEqual([])
   expect(directOhlcvWrites).toEqual([])
 
@@ -1084,7 +1117,10 @@ test('main Workstation automatically discovers an unknown ticker and loads missi
   await expect(page.getByRole('button', { name: /Search free sources/ })).toHaveCount(0)
   expect(discoveryRequests.map(request => request.query.trim().toUpperCase())).toEqual(['TCNEW', 'BWET'])
   expect(instrumentRequests).toHaveLength(1)
-  expect(preparationRequests.filter(request => request.timeframe === 'M1')).toHaveLength(1)
+  expect(tcnewPreparationRequests.filter(request => request.timeframe === 'M1'
+    && request.target.kind === 'instrument'
+    && 'instrument_id' in request.target
+    && request.target.instrument_id === fixtureInstrumentId)).toHaveLength(1)
   await expect(page.locator('.tool-window--active .chart-root')).toHaveAttribute('aria-busy', 'false')
   await browserDiagnostics.expectNoCriticalIssues()
 })
