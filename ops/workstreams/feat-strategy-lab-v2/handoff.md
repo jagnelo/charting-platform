@@ -20047,3 +20047,8 @@ The Study draft restore repair and the all-factory useful-outcome coverage remai
 ### Study preparation waiter contract audit (2026-11-07)
 
 A source review found three Study journeys still waiting for any `POST /data/ensure`, which could capture unrelated workstation holdings preparation. The high-low run, Library-return validation, and close-while-run-creation journey now use the shared Study request predicate: instrument SPY, history only, D1, adjusted, and exact selected UTC start/end bounds. The first normal Study journey and the controlled all-member journeys already use semantic request matching. Assertions still require successful preparation before validation/run; no preparation outcome is mocked or broadened. Type-check and Playwright discovery pass for all14 Study/workstation journeys. No browser bodies ran; Root owns the combined fixture and exact-source acceptance.
+
+
+### Library historical Study version journey (2026-11-07)
+
+The Study E2E now exercises the public `Open version 1 … in Study Lab` control after saving version2. It matches the resulting workspace snapshot by Study tool type, immutable CodeVersion ID, and source, then checks the visible editor shows that exact historical source and that opening it dispatches no run. The existing latest-version handoff and real run against version2 continue afterward. The journey matrix records this expanded authored path; type-check, Playwright discovery, workstream validation, and JSON checks pass. Browser execution on the current candidate remains pending Root's combined profile.

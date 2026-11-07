@@ -317,7 +317,7 @@
       "api_evidence": [
         "WorkstationView openStudyDefinition forwards versionId/source/output contract/schema/defaults to a new Study Lab tool; subsequent POST /research/runs uses code_version_id and does not POST /code/assets again"
       ],
-      "browser_evidence": "The authored Library-to-Study flow saves a new immutable version, returns through the public handoff and runs against the new version ID. Component coverage supports the identity contract; R13 did not reach this story because the common dock activation/mount issue failed earlier. Actual browser execution remains pending.",
+      "browser_evidence": "The authored Library-to-Study flow saves a new immutable version, selects historical v1, opens it through the public Study handoff, and verifies the workspace snapshot carries the exact v1 ID/source without dispatching a run; it then opens latest and runs against the new version ID. Component coverage supports the identity contract. R13 did not reach this story because the common dock activation/mount issue failed earlier; no current-source browser body has verified this expanded path. Actual execution remains pending Root's combined profile.",
       "approved_journey": [
         "J01 first-use/return: persistent workspace and automatic preparation",
         "J10 Study: return via immutable version, validate and run"
