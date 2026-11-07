@@ -50,13 +50,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R69 completed five journeys on frontend 61ee8598c82fc9bc0677344f1906e9743aca1329 and backend fc4d46b406f0ced24857a414a1e3deb530ea0f60: three passed and two factory journeys failed because Coverage read a per-chart header absent from some factory layouts. Strategy corrected the oracle to read the public Active symbol combobox while retaining exact authenticated coverage/count/provenance assertions. Reference preflight has no actionable unbound references. No browser body reran; Root owns the next combined browser run. Full qualification and roadmap remain open.",
+  "current_blocker": "Root R378 comparison-tooltip test failed because a separate boundingBox snapshot returned null immediately after the plot was found visible and both plotted series had painted. Trace and screenshot support a detached-prone test interaction, not sustained product flicker. Strategy replaced raw coordinate movement with locator.hover() while retaining tooltip and series assertions. Root’s immutable 65-case profile was running at inspection (frontend 378eaa78b3ff113c05d798811163228be5dce7e9, backend e8701591e23a0207d4292476d30a24c6f5d6ed7b, two workers, zero retries); no browser/harness mutation was made.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root R69 terminal: three journeys passed; two factory journeys failed on the same Strategy-owned Coverage selector assumption. The owned test now uses the global Active symbol combobox and preserves exact canonical-coverage assertions. No browser rerun or product change was made; Root owns next browser qualification. All18 roadmap criteria and safety holds remain open.",
+    "heavy_profile": "Root’s immutable 65-case profile remains owned by Root. R378 isolated a null boundingBox interaction after visible uPlot and painted-series checks; Strategy test now uses ordinary locator.hover() for both initial/restored tooltip witnesses without changing tooltip, value, or plotted-series assertions. No product defect was evidenced and no browser body reran locally.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Freeze this single test-only correction and hand the exact source to Root for the next controlled browser run; do not start a local browser/native/full suite.",
+    "next_action": "Freeze the hover-only test correction and hand the exact commit to Root; do not run a competing browser or modify the immutable profile.",
     "status": "in_progress"
   },
   "dirty_paths": [
@@ -243,7 +243,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T19:52:39Z",
+  "updated_at": "2026-11-07T20:14:11Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
