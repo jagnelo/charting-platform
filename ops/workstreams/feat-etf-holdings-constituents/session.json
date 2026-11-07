@@ -4331,7 +4331,7 @@
     "verification": "All77 source SHA/Git blob/executable-bit records verified; exact5 ETF paths imported under old/new guards and executable-bit semantics.",
     "state": "Root-released development dependency only; Root owns browser, exact CI, and release qualification."
   },
-  "current_tc_common_runtime_dependency": {
+  "historical_tc_common_runtime_dependency_a2e22225": {
     "source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
     "previous_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-runtime-development-consumption-contract.json",
@@ -4340,6 +4340,17 @@
     "consumer_import_paths_verified": 22,
     "verification": "All83 status_from139/SHA/Git blob/executable-bit records verified; the exact22 ETF paths passed old/new guards and were imported. The local approved manifest copy is recorded under development-dependency-imports/.",
     "state": "Root-released development dependency only; Root owns corrected-fixture RRG/Results browser qualification and final release gates."
+  },
+  "current_tc_common_runtime_dependency": {
+    "source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+    "previous_source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-c9fc3bbb-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "762e04066871d894e6da4bcc863f3cb8558d6473793eada942195f95a91275f6",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec.json",
+    "current_manifest_records_verified": 85,
+    "consumer_import_paths_verified": 10,
+    "verification": "All85 status_from139/SHA256/Git blob/executable-bit rows match the source; exact10 ETF paths passed released old guards and match source.",
+    "state": "Root-released development dependency only; full RRG/Results browser qualification and final release gates remain pending."
   },
   "historical_tc_common_runtime_dependency_45ea51bf": {
     "source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
@@ -4493,7 +4504,7 @@
     "validation": "Root reports pinned Ruff check/format on four delta files; no unchanged suite was replayed here. Full CI/browser/release gates remain pending.",
     "state": "Root-released development dependency only; no combined release or acceptance claimed."
   },
-  "current_provider_runtime_dependency": {
+  "historical_provider_runtime_dependency_182173f3": {
     "source": "182173f346d4a27694a46beba057102a5b7449e6",
     "previous_source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
@@ -4502,6 +4513,17 @@
     "consumer_import_paths_verified": 9,
     "verification": "All62 status_from139/SHA256/Git blob/executable-bit records match the exact source; the exact9 ETF paths passed old/new guards and were imported.",
     "state": "Root-released development dependency only; producer release and combined browser/CI/release gates remain pending."
+  },
+  "current_provider_runtime_dependency": {
+    "source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+    "previous_source": "182173f346d4a27694a46beba057102a5b7449e6",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
+    "manifest_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json",
+    "current_manifest_records_verified": 64,
+    "consumer_import_paths_verified": 6,
+    "verification": "All64 status_from139/SHA256/Git blob/executable-bit rows match the source; exact6 ETF paths passed released old guards and match source.",
+    "state": "Root-released development dependency only; producer, joint browser, and release gates remain pending."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
@@ -4541,5 +4563,17 @@
     "behavior": "Normal authenticated API-backed XLB profile/latest/holdings reads are compared with the selected view and exact source/date/known-at lineage. Deliberate picker selection must automatically post a holdings-only data/ensure request bound to the resolved instrument ID. No route fulfillment or fixture mutation occurs in this case.",
     "focused_validation": "Frontend type-check exited0; Playwright discovery lists5 ETF preparation cases.",
     "browser_execution": "Pending Root combined profile; the controlled E2E seed does not prove genuine issuer-source qualification."
+  },
+  "current_checkpoint_2026_11_07_rrg_r52": {
+    "source_parent": "cfd23fa17244b2eaa645682f4f63d6ac24a88f5a",
+    "owned_path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+    "spec_sha256": "1e271e50bd236f6871c5c8ba9527c8cc1e1babe8d01c826c803b44c16c5a7c07",
+    "tc_dependency": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec; exact10 imports and85 manifest rows verified; SHA256 762e04066871d894e6da4bcc863f3cb8558d6473793eada942195f95a91275f6.",
+    "provider_dependency": "dd05c5e8318ff59a90f879867cae9664dcc0de4f; exact6 imports and64 manifest rows verified; SHA256 0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9.",
+    "browser_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/etf-r52-d1-original-terminal-event.json",
+    "browser_result": "One D1 diagnostic passed1/1 in27.2s on c9fc3bbb/dd05c5e8; all11 markers and tails met unchanged raster minima. Root verified idle and closed the lease.",
+    "scope": "ETF_RRG_D1_DIAGNOSTIC early-return is diagnostic-only; it does not qualify W1/MN or the layout lifecycle.",
+    "strategy_read_only_finding": "Strategy helper workstation_lifecycle_journey.spec.ts:149-205 checks a single rounded-center pixel for exact color/alpha. R51 exact raster has11 visible markers with a minimum4 exact opaque state-color pixels in a3x3 neighborhood, while XLC center is not exact. Recommend a bounded interior-neighborhood assertion; no sibling edits.",
+    "release_status": "Development checkpoint only; Root owns full normal RRG/Results profile, exact CI, and release gates."
   }
 }

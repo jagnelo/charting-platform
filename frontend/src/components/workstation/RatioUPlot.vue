@@ -7,7 +7,12 @@
         <button type="button" class="ratio-chart__add" aria-label="Add ratio comparison" @click="addBenchmark"><WorkstationGlyph kind="plus" /></button>
         <button v-for="benchmark in localBenchmarks" :key="benchmark" type="button" class="ratio-chart__chip" :aria-label="`Remove ratio comparison ${benchmark}`" :disabled="localBenchmarks.length <= 1" @click="removeBenchmark(benchmark)">{{ benchmark }} <WorkstationGlyph kind="close" /></button>
       </template>
-      <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label><span role="status" aria-live="polite">{{ legendStatus }}</span>
+      <label>As of <input v-model="asOfDraft" type="date" aria-label="Ratio as of" /></label>
+      <CompactStatusNotice
+        class="ratio-chart__status"
+        :summary="legendStatusSummary"
+        :detail="legendStatus"
+      />
     </div>
     <div v-if="error" class="ratio-chart__state ratio-chart__state--error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</div>
     <div v-else-if="!hasPoints" class="ratio-chart__state" role="status" aria-live="polite" aria-atomic="true">No aligned local bars.</div>
@@ -22,6 +27,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
+import CompactStatusNotice from '@/components/common/CompactStatusNotice.vue'
 import { dataPreparationCoordinator, isPreparationTimeframe, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress, type DataEnsureResponse } from '@/lib/dataPreparation'
 import WorkstationGlyph from './WorkstationGlyph.vue'
 
@@ -59,6 +65,13 @@ const legendStatus = computed(() => {
   // A preparation hold describes work that could not extend the local range;
   // it must not hide the successful local calculation or its adjustment basis.
   return hasPoints.value ? `${localStatus} · ${preparationMessage.value}` : preparationMessage.value
+})
+const legendStatusSummary = computed(() => {
+  const issueCount = Object.values(preparationByBenchmark.value).filter(Boolean).length
+    + Object.keys(analysisFailureByBenchmark.value).length
+  if (!issueCount) return loading.value && !hasPoints.value ? 'Checking ratio inputs…' : status.value
+  if (!hasPoints.value) return `${issueCount} ratio ${issueCount === 1 ? 'input' : 'inputs'} updating`
+  return `Local adjusted · ${issueCount} comparison ${issueCount === 1 ? 'needs attention' : 'updates'}`
 })
 const loading = ref(false)
 const asOfDraft = ref(props.asOf ? props.asOf.slice(0, 10) : '')
@@ -456,8 +469,10 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.ratio-chart { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: 21px minmax(0, 1fr) auto; background: #101419; }
-.ratio-chart__legend { display: flex; gap: 8px; align-items: center; padding: 0 7px; color: #6bc0ef; border-bottom: 1px solid #26313a; font: 10px "Segoe UI", Arial, sans-serif; }
+.ratio-chart { position: relative; display: grid; height: 100%; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; background: #101419; }
+.ratio-chart__legend { display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; min-width: 0; padding: 2px 7px; color: #6bc0ef; border-bottom: 1px solid #26313a; font: 10px "Segoe UI", Arial, sans-serif; }
+.ratio-chart__legend > strong { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ratio-chart__status { flex: 0 1 clamp(120px, 22vw, 190px); margin-left: auto; }
 .ratio-chart__legend label { display: inline-flex; gap: 3px; align-items: center; color: #9aabb6; }
 .ratio-chart__legend input { width: 96px; border: 1px solid #42515c; background: #11161b; color: #dce9f2; font: inherit; }
 .ratio-chart__compare input { width: 58px; }

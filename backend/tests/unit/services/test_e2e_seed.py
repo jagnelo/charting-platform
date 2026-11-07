@@ -23,6 +23,9 @@ from app.services.e2e_seed import (
     _E2E_MONTHLY_RRG_SYMBOLS,
     _E2E_RECENT_HISTORY_BARS,
     _E2E_RECENT_HISTORY_START,
+    _E2E_SECTOR_RELATIVE_PATH_REVISION,
+    _E2E_SECTOR_RRG_SYMBOLS,
+    _e2e_sector_relative_factor,
     seed_e2e_instruments,
     seed_e2e_market_data,
 )
@@ -35,17 +38,17 @@ from app.services.top_down_taxonomy import (
 
 _RECENT_RRG_BAR_DIGESTS = {
     "SPY": "a5ab7b87e93d42e2d53df7aa24dd9bab96cf79b0a4a21fe531d5dfe8cf700d4c",
-    "XLB": "6d95aa23d59528ca3625c4506d5f35c706124c69be93c1257f0c0f259b8dbd99",
-    "XLC": "af0aad7e238da837ff2a6ab730b0c4784ec7cd46603fcc583185fbed76738e1b",
-    "XLE": "4c54df16bf975ebbcc8c7ad853b7eaf57d085a39555a46f74004f8af949f21bd",
-    "XLF": "2b5feefdfa7241666fe535c6a2b19704475218ebaa16d41275890530b96e035c",
-    "XLI": "304209562dffec80d8bc0fae9499d52204c3a385de255955e3605055696b54a4",
-    "XLK": "aa9ccb27afb48d9b8d4262d5d475f8b0f27f1162052f6e0135b72b7c95074beb",
-    "XLP": "96af92858218fa157cdb1db7c786e4924ce5de21ec55df6bdb6ba535a93abe5c",
-    "XLRE": "e5fc240fdc208bfe5d66a001f21e7d4459580310542c475303c5aa025972b8e3",
-    "XLU": "9287590af736c88a3884caf6eee556640b19824df217135d0f31a00226f5336a",
-    "XLV": "fcbd82585189ad1ddafba567dac2d12a1f0063f6ea982a32810fe3344420e634",
-    "XLY": "a12681f2c9ec8d1938dfab23b1afb20276632be71628b36aeed7b64893ca5b86",
+    "XLB": "9a7d8715ebdd9bfe81f41ca0976fcc98145af69ac97164dcba65e39d892953b3",
+    "XLC": "6b1df8c8d06c4231a98ac4c7b350606989a3939dcb9ceb6e6e6727f3f5c8f244",
+    "XLE": "7415ce936412d7e02b4c94192ffe63b5a85937ef91ab2ced5a685cb1d93e0e50",
+    "XLF": "cd64bf7977310026e4a9f562d7774cb76932152b067859cb638a914776967b96",
+    "XLI": "590384dbdb8aa7c7ceae68fbd53dd2a067bd94ab3cd9d983bc1204391fb32313",
+    "XLK": "9a80b6049792f8db17b5a7affb5ec555e5717d0aced3815019f14e2e3e114ba4",
+    "XLP": "fd2d48f4da0518bfe9950168b1eff17d181fc5419ff58d0c3f5c4f9bf32d40b6",
+    "XLRE": "a3cad9f676f565f8545b9f02fc52162d18233149097388ac16a1ecfc9e5606a5",
+    "XLU": "04fc8cedc5fd30c8d80aa7c5429494ead27b34e450f97d23397bafae48a33238",
+    "XLV": "36d0e0e166d66950b0c45f22be483315f5c865ef4812fa27fb7c2e778dd956e8",
+    "XLY": "be5cba42cb947da5d69ad0076e0ad2afc90a5757e4f6c5e4792f2b3973838922",
 }
 
 
@@ -103,6 +106,20 @@ def test_controlled_fixture_covers_every_benchmark_family_leg():
         cap_symbol = (family.get("cap_weight") or {}).get("symbol")
         if derived_equal.get("allowed"):
             assert cap_symbol in _E2E_HOLDINGS
+
+
+def test_controlled_sector_relative_paths_are_deterministic_and_distinct():
+    anchor = 1_500
+    signatures = []
+    for symbol in _E2E_SECTOR_RRG_SYMBOLS:
+        path = [
+            _e2e_sector_relative_factor(symbol, anchor + offset, anchor_index=anchor)
+            for offset in range(-30, 31)
+        ]
+        assert all(math.isfinite(value) and value > 0 for value in path)
+        assert max(path) - min(path) > 0.05
+        signatures.append(tuple(round(value, 8) for value in path))
+    assert len(set(signatures)) == len(_E2E_SECTOR_RRG_SYMBOLS)
 
 
 @pytest.mark.asyncio
@@ -328,6 +345,25 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
 
     # Re-running controlled startup retains existing rows without deletion or
     # duplicate insertion, including the same canonical series mapping.
+    sector_row_ids = {}
+    for symbol in _E2E_SECTOR_RRG_SYMBOLS:
+        instrument = db.scalar(select(Instrument).where(Instrument.symbol == symbol))
+        assert instrument is not None
+        selected = db.scalar(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument.id,
+                MarketSeriesDefault.timeframe == Timeframe.D1.value,
+                MarketSeriesDefault.is_adjusted.is_(True),
+            )
+        )
+        assert selected is not None
+        sector_row_ids[symbol] = [
+            row.id
+            for row in db.query(OHLCVBar)
+            .filter(OHLCVBar.market_series_id == selected.market_series_id)
+            .order_by(OHLCVBar.ts)
+            .all()
+        ]
     await seed_e2e_market_data(fixture_db)
     repeated_rows = (
         db.query(OHLCVBar)
@@ -337,6 +373,25 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
     )
     assert [row.id for row in repeated_rows] == original_ids
     assert [(row.ts, row.close) for row in repeated_rows] == original_values
+    for symbol, expected_ids in sector_row_ids.items():
+        instrument = db.scalar(select(Instrument).where(Instrument.symbol == symbol))
+        assert instrument is not None
+        selected = db.scalar(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument.id,
+                MarketSeriesDefault.timeframe == Timeframe.D1.value,
+                MarketSeriesDefault.is_adjusted.is_(True),
+            )
+        )
+        assert selected is not None
+        actual_ids = [
+            row.id
+            for row in db.query(OHLCVBar)
+            .filter(OHLCVBar.market_series_id == selected.market_series_id)
+            .order_by(OHLCVBar.ts)
+            .all()
+        ]
+        assert actual_ids == expected_ids
     repeated_intraday = (
         db.query(OHLCVBar)
         .filter(OHLCVBar.market_series_id == intraday_series.id)
@@ -364,6 +419,16 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
     for symbol in _E2E_MONTHLY_RRG_SYMBOLS:
         instrument = db.scalar(select(Instrument).where(Instrument.symbol == symbol))
         assert instrument is not None
+        daily_default = db.scalar(
+            select(MarketSeriesDefault).where(
+                MarketSeriesDefault.instrument_id == instrument.id,
+                MarketSeriesDefault.timeframe == Timeframe.D1.value,
+                MarketSeriesDefault.is_adjusted.is_(True),
+            )
+        )
+        assert daily_default is not None
+        daily_series = db.get(MarketSeries, daily_default.market_series_id)
+        assert daily_series is not None
         recent = (
             db.query(OHLCVBar)
             .filter(
@@ -373,6 +438,7 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
                 OHLCVBar.ts >= recent_start,
                 OHLCVBar.is_adjusted.is_(True),
                 OHLCVBar.is_derived.is_(False),
+                OHLCVBar.market_series_id == daily_series.id,
             )
             .order_by(OHLCVBar.ts)
             .all()
@@ -397,6 +463,9 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
             json.dumps(recent_rows, separators=(",", ":"), ensure_ascii=True).encode()
         ).hexdigest()
         assert digest == _RECENT_RRG_BAR_DIGESTS[symbol]
+        if symbol == "SPY":
+            # Pin the benchmark's original prices and positive Study streak.
+            assert all(row.close > row.open for row in recent[-8:])
 
         full_daily = (
             db.query(OHLCVBar)
@@ -406,6 +475,7 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
                 OHLCVBar.timeframe == Timeframe.D1,
                 OHLCVBar.is_adjusted.is_(True),
                 OHLCVBar.is_derived.is_(False),
+                OHLCVBar.market_series_id == daily_series.id,
             )
             .order_by(OHLCVBar.ts)
             .all()
@@ -415,6 +485,9 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
         assert all(
             bar.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
             and bar.adjustment_version == "e2e-split-adjusted-v1"
+            and all(
+                value.is_finite() for value in (bar.open, bar.high, bar.low, bar.close, bar.volume)
+            )
             for bar in full_daily
         )
 
@@ -454,6 +527,10 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
         assert len(weekly) > len(monthly)
         assert weekly[0].source_timeframe == Timeframe.D1.value
         assert all(row.data_source_id == source.id for row in weekly)
+        for row in (*weekly, *monthly):
+            assert all(
+                value.is_finite() for value in (row.open, row.high, row.low, row.close, row.volume)
+            )
         for timeframe, derived_rows in ((Timeframe.W1, weekly), (Timeframe.MN, monthly)):
             selected = db.scalar(
                 select(MarketSeriesDefault).where(
@@ -470,6 +547,11 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
             assert selected_series.is_canonical is True
             assert selected_series.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
             assert selected_series.adjustment_version == "e2e-split-adjusted-v1"
+            if symbol in _E2E_SECTOR_RRG_SYMBOLS and timeframe == Timeframe.D1:
+                assert (
+                    selected_series.provenance["relative_path_revision"]
+                    == _E2E_SECTOR_RELATIVE_PATH_REVISION
+                )
 
             # This is the same selected-series and adjustment predicate used
             # by canonical local reads, with the fixture's source isolation.
@@ -511,6 +593,10 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
         assert state.extra_data["controlled_fixture"] is True
         assert state.extra_data["extended_monthly_rrg_history"] is True
         assert state.extra_data["bar_count"] == full_daily_count
+        if symbol in _E2E_SECTOR_RRG_SYMBOLS:
+            assert state.extra_data["relative_path_revision"] == (
+                _E2E_SECTOR_RELATIVE_PATH_REVISION
+            )
 
     benchmark_by_timeframe = {
         timeframe: {bar.ts: bar.close for bar in series_by_symbol["SPY"][timeframe]}
@@ -535,10 +621,47 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db, 
             assert all(
                 math.isfinite(point.trend) and math.isfinite(point.momentum) for point in tail
             )
+            tail_segment_lengths = [
+                math.hypot(
+                    right.trend - left.trend,
+                    right.momentum - left.momentum,
+                )
+                for left, right in zip(tail, tail[1:])
+            ]
+            assert sum(length > 0.0001 for length in tail_segment_lengths) >= 5, (
+                symbol,
+                timeframe,
+                tail_segment_lengths,
+            )
+            assert sum(tail_segment_lengths) > 0.01, (symbol, timeframe, tail_segment_lengths)
             assert all(
                 math.isfinite(float(metrics[key]))
                 for key in ("trend", "momentum", "heading", "distance", "velocity")
             )
+            relative_tail = [ratio for _, ratio in aligned[-10:]]
+            assert max(relative_tail) - min(relative_tail) > 0.005, (symbol, timeframe)
+            assert (
+                sum(
+                    abs(right - left) > 0.0005
+                    for left, right in zip(relative_tail, relative_tail[1:])
+                )
+                >= 5
+            ), (symbol, timeframe, relative_tail)
+
+    # Distinct paths should remain distinguishable after D1 aggregation rather
+    # than collapsing to the same normalized trajectory at coarser intervals.
+    for timeframe in (Timeframe.D1, Timeframe.W1, Timeframe.MN):
+        sector_signatures = []
+        benchmark = benchmark_by_timeframe[timeframe]
+        for symbol in _E2E_MONTHLY_RRG_SYMBOLS[1:]:
+            sector_signatures.append(
+                tuple(
+                    round(float(bar.close / benchmark[bar.ts]), 8)
+                    for bar in series_by_symbol[symbol][timeframe]
+                    if bar.ts in benchmark
+                )[-10:]
+            )
+        assert len(set(sector_signatures)) == len(_E2E_SECTOR_RRG_SYMBOLS)
 
     nvda = db.scalar(select(Instrument).where(Instrument.symbol == "NVDA"))
     assert nvda is not None

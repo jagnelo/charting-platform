@@ -192,6 +192,7 @@ _E2E_INTRADAY_HISTORY_BARS = _E2E_INTRADAY_SESSIONS * _E2E_INTRADAY_BARS_PER_SES
 _E2E_INTRADAY_TIMEZONE = ZoneInfo("America/New_York")
 _E2E_ADJUSTMENT_VERSION = "e2e-split-adjusted-v1"
 _E2E_LONG_RRG_START = date(2019, 1, 2)
+_E2E_SECTOR_RELATIVE_PATH_REVISION = "sector-relative-path-v2"
 _E2E_MONTHLY_RRG_SYMBOLS = (
     "SPY",
     "XLK",
@@ -206,6 +207,35 @@ _E2E_MONTHLY_RRG_SYMBOLS = (
     "XLRE",
     "XLB",
 )
+_E2E_SECTOR_RRG_SYMBOLS = _E2E_MONTHLY_RRG_SYMBOLS[1:]
+
+
+def _e2e_sector_relative_factor(symbol: str, index: int, *, anchor_index: int) -> float:
+    """Return a smooth, symbol-specific controlled relative-return path.
+
+    The E2E-only factor makes the sector proxies distinguishable from SPY over
+    daily, weekly, and monthly samples.  It is normalized to one at the end of
+    the historical prelude so the unchanged recent benchmark fixture joins it
+    without a synthetic price discontinuity.
+    """
+
+    try:
+        sector_index = _E2E_SECTOR_RRG_SYMBOLS.index(symbol)
+    except ValueError as exc:
+        raise ValueError(f"Unsupported E2E sector proxy: {symbol}") from exc
+
+    phase = (2.0 * math.pi * sector_index) / len(_E2E_SECTOR_RRG_SYMBOLS)
+    short_phase = phase * 1.7 + 0.31
+
+    def log_relative_path(day_index: int) -> float:
+        return (
+            0.14 * math.sin((2.0 * math.pi * day_index / 720.0) + phase)
+            + 0.05 * math.sin((2.0 * math.pi * day_index / 16.0) + short_phase)
+            + 0.012 * math.sin((2.0 * math.pi * day_index / 87.0) - phase * 0.6)
+        )
+
+    return math.exp(log_relative_path(index) - log_relative_path(anchor_index))
+
 
 _E2E_INDUSTRIES = {
     "NVDA": "Semiconductors",
@@ -467,6 +497,7 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
     # compatible rows from earlier fixture versions are attached in place.
     daily_series = {}
     for symbol, instrument in instruments.items():
+        is_sector_rrg_proxy = symbol in _E2E_SECTOR_RRG_SYMBOLS
         daily_series[symbol] = await get_or_create_series(
             db,
             SeriesScope(
@@ -479,8 +510,20 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                 adjustment_version="e2e-split-adjusted-v1",
             ),
             canonical=True,
-            source_series_key=f"e2e_reference:{symbol}:D1:split-adjusted",
-            provenance={"seed": "e2e", "controlled_fixture": True},
+            source_series_key=(
+                f"e2e_reference:{symbol}:D1:split-adjusted:{_E2E_SECTOR_RELATIVE_PATH_REVISION}"
+                if is_sector_rrg_proxy
+                else f"e2e_reference:{symbol}:D1:split-adjusted"
+            ),
+            provenance={
+                "seed": "e2e",
+                "controlled_fixture": True,
+                **(
+                    {"relative_path_revision": _E2E_SECTOR_RELATIVE_PATH_REVISION}
+                    if is_sector_rrg_proxy
+                    else {}
+                ),
+            },
         )
 
     for symbol, instrument in instruments.items():
@@ -530,12 +573,20 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         slope = 0.00035 + (sum(ord(char) for char in symbol) % 7) * 0.00003
         bars: list[OHLCVBar] = []
         previous = base
+        previous_unfactored = base
         for index, day in enumerate(trading_days):
             cycle = math.sin(index / 17.0 + len(symbol)) * 0.008
-            close = base * (1 + slope * index + cycle)
+            unfactored_close = base * (1 + slope * index + cycle)
             # Keep a deterministic positive streak at the end for Study Lab.
             if index >= len(trading_days) - 8:
-                close = previous * (1.0 + 0.004 + (index % 3) * 0.001)
+                unfactored_close = previous_unfactored * (1.0 + 0.004 + (index % 3) * 0.001)
+            close = unfactored_close
+            if symbol in _E2E_SECTOR_RRG_SYMBOLS:
+                close = unfactored_close * _e2e_sector_relative_factor(
+                    symbol,
+                    len(long_rrg_days) + index,
+                    anchor_index=len(long_rrg_days) - 1,
+                )
             open_ = previous
             high = max(open_, close) * 1.004
             low = min(open_, close) * 0.996
@@ -559,6 +610,7 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                 )
             )
             previous = close
+            previous_unfactored = unfactored_close
 
         # Extend only the controlled SPY/sector RRG fixture. Keep the existing
         # recent 520-row generator above unchanged; older history ends exactly
@@ -571,6 +623,12 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
                 close = base * (0.72 + 0.28 * progress)
                 if index == len(long_rrg_days) - 1:
                     close = base
+                if symbol in _E2E_SECTOR_RRG_SYMBOLS:
+                    close *= _e2e_sector_relative_factor(
+                        symbol,
+                        index,
+                        anchor_index=len(long_rrg_days) - 1,
+                    )
                 open_ = historical_previous
                 high = max(open_, close) * 1.004
                 low = min(open_, close) * 0.996
@@ -821,8 +879,14 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
         state.coverage_start = coverage_start
         state.coverage_end = coverage_end
         state.version = max(state.version or 1, 1)
+        relative_path_revision = (
+            _E2E_SECTOR_RELATIVE_PATH_REVISION if symbol in _E2E_SECTOR_RRG_SYMBOLS else None
+        )
         state.snapshot_hash = hashlib.sha256(
-            f"{symbol}:e2e:D1:adj:{coverage_start.isoformat()}:{coverage_end.isoformat()}".encode()
+            (
+                f"{symbol}:e2e:D1:adj:{coverage_start.isoformat()}:{coverage_end.isoformat()}"
+                + (f":{relative_path_revision}" if relative_path_revision else "")
+            ).encode()
         ).hexdigest()
         state.extra_data = {
             "seed": "e2e",
@@ -830,6 +894,9 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
             "bar_count": len(trading_days) + (len(long_rrg_days) if has_long_rrg_history else 0),
             "adjusted": True,
             "extended_monthly_rrg_history": has_long_rrg_history,
+            **(
+                {"relative_path_revision": relative_path_revision} if relative_path_revision else {}
+            ),
         }
 
     from app.services.derived_timeframes import materialize_derived_timeframes

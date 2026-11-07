@@ -318,6 +318,13 @@ def _observed_fixed_holiday(year: int, month: int, day: int) -> date:
     return holiday
 
 
+def _observed_new_year(year: int) -> date:
+    """NYSE does not observe a Saturday Jan 1 closure on the prior Friday."""
+
+    new_year = date(year, 1, 1)
+    return new_year + timedelta(days=1) if new_year.weekday() == 6 else new_year
+
+
 def _easter_sunday(year: int) -> date:
     """Anonymous Gregorian computus, sufficient for Good Friday."""
     century, remainder = divmod(year, 100)
@@ -347,7 +354,7 @@ def _last_weekday(year: int, month: int, weekday: int) -> date:
 def _xnys_holidays(year: int) -> set[date]:
     """Major XNYS full-day closures for a deterministic local daily calendar."""
     holidays = {
-        _observed_fixed_holiday(year, 1, 1),
+        _observed_new_year(year),
         _nth_weekday(year, 1, 0, 3),  # Martin Luther King Jr. Day
         _nth_weekday(year, 2, 0, 3),  # Presidents' Day
         _last_weekday(year, 5, 0),  # Memorial Day
@@ -361,6 +368,23 @@ def _xnys_holidays(year: int) -> set[date]:
         holidays.add(_observed_fixed_holiday(year, 6, 19))  # Juneteenth
     holidays.update(_XNYS_AD_HOC_CLOSURES.get(year, set()))
     return holidays
+
+
+def _xnys_early_closes(year: int) -> set[date]:
+    """Recurring XNYS 13:00 ET regular-session closes."""
+
+    holidays = _xnys_holidays(year)
+    thanksgiving = _nth_weekday(year, 11, 3, 4)
+    candidates = {
+        thanksgiving + timedelta(days=1),
+        date(year, 12, 24),
+        date(year, 7, 3),
+    }
+    return {
+        candidate
+        for candidate in candidates
+        if candidate.weekday() < 5 and candidate not in holidays
+    }
 
 
 def _xnys_session_days(start: date, end: date) -> set[date]:
