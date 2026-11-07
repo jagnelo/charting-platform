@@ -22,13 +22,13 @@
           <button
             type="button"
             class="research-results-tool__run-select"
-            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts.length} artifacts`"
+            :aria-label="`Run ${run.id}, ${run.status}, ${run.artifact_count ?? run.artifacts?.length ?? 0} artifacts`"
             :aria-pressed="selectedRun?.id === run.id ? 'true' : 'false'"
             @click="selectedRun = run"
           >
             <strong>Run #{{ run.id }}</strong>
             <span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Run ${run.id} status: ${statusLabel(run.status)}`" :data-status="run.status" :class="`research-results-tool__status--${run.status}`">{{ statusLabel(run.status) }}</span>
-            <small>{{ run.artifact_count ?? run.artifacts.length }} artifact{{ (run.artifact_count ?? run.artifacts.length) === 1 ? '' : 's' }}</small>
+            <small>{{ run.artifact_count ?? run.artifacts?.length ?? 0 }} artifact{{ (run.artifact_count ?? run.artifacts?.length ?? 0) === 1 ? '' : 's' }}</small>
           </button>
         </div>
       </div>
@@ -86,7 +86,7 @@
     <article v-if="selectedRun" class="research-results-tool__detail" :aria-label="`Research run ${selectedRun.id} details`">
       <div class="research-results-tool__detail-header"><strong>Run #{{ selectedRun.id }}</strong><button v-if="canCancel(selectedRun)" type="button" :disabled="canceling" @click="cancel(selectedRun)">Cancel</button><button v-if="canPromoteBreadth(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteScan(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to EasyScan' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote to alert' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteGauge(selectedRun)">{{ promoting ? 'Promoting…' : 'Use as Market Gauge' }}</button><button v-if="canPromoteBreadthBoolean(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Strategy signal' }}</button><button v-if="canPromoteEventSignal(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventSignal(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as Strategy signal' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventFilter(selectedRun)">{{ promoting ? 'Promoting…' : 'Save events as watchlist filter' }}</button><button v-if="canPromoteEventFilter(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteEventAlert(selectedRun)">{{ promoting ? 'Promoting…' : 'Promote events to alert' }}</button><button v-if="canPromoteBreadthStudy(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteStudy(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as Study Lab study' }}</button><button v-if="canPromoteBreadthPlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promotePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as chart plot' }}</button><button v-if="canPromoteBreadthAggregatePlot(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteAggregatePlot(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as aggregate chart plot' }}</button><button v-if="canPromoteBreadthColumn(selectedRun)" type="button" :disabled="rerunning || canceling || promoting" @click="promoteColumn(selectedRun)">{{ promoting ? 'Promoting…' : 'Save as watchlist column' }}</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, true)">Rerun snapshot</button><button type="button" :disabled="rerunning || canceling || promoting" @click="rerun(selectedRun, false)">Rerun latest</button></div>
       <p class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ statusGuidance(selectedRun.status) }}</p>
-      <p v-if="promotionMessage" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
+      <p v-if="promotionMessage && promotionRunId === selectedRun.id" class="research-results-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ promotionMessage }}</p>
       <small v-if="selectedRun.reproducibility_hash">{{ selectedRun.reproducibility_hash }}</small>
       <details v-if="selectedRun.diagnostics?.length" class="research-results-tool__run-details"><summary>Diagnostics ({{ selectedRun.diagnostics.length }})</summary><pre>{{ formatMessages(selectedRun.diagnostics) }}</pre></details>
       <details v-if="selectedRun.warnings?.length" class="research-results-tool__run-details"><summary>Warnings ({{ selectedRun.warnings.length }})</summary><pre>{{ formatMessages(selectedRun.warnings) }}</pre></details>
@@ -196,6 +196,7 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { studyArtifactCapability } from '@/lib/workstation/studyArtifactCapabilities'
@@ -291,6 +292,64 @@ function mergeResearchRuns(...groups: ResearchRunSummary[][]) {
   }
   return [...byId.values()]
 }
+function publishAcceptedRunMutation(run: ResearchRunSummary) {
+  queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current =>
+    mergeResearchRuns([run], current ?? []).slice(0, RESEARCH_RUN_FETCH_SIZE),
+  )
+  void queryClient.invalidateQueries({ queryKey: runsQueryKey })
+}
+function reconcileResearchRunsWithCache(
+  serverRuns: ResearchRunSummary[],
+  cachedRuns: ResearchRunSummary[],
+) {
+  const cachedById = new Map(cachedRuns.map(run => [run.id, run]))
+  const mergedById = new Map<number, ResearchRunSummary>()
+  for (const serverRun of serverRuns) {
+    const cachedRun = cachedById.get(serverRun.id)
+    if (!cachedRun) {
+      mergedById.set(serverRun.id, serverRun)
+      continue
+    }
+    const serverArtifacts = serverRun.artifacts ?? []
+    const cachedArtifacts = cachedRun?.artifacts ?? []
+    const serverRunConfig = serverRun.run_config ?? {}
+    const serverDatasetManifest = serverRun.dataset_manifest ?? {}
+    const serverArtifactCount = serverRun.artifact_count ?? serverArtifacts.length
+    const cachedArtifactCount = cachedRun?.artifact_count ?? cachedArtifacts.length
+    const hasArtifactCount = serverRun.artifact_count !== undefined || cachedRun.artifact_count !== undefined
+    const serverIsTerminal = ['completed', 'failed', 'canceled'].includes(serverRun.status)
+    const serverHasRunConfig = Object.keys(serverRunConfig).length > 0
+    const serverHasManifest = Object.keys(serverDatasetManifest).length > 0
+    mergedById.set(serverRun.id, {
+      ...cachedRun,
+      ...serverRun,
+      status: cachedRun && ['completed', 'failed', 'canceled'].includes(cachedRun.status) && !serverIsTerminal
+        ? cachedRun.status
+        : serverRun.status,
+      run_config: serverHasRunConfig ? serverRunConfig : cachedRun?.run_config ?? serverRunConfig,
+      dataset_manifest: serverHasManifest ? serverDatasetManifest : cachedRun?.dataset_manifest ?? serverDatasetManifest,
+      ...(hasArtifactCount ? { artifact_count: Math.max(serverArtifactCount, cachedArtifactCount) } : {}),
+      artifacts: cachedArtifacts.length > serverArtifacts.length ? cachedArtifacts : serverArtifacts,
+    })
+  }
+  for (const cachedRun of cachedRuns) {
+    if (!mergedById.has(cachedRun.id)) mergedById.set(cachedRun.id, cachedRun)
+  }
+  const serverOrderedRuns = serverRuns.flatMap(serverRun => {
+    const reconciled = mergedById.get(serverRun.id)
+    return reconciled ? [reconciled] : []
+  })
+  const cachedOnlyRuns = [...mergedById.values()].filter(run => !serverRuns.some(serverRun => serverRun.id === run.id))
+  cachedOnlyRuns.sort((left, right) => {
+    const leftCreatedAt = left.created_at ? Date.parse(left.created_at) : Number.NaN
+    const rightCreatedAt = right.created_at ? Date.parse(right.created_at) : Number.NaN
+    if (Number.isFinite(leftCreatedAt) && Number.isFinite(rightCreatedAt) && leftCreatedAt !== rightCreatedAt) {
+      return rightCreatedAt - leftCreatedAt
+    }
+    return right.id - left.id
+  })
+  return [...cachedOnlyRuns, ...serverOrderedRuns].slice(0, RESEARCH_RUN_FETCH_SIZE)
+}
 const comparisonArtifacts = computed<ComparisonArtifactPair[]>(() => {
   const [leftRun, rightRun] = comparisonRuns.value.map(run => comparisonDetails.value[run.id] ?? run)
   if (!leftRun || !rightRun) return []
@@ -324,24 +383,34 @@ const comparisonLoadKey = computed(() => comparisonOpen.value && comparisonRuns.
   : '')
 const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
-const runsQueryKey = ['workstation', 'research-runs'] as const
+const runsQueryKey = researchRunsQueryKey
 const queryClient = useQueryClient()
 const artifactSummaryId = (artifactId: number) => `${resultsInstanceId}-research-artifact-${artifactId}-summary`
 let visibilityObserver: IntersectionObserver | null = null
 let mounted = false
 let mutationGeneration = 0
 let comparisonGeneration = 0
+const promotionRunId = ref<number | null>(null)
 function isCurrentMutation(generation: number) { return mounted && generation === mutationGeneration }
-function beginPromotion() {
+function beginPromotion(runId: number) {
   const generation = mutationGeneration
+  promotionRunId.value = runId
   promoting.value = true
   promotionMessage.value = ''
   return generation
 }
+function setPromotionMessage(runId: number, message: string) {
+  promotionRunId.value = runId
+  promotionMessage.value = message
+}
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 const runsQuery = useQuery({
   queryKey: runsQueryKey,
-  queryFn: async () => (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? [],
+  queryFn: async () => {
+    const serverRuns = (await api.get<ResearchRunSummary[]>('/research/runs', { limit: RESEARCH_RUN_FETCH_SIZE, include_artifacts: false })) ?? []
+    const cachedRuns = queryClient.getQueryData<ResearchRunSummary[]>(runsQueryKey) ?? []
+    return reconcileResearchRunsWithCache(serverRuns, cachedRuns)
+  },
   enabled: computed(() => surfaceVisible.value && documentVisible.value),
   staleTime: 5_000,
   refetchOnWindowFocus: true,
@@ -965,21 +1034,14 @@ async function rerun(run: ResearchRunSummary, snapshot: boolean) {
   error.value = ''
   try {
     const queued = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/rerun?snapshot=${snapshot}`, {})
+    publishAcceptedRunMutation(queued)
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = mergeResearchRuns([queued], runs.value)
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
-      [queued],
-      (current ?? []).filter(item => item.id !== queued.id),
-    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
     runs.value = nextRuns
     if (selectedRun.value?.id === selectedRunIdAtStart) selectedRun.value = queued
     await runsQuery.refetch()
-    queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => mergeResearchRuns(
-      [queued],
-      (current ?? []).filter(item => item.id !== queued.id),
-    ).slice(0, RESEARCH_RUN_FETCH_SIZE))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to queue study rerun'
+    if (mounted && generation === mutationGeneration) error.value = `Unable to queue rerun for run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) rerunning.value = false
   }
@@ -990,6 +1052,7 @@ async function cancel(run: ResearchRunSummary) {
   error.value = ''
   try {
     const canceled = await api.post<ResearchRunSummary>(`/research/runs/${run.id}/cancel`, {})
+    publishAcceptedRunMutation({ ...run, ...canceled, status: canceled.status ?? 'canceled' })
     if (!mounted || generation !== mutationGeneration) return
     const nextRuns = runs.value.map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item)
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
@@ -998,13 +1061,13 @@ async function cancel(run: ResearchRunSummary) {
     await runsQuery.refetch()
     queryClient.setQueryData<ResearchRunSummary[]>(runsQueryKey, current => (current ?? []).map(item => item.id === run.id ? { ...item, ...canceled, status: canceled.status ?? 'canceled' } : item))
   } catch (cause: any) {
-    if (mounted && generation === mutationGeneration) error.value = cause?.message ?? 'Unable to cancel research run'
+    if (mounted && generation === mutationGeneration) error.value = `Unable to cancel run #${run.id}: ${cause?.message ?? 'Request failed'}`
   } finally {
     if (mounted && generation === mutationGeneration) canceling.value = false
   }
 }
 async function promoteScan(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1030,7 +1093,7 @@ async function ensurePromotedScan(run: ResearchRunSummary, generation = mutation
 }
 
 async function promoteAlert(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const scan = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1045,7 +1108,7 @@ async function promoteAlert(run: ResearchRunSummary) {
 }
 
 async function promoteGauge(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const scan = await ensurePromotedScan(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1058,7 +1121,7 @@ async function promoteGauge(run: ResearchRunSummary) {
 }
 
 async function promoteSignal(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-signal`, {})
     if (!isCurrentMutation(generation)) return
@@ -1070,7 +1133,7 @@ async function promoteSignal(run: ResearchRunSummary) {
   }
 }
 async function promoteEventSignal(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.id}/promote-event-signal`, {})
     if (!isCurrentMutation(generation)) return
@@ -1090,7 +1153,7 @@ async function ensurePromotedEventFilter(run: ResearchRunSummary, generation = m
   return result
 }
 async function promoteEventFilter(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedEventFilter(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1102,7 +1165,7 @@ async function promoteEventFilter(run: ResearchRunSummary) {
   }
 }
 async function promoteEventAlert(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await ensurePromotedEventFilter(run, generation)
     if (!isCurrentMutation(generation)) return
@@ -1116,7 +1179,7 @@ async function promoteEventAlert(run: ResearchRunSummary) {
   }
 }
 async function promoteEventArtifact(run: ResearchRunSummary, artifactName: string, target: 'filter' | 'alert' | 'signal') {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const assets = await api.get<Array<{ versions?: Array<{ id?: number; source?: string; output_contract?: string; parameter_schema?: Record<string, unknown>; default_parameters?: Record<string, unknown> }> }>>('/code/assets')
@@ -1221,10 +1284,10 @@ async function promoteStructuredStudySignal(
 async function promoteStructuredArtifact(run: ResearchRunSummary, artifact: ResearchRunSummary['artifacts'][number], target: 'column' | 'plot' | StructuredBooleanPromotionTarget) {
   if (!canPromoteStructuredArtifact(run, artifact) || promoting.value) return
   if (target === 'plot' && artifact.artifact_type === 'series' && !seriesCanBePlotted(artifact)) {
-    promotionMessage.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
+    setPromotionMessage(run.id, 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (artifact.artifact_type === 'boolean' && target !== 'column' && target !== 'plot') {
       if (target === 'signal') {
@@ -1373,10 +1436,10 @@ async function promoteStructuredSeriesCondition(
   if (artifact.artifact_type !== 'series' || !hasFiniteSeriesValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the series.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the series.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1475,10 +1538,10 @@ async function promoteStructuredScalarCondition(
   if (artifact.artifact_type !== 'scalar' || !hasFiniteScalarValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the scalar.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the scalar.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const seriesTarget = { operator: draft.operator, threshold: Number(draft.threshold) }
     if (target === 'signal') {
@@ -1578,10 +1641,10 @@ async function promoteStructuredRangeCenterCondition(
   if (artifact.artifact_type !== 'range' || !hasFiniteRangeCenterValue(artifact) || promoting.value) return
   const draft = structuredConditionDraft(run, artifact)
   if (!Number.isFinite(draft.threshold)) {
-    promotionMessage.value = 'Enter a finite numeric threshold before promoting the range center.'
+    setPromotionMessage(run.id, 'Enter a finite numeric threshold before promoting the range center.')
     return
   }
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     if (target === 'signal') {
       const promoted = await promoteStructuredStudySignal(run, artifact.name, {
@@ -1674,7 +1737,7 @@ async function promoteStructuredRangeCenterCondition(
   }
 }
 async function promoteStudy(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-study`, {})
     if (!isCurrentMutation(generation)) return
@@ -1686,7 +1749,7 @@ async function promoteStudy(run: ResearchRunSummary) {
   }
 }
 async function promotePlot(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, {})
     if (!isCurrentMutation(generation)) return
@@ -1698,7 +1761,7 @@ async function promotePlot(run: ResearchRunSummary) {
   }
 }
 async function promoteAggregatePlot(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-plot`, { aggregate: true })
     if (!isCurrentMutation(generation)) return
@@ -1710,7 +1773,7 @@ async function promoteAggregatePlot(run: ResearchRunSummary) {
   }
 }
 async function promoteColumn(run: ResearchRunSummary) {
-  const generation = beginPromotion()
+  const generation = beginPromotion(run.id)
   try {
     const promoted = await api.post<{ id: number; name: string }>(`/analysis/breadth/python/runs/${run.id}/promote-column`, {})
     if (!isCurrentMutation(generation)) return

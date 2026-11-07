@@ -2,9 +2,13 @@ import { flushPromises, mount } from '@vue/test-utils'
 import { VueQueryPlugin, QueryClient } from '@tanstack/vue-query'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { apiGet, apiPost, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
+const { apiGet, apiPost, ensurePreparation, resolveWatchlistSource, watchlistSourceState } = vi.hoisted(() => ({ apiGet: vi.fn(), apiPost: vi.fn(), ensurePreparation: vi.fn(), resolveWatchlistSource: vi.fn(), watchlistSourceState: { sources: [] as unknown[] } }))
 vi.mock('@/lib/api', () => ({ api: { get: apiGet, post: apiPost } }))
-vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: watchlistSourceState.sources }) }))
+vi.mock('@/lib/dataPreparation', () => ({
+  dataPreparationCoordinator: { ensure: ensurePreparation },
+  preparationStatusMessage: (response: { status: string }) => response.status === 'ready' ? 'Requested data is ready.' : 'Requested data is unavailable.',
+}))
+vi.mock('@/stores/watchlist', () => ({ useWatchlistStore: () => ({ watchlistSources: watchlistSourceState.sources, resolveWatchlistSource }) }))
 vi.mock('@/components/workstation/StudyBarsUPlot.vue', () => ({ default: { template: '<div class="bars-chart" />', props: ['name', 'labels', 'values'] } }))
 vi.mock('@/components/workstation/StudySeriesUPlot.vue', () => ({ default: { template: '<div class="series-chart" :data-values="JSON.stringify(values)" />', props: ['name', 'timestamps', 'values'] } }))
 vi.mock('@/components/workstation/StudyHistogramUPlot.vue', () => ({ default: { template: '<div class="histogram-chart" />', props: ['name', 'bins', 'current'] } }))
@@ -14,6 +18,7 @@ vi.mock('@/components/workstation/StudyHeatmap.vue', () => ({ default: { templat
 vi.mock('@/components/workstation/StudyDashboard.vue', () => ({ default: { template: '<div class="dashboard-chart" />', props: ['name', 'panels', 'artifacts'] } }))
 
 import StudyLabTool from '@/components/workstation/StudyLabTool.vue'
+import ResearchResultsTool from '@/components/workstation/ResearchResultsTool.vue'
 import type { WatchlistSource } from '@/types'
 
 function deferred<T>() {
@@ -26,6 +31,8 @@ describe('StudyLabTool', () => {
   beforeEach(() => {
     apiGet.mockReset()
     apiPost.mockReset()
+    ensurePreparation.mockReset().mockResolvedValue({ status: 'ready' })
+    resolveWatchlistSource.mockReset()
     watchlistSourceState.sources = []
   })
 
@@ -151,7 +158,322 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ source: "output.scalar('changed', 1)" }),
     }))
+    const preparationOrder = ensurePreparation.mock.invocationCallOrder.at(-1)!
+    const assetOrder = apiPost.mock.invocationCallOrder[apiPost.mock.calls.findIndex(([path]) => path === '/code/assets')]
+    const runOrder = apiPost.mock.invocationCallOrder[apiPost.mock.calls.findIndex(([path]) => path === '/research/runs')]
+    expect(preparationOrder).toBeLessThan(assetOrder)
+    expect(preparationOrder).toBeLessThan(runOrder)
     wrapper.unmount()
+  })
+
+  it('prepares the selected primary and benchmark history with bounded date intent before validating', async () => {
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'SPY',
+      configuration: { timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', start_date: '2024-01-02', end_date: '2024-02-29', as_of: '2024-02-15T15:30:00Z' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+
+    expect(ensurePreparation).toHaveBeenNthCalledWith(1, {
+      target: { kind: 'instrument', symbol: 'SPY' },
+      datasets: ['history'],
+      timeframe: 'W1',
+      adjusted: false,
+      start_at: '2024-01-02T00:00:00.000Z',
+      end_at: '2024-02-15T15:30:00.000Z',
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(ensurePreparation).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      target: { kind: 'instrument', symbol: 'QQQ' },
+      timeframe: 'W1',
+      start_at: '2024-01-02T00:00:00.000Z',
+      end_at: '2024-02-15T15:30:00.000Z',
+    }), expect.objectContaining({ signal: expect.any(AbortSignal) }))
+    expect(ensurePreparation.mock.invocationCallOrder[0]).toBeLessThan(apiPost.mock.invocationCallOrder[0])
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Selected Study data and benchmark are ready.')
+    wrapper.unmount()
+  })
+
+  it('submits every independent member and benchmark before waiting for a held target', async () => {
+    const heldPrimary = deferred<{ status: string }>()
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return heldPrimary.promise
+      return Promise.resolve({ status: 'ready' })
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    expect(ensurePreparation.mock.calls.map(([request]) => request.target)).toEqual([
+      { kind: 'instrument', symbol: 'SPY' },
+      { kind: 'instrument', symbol: 'XLK' },
+      { kind: 'instrument', symbol: 'QQQ' },
+    ])
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.'))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
+
+    heldPrimary.resolve({ status: 'unavailable' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('SPY: Requested data is unavailable.')
+    expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('XLK: Requested data is ready.')
+    expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.')
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready')
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('submits later targets before closing while the first preparation is still held', async () => {
+    const heldPrimary = deferred<{ status: string }>()
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return heldPrimary.promise
+      return Promise.resolve({ status: 'ready' })
+    })
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
+    const signals = ensurePreparation.mock.calls.map(([, options]) => options.signal as AbortSignal)
+
+    wrapper.unmount()
+    expect(signals.every(signal => signal.aborted)).toBe(true)
+    heldPrimary.resolve({ status: 'unavailable' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
+  })
+
+  it('keeps later preparation outcomes when one target request rejects', async () => {
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return Promise.reject(new Error('Preparation request timed out.'))
+      return Promise.resolve({ status: 'ready' })
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation outcomes"]').text()).toContain('QQQ: Requested data is ready.'))
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+
+    const outcomes = wrapper.get('[aria-label="Study data preparation outcomes"]').text()
+    expect(outcomes).toContain('SPY: Preparation request timed out.')
+    expect(outcomes).toContain('XLK: Requested data is ready.')
+    expect(outcomes).toContain('QQQ: Requested data is ready.')
+    expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready')
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('aborts all obsolete preparation subscriptions when the benchmark context changes', async () => {
+    const heldPrimary = deferred<{ status: string }>()
+    ensurePreparation.mockImplementation((request: { target: { symbol?: string } }) => {
+      if (request.target.symbol === 'SPY') return heldPrimary.promise
+      return Promise.resolve({ status: 'ready' })
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: { symbols: 'SPY,XLK', benchmark: 'QQQ' },
+    })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(ensurePreparation).toHaveBeenCalledTimes(3))
+    const signals = ensurePreparation.mock.calls.map(([, options]) => options.signal as AbortSignal)
+    await wrapper.get('[aria-label="Study benchmark"]').setValue('DIA')
+    expect(signals.every(signal => signal.aborted)).toBe(true)
+
+    heldPrimary.resolve({ status: 'ready' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith(expect.stringContaining('/cancel'), expect.anything())
+    wrapper.unmount()
+  })
+
+  it('resolves a watchlist membership snapshot before preparing its instrument history', async () => {
+    resolveWatchlistSource.mockResolvedValue({
+      source: { source_id: 'watchlist:7', membership_version: 'watchlist:7:v2' },
+      members: [
+        { instrument_id: 7, position: 0, relationship_type: 'member' },
+        { instrument_id: 8, position: 1, relationship_type: 'member' },
+      ],
+      exclusions: [],
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { universe_source_id: 'watchlist:7', as_of: '2024-02-15T15:30:00Z' } })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/validate', expect.anything()))
+
+    expect(resolveWatchlistSource).toHaveBeenCalledWith('watchlist:7', '2024-02-15T15:30:00.000Z')
+    expect(ensurePreparation).toHaveBeenNthCalledWith(1, expect.objectContaining({ target: { kind: 'instrument', instrument_id: 7 } }), expect.anything())
+    expect(ensurePreparation).toHaveBeenNthCalledWith(2, expect.objectContaining({ target: { kind: 'instrument', instrument_id: 8 } }), expect.anything())
+    wrapper.unmount()
+  })
+
+  it('keeps a saved result visible and does not create a run when selected data preparation is unavailable', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { symbol: 'SPY', timeframe: 'D1' }, artifacts: [{ id: 1, name: 'saved', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve([]))
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    ensurePreparation.mockResolvedValueOnce({ status: 'ready' }).mockResolvedValueOnce({ status: 'unavailable' })
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_name: 'Saved study' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.get('button[aria-label="Run study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Requested data is unavailable.'))
+
+    expect(wrapper.text()).toContain('Run #77')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('does not certify a draft for execution when preparation is unavailable during validation', async () => {
+    apiGet.mockImplementation((path: string) => path === '/research/runs/77'
+      ? Promise.resolve({ id: 77, status: 'completed', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { symbol: 'SPY', timeframe: 'D1' }, artifacts: [{ id: 1, name: 'saved', artifact_type: 'scalar', payload: { value: 4 } }] })
+      : Promise.resolve([]))
+    ensurePreparation.mockResolvedValue({ status: 'unavailable' })
+    const wrapper = mountTool({ activeSymbol: 'XLB', configuration: { study_run_id: 77, study_run_name: 'Saved study' } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.get('[aria-label="Study data preparation"]').text()).toContain('Some selected Study data is not ready'))
+
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs', expect.anything())
+    expect(wrapper.text()).toContain('Run #77')
+    expect(wrapper.text()).toContain('saved scalar result: 4')
+    wrapper.unmount()
+  })
+
+  it('aborts stale preparation when the selected symbol changes during validation', async () => {
+    const pending = deferred<{ status: string }>()
+    ensurePreparation.mockReturnValueOnce(pending.promise)
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : Promise.resolve({}))
+    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: {} })
+
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    const [, options] = ensurePreparation.mock.calls[0]
+    await wrapper.get('[aria-label="Study symbol"]').setValue('XLB')
+    expect(options.signal.aborted).toBe(true)
+    pending.resolve({ status: 'ready' })
+    await flushPromises()
+    expect(apiPost).not.toHaveBeenCalledWith('/code/validate', expect.anything())
+    wrapper.unmount()
+  })
+
+  it('invalidates the persisted-run list when a new Study run is submitted', async () => {
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 222, code_version_id: 42, status: 'queued', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const invalidateQueries = vi.spyOn(queryClient, 'invalidateQueries')
+    const wrapper = mountTool({ activeSymbol: 'XLB', configuration: {} }, queryClient)
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+    await wrapper.get('button[aria-label="Run study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #222'))
+
+    expect(invalidateQueries).toHaveBeenCalledWith(expect.objectContaining({ queryKey: ['workstation', 'research-runs'] }))
+    wrapper.unmount()
+  })
+
+  it('shows a newly completed Study run and its artifact count in the adjacent Results list without manual refresh', async () => {
+    let listReads = 0
+    const staleQueuedRun = {
+      id: 222,
+      code_version_id: 42,
+      status: 'queued',
+      artifact_count: 0,
+      run_config: {},
+      dataset_manifest: {},
+      artifacts: [],
+    }
+    const completedRun = {
+      id: 222,
+      code_version_id: 42,
+      status: 'completed',
+      artifact_count: 8,
+      run_config: { symbol: 'XLB', timeframe: 'D1' },
+      dataset_manifest: { symbol: 'XLB', datasets: [{ symbol: 'XLB' }] },
+      artifacts: Array.from({ length: 8 }, (_, index) => ({
+        id: index + 1,
+        name: `output-${index + 1}`,
+        artifact_type: 'scalar',
+        payload: { value: index + 1 },
+      })),
+    }
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') {
+        listReads += 1
+        return Promise.resolve(listReads === 1
+          ? [{ id: 6, status: 'completed', code_version_id: 41, artifact_count: 0, artifacts: [] }]
+          : [staleQueuedRun, { id: 6, status: 'completed', code_version_id: 41, artifact_count: 0, artifacts: [] }])
+      }
+      if (path === '/research/runs/222') return Promise.resolve(completedRun)
+      return Promise.resolve(undefined)
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 222, code_version_id: 42, status: 'queued', artifacts: [] })
+      return Promise.resolve({})
+    })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const results = mount(ResearchResultsTool, {
+      global: {
+        plugins: [[VueQueryPlugin, { queryClient }]],
+        stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } },
+      },
+    })
+    const study = mountTool({ activeSymbol: 'XLB', configuration: {} }, queryClient)
+    await vi.waitFor(() => expect(results.find('[aria-label="Run 6, completed, 0 artifacts"]').exists()).toBe(true))
+
+    await study.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(study.text()).toContain('Validated for isolated execution'))
+    await study.get('button[aria-label="Run study"]').trigger('click')
+    await vi.waitFor(() => expect(results.find('[aria-label="Run 222, completed, 8 artifacts"]').exists()).toBe(true))
+
+    expect(results.text()).toContain('Run #222')
+    expect(listReads).toBeGreaterThanOrEqual(2)
+    study.unmount()
+    results.unmount()
   })
 
   it('does not let a late validation response bless source edited while it was pending', async () => {
@@ -197,15 +519,170 @@ describe('StudyLabTool', () => {
 
   it('hydrates a persisted run after a virtual-tool remount', async () => {
     apiGet.mockImplementation((path: string) => path === '/research/runs/77'
-      ? Promise.resolve({ id: 77, status: 'completed', artifacts: [{ id: 1, name: 'event_count', artifact_type: 'scalar', payload: { value: 4 } }] })
+      ? Promise.resolve({ id: 77, status: 'completed', run_config: { symbol: 'SPY', timeframe: 'D1' }, dataset_manifest: { symbol: 'SPY', timeframe: 'D1', datasets: [{ symbol: 'SPY' }] }, artifacts: [{ id: 1, name: 'event_count', artifact_type: 'scalar', payload: { value: 4 } }] })
       : Promise.resolve(undefined))
-    const wrapper = mountTool({ activeSymbol: 'SPY', configuration: { study_run_id: 77, study_run_source: 'output.scalar("event_count", 4)', study_run_contract: 'scalar' } })
+    const wrapper = mountTool({ activeSymbol: 'XLB', configuration: { study_run_id: 77, study_run_source: 'output.scalar("event_count", 4)', study_run_contract: 'scalar', study_run_name: 'Saved SPY result' } })
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #77'))
     expect(wrapper.text()).toContain('event_count')
+    expect(wrapper.get('[aria-label="Saved run dataset"]').text()).toContain('Saved run #77 dataset: symbol SPY')
     const summaryId = wrapper.find('[aria-label="event_count metric"]').attributes('aria-describedby')
     expect(summaryId).toMatch(/-study-artifact-1-summary$/)
     expect(wrapper.find(`#${summaryId}`).text()).toContain('event_count scalar result: 4.')
     expect(apiGet).toHaveBeenCalledWith('/research/runs/77')
+  })
+
+  it('keeps a saved run tied to its recorded dataset while the current draft changes', async () => {
+    const savedRun = {
+      id: 6,
+      status: 'completed',
+      code_version_id: 42,
+      run_config: { symbol: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', session: 'regular', benchmark: 'SPY', parameters: { lookback: 20 } },
+      dataset_manifest: { symbol: 'SPY', timeframe: 'D1', adjustment: 'split_adjusted', session: 'regular', benchmark: 'SPY', datasets: [{ symbol: 'SPY' }] },
+      artifacts: [{ id: 1, name: 'last_close', artifact_type: 'scalar', payload: { value: 763.96 } }],
+    }
+    apiGet.mockImplementation((path: string) => path === '/research/runs/6' ? Promise.resolve(savedRun) : Promise.resolve(undefined))
+    apiPost.mockImplementation((path: string) => path === '/code/validate'
+      ? Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
+      : path === '/code/assets'
+        ? Promise.resolve({ versions: [{ id: 777 }] })
+        : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: {
+        study_run_id: 6,
+        study_run_source: "output.scalar('last_close', 763.96)",
+        study_run_contract: 'scalar',
+        study_run_name: 'Saved SPY study',
+        study_run_parameter_schema: { properties: { lookback: { type: 'integer' } } },
+      },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #6'))
+
+    expect(wrapper.text()).toContain('Current draft dataset: XLB')
+    expect(wrapper.get('[aria-label="Saved run dataset"]').text()).toContain('Saved run #6 dataset: symbol SPY')
+    expect(wrapper.get('[aria-label="Saved run dataset"]').text()).not.toContain('symbol XLB')
+    expect(wrapper.text()).toContain('last_close')
+
+    await wrapper.get('[aria-label="Study name"]').setValue('Draft XLB study')
+    await wrapper.get('[aria-label="Study timeframe"]').setValue('MN')
+    await wrapper.get('[aria-label="Study Python source"]').setValue("output.scalar('draft_metric', 1)")
+    await wrapper.get('button[aria-label="Validate study"]').trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
+
+    expect(wrapper.get('[aria-label="Saved run dataset"]').text()).toContain('symbol SPY')
+    expect(wrapper.text()).toContain('last_close')
+    await wrapper.findAll('button').find(button => button.text() === 'Save as column')!.trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.anything()))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      name: 'Saved SPY study column',
+      initial_version: expect.objectContaining({
+        source: "output.scalar('last_close', 763.96)",
+        parameter_schema: { properties: { lookback: { type: 'integer' } } },
+        default_parameters: { lookback: 20 },
+        lineage: expect.objectContaining({
+          source_run_id: 6,
+          source_run_config: expect.objectContaining({ symbol: 'SPY', timeframe: 'D1' }),
+          source_dataset_manifest: expect.objectContaining({ symbol: 'SPY' }),
+        }),
+      }),
+    }))
+    wrapper.unmount()
+  })
+
+  it('keeps an in-flight promotion bound to the selected run when the selection changes', async () => {
+    const promotion = deferred<{ versions: Array<{ id: number }> }>()
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs/6') return Promise.resolve({
+        id: 6,
+        status: 'completed',
+        code_version_id: 42,
+        run_config: { symbol: 'SPY', parameters: { lookback: 20 } },
+        dataset_manifest: { symbol: 'SPY', datasets: [{ symbol: 'SPY' }] },
+        artifacts: [{ id: 1, name: 'spy_close', artifact_type: 'scalar', payload: { value: 101 } }],
+      })
+      if (path === '/research/runs/7') return Promise.resolve({
+        id: 7,
+        status: 'completed',
+        code_version_id: 84,
+        run_config: { symbol: 'XLB', parameters: { lookback: 5 } },
+        dataset_manifest: { symbol: 'XLB', datasets: [{ symbol: 'XLB' }] },
+        artifacts: [{ id: 2, name: 'xlb_close', artifact_type: 'scalar', payload: { value: 202 } }],
+      })
+      return Promise.resolve(undefined)
+    })
+    apiPost.mockImplementation((path: string) => path === '/code/assets' ? promotion.promise : Promise.resolve({}))
+    const wrapper = mountTool({
+      activeSymbol: 'XLB',
+      configuration: {
+        study_run_id: 6,
+        study_run_source: "output.scalar('spy_close', 101)",
+        study_run_contract: 'scalar',
+        study_run_name: 'Saved SPY run',
+        study_run_parameter_schema: { properties: { lookback: { type: 'integer', minimum: 10 } } },
+      },
+    })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #6'))
+
+    await wrapper.findAll('button').find(button => button.text() === 'Save as column')!.trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.any(Object)))
+    expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
+      name: 'Saved SPY run column',
+      initial_version: expect.objectContaining({
+        source: "output.scalar('spy_close', 101)",
+        parameter_schema: { properties: { lookback: { type: 'integer', minimum: 10 } } },
+        default_parameters: { lookback: 20 },
+        lineage: expect.objectContaining({
+          source_run_id: 6,
+          source_run_config: expect.objectContaining({ symbol: 'SPY' }),
+          source_dataset_manifest: expect.objectContaining({ symbol: 'SPY' }),
+        }),
+      }),
+    }))
+
+    await wrapper.setProps({ configuration: { study_run_id: 7, study_run_source: "output.scalar('xlb_close', 202)", study_run_contract: 'scalar', study_run_name: 'Saved XLB run', study_run_parameter_schema: { properties: { lookback: { type: 'integer', maximum: 5 } } } } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #7'))
+    promotion.resolve({ versions: [{ id: 777 }] })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved as a reusable watchlist column.'))
+    expect(apiPost).toHaveBeenCalledTimes(1)
+    expect(apiPost.mock.calls[0][1]).toEqual(expect.objectContaining({
+      name: 'Saved SPY run column',
+      initial_version: expect.objectContaining({ lineage: expect.objectContaining({ source_run_id: 6 }) }),
+    }))
+    wrapper.unmount()
+  })
+
+  it('switches the displayed result identity when the persisted run selection changes', async () => {
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs/6') return Promise.resolve({ id: 6, status: 'completed', run_config: { symbol: 'SPY' }, dataset_manifest: { datasets: [{ symbol: 'SPY' }] }, artifacts: [{ id: 1, name: 'spy_result', artifact_type: 'scalar', payload: { value: 1 } }] })
+      if (path === '/research/runs/7') return Promise.resolve({ id: 7, status: 'completed', run_config: { symbol: 'XLB' }, dataset_manifest: { datasets: [{ symbol: 'XLB' }] }, artifacts: [{ id: 2, name: 'xlb_result', artifact_type: 'scalar', payload: { value: 2 } }] })
+      return Promise.resolve(undefined)
+    })
+    const wrapper = mountTool({ activeSymbol: 'XLB', configuration: { study_run_id: 6 } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #6'))
+    await wrapper.setProps({ configuration: { study_run_id: 7 } })
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #7'))
+    expect(wrapper.get('[aria-label="Saved run dataset"]').text()).toContain('symbol XLB')
+    expect(wrapper.text()).toContain('xlb_result')
+    expect(wrapper.text()).not.toContain('spy_result')
+  })
+
+  it('shows a retryable error when a persisted result cannot be restored', async () => {
+    let attempts = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path !== '/research/runs/6') return Promise.resolve(undefined)
+      attempts += 1
+      return attempts === 1
+        ? Promise.reject(new Error('temporary read failure'))
+        : Promise.resolve({ id: 6, status: 'completed', run_config: { symbol: 'SPY' }, artifacts: [] })
+    })
+    const wrapper = mountTool({ activeSymbol: 'XLB', configuration: { study_run_id: 6 } })
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Saved Study run #6 could not be loaded'))
+    const retry = wrapper.findAll('button').find(button => button.text().includes('Retry loading saved run'))!
+    expect(retry.exists()).toBe(true)
+    await retry.trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Run #6'))
+    expect(attempts).toBe(2)
   })
 
   it('keeps artifact summary relationships unique across linked Study Lab panes', async () => {
@@ -484,7 +961,7 @@ describe('StudyLabTool', () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['stats', 'output'], lookback_hint: 1, output_contracts: ['bar', 'histogram', 'range', 'scatter', 'scalar', 'table'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
-      if (path === '/research/runs') return Promise.resolve({ id: 9, code_version_id: 42, status: 'completed', reproducibility_hash: 'sha256:test', run_config: { universe_source_id: 'market-group:sp500' }, dataset_manifest: { universe_source_id: 'market-group:sp500', universe_membership_version: 'market-group:sp500:v1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, artifacts: [
+      if (path === '/research/runs') return Promise.resolve({ id: 9, code_version_id: 42, status: 'completed', reproducibility_hash: 'sha256:test', run_config: { universe_source_id: 'market-group:sp500', parameters: {}, timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01' }, dataset_manifest: { universe_source_id: 'market-group:sp500', universe_membership_version: 'market-group:sp500:v1', timeframe: 'W1', benchmark: 'QQQ', adjustment: 'raw', session: 'all', start_date: '2024-01-01', end_date: '2024-02-01', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, artifacts: [
         { id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } },
         { id: 9, name: 'shortest_streak', artifact_type: 'scalar', payload: { value: 1 } },
         { id: 7, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } },
@@ -523,7 +1000,7 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/code/assets', expect.objectContaining({
       initial_version: expect.objectContaining({ output_contract: 'study' }),
     }))
-    expect(wrapper.text()).toContain('Dataset: SPY · W1 · raw · all session · benchmark QQQ')
+    expect(wrapper.text()).toContain('Current draft dataset: SPY · W1 · raw · all session · benchmark QQQ')
     expect(wrapper.text()).toContain('current_streak')
     expect(wrapper.text()).toContain('4')
     expect(wrapper.text()).toContain('qualifies')
@@ -877,7 +1354,7 @@ describe('StudyLabTool', () => {
     }))
   })
 
-  it('cancels an active study run when the Study Lab tool is destroyed', async () => {
+  it('preserves a durable active run when its Study Lab pane is closed', async () => {
     apiGet.mockResolvedValue({ id: 101, status: 'running', artifacts: [] })
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
@@ -892,26 +1369,43 @@ describe('StudyLabTool', () => {
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Run #101'))
     wrapper.unmount()
-    expect(apiPost).toHaveBeenCalledWith('/research/runs/101/cancel', {})
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/101/cancel', {})
   })
 
-  it('cancels a run that is created after the Study Lab tool is destroyed', async () => {
+  it('keeps a late-created run durable and publishes it to the open Results surface after Study Lab closes', async () => {
     let resolveRun!: (value: unknown) => void
+    const createdRun = { id: 202, code_version_id: 52, status: 'queued', run_config: { symbol: 'SPY' }, dataset_manifest: { symbol: 'SPY' }, artifact_count: 0, artifacts: [] }
+    let listReads = 0
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/research/runs') return Promise.resolve(listReads++ === 0 ? [] : [createdRun])
+      if (path === '/research/runs/202') return Promise.resolve(createdRun)
+      return Promise.resolve({})
+    })
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 52 }] })
       if (path === '/research/runs') return new Promise(resolve => { resolveRun = resolve })
-      if (path === '/research/runs/202/cancel') return Promise.resolve({ id: 202, status: 'canceled', artifacts: [] })
       return Promise.resolve({})
     })
-    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const results = mount(ResearchResultsTool, {
+      global: {
+        plugins: [[VueQueryPlugin, { queryClient }]],
+        stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } },
+      },
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
     await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs', expect.anything()))
     wrapper.unmount()
 
-    resolveRun({ id: 202, status: 'queued', artifacts: [] })
-    await vi.waitFor(() => expect(apiPost).toHaveBeenCalledWith('/research/runs/202/cancel', {}))
+    resolveRun(createdRun)
+    await vi.waitFor(() => expect(results.find('[aria-label="Run 202, queued, 0 artifacts"]').exists()).toBe(true))
+    expect(queryClient.getQueryData(['workstation', 'research-run', 202])).toMatchObject(createdRun)
+    expect(apiPost).not.toHaveBeenCalledWith('/research/runs/202/cancel', {})
+    results.unmount()
   })
 
   it('surfaces an empty polling response instead of caching undefined', async () => {
@@ -974,7 +1468,7 @@ describe('StudyLabTool', () => {
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['boolean'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
-      if (path === '/research/runs') return Promise.resolve({ id: 90, code_version_id: 42, status: 'completed', run_config: { universe_source_id: 'market-group:sp500' }, dataset_manifest: { universe_source_id: 'market-group:sp500', universe_membership_version: 'market-group:sp500:v1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
+      if (path === '/research/runs') return Promise.resolve({ id: 90, code_version_id: 42, status: 'completed', run_config: { universe_source_id: 'market-group:sp500', parameters: {}, timeframe: 'D1' }, dataset_manifest: { universe_source_id: 'market-group:sp500', universe_membership_version: 'market-group:sp500:v1', timeframe: 'D1', datasets: [{ instrument_id: 7, symbol: 'SPY' }] }, artifacts: [{ id: 1, name: 'qualifies', artifact_type: 'boolean', payload: { value: true } }] })
       if (path === '/screeners/from-python-condition/42') return Promise.resolve({ id: 77 })
       if (path === '/alerts/screener') return Promise.resolve({ id: 88 })
       if (path.startsWith('/strategy-lab/signals/from-code/')) return Promise.resolve({ id: 91 })
@@ -1508,10 +2002,10 @@ describe('StudyLabTool', () => {
     expect(apiPost).toHaveBeenCalledWith('/research/runs/91/rerun?snapshot=false', {})
   })
 
-  it('does not publish a late rerun response after the Study Lab tool unmounts', async () => {
-    const run = { id: 150, status: 'completed', code_version_id: 4, artifacts: [] }
+  it('publishes a late durable Study rerun to Results after the Study Lab tool unmounts', async () => {
+    const run = { id: 150, status: 'completed', code_version_id: 4, run_config: {}, dataset_manifest: {}, artifact_count: 0, artifacts: [] }
     const rerun = deferred<typeof run>()
-    apiGet.mockResolvedValue(undefined)
+    apiGet.mockImplementation((path: string) => path === '/research/runs' ? Promise.resolve([run]) : Promise.resolve(undefined))
     apiPost.mockImplementation((path: string) => {
       if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: ['output'], lookback_hint: null, output_contracts: ['scalar'] })
       if (path === '/code/assets') return Promise.resolve({ versions: [{ id: 42 }] })
@@ -1519,7 +2013,11 @@ describe('StudyLabTool', () => {
       if (path === '/research/runs/150/rerun?snapshot=true') return rerun.promise
       return Promise.resolve({})
     })
-    const wrapper = mountTool({ activeSymbol: 'SPY' })
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    const results = mount(ResearchResultsTool, {
+      global: { plugins: [[VueQueryPlugin, { queryClient }]], stubs: { RouterLink: { props: ['to'], template: '<a><slot /></a>' } } },
+    })
+    const wrapper = mountTool({ activeSymbol: 'SPY' }, queryClient)
     await flushPromises()
     await wrapper.find('button').trigger('click')
     await vi.waitFor(() => expect(wrapper.text()).toContain('Validated for isolated execution'))
@@ -1533,5 +2031,8 @@ describe('StudyLabTool', () => {
     await flushPromises()
 
     expect((wrapper.vm as unknown as { run: typeof run | null }).run).toEqual(run)
+    await vi.waitFor(() => expect(results.find('[aria-label="Run 151, queued, 0 artifacts"]').exists()).toBe(true))
+    expect(queryClient.getQueryData(['workstation', 'research-run', 151])).toMatchObject({ id: 151, status: 'queued' })
+    results.unmount()
   })
 })

@@ -193,6 +193,7 @@ import { ref, watch, onMounted, onUnmounted, nextTick, computed, reactive, injec
 import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
+import { fetchInstrumentCalendar } from '@/lib/workstation/instrumentCalendar'
 import { usePanelStore }        from '@/stores/chart'
 import { useLayoutStore }       from '@/stores/layout'
 import { useDrawingsStore }     from '@/stores/drawings'
@@ -200,7 +201,7 @@ import { useAlertsStore }       from '@/stores/alerts'
 import { useUserSettingsStore } from '@/stores/userSettings'
 import { useOptionsExposureStore } from '@/stores/optionsExposure'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { isEditorTarget } from '@/lib/workstation/keyboard'
 import { customDateSortRangeFromChartPositions } from '@/lib/workstation/customDateSort'
 import type { CustomDateSortRange } from '@/lib/workstation/customDateSort'
@@ -316,6 +317,7 @@ const PREFETCH_THRESHOLD = 80  // bar indices from left edge before prefetch fir
 // ── Stores & DOM refs ─────────────────────────────────────────────────────────
 const panelId            = inject<string>('panelId', 'main')
 const chartInstanceId    = useId()
+const queryClient        = useQueryClient()
 const chartStore         = usePanelStore(panelId)
 const layoutStore        = useLayoutStore()
 const drawStore          = useDrawingsStore()
@@ -1062,9 +1064,15 @@ async function loadInstrumentEvents() {
   eventRangeKey = key
   const seq = ++eventLoadSeq
   try {
-    const loaded = await api.get<InstrumentEvent[]>(
-      `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
-      { start, end },
+    // Dock layout edits can recreate virtual tool roots even though the chart
+    // query is unchanged. Share the exact date-range read through the existing
+    // authenticated Vue Query cache so those remounts do not fan out duplicate
+    // calendar/enrichment requests.
+    const loaded = await fetchInstrumentCalendar<InstrumentEvent[]>(queryClient, symbol, start, end, () =>
+      api.get<InstrumentEvent[]>(
+        `/calendar/instruments/${encodeURIComponent(symbol)}/calendar`,
+        { start, end },
+      ),
     )
     if (seq === eventLoadSeq && symbol === chartStore.symbol) {
       instrumentEvents.value = loaded

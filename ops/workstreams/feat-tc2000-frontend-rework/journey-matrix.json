@@ -25,16 +25,28 @@
       "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
     },
     "strategy_runtime_import": {
-      "source_commit": "134c63f535bb78c84da7c90063f81aca91843ba0",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/134c63f535bb78c84da7c90063f81aca91843ba0.json",
-      "manifest_sha256": "a0d8d58f3dc8d8bfd361e62337c5f7b4b13cd6a5c8f49e124cfe7169ad0012bd",
-      "qualification": "Exact released Strategy-owned focused tests are imported; rendered browser acceptance remains pending."
+      "source_commit": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8dfeed8d9092bbf90e54f283afe1d96e71c23511.json",
+      "manifest_sha256": "0a71d697a2fb03b15bce0ce42c38948d523240a91d5d4a83dd4fb0844172e9c0",
+      "qualification": "Exact Strategy-owned dashboard recovery paths and tests are imported; current-source browser acceptance remains pending."
+    },
+    "strategy_domain_runtime_import": {
+      "source_commit": "5703f21497e628576e9d381dede28dbaa0ca719d",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/5703f21497e628576e9d381dede28dbaa0ca719d.json",
+      "manifest_sha256": "0b526ef2cfdc6198b48130469053cc33312f3b79a6df2a2538cc2d691c344a3e",
+      "qualification": "Exact Strategy-owned Study/Results/Library domain files and tests are imported; normal browser-body and release acceptance remain Root-owned and pending."
     },
     "provider_runtime_import": {
-      "source_commit": "46462f5531d689acf4c8004517dc4fb345d822ba",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/46462f5531d689acf4c8004517dc4fb345d822ba.json",
-      "manifest_sha256": "3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d",
-      "qualification": "Provider464 is an exact Root-released development import; exact Provider/TC CI and combined browser acceptance remain pending."
+      "source_commit": "580571e41b9797589bf205b61d337f8c92ec04c6",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/580571e41b9797589bf205b61d337f8c92ec04c6.json",
+      "manifest_sha256": "4eda89809b752114c73c95083a260672d0fe0f02f5921cc9b29535dc02ca11c7",
+      "qualification": "Provider 580571 adds same-request provider-metadata reuse and a query-count regression over 21be for development; exact-source CI and combined browser acceptance remain pending."
+    },
+    "etf_domain_runtime_import": {
+      "source_commit": "eedc1a9369a702ddfb588786fc77b5657c978e42",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/eedc1a9369a702ddfb588786fc77b5657c978e42.json",
+      "manifest_sha256": "16d9954c47d5debcd19b0d49e74462a974f6af7ddcd07ffac53c8d834c903ef7",
+      "qualification": "Exact ETF-owned basket and holdings paths plus the updated uncached Workstation acquisition test are imported; the focused uncached case passed on front4cfee/backb0, while remaining browser bodies and final combined acceptance remain pending Root."
     }
   },
   "counts": {
@@ -160,19 +172,40 @@
     {
       "path": "/legacy/baskets",
       "component": "BasketsView",
-      "evidence_status": "focused_route_contract",
+      "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "frontend/tests/unit/router/test_application_routes.test.ts"
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/views/test_baskets_view.test.ts",
+        "frontend/tests/e2e/baskets_journey.spec.ts",
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
+      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
+      "source_owner": "feat-etf-holdings-constituents",
+      "source_pin": {
+        "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
+        "source_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
+        "source_sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
+      },
       "journey": "TC09"
     },
     {
       "path": "/legacy/etf-holdings",
       "component": "ETFHoldingsView",
-      "evidence_status": "focused_route_contract",
+      "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "frontend/tests/unit/router/test_application_routes.test.ts"
+        "frontend/tests/unit/router/test_application_routes.test.ts",
+        "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+        "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+        "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
+      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
+      "source_owner": "feat-etf-holdings-constituents",
+      "source_pin": {
+        "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
+        "source_blob": "2f4497f047aea843841f601dc4ae5e455f0429d3",
+        "source_sha256": "069f39fcd8cb2eade1c1fb486e64ef52cd8f6c18e2cb0f458b147c5e1289491b"
+      },
       "journey": "TC09"
     },
     {
@@ -1528,8 +1561,7 @@
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
       "source_commit": "bc45155d964c357802de14991f3aac02c5fab29c",
       "source_blob": "c2c82d2e551f6f257a814d02b203a5402a2d3943",
-      "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8"
-    ,
+      "source_sha256": "b37cad11a09cba6ef40e4c3884f936f9fc54b8b7c2da0d9eae757d9ceac7e9d8",
       "browser_specs": [
         {
           "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
@@ -1540,19 +1572,28 @@
           "cases": [
             {
               "name": "duplicates a factory layout with remapped panels, preserves the original, and reloads both",
-              "journeys": ["TC06", "TC07"]
+              "journeys": [
+                "TC06",
+                "TC07"
+              ]
             },
             {
               "name": "closes and recreates every factory tool through the public catalogue with useful defaults",
-              "journeys": ["TC06"]
+              "journeys": [
+                "TC06"
+              ]
             },
             {
               "name": "renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
-              "journeys": ["TC07"]
+              "journeys": [
+                "TC07"
+              ]
             },
             {
               "name": "duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
-              "journeys": ["TC07"]
+              "journeys": [
+                "TC07"
+              ]
             }
           ]
         }
@@ -1678,10 +1719,13 @@
       "evidence_status": "focused_units_combined_browser_pending",
       "evidence": [
         "frontend/tests/unit/lib/test_data_preparation.test.ts",
+        "frontend/tests/unit/components/test_market_map_tool.test.ts",
+        "frontend/tests/unit/components/test_market_gauge_tool.test.ts",
+        "frontend/tests/unit/components/test_easy_scan_tool.test.ts",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts",
         "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts"
       ],
-      "pending_reason": "Provider464 development runtime is imported and the main configured breadth-group path now reads cached analysis before preparation, then refreshes on durable progress. Market Map, saved-scan/gauge and other analysis dependencies remain incompletely wired; full visible journeys and combined browser acceptance are pending Root."
+      "pending_reason": "Current code starts Market Map universe and comparison-leg preparation independently of its local analysis read; Breadth starts group and configured snapshot benchmark preparation alongside local reads; EasyScan and Gauge prepare the exact saved screener/timeframe. Focused tests cover these contracts and progress refresh. Root still owns full visible analysis journeys, cross-tool D1/W1/MN data outcomes, and combined browser acceptance."
     },
     {
       "id": "TC09",
@@ -2041,10 +2085,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 1"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2060,10 +2104,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 2"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2077,10 +2121,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 3"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2093,10 +2137,10 @@
       "journey_refs": [
         "J08"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 4"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2111,10 +2155,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 5"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2130,10 +2174,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 6"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2146,10 +2190,10 @@
       "journey_refs": [
         "J08"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 7"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2162,10 +2206,10 @@
       "journey_refs": [
         "J08"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#ETFHoldingsView action 8"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2181,10 +2225,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 9"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2199,10 +2243,10 @@
         "J07",
         "J08"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 10"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2217,10 +2261,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 11"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2234,10 +2278,10 @@
         "J07",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 12"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2251,10 +2295,10 @@
         "J07",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 13"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2267,10 +2311,10 @@
       "journey_refs": [
         "J08"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 14"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2285,10 +2329,10 @@
         "J08",
         "J12"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 15"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
@@ -2302,10 +2346,10 @@
         "J06",
         "J08"
       ],
-      "source_matrix": "../feat-etf-holdings-constituents/ops/workstreams/feat-etf-holdings-constituents/journey-matrix.json",
+      "source_matrix": "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json",
       "evidence_status": "owner_mapped_browser_pending",
       "evidence": [
-        "feat-etf-holdings-constituents:journey-matrix.json#BasketsView action 16"
+        "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
       "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."

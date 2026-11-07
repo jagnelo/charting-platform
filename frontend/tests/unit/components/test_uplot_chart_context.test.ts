@@ -214,4 +214,5 @@ describe('UPlotChart readout context', () => {
       vi.unstubAllGlobals()
     }
   })
+
 })

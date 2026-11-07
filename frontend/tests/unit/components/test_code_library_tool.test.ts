@@ -14,6 +14,12 @@ function mount(component: typeof CodeLibraryTool, options: Record<string, any> =
 
 const asset = { id: 4, stable_key: 'streak-study', name: 'Streak study', kind: 'study', is_archived: false, versions: [{ id: 8, version_number: 1, source: "output.scalar('n', 1)", output_contract: 'study', parameter_schema: {}, default_parameters: {} }] }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>(res => { resolve = res })
+  return { promise, resolve }
+}
+
 describe('CodeLibraryTool', () => {
   beforeEach(() => {
     apiGet.mockReset(); apiPost.mockReset(); apiGet.mockResolvedValue([asset])
@@ -71,6 +77,109 @@ describe('CodeLibraryTool', () => {
     await archive.trigger('click')
     await flushPromises()
     expect(apiPost).toHaveBeenCalledWith('/code/assets/4/archive', { is_archived: true })
+  })
+
+  it('keeps a validated Library draft retryable after immutable version persistence fails', async () => {
+    let saveAttempts = 0
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      if (path === '/code/assets/4/versions') {
+        saveAttempts += 1
+        if (saveAttempts === 1) return Promise.reject(new Error('version storage unavailable'))
+        return Promise.resolve({ id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: {}, default_parameters: {} })
+      }
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.get('summary').trigger('click')
+    const source = "output.scalar('n', 2)"
+    const editor = wrapper.get('[aria-label="Python source for Streak study"]')
+    await editor.setValue(source)
+    expect(wrapper.vm.$.setupState.drafts[4]).toBe(source)
+    const save = wrapper.findAll('button').find(button => button.text() === 'Save as new version')!
+    await save.trigger('click')
+    await flushPromises()
+
+    expect(wrapper.get('[role="alert"]').text()).toContain('version storage unavailable')
+    const retainedEditor = wrapper.get('[aria-label="Python source for Streak study"]')
+    expect((retainedEditor.element as HTMLTextAreaElement).value, JSON.stringify(wrapper.vm.$.setupState.drafts)).toBe(source)
+    await vi.waitFor(() => {
+      const retry = wrapper.findAll('button').find(button => button.text() === 'Save as new version')
+      expect(retry?.attributes('disabled')).toBeUndefined()
+    })
+
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+    expect(saveAttempts).toBe(2)
+    expect(apiPost.mock.calls.filter(([path]) => path === '/code/validate')).toHaveLength(1)
+    expect((wrapper.get('[aria-label="Base version for Streak study"]').element as HTMLSelectElement).value).toBe('2')
+    expect(wrapper.text()).toContain('2 versions')
+    wrapper.unmount()
+  })
+
+  it('keeps a newer draft and selected base when an immutable version save resolves late', async () => {
+    const pendingSave = deferred<unknown>()
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      if (path === '/code/assets/4/versions') return pendingSave.promise
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.find('summary').trigger('click')
+    const editor = wrapper.get('[aria-label="Python source for Streak study"]')
+    await editor.setValue("output.scalar('n', 2)")
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets/4/versions', expect.objectContaining({ source: "output.scalar('n', 2)" }))
+    await editor.setValue("output.scalar('n', 3)")
+    pendingSave.resolve({ id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: {}, default_parameters: {} })
+    await flushPromises()
+
+    expect((wrapper.get('[aria-label="Base version for Streak study"]').element as HTMLSelectElement).value).toBe('1')
+    expect((wrapper.get('[aria-label="Python source for Streak study"]').element as HTMLTextAreaElement).value).toBe("output.scalar('n', 3)")
+    expect(wrapper.text()).toContain('Saved immutable version v2 from base v1')
+    expect(wrapper.text()).toContain('v2')
+    expect(wrapper.find('.code-library-tool__validation').exists()).toBe(false)
+    wrapper.unmount()
+  })
+
+  it('keeps a newly selected historical base when a version save resolves late', async () => {
+    const pendingSave = deferred<unknown>()
+    apiGet.mockResolvedValueOnce([{
+      ...asset,
+      versions: [
+        { id: 8, version_number: 1, source: "output.scalar('n', 1)", output_contract: 'study', parameter_schema: {}, default_parameters: {} },
+        { id: 9, version_number: 2, source: "output.scalar('n', 2)", output_contract: 'study', parameter_schema: {}, default_parameters: {} },
+      ],
+    }])
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/code/validate') return Promise.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['study', 'scalar'] })
+      if (path === '/code/assets/4/versions') return pendingSave.promise
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.find('summary').trigger('click')
+    const baseSelect = wrapper.get('[aria-label="Base version for Streak study"]')
+    await baseSelect.setValue('2')
+    const editor = wrapper.get('[aria-label="Python source for Streak study"]')
+    await editor.setValue("output.scalar('n', 3)")
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/assets/4/versions', expect.objectContaining({ source: "output.scalar('n', 3)" }))
+    await baseSelect.setValue('1')
+    pendingSave.resolve({ id: 10, version_number: 3, source: "output.scalar('n', 3)", output_contract: 'study', parameter_schema: {}, default_parameters: {} })
+    await flushPromises()
+
+    expect((baseSelect.element as HTMLSelectElement).value).toBe('1')
+    expect((wrapper.get('[aria-label="Python source for Streak study"]').element as HTMLTextAreaElement).value).toBe("output.scalar('n', 1)")
+    expect(wrapper.text()).toContain('Saved immutable version v3 from base v2')
+    expect(wrapper.find('.code-library-tool__validation').exists()).toBe(false)
+    wrapper.unmount()
   })
 
   it('opens the latest immutable study version in Study Lab', async () => {
@@ -196,6 +305,69 @@ describe('CodeLibraryTool', () => {
     expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
   })
 
+  it('revalidates a new asset draft when its source changes during validation', async () => {
+    const pendingValidation = deferred<unknown>()
+    let validationCalls = 0
+    apiGet.mockResolvedValue([asset])
+    apiPost.mockImplementation((path: string, payload?: Record<string, any>) => {
+      if (path === '/code/validate') {
+        validationCalls += 1
+        if (validationCalls === 1) return pendingValidation.promise
+        expect(payload).toEqual({ source: "output.scalar('current', 2)" })
+        return Promise.resolve({ valid: false, diagnostics: ['Current source is invalid'], dependencies: [], output_contracts: [] })
+      }
+      return Promise.resolve({ ...asset, id: 99 })
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'New')!.trigger('click')
+    await wrapper.find('[aria-label="New Python asset name"]').setValue('Current study')
+    await wrapper.find('[aria-label="New Python asset key"]').setValue('current-study')
+    const source = wrapper.find('[aria-label="New Python asset source"]')
+    await source.setValue("output.scalar('old', 1)")
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await source.setValue("output.scalar('current', 2)")
+
+    pendingValidation.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['scalar'] })
+    await flushPromises()
+    await wrapper.find('form').trigger('submit')
+    await flushPromises()
+
+    expect(validationCalls).toBe(2)
+    expect(wrapper.text()).toContain('Current source is invalid')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets', expect.anything())
+  })
+
+  it('does not reuse a late validation after an existing asset draft changes', async () => {
+    const pendingValidation = deferred<unknown>()
+    let validationCalls = 0
+    apiPost.mockImplementation((path: string, payload?: Record<string, any>) => {
+      if (path === '/code/validate') {
+        validationCalls += 1
+        if (validationCalls === 1) return pendingValidation.promise
+        expect(payload).toEqual({ source: "output.scalar('current', 3)" })
+        return Promise.resolve({ valid: false, diagnostics: ['Current version is invalid'], dependencies: [], output_contracts: [] })
+      }
+      return Promise.resolve({})
+    })
+    const wrapper = mount(CodeLibraryTool)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Streak study'))
+    await wrapper.get('summary').trigger('click')
+    const source = wrapper.find('[aria-label="Python source for Streak study"]')
+    await source.setValue("output.scalar('old', 2)")
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await source.setValue("output.scalar('current', 3)")
+
+    pendingValidation.resolve({ valid: true, diagnostics: [], dependencies: [], output_contracts: ['scalar'] })
+    await flushPromises()
+    await wrapper.findAll('button').find(button => button.text() === 'Save as new version')!.trigger('click')
+    await flushPromises()
+
+    expect(validationCalls).toBe(2)
+    expect(wrapper.text()).toContain('Current version is invalid')
+    expect(apiPost).not.toHaveBeenCalledWith('/code/assets/4/versions', expect.anything())
+  })
+
   it('announces successful source validation as a polite status', async () => {
     const wrapper = mount(CodeLibraryTool)
     await flushPromises()
@@ -209,6 +381,22 @@ describe('CodeLibraryTool', () => {
     expect(validation.attributes('role')).toBe('status')
     expect(validation.attributes('aria-live')).toBe('polite')
     expect(validation.attributes('aria-atomic')).toBe('true')
+  })
+
+  it('accepts unchanged existing-version source with its normal trailing newline', async () => {
+    const source = "output.scalar('n', 1)\n"
+    apiGet.mockResolvedValueOnce([{ ...asset, versions: [{ ...asset.versions[0], source }] }])
+    const wrapper = mount(CodeLibraryTool)
+    await flushPromises()
+    await wrapper.get('summary').trigger('click')
+
+    await wrapper.findAll('button').find(button => button.text() === 'Validate')!.trigger('click')
+    await flushPromises()
+
+    expect(apiPost).toHaveBeenCalledWith('/code/validate', { source })
+    expect(wrapper.get('.code-library-tool__validation').text()).toContain('Validated')
+    expect(wrapper.text()).not.toContain('source or base version changed while validation was running')
+    wrapper.unmount()
   })
 
   it('announces library request failures as assertive alerts', async () => {

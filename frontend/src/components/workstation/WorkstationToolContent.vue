@@ -4660,9 +4660,10 @@ async function loadBreadthUniverse(groupKey: string, timeframe = breadthTimefram
       workspaceStore.loadBreadthHistory(groupKey, options),
     ])
   }
-  // Read the useful local result first. Durable preparation may take longer;
-  // new versions refresh this same configured group without hiding its cache.
-  await refreshAnalysis()
+  // Read available local results immediately while durable preparation starts
+  // independently; neither a slow nor failed analysis read should delay the
+  // governed worker request for this exact current group.
+  void refreshAnalysis().catch(() => undefined)
   if (!isCurrent() || familyAsOf.value) return
   breadthPreparationStatus.value = `Preparing ${groupKey} history for ${timeframe} breadth…`
   const targets: DataEnsureRequest['target'][] = [isBenchmarkFamily.value
@@ -4771,7 +4772,19 @@ watch(isBenchmarkUniverse, async isBenchmark => {
   const sequence = ++benchmarkFamilyReadinessSequence
   benchmarkFamilyReadinessLoading.value = true
   try {
-    await workspaceStore.loadBenchmarkFamilyReadiness()
+    await queryClient.fetchQuery<BenchmarkFamilyReadinessState>({
+      queryKey: ['workstation', 'benchmark-family-readiness', 'latest', 256],
+      queryFn: async () => {
+        const result = await workspaceStore.loadBenchmarkFamilyReadiness()
+        if (!result) throw new Error('Benchmark family readiness is unavailable.')
+        return result
+      },
+      staleTime: 60_000,
+    })
+  } catch {
+    // The store exposes its typed request error and keeps the previous local
+    // readiness result. Failed reads are not cached by Vue Query, so a later
+    // remount can recover without a special retry loop.
   } finally {
     if (!disposed && sequence === benchmarkFamilyReadinessSequence) benchmarkFamilyReadinessLoading.value = false
   }
@@ -4935,14 +4948,14 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 .industry-list__classification { flex: 0 0 auto; max-width: 120px; overflow: hidden; color: #a9b7bf; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 .industry-list__proxies { display: grid; gap: 3px; padding: 6px 7px; border-bottom: 1px solid #20282f; color: #8998a3; }
 .industry-list__proxy-table { height: 170px; border: 1px solid #34434e; }
-.constituent-tool { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr) auto auto; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: hidden; background: #11161b; }
-.constituent-tool--factory { grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
-.constituent-tool :deep(.watchlist) { width: 100%; min-width: 0; max-width: 100%; }
+.constituent-tool { display: flex; flex-direction: column; align-items: stretch; box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; height: 100%; min-height: 0; overflow: auto; background: #11161b; }
+.constituent-tool--factory { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr) auto; }
+.constituent-tool:not(.constituent-tool--factory) :deep(.watchlist) { flex: 1 0 160px; width: 100%; min-width: 0; max-width: 100%; height: auto; min-height: 160px; }
 .constituent-tool__selection { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; max-height: 75%; overflow: auto; padding: 4px 6px; border-top: 1px solid #28343c; background: #11161b; }
 .constituent-tool__selection :deep(.search-bar) { width: 100%; }
 .constituent-tool__selection :deep(.search-results) { position: static; max-height: 96px; }
 .constituent-tool__provenance { display: block; overflow: hidden; padding: 3px 7px; border-top: 1px solid #28343c; background: #121920; color: #d5ae72; font: 9px "Segoe UI", Arial, sans-serif; text-overflow: ellipsis; white-space: nowrap; }
-.constituent-tool__empty-context { margin: 0; padding: 6px 8px; color: #9fb0bb; font: 11px "Segoe UI", Arial, sans-serif; }
+.constituent-tool__empty-context { box-sizing: border-box; position: relative; z-index: 1; margin: 0; padding: 6px 8px; color: #9fb0bb; font: 11px/1.35 "Segoe UI", Arial, sans-serif; }
 .constituent-tool__selection-state { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; padding: 6px 8px; border-top: 1px solid #28343c; color: #b8c5cf; font: 11px "Segoe UI", Arial, sans-serif; }
 .instrument-report { height: 100%; overflow: auto; background: #11161b; }
 .industry-list__row strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

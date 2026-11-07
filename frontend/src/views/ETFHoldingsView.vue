@@ -82,6 +82,18 @@
             <dd>{{ formatProvenance(page.snapshot.provenance) }}</dd>
           </div>
           <div>
+            <dt>Source provider</dt>
+            <dd data-testid="etf-snapshot-source-provider">{{ page.snapshot.source_provider || 'Not established' }}</dd>
+          </div>
+          <div>
+            <dt>Source identifier</dt>
+            <dd data-testid="etf-snapshot-source-identifier">{{ page.snapshot.source_identifier || 'Not established' }}</dd>
+          </div>
+          <div>
+            <dt>Source document</dt>
+            <dd data-testid="etf-snapshot-source-url">{{ page.snapshot.source_url || 'Not established' }}</dd>
+          </div>
+          <div>
             <dt>Observed / known at</dt>
             <dd>
               <time
@@ -111,10 +123,13 @@
           <p>
             {{ pendingFund.symbol }} · Stored snapshots remain historical evidence; current-analysis eligibility is shown separately.
           </p>
-          <button type="button" data-testid="etf-check-stored" :disabled="holdingsActionBusy" @click="runHoldingsAction(false)">
+          <p v-if="preparationMessage" role="status" aria-live="polite" data-testid="etf-preparation-status">
+            {{ preparationMessage }}
+          </p>
+          <button type="button" data-testid="etf-check-stored" :disabled="holdingsActionBusy || preparationBusy" @click="runHoldingsAction(false)">
             {{ identityResolutionBusy ? 'Checking fund…' : holdingsActionBusy && !holdingsActionRefresh ? 'Checking saved holdings…' : 'Check saved holdings' }}
           </button>
-          <button type="button" data-testid="etf-request-issuer" :disabled="holdingsActionBusy" @click="runHoldingsAction(true)">
+          <button type="button" data-testid="etf-request-issuer" :disabled="holdingsActionBusy || preparationBusy" @click="runHoldingsAction(true)">
             {{ identityResolutionBusy ? 'Checking fund…' : holdingsActionBusy && holdingsActionRefresh ? 'Checking for updated holdings…' : selectedProfile?.latest_snapshot_id == null ? 'Load latest holdings' : 'Refresh holdings' }}
           </button>
           <p v-if="identityResolutionError" role="alert">{{ identityResolutionError }}</p>
@@ -699,7 +714,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import SearchBar from '@/components/common/SearchBar.vue'
 import ETFHoldingResolutionAction from '@/components/etf/ETFHoldingResolutionAction.vue'
@@ -730,6 +745,7 @@ import type {
   ETFProfile,
 } from '@/types'
 import type { InstrumentAcquireResponse } from '@/lib/onDemandAcquisition'
+import { dataPreparationCoordinator, preparationStatusMessage } from '@/lib/dataPreparation'
 import {
   createETFHoldingDrilldownContext,
   holdingDrilldownRouteQuery,
@@ -760,6 +776,9 @@ const holdingsActionBusy = ref(false)
 const holdingsActionRefresh = ref(false)
 const holdingsActionMessage = ref('')
 const holdingsActionError = ref('')
+const preparationMessage = ref('')
+const preparationBusy = ref(false)
+let preparationController: AbortController | null = null
 let fundSelectionGeneration = 0
 const page = ref<ETFHoldingsPage | null>(null)
 const diff = ref<ETFHoldingsDiff | null>(null)
@@ -936,10 +955,12 @@ function resetWorkspaceSelection() {
 async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult) {
   const normalized = symbol.trim().toUpperCase()
   if (!normalized) return
+  cancelSelectedPreparation()
   profileSearch.value = normalized
   loadError.value = ''
   holdingsActionMessage.value = ''
   holdingsActionError.value = ''
+  preparationMessage.value = ''
   identityResolutionError.value = ''
   holdingsActionBusy.value = false
   holdingsActionRefresh.value = false
@@ -966,8 +987,8 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
   resetWorkspaceSelection()
   overlapIssuer.value = ''
   overlapFundFamily.value = ''
-  holdingsActionMessage.value = 'Checking for saved or updated holdings…'
-  void runHoldingsAction(true)
+  preparationMessage.value = `Preparing ${normalized} holdings. Any saved snapshot remains separate from current eligibility.`
+  void prepareSelectedHoldings(normalized, resolvedId)
 }
 
 async function selectProfile(
@@ -975,6 +996,7 @@ async function selectProfile(
   verifiedInstrumentId: number | null = null,
   deliberateSelection = false,
 ) {
+  cancelSelectedPreparation()
   if (deliberateSelection || pendingFund.value?.symbol !== profile.symbol) fundSelectionGeneration += 1
   const generation = fundSelectionGeneration
   snapshotOptionsLoadSeq += 1
@@ -985,6 +1007,7 @@ async function selectProfile(
   loadError.value = ''
   holdingsActionMessage.value = ''
   holdingsActionError.value = ''
+  preparationMessage.value = ''
   identityResolutionError.value = ''
   holdingsActionBusy.value = false
   holdingsActionRefresh.value = false
@@ -1029,8 +1052,71 @@ async function selectProfile(
       if (profileIndex >= 0) profiles.value.splice(profileIndex, 1, updatedProfile)
     }
     if (profile.latest_snapshot_id == null || !isCurrentETFHoldingsCapability(capability)) {
-      holdingsActionMessage.value = 'Checking for updated holdings… Saved snapshots remain available while this check runs.'
-      await runHoldingsAction(true)
+      preparationMessage.value = `Preparing ${profile.symbol} holdings. Saved snapshots remain available while this check runs.`
+      await prepareSelectedHoldings(profile.symbol, verifiedInstrumentId)
+    }
+  }
+}
+
+function cancelSelectedPreparation() {
+  preparationController?.abort()
+  preparationController = null
+  preparationBusy.value = false
+}
+
+async function prepareSelectedHoldings(symbol: string, instrumentId: number | null) {
+  const normalized = symbol.trim().toUpperCase()
+  const generation = fundSelectionGeneration
+  if (!normalized) return
+  cancelSelectedPreparation()
+  const controller = new AbortController()
+  preparationController = controller
+  preparationBusy.value = true
+  preparationMessage.value = `Preparing ${normalized} holdings. Any saved snapshot remains available while this request runs.`
+  try {
+    const target = Number.isSafeInteger(instrumentId) && Number(instrumentId) > 0
+      ? { kind: 'instrument' as const, instrument_id: Number(instrumentId) }
+      : { kind: 'instrument' as const, symbol: normalized }
+    const response = await dataPreparationCoordinator.ensure({
+      target,
+      datasets: ['holdings'],
+    }, {
+      signal: controller.signal,
+      onProgress: progress => {
+        if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+        preparationMessage.value = preparationStatusMessage(progress.response)
+      },
+    })
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    preparationMessage.value = preparationStatusMessage(response)
+    if (response.status !== 'ready') return
+
+    const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    const updatedProfile = (Array.isArray(loaded) ? loaded : []).find(
+      candidate => candidate.symbol.trim().toUpperCase() === normalized,
+    )
+    if (!updatedProfile
+      || (instrumentId != null && updatedProfile.instrument_id !== instrumentId)) {
+      preparationMessage.value = `${normalized} preparation completed without a matching holdings profile. Any previous snapshot remains unchanged.`
+      return
+    }
+    const index = profiles.value.findIndex(candidate => candidate.id === updatedProfile.id)
+    if (index >= 0) profiles.value.splice(index, 1, updatedProfile)
+    else profiles.value = [updatedProfile, ...profiles.value]
+    await selectProfile(updatedProfile, updatedProfile.instrument_id, false)
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
+      preparationMessage.value = preparationStatusMessage(response)
+    }
+  } catch {
+    if (controller.signal.aborted) return
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
+      preparationMessage.value = 'Holdings preparation could not be completed. Any saved snapshot remains available.'
+    }
+  } finally {
+    if (preparationController === controller) preparationController = null
+    if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
+      preparationBusy.value = false
     }
   }
 }
@@ -1093,6 +1179,11 @@ async function runHoldingsAction(refresh: boolean) {
             : result.outcome === 'failed'
               ? `The holdings request for ${fund.symbol} failed. Previously stored snapshots remain available.`
               : `The holdings request for ${fund.symbol} returned no profile. Previously stored snapshots remain available.`
+      return
+    }
+    if (result.profile.instrument_id !== resolvedFund.verifiedInstrumentId
+      || result.profile.symbol.trim().toUpperCase() !== fund.symbol.trim().toUpperCase()) {
+      holdingsActionError.value = `The holdings profile did not match ${fund.symbol}; previously stored snapshots remain available.`
       return
     }
     const returnedProfile = result.capability
@@ -1546,13 +1637,19 @@ function openHoldingChart(
   confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   void router.push({
-    path: `/legacy/chart/${encodeURIComponent(symbol)}`,
+    path: `/chart/${encodeURIComponent(symbol)}`,
     query: { ...holdingDrilldownRouteQuery(context), holding_history_intent: 'selected' },
     state: holdingDrilldownRouteState(context, confirmedIdentity),
   })
 }
 
 onMounted(loadProfiles)
+onBeforeUnmount(() => {
+  // Detach this view from any in-flight shared preparation and invalidate all
+  // of its pending consumer callbacks. The durable server-side job continues.
+  fundSelectionGeneration += 1
+  cancelSelectedPreparation()
+})
 </script>
 
 <style scoped>

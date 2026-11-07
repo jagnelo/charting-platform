@@ -30,6 +30,11 @@
         :data-source-id="selectedSourceLineage.analysisSourceId"
       >{{ selectedSourceLineage.label }} · Parent source {{ selectedSourceLineage.parentSourceId }}</p>
       <p v-if="requiresDeclaredUniverse" class="study-lab-tool__universe-warning" role="status" aria-live="polite" aria-atomic="true">This factory study needs a declared comma-separated universe; it will not fall back to the active symbol.</p>
+      <p class="study-lab-tool__preparation-note" role="note">Validate prepares the selected canonical data first. Data acquisition is shown here; evaluation remains local.</p>
+      <p v-if="preparationStatus" class="study-lab-tool__preparation-status" role="status" aria-label="Study data preparation" aria-live="polite" aria-atomic="true">{{ preparationStatus }}</p>
+      <ul v-if="preparationOutcomes.length" class="study-lab-tool__preparation-outcomes" aria-label="Study data preparation outcomes">
+        <li v-for="outcome in preparationOutcomes" :key="outcome.target">{{ outcome.target }}: {{ outcome.message }}</li>
+      </ul>
       <section class="study-lab-tool__parameters" aria-label="Study parameter controls">
         <label>Parameter schema <textarea v-model="parameterSchemaText" aria-label="Study parameter schema" :aria-invalid="parameterSchemaError ? 'true' : undefined" :aria-describedby="parameterSchemaError ? parameterSchemaErrorId : undefined" spellcheck="false" placeholder='{"properties":{"lookback":{"type":"integer","default":20}}}' /></label>
         <div v-if="parameterDefinitions.length" class="study-lab-tool__parameter-grid">
@@ -69,8 +74,9 @@
       <span v-else>Study source changed since validation. Validate the current source before running.</span>
     </section>
     <section v-if="run" class="study-lab-tool__run">
-      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" aria-label="Cancel study run" @click="cancel">Cancel</button><button v-if="canRerun" type="button" aria-label="Rerun study snapshot" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" aria-label="Rerun study with latest data" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
+      <div><strong>Run #{{ run.id }}</strong><span role="status" aria-live="polite" aria-atomic="true" :aria-label="`Study run status: ${runStatusLabel}`" :data-status="run.status" :class="`study-lab-tool__run-status--${run.status}`">{{ runStatusLabel }}</span><small v-if="progressLabel">{{ progressLabel }}</small><button v-if="canCancel" type="button" aria-label="Cancel study run" :disabled="cancelBusy" @click="cancel">{{ cancelBusy ? 'Canceling…' : 'Cancel' }}</button><button v-if="canRerun" type="button" aria-label="Rerun study snapshot" :disabled="rerunBusy" @click="rerun(true)">{{ rerunBusy ? 'Rerunning…' : 'Rerun snapshot' }}</button><button v-if="canRerun" type="button" aria-label="Rerun study with latest data" :disabled="rerunBusy" @click="rerun(false)">{{ rerunBusy ? 'Rerunning…' : 'Rerun latest' }}</button></div>
       <p class="study-lab-tool__run-guidance" role="status" aria-live="polite" aria-atomic="true">{{ runGuidance }}</p>
+      <p class="study-lab-tool__saved-run-notice" role="note">Saved outputs remain attached to run #{{ run.id }}; editing this draft does not change their recorded source or dataset.</p>
       <div v-if="promotableKind || artifactPromotions.length" class="study-lab-tool__promotions" aria-label="Promote study result">
         <button v-if="promotableKind === 'scalar'" type="button" :disabled="promotionBusy" @click="promote('column')">{{ promotionBusy ? 'Promoting…' : 'Save as column' }}</button>
         <div v-if="promotableKind === 'scalar' && scalarObservation != null" class="study-lab-tool__series-condition" role="group" aria-label="Study scalar threshold condition">
@@ -108,7 +114,8 @@
         </template>
       </div>
       <p v-if="run.reproducibility_hash">Reproducibility {{ run.reproducibility_hash }}</p>
-      <p class="study-lab-tool__dataset-summary">Dataset: {{ universeSourceId || universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} ({{ benchmarkCoverageLabel }}) · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
+      <p class="study-lab-tool__dataset-summary">Current draft dataset: {{ universeSourceId || universeSymbols || symbol }} · {{ timeframe }} · {{ adjustment === 'split_adjusted' ? 'split adjusted' : 'raw' }} · {{ session }} session · benchmark {{ benchmark || 'none' }} · {{ startDate || 'earliest available' }} → {{ endDate || 'latest available' }}</p>
+      <p class="study-lab-tool__saved-dataset" role="status" aria-label="Saved run dataset">Saved run #{{ run.id }} dataset: {{ savedRunDatasetSummary }}</p>
       <details v-if="run.diagnostics?.length" class="study-lab-tool__run-details"><summary>Diagnostics ({{ run.diagnostics.length }})</summary><pre>{{ formatMessages(run.diagnostics) }}</pre></details>
       <details v-if="run.warnings?.length" class="study-lab-tool__run-details"><summary>Warnings ({{ run.warnings.length }})</summary><pre>{{ formatMessages(run.warnings) }}</pre></details>
       <details v-if="run.logs" class="study-lab-tool__run-details"><summary>Execution log</summary><pre>{{ run.logs }}</pre></details>
@@ -131,7 +138,7 @@
         <pre v-else>{{ artifactText(artifact.payload) }}</pre>
       </article>
     </section>
-    <p v-if="error" class="study-lab-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}</p>
+    <p v-if="error" class="study-lab-tool__error" role="alert" aria-live="assertive" aria-atomic="true">{{ error }}<button v-if="persistedRunError" type="button" :disabled="persistedRunLoading" @click="restorePersistedRun">{{ persistedRunLoading ? 'Retrying…' : 'Retry loading saved run' }}</button></p>
     <p v-else-if="promotionStatus" class="study-lab-tool__promotion-status" role="status" aria-live="polite" aria-atomic="true">{{ promotionStatus }}</p>
     <p v-else class="study-lab-tool__notice">Canonical local data only · isolated no-network runner · results are versioned by code and dataset manifest.</p>
   </section>
@@ -141,8 +148,11 @@
 import { computed, getCurrentInstance, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { api } from '@/lib/api'
+import { dataPreparationCoordinator, preparationStatusMessage } from '@/lib/dataPreparation'
+import type { DataEnsureRequest, PreparationTimeframe } from '@/lib/dataPreparation'
 import { invalidateCodeAssets } from '@/lib/workstation/libraryQueries'
 import { normalizeStructuredNumericSeries } from '@/lib/workstation/numericSeries'
+import { researchRunQueryKey, researchRunsQueryKey } from '@/lib/workstation/researchQueryKeys'
 import { normalizeStudyDashboardPanels } from '@/lib/workstation/studyArtifacts'
 import { describeStudyArtifact } from '@/lib/workstation/studyArtifactAccessibility'
 import { useWatchlistStore } from '@/stores/watchlist'
@@ -160,6 +170,7 @@ interface Validation { valid: boolean; diagnostics: unknown[]; dependencies: str
 interface ParameterDefinition { name: string; type: string; default?: unknown; enum?: unknown[]; minimum?: number; maximum?: number }
 interface Run {
   id: number
+  created_at?: string
   code_version_id?: number
   status: string
   run_config?: Record<string, unknown>
@@ -168,6 +179,7 @@ interface Run {
   warnings?: unknown[]
   logs?: string
   resource_usage?: Record<string, unknown>
+  artifact_count?: number
   reproducibility_hash?: string | null
   dataset_manifest?: Record<string, unknown> & { benchmark_coverage?: { status?: string; reason?: string } }
   artifacts?: Array<{ id: number; name: string; artifact_type: string; payload: Record<string, unknown> }>
@@ -267,12 +279,13 @@ const universeSymbols = ref(configString('symbols', ''))
 const selectedSourceLineage = computed(() => {
   const configuration = props.configuration ?? {}
   if (configuration.analysis_scope !== 'selection' || typeof configuration.analysis_source_id !== 'string' || !configuration.analysis_source_id.startsWith('explicit:')) return null
-  const selectedIds = Array.isArray(configuration.selected_member_ids)
+  const selectedIds: number[] = Array.isArray(configuration.selected_member_ids)
     ? configuration.selected_member_ids.filter((value): value is number => Number.isInteger(value) && value > 0)
     : configuration.analysis_source_id.slice('explicit:'.length).split(',').map(Number).filter(value => Number.isInteger(value) && value > 0)
   const parentSourceId = typeof configuration.source_id === 'string' && configuration.source_id ? configuration.source_id : 'unknown'
   return {
     analysisSourceId: configuration.analysis_source_id,
+    selectedMemberIds: selectedIds,
     parentSourceId,
     label: `Selected members · ${new Set(selectedIds).size} · Locked explicit source`,
   }
@@ -290,15 +303,23 @@ const openedStudyVersionId = ref<number | null>(configNumber('study_asset_versio
 const openedStudySource = ref(configString('study_source', ''))
 const openedStudyOutputContract = ref(configString('study_output_contract', ''))
 const openedStudyDefaultParameters = ref<Record<string, unknown>>(configRecord('study_default_parameters'))
+const persistedRunId = ref(configNumber('study_run_id'))
+const persistedRunName = ref(configString('study_run_name', ''))
+const persistedRunParameterSchema = ref<Record<string, unknown>>(configRecord('study_run_parameter_schema'))
 if (openedStudySource.value) {
   name.value = configString('study_name', name.value)
   source.value = openedStudySource.value
   factoryStudyKey.value = 'custom'
 }
 const busy = ref(false)
+const preparationStatus = ref('')
+const preparationOutcomes = ref<Array<{ target: string; message: string }>>([])
 const promotionBusy = ref(false)
 const promotionStatus = ref('')
 const rerunBusy = ref(false)
+const cancelBusy = ref(false)
+const persistedRunLoading = ref(false)
+const persistedRunError = ref(false)
 const validation = ref<Validation | null>(null)
 const validatedSource = ref<string | null>(null)
 const validationMatchesSource = computed(() => validation.value !== null && validatedSource.value === source.value)
@@ -325,13 +346,14 @@ const surfaceVisible = ref(true)
 const documentVisible = ref(typeof document === 'undefined' || document.visibilityState !== 'hidden')
 let disposed = false
 let runGeneration = 0
+let preparationGeneration = 0
+let preparationController: AbortController | null = null
 let runPollTimer: ReturnType<typeof setTimeout> | null = null
 let visibilityObserver: IntersectionObserver | null = null
 function updateDocumentVisibility() { documentVisible.value = document.visibilityState !== 'hidden' }
 // All durable research consumers use one cache namespace. This lets Study Lab,
 // chart Python plots, and future result surfaces observe the same run without
 // inventing tool-specific copies of the server state.
-const researchRunQueryKey = (runId: number) => ['workstation', 'research-run', runId] as const
 async function fetchResearchRun(runId: number, staleTime = 0) {
   return queryClient.fetchQuery<Run>({
     queryKey: researchRunQueryKey(runId),
@@ -343,6 +365,18 @@ async function fetchResearchRun(runId: number, staleTime = 0) {
     staleTime,
   })
 }
+function cacheResearchRunInList(nextRun: Run) {
+  queryClient.setQueryData<Run[]>(researchRunsQueryKey, current => {
+    const cached = current ?? []
+    const existingIndex = cached.findIndex(cachedRun => cachedRun.id === nextRun.id)
+    if (existingIndex >= 0) {
+      const updated = [...cached]
+      updated[existingIndex] = { ...updated[existingIndex], ...nextRun }
+      return updated
+    }
+    return [nextRun, ...cached].slice(0, 26)
+  })
+}
 const runQuery = useQuery({
   queryKey: computed(() => run.value?.id ? researchRunQueryKey(run.value.id) : ['workstation', 'research-run', null]),
   queryFn: async () => {
@@ -351,6 +385,7 @@ const runQuery = useQuery({
     const refreshed = await api.get<Run>(`/research/runs/${runId}`)
     if (!refreshed) throw new Error('Study run refresh returned no data')
     queryClient.setQueryData(researchRunQueryKey(runId), refreshed)
+    cacheResearchRunInList(refreshed)
     return refreshed
   },
   // Research jobs are durable and must continue being observed while Golden
@@ -379,9 +414,13 @@ function scheduleRunPolling(runId: number, generation = runGeneration) {
       const refreshed = await api.get<Run>(`/research/runs/${runId}`)
       if (!refreshed) throw new Error('Study run refresh returned no data')
       queryClient.setQueryData(researchRunQueryKey(runId), refreshed)
+      cacheResearchRunInList(refreshed)
       if (disposed || generation !== runGeneration || !run.value || run.value.id !== runId) return
       run.value = refreshed
       if (refreshed.code_version_id) runCodeVersionId.value = refreshed.code_version_id
+      if (['completed', 'failed', 'canceled'].includes(refreshed.status)) {
+        void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
+      }
       if (!['completed', 'failed', 'canceled'].includes(refreshed.status)) scheduleRunPolling(runId, generation)
     } catch (cause: any) {
       if (!disposed && generation === runGeneration) {
@@ -390,6 +429,32 @@ function scheduleRunPolling(runId: number, generation = runGeneration) {
       }
     }
   }, 1_000)
+}
+async function restorePersistedRun() {
+  const runId = persistedRunId.value
+  if (!runId || persistedRunLoading.value || disposed) return
+  const generation = runGeneration
+  persistedRunLoading.value = true
+  persistedRunError.value = false
+  error.value = ''
+  try {
+    const persistedRun = await fetchResearchRun(runId, 5_000)
+    if (disposed || generation !== runGeneration || (run.value && run.value.id !== runId)) return
+    run.value = persistedRun
+    runCodeVersionId.value = persistedRun.code_version_id ?? null
+    persistedRunName.value = configString('study_run_name', '')
+    persistedRunParameterSchema.value = configRecord('study_run_parameter_schema')
+    runSource.value = typeof props.configuration?.study_run_source === 'string' ? props.configuration.study_run_source : ''
+    runContract.value = typeof props.configuration?.study_run_contract === 'string' ? props.configuration.study_run_contract : null
+    scheduleRunPolling(persistedRun.id, generation)
+  } catch (cause: any) {
+    if (!disposed && generation === runGeneration) {
+      persistedRunError.value = true
+      error.value = `Saved Study run #${runId} could not be loaded. ${cause?.message ?? 'Retry to check the persisted run again.'}`
+    }
+  } finally {
+    if (!disposed && generation === runGeneration) persistedRunLoading.value = false
+  }
 }
 watch(() => runQuery.data.value, next => {
   if (!disposed && next && next.id === run.value?.id) {
@@ -504,8 +569,8 @@ function conditionDraft(artifact?: Artifact, sourceRun = run.value): ConditionDr
 function seriesConditionKey(artifact: Artifact, adapter: string, draft: ConditionDraft) {
   return `${run.value?.id ?? 'run'}:${artifact.id}:${artifact.name}:${adapter}:${draft.operator}:${draft.threshold}`
 }
-function declaredStudyInstrumentIds() {
-  const manifest = run.value?.dataset_manifest ?? {}
+function declaredStudyInstrumentIds(studyRun = run.value) {
+  const manifest = studyRun?.dataset_manifest ?? {}
   const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
   return [...new Set([
     ...(typeof manifest.instrument_id === 'number' ? [manifest.instrument_id] : []),
@@ -515,15 +580,25 @@ function declaredStudyInstrumentIds() {
       .filter((item): item is number => typeof item === 'number' && Number.isInteger(item) && item > 0),
   ])]
 }
-function studySourceId() {
-  const sourceRunConfig = run.value?.run_config ?? {}
+function studySourceId(studyRun = run.value) {
+  const sourceRunConfig = studyRun?.run_config ?? {}
   if (typeof sourceRunConfig.universe_source_id === 'string' && sourceRunConfig.universe_source_id.trim()) return sourceRunConfig.universe_source_id
-  const sourceManifest = run.value?.dataset_manifest ?? {}
+  const sourceManifest = studyRun?.dataset_manifest ?? {}
   return typeof sourceManifest.universe_source_id === 'string' && sourceManifest.universe_source_id.trim() ? sourceManifest.universe_source_id : null
 }
-function studyMembershipVersion() {
-  const sourceManifest = run.value?.dataset_manifest ?? {}
+function studyMembershipVersion(studyRun = run.value) {
+  const sourceManifest = studyRun?.dataset_manifest ?? {}
   return typeof sourceManifest.universe_membership_version === 'string' && sourceManifest.universe_membership_version.trim() ? sourceManifest.universe_membership_version : null
+}
+function savedRunName(studyRun = run.value) {
+  return persistedRunName.value.trim() || `Study run #${studyRun?.id ?? 'unknown'}`
+}
+function savedRunParameters(studyRun = run.value) {
+  const parameters = studyRun?.run_config?.parameters
+  return parameters && typeof parameters === 'object' && !Array.isArray(parameters) ? parameters as Record<string, unknown> : {}
+}
+function savedRunParameterSchema() {
+  return persistedRunParameterSchema.value
 }
 
 async function promoteThresholdedStrategySignal(
@@ -533,7 +608,7 @@ async function promoteThresholdedStrategySignal(
   outputAdapter: 'scalar_target_to_boolean' | 'series_target_to_boolean' | 'range_center_target_to_boolean',
   semantics: 'study_scalar_threshold_as_strategy_signal' | 'study_series_threshold_as_strategy_signal' | 'study_range_center_threshold_as_strategy_signal',
 ) {
-  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  const declaredInstrumentIds = declaredStudyInstrumentIds(studyRun)
   if (!declaredInstrumentIds.length) throw new Error('The study dataset has no declared canonical members; refusing to widen the Strategy signal universe.')
   if (!runSource.value) throw new Error('The immutable source code version for this study is unavailable.')
   const sourceManifest = studyRun.dataset_manifest ?? {}
@@ -547,8 +622,8 @@ async function promoteThresholdedStrategySignal(
     source_run_config: sourceRunConfig,
     source_output_name: artifact.name,
     source_instrument_ids: declaredInstrumentIds,
-    source_universe_source_id: studySourceId(),
-    source_membership_version: studyMembershipVersion(),
+    source_universe_source_id: studySourceId(studyRun),
+    source_membership_version: studyMembershipVersion(studyRun),
     target: 'signal',
     output_adapter: outputAdapter,
     series_target: seriesTarget,
@@ -556,15 +631,15 @@ async function promoteThresholdedStrategySignal(
     point_in_time_source_preserved: false,
   }
   const asset = await api.post<{ id?: number; name?: string; versions?: Array<{ id?: number }> }>('/code/assets', {
-    stable_key: uniqueAssetKey(`${name.value}-${artifact.name}-signal`, 'signal'),
+    stable_key: uniqueAssetKey(`${savedRunName(studyRun)}-${artifact.name}-signal`, 'signal'),
     name: `${artifact.name} Strategy signal`,
     kind: 'signal',
     initial_version: {
       source: runSource.value,
       output_contract: 'boolean',
       output_name: artifact.name,
-      parameter_schema: parsedParameterSchema.value ?? {},
-      default_parameters: buildParameters(),
+      parameter_schema: savedRunParameterSchema(),
+      default_parameters: savedRunParameters(studyRun),
       lineage,
     },
   })
@@ -622,12 +697,61 @@ const artifactPromotions = computed<ArtifactPromotion[]>(() => {
   }
   return promotions
 })
-const benchmarkCoverageLabel = computed(() => {
-  const status = run.value?.dataset_manifest?.benchmark_coverage?.status
-  if (status === 'ready') return 'ready'
-  if (status === 'unavailable') return `unavailable: ${run.value?.dataset_manifest?.benchmark_coverage?.reason ?? 'unknown'}`
-  return 'pending'
+function recordedValue(...values: unknown[]) {
+  return values.find(value => typeof value === 'string' && value.trim()) as string | undefined
+}
+const savedRunDatasetSummary = computed(() => {
+  const savedRun = run.value
+  if (!savedRun) return 'Recorded dataset context unavailable'
+  const config = savedRun.run_config ?? {}
+  const manifest = savedRun.dataset_manifest ?? {}
+  const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
+  const configuredSymbols = Array.isArray(config.symbols)
+    ? config.symbols.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+    : Array.isArray(manifest.symbols)
+      ? manifest.symbols.filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+      : []
+  const manifestSymbols = datasets
+    .filter((value): value is Record<string, unknown> => Boolean(value) && typeof value === 'object')
+    .map(value => value.symbol)
+    .filter((value): value is string => typeof value === 'string' && Boolean(value.trim()))
+  const symbols = [...new Set([...configuredSymbols, ...manifestSymbols])]
+  const requestedSymbols = recordedValue(config.symbol) ?? configuredSymbols.join(', ')
+  const materializedSymbols = recordedValue(manifest.symbol) ?? [...new Set(manifestSymbols)].join(', ')
+  const symbolLabel = requestedSymbols && materializedSymbols && requestedSymbols !== materializedSymbols
+    ? `requested ${requestedSymbols}; materialized ${materializedSymbols}`
+    : requestedSymbols ?? materializedSymbols ?? symbols.join(', ')
+  const sourceLabel = recordedValue(config.universe_source_id, manifest.universe_source_id)
+  const benchmarkCoverage = manifest.benchmark_coverage && typeof manifest.benchmark_coverage === 'object'
+    ? manifest.benchmark_coverage as { status?: unknown; reason?: unknown }
+    : {}
+  const benchmarkCoverageLabel = benchmarkCoverage.status === 'ready'
+    ? 'ready'
+    : benchmarkCoverage.status === 'unavailable'
+      ? `unavailable: ${recordedValue(benchmarkCoverage.reason) ?? 'unknown'}`
+      : 'pending'
+  const recordedField = (label: string, requested: unknown, materialized: unknown, fallback: string) => {
+    const requestedValue = recordedValue(requested)
+    const materializedValue = recordedValue(materialized)
+    return requestedValue && materializedValue && requestedValue !== materializedValue
+      ? `${label} requested ${requestedValue}; materialized ${materializedValue}`
+      : `${label} ${materializedValue ?? requestedValue ?? fallback}`
+  }
+  const fields = [
+    symbolLabel ? `symbol ${symbolLabel}` : sourceLabel ? `universe ${sourceLabel}` : 'symbol not recorded',
+    recordedField('timeframe', config.timeframe, manifest.timeframe, 'not recorded'),
+    recordedField('adjustment', config.adjustment, manifest.adjustment, 'not recorded').replace(/_/g, ' '),
+    recordedField('session', config.session, manifest.session, 'not recorded'),
+    `${recordedField('benchmark', config.benchmark, manifest.benchmark, 'not recorded')} (${benchmarkCoverageLabel})`,
+    `${recordedField('from', config.start_date, manifest.start_date, 'earliest available')} → ${recordedField('through', config.end_date, manifest.end_date, 'latest available')}`,
+  ]
+  return fields.join(' · ')
 })
+function savedRunTimeframe(studyRun: Run) {
+  const config = studyRun.run_config ?? {}
+  const manifest = studyRun.dataset_manifest ?? {}
+  return recordedValue(config.timeframe, manifest.timeframe)
+}
 const parsedParameterSchema = computed<Record<string, unknown> | null>(() => {
   if (!parameterSchemaText.value.trim()) return {}
   try {
@@ -674,8 +798,159 @@ watch(() => props.configuration, configuration => {
   if (configuration && !('parameter_schema' in configuration)) parameterSchemaText.value = ''
   else if (typeof configuration?.parameter_schema === 'string') parameterSchemaText.value = configuration.parameter_schema
 }, { deep: true, flush: 'sync' })
-watch([timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
+interface StudyDatasetIntent {
+  symbol: string
+  benchmark: string
+  universeSourceId: string
+  universeSymbols: string
+  selectedMemberIds: number[]
+  timeframe: string
+  adjustment: 'split_adjusted' | 'raw'
+  session: 'regular' | 'all'
+  startDate: string
+  endDate: string
+  asOf: string
+}
+function captureStudyDatasetIntent(): StudyDatasetIntent {
+  return {
+    symbol: symbol.value.trim().toUpperCase(),
+    benchmark: benchmark.value.trim().toUpperCase(),
+    universeSourceId: universeSourceId.value.trim(),
+    universeSymbols: universeSymbols.value,
+    selectedMemberIds: selectedSourceLineage.value?.selectedMemberIds ?? [],
+    timeframe: timeframe.value,
+    adjustment: adjustment.value,
+    session: session.value,
+    startDate: startDate.value,
+    endDate: endDate.value,
+    asOf: asOf.value,
+  }
+}
+function studyDatasetIntentMatches(intent: StudyDatasetIntent): boolean {
+  return JSON.stringify(captureStudyDatasetIntent()) === JSON.stringify(intent)
+}
+function dateStartAt(value: string): string | null {
+  return value ? `${value}T00:00:00.000Z` : null
+}
+function dateEndAt(value: string): string | null {
+  return value ? `${value}T23:59:59.999Z` : null
+}
+function preparationTargetLabel(target: DataEnsureRequest['target']): string {
+  if (target.kind === 'instrument') return target.symbol ?? `Instrument ${target.instrument_id}`
+  if (target.kind === 'market_group') return `Market group ${target.group_key}`
+  if (target.kind === 'family') return `Family ${target.family_key}`
+  return `Screener ${target.screener_id}`
+}
+async function buildStudyPreparationRequests(intent: StudyDatasetIntent): Promise<DataEnsureRequest[]> {
+  const sourceId = intent.universeSourceId
+  let targets: DataEnsureRequest['target'][]
+  if (sourceId.startsWith('market-group:') && sourceId.slice('market-group:'.length).trim()) {
+    targets = [{ kind: 'market_group', group_key: sourceId.slice('market-group:'.length).trim() }]
+  } else if (sourceId.startsWith('family:') && sourceId.slice('family:'.length).trim()) {
+    targets = [{ kind: 'family', family_key: sourceId.slice('family:'.length).trim() }]
+  } else if (sourceId.startsWith('explicit:')) {
+    const ids = [...new Set(sourceId.slice('explicit:'.length).split(',').map(Number).filter(value => Number.isInteger(value) && value > 0))]
+    if (!ids.length) throw new Error('The selected Study members have no valid instrument identities; saved results remain available.')
+    targets = ids.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  } else if (sourceId) {
+    const asOf = intent.asOf ? new Date(intent.asOf).toISOString() : null
+    const resolved = await watchlistStore.resolveWatchlistSource(sourceId, asOf)
+    if (!resolved) throw new Error(`The selected Study universe “${sourceId}” could not be resolved for data preparation; saved results remain available.`)
+    const ids = [...new Set(resolved.members.map(member => member.instrument_id).filter(value => Number.isInteger(value) && value > 0))]
+    if (!ids.length) throw new Error(`The selected Study universe “${sourceId}” has no resolved members to prepare; saved results remain available.`)
+    targets = ids.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  } else if (intent.selectedMemberIds.length) {
+    targets = intent.selectedMemberIds.map(instrument_id => ({ kind: 'instrument', instrument_id }))
+  } else {
+    const symbols = [...new Set(intent.universeSymbols.split(',').map(value => value.trim().toUpperCase()).filter(Boolean))]
+    const selectedSymbols = symbols.length ? symbols : [intent.symbol]
+    if (!selectedSymbols.some(Boolean)) throw new Error('Enter a Study symbol before preparing data.')
+    targets = selectedSymbols.map(symbol => ({ kind: 'instrument', symbol }))
+  }
+  const startAt = dateStartAt(intent.startDate)
+  const selectedEnd = dateEndAt(intent.endDate)
+  const asOf = intent.asOf ? new Date(intent.asOf).toISOString() : null
+  const endAt = selectedEnd && asOf
+    ? (Date.parse(selectedEnd) <= Date.parse(asOf) ? selectedEnd : asOf)
+    : selectedEnd ?? asOf
+  const base: Omit<DataEnsureRequest, 'target'> = {
+    datasets: ['history'],
+    timeframe: intent.timeframe as PreparationTimeframe,
+    adjusted: intent.adjustment === 'split_adjusted',
+    start_at: startAt,
+    end_at: endAt,
+  }
+  const requests: DataEnsureRequest[] = targets.map(target => ({ ...base, target }))
+  const benchmarkAlreadyIncluded = targets.some(target => target.kind === 'instrument'
+    && target.symbol?.toUpperCase() === intent.benchmark)
+  if (intent.benchmark && !benchmarkAlreadyIncluded) requests.push({ ...base, target: { kind: 'instrument', symbol: intent.benchmark } })
+  return requests
+}
+function invalidateStudyPreparation() {
+  preparationGeneration += 1
+  preparationController?.abort()
+  preparationController = null
+  preparationOutcomes.value = []
+  if (preparationStatus.value) preparationStatus.value = 'Study data selection changed. Validate or run to prepare the current selection.'
+}
+async function prepareStudyDataset(intent: StudyDatasetIntent): Promise<boolean> {
+  const generation = ++preparationGeneration
+  preparationController?.abort()
+  const controller = new AbortController()
+  preparationController = controller
+  preparationStatus.value = 'Preparing the selected Study data…'
+  try {
+    const requests = await buildStudyPreparationRequests(intent)
+    if (disposed || generation !== preparationGeneration || !studyDatasetIntentMatches(intent)) return false
+    const outcomes = requests.map(request => ({
+      target: preparationTargetLabel(request.target),
+      message: 'Request submitted; waiting for data status…',
+    }))
+    preparationOutcomes.value = outcomes
+    preparationStatus.value = `Preparing ${requests.length} independent Study data target${requests.length === 1 ? '' : 's'}…`
+    const isCurrentIntent = () => !disposed && generation === preparationGeneration && studyDatasetIntentMatches(intent)
+    const readiness = await Promise.all(requests.map(async (request, index) => {
+      const label = outcomes[index].target
+      const updateOutcome = (message: string) => {
+        if (!isCurrentIntent()) return
+        outcomes[index] = { target: label, message }
+        preparationOutcomes.value = [...outcomes]
+      }
+      try {
+        const response = await dataPreparationCoordinator.ensure(request, {
+          signal: controller.signal,
+          onProgress: progress => {
+            updateOutcome(`${preparationStatusMessage(progress.response)} (${progress.completed}/${progress.total} dependencies complete.)`)
+          },
+        })
+        if (!isCurrentIntent()) return false
+        updateOutcome(preparationStatusMessage(response))
+        return response.status === 'ready'
+      } catch (cause) {
+        if (!isCurrentIntent() || controller.signal.aborted) return false
+        updateOutcome(cause instanceof Error ? cause.message : 'Data preparation could not be completed.')
+        return false
+      }
+    }))
+    if (!isCurrentIntent()) return false
+    const allReady = readiness.every(Boolean)
+    preparationStatus.value = allReady
+      ? 'Selected Study data and benchmark are ready.'
+      : 'Some selected Study data is not ready. Review each target above; saved runs remain available.'
+    return allReady
+  } catch (cause) {
+    if (controller.signal.aborted || disposed || generation !== preparationGeneration) return false
+    preparationStatus.value = cause instanceof Error ? cause.message : 'Study data preparation could not be completed.'
+    return false
+  } finally {
+    if (preparationController === controller) preparationController = null
+  }
+}
+watch([symbol, timeframe, benchmark, universeSourceId, universeSymbols, adjustment, session, startDate, endDate, asOf], () => {
+  invalidateStudyPreparation()
   const configuration: Record<string, unknown> = { ...(props.configuration ?? {}), timeframe: timeframe.value, adjustment: adjustment.value, session: session.value }
+  if (symbol.value.trim()) configuration.symbol = symbol.value.trim().toUpperCase()
+  else delete configuration.symbol
   if (benchmark.value) configuration.benchmark = benchmark.value.toUpperCase()
   else delete configuration.benchmark
   if (universeSourceId.value) configuration.universe_source_id = universeSourceId.value
@@ -689,7 +964,10 @@ watch([timeframe, benchmark, universeSourceId, universeSymbols, adjustment, sess
   if (universeSymbols.value) configuration.symbols = universeSymbols.value.toUpperCase()
   else delete configuration.symbols
   emit('configuration', configuration)
-})
+}, { flush: 'sync' })
+watch(() => `${props.configuration?.analysis_scope ?? ''}|${props.configuration?.analysis_source_id ?? ''}|${JSON.stringify(props.configuration?.selected_member_ids ?? [])}`, () => {
+  invalidateStudyPreparation()
+}, { flush: 'sync' })
 watch(parameterSchemaText, value => {
   emit('configuration', { ...(props.configuration ?? {}), parameter_schema: value })
 })
@@ -893,10 +1171,19 @@ function eventRows(artifact: Artifact): Array<{ symbol: string; timestamp: strin
 
 async function validate() {
   const sourceToValidate = source.value
+  const datasetIntent = captureStudyDatasetIntent()
   validatedSource.value = null
   busy.value = true; error.value = ''
   try {
+    const prepared = await prepareStudyDataset(datasetIntent)
+    if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
+    if (!prepared) {
+      validation.value = null
+      if (!preparationStatus.value) preparationStatus.value = 'Study data is not ready. Resolve the preparation status before validating this study.'
+      return
+    }
     validation.value = await api.post<Validation>('/code/validate', { source: sourceToValidate })
+    if (disposed || !studyDatasetIntentMatches(datasetIntent)) return
     validatedSource.value = sourceToValidate
   }
   catch (cause: any) { error.value = cause?.message ?? 'Unable to validate study source' }
@@ -910,69 +1197,76 @@ async function saveAndRun() {
     error.value = 'This factory study requires a declared comma-separated universe before it can run.'
     return
   }
+  const datasetIntent = captureStudyDatasetIntent()
+  const sourceSnapshot = source.value
+  const nameSnapshot = name.value
+  const parameterSchemaSnapshot = parsedParameterSchema.value ?? {}
+  const parameters = buildParameters()
   busy.value = true; error.value = ''
+  persistedRunError.value = false
   promotedScanId.value = null
   try {
-    runSource.value = source.value
+    const prepared = await prepareStudyDataset(datasetIntent)
+    if (!prepared || disposed || !studyDatasetIntentMatches(datasetIntent) || source.value !== sourceSnapshot) return
+    runSource.value = sourceSnapshot
     runContract.value = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
     promotionStatus.value = ''
-    const parameters = buildParameters()
     // A single-output study can be consumed directly by its compatible target
     // surfaces. Structured/multi-output studies retain the study contract and
     // use typed promotion adapters when a target needs one specific artifact.
     const directContracts = new Set(['scalar', 'series', 'boolean', 'events'])
     const candidateContract = validation.value.output_contracts.length === 1 ? validation.value.output_contracts[0] : null
     const executionContract = candidateContract && directContracts.has(candidateContract) ? candidateContract : 'study'
-    const reuseOpenedVersion = openedStudyVersionId.value != null && source.value === openedStudySource.value
+    const reuseOpenedVersion = openedStudyVersionId.value != null && sourceSnapshot === openedStudySource.value
     let codeVersionId: number
     if (reuseOpenedVersion) {
       codeVersionId = openedStudyVersionId.value!
       runContract.value = openedStudyOutputContract.value || executionContract
     } else {
       const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-        stable_key: uniqueAssetKey(name.value),
-        name: name.value,
+        stable_key: uniqueAssetKey(nameSnapshot),
+        name: nameSnapshot,
         kind: 'study',
-        initial_version: { source: source.value, output_contract: executionContract, parameter_schema: parsedParameterSchema.value ?? {}, default_parameters: parameters },
+        initial_version: { source: sourceSnapshot, output_contract: executionContract, parameter_schema: parameterSchemaSnapshot, default_parameters: parameters },
       })
       codeVersionId = asset.versions[0].id
       void invalidateCodeAssets(queryClient)
     }
-    if (disposed || generation !== runGeneration) return
+    if (disposed || generation !== runGeneration || !studyDatasetIntentMatches(datasetIntent) || source.value !== sourceSnapshot) return
     const datasetControls: Record<string, string> = {
-      timeframe: timeframe.value,
-      adjustment: adjustment.value,
-      session: session.value,
+      timeframe: datasetIntent.timeframe,
+      adjustment: datasetIntent.adjustment,
+      session: datasetIntent.session,
     }
-    if (benchmark.value) datasetControls.benchmark = benchmark.value.toUpperCase()
-    if (startDate.value) datasetControls.start_date = startDate.value
-    if (endDate.value) datasetControls.end_date = endDate.value
-    if (asOf.value) datasetControls.as_of = new Date(asOf.value).toISOString()
-    const symbols = universeSymbols.value.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
+    if (datasetIntent.benchmark) datasetControls.benchmark = datasetIntent.benchmark
+    if (datasetIntent.startDate) datasetControls.start_date = datasetIntent.startDate
+    if (datasetIntent.endDate) datasetControls.end_date = datasetIntent.endDate
+    if (datasetIntent.asOf) datasetControls.as_of = new Date(datasetIntent.asOf).toISOString()
+    const symbols = datasetIntent.universeSymbols.split(',').map(value => value.trim().toUpperCase()).filter(Boolean)
     const resultScope = selectedFactoryStudy.value?.resultScope
-    const runConfig: Record<string, unknown> = universeSourceId.value
-      ? { universe_source_id: universeSourceId.value, parameters, ...datasetControls }
+    const runConfig: Record<string, unknown> = datasetIntent.universeSourceId
+      ? { universe_source_id: datasetIntent.universeSourceId, parameters, ...datasetControls }
       : symbols.length
         ? { symbols, parameters, ...datasetControls }
-        : { symbol: symbol.value.toUpperCase(), parameters, ...datasetControls }
+        : { symbol: datasetIntent.symbol, parameters, ...datasetControls }
     if (resultScope) runConfig.result_scope = resultScope
     const createdRun = await api.post<Run>('/research/runs', {
       code_version_id: codeVersionId,
       run_config: runConfig,
       dataset_manifest: { source: 'canonical_database', requested_at: new Date().toISOString(), ...datasetControls },
     })
-    // A virtual tool can be destroyed while the durable run request is in
-    // flight (for example when a user changes layouts or closes a pop-out).
-    // Do not let that late response strand a queued job that no visible tool
-    // owns. The cancellation is deliberately sent after the create response
-    // so the server can identify the exact run even if the component vanished.
-    if (disposed || generation !== runGeneration) {
-      if (createdRun?.id) {
-        try { await api.post(`/research/runs/${createdRun.id}/cancel`, {}) } catch { /* best-effort cleanup */ }
-      }
-      return
-    }
+    // Run creation is durable even if this virtual tool closes while the
+    // request is in flight. Publish the exact created row to shared caches and
+    // refresh any still-open Results surface; closing a view is not a cancel
+    // action. Component-local state and polling remain fenced below.
+    queryClient.setQueryData(researchRunQueryKey(createdRun.id), createdRun)
+    cacheResearchRunInList(createdRun)
+    void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
+    if (disposed || generation !== runGeneration) return
     run.value = createdRun
+    persistedRunId.value = createdRun.id
+    persistedRunName.value = nameSnapshot
+    persistedRunParameterSchema.value = parameterSchemaSnapshot
     runCodeVersionId.value = createdRun.code_version_id ?? codeVersionId
     scheduleRunPolling(createdRun.id, generation)
     const persistedConfiguration: Record<string, unknown> = {
@@ -980,6 +1274,8 @@ async function saveAndRun() {
       study_run_id: run.value.id,
       study_run_source: runSource.value,
       study_run_contract: runContract.value,
+      study_run_name: nameSnapshot,
+      study_run_parameter_schema: parameterSchemaSnapshot,
       promoted_scan_id: null,
     }
     if (!reuseOpenedVersion) {
@@ -995,21 +1291,33 @@ async function saveAndRun() {
 }
 async function promote(target: PromotionTarget, selectedOutputName?: string) {
   if (disposed) return
-  const selectedArtifact = selectedOutputName ? (run.value?.artifacts ?? []).find(artifact => artifact.name === selectedOutputName) : null
-  const contract = selectedArtifact ? (selectedArtifact.artifact_type as 'scalar' | 'series' | 'boolean' | 'events' | 'range') : promotableKind.value
+  const selectedRunSnapshot = run.value
+  if (!selectedRunSnapshot) return
+  const selectedRunSource = runSource.value
+  const selectedRunContract = runContract.value
+  const selectedRunCodeVersionId = selectedRunSnapshot.code_version_id ?? runCodeVersionId.value
+  const selectedRunName = savedRunName(selectedRunSnapshot)
+  const selectedRunParameterSchema = savedRunParameterSchema()
+  const selectedRunParameters = savedRunParameters(selectedRunSnapshot)
+  const selectedArtifact = selectedOutputName
+    ? (selectedRunSnapshot.artifacts ?? []).find(artifact => artifact.name === selectedOutputName)
+    : null
+  const contract = selectedArtifact
+    ? (selectedArtifact.artifact_type as 'scalar' | 'series' | 'boolean' | 'events' | 'range')
+    : selectedRunContract
   // A single-output range run has no named-artifact picker, but its center is
   // still a named artifact in the durable result. Resolve that artifact here
   // so the direct controls use the same lineage-preserving adapters as the
   // named multi-output path.
   const promotionArtifact = selectedArtifact ?? (
     !selectedOutputName && contract === 'range'
-      ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'range')
+      ? selectedRunSnapshot?.artifacts?.find(artifact => artifact.artifact_type === 'range')
       : undefined
   )
   if (!contract || promotionBusy.value) return
   const seriesPlotArtifact = selectedArtifact?.artifact_type === 'series'
     ? selectedArtifact
-    : contract === 'series' ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series') : undefined
+    : contract === 'series' ? selectedRunSnapshot?.artifacts?.find(artifact => artifact.artifact_type === 'series') : undefined
   if (target === 'plot' && seriesPlotArtifact && !seriesCanBePlotted(seriesPlotArtifact)) {
     promotionStatus.value = 'Chart plot unavailable: this series needs valid aligned timestamps and at least one finite observation.'
     return
@@ -1018,19 +1326,19 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
   promotionStatus.value = ''
   try {
     if (contract === 'events' && (target === 'filter' || target === 'alert')) {
-      if (!run.value?.id) throw new Error('A completed event study run is required before creating a current-data filter.')
-      const eventArtifacts = (run.value.artifacts ?? []).filter(artifact => artifact.artifact_type === 'events')
+      if (!selectedRunSnapshot?.id) throw new Error('A completed event study run is required before creating a current-data filter.')
+      const eventArtifacts = (selectedRunSnapshot.artifacts ?? []).filter(artifact => artifact.artifact_type === 'events')
       const eventArtifact = selectedArtifact?.artifact_type === 'events'
         ? selectedArtifact
         : eventArtifacts.length === 1
           ? eventArtifacts[0]
           : null
       if (!eventArtifact) throw new Error('Select a named event artifact before creating a current-data filter.')
-      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
+      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${selectedRunSnapshot.id}/promote-event-filter`, {
         artifact_name: eventArtifact.name,
       })
       if (target === 'alert') {
-        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${run.value.id}` })
+        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${selectedRunSnapshot.id}` })
         promotionStatus.value = `Promoted event artifact “${eventArtifact.name}” to an active alert.`
       } else {
         promotionStatus.value = `Saved event artifact “${eventArtifact.name}” as a reusable watchlist filter.`
@@ -1038,12 +1346,12 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
       return
     }
     if (selectedArtifact?.artifact_type === 'events' && (target === 'filter' || target === 'alert')) {
-      if (!selectedOutputName || run.value?.id == null) throw new Error('Select a named event artifact before creating a current-data filter.')
-      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${run.value.id}/promote-event-filter`, {
+      if (!selectedOutputName || selectedRunSnapshot?.id == null) throw new Error('Select a named event artifact before creating a current-data filter.')
+      const promoted = await api.post<{ id: number; name: string }>(`/research/runs/${selectedRunSnapshot.id}/promote-event-filter`, {
         artifact_name: selectedOutputName,
       })
       if (target === 'alert') {
-        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${run.value.id}` })
+        await api.post('/alerts/screener', { screener_id: promoted.id, trigger_type: 'both', repeat: true, notes: `Created from event study run ${selectedRunSnapshot.id}` })
         promotionStatus.value = `Promoted event artifact “${selectedOutputName}” to an active alert.`
       } else {
         promotionStatus.value = `Saved event artifact “${selectedOutputName}” as a reusable watchlist filter.`
@@ -1051,9 +1359,9 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
       return
     }
     if (target === 'signal' && contract === 'events') {
-      const eventArtifact = selectedArtifact ?? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'events')
+      const eventArtifact = selectedArtifact ?? selectedRunSnapshot?.artifacts?.find(artifact => artifact.artifact_type === 'events')
       const eventOutputName = selectedOutputName ?? eventArtifact?.name
-      if (!eventArtifact || !eventOutputName || run.value?.code_version_id == null) {
+      if (!eventArtifact || !eventOutputName || selectedRunSnapshot?.code_version_id == null) {
         throw new Error('A named event artifact and immutable source version are required for a Strategy signal.')
       }
       const sourceVersions = await api.get<Array<{
@@ -1066,25 +1374,25 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
       }>>('/code/assets')
       const sourceVersion = (sourceVersions ?? [])
         .flatMap(asset => asset.versions ?? [])
-        .find(version => version.id === run.value?.code_version_id)
+        .find(version => version.id === selectedRunSnapshot?.code_version_id)
       if (!sourceVersion?.source) throw new Error('The immutable source code version for this event study is unavailable.')
-      const sourceManifest = run.value.dataset_manifest ?? {}
-      const sourceRunConfig = run.value.run_config ?? {}
+      const sourceManifest = selectedRunSnapshot.dataset_manifest ?? {}
+      const sourceRunConfig = selectedRunSnapshot.run_config ?? {}
       const asset = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: uniqueAssetKey(`${name.value}-${eventOutputName}`, 'signal'),
+        stable_key: uniqueAssetKey(`${selectedRunName}-${eventOutputName}`, 'signal'),
         name: `${eventOutputName} signal`,
         kind: 'signal',
         initial_version: {
           source: sourceVersion.source,
           output_contract: 'events',
           output_name: eventOutputName,
-          parameter_schema: sourceVersion.parameter_schema ?? parsedParameterSchema.value ?? {},
-          default_parameters: sourceVersion.default_parameters ?? buildParameters(),
+          parameter_schema: sourceVersion.parameter_schema ?? selectedRunParameterSchema,
+          default_parameters: sourceVersion.default_parameters ?? selectedRunParameters,
           lineage: {
             type: 'study_run_promotion',
-            source_run_id: run.value.id,
-            source_code_version_id: run.value.code_version_id,
-            source_reproducibility_hash: run.value.reproducibility_hash ?? null,
+            source_run_id: selectedRunSnapshot.id,
+            source_code_version_id: selectedRunSnapshot.code_version_id,
+            source_reproducibility_hash: selectedRunSnapshot.reproducibility_hash ?? null,
             source_dataset_manifest: sourceManifest,
             source_run_config: sourceRunConfig,
             source_output_name: eventOutputName,
@@ -1105,12 +1413,13 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     const isBooleanTarget = target === 'filter' || target === 'scan' || target === 'gauge' || target === 'alert'
     const aggregateSeriesPlot = target === 'plot'
       && selectedArtifact?.artifact_type === 'series'
-      && isCrossSectionalStudyRun(run.value)
-    const latestSeriesColumn = target === 'column' && (
-      selectedArtifact?.artifact_type === 'series'
-        ? latestSeriesValue(selectedArtifact) != null
-        : contract === 'series' && latestSeriesObservation.value != null
-    )
+      && isCrossSectionalStudyRun(selectedRunSnapshot)
+    const latestSeriesArtifact = selectedArtifact?.artifact_type === 'series'
+      ? selectedArtifact
+      : contract === 'series' ? selectedRunSnapshot.artifacts?.find(artifact => artifact.artifact_type === 'series') : undefined
+    const latestSeriesColumn = target === 'column'
+      && latestSeriesArtifact != null
+      && latestSeriesValue(latestSeriesArtifact) != null
     const rangeCenterPlot = target === 'plot' && promotionArtifact?.artifact_type === 'range' && rangeCenterCanBePromoted(promotionArtifact)
     const rangeCenterColumn = target === 'column' && promotionArtifact?.artifact_type === 'range' && rangeCenterCanBePromoted(promotionArtifact)
     if (target === 'column' && contract === 'series' && !latestSeriesColumn) {
@@ -1124,7 +1433,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     }
     const promotionOutputName = selectedOutputName ?? (
       latestSeriesColumn
-        ? run.value?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
+        ? selectedRunSnapshot?.artifacts?.find(artifact => artifact.artifact_type === 'series')?.name
         : rangeCenterPlot || rangeCenterColumn
           ? promotionArtifact?.name
           : undefined
@@ -1134,27 +1443,27 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     // compatible scalar/Boolean output. This keeps the target kind explicit
     // and lets its immutable promotion lineage survive independently of the
     // executable study asset.
-    const canReuseRunVersion = target !== 'column' && !selectedOutputName && runCodeVersionId.value != null
-      && (requiredContract === runContract.value || (target === 'signal' && (runContract.value === 'boolean' || runContract.value === 'events')))
-    let versionId = canReuseRunVersion ? runCodeVersionId.value : null
+    const canReuseRunVersion = target !== 'column' && !selectedOutputName && selectedRunCodeVersionId != null
+      && (requiredContract === selectedRunContract || (target === 'signal' && (selectedRunContract === 'boolean' || selectedRunContract === 'events')))
+    let versionId = canReuseRunVersion ? selectedRunCodeVersionId : null
     if (!versionId) {
       const kind = isBooleanTarget ? 'condition' : target
-      const sourceManifest = run.value?.dataset_manifest ?? {}
-      const sourceRunConfig = run.value?.run_config ?? {}
+      const sourceManifest = selectedRunSnapshot?.dataset_manifest ?? {}
+      const sourceRunConfig = selectedRunSnapshot?.run_config ?? {}
       const asset = await api.post<{ versions: Array<{ id: number }> }>('/code/assets', {
-        stable_key: uniqueAssetKey(name.value, kind),
-        name: `${name.value} ${kind}`,
+        stable_key: uniqueAssetKey(`${selectedRunName}-${kind}`, kind),
+        name: `${selectedRunName} ${kind}`,
         kind,
         initial_version: {
-          source: runSource.value,
+          source: selectedRunSource,
           output_contract: requiredContract,
           ...(promotionOutputName ? { output_name: promotionOutputName } : {}),
-          parameter_schema: parsedParameterSchema.value ?? {},
-          default_parameters: buildParameters(),
+          parameter_schema: selectedRunParameterSchema,
+          default_parameters: selectedRunParameters,
           lineage: {
-            source_run_id: run.value?.id ?? null,
-            source_code_version_id: run.value?.code_version_id ?? runCodeVersionId.value ?? null,
-            source_reproducibility_hash: run.value?.reproducibility_hash ?? null,
+            source_run_id: selectedRunSnapshot?.id ?? null,
+            source_code_version_id: selectedRunSnapshot?.code_version_id ?? selectedRunCodeVersionId ?? null,
+            source_reproducibility_hash: selectedRunSnapshot?.reproducibility_hash ?? null,
             source_dataset_manifest: sourceManifest,
             source_run_config: sourceRunConfig,
             source_output_name: promotionOutputName ?? null,
@@ -1188,7 +1497,7 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
     else {
       let scanId = promotedScanId.value
       if (scanId == null) {
-        const manifest = run.value?.dataset_manifest ?? {}
+        const manifest = selectedRunSnapshot?.dataset_manifest ?? {}
         const datasets = Array.isArray(manifest.datasets) ? manifest.datasets : []
         const declaredInstrumentIds = [...new Set([
           ...(typeof manifest.instrument_id === 'number' ? [manifest.instrument_id] : []),
@@ -1200,8 +1509,8 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
         if (!declaredInstrumentIds.length) {
           throw new Error('The study dataset has no declared canonical members; refusing to widen the promoted scan universe.')
         }
-        const sourceRunConfig = run.value?.run_config ?? {}
-        const sourceManifest = run.value?.dataset_manifest ?? {}
+        const sourceRunConfig = selectedRunSnapshot?.run_config ?? {}
+        const sourceManifest = selectedRunSnapshot?.dataset_manifest ?? {}
         const sourceId = typeof sourceRunConfig.universe_source_id === 'string'
           ? sourceRunConfig.universe_source_id
           : typeof sourceManifest.universe_source_id === 'string'
@@ -1212,26 +1521,28 @@ async function promote(target: PromotionTarget, selectedOutputName?: string) {
           : null
         const promotionProvenance = {
           type: 'study_run_promotion',
-          source_run_id: run.value?.id,
-          source_code_version_id: run.value?.code_version_id ?? versionId,
-          source_reproducibility_hash: run.value?.reproducibility_hash ?? null,
+          source_run_id: selectedRunSnapshot?.id,
+          source_code_version_id: selectedRunSnapshot?.code_version_id ?? versionId,
+          source_reproducibility_hash: selectedRunSnapshot?.reproducibility_hash ?? null,
           source_universe_source_id: sourceId,
           source_membership_version: sourceMembershipVersion,
           source_instrument_ids: declaredInstrumentIds,
           semantics: 'current_data_re_evaluation_over_declared_study_members',
           point_in_time_source_preserved: false,
         }
+        const savedTimeframe = savedRunTimeframe(selectedRunSnapshot)
+        if (!savedTimeframe) throw new Error('The saved run does not contain a recorded timeframe; refusing to promote with the current draft timeframe.')
         const scan = await api.post<{ id: number }>(`/screeners/from-python-condition/${versionId}`, {
-          name: `${name.value} Scan`,
-          description: `Current-data EasyScan promoted from Study Lab run #${run.value?.id}; source membership and snapshot lineage are retained in the condition provenance.`,
+          name: `${selectedRunName} Scan`,
+          description: `Current-data EasyScan promoted from Study Lab run #${selectedRunSnapshot?.id}; source membership and snapshot lineage are retained in the condition provenance.`,
           universe_type: 'custom',
           universe_instrument_ids: declaredInstrumentIds,
-          timeframe: timeframe.value,
+          timeframe: savedTimeframe,
           provenance: promotionProvenance,
         })
         scanId = scan.id
         promotedScanId.value = scanId
-        emit('configuration', { ...(props.configuration ?? {}), study_run_id: run.value?.id, study_run_source: runSource.value, study_run_contract: runContract.value, promoted_scan_id: scanId })
+        emit('configuration', { ...(props.configuration ?? {}), study_run_id: selectedRunSnapshot?.id, study_run_source: selectedRunSource, study_run_contract: selectedRunContract, promoted_scan_id: scanId })
       }
       if (target === 'alert') {
         await api.post('/alerts/screener', { screener_id: scanId, trigger_type: 'entered', repeat: true })
@@ -1256,7 +1567,7 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the series.'
     return
   }
-  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  const declaredInstrumentIds = declaredStudyInstrumentIds(studyRun)
   if (!declaredInstrumentIds.length) {
     promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
     return
@@ -1282,8 +1593,8 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
       source_run_config: sourceRunConfig,
       source_output_name: artifact.name,
       source_instrument_ids: declaredInstrumentIds,
-      source_universe_source_id: studySourceId(),
-      source_membership_version: studyMembershipVersion(),
+      source_universe_source_id: studySourceId(studyRun),
+      source_membership_version: studyMembershipVersion(studyRun),
       target,
       output_adapter: 'series_target_to_boolean',
       series_target: seriesTarget,
@@ -1304,15 +1615,15 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
     if (typeof codeVersionId !== 'number') {
       const kind = target === 'column' ? 'column' : 'condition'
       const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: `${stableKey(name.value)}-series-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
+        stable_key: `${stableKey(savedRunName(studyRun))}-series-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
         name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
         kind,
         initial_version: {
           source: runSource.value,
           output_contract: 'boolean',
           output_name: artifact.name,
-          parameter_schema: parsedParameterSchema.value ?? {},
-          default_parameters: buildParameters(),
+          parameter_schema: savedRunParameterSchema(),
+          default_parameters: savedRunParameters(studyRun),
           lineage,
         },
       })
@@ -1329,13 +1640,14 @@ async function promoteSeriesCondition(target: SeriesConditionTarget, selectedArt
     }
     let scanId = cached.id
     if (typeof scanId !== 'number') {
-      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const configuredTimeframe = savedRunTimeframe(studyRun)
+      if (!configuredTimeframe) throw new Error('The saved run does not contain a recorded timeframe; refusing to promote with the current draft timeframe.')
       const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
         name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
         description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source series, threshold, membership, and dataset lineage are retained.`,
         universe_type: 'custom',
         universe_instrument_ids: declaredInstrumentIds,
-        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        timeframe: configuredTimeframe,
         provenance: lineage,
       })
       scanId = screener.id
@@ -1363,7 +1675,7 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the scalar.'
     return
   }
-  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  const declaredInstrumentIds = declaredStudyInstrumentIds(studyRun)
   if (!declaredInstrumentIds.length) {
     promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
     return
@@ -1389,8 +1701,8 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
       source_run_config: sourceRunConfig,
       source_output_name: artifact.name,
       source_instrument_ids: declaredInstrumentIds,
-      source_universe_source_id: studySourceId(),
-      source_membership_version: studyMembershipVersion(),
+      source_universe_source_id: studySourceId(studyRun),
+      source_membership_version: studyMembershipVersion(studyRun),
       target,
       output_adapter: 'scalar_target_to_boolean',
       series_target: scalarTarget,
@@ -1411,15 +1723,15 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
     let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
     if (typeof codeVersionId !== 'number') {
       const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: `${stableKey(name.value)}-scalar-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
+        stable_key: `${stableKey(savedRunName(studyRun))}-scalar-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
         name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
         kind,
         initial_version: {
           source: runSource.value,
           output_contract: 'boolean',
           output_name: artifact.name,
-          parameter_schema: parsedParameterSchema.value ?? {},
-          default_parameters: buildParameters(),
+          parameter_schema: savedRunParameterSchema(),
+          default_parameters: savedRunParameters(studyRun),
           lineage,
         },
       })
@@ -1436,13 +1748,14 @@ async function promoteScalarCondition(target: ScalarConditionTarget, selectedArt
     }
     let scanId = cached.id
     if (typeof scanId !== 'number') {
-      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const configuredTimeframe = savedRunTimeframe(studyRun)
+      if (!configuredTimeframe) throw new Error('The saved run does not contain a recorded timeframe; refusing to promote with the current draft timeframe.')
       const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
         name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
         description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; source scalar, threshold, membership, and dataset lineage are retained.`,
         universe_type: 'custom',
         universe_instrument_ids: declaredInstrumentIds,
-        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        timeframe: configuredTimeframe,
         provenance: lineage,
       })
       scanId = screener.id
@@ -1468,7 +1781,7 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
     promotionStatus.value = 'Enter a finite numeric threshold before promoting the range center.'
     return
   }
-  const declaredInstrumentIds = declaredStudyInstrumentIds()
+  const declaredInstrumentIds = declaredStudyInstrumentIds(studyRun)
   if (!declaredInstrumentIds.length) {
     promotionStatus.value = 'The study dataset has no declared canonical members; refusing to widen the promoted condition universe.'
     return
@@ -1494,8 +1807,8 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
       source_run_config: sourceRunConfig,
       source_output_name: artifact.name,
       source_instrument_ids: declaredInstrumentIds,
-      source_universe_source_id: studySourceId(),
-      source_membership_version: studyMembershipVersion(),
+      source_universe_source_id: studySourceId(studyRun),
+      source_membership_version: studyMembershipVersion(studyRun),
       target,
       output_adapter: 'range_center_target_to_boolean',
       series_target: seriesTarget,
@@ -1516,15 +1829,15 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
     let codeVersionId = target === 'column' ? cached.columnCodeVersionId : cached.codeVersionId
     if (typeof codeVersionId !== 'number') {
       const promoted = await api.post<{ id?: number; versions?: Array<{ id?: number }> }>('/code/assets', {
-        stable_key: `${stableKey(name.value)}-range-center-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
+        stable_key: `${stableKey(savedRunName(studyRun))}-range-center-${kind}-${studyRun.id}-${stableKey(artifact.name)}-${draft.operator}-${draft.threshold}`,
         name: `${artifact.name} ${target === 'column' ? 'Boolean column' : 'condition'}`,
         kind,
         initial_version: {
           source: runSource.value,
           output_contract: 'boolean',
           output_name: artifact.name,
-          parameter_schema: parsedParameterSchema.value ?? {},
-          default_parameters: buildParameters(),
+          parameter_schema: savedRunParameterSchema(),
+          default_parameters: savedRunParameters(studyRun),
           lineage,
         },
       })
@@ -1541,13 +1854,14 @@ async function promoteRangeCenterCondition(target: SeriesConditionTarget, select
     }
     let scanId = cached.id
     if (typeof scanId !== 'number') {
-      const configuredTimeframe = studyRun.run_config?.timeframe ?? sourceManifest.timeframe
+      const configuredTimeframe = savedRunTimeframe(studyRun)
+      if (!configuredTimeframe) throw new Error('The saved run does not contain a recorded timeframe; refusing to promote with the current draft timeframe.')
       const screener = await api.post<{ id: number }>(`/screeners/from-python-condition/${codeVersionId}`, {
         name: `${artifact.name} ${draft.operator} ${draft.threshold} ${target === 'scan' ? 'Scan' : 'Filter'} ${studyRun.id}`,
         description: `Current-data thresholded Boolean target promoted from Study Lab run #${studyRun.id}; range center, threshold, membership, and dataset lineage are retained.`,
         universe_type: 'custom',
         universe_instrument_ids: declaredInstrumentIds,
-        timeframe: typeof configuredTimeframe === 'string' && configuredTimeframe.trim() ? configuredTimeframe : timeframe.value,
+        timeframe: configuredTimeframe,
         provenance: lineage,
       })
       scanId = screener.id
@@ -1578,9 +1892,20 @@ async function rerun(snapshot: boolean) {
   promotionStatus.value = ''
   try {
     const rerunResult = await api.post<Run>(`/research/runs/${run.value.id}/rerun?snapshot=${snapshot}`, {})
+    queryClient.setQueryData(researchRunQueryKey(rerunResult.id), rerunResult)
+    cacheResearchRunInList(rerunResult)
+    void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
     if (!disposed && generation === runGeneration) {
       run.value = rerunResult
-      queryClient.setQueryData(researchRunQueryKey(rerunResult.id), rerunResult)
+      persistedRunId.value = rerunResult.id
+      emit('configuration', {
+        ...(props.configuration ?? {}),
+        study_run_id: rerunResult.id,
+        study_run_source: runSource.value,
+        study_run_contract: runContract.value,
+        study_run_name: savedRunName(),
+        study_run_parameter_schema: savedRunParameterSchema(),
+      })
       scheduleRunPolling(rerunResult.id, generation)
     }
   } catch (cause: any) {
@@ -1590,18 +1915,22 @@ async function rerun(snapshot: boolean) {
   }
 }
 async function cancel() {
-  if (!run.value) return
+  if (!run.value || cancelBusy.value) return
   const generation = runGeneration
+  cancelBusy.value = true
   try {
     const canceled = await api.post<Run>(`/research/runs/${run.value.id}/cancel`, {})
+    queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
+    cacheResearchRunInList(canceled)
+    void queryClient.invalidateQueries({ queryKey: researchRunsQueryKey })
     if (disposed || generation !== runGeneration) return
     run.value = canceled
-    queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
     await runQuery.refetch()
     if (disposed || generation !== runGeneration) return
     queryClient.setQueryData(researchRunQueryKey(canceled.id), canceled)
   }
   catch (cause: any) { if (!disposed && generation === runGeneration) error.value = cause?.message ?? 'Unable to cancel study run' }
+  finally { if (!disposed && generation === runGeneration) cancelBusy.value = false }
 }
 onMounted(() => {
   document.addEventListener('visibilitychange', updateDocumentVisibility)
@@ -1611,35 +1940,33 @@ onMounted(() => {
     })
     visibilityObserver.observe(studyLabRoot.value)
   }
-  const persistedRunId = Number(props.configuration?.study_run_id)
   const persistedScanId = Number(props.configuration?.promoted_scan_id)
   if (Number.isInteger(persistedScanId) && persistedScanId > 0) promotedScanId.value = persistedScanId
-  if (Number.isInteger(persistedRunId) && persistedRunId > 0) {
-    const hydrationGeneration = runGeneration
-    void fetchResearchRun(persistedRunId, 5_000).then(persistedRun => {
-      // A persisted lookup can resolve after the user has started a new run.
-      // Never let that stale response replace the user's current analysis.
-      if (disposed || hydrationGeneration !== runGeneration || (run.value && run.value.id !== persistedRunId)) return
-      run.value = persistedRun
-      scheduleRunPolling(persistedRun.id, hydrationGeneration)
-      runSource.value = typeof props.configuration?.study_run_source === 'string' ? props.configuration.study_run_source : ''
-      runContract.value = typeof props.configuration?.study_run_contract === 'string' ? props.configuration.study_run_contract : null
-    }).catch(() => {
-      // Keep the tool usable when an old persisted run has been pruned.
-      run.value = null
-    })
-  }
+  if (persistedRunId.value) void restorePersistedRun()
+})
+watch(() => Number(props.configuration?.study_run_id) || null, runId => {
+  if (runId === persistedRunId.value) return
+  persistedRunId.value = runId
+  runGeneration += 1
+  stopRunPolling()
+  run.value = null
+  runCodeVersionId.value = null
+  runSource.value = ''
+  runContract.value = null
+  persistedRunName.value = configString('study_run_name', '')
+  persistedRunParameterSchema.value = configRecord('study_run_parameter_schema')
+  error.value = ''
+  persistedRunError.value = false
+  if (runId) void restorePersistedRun()
 })
 onBeforeUnmount(() => {
   disposed = true
   runGeneration += 1
+  preparationGeneration += 1
+  const activePreparation = preparationController as AbortController | null
+  activePreparation?.abort()
+  preparationController = null
   stopRunPolling()
-  if (run.value && canCancel.value) {
-    // Teardown is best-effort. A queued run may become terminal between the
-    // computed check and this request; that documented 409 must not surface as
-    // an unhandled browser error while the tool is being destroyed.
-    void api.post(`/research/runs/${run.value.id}/cancel`, {}).catch(() => {})
-  }
   document.removeEventListener('visibilitychange', updateDocumentVisibility)
   visibilityObserver?.disconnect()
   visibilityObserver = null
@@ -1666,6 +1993,7 @@ input,textarea,button,select { min-width:0; border:1px solid #3a4954; background
 .study-lab-tool__metrics article button { justify-self:start; padding:1px 4px; }
 .study-lab-tool__run-details { margin-top:4px; border-top:1px solid #29343c; padding-top:3px; }.study-lab-tool__run-details summary { color:#9db0bc; cursor:pointer; }.study-lab-tool__run-details pre { max-height:90px; margin:3px 0 0; }
 .study-lab-tool__artifact-header { display:flex; align-items:center; gap:5px; }.study-lab-tool__artifact-header button { margin-left:auto; padding:1px 4px; }
+.study-lab-tool__preparation-outcomes { margin:0; padding-left:18px; display:grid; gap:2px; max-height:72px; overflow:auto; color:#91a8b4; }
 @media (max-width: 560px) {
   .study-lab-tool { padding:4px; gap:4px; }
   .study-lab-tool__header-main { grid-template-columns:minmax(0,1fr) 52px; }
