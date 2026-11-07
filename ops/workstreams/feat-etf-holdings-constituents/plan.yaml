@@ -5722,7 +5722,7 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider46462f55, Provider test-only b1a94d98 and TC5a are consumed exactly (45/45, 45/45, and53/53 manifest records). SearchBar exact-unique auto-prefetch and duplicate-listing explicit choice are covered by39 focused cases. The S&P layout-copy journey now locates the new tab by stable key against the actual pre-existing workspace tab set. Four browser cases remain discovered, not executed; Root owns combined qualification.
+  current_phase: Provider46462f55, Provider test-only b1a94d98 and TC5a are consumed exactly (45/45, 45/45, and53/53 manifest records). SearchBar now preserves canonical acquire identity through Enter-during-discovery, prepares a uniquely identified provisional local row, and blocks strict reported-symbol mismatches;42 focused cases pass. The S&P layout-copy journey locates the new tab by stable key against the actual pre-existing workspace tab set. Four browser cases remain discovered, not executed; Root owns combined qualification.
   current_blocker: ETF/basket/S&P browser bodies and the combined profile remain pending Root; Provider b1 exact CI is still pending. Preserve current identities, listing ambiguity, cached data and all original roadmap criteria.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
@@ -6281,9 +6281,9 @@ tc_common_runtime_dependency_active_5a783e74:
 search_bar_exact_prefetch_checkpoint_2026_11_07:
   authority: Root assigned the exact SearchBar source and unit-test paths for automatic exact-ticker preparation and explicit ambiguity handling; no shared frontend or caller files were changed.
   source: frontend/src/components/common/SearchBar.vue
-  source_sha256: 42d1876e697290830b923ad3aa8e365c354d21b57c930b0f2eb03cd83fc39a0b
+  source_sha256: 5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf
   test: frontend/tests/unit/components/test_search_bar.test.ts
-  test_sha256: bfe8cf4d7b8de0c079f93542697e443e203c1df62eae340bbcb4e215416294a4
-  focused_validation: SearchBar unit tests39/39 passed; frontend vue-tsc --noEmit passed; exact S&P spec Playwright discovery found2 tests; workstream validation passed.
-  behavior: Unique exact canonical local search and unique exact discovered provider candidate trigger shared-coordinator preparation without forcing selection/navigation. A resolved symbol differing from the exact query is rejected. Prefix and ambiguous candidates do not prepare; duplicate local exact listings in chart and picker modes require deliberate click or keyboard choice; stale search responses cannot prepare a prior query.
+  test_sha256: b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942
+  focused_validation: SearchBar unit tests42/42 passed; frontend vue-tsc --noEmit passed; exact S&P spec Playwright discovery found2 tests; workstream validation passed.
+  behavior: Unique exact canonical local search and unique exact discovered provider candidate trigger shared-coordinator preparation without forcing selection/navigation. A resolved symbol differing from the exact query is rejected. A uniquely identified provisional local instrument is prepared for identity/profile/history. Enter during exact discovery preserves and commits the returned canonical ID/type/acquire response; required reported-symbol mismatch blocks local preparation and selection. Prefix and ambiguous candidates do not prepare; duplicate local exact listings in chart and picker modes require deliberate click or keyboard choice; stale search responses cannot prepare a prior query.
   pending: No browser body was run. Root owns shared bundle integration and combined runtime/profile acceptance; Provider b1 exact CI42332618010 remains pending.

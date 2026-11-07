@@ -4313,10 +4313,10 @@
       "frontend/src/components/common/SearchBar.vue",
       "frontend/tests/unit/components/test_search_bar.test.ts"
     ],
-    "source_sha256": "42d1876e697290830b923ad3aa8e365c354d21b57c930b0f2eb03cd83fc39a0b",
-    "test_sha256": "bfe8cf4d7b8de0c079f93542697e443e203c1df62eae340bbcb4e215416294a4",
-    "focused_validation": "SearchBar unit module39/39 passed; frontend vue-tsc --noEmit passed.",
-    "contracts": "A unique exact canonical local result prefetches via the shared coordinator without selecting or navigating. A unique exact discovered candidate is resolved and prefetched only when its resolved symbol matches the exact query. Prefix and ambiguous candidates do not prefetch; duplicate local exact listings require a deliberate click/keyboard choice in chart and picker modes; stale search responses cannot prepare prior-query instruments.",
+    "source_sha256": "5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf",
+    "test_sha256": "b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942",
+    "focused_validation": "SearchBar unit module42/42 passed; frontend vue-tsc --noEmit passed.",
+    "contracts": "A unique exact canonical local result prefetches via the shared coordinator without selecting or navigating. Uniquely identified provisional local rows also request guarded identity/profile/history preparation. A unique exact discovered candidate is resolved and prefetched only when its resolved symbol matches the exact query; Enter during that discovery preserves the canonical ID, returned type and acquire response. Prefix, ambiguous, stale, mismatched, and required-reported-symbol mismatch paths do not prepare. Duplicate local exact listings require deliberate click/keyboard choice in chart and picker modes.",
     "browser_execution": "No browser body was run; Root owns the combined profile and release acceptance."
   },
   "current_tc_common_runtime_dependency": {

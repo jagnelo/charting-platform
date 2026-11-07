@@ -216,6 +216,7 @@ let pendingEnterIntent: { generation: number; query: string; lastRetryAtMs: numb
 let candidateResolutionSequence = 0
 let preparationSequence = 0
 let pendingRecentSelection: { generation: number; symbol: string } | null = null
+let autoResolvedIdentity: { generation: number; instrumentId: number; response: InstrumentAcquireResponse } | null = null
 
 const showRecentResults = computed(() => props.showRecent)
 const showScreenerShortcut = computed(() =>
@@ -267,6 +268,7 @@ watch(() => props.modelValue, value => {
 async function onInput() {
   const generation = ++searchGeneration
   pendingRecentSelection = null
+  autoResolvedIdentity = null
   preparationSequence += 1
   preparationMessage.value = ''
   cancelKnownRetryWait()
@@ -324,8 +326,15 @@ async function onInput() {
       if (exactResults.length === 1) {
         const exactResult = exactResults[0]
         const identityStatus = exactResult.identity_status?.trim().toLowerCase()
+        const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+        if (requiredSymbol && requested.toUpperCase() !== requiredSymbol) {
+          errorMessage.value = `This picker must match the exact reported ticker ${requiredSymbol}.`
+          finishSearch(generation)
+          return
+        }
+        const explicitlyConflictingIdentity = ['conflict', 'identity_conflict', 'mismatch', 'ambiguous'].includes(identityStatus ?? '')
         if (Number.isSafeInteger(exactResult.instrument_id) && Number(exactResult.instrument_id) > 0
-          && (!identityStatus || ['resolved', 'verified'].includes(identityStatus))) {
+          && !explicitlyConflictingIdentity) {
           const preparationId = ++preparationSequence
           startSelectionPreparation(requested, exactResult, undefined, preparationId)
         }
@@ -590,7 +599,7 @@ async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, 
         symbol: response.instrument.symbol,
         name: candidate.name,
         exchange: candidate.exchange,
-        type: candidate.type,
+        type: response.instrument.instrument_type ?? candidate.type,
         instrument_id: response.instrument.instrument_id,
         identity_status: response.instrument.identity_status,
         explicitlyResolved: true,
@@ -603,6 +612,7 @@ async function resolveCandidateAttempt(candidate: InstrumentDiscoveryCandidate, 
           discoveryMessage.value = 'The provider did not verify this canonical identity. No data was prepared.'
           return
         }
+        autoResolvedIdentity = { generation, instrumentId: Number(response.instrument.instrument_id), response }
         results.value = [result]
         discoveryCandidates.value = []
         highlightIdx.value = 0
@@ -642,7 +652,17 @@ function candidateOptionId(index: number) {
 }
 
 function select(r: SearchResult) {
-  commitSelection(r.symbol, r.name, r)
+  const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+  if (requiredSymbol && r.symbol.trim().toUpperCase() !== requiredSymbol) {
+    errorMessage.value = `This picker must match the exact reported ticker ${requiredSymbol}.`
+    return
+  }
+  const resolvedIdentity = autoResolvedIdentity
+  const confirmedIdentity = resolvedIdentity?.generation === searchGeneration
+    && resolvedIdentity.instrumentId === r.instrument_id
+    ? resolvedIdentity.response
+    : undefined
+  commitSelection(r.symbol, r.name, r, confirmedIdentity)
 }
 
 async function selectRecent(symbol: string) {
@@ -724,8 +744,14 @@ function commitSelection(
   result?: SearchResult,
   confirmedIdentity?: InstrumentAcquireResponse,
 ) {
+  const requiredSymbol = props.requiredResolvedSymbol.trim().toUpperCase()
+  if (requiredSymbol && symbol.trim().toUpperCase() !== requiredSymbol) {
+    errorMessage.value = `This picker must match the exact reported ticker ${requiredSymbol}.`
+    return
+  }
   invalidateSearch()
   pendingRecentSelection = null
+  autoResolvedIdentity = null
   const preparationId = ++preparationSequence
   loading.value = false
   startSelectionPreparation(symbol, result, confirmedIdentity, preparationId)
