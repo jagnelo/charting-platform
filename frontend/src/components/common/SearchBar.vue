@@ -112,6 +112,9 @@
         {{ errorMessage || expressionHint }}
       </div>
     </div>
+    <p v-if="preparationMessage" class="search-message search-preparation-message" role="status" aria-live="polite">
+      {{ preparationMessage }}
+    </p>
   </div>
 </template>
 
@@ -133,6 +136,11 @@ import {
   type InstrumentAcquireResponse,
 } from '@/lib/onDemandAcquisition'
 import { scheduleTickerDiscovery, shouldDiscoverTicker, tickerDiscoveryMessage } from '@/lib/workstationSymbolSearch'
+import {
+  dataPreparationCoordinator,
+  instrumentHistoryPreparationRequest,
+  preparationStatusMessage,
+} from '@/lib/dataPreparation'
 
 interface SearchResult { symbol: string; name: string; exchange: string; type: string; instrument_id?: number | null; identity_status?: string; explicitlyResolved?: boolean }
 
@@ -161,7 +169,7 @@ const props = withDefaults(defineProps<{
   showScreenerLink: undefined,
   resultTypes: () => [],
   allowExpressions: true,
-  allowSourceDiscovery: false,
+  allowSourceDiscovery: true,
   readonly: false,
   sourceDiscoveryOnly: false,
   openOnMount: false,
@@ -196,6 +204,7 @@ const discoveryMessage = ref('')
 const discoveryError = ref('')
 const discoveryRetryAt = ref<string | null>(null)
 const discoveryHeld = ref(false)
+const preparationMessage = ref('')
 const optionExplicitlyNavigated = ref(false)
 let debounceTimer: ReturnType<typeof setTimeout> | null = null
 let discoveryTimer: ReturnType<typeof setTimeout> | null = null
@@ -205,6 +214,7 @@ let retryTimer: ReturnType<typeof setTimeout> | null = null
 let resolveRetryWait: ((ready: boolean) => void) | null = null
 let pendingEnterIntent: { generation: number; query: string; lastRetryAtMs: number } | null = null
 let candidateResolutionSequence = 0
+let preparationSequence = 0
 
 const showRecentResults = computed(() => props.showRecent)
 const showScreenerShortcut = computed(() =>
@@ -247,12 +257,16 @@ const activeOptionId = computed(() => {
 watch(() => props.modelValue, value => {
   if (value !== query.value) {
     invalidateSearch()
+    preparationSequence += 1
+    preparationMessage.value = ''
     query.value = value ?? ''
   }
 })
 
 async function onInput() {
   const generation = ++searchGeneration
+  preparationSequence += 1
+  preparationMessage.value = ''
   cancelKnownRetryWait()
   pendingEnterIntent = null
   finishPendingSearch()
@@ -589,6 +603,8 @@ function commitSelection(
   confirmedIdentity?: InstrumentAcquireResponse,
 ) {
   invalidateSearch()
+  const preparationId = ++preparationSequence
+  startSelectionPreparation(symbol, result, preparationId)
   emit('update:modelValue', symbol)
   if (confirmedIdentity) emit('select', symbol, result, confirmedIdentity)
   else emit('select', symbol, result)
@@ -602,6 +618,29 @@ function commitSelection(
   discoveryHeld.value = false
   dropdownDismissed.value = true
   errorMessage.value = ''
+}
+
+function startSelectionPreparation(symbol: string, result: SearchResult | undefined, preparationId: number) {
+  if (result?.type.trim().toLowerCase() === 'synthetic' || symbol.trim().startsWith('=')) return
+  const instrumentId = result?.instrument_id
+  const target = Number.isSafeInteger(instrumentId) && Number(instrumentId) > 0
+    ? { kind: 'instrument' as const, instrument_id: Number(instrumentId) }
+    : { kind: 'instrument' as const, symbol: symbol.trim() }
+  preparationMessage.value = `Preparing ${symbol} history…`
+  void dataPreparationCoordinator.ensure(
+    instrumentHistoryPreparationRequest(target, 'D1', true),
+    {
+      onProgress: ({ response }) => {
+        if (preparationId === preparationSequence) preparationMessage.value = preparationStatusMessage(response)
+      },
+    },
+  ).then(response => {
+    if (preparationId === preparationSequence) preparationMessage.value = preparationStatusMessage(response)
+  }).catch(() => {
+    if (preparationId === preparationSequence) {
+      preparationMessage.value = 'Data preparation could not be checked. The selected instrument remains available.'
+    }
+  })
 }
 
 async function selectFirst() {
@@ -644,6 +683,8 @@ async function selectFirst() {
         void resolveCandidate(exactCandidates[0])
       } else if (exactCandidates.length > 1) {
         discoveryMessage.value = `More than one listing matches ${submittedQuery.toUpperCase()}. Choose the correct exchange listing.`
+      } else if (discoveryCandidates.value.length) {
+        discoveryMessage.value = 'Choose a matching ticker listing before continuing.'
       } else {
         commitSelection(submittedQuery)
       }
@@ -654,6 +695,10 @@ async function selectFirst() {
       return
     }
     if (highlightIdx.value >= results.value.length && discoveryCandidates.value.length) {
+      if (!optionExplicitlyNavigated.value) {
+        discoveryMessage.value = 'Choose a ticker listing before continuing.'
+        return
+      }
       void resolveCandidate(discoveryCandidates.value[highlightIdx.value - results.value.length] ?? discoveryCandidates.value[0])
       return
     }
@@ -764,6 +809,7 @@ onMounted(() => {
   }
 })
 onUnmounted(() => {
+  preparationSequence += 1
   invalidateSearch()
   document.removeEventListener('mousedown', handleClickOutside)
 })

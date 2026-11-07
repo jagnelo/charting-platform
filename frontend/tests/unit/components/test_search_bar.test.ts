@@ -6,11 +6,23 @@ import { nextTick } from 'vue'
 import SearchBar from '@/components/common/SearchBar.vue'
 import { useRecentInstrumentsStore } from '@/stores/recentInstruments'
 
+const preparationMock = vi.hoisted(() => ({ ensure: vi.fn() }))
+
 vi.mock('@/lib/api', () => ({
   api: {
     get: vi.fn(),
     post: vi.fn(),
   },
+}))
+
+vi.mock('@/lib/dataPreparation', () => ({
+  dataPreparationCoordinator: { ensure: preparationMock.ensure },
+  instrumentHistoryPreparationRequest: (target: unknown, timeframe: string, adjusted: boolean) => ({
+    target, datasets: ['identity', 'profile', 'history'], timeframe, adjusted,
+  }),
+  preparationStatusMessage: (response: { status: string }) => response.status === 'ready'
+    ? 'Requested data is ready.'
+    : 'Data preparation is in progress.',
 }))
 
 import { api } from '@/lib/api'
@@ -32,6 +44,7 @@ describe('SearchBar', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     vi.resetAllMocks()
+    preparationMock.ensure.mockResolvedValue({ status: 'ready' })
     vi.useFakeTimers()
   })
 
@@ -137,6 +150,47 @@ describe('SearchBar', () => {
 
     expect(wrapper.emitted('select')?.[0]?.[0]).toBe('XLE')
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'XLE', instrument_id: 89 })
+  })
+
+  it('prepares a selected known instrument through the shared coordinator by canonical ID', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'OIH', name: 'Oil Services ETF', exchange: 'ARCX', type: 'ETF', instrument_id: 43 },
+    ])
+    const wrapper = mountSearchBar({ props: { mode: 'picker' }, global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').setValue('OIH')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
+    await wrapper.get('.result-item').trigger('click')
+    await flushPromises()
+
+    expect(api.post).not.toHaveBeenCalled()
+    expect(preparationMock.ensure).toHaveBeenCalledWith({
+      target: { kind: 'instrument', instrument_id: 43 },
+      datasets: ['identity', 'profile', 'history'], timeframe: 'D1', adjusted: true,
+    }, expect.objectContaining({ onProgress: expect.any(Function) }))
+    expect(wrapper.text()).toContain('Requested data is ready.')
+  })
+
+  it('does not let a superseded preparation response replace the newer query state', async () => {
+    let finishPreparation!: (value: { status: string }) => void
+    preparationMock.ensure.mockImplementationOnce(() => new Promise(resolve => { finishPreparation = resolve }))
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89 },
+    ])
+    const wrapper = mountSearchBar({ props: { mode: 'picker' }, global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').setValue('XLE')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await vi.waitFor(() => expect(wrapper.find('.result-item').exists()).toBe(true))
+    await wrapper.get('.result-item').trigger('click')
+    expect(wrapper.text()).toContain('Preparing XLE history')
+
+    await wrapper.get('input').setValue('NVDA')
+    finishPreparation({ status: 'unavailable' })
+    await flushPromises()
+    expect(wrapper.text()).not.toContain('unavailable')
+    expect(wrapper.text()).not.toContain('Requested data is ready')
   })
 
   it('keeps picker Enter bound to the visible scoped result rather than submitting typed text', async () => {
@@ -326,6 +380,33 @@ describe('SearchBar', () => {
     })
     expect(wrapper.emitted('select')?.[0]?.[0]).toBe('OIH')
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ instrument_id: 43 })
+    expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
+      target: { kind: 'instrument', instrument_id: 43 },
+    }), expect.objectContaining({ onProgress: expect.any(Function) }))
+  })
+
+  it('discovers a prefix without resolving or preparing a non-exact listing', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post).mockResolvedValueOnce({
+      status: 'complete', candidates: [
+        { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', provider: 'fixture', instrument_id: null, identity_status: 'candidate' },
+        { symbol: 'XLF', name: 'Financial Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', provider: 'fixture', instrument_id: null, identity_status: 'candidate' },
+      ], source_outcomes: [],
+    })
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').setValue('XL')
+    const enter = wrapper.get('input').trigger('keydown.enter')
+    vi.advanceTimersByTime(250)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await enter
+
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Use XLE'))
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(preparationMock.ensure).not.toHaveBeenCalled()
   })
 
   it('sends raw ETV in a dedicated fund search and allows a resolved provider ETV candidate to be selected', async () => {
@@ -704,6 +785,7 @@ describe('SearchBar', () => {
     expect(api.post).toHaveBeenCalledTimes(1)
     expect(wrapper.emitted('select')).toBeUndefined()
     expect(wrapper.text()).toContain('More than one listing matches F')
+    expect(preparationMock.ensure).not.toHaveBeenCalled()
   })
 
   it('does not submit a pending discovered ticker after the user changes the query', async () => {
