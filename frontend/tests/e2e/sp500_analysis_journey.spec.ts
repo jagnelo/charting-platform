@@ -103,10 +103,14 @@ function rotationPercent(value: number): string {
 
 function assertActualBars(symbol: string, bars: Bar[], minimumCount = 2): void {
   expect(bars.length, `${symbol} must have persisted bars in the seeded backend`).toBeGreaterThanOrEqual(minimumCount)
-  for (const bar of bars) {
-    expect(Number.isFinite(Date.parse(bar.ts)), `${symbol} bar timestamp`).toBe(true)
-    expect(Number.isFinite(bar.close) && bar.close > 0, `${symbol} close`).toBe(true)
-  }
+  const invalidBars: Array<{ index: number; ts: string; close: number; invalid: string[] }> = []
+  bars.forEach((bar, index) => {
+    const invalid: string[] = []
+    if (!Number.isFinite(Date.parse(bar.ts))) invalid.push('timestamp')
+    if (!Number.isFinite(bar.close) || bar.close <= 0) invalid.push('close')
+    if (invalid.length) invalidBars.push({ index, ts: bar.ts, close: bar.close, invalid })
+  })
+  expect(invalidBars, `${symbol} bars must all have finite timestamps and positive closes`).toEqual([])
 }
 
 function assertRatioMatchesAdjustedIntersection(
@@ -129,13 +133,38 @@ function assertRatioMatchesAdjustedIntersection(
     .sort((left, right) => left - right)
     .map(timestamp => ({ timestamp, value: primaryByTime.get(timestamp)! / benchmarkByTime.get(timestamp)! }))
 
-  expect(response.points.length, `${primary}/${benchmark} must contain every raw timestamp intersection`).toBe(expected.length)
+  expect(response.points.length, `${primary}/${benchmark} must contain every split-adjusted timestamp intersection`).toBe(expected.length)
   expect(response.coverage).toBeGreaterThan(0)
+  const mismatches: Array<{
+    index: number
+    timestamp: string
+    expectedTimestamp?: number
+    value: number
+    expectedValue?: number
+    delta?: number
+    invalid: string[]
+  }> = []
   response.points.forEach((point, index) => {
-    expect(Date.parse(point.timestamp)).toBe(expected[index].timestamp)
-    expect(Number.isFinite(point.value)).toBe(true)
-    expect(Math.abs(point.value - expected[index].value), `${primary}/${benchmark} at ${point.timestamp}`).toBeLessThan(1e-10)
+    const expectedPoint = expected[index]
+    const timestamp = Date.parse(point.timestamp)
+    const delta = expectedPoint ? point.value - expectedPoint.value : undefined
+    const invalid: string[] = []
+    if (!expectedPoint || !Number.isFinite(timestamp) || timestamp !== expectedPoint.timestamp) invalid.push('timestamp')
+    if (!Number.isFinite(point.value)) invalid.push('value')
+    if (delta === undefined || !Number.isFinite(delta) || Math.abs(delta) >= 1e-10) invalid.push('ratio')
+    if (invalid.length) {
+      mismatches.push({
+        index,
+        timestamp: point.timestamp,
+        expectedTimestamp: expectedPoint?.timestamp,
+        value: point.value,
+        expectedValue: expectedPoint?.value,
+        delta,
+        invalid,
+      })
+    }
   })
+  expect(mismatches, `${primary}/${benchmark} every aligned timestamp and ratio must match within 1e-10`).toEqual([])
 }
 
 async function assertChartRendered(page: Page, symbol: string, bars: Bar[]): Promise<void> {
@@ -202,18 +231,25 @@ function assertRotationPayload(payload: RotationResponse, timeframe: AnalysisTim
   expect(payload.coverage_preflight.status).toBe('full')
   expect(payload.rows.map(row => row.symbol).sort()).toEqual([...SECTOR_SYMBOLS].sort())
   for (const row of payload.rows) {
-    expect(row.state, `${timeframe} ${row.symbol} has a computed quadrant`).toMatch(/^(leading|weakening|improving|lagging)$/)
-    expect(Number.isFinite(row.trend), `${timeframe} ${row.symbol} trend is finite`).toBe(true)
-    expect(Number.isFinite(row.momentum), `${timeframe} ${row.symbol} momentum is finite`).toBe(true)
-    expect(row.coverage, `${timeframe} ${row.symbol} has coverage`).toBeGreaterThan(0)
-    expect(row.tail.length, `${timeframe} ${row.symbol} has its configured RRG tail`).toBeGreaterThanOrEqual(10)
-    for (const point of row.tail) {
-      expect(Number.isFinite(Date.parse(point.timestamp))).toBe(true)
-      expect(Number.isFinite(point.trend) && Number.isFinite(point.momentum)).toBe(true)
-    }
+    const invalid: Array<Record<string, unknown>> = []
+    if (!row.state || !/^(leading|weakening|improving|lagging)$/.test(row.state)) invalid.push({ state: row.state })
+    if (!Number.isFinite(row.trend)) invalid.push({ trend: row.trend })
+    if (!Number.isFinite(row.momentum)) invalid.push({ momentum: row.momentum })
+    if (!Number.isFinite(row.coverage) || row.coverage <= 0) invalid.push({ coverage: row.coverage })
+    if (row.tail.length < 10) invalid.push({ tail_length: row.tail.length, required_minimum: 10 })
     for (let index = 1; index < row.tail.length; index += 1) {
-      expect(Date.parse(row.tail[index - 1].timestamp)).toBeLessThan(Date.parse(row.tail[index].timestamp))
+      const previous = Date.parse(row.tail[index - 1].timestamp)
+      const current = Date.parse(row.tail[index].timestamp)
+      if (!Number.isFinite(previous) || !Number.isFinite(current) || previous >= current) {
+        invalid.push({ index, previous_timestamp: row.tail[index - 1].timestamp, timestamp: row.tail[index].timestamp })
+      }
     }
+    row.tail.forEach((point, index) => {
+      if (!Number.isFinite(Date.parse(point.timestamp)) || !Number.isFinite(point.trend) || !Number.isFinite(point.momentum)) {
+        invalid.push({ index, timestamp: point.timestamp, trend: point.trend, momentum: point.momentum })
+      }
+    })
+    expect(invalid, `${timeframe} ${row.symbol} RRG result and every tail point must be complete and finite`).toEqual([])
   }
 }
 

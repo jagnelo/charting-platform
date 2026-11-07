@@ -203,7 +203,7 @@ test.describe('ETF holdings preparation', () => {
     await installETFSearch(page)
     await page.route(url => new URL(url).pathname === '/api/v1/etf-holdings', async route => {
       const query = new URL(route.request().url()).searchParams.get('q')?.toUpperCase()
-      await route.fulfill({ status: 200, json: query === 'FNEW' ? [selected] : query === null ? [savedPeer] : [] })
+      await route.fulfill({ status: 200, json: query === 'FNEW' ? [selected] : !query ? [savedPeer] : [] })
     })
     await page.route('**/api/v1/data/ensure', async route => {
       expect(route.request().method()).toBe('POST')
