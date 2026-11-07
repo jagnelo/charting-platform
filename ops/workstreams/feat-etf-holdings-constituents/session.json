@@ -4513,5 +4513,12 @@
       "frontend/tests/e2e/baskets_journey.spec.ts": "b6b0d4e138ee31c573fc39d80463c933e35712e62d5dc0b90c5698c06a059ef7"
     },
     "browser_execution": "No current browser body was run; Root owns combined execution."
+  },
+  "current_api_backed_etf_snapshot_journey_2026_11_07": {
+    "owned_path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+    "spec_sha256": "e9acf98b1820eae3eb548d605f55143cabe5d8baa3a5e2725e941ff7ac6c26f7",
+    "behavior": "Normal authenticated API-backed XLB profile/latest/holdings reads are compared with the selected view and exact source/date/known-at lineage. Deliberate picker selection must automatically post a holdings-only data/ensure request bound to the resolved instrument ID. No route fulfillment or fixture mutation occurs in this case.",
+    "focused_validation": "Frontend type-check exited0; Playwright discovery lists5 ETF preparation cases.",
+    "browser_execution": "Pending Root combined profile; the controlled E2E seed does not prove genuine issuer-source qualification."
   }
 }

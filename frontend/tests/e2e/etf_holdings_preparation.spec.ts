@@ -217,6 +217,96 @@ async function selectETF(page: import('@playwright/test').Page, symbol: string) 
 }
 
 test.describe('ETF holdings preparation', () => {
+  test('normal selected-fund journey reads API-backed controlled holdings while automatic preparation runs', async ({ page, loggedIn, request }) => {
+    const token = await page.evaluate(() => localStorage.getItem('access_token'))
+    expect(token).toBeTruthy()
+    const headers = { Authorization: `Bearer ${token}` }
+
+    // Read the existing opt-in E2E seed through the public APIs. This pins the
+    // exact canonical fund/snapshot/row lineage the ordinary UI must preserve;
+    // no route fulfillment or database seeding is done by this test.
+    const profilesResponse = await request.get('/api/v1/etf-holdings?q=XLB', { headers })
+    expect(profilesResponse.status()).toBe(200)
+    const profiles = await profilesResponse.json() as ETFProfile[]
+    const exactProfiles = profiles.filter(candidate => candidate.symbol.toUpperCase() === 'XLB')
+    expect(exactProfiles).toHaveLength(1)
+    const selected = exactProfiles[0]
+    expect(selected.instrument_id).toBeGreaterThan(0)
+    expect(selected.latest_snapshot_id).toBeTruthy()
+
+    const snapshotResponse = await request.get('/api/v1/etf-holdings/XLB/latest', { headers })
+    expect(snapshotResponse.status()).toBe(200)
+    const snapshot = await snapshotResponse.json() as ETFHoldingsPage['snapshot']
+    expect(snapshot.etf_profile_id).toBe(selected.id)
+    expect(snapshot.etf_instrument_id).toBe(selected.instrument_id)
+    expect(snapshot.id).toBe(selected.latest_snapshot_id)
+    expect(snapshot.provenance).toBe('controlled_fixture')
+    expect(snapshot.source_provider).toBe('e2e_reference')
+    expect(snapshot.source_identifier).toBe('e2e:XLB:2026-01-02')
+    expect(snapshot.completeness_status).toBe('complete')
+    expect(snapshot.known_at).toBe('2026-01-03T00:00:00Z')
+
+    const rowsResponse = await request.get('/api/v1/etf-holdings/XLB/holdings', {
+      headers,
+      params: { snapshot_id: snapshot.id, limit: 100 },
+    })
+    expect(rowsResponse.status()).toBe(200)
+    const rows = await rowsResponse.json() as ETFHoldingsPage
+    expect(rows.snapshot.id).toBe(snapshot.id)
+    expect(rows.total).toBe(snapshot.row_count)
+    expect(rows.holdings.map(row => row.constituent_symbol)).toEqual(expect.arrayContaining(['LIN', 'APD']))
+
+    const unexpectedLegacyAcquires: string[] = []
+    page.on('request', browserRequest => {
+      const path = new URL(browserRequest.url()).pathname
+      if (/^\/api\/v1\/etf-holdings\/[^/]+\/acquire$/.test(path)) unexpectedLegacyAcquires.push(path)
+    })
+    const actualEnsureRequest = page.waitForRequest(browserRequest => {
+      if (new URL(browserRequest.url()).pathname !== '/api/v1/data/ensure' || browserRequest.method() !== 'POST') return false
+      try {
+        const body = browserRequest.postDataJSON() as EnsureRequest
+        return body.target.kind === 'instrument'
+          && 'instrument_id' in body.target
+          && body.target.instrument_id === selected.instrument_id
+          && body.datasets?.length === 1
+          && body.datasets[0] === 'holdings'
+      } catch {
+        return false
+      }
+    })
+    const actualRowsRead = page.waitForResponse(response => {
+      const url = new URL(response.url())
+      return url.pathname === '/api/v1/etf-holdings/XLB/holdings'
+        && url.searchParams.get('snapshot_id') === String(snapshot.id)
+    })
+    await page.goto('/etf-holdings')
+    await selectETF(page, 'XLB')
+
+    const ensureRequest = await actualEnsureRequest
+    const ensureResponse = await ensureRequest.response()
+    expect(ensureResponse?.ok(), 'selection automatically sends the real shared preparation request').toBeTruthy()
+    const ensureBody = await ensureResponse!.json() as { target: EnsureRequest['target']; dependencies: Array<{ dataset: string; instrument_id: number | null }> }
+    expect(ensureBody.target).toMatchObject({ kind: 'instrument', instrument_id: selected.instrument_id })
+    expect(ensureBody.dependencies).toContainEqual(expect.objectContaining({
+      dataset: 'holdings',
+      instrument_id: selected.instrument_id,
+    }))
+
+    const actualRowsResponse = await actualRowsRead
+    expect(actualRowsResponse.status()).toBe(200)
+    const displayedRows = await actualRowsResponse.json() as ETFHoldingsPage
+    expect(displayedRows.snapshot.id).toBe(snapshot.id)
+    await expect(page.getByRole('heading', { name: 'XLB', exact: true })).toBeVisible()
+    await expect(page.locator('.holdings-table')).toContainText('LIN')
+    await expect(page.locator('.holdings-table')).toContainText('APD')
+    await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('e2e_reference')
+    await expect(page.getByTestId('etf-snapshot-source-identifier')).toHaveText(snapshot.source_identifier!)
+    await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', snapshot.known_at!)
+    await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Latest stored snapshot')
+    expect(unexpectedLegacyAcquires).toEqual([])
+    expect(loggedIn).toBeUndefined()
+  })
+
   test('selecting an uncached ETF automatically requests holdings and displays the returned dated snapshot', async ({ page, loggedIn }) => {
     const selected = profile('FNEW', 701, 71, 901)
     const savedPeer = profile('QQQ', 704, 74, 904)

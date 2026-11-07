@@ -120,6 +120,7 @@
           ],
           "api_contract": [
             "GET /api/v1/etf-holdings?q=...",
+            "GET /api/v1/etf-holdings/{symbol}/latest and /holdings for normal snapshot and row reads",
             "POST /api/v1/instruments/acquire for exact existing/discovered identity resolution through the shared picker where needed",
             "POST /api/v1/data/ensure with datasets=['holdings'] for deliberate selection"
           ],
@@ -136,12 +137,13 @@
           "browser_evidence": {
             "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
             "cases": [
+              "normal selected-fund journey reads API-backed controlled holdings while automatic preparation runs",
               "selecting an uncached ETF automatically requests holdings and displays the returned dated snapshot",
               "keeps rapid selected-fund preparations isolated when the user switches tickers"
             ],
-            "mode": "controlled route mocks",
+            "mode": "one actual API-backed controlled-seed lineage journey plus controlled route-mocked acquisition/race cases",
             "body_run": false,
-            "status": "pending Root combined browser profile; this is not actual backend/provider acceptance"
+            "status": "Type-check and five-case discovery pass. New XLB case uses normal seeded profile/latest/holdings APIs and asserts an automatic exact-ID data/ensure request; browser body is pending Root combined profile. Controlled fixture provenance is not genuine issuer acceptance."
           }
         },
         {
@@ -179,7 +181,7 @@
           "browser_evidence": {
             "path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
             "mode": "controlled route mocks",
-            "coverage": "Automatic selected-fund preparation and its dated result are exercised; the snapshot lineage panel exposes its provider, source identifier and source URL alongside composition/known-at/publication metadata. Explicit stored-only/issuer refresh, held refresh, and no-profile acquisition are focused Vitest cases; this is not backend/provider evidence.",
+            "coverage": "The new XLB case reads the seeded profile, snapshot and rows through normal authenticated APIs, then verifies the selected page retains exact profile/instrument/snapshot IDs, controlled source lineage, known-at, and reported LIN/APD rows while an exact-ID holdings ensure is sent automatically. Separate uncached acquisition/rapid-switch cases remain route-mocked; explicit stored-only/issuer refresh, held refresh, and no-profile acquisition are focused Vitest cases. Controlled seed evidence is not genuine issuer/provider acceptance.",
             "body_run": false,
             "status": "pending Root combined browser profile"
           }
@@ -716,7 +718,7 @@
   ],
   "shared_owner_pending": [
     "TC shared chart loader must fetch authorized basket members, submit independent preparations without awaiting prior completion, render valid cached basket output immediately, preserve full basket math, and explain unavailable members.",
-    "Root combined backend/browser run must execute the actual API basket journey and ETF controlled journey; current ETF browser spec is mocked and not actual source/backend acceptance.",
+    "Root combined browser run must execute the actual API basket journey and the new actual API-backed XLB controlled-snapshot journey; uncached ETF acquisition remains controlled in the browser spec and genuine issuer acceptance stays separately Root-owned.",
     "Root/TC own the global action matrix and visual acceptance; this file is only ETF-owned view/action evidence and must not be treated as global inventory completion."
   ],
   "supplemental_owned_specs": [

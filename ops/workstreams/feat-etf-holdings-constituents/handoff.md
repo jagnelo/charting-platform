@@ -18551,3 +18551,7 @@ Imported exactly five ETF-declared TC paths from `1fdc92f1a1628d191ad1d5b2f0ba07
 ## Note draft auth-session fence — 2026-11-07
 
 Each note draft captures the current auth-session epoch. Queued PUTs assert that epoch immediately before request dispatch and after acknowledgement, so an old user's queued draft cannot be sent with a new session or repopulate the cleared query cache. The existing per-instrument serialization and switch/unmount flush behavior remain. The focused note module passed4/4, including first-save-in-flight, newer queued draft, session boundary, no second request and no cache repopulation. No browser or production/session mutation occurred.
+
+## API-backed ETF controlled snapshot journey — 2026-11-07
+
+Added one no-route-mock browser case to `frontend/tests/e2e/etf_holdings_preparation.spec.ts`. It reads the existing opt-in XLB controlled E2E profile, latest snapshot and rows through authenticated application APIs, then selects XLB through the ordinary picker and requires the exact canonical instrument ID in an automatic holdings-only `/data/ensure` request. The rendered table and lineage must match the API snapshot, including source/date/known-at and LIN/APD rows. Type-check passed and Playwright discovery lists five ETF preparation cases; this browser body has not run. This proves only the controlled seeded application journey, not issuer qualification or genuine-source acceptance. Root owns the combined browser run.
