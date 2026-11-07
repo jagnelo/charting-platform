@@ -14932,20 +14932,27 @@ acceptance_criteria:
   text: >-
     Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before acceptance.
 next_action: >-
-  Continue Provider readiness, range-aware history, and maintenance ordering in this same active goal while Root releases the committed
-  maintenance/API-worker checkpoint to downstream consumers. Root owns fixture lifecycle, exact-source CI, combined release qualification,
-  production configuration, and integration.
+  No additional implementation gap is identified in PLATFORM-PREP-1 through PLATFORM-PREP-7 from the current source and scoped evidence.
+  Root owns the remaining PLATFORM-PREP-8 full backend/DDL, exact-source CI, and combined release qualification; continue only on a
+  concrete source finding or a new Root-directed implementation task. Keep this full goal in_progress and preserve all roadmap history.
 human_intent_authorization: >-
   Human explicitly activated the complete “Make the existing platform complete and usable” plan in the original Provider thread. The
   execution copy and shared contract are platform-usability-20261106/APPROVED-PLAN.md and SHARED-CONTRACT.md. This is active work, not
   acceptance. Root owns acceptance, integration, promotion, deployment, live source/account operations and combined release.
 checkpoint_status: in_progress
 progress:
-  completed: []
+  completed:
+  - PLATFORM-PREP-1
+  - PLATFORM-PREP-2
+  - PLATFORM-PREP-3
+  - PLATFORM-PREP-4
+  - PLATFORM-PREP-5
+  - PLATFORM-PREP-6
+  - PLATFORM-PREP-7
   total: 8
-  current_phase: monthly_rrg_e2e_fixture_extended_remaining_provider_scope_active
-  current_blocker: Provider readiness/deeper-history scope, final monthly browser qualification, exact-source CI, and Root-owned combined release qualification remain pending.
-  next_action: Commit this fixture successor for Root review/release, then continue the remaining approved Provider scope without closing this goal.
+  current_phase: implementation_criteria_1_through_7_scoped_evidence_recorded
+  current_blocker: PLATFORM-PREP-8 still requires full backend/DDL qualification, exact-source CI, and Root's combined release gates; all are pending and Root-owned.
+  next_action: Root performs the remaining qualification and release review. Do not repeat the already released monthly fixture or readiness work absent a concrete finding.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -14964,10 +14971,15 @@ current_gate_checkpoint: >-
   values by fixed per-symbol SHA-256 assertions; its focused SQLite-backed seeder suite passed 7/7. This is controlled E2E data only, not
   native acquisition evidence or browser qualification. The same test invokes the existing `_rotation_metrics` calculation for all 11
   sector/benchmark pairs at D1/W1/MN with default 20-period lookback, sampling 1, and 10-point tail; every calculation returns at least 50
-  aligned observations and finite nonempty tails/metrics. Provider activation/readiness, deeper-history scope, final rendered monthly browser
-  proof, exact-source CI, and Root combined release gates remain pending. The v2 controls review confirms existing operation-specific Marketstack
-  and FINRA bounds; this change adds no redundant restriction. Root owns the allocated fixture lifecycle and production operations. All
-  previous acceptance/failure records and complete roadmaps remain preserved.
+  aligned observations and finite nonempty tails/metrics. A focused PREP-4 review found that an unpinned initial chunk selected the deepest
+  resolver candidate before checking its native baseline; if bootstrap was unavailable, the worker held instead of trying a shallower
+  eligible source. The worker now excludes only that source for the current initial selection and retries the real resolver chain; it
+  retains the genuine hold if no alternative exists and never switches a pinned continuation. The real-resolver fallback, no-alternative,
+  and pinned-lineage cases passed with no provider request, together with the native-usage prerequisite module (12/12). Provider/account
+  activation, genuine deeper-history acquisition, final rendered monthly browser proof, exact-source CI, and Root combined release gates
+  remain pending. The v2 controls review confirms existing operation-specific Marketstack and FINRA bounds; this change adds no redundant
+  restriction. Root owns the allocated fixture lifecycle and production operations. All previous acceptance/failure records and complete
+  roadmaps remain preserved.
 previously_accepted_provider_history_identity_human_closure_authorization: >-
   Root accepted the prior bounded derived-history and retained-issuer-identity checkpoint under standing human delegation. Its evidence
   remains in derived_refresh_issuer_identity_followup and the append-only journal; it does not accept this newly activated scope.
