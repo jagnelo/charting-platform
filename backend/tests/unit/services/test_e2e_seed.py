@@ -7,6 +7,7 @@ from decimal import Decimal
 import pytest
 from sqlalchemy import select
 
+from app.models.market_data_foundation import AdjustmentBasis, MarketSeries, MarketSeriesDefault
 from app.services.e2e_seed import (
     _E2E_BENCHMARK_PROXY_NAMES,
     _E2E_HOLDINGS,
@@ -19,6 +20,7 @@ from app.services.e2e_seed import (
     seed_e2e_instruments,
     seed_e2e_market_data,
 )
+from app.services.market_data import _default_series_bar_condition
 from app.services.tc_e2e_seed import seed_e2e_large_universe
 from app.services.top_down_taxonomy import (
     BENCHMARK_FAMILY_REGISTRY,
@@ -112,6 +114,60 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
 
     fixture_db = AsyncFixtureSession(db)
     await seed_e2e_instruments(fixture_db)
+
+    # Reproduce the deployed reused-volume state: earlier E2E seeding inherited
+    # the ORM's RAW basis default for adjusted bars, leaving canonical coarse
+    # series that the adjusted read predicate must correctly reject.
+    source = db.scalar(select(DataSource).where(DataSource.name == "e2e_reference"))
+    if source is None:
+        source = DataSource(
+            name="e2e_reference",
+            base_url="controlled://e2e",
+            config={"controlled_fixture": True},
+            supported_capabilities=["ohlcv", "etf_holdings"],
+        )
+        db.add(source)
+        db.flush()
+    spy = db.scalar(select(Instrument).where(Instrument.symbol == "SPY"))
+    assert spy is not None
+    stale_raw_series: dict[Timeframe, int] = {}
+    for timeframe in (Timeframe.W1, Timeframe.MN):
+        series = MarketSeries(
+            instrument_id=spy.id,
+            data_source_id=source.id,
+            feed_scope=f"derived-d1-{source.id}",
+            session_code="regular",
+            timeframe=timeframe.value,
+            adjustment_basis=AdjustmentBasis.RAW,
+            adjustment_version="legacy",
+            is_canonical=True,
+            is_active=True,
+        )
+        db.add(series)
+        db.flush()
+        stale_raw_series[timeframe] = series.id
+        db.add(
+            OHLCVBar(
+                instrument_id=spy.id,
+                data_source_id=source.id,
+                market_series_id=series.id,
+                timeframe=timeframe,
+                ts=datetime(2018, 12, 3 if timeframe == Timeframe.W1 else 1, tzinfo=UTC),
+                open=Decimal("99"),
+                high=Decimal("101"),
+                low=Decimal("98"),
+                close=Decimal("100"),
+                volume=Decimal("100"),
+                is_adjusted=True,
+                adjustment_basis=AdjustmentBasis.RAW,
+                adjustment_version="legacy",
+                is_derived=True,
+                source_timeframe=Timeframe.D1.value,
+                derivation_method="d1-aggregate-v1",
+                scope_key=f"series:{series.id}:regular",
+            )
+        )
+    db.flush()
     await seed_e2e_market_data(fixture_db)
 
     source = db.scalar(select(DataSource).where(DataSource.name == "e2e_reference"))
@@ -173,6 +229,11 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
         )
         full_daily_count = len(full_daily)
         assert full_daily_count > _E2E_RECENT_HISTORY_BARS
+        assert all(
+            bar.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
+            and bar.adjustment_version == "e2e-split-adjusted-v1"
+            for bar in full_daily
+        )
 
         monthly = (
             db.query(OHLCVBar)
@@ -181,6 +242,7 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
                 OHLCVBar.timeframe == Timeframe.MN,
                 OHLCVBar.is_adjusted.is_(True),
                 OHLCVBar.is_derived.is_(True),
+                _default_series_bar_condition(instrument.id, Timeframe.MN, True),
             )
             .order_by(OHLCVBar.ts)
             .all()
@@ -201,6 +263,7 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
                 OHLCVBar.timeframe == Timeframe.W1,
                 OHLCVBar.is_adjusted.is_(True),
                 OHLCVBar.is_derived.is_(True),
+                _default_series_bar_condition(instrument.id, Timeframe.W1, True),
             )
             .order_by(OHLCVBar.ts)
             .all()
@@ -208,6 +271,46 @@ async def test_monthly_rrg_fixture_extends_only_controlled_top_down_history(db):
         assert len(weekly) > len(monthly)
         assert weekly[0].source_timeframe == Timeframe.D1.value
         assert all(row.data_source_id == source.id for row in weekly)
+        for timeframe, derived_rows in ((Timeframe.W1, weekly), (Timeframe.MN, monthly)):
+            selected = db.scalar(
+                select(MarketSeriesDefault).where(
+                    MarketSeriesDefault.instrument_id == instrument.id,
+                    MarketSeriesDefault.timeframe == timeframe.value,
+                    MarketSeriesDefault.is_adjusted.is_(True),
+                )
+            )
+            assert selected is not None, (symbol, timeframe)
+            assert {row.market_series_id for row in derived_rows} == {selected.market_series_id}
+            selected_series = db.get(MarketSeries, selected.market_series_id)
+            assert selected_series is not None
+            assert selected_series.data_source_id == source.id
+            assert selected_series.is_canonical is True
+            assert selected_series.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
+            assert selected_series.adjustment_version == "e2e-split-adjusted-v1"
+
+            # This is the same selected-series and adjustment predicate used
+            # by canonical local reads, with the fixture's source isolation.
+            visible_rows = (
+                db.query(OHLCVBar)
+                .filter(
+                    OHLCVBar.instrument_id == instrument.id,
+                    OHLCVBar.timeframe == timeframe,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.data_source_id == source.id,
+                    _default_series_bar_condition(instrument.id, timeframe, True),
+                )
+                .order_by(OHLCVBar.ts)
+                .all()
+            )
+            assert [row.id for row in visible_rows] == [row.id for row in derived_rows]
+        if symbol == "SPY":
+            for timeframe, series_id in stale_raw_series.items():
+                legacy_series = db.get(MarketSeries, series_id)
+                assert legacy_series is not None
+                assert legacy_series.adjustment_basis == AdjustmentBasis.RAW
+                legacy_row = db.query(OHLCVBar).filter(OHLCVBar.market_series_id == series_id).one()
+                assert legacy_row.is_adjusted is True
+                assert legacy_row.adjustment_basis == AdjustmentBasis.RAW
         series_by_symbol[symbol] = {
             Timeframe.D1: full_daily,
             Timeframe.W1: weekly,

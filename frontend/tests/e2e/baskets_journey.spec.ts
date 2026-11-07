@@ -108,7 +108,7 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     const basketAfterMemberChart = await request.get(`/api/v1/baskets/${basketB.id}`, { headers })
     expect(basketAfterMemberChart.ok()).toBeTruthy()
     const unchangedBasket = await basketAfterMemberChart.json() as { members: Array<{ instrument_id: number }> }
-    expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([added.instrument_id])
+    expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([amzn.instrument_id, added.instrument_id])
     await page.goto('/legacy/baskets')
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
 

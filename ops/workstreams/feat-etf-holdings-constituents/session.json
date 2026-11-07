@@ -23,9 +23,9 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "focused_validation": "Provider580571e4 manifest51/51 and TC4cfee manifest66/66 verified. Workstation covered-bar case passed in Root's existing fixture. Current S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423; frontend type-check and two-case discovery passed. Root's r7 failure was on prior EED spec005bbb95 and is retained; the corrected current spec has not been browser-run. Root owns its existing-fixture rerun and combined qualification.",
+    "focused_validation": "Provider580571e4 manifest51/51 and TC4cfee manifest66/66 verified. Workstation covered-bar case passed in Root's existing fixture. Current S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423; frontend type-check and two-case discovery passed. Root's r7 failure was on prior EED spec005bbb95 and is retained; the corrected current spec has not been browser-run. Root owns its existing-fixture rerun and combined qualification. Current ETF preparation fixture mocks now use the shared DataEnsureRequest instrument ID/symbol union; frontend type-check and 4-case Playwright discovery passed. Provider33e1fd44 manifest verified58/58; its9 declared deltas are imported in this checkpoint. No browser body was run here; Root owns retained-fixture replay and combined qualification. R14 follow-up: type-check passed, 8 owned Playwright cases discovered, scoped Ruff check/format passed, and the five existing historical-basket unit cases passed. Root owns the pending actual HTTP/browser replay; no local browser or database integration run was performed.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
-    "provider_contract": "The ETF preparation hook consumes the published Provider contracts; current exact development runtime dependency is Root-released 580571e4, imported only through its two declared delta paths over 21be2915. Earlier dffcf/732/464/b1, b0, and 21be records remain preserved; no Provider workstream records were imported.",
+    "provider_contract": "The ETF preparation hook consumes Root-released Provider runtime source 33e1fd44829daee4b0f604b5507261bb10b7a711, imported only through its nine declared delta paths over 580571e41b9797589bf205b61d337f8c92ec04c6; all58 current manifest records verified. Earlier Provider dependencies remain preserved as history; no Provider workstream records were imported.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
       "backend/app/schemas/data_preparation.py",
@@ -4407,5 +4407,49 @@
     "failure_source": "Root r3 existing-fixture run: local M1 readback arrived5.28s after ensure reported accepted one-bar coverage, beyond the old5s poll boundary.",
     "cause": "The test now waits for the exact successful TCNEW/M1 local-only response whose timestamp and close match the ensured covered bar; the initial empty response is excluded. Runtime behavior is unchanged.",
     "state": "Type-check and seven-test discovery pass; Root approved one existing-fixture browser rerun. Result remains pending."
+  },
+  "current_provider_runtime_dependency_33e1fd44": {
+    "source": "33e1fd44829daee4b0f604b5507261bb10b7a711",
+    "previous_source": "580571e41b9797589bf205b61d337f8c92ec04c6",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider33e1fd44-runtime-development-consumption-contract.json",
+    "manifest_sha256": "5393e80826da6ed01fd689f602444f438ec24d723c2b43a0e4a41b5bbcdae273",
+    "changed_paths_imported": 9,
+    "current_manifest_records_verified": 58,
+    "changed_paths_since_previous": [
+      "backend/app/routers/research.py",
+      "backend/app/services/baskets.py",
+      "backend/app/services/e2e_seed.py",
+      "backend/app/services/etf_holdings_adapters.py",
+      "backend/tests/integration/api/test_baskets.py",
+      "backend/tests/unit/routers/test_research_router.py",
+      "backend/tests/unit/services/test_e2e_seed.py",
+      "backend/tests/unit/services/test_etf_holdings_adapters.py",
+      "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py"
+    ],
+    "state": "Root-authorized exact development dependency only; Root owns the existing-fixture backend rebuild and browser qualification. No native HTTP, real-ledger, production, integration, or deployment claim."
+  },
+  "current_r14_owned_repairs": {
+    "date": "2026-11-07",
+    "root_r14_receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-etf-and-coarse-r14-receipt.json",
+    "basket_trace_cause": "Historical issuer-basket materialization failed on a new Basket at basket.members.clear() with SQLAlchemy MissingGreenlet; initialize the new Basket.members collection before flush. Existing-basket query already selectinloads members and instrument.",
+    "basket_test_contract": "Preserve complete member list after chart navigation; add normal HTTP materialize/repeat-read regression asserting read-only snapshot lineage and idempotent members.",
+    "holdings_mock_contract": "Use shared DataEnsureRequest union and explicit fixture ID-to-symbol map; normalize ID/symbol targets to the same exact fixture ticker while retaining exact datasets, timeframe, adjusted basis, request count, selected-fund/snapshot/context and stale-response assertions. Unrelated preparations continue to backend.",
+    "rrg_contract": "Direct group-relative-rotation reference requests include required benchmark=SPY; R14 422 was missing that query parameter, while observed W1/MN seeded API requests succeeded.",
+    "source_file_sha256": {
+      "backend/app/services/baskets.py": "2a431ce386338fde07d309fea4aaa30b30a32cfc31af79b1d80e2c8514928a4c",
+      "backend/tests/integration/api/test_baskets.py": "ddde35d0f1770936205538d12f6608598d1150f5455b40212c1a8e52c4899cfe",
+      "frontend/tests/e2e/baskets_journey.spec.ts": "c4bb362691bc1866f5b4391b9b7f966dca89ac6a557e02eb49fed5d106ed8fb8",
+      "frontend/tests/e2e/etf_holdings_preparation.spec.ts": "965ac8d88a93df9e7466b90e3039aba46b7a0228bc9efa208a81bd1d6ed105d7",
+      "frontend/tests/e2e/sp500_analysis_journey.spec.ts": "4003cd338595912d11d05b932ba7ca580197809b1fae0e1df04bcd7e7ef36b21"
+    },
+    "focused_results": {
+      "frontend_typecheck": "passed",
+      "playwright_discovery": 8,
+      "ruff_check_and_format": "passed on baskets service and integration test",
+      "historical_basket_unit_cases": "5 passed, 10 deselected in 3.27s",
+      "diff_check": "passed"
+    },
+    "unrun": "New real HTTP integration regression and all affected browser bodies await Root existing-fixture replay; no new fixture, provider HTTP, ledger, or production operation.",
+    "state": "candidate implementation; not accepted or release-qualified"
   }
 }

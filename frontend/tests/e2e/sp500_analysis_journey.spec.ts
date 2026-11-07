@@ -615,7 +615,7 @@ test('S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, max
       request,
       token,
       '/api/v1/analysis/groups/sp500-sectors/relative-rotation',
-      { timeframe, adjusted: true, sampling: 1, lookback: 20, tail_length: 10, history_length: 0 },
+      { benchmark: 'SPY', timeframe, adjusted: true, sampling: 1, lookback: 20, tail_length: 10, history_length: 0 },
     ))
     assertRotationPayload(directResponses.get(timeframe)!, timeframe)
   }
