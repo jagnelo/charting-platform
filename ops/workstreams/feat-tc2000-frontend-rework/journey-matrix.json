@@ -20,9 +20,9 @@
     },
     "strategy_matrix_provenance": {
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-      "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
-      "source_blob": "e11d6cf2b74b5fbbe0259a7e3e06af14b87c8313",
-      "source_sha256": "ad228e7f840a8ba5470ddfc284735c6b052d664703f80f72d42e5c48582fd191"
+      "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+      "source_blob": "949bc17f48f0b6237b3cec231fae8b1949adf8c7",
+      "source_sha256": "92ea7eef8191c0a5c5d817c532e9012bd3633edd4cff89d3f4c1248101e96c0c"
     },
     "provider_runtime_import": {
       "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
@@ -37,10 +37,10 @@
       "qualification": "Exact ETF 2450abb9 development import is present; browser execution and release acceptance remain Root-owned and pending."
     },
     "strategy_runtime_import": {
-      "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2.json",
-      "manifest_sha256": "bf0b6986fd07322837f8a502b7774d465b7f9753824229d373b199680bf65910",
-      "qualification": "Exact Strategy b7e13e77 development import is present; authored Dashboard Advanced Chart/Details and lifecycle journeys remain pending Root browser execution and release acceptance."
+      "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/116f667affc98e0fef5bc4fcaabbd5d460158032.json",
+      "manifest_sha256": "e6b4d12a316c4ce883f58e5657a011f07638470232869ba5d7cbfcc1e171d66f",
+      "qualification": "Exact Strategy116 development source and all 27 manifest entries are imported and hash-verified; Root browser execution, exact-source CI, combined qualification, and release acceptance remain pending."
     },
     "superseded_runtime_imports": {
       "strategy_8dfeed": {
@@ -2438,15 +2438,15 @@
       "journey_count": 18,
       "status": "owner_matrix_imported_browser_pending",
       "canonical_matrix": "../feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2/journey-matrix.json",
-      "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
-      "source_blob": "e11d6cf2b74b5fbbe0259a7e3e06af14b87c8313",
-      "source_sha256": "ad228e7f840a8ba5470ddfc284735c6b052d664703f80f72d42e5c48582fd191",
+      "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+      "source_blob": "949bc17f48f0b6237b3cec231fae8b1949adf8c7",
+      "source_sha256": "92ea7eef8191c0a5c5d817c532e9012bd3633edd4cff89d3f4c1248101e96c0c",
       "browser_specs": [
         {
           "path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
-          "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
-          "source_blob": "9ceac2f8edabadb9299add98bcb9d03f4bb17a7f",
-          "source_sha256": "12990dcfdcc32ede04ff9352f93c577b3da243347e5a865cfee9af1d2783702a",
+          "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+          "source_blob": "9d6668848f49cd1d094b46314ac4709915c89b10",
+          "source_sha256": "5617047eb2ff94e900b47c6568630c48d1eefc57fca27dd8127d02dfca3e75e8",
           "execution_status": "authored_pending_combined_browser_run",
           "cases": [
             {
@@ -2478,7 +2478,7 @@
         },
         {
           "path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
-          "source_commit": "b7e13e77ff15811fd6a4d7338a62e9b6403ab5a2",
+          "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
           "source_blob": "8767d03b75548333762f84d2726f4496905d6f39",
           "source_sha256": "3c03f4c4d17907cf907633282b636833d91aa5e0c063632cfa1af80269e4e0b2",
           "execution_status": "authored_pending_root_run",
@@ -2491,6 +2491,54 @@
               ]
             }
           ]
+        },
+        {
+          "path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+          "execution_status": "authored_pending_root_run",
+          "cases": [
+            {
+              "name": "Study prepares SPY before validating and completes a configured high-low breakout run",
+              "journeys": [
+                "TC08",
+                "TC06"
+              ]
+            },
+            {
+              "name": "Study preparation submits every universe member and benchmark while one member is held",
+              "journeys": [
+                "TC08"
+              ]
+            },
+            {
+              "name": "Study ignores obsolete preparation after the selected symbol changes and validates the new context",
+              "journeys": [
+                "TC08",
+                "TC01"
+              ]
+            },
+            {
+              "name": "Results supports ordinary controls through a controlled persisted-run API",
+              "journeys": [
+                "TC08"
+              ]
+            },
+            {
+              "name": "Results detail exposes a single controlled failure and explicit Retry loads saved artifacts",
+              "journeys": [
+                "TC08"
+              ]
+            },
+            {
+              "name": "Python Library supports create, import, clone, archive, export and filter through a controlled asset API",
+              "journeys": [
+                "TC08",
+                "TC09"
+              ]
+            }
+          ],
+          "source_commit": "116f667affc98e0fef5bc4fcaabbd5d460158032",
+          "source_blob": "fda501f16bef9ed17e85258e70a68166be82f1f9",
+          "source_sha256": "ec34dbdf7bd2e9328be7811a5cec3ec3234e4b92a737cd56baaf2e44a7f88868"
         }
       ]
     }

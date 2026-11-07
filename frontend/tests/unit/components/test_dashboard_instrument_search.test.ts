@@ -4,20 +4,18 @@ import { nextTick } from 'vue'
 
 import DashboardInstrumentSearch from '@/components/dashboard/DashboardInstrumentSearch.vue'
 
-const { discover, resolveDiscovered, resolveExisting } = vi.hoisted(() => ({
+const { discover, resolveDiscovered } = vi.hoisted(() => ({
   discover: vi.fn(),
   resolveDiscovered: vi.fn(),
-  resolveExisting: vi.fn(),
 }))
-const { resolveExpression } = vi.hoisted(() => ({ resolveExpression: vi.fn() }))
+const { resolveKnownSymbol } = vi.hoisted(() => ({ resolveKnownSymbol: vi.fn() }))
 
 vi.mock('@/lib/onDemandAcquisition', () => ({
   discoverInstruments: discover,
   resolveDiscoveredInstrument: resolveDiscovered,
-  resolveExistingInstrument: resolveExisting,
 }))
 vi.mock('@/lib/instruments', () => ({
-  ensureKnownInstrumentSymbol: resolveExpression,
+  ensureKnownInstrumentSymbol: resolveKnownSymbol,
   formatInstrumentLookupError: (_symbol: string, error: Error) => error.message,
   getInstrumentInputHint: () => '',
   isExpressionInput: (value: string) => value.trim().startsWith('='),
@@ -48,10 +46,6 @@ function existingResolution(symbol: string, instrumentId = 17) {
   }
 }
 
-function noExistingResolution(status = 'no_match') {
-  return { status, instrument: null, source_outcomes: [] }
-}
-
 async function flushPromises() {
   await Promise.resolve()
   await Promise.resolve()
@@ -70,8 +64,7 @@ describe('DashboardInstrumentSearch', () => {
   beforeEach(() => {
     vi.resetAllMocks()
     vi.useFakeTimers()
-    resolveExisting.mockResolvedValue(noExistingResolution())
-    resolveExpression.mockRejectedValue(new Error('Expression could not be resolved'))
+    resolveKnownSymbol.mockRejectedValue(new Error('Expression could not be resolved'))
   })
 
   afterEach(() => {
@@ -168,7 +161,7 @@ describe('DashboardInstrumentSearch', () => {
     resolveDiscovered.mockResolvedValueOnce({
       ...existingResolution('AAPL'),
     })
-    resolveExisting.mockResolvedValueOnce(noExistingResolution())
+    resolveKnownSymbol.mockRejectedValueOnce(new Error('Instrument is not available'))
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     await wrapper.find('input').setValue('AAPL')
@@ -177,14 +170,14 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
 
     expect(resolveDiscovered).toHaveBeenCalledWith(candidate('AAPL', 17))
-    expect(resolveExisting).toHaveBeenCalledWith('AAPL')
+    expect(resolveKnownSymbol).toHaveBeenCalledWith('AAPL', 'Instrument', { canonicalOnly: true })
     expect(wrapper.emitted('select')?.[0]).toEqual(['AAPL'])
     expect(document.body.textContent).not.toContain('controlled-source')
   })
 
   it('does not auto-resolve an exact-looking candidate from incomplete discovery', async () => {
     discover.mockResolvedValueOnce(discovery([candidate('AAPL', null)], 'partial'))
-    resolveExisting.mockResolvedValueOnce(noExistingResolution())
+    resolveKnownSymbol.mockRejectedValueOnce(new Error('Instrument is not available'))
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     await wrapper.find('input').setValue('AAPL')
@@ -192,7 +185,7 @@ describe('DashboardInstrumentSearch', () => {
     await flushPromises()
 
     expect(resolveDiscovered).not.toHaveBeenCalled()
-    expect(resolveExisting).toHaveBeenCalledWith('AAPL')
+    expect(resolveKnownSymbol).toHaveBeenCalledWith('AAPL', 'Instrument', { canonicalOnly: true })
     expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(1)
     expect(document.body.textContent).toContain('NASDAQ')
     expect(document.body.textContent).toContain('Some instrument candidates may be missing')
@@ -203,14 +196,14 @@ describe('DashboardInstrumentSearch', () => {
       candidate('ABC', null, 'NYSE'),
       candidate('ABC', null, 'NASDAQ'),
     ]))
-    resolveExisting.mockResolvedValueOnce(noExistingResolution('identity_conflict'))
+    resolveKnownSymbol.mockRejectedValueOnce(new Error('Instrument is not available'))
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
 
     await wrapper.find('input').setValue('ABC')
     vi.advanceTimersByTime(230)
     await flushPromises()
 
-    expect(resolveExisting).toHaveBeenCalledWith('ABC')
+    expect(resolveKnownSymbol).toHaveBeenCalledWith('ABC', 'Instrument', { canonicalOnly: true })
     expect(resolveDiscovered).not.toHaveBeenCalled()
     expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(2)
   })
@@ -244,7 +237,7 @@ describe('DashboardInstrumentSearch', () => {
   it('selects an exact cached listing while external discovery remains held', async () => {
     let resolveHeldDiscovery!: (value: unknown) => void
     discover.mockReturnValueOnce(new Promise(resolve => { resolveHeldDiscovery = resolve }))
-    resolveExisting.mockResolvedValueOnce(existingResolution('XLB', 42))
+    resolveKnownSymbol.mockResolvedValueOnce('XLB')
     const wrapper = mountDashboardSearch({ props: { modelValue: '' } })
     const input = wrapper.find('input')
 
@@ -252,7 +245,8 @@ describe('DashboardInstrumentSearch', () => {
     vi.advanceTimersByTime(230)
     await flushPromises()
 
-    expect(resolveExisting).toHaveBeenCalledWith('XLB')
+    expect(resolveKnownSymbol).toHaveBeenCalledWith('XLB', 'Instrument', { canonicalOnly: true })
+    expect(resolveDiscovered).not.toHaveBeenCalled()
     expect(wrapper.emitted('select')?.[0]).toEqual(['XLB'])
     expect(wrapper.emitted('update:modelValue')?.[0]).toEqual(['XLB'])
     expect(document.body.querySelectorAll('.dash-search-item')).toHaveLength(0)
@@ -265,9 +259,9 @@ describe('DashboardInstrumentSearch', () => {
 
   it('ignores a late exact cached resolution after a newer search intent', async () => {
     let resolveOld!: (value: unknown) => void
-    resolveExisting
+    resolveKnownSymbol
       .mockReturnValueOnce(new Promise(resolve => { resolveOld = resolve }))
-      .mockResolvedValueOnce(noExistingResolution())
+      .mockRejectedValueOnce(new Error('Instrument is not available'))
     discover
       .mockResolvedValueOnce(discovery([], 'held'))
       .mockResolvedValueOnce(discovery([candidate('NEWT', null)], 'partial'))
@@ -277,12 +271,12 @@ describe('DashboardInstrumentSearch', () => {
     await input.setValue('XLB')
     vi.advanceTimersByTime(230)
     await flushPromises()
-    expect(resolveExisting).toHaveBeenNthCalledWith(1, 'XLB')
+    expect(resolveKnownSymbol).toHaveBeenNthCalledWith(1, 'XLB', 'Instrument', { canonicalOnly: true })
 
     await input.setValue('NEW')
     vi.advanceTimersByTime(230)
     await flushPromises()
-    resolveOld(existingResolution('XLB', 42))
+    resolveOld('XLB')
     await flushPromises()
 
     expect(wrapper.emitted('select')).toBeUndefined()
@@ -300,7 +294,7 @@ describe('DashboardInstrumentSearch', () => {
     await input.trigger('keydown.enter')
     await flushPromises()
 
-    expect(resolveExpression).toHaveBeenCalledWith('=SPY-QQQ', 'Instrument', { canonicalOnly: true })
+    expect(resolveKnownSymbol).toHaveBeenCalledWith('=SPY-QQQ', 'Instrument', { canonicalOnly: true })
     expect(document.body.textContent).toContain('Expression could not be resolved')
     expect(wrapper.emitted('select')).toBeUndefined()
     expect(discover).not.toHaveBeenCalled()
