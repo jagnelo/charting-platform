@@ -50,14 +50,14 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the existing combined browser qualification. Current focused Study/Results/Code Library suites pass148/148 (63/66/19), frontend type-check passes, and Playwright discovers all7 Strategy Study cases without executing browser bodies. The late successful Library create regression proves a newer editable draft survives while the submitted asset is added and announced. Provider21be2915 is the current development pin with all49 manifest entries verified; b0 and earlier pins remain historical. Actual browser/deployed acceptance and combined release remain pending; preserve all18 criteria and disabled holds.",
+  "current_blocker": "Root owns the existing combined browser qualification. Current focused Study/Results/Code Library suites pass148/148 (63/66/19), frontend type-check passes, and Playwright discovers all7 Strategy Study cases without executing browser bodies. The late successful Library create regression preserves a newer editable draft while announcing the completed asset. Provider580571e4 is the current development pin with all51 manifest entries verified; 21be and earlier pins remain historical. Actual browser/deployed acceptance and combined release remain pending; preserve all18 criteria and disabled holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root owns affected normal-user browser reruns and the combined profile. Study/Results/Code Library focused suites pass148/148; frontend type-check passes and Study Playwright discovery lists7 cases, without browser execution. Provider21be2915 is the exact active49-path dependency. These focused checks and imports do not count as browser execution or release acceptance.",
+    "heavy_profile": "Root owns affected normal-user browser reruns and the combined profile. Study/Results/Code Library focused suites pass148/148; type-check passes and Study discovery lists7 cases without browser execution. Provider580571e4 is the exact active51-path dependency, imported after predecessor guards. These checks do not establish browser execution or release acceptance.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress",
-    "next_action": "Hand the frozen Strategy-owned frontend domain and exact Provider21be2915 dependency to Root for the existing combined app qualification, including the authored Study/Results/Library browser journeys and full cross-feature gate. Do not push or start a separate fixture; focused checks do not qualify release acceptance."
+    "next_action": "Hand current Strategy domain source f2c191a and exact Provider580571e4 dependency to Root for exact consumer pinning and the existing combined app qualification. Keep browser/release gates Root-owned; do not push or start a separate fixture."
   },
   "dirty_paths": [],
   "docker": {
@@ -93,14 +93,14 @@
     }
   ],
   "goal_unavailable_reason": null,
-  "head": "5703f21497e628576e9d381dede28dbaa0ca719d",
-  "implementation_sha": "5703f21497e628576e9d381dede28dbaa0ca719d",
-  "last_checkpoint": "2026-11-07T05:50:03Z",
+  "head": "f2c191a67faf147a1d1c350c8354de8f2ba2e46d",
+  "implementation_sha": "f2c191a67faf147a1d1c350c8354de8f2ba2e46d",
+  "last_checkpoint": "2026-11-07T06:00:11Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Hand the frozen Strategy-owned frontend domain and exact Provider21be2915 dependency to Root for the existing combined app qualification, including the authored Study/Results/Library browser journeys and full cross-feature gate. Do not push or start a separate fixture; focused checks do not qualify release acceptance.",
+  "next_action": "Hand current Strategy domain source f2c191a and exact Provider580571e4 dependency to Root for exact consumer pinning and the existing combined app qualification. Keep browser/release gates Root-owned; do not push or start a separate fixture.",
   "parent_branch": "staging",
-  "plan_hash": "45eb798c06a6c28dd186200beb79ffbff5c1c138443cb119f8f4e64bf89fdbaa",
+  "plan_hash": "394feeed860b994c8c1f871a53e24faf07b3b7862cbaf0b19199dd78d4b67b5d",
   "planning_required": false,
   "planning_state": "ready",
   "previous_session_ids": [
@@ -129,11 +129,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the existing combined browser qualification. Current focused Study/Results/Code Library suites pass148/148 (63/66/19), frontend type-check passes, and Playwright discovers all7 Strategy Study cases without executing browser bodies. The late successful Library create regression proves a newer editable draft survives while the submitted asset is added and announced. Provider21be2915 is the current development pin with all49 manifest entries verified; b0 and earlier pins remain historical. Actual browser/deployed acceptance and combined release remain pending; preserve all18 criteria and disabled holds.",
+    "current_blocker": "Root owns the existing combined browser qualification. Current focused Study/Results/Code Library suites pass148/148 (63/66/19), frontend type-check passes, and Playwright discovers all7 Strategy Study cases without executing browser bodies. The late successful Library create regression preserves a newer editable draft while announcing the completed asset. Provider580571e4 is the current development pin with all51 manifest entries verified; 21be and earlier pins remain historical. Actual browser/deployed acceptance and combined release remain pending; preserve all18 criteria and disabled holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Hand the frozen Strategy-owned frontend domain and exact Provider21be2915 dependency to Root for the existing combined app qualification, including the authored Study/Results/Library browser journeys and full cross-feature gate. Do not push or start a separate fixture; focused checks do not qualify release acceptance.",
+    "next_action": "Hand current Strategy domain source f2c191a and exact Provider580571e4 dependency to Root for exact consumer pinning and the existing combined app qualification. Keep browser/release gates Root-owned; do not push or start a separate fixture.",
     "total": 9,
-    "updated_at": "2026-11-07T05:50:03Z"
+    "updated_at": "2026-11-07T06:00:11Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -250,5 +250,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T05:50:03Z"
+  "updated_at": "2026-11-07T06:00:11Z"
 }
