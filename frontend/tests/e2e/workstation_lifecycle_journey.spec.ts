@@ -545,8 +545,10 @@ test.describe('Workstation lifecycle journeys', () => {
     expect(copiedTabKey).toBeTruthy()
     const copiedLayoutIndex = await page.locator('.workstation__tabs > [role="tab"]').evaluateAll((tabs, stableKey) => tabs.findIndex(tab => tab.getAttribute('data-tab-key') === stableKey), copiedTabKey!)
     expect(copiedLayoutIndex, 'the copied stable tab key should map to its layout-menu row').toBeGreaterThanOrEqual(0)
-    const copiedLayoutRow = layoutMenu.locator('.workstation__layout-item').nth(copiedLayoutIndex)
-    const renameField = copiedLayoutRow.getByRole('textbox', { name: 'Rename layout', exact: true })
+    // Resolve the textbox by its stable position before changing the name.
+    // Do not scope through the layout's menuitem/accessibility name: filling
+    // this textbox immediately changes that name while the locator is live.
+    const renameField = layoutMenu.getByRole('textbox', { name: 'Rename layout', exact: true }).nth(copiedLayoutIndex)
     await expect(renameField).toHaveValue('US Top Down Copy')
     await renameField.fill(renamed)
     await expect(renameField).toHaveValue(renamed)

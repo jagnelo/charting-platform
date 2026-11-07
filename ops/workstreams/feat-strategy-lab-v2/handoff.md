@@ -20027,7 +20027,7 @@ remain pending Root's combined run. No TC-owned product path changed.
 
 Root's R40 browser evidence on frontend `a52f87847c0ff1c2fb1770dcbc046724b2fb8d9b` / backend `23b6aba94476fed5eeb54d9073dadb373d169aaa` showed workspace GET returning draft `XLB` with immutable run `7`, followed by a component PUT that changed the draft back to linked `SPY`. The Strategy fix tracks a configured draft symbol from complete workspace snapshots before linked-context watchers run. Async saved-run detail loading does not replace that independent draft; a direct symbol edit, including clearing the field, retains the normal linked-context behavior. The focused regression mounts with linked `SPY`, delivers the persisted `XLB` snapshot while the run-detail GET is pending, resolves the saved `SPY` run, exercises parent delete/assign echoes and linked-symbol changes, then remounts and checks both identities.
 
-The Strategy-owned workstation lifecycle spec also now locates `Rename layout` by its stable accessible textbox instead of an ancestor whose accessible name changes during typing. It preserves the original Undo-only save and reload assertions. Local commits `bfb853ab12c0537b297cf553cda79e3a15ef8d17` and `ab46db86965dcc59f1121416ca52950f2ccc8514` contain this work and the preceding factory-coverage checkpoint `7a7f6d6bf8510e6d248b77024b0deadd0d3598c6`.
+The R40 Undo journey locator correction now maps the copied layout stable tab key to its parallel rename-textbox position before editing. The textbox is selected directly within the open layout menu, without a live ancestor filter based on the layout menuitem name; that name changes as soon as the input is filled. The original Undo-only save and reload assertions remain unchanged. Local commits `bfb853ab12c0537b297cf553cda79e3a15ef8d17` and `ab46db86965dcc59f1121416ca52950f2ccc8514` contain this work and the preceding factory-coverage checkpoint `7a7f6d6bf8510e6d248b77024b0deadd0d3598c6`.
 
 On exact local source `ab46db86965dcc59f1121416ca52950f2ccc8514`, the Study component module passed `68/68`, frontend type-check exited0, and Playwright discovery listed all14 Study/workstation journeys; discovery did not execute browser bodies. Root's later R42 report is a separate RRG paint/layout diagnostic and provides no Study regression verdict. The Study reload journey still needs Root's browser execution on this exact source; joint qualification and the full original18-criterion roadmap remain open. No browser fixture, backend, provider, target, or service operation ran in this Strategy turn.
 
@@ -20042,6 +20042,23 @@ The focused backend checks on the frozen Strategy source pass for the split betw
 Root's R40 run was terminal4pass/3fail on frontend `a52f87847c0ff1c2fb1770dcbc046724b2fb8d9b` / backend `23b6aba94476fed5eeb54d9073dadb373d169aaa`. The Undo journey stopped at `renameField.press('Tab')`: its row locator depended on the copied layout's old accessible name, which changes as soon as the input is filled. The current Strategy spec now reads the duplicated tab's stable key before editing, maps that key to the parallel layout-menu row, and keeps the textbox scoped to that row through fill and Tab. It asserts the field value before and after editing; the subsequent delete, Undo-only snapshot acknowledgement, stable-key persistence, and reload checks are unchanged.
 
 The Study draft restore repair and the all-factory useful-outcome coverage remain in this same source ancestry (`bfb853ab12c0537b297cf553cda79e3a15ef8d17`, `ab46db86965dcc59f1121416ca52950f2ccc8514`, and `7a7f6d6bf8510e6d248b77024b0deadd0d3598c6`). Current local type-check and Playwright discovery pass; the four workstation bodies remain unexecuted on this candidate and require Root's combined browser slot. The R40 browser result is not accepted-source or release qualification.
+
+### R40 layout Undo locator correction (2026-11-07)
+
+R40 was terminal4pass/3fail. The workstation lifecycle body stopped at the
+rename field's Tab press because its prior row locator depended on the copied
+layout's old accessible menuitem name, which changes immediately after typing.
+The Strategy-owned spec now maps the duplicated tab's stable key to its
+pre-edit textbox position in the open layout menu and selects that textbox
+directly, without filtering through a mutable-name ancestor. The later delete
+buttons are located by the committed renamed value. The Undo-only snapshot
+request/response, save-status, and reload assertions are unchanged; Undo still
+must persist the restored tab without another mutation. The existing Study
+draft-restore implementation/regression and `7a7f6d6` all-factory outcome
+coverage remain included in source ancestry. Type-check, Playwright discovery,
+record validation, and diff checks pass. This locator correction has not run
+in a browser; Root owns the next browser execution and the other R40 failures
+remain open.
 
 
 ### Study preparation waiter contract audit (2026-11-07)
