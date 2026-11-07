@@ -4918,9 +4918,9 @@ development_dependency_import_history:
     state: superseded_development_import
     superseded_by: 055641eaafab37a8160908e974a3ec1a4483e7c6
 approved_development_dependency_imports:
-- source_sha: 8c26477498b1963231b0770e30e1ab8087d023a9
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/8c26477498b1963231b0770e30e1ab8087d023a9.json
-  manifest_sha256: e4422b07e2758de6e3c872b0e7de001b6782d7d487b4df6210bceb6087d39449
+- source_sha: dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e.json
+  manifest_sha256: 723300fa7f2119d3e1856710904f0abe743288cee7f1ab52a685bbb0d2f4d5b3
   paths:
   - backend/app/main.py
   - backend/app/providers/alpaca.py
@@ -4940,6 +4940,7 @@ approved_development_dependency_imports:
   - backend/app/services/etf_holdings_adapters.py
   - backend/app/services/etf_holdings_preparation.py
   - backend/app/services/etf_holdings_refresh.py
+  - backend/app/services/evaluator_preflight.py
   - backend/app/services/instrument_events.py
   - backend/app/services/instrument_mastering.py
   - backend/app/services/market_data.py
@@ -4972,6 +4973,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_etf_holdings_preparation.py
   - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
   - backend/tests/unit/services/test_etf_issuer_catalog.py
+  - backend/tests/unit/services/test_evaluator_preflight.py
   - backend/tests/unit/services/test_market_data.py
   - backend/tests/unit/services/test_market_refresh_queue.py
   - backend/tests/unit/services/test_market_series_defaults.py

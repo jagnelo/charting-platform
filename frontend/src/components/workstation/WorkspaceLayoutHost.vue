@@ -17,8 +17,9 @@ interface DockToolState {
 }
 
 export interface DockToolActions {
-  toggleMaximize: () => void
+  toggleMaximize: () => Promise<void>
   maximized: Readonly<Ref<boolean>>
+  maximizing: Readonly<Ref<boolean>>
   close: () => void
 }
 
@@ -29,6 +30,8 @@ const props = defineProps<{
   activeWindowKey?: string | null
   /** Increment only when the parent replaces the complete workspace snapshot. */
   reloadKey?: number
+  /** Persist a user maximize/restore change before exposing it as committed UI state. */
+  persistLayout?: () => Promise<boolean>
   renderTool: (tool: DockToolState, actions: DockToolActions) => VNode
 }>()
 const emit = defineEmits<{
@@ -607,7 +610,10 @@ function install(layout: LayoutConfig) {
     const tool = (state ?? {}) as DockToolState
     const stack = container.parent.parentItem as any
     const maximized = ref(Boolean(stack.isMaximised))
-    const syncMaximized = () => { maximized.value = Boolean(stack.isMaximised) }
+    const maximizing = ref(false)
+    const syncMaximized = () => {
+      if (!maximizing.value) maximized.value = Boolean(stack.isMaximised)
+    }
     stack.on?.('maximised', syncMaximized)
     stack.on?.('minimised', syncMaximized)
     maximizeStateCleanups.set(tool.instance_key, () => {
@@ -635,10 +641,23 @@ function install(layout: LayoutConfig) {
     const vnode = props.renderTool(tool, {
       maximized,
       toggleMaximize: () => {
+        if (maximizing.value) return Promise.resolve()
+        const previous = Boolean(stack.isMaximised)
+        maximizing.value = true
         stack.toggleMaximise?.()
-        syncMaximized()
+        const persist = Boolean(stack.isMaximised) !== previous ? props.persistLayout : undefined
+        if (!persist) {
+          maximizing.value = false
+          syncMaximized()
+          return Promise.resolve()
+        }
+        return persist().then(() => undefined).finally(() => {
+          maximizing.value = false
+          syncMaximized()
+        })
       },
       close: () => closeComponent(tool.instance_key),
+      maximizing,
     })
     // Golden Layout asks Vue to render each virtual component into a detached root.
     // Carry the host application context across that boundary so injected services

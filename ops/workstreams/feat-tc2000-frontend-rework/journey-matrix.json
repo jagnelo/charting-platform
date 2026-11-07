@@ -3923,7 +3923,7 @@
     {
       "source": "frontend/src/components/workstation/ToolWindow.vue",
       "control_count": 13,
-      "signature_sha256": "d8e1458a1766be69b80dbd6de21836914e9e1fd3eacc87b597e16fd589771c5d",
+      "signature_sha256": "221b549626994ac676bf8942ad4031e13d6adcdf211f21f0a9f5ecb302c5a600",
       "journeys": [
         "TC06",
         "TC07"
@@ -3967,7 +3967,7 @@
     {
       "source": "frontend/src/components/workstation/WorkstationToolContent.vue",
       "control_count": 116,
-      "signature_sha256": "bab54272d8f5fa1fa5cc945e7fe8dcd5452c1faf9d65215049b10398507a9cf5",
+      "signature_sha256": "3e6af38ea5b5795a6aa94500cdb29359c828e8107d8460308eb5c5534a05daa4",
       "journeys": [
         "TC04",
         "TC06",

@@ -430,6 +430,10 @@ function createChartStore(storeId: string) {
 
       localOnlyMode.value = Boolean(localOnly)
       if (basketId != null) {
+        // The authenticated basket membership request is independent from the
+        // synthetic chart read. Start it immediately so slow/empty cached
+        // basket bars cannot delay submitting the real member preparations.
+        if (localOnly) startBasketMemberPreparation(basketId, sym, tf, generation)
         try {
           const mapped = await fetchBarsPage(sym, tf, {
             type: nextBarType,
@@ -441,7 +445,6 @@ function createChartStore(storeId: string) {
           bars.value = mapped
           renderedLoadScopeKey = requestScopeKey
           hasReachedStart.value = true
-          if (localOnly) startBasketMemberPreparation(basketId, sym, tf, generation)
         } catch (e: any) {
           if (isCurrent()) error.value = e.message ?? 'Failed to load basket chart data'
         } finally {

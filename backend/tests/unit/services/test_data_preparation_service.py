@@ -1,3 +1,4 @@
+from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
@@ -27,6 +28,7 @@ from app.services.data_preparation import (
     create_maintenance_data_preparation_request,
     expand_resolved_identity_dependency,
     get_data_preparation_response,
+    load_owner_request,
 )
 from app.services.instrument_mastering import reconcile_instrument_profile
 from app.services.market_refresh_queue import claim_refresh_jobs
@@ -104,6 +106,31 @@ def _qualify_test_instrument(instrument):
     instrument.domain_key = f"test:retained:{instrument.symbol}"
     instrument.primary_identifier_type = "figi"
     instrument.primary_identifier_value = "BBG000GENV001"
+
+
+async def _create_previously_held_history_request(db, instrument):
+    async_db = AsyncSessionAdapter(db)
+    parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=_history_request(instrument, start_day=1, end_day=5),
+    )
+    data = deepcopy(parent.metadata_payload["data_preparation"])
+    dependency = data["dependencies"][0]
+    child = db.get(MarketRefreshJob, dependency["job_ids"][0])
+    child.status = "completed"
+    child.result_summary = {
+        "preparation_status": "held",
+        "reason_code": "no_eligible_history_provider",
+        "data_status": "empty",
+    }
+    dependency["status"] = "waiting"
+    dependency["reason_code"] = "no_eligible_history_provider"
+    data["status"] = "waiting"
+    parent.metadata_payload = {"data_preparation": data}
+    await async_db.commit()
+    db.expire_all()
+    return async_db, data["request_id"]
 
 
 @pytest.mark.asyncio
@@ -196,6 +223,47 @@ async def test_missing_close_labelled_first_session_is_not_treated_as_ready(db, 
     assert dependency["status"] == "partial"
     assert len(children) == 1
     assert children[0].start_at == datetime(2026, 1, 2, 21)
+
+
+@pytest.mark.asyncio
+async def test_existing_held_request_reprojects_ready_after_compatible_cache_arrives(
+    db, instrument
+):
+    _qualify_test_instrument(instrument)
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    _add_selected_cached_history(db, instrument, days=[1, 2, 3, 4, 5])
+    await async_db.commit()
+    db.expire_all()
+
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "ready"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].reason_code is None
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 1, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_existing_held_request_keeps_partial_gaps_and_reason_after_cache_arrives(
+    db, instrument
+):
+    _qualify_test_instrument(instrument)
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    _add_selected_cached_history(db, instrument, days=[3, 4, 5])
+    await async_db.commit()
+    db.expire_all()
+
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "partial"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].status == "partial"
+    assert response.dependencies[0].reason_code == "no_eligible_history_provider"
+    assert response.dependencies[0].covered_start == datetime(2026, 1, 3, tzinfo=UTC)
+    assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
 
 
 @pytest.mark.asyncio

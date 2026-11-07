@@ -215,6 +215,66 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     queryClient.clear()
   })
 
+  it('publishes curated sector members before a delayed sector analysis snapshot', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    const groupResponse = deferred<unknown>()
+    const snapshot = deferred<unknown>()
+    const sectorMembers = ['XLK', 'XLY', 'XLP', 'XLE', 'XLF', 'XLV', 'XLI', 'XLB', 'XLRE', 'XLC', 'XLU']
+      .map((symbol, index) => ({
+        id: index + 1,
+        instrument_id: index + 101,
+        position: index,
+        instrument: { id: index + 101, symbol, name: `${symbol} sector fund` },
+      }))
+    const workspaceStore = useWorkspaceStore(pinia)
+    apiGet.mockImplementation((path: string) => {
+      if (path === '/market-groups/sp500-sectors') {
+        return groupResponse.promise
+      }
+      if (path === '/analysis/groups/sp500-sectors/snapshot') return snapshot.promise
+      return Promise.resolve([])
+    })
+    const rowsStub = defineComponent({
+      props: ['rows'],
+      setup(props) {
+        return () => h('div', { 'data-test': 'sector-catalogue-rows' }, (props.rows as Array<{ symbol: string }>).map(row => row.symbol).join(','))
+      },
+    })
+    const tool: WorkspaceWindowState = {
+      id: 38, instance_key: 'sector-list', tool_type: 'watchlist', title: 'S&P 500 Sectors',
+      link_group: 'blue', configuration: { workspace_role: 'sector-universe' }, style: {}, state_schema_version: 1, position: 0,
+    }
+    const shellGroupRead = workspaceStore.loadMarketGroup('sp500-sectors')
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+    const wrapper = mount(WorkstationToolContent, {
+      props: { tool, activeWindowKey: tool.instance_key },
+      global: {
+        plugins: [pinia, [VueQueryPlugin, { queryClient }]],
+        stubs: {
+          VirtualWatchlistTool: rowsStub, UPlotChart: EmptyChartStub, ChartPlotLibrary: true,
+          ChartTemplateControl: true, DrawingToolbar: true, ToolWindow: ToolWindowShell,
+        },
+      },
+    })
+
+    const analysisRead = workspaceStore.loadGroupSnapshot('sp500-sectors', 'SPY')
+    expect(apiGet.mock.calls.filter(([path]) => path === '/market-groups/sp500-sectors')).toHaveLength(1)
+    groupResponse.resolve({ stable_key: 'sp500-sectors', members: sectorMembers, provenance: {} })
+    await shellGroupRead
+    await vi.waitFor(() => expect(workspaceStore.marketGroups['sp500-sectors']?.members).toHaveLength(11))
+    expect(wrapper.get('[data-test="sector-catalogue-rows"]').text()).toContain('XLB')
+    expect(apiGet).toHaveBeenCalledWith('/market-groups/sp500-sectors')
+    expect(apiGet).toHaveBeenCalledWith('/analysis/groups/sp500-sectors/snapshot', { benchmark: 'SPY' })
+    expect(workspaceStore.groupSnapshots['sp500-sectors']).toBeUndefined()
+
+    snapshot.resolve({ group_key: 'sp500-sectors', rows: [] })
+    await analysisRead
+    await flushPromises()
+    wrapper.unmount()
+    queryClient.clear()
+  })
+
   it('starts breadth preparation independently of delayed local reads and refreshes on worker progress', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
