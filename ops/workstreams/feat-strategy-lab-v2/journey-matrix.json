@@ -134,7 +134,8 @@
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: switches the displayed result identity when the persisted run selection changes",
         "frontend/tests/unit/components/test_study_lab_tool.test.ts :: shows a retryable error when a persisted result cannot be restored",
         "frontend/tests/unit/components/test_research_results_tool.test.ts :: automatically refreshes the persisted-run list when a Study run is created elsewhere",
-        "frontend/tests/unit/components/test_research_results_tool.test.ts :: ends a stalled initial list read with a visible retry instead of loading forever"
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: ends a stalled initial list read with a visible retry instead of loading forever",
+        "frontend/tests/unit/components/test_research_results_tool.test.ts :: clears a list-load error when another Study publishes successful cached runs"
       ],
       "api_evidence": [
         "GET /research/runs list owner/order contract: backend/tests/integration/api/test_code.py :: test_research_runs_list_is_user_scoped_and_newest_first",

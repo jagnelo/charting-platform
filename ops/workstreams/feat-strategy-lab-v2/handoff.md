@@ -19914,3 +19914,8 @@ whole module rerun passed. The exact TC45 development dependency remains byte-id
 worktree (all77 manifest entries verified); it is not browser/release qualification. Root must build
 and run the exact updated Strategy candidate in the shared fixture. R26 failures, the RRG Restore
 failure and all original18 roadmap criteria remain open; no browser or full-profile result is claimed.
+
+Follow-up: list-load failures now use a separate error state from rerun/cancel/promotion errors. A
+successful shared Research-runs cache update clears the stale list-load alert without clearing an
+unrelated mutation error. The focused module now passes70/70 and frontend type-check remains green;
+browser verification is still pending Root.

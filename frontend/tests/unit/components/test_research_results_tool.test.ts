@@ -108,6 +108,25 @@ describe('ResearchResultsTool', () => {
     }
   })
 
+  it('clears a list-load error when another Study publishes successful cached runs', async () => {
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } })
+    apiGet.mockRejectedValueOnce(new Error('temporary list failure'))
+    const wrapper = mountTool(queryClient)
+    try {
+      await flushPromises()
+      expect(wrapper.get('[role="alert"]').text()).toContain('temporary list failure')
+
+      queryClient.setQueryData(['workstation', 'research-runs'], [])
+      await flushPromises()
+
+      expect(wrapper.find('[role="alert"]').exists()).toBe(false)
+      expect(wrapper.get('[role="status"]').text()).toContain('No persisted studies yet')
+    } finally {
+      wrapper.unmount()
+      queryClient.clear()
+    }
+  })
+
   it('loads persisted runs and exposes selected structured artifacts', async () => {
     apiGet.mockResolvedValue([{ id: 9, status: 'completed', reproducibility_hash: 'abc', diagnostics: [], artifacts: [{ id: 3, name: 'current_streak', artifact_type: 'scalar', payload: { value: 4 } }, { id: 4, name: 'distribution', artifact_type: 'histogram', payload: { value: { bins: [{ start: 1, end: 2, count: 1 }] } } }, { id: 5, name: 'ranking', artifact_type: 'bar', payload: { value: { labels: ['XLK'], values: [12] } } }, { id: 6, name: 'confidence', artifact_type: 'range', payload: { value: { timestamps: ['2026-01-01'], lower: [1], upper: [3], center: [2] } } }] }])
     const wrapper = mountTool()
