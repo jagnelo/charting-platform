@@ -58,7 +58,7 @@
         "POST /code/validate is validation-only: backend/tests/integration/api/test_code.py :: test_code_validation_never_executes_source",
         "POST /research/runs preserves typed run parameters: backend/tests/integration/api/test_code.py :: test_research_run_merges_defaults_and_rejects_schema_invalid_parameters"
       ],
-      "browser_evidence": "The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R26 passed the ordinary high-low Study prepare/validate/run/results journey on frontend77190340/backenddcd3c823; its other two cases failed (RRG Restore after maximize/reload and fresh Results initially stuck Loading). The R26 trace records a pending research-runs GET but does not establish the cause. The current local candidate gates that initial query on a positive pane-visibility observation; its focused component regression passes, but exact-source browser verification is pending.",
+      "browser_evidence": "R35 exposed a test waiter that accepted any POST /data/ensure and could capture unrelated holdings preparation. The candidate waiter now requires instrument SPY, history, D1, adjusted, and the exact selected UTC date bounds before observing success; the existing request assertions and saved-run/draft/reload/Library-return assertions remain intact. R35 used the prior broad waiter, so its captured holdings response does not establish the Study preparation result; the corrected body remains pending. The authored Study flow checks the fresh-user empty Results state before a real Study validate/run, then verifies automatic persisted-row/artifact arrival, an XLB draft snapshot while the saved SPY run stays immutable, reload, and return from Library. Root R26 passed the ordinary high-low Study prepare/validate/run/results journey on frontend77190340/backenddcd3c823; its other two cases failed (RRG Restore after maximize/reload and fresh Results initially stuck Loading). The R26 trace records a pending research-runs GET but does not establish the cause. The current local candidate gates that initial query on a positive pane-visibility observation; its focused component regression passes, but exact-source browser verification is pending.",
       "approved_journey": [
         "J10 Study: edit/validate/run/results/cancel/return supported workflow"
       ]
@@ -585,10 +585,11 @@
           "Undo",
           "reload"
         ],
-        "visible_outcome": "Cancel preserves the renamed layout; confirmation removes it; public Undo restores its layout and data-bearing Benchmarks content, and the renamed tab survives reload.",
+        "visible_outcome": "Cancel preserves the renamed layout; confirmation removes it; public Undo restores its layout and data-bearing Benchmarks content. A distinct post-Undo rename is acknowledged by the persisted workspace snapshot before reload, then the tab survives reload.",
         "evidence": [
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
-          "frontend/src/views/WorkstationView.vue :: Rename layout input, Delete layout <name>, public Undo"
+          "frontend/src/views/WorkstationView.vue :: Rename layout input, Delete layout <name>, public Undo",
+          "R35 showed the prior rename absent after reload; the candidate waits for a fresh PUT /workspaces/{id}/snapshot containing the restored layout stable key and unique post-Undo name, verifies the 2xx response payload, then reloads. Product persistence remains unverified and TC owns the shared implementation."
         ]
       },
       {
@@ -600,13 +601,13 @@
           "maximize/restore",
           "reload"
         ],
-        "visible_outcome": "Workspace deletion cancellation preserves the copy; confirmation removes only the duplicate and the source workspace retains identical benchmark rows and rendered Chart content after reload and layout resizing.",
+        "visible_outcome": "Workspace deletion cancellation preserves the copy; confirmation removes only the duplicate and the source workspace retains the same benchmark column configuration and ordered member identities after reload and resize, with finite numeric results visibly loaded at each checkpoint.",
         "evidence": [
           "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts :: duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
           "frontend/src/views/WorkstationView.vue :: Duplicate workspace and Delete workspace",
           "frontend/src/stores/workspace.ts :: cloneWorkspace and deleteCurrentWorkspace"
         ],
-        "browser_evidence": "Root R33 screenshot and R34 exact-source bounded diagnostic show the Chart renders after resize/maximize/restore: .chart-tool canvas.first() is canvas.drawing-canvas with0 nontransparent/0 exact series pixels; .chart-tool .uplot canvas has4223 nontransparent/1696 exact series-color pixels. The test oracle now reads .chart-tool .uplot canvas and still requires >20 actual series-color pixels. R34's full workspace journey did not pass; only this one-canvas diagnostic passed its paint premise. The corrected full browser body remains pending Root and no journey pass is claimed."
+        "browser_evidence": "Root R33 screenshot and R34 exact-source bounded diagnostic show the Chart renders after resize/maximize/restore: .chart-tool canvas.first() is canvas.drawing-canvas with0 nontransparent/0 exact series pixels; .chart-tool .uplot canvas has4223 nontransparent/1696 exact series-color pixels. The test oracle now reads .chart-tool .uplot canvas and still requires >20 actual series-color pixels. R35 passed the Chart paint assertion but failed workspace comparison because initial rows were loading placeholders while later rows had live quotes. The candidate compares stable member names/order/count and visible columns, separately requiring at least two finite numeric result cells for source, duplicate, restored source and reload; it does not freeze changing quote text. The browser journey remains pending Root."
       }
     ],
     "execution_boundary": "Type-check, Playwright --list and workstream validation only; four test bodies and all runtime content witnesses remain unexecuted pending Root combined qualification. No browser session or fixture was started."

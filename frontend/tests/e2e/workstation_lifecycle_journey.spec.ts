@@ -319,7 +319,16 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tool).toContainText('Validated for isolated execution', { timeout: 20_000 })
     await tool.getByRole('button', { name: 'Run study' }).click()
     await expect(tool.locator('[aria-label^="Study run status:"]')).toHaveAttribute('data-status', 'completed', { timeout: 45_000 })
-    await expect(tool.locator('.study-lab-tool__artifacts article').first()).toBeVisible()
+    const currentStreak = tool.getByRole('status', { name: 'current_streak metric', exact: true })
+    await expect(currentStreak).toBeVisible()
+    await expect.poll(async () => {
+      const value = (await currentStreak.locator('strong').innerText()).trim()
+      return /^-?\d+(?:\.\d+)?$/.test(value) && Number.isFinite(Number(value))
+    }).toBe(true)
+    const completedStreaks = tool.getByRole('article', { name: 'completed_streaks table result', exact: true })
+    await expect(completedStreaks).toBeVisible()
+    await expect(completedStreaks.locator('table caption')).toHaveText('completed_streaks table')
+    await expect(completedStreaks.locator('table tbody tr').first()).toBeVisible()
   } else if (kind === 'results') {
     await expect(tool.locator('.research-results-tool__run-select').first()).toBeVisible({ timeout: 30_000 })
     await expect(tool.locator('.research-results-tool__artifacts article').first()).toBeVisible({ timeout: 20_000 })
@@ -340,6 +349,44 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tool.locator('.instrument-report')).not.toContainText(/Loading|No instrument selected/i)
   }
   return tool
+}
+
+async function watchlistConfigurationSignature(tool: ReturnType<Page['locator']>) {
+  const [columns, members] = await Promise.all([
+    tool.locator('.watchlist__header button').evaluateAll(elements => elements.map(element => element.getAttribute('aria-label'))),
+    tool.locator('.watchlist__row').evaluateAll(elements => elements.map(element => {
+      const label = element.getAttribute('aria-label') ?? ''
+      const match = label.match(/^(.+?)\. Position (\d+) of (\d+)\./)
+      return {
+        identity: match?.[1] ?? null,
+        position: Number(element.getAttribute('aria-posinset')),
+        count: Number(element.getAttribute('aria-setsize')),
+      }
+    })),
+  ])
+  return { columns, members }
+}
+
+async function assertUsefulWatchlistNumbers(tool: ReturnType<Page['locator']>) {
+  const numericCells = tool.locator('.watchlist__row .watchlist__cell--positive, .watchlist__row .watchlist__cell--negative, .watchlist__row .watchlist__cell--zero')
+  await expect.poll(async () => {
+    const values = await numericCells.allTextContents()
+    return values.filter(value => {
+      const normalized = value.trim()
+      return /^-?\d+(?:\.\d+)?%$/.test(normalized) && Number.isFinite(Number(normalized.slice(0, -1)))
+    }).length
+  }, { timeout: 30_000 }).toBeGreaterThanOrEqual(2)
+}
+
+function isWorkspaceSnapshotWithTab(request: import('@playwright/test').Request, stableKey: string, name: string) {
+  if (request.method() !== 'PUT' || !/^\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(request.url()).pathname)) return false
+  let body: { tabs?: Array<{ stable_key?: string; name?: string }> }
+  try {
+    body = request.postDataJSON() as typeof body
+  } catch {
+    return false
+  }
+  return body.tabs?.some(tab => tab.stable_key === stableKey && tab.name === name) ?? false
 }
 
 test.describe('Workstation lifecycle journeys', () => {
@@ -434,11 +481,16 @@ test.describe('Workstation lifecycle journeys', () => {
     await page.getByRole('button', { name: 'Duplicate layout', exact: true }).click()
     await openWorkspaceMenu(page)
     const renamed = `Review ${Date.now()}`
-    const renameField = page.getByRole('textbox', { name: 'Rename layout' }).last()
+    const copiedLayoutItem = page.locator('.workstation__layout-item').filter({
+      has: page.getByRole('menuitem', { name: 'US Top Down Copy', exact: true }),
+    })
+    const renameField = copiedLayoutItem.getByRole('textbox', { name: 'Rename layout' })
     await renameField.fill(renamed)
     await renameField.press('Tab')
     const renamedTab = page.getByRole('tab', { name: renamed, exact: true })
     await expect(renamedTab).toBeVisible()
+    const renamedKey = await renamedTab.getAttribute('data-tab-key')
+    expect(renamedKey).toBeTruthy()
     await page.keyboard.press('Escape')
 
     const beforeOrder = await page.locator('.workstation__tabs > [role="tab"]').allTextContents()
@@ -466,8 +518,23 @@ test.describe('Workstation lifecycle journeys', () => {
     await recovery.getByRole('menuitem', { name: 'Undo', exact: true }).click()
     await expect(renamedTab).toBeVisible()
     await assertUsefulTool(page, 'Benchmarks', 'watchlist')
+    const persistedName = `${renamed} persisted`
+    const savedLayoutResponse = page.waitForResponse(response =>
+      response.ok() && isWorkspaceSnapshotWithTab(response.request(), renamedKey!, persistedName))
+    const recoveryMenu = await openWorkspaceMenu(page)
+    const restoredLayoutItem = recoveryMenu.locator('.workstation__layout-item').filter({
+      has: page.getByRole('menuitem', { name: renamed, exact: true }),
+    })
+    const restoredRenameField = restoredLayoutItem.getByRole('textbox', { name: 'Rename layout' })
+    await restoredRenameField.fill(persistedName)
+    await restoredRenameField.press('Tab')
+    const persistedLayoutTab = page.getByRole('tab', { name: persistedName, exact: true })
+    await expect(persistedLayoutTab).toBeVisible()
+    const snapshotResponse = await savedLayoutResponse
+    const persistedWorkspace = await snapshotResponse.json() as { tabs?: Array<{ stable_key?: string; name?: string }> }
+    expect(persistedWorkspace.tabs?.some(tab => tab.stable_key === renamedKey && tab.name === persistedName)).toBe(true)
     await page.reload()
-    await expect(renamedTab).toBeVisible()
+    await expect(persistedLayoutTab).toBeVisible()
     await expect(page.locator('.workstation__tabs > [role="tab"]')).toHaveCount(beforeOrder.length)
     await browserDiagnostics.expectNoCriticalIssues()
   })
@@ -478,14 +545,18 @@ test.describe('Workstation lifecycle journeys', () => {
     const sourceName = await page.locator('.workstation__workspace-name').textContent()
     expect(sourceName?.trim()).toBe('US Top Down')
     const sourceBenchmarks = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
-    const sourceRows = await sourceBenchmarks.locator('.watchlist__row').allTextContents()
-    expect(sourceRows.length).toBeGreaterThan(0)
+    await assertUsefulWatchlistNumbers(sourceBenchmarks)
+    const sourceConfiguration = await watchlistConfigurationSignature(sourceBenchmarks)
+    expect(sourceConfiguration.members.length).toBeGreaterThan(0)
+    expect(sourceConfiguration.members.every(member => member.identity && member.position > 0 && member.count > 0)).toBe(true)
 
     const menu = await openWorkspaceMenu(page)
     await menu.getByRole('menuitem', { name: 'Duplicate workspace', exact: true }).click()
     const duplicateName = 'US Top Down Copy'
     await expect(page.locator('.workstation__workspace-name')).toHaveText(duplicateName)
-    await assertUsefulTool(page, 'Benchmarks', 'watchlist')
+    const duplicateBenchmarks = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
+    await assertUsefulWatchlistNumbers(duplicateBenchmarks)
+    expect(await watchlistConfigurationSignature(duplicateBenchmarks)).toEqual(sourceConfiguration)
 
     page.once('dialog', dialog => dialog.dismiss())
     const cancelMenu = await openWorkspaceMenu(page)
@@ -533,11 +604,13 @@ test.describe('Workstation lifecycle journeys', () => {
     await expect((await openWorkspaceMenu(page)).getByRole('option', { name: duplicateName, exact: true })).toHaveCount(0)
     await expect(page.locator('.workstation__workspace-name')).toHaveText(sourceName!.trim())
     const restoredSource = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
-    await expect(restoredSource.locator('.watchlist__row')).toHaveText(sourceRows)
+    await assertUsefulWatchlistNumbers(restoredSource)
+    expect(await watchlistConfigurationSignature(restoredSource)).toEqual(sourceConfiguration)
     await page.reload()
     await expect(page.locator('.workstation__workspace-name')).toHaveText(sourceName!.trim())
     const afterReload = await assertUsefulTool(page, 'Benchmarks', 'watchlist')
-    await expect(afterReload.locator('.watchlist__row')).toHaveText(sourceRows)
+    await assertUsefulWatchlistNumbers(afterReload)
+    expect(await watchlistConfigurationSignature(afterReload)).toEqual(sourceConfiguration)
     await browserDiagnostics.expectNoCriticalIssues()
   })
 })

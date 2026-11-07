@@ -19957,3 +19957,38 @@ build and four affected ordinary browser journeys running; no terminal browser o
 here. These are development pins, not release acceptance. Earlier Provider/TC pins and all prior red
 receipts remain historical. The R26 Results-loading cause, TC-owned RRG Restore defect, full browser
 profile, and original18-criterion roadmap remain open with all safety holds unchanged.
+
+### R35 Study preparation response capture (2026-11-07)
+
+Root reported that the first Study journey's broad `POST /data/ensure` waiter captured an independent
+holdings request (`datasets: ["holdings"]`, no date bounds) before the clicked validation's SPY
+history request. The spec now waits for the exact instrument/SPY, history, D1, adjusted request and
+the selected `2024-01-02T00:00:00.000Z` through `2025-12-29T23:59:59.999Z` range. Existing response
+success and request-body assertions remain unchanged. The shared predicate's default open-ended range
+keeps the controlled independent-member/context tests scoped as before. Playwright discovery confirms
+all10 Study journeys; no body was run locally. Root's R35 combined run was still executing its other
+six cases at the time of this correction, so this candidate has no browser-pass claim. Saved draft,
+immutable run, Results, and return assertions remain intact; broader browser qualification is pending.
+
+### R35 terminal follow-up and owned spec corrections (2026-11-07)
+
+Root's terminal receipt reports frontend `7c2f42381499f3bb37d80ddebecb38dcfa5bd521`, backend
+`23b6aba94476fed5eeb54d9073dadb373d169aaa`, one pass and nine failures in279.21s. The pass was
+Notes; no broad journey acceptance is inferred. The Chart resize/maximize/restore paint assertion
+passed with the `.chart-tool .uplot canvas` selector. The Study preparation failure used the prior
+broad waiter and captured a separate holdings request; the current candidate matches the exact SPY
+history/D1/adjusted/date-range ensure request before checking its successful response.
+
+The workspace lifecycle failure compared full watchlist row text captured while prices were still
+loading with later live quote values. The candidate now compares stable member identity/order/count
+and visible column configuration, and separately waits for at least two finite numeric result cells
+before duplicate, after restore, and after reload. It no longer treats a loading placeholder as a
+useful result or freezes refreshable quote text. The renamed-layout case still fails after reload in
+R35; TC owns the shared persistence fix. The Strategy spec now waits for the actual snapshot PUT with
+a unique post-Undo layout name and checks its successful response payload before reloading, so the
+browser body can distinguish missing save acknowledgment from a UI-only rename. This is test
+synchronization, not a product fix or browser pass. The Study recreation helper was aligned to the
+actual completed-run DOM: it requires the finite named `current_streak` metric and a nonempty
+`completed_streaks` table, not a nonexistent `.study-lab-tool__artifacts` selector. Source review
+confirmed the remaining factory outcome selectors against current component markup, including the
+existing Results run-select. Updated browser bodies remain pending Root's combined run.
