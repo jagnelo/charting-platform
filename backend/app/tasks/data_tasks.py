@@ -10,7 +10,7 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -2924,6 +2924,69 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                     bounded_redact_provider_message(exc),
                 )
                 lease_lost += 1
+            except RefreshDependencyPending as exc:
+                # This is an expected wait, not a failed transaction. In
+                # particular, history planning may have just queued a native
+                # usage prerequisite and attached it to this job. Commit that
+                # graph before deferring the leased history child.
+                claimed_job_id, claimed_lease_token = claimed_leases[id(job)]
+                pending_payload = deepcopy(job.metadata_payload or {})
+                now = datetime.now(UTC)
+                with db.no_autoflush:
+                    lease_row = (
+                        await db.execute(
+                            select(MarketRefreshJob)
+                            .where(
+                                MarketRefreshJob.id == claimed_job_id,
+                                MarketRefreshJob.status == "leased",
+                                MarketRefreshJob.lease_token == claimed_lease_token,
+                                or_(
+                                    MarketRefreshJob.leased_until.is_(None),
+                                    MarketRefreshJob.leased_until >= now,
+                                ),
+                            )
+                            .with_for_update()
+                            .execution_options(populate_existing=True)
+                        )
+                    ).scalar_one_or_none()
+                if lease_row is None:
+                    await db.rollback()
+                    previous_job_rollback = True
+                    logger.info(
+                        "Refresh job %s lease lost before prerequisite defer",
+                        claimed_job_id,
+                    )
+                    lease_lost += 1
+                    continue
+                # Restore the in-memory dependency graph after the locked read,
+                # then flush it and the prerequisite insert under the validated
+                # lease row lock.
+                lease_row.metadata_payload = pending_payload
+                await db.flush()
+                await db.commit()
+                await db.refresh(lease_row)
+                job = lease_row
+                try:
+                    await retry_refresh_job(
+                        db,
+                        job,
+                        str(exc),
+                        retry_at=exc.retry_at,
+                        lease_token=claimed_lease_token,
+                    )
+                except RefreshLeaseLostError as lease_exc:
+                    logger.info(
+                        "Refresh job %s lease lost while deferring prerequisite: %s",
+                        claimed_job_id,
+                        bounded_redact_provider_message(lease_exc),
+                    )
+                    lease_lost += 1
+                else:
+                    retried += 1
+                    next_wakeup_at = min(
+                        next_wakeup_at or exc.retry_at,
+                        exc.retry_at,
+                    )
             except Exception as exc:
                 original_error = exc
                 original_error_message = str(exc)
