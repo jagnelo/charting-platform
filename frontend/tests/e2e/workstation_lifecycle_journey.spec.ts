@@ -379,7 +379,25 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(plot).toBeVisible({ timeout: 30_000 })
     const canvas = plot.locator('canvas')
     await expect(canvas).toBeVisible()
-    await expect.poll(() => readRrgMarkerAudit(canvas), { timeout: 30_000 }).toMatchObject({ passed: true })
+
+    const settings = tool.locator('.rotation-tool__settings')
+    const settingsSummary = settings.locator('summary')
+    await expect(settingsSummary).toHaveText('Settings')
+    if (await settings.getAttribute('open') === null) await settingsSummary.click()
+    await expect(settings).toHaveAttribute('open', '')
+    const timeframe = tool.getByRole('combobox', { name: 'Rotation timeframe', exact: true })
+    if (typeof configuration.timeframe === 'string') {
+      await expect(timeframe).toHaveValue(configuration.timeframe)
+    }
+
+    const rowsDisclosure = tool.locator('.rotation-tool__rows-disclosure')
+    const rowsSummary = rowsDisclosure.locator('summary')
+    await expect(rowsSummary).toContainText('Rows')
+    if (await rowsDisclosure.getAttribute('open') === null) await rowsSummary.click()
+    await expect(rowsDisclosure).toHaveAttribute('open', '')
+    const rows = tool.getByRole('region', { name: 'Relative rotation rows' }).locator('.rotation-tool__row')
+    await expect(rows.first()).toBeVisible({ timeout: 30_000 })
+    await expect(rows).not.toHaveCount(0)
     await plot.focus()
     await page.keyboard.press('Home')
     const tooltip = tool.locator('.rotation-tool__tooltip')
@@ -388,9 +406,13 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
     await expect(tooltip).toContainText(/Trend .*Momentum/)
     await page.keyboard.press('ArrowRight')
     await expect(tooltip).toBeVisible()
-    const rows = tool.getByRole('region', { name: 'Relative rotation rows' }).locator('.rotation-tool__row')
-    await expect(rows.first()).toBeVisible({ timeout: 30_000 })
-    await expect(rows).not.toHaveCount(0)
+
+    await rowsSummary.click()
+    await expect(rowsDisclosure).not.toHaveAttribute('open', '')
+    await settingsSummary.click()
+    await expect(settings).not.toHaveAttribute('open', '')
+    await expect(plot).toBeVisible()
+    await expect.poll(() => readRrgMarkerAudit(canvas), { timeout: 30_000 }).toMatchObject({ passed: true })
   } else if (kind === 'map') {
     const tiles = tool.locator('.market-map-tool__tiles')
     await expect(tiles).toBeVisible({ timeout: 30_000 })
