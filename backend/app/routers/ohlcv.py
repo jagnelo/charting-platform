@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.config import settings
 from app.database import get_db
+from app.models.data_source import DataSource
 from app.models.instrument import Instrument
 from app.models.ohlcv import OHLCVBar, Timeframe
 from app.models.user import User
@@ -24,7 +25,6 @@ from app.services.derived_timeframes import (
 from app.services.distributed_locks import DistributedLockError
 from app.services.market_data import (
     _default_series_bar_condition,
-    _e2e_fixture_data_source_id,
     fetch_ohlcv,
     fetch_ohlcv_latest,
     fetch_ohlcv_page_before,
@@ -175,16 +175,7 @@ async def get_local_ohlcv(
     # The default view is one coherent selected series. Explicit provider and
     # derived views remain lineage views across every retained series.
     if view == "canonical":
-        predicates.append(
-            _default_series_bar_condition(
-                instrument.id,
-                timeframe,
-                adjusted,
-                source_data_source_id=(
-                    _e2e_fixture_data_source_id() if settings.E2E_SEED_MARKET_DATA else None
-                ),
-            )
-        )
+        predicates.append(_default_series_bar_condition(instrument.id, timeframe, adjusted))
     before = _as_utc(before) if before is not None else None
     if before is not None:
         predicates.append(OHLCVBar.ts < before)
@@ -193,7 +184,10 @@ async def get_local_ohlcv(
     elif view == "derived":
         predicates.append(OHLCVBar.is_derived.is_(True))
     if settings.E2E_SEED_MARKET_DATA:
-        predicates.append(OHLCVBar.data_source_id == _e2e_fixture_data_source_id())
+        predicates.append(
+            OHLCVBar.data_source_id
+            == select(DataSource.id).where(DataSource.name == "e2e_reference").scalar_subquery()
+        )
     bars = (
         (
             await db.execute(
