@@ -27,6 +27,7 @@ from app.services.etf_holdings_provider_bridge import (
     _sync_provider_invoke,
     bind_etf_holdings_request_context,
 )
+from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
 
 
 class _ChunkStream(httpx.AsyncByteStream):
@@ -1406,6 +1407,63 @@ async def test_adapter_httpx_redirects_are_dispatched_as_separate_shared_attempt
     ]
     assert all("follow_redirects" not in kwargs for _url, _method, kwargs in urls)
     assert binding.request_log_ids == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_redirect_admission_hold_preserves_known_retry_without_sending_next_hop(monkeypatch):
+    dispatches = []
+    transported = []
+    retry_at = datetime.now(UTC) + timedelta(seconds=17)
+    db = object()
+    adapter = SimpleNamespace(source_provider="spdr")
+
+    async def execute_attempt(db_arg, **kwargs):
+        assert db_arg is db
+        attempt = kwargs["single_attempt"]
+        dispatches.append(kwargs["request_url"])
+        if len(dispatches) == 2:
+            raise ProviderQuotaAdmissionError(
+                "durable provider quota admission denied for etf_holdings/fetch_etf_holdings_latest: spdr",
+                retry_at=retry_at,
+            )
+        request = httpx.Request(attempt.method, kwargs["request_url"])
+        transported.append(kwargs["request_url"])
+        response = httpx.Response(
+            302,
+            headers={"location": "/workbook.csv"},
+            content=b"",
+            request=request,
+        )
+        binding = bridge._REQUEST_BINDING.get()
+        binding.request_log_ids.append(1606)
+        binding.request_urls_by_log_id[1606] = kwargs["request_url"]
+        return SimpleNamespace(result=response, request_log_id=1606)
+
+    monkeypatch.setattr(
+        "app.services.etf_holdings_provider_bridge.execute_etf_holdings_request_attempt",
+        execute_attempt,
+    )
+    with bind_etf_holdings_request_context(
+        db=db,
+        adapter=adapter,
+        profile_id=4,
+        instrument_id=7,
+        provider_symbol="XHB",
+        operation="fetch_etf_holdings_latest",
+    ) as binding:
+        async with adapter_httpx.AsyncClient(timeout=2) as client:
+            with pytest.raises(ProviderQuotaAdmissionError) as raised:
+                await client.get("https://publisher.example/xhb", follow_redirects=True)
+
+    assert raised.value.retry_at == retry_at
+    assert dispatches == [
+        "https://publisher.example/xhb",
+        "https://publisher.example/workbook.csv",
+    ]
+    assert transported == ["https://publisher.example/xhb"]
+    # The first redirect response is a completed physical attempt. The second
+    # URL reaches shared admission but its transport and request log do not.
+    assert binding.request_log_ids == [1606]
 
 
 @pytest.mark.asyncio

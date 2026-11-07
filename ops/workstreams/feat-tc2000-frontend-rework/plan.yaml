@@ -5089,9 +5089,9 @@ development_dependency_import_history:
     superseded_by: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
 
 approved_development_dependency_imports:
-- source_sha: ad114d20eff04992f384b5a57bb3999e3da6d6f7
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/ad114d20eff04992f384b5a57bb3999e3da6d6f7.json
-  manifest_sha256: 1854e1e23b605629b7772111426d91b6ba36c0758ea4a41efcda31fe35329f02
+- source_sha: 13630db12d4f0f5810b9baa73725f75fb7e653cc
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/13630db12d4f0f5810b9baa73725f75fb7e653cc.json
+  manifest_sha256: 6bb50af6c3b904ae0262d01f997428c8238b0f5fc73a23a8fa2945ad456ef940
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5145,6 +5145,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_data_preparation_contracts.py
   - backend/tests/unit/services/test_data_preparation_history_planning.py
   - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
   - backend/tests/unit/services/test_derived_timeframes.py
   - backend/tests/unit/services/test_e2e_seed.py
   - backend/tests/unit/services/test_etf_holdings_adapters.py
@@ -5153,6 +5154,7 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_etf_holdings_native_qualification.py
   - backend/tests/unit/services/test_etf_holdings_preparation.py
   - backend/tests/unit/services/test_etf_holdings_preparation_hook.py
+  - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
   - backend/tests/unit/services/test_etf_issuer_catalog.py
   - backend/tests/unit/services/test_evaluator_preflight.py
   - backend/tests/unit/services/test_exchange_catalog.py
@@ -5181,9 +5183,9 @@ approved_development_dependency_imports:
   - frontend/tests/unit/components/test_instrument_note_tool.test.ts
   - frontend/tests/unit/views/test_baskets_view.test.ts
   - frontend/tests/unit/views/test_etf_holdings_view.test.ts
-- source_sha: bc98876bf78673e4d2c223e0f4796d783b6a9b98
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/bc98876bf78673e4d2c223e0f4796d783b6a9b98.json
-  manifest_sha256: 712191082ecb288079f349e70a981a1adfb46e4aa7e69d5080d329878119552c
+- source_sha: be61e2d70e917a7ff758d137068c1dc779097129
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/be61e2d70e917a7ff758d137068c1dc779097129.json
+  manifest_sha256: cdc18ee842d7f056a22b66e0210a1f091a566724e07339f61965b5575c3a2549
   paths:
   - frontend/src/components/dashboard/DashboardAdvancedChartWidget.vue
   - frontend/src/components/dashboard/DashboardInstrumentDetailsWidget.vue

@@ -305,6 +305,7 @@
     </div>
     <div v-else-if="tool.tool_type === 'chart' && tool.instance_key !== 'ratio-chart'" class="chart-tool">
       <DrawingToolbar v-if="isActiveToolWindow" class="chart-tool__drawing-toolbar" />
+      <div v-else class="chart-tool__drawing-toolbar chart-tool__drawing-toolbar--inactive" aria-hidden="true" inert />
         <div class="chart-tool__surface" :class="{ 'chart-tool__surface--comparisons': comparisonLegend.length > 0 }">
           <ChartTemplateControl class="chart-tool__templates" :source-window-key="tool.instance_key" :configuration="chartTemplateConfiguration" :indicator-configs="chartStore.indicators" @apply="applyChartTemplate" />
         <!-- Use the literal kebab-case event contract so the virtual component
@@ -4856,6 +4857,7 @@ const proxyCoverage = computed(() => industryProxySnapshot.value
 <style scoped>
 .chart-tool { display: flex; height: 100%; min-height: 0; background: #101419; container-type: inline-size; container-name: chart-tool; }
 .chart-tool__drawing-toolbar { flex: 0 0 40px; max-height: 100%; box-sizing: border-box; overflow-x: hidden; overflow-y: auto; }
+.chart-tool__drawing-toolbar--inactive { pointer-events: none; }
 .chart-tool__surface { position: relative; z-index: 2; min-width: 0; min-height: 0; flex: 1 1 auto; padding-top: 24px; box-sizing: border-box; }
 .chart-tool__status { position: absolute; inset: 24px 0 0; z-index: 4; background: rgba(7, 12, 16, 0.72); pointer-events: none; }
 .chart-tool__history-acquisition { position: absolute; z-index: 11; top: 50%; left: 50%; display: grid; justify-items: center; gap: 8px; width: max-content; max-width: calc(100% - 24px); box-sizing: border-box; transform: translate(-50%, -50%); padding: 10px 12px; color: var(--tc-text, #d5dde4); background: var(--tc-surface, #20282e); border: 1px solid var(--tc-border, #38444c); border-radius: 6px; box-shadow: 0 6px 18px #0008; text-align: center; }

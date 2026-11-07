@@ -304,8 +304,12 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   const search = page.getByRole('combobox', { name: 'Active symbol' })
   await expect(search).toBeVisible()
   await expect(search).toHaveValue('SPY')
-  const previousChartReadout = page.locator('.tool-window--active .chart-root .ohlcv-info').first()
-  const previousOhlcText = await previousChartReadout.innerText()
+  const previousChart = page.locator('.tool-window--active .chart-tool [role="region"][aria-label="Chart workspace"]').first()
+  await expect(previousChart).toBeVisible()
+  await expect(previousChart).toHaveAttribute('aria-busy', 'false')
+  const previousChartProvenance = previousChart.locator('.sr-only').first()
+  const previousChartProvenanceText = await previousChartProvenance.innerText()
+  expect(previousChartProvenanceText).toMatch(/\d+ bars;/)
 
   await page.route('**/api/v1/instruments/search**', async route => {
     const url = new URL(route.request().url())
@@ -381,8 +385,11 @@ test('Workstation search resolves an unknown ticker and reports shared history p
   })
   expect(selectedPreparation).not.toHaveProperty('start_at')
   expect(selectedPreparation).not.toHaveProperty('end_at')
-  await expect(page.locator('.tool-window--active .chart-root .sr-only')).toContainText('chart; no OHLCV bars loaded.')
-  expect(await page.locator('.tool-window--active .chart-root').innerText()).not.toContain(previousOhlcText)
+  const selectedChart = page.locator('.tool-window--active .chart-tool [role="region"][aria-label="Chart workspace"]').first()
+  await expect(selectedChart).toBeVisible()
+  await expect(selectedChart.locator('.sr-only')).toContainText('chart; no OHLCV bars loaded.')
+  expect(await selectedChart.locator('.sr-only').innerText()).not.toBe(previousChartProvenanceText)
+  await expect(page.locator('.tool-window--active .tool-window__symbol')).toHaveText('TCNEW')
   await expect(page.locator('.workstation__selection-acquisition').filter({ hasText: 'No reviewed data source can provide this request.' })).toBeVisible()
   expect(legacyHistoryRequests).toEqual([])
   await browserDiagnostics.expectNoCriticalIssues()
@@ -1838,6 +1845,7 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
   type FixtureSymbol = keyof typeof instruments
   type FixtureETF = Exclude<FixtureSymbol, 'UNXQ'>
   const historyRequests: Array<{ symbol: FixtureSymbol; body: DataEnsureRequest }> = []
+  const holdingsPreparationRequests: Array<{ symbol: FixtureSymbol; body: DataEnsureRequest }> = []
   const preparationResponseIds: string[] = []
   const issuerRequests: Array<{ symbol: FixtureSymbol; body: IssuerRequest }> = []
   const discoveryRequests: DiscoveryRequest[] = []
@@ -2058,7 +2066,25 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     const id = ensureInstrumentId(body)
     const symbol = (Object.keys(instruments) as FixtureSymbol[]).find(key => instruments[key].id === id)
     if (!symbol) return route.continue()
-    expect(body.datasets).toContain('history')
+    const datasets = body.datasets ?? ['history']
+    expect(datasets.length, 'each preparation request must identify its independent dataset work').toBeGreaterThan(0)
+    if (!datasets.includes('history')) {
+      expect(datasets).toEqual(['holdings'])
+      holdingsPreparationRequests.push({ symbol, body })
+      const response = historyPreparation(body, id, symbol, 'unavailable')
+      response.status = 'unavailable'
+      response.has_pending_work = false
+      response.completed = 0
+      response.total = response.dependencies.length
+      response.dependencies = response.dependencies.map(dependency => ({
+        ...dependency,
+        status: 'unavailable',
+        reason_code: 'test_fixture_hold',
+      }))
+      preparationResponseIds.push(response.request_id)
+      await route.fulfill({ status: 200, json: response })
+      return
+    }
     expect(body).toMatchObject({ timeframe: 'D1', adjusted: true })
     expect(body.start_at).toBeUndefined()
     expect(body.end_at).toBeUndefined()
@@ -2377,7 +2403,9 @@ test('main Workstation keeps selected ETF chart history independent and ignores 
     expect(historyRequests.every(request => request.body.timeframe === 'D1' && request.body.adjusted)).toBe(true)
     expect(historyRequests.every(request => request.body.datasets?.includes('history'))).toBe(true)
     expect(historyRequests.every(request => request.body.start_at === undefined && request.body.end_at === undefined)).toBe(true)
-    expect(preparationResponseIds).toHaveLength(historyRequests.length)
+    expect(holdingsPreparationRequests.some(request => request.symbol === 'IGV')).toBe(true)
+    expect(holdingsPreparationRequests.every(request => request.body.datasets?.every(dataset => dataset !== 'history'))).toBe(true)
+    expect(preparationResponseIds).toHaveLength(historyRequests.length + holdingsPreparationRequests.length)
     expect(new Set(preparationResponseIds).size).toBe(preparationResponseIds.length)
     expect(directHistoryRequests).toEqual([])
     const issuerRequestIds = issuerRequests.map(request => request.body.request_id)

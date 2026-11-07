@@ -1135,6 +1135,7 @@ function selectWorkspaceTab(stableKey: string) {
   // responses cannot reinstall the previous layout over the newly selected tab.
   workspaceStore.activeTabKey = stableKey
   workspaceStore.scheduleSnapshot()
+  void workspaceStore.saveSnapshot()
   void nextTick(() => {
     workspaceTabSwitchPending.value = false
   })
@@ -2143,7 +2144,18 @@ async function openTool(tool: OpenableToolDefinition, configurationOverride: Rec
     // The host contract already applies active_window_key through its layout
     // watcher, so waiting for or clicking a nonexistent `.lm_tab` only adds a
     // multi-second delay to ordinary Add-tool and Market Map actions.
-    if (isActiveVirtualToolRoot(toolRoot, opened.instance_key, workspaceStore.activeTab?.active_window_key)) return opened
+    if (isActiveVirtualToolRoot(toolRoot, opened.instance_key, workspaceStore.activeTab?.active_window_key)) {
+      // Opening a tool mutates both the active tab's window list and its
+      // active-window selection. Flush that exact active-layout snapshot once
+      // the user-visible tool is active so a fast sign-out/reload cannot leave
+      // the panel in memory but restore an older workspace context.
+      const persisted = await workspaceStore.saveSnapshot()
+      if (!componentMounted) return
+      if (!persisted && workspaceStore.snapshotSaveStatus === 'error') {
+        workspaceStore.error = workspaceStore.snapshotSaveError ?? 'The tool opened, but its workspace selection could not be saved.'
+      }
+      return opened
+    }
     const stack = toolRoot?.closest<HTMLElement>('.lm_stack')
     const stackItems = stack ? [...stack.querySelectorAll<HTMLElement>('.lm_items > div')] : []
     const itemIndex = toolRoot

@@ -136,7 +136,9 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
     && /\/api\/v1\/workspaces\/\d+\/snapshot$/.test(new URL(response.url()).pathname) && response.ok())
   await page.getByRole('menuitem', { name: 'Study Results', exact: true }).click()
   await resultsToolSnapshotA
-  await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('Run #91501')
+  const resultsA = page.getByRole('region', { name: 'Study Lab research results' })
+  await expect(resultsA).toBeVisible()
+  await expect(resultsA).toContainText('Run #91501')
 
   // A failed refresh is one terminal session boundary: tokens clear, private
   // UI unmounts, and the app settles at login instead of looping unauthenticated
@@ -153,7 +155,9 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
 
   await loginA.loginAs(userA, PASSWORD)
   await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
-  await expect(page.getByRole('region', { name: 'Study Lab research results' })).toContainText('Run #91501')
+  const restoredResultsA = page.getByRole('region', { name: 'Study Lab research results' })
+  await expect(restoredResultsA).toBeVisible()
+  await expect(restoredResultsA).toContainText('Run #91501')
   await expect(page.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
 
@@ -164,7 +168,9 @@ test('J12 session boundary isolates test-owned same-origin accounts, expired ref
   await expect(secondWindow.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
   await expect(secondWindow.getByRole('region', { name: /notes$/i }).getByRole('textbox', { name: 'Instrument note' }))
     .toHaveValue('private-note-A')
-  await expect(secondWindow.getByRole('region', { name: 'Study Lab research results' })).toContainText('Run #91501')
+  const restoredResultsInSecondWindow = secondWindow.getByRole('region', { name: 'Study Lab research results' })
+  await expect(restoredResultsInSecondWindow).toBeVisible()
+  await expect(restoredResultsInSecondWindow).toContainText('Run #91501')
 
   const firstWindowAuthenticatedUsers: string[] = []
   page.on('response', async response => {

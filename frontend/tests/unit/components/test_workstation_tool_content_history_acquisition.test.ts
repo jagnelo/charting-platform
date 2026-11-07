@@ -339,7 +339,7 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
     ensure.mockRestore()
   })
 
-  it('removes chart drawing controls from inactive docked tools and restores them only for the active chart', async () => {
+  it('reserves the drawing rail while keeping inactive chart controls out of keyboard access', async () => {
     const pinia = createPinia()
     setActivePinia(pinia)
     const tool = chartFixture()
@@ -352,17 +352,22 @@ describe('WorkstationToolContent missing chart history entrypoint', () => {
           UPlotChart: EmptyChartStub,
           ChartPlotLibrary: { template: '<div />' },
           ChartTemplateControl: { template: '<div />' },
-          DrawingToolbar: { template: '<div data-test="chart-drawing-toolbar" />' },
+          DrawingToolbar: { template: '<div class="chart-tool__drawing-toolbar" data-test="chart-drawing-toolbar"><button>Trend Line</button></div>' },
           ToolWindow: ToolWindowShell,
         },
       },
     })
 
-    expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+    const inactiveRail = wrapper.get('.chart-tool__drawing-toolbar--inactive')
+    expect(inactiveRail.attributes('aria-hidden')).toBe('true')
+    expect(inactiveRail.attributes('inert')).toBe('')
+    expect(inactiveRail.findAll('button')).toHaveLength(0)
     await wrapper.setProps({ activeWindowKey: tool.instance_key })
     expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(true)
+    expect(wrapper.find('.chart-tool__drawing-toolbar--inactive').exists()).toBe(false)
     await wrapper.setProps({ activeWindowKey: 'another-chart' })
     expect(wrapper.find('[data-test="chart-drawing-toolbar"]').exists()).toBe(false)
+    expect(wrapper.find('.chart-tool__drawing-toolbar--inactive').exists()).toBe(true)
 
     wrapper.unmount()
     queryClient.clear()

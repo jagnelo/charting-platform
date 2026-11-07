@@ -2699,6 +2699,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                             from app.services.market_data import _coverage_calendar
                             from app.services.market_series import (
                                 select_default_series_for_complete_range,
+                                select_default_series_for_latest_contiguous_suffix,
                             )
                             from app.services.ohlcv_coverage import assess_ohlcv_coverage
 
@@ -2729,18 +2730,32 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                 for bar in selected_range_bars
                                 if bar.market_series_id is not None
                             }
-                            if selected_coverage.status.value == "ready" and len(series_ids) == 1:
-                                default_series_selected = (
-                                    await select_default_series_for_complete_range(
-                                        db,
-                                        instrument_id=instrument.id,
-                                        timeframe=timeframe.value,
-                                        adjusted=bool(preparation.get("adjusted", True)),
-                                        market_series_id=next(iter(series_ids)),
-                                        start=selected_range_start,
-                                        end=full_range_end,
+                            if len(series_ids) == 1:
+                                selected_series_id = next(iter(series_ids))
+                                if selected_coverage.status.value == "ready":
+                                    default_series_selected = (
+                                        await select_default_series_for_complete_range(
+                                            db,
+                                            instrument_id=instrument.id,
+                                            timeframe=timeframe.value,
+                                            adjusted=bool(preparation.get("adjusted", True)),
+                                            market_series_id=selected_series_id,
+                                            start=selected_range_start,
+                                            end=full_range_end,
+                                        )
                                     )
-                                )
+                                if not default_series_selected:
+                                    default_series_selected = (
+                                        await select_default_series_for_latest_contiguous_suffix(
+                                            db,
+                                            instrument_id=instrument.id,
+                                            timeframe=timeframe.value,
+                                            adjusted=bool(preparation.get("adjusted", True)),
+                                            market_series_id=selected_series_id,
+                                            requested_start=selected_range_start,
+                                            end=full_range_end,
+                                        )
+                                    )
                             if next_job_id is None:
                                 complete_range_bars = (
                                     selected_range_bars

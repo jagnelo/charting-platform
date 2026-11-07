@@ -509,6 +509,38 @@ describe('WorkstationView pop-out bindings', () => {
     )
   })
 
+  it('persists ordinary active-layout selection so reload restores the intended workspace context', async () => {
+    routeState.path = '/chart'
+    routeState.params = {}
+    const topDown = harness.workspace.workspace.tabs[0]
+    const studyTab = {
+      stable_key: 'study-lab',
+      name: 'Study Lab',
+      windows: [{ instance_key: 'results', tool_type: 'research_results', title: 'Study Results', link_group: 'grey', configuration: {} }],
+      active_window_key: 'study',
+      layout_config: null,
+    }
+    harness.workspace.workspace.tabs = [topDown, studyTab]
+    harness.workspace.activeTab = topDown
+    harness.workspace.activeTabKey = topDown.stable_key
+    harness.workspace.saveSnapshot.mockResolvedValue(true)
+    const wrapper = mount(WorkstationView, {
+      attachTo: document.body,
+      global: { stubs: { WorkstationToolContent: ToolStub, WorkspaceLayoutHost: true } },
+    })
+
+    await wrapper.get('[data-tab-key="study-lab"]').trigger('click')
+    await flushPromises()
+
+    expect(harness.workspace.activeTabKey).toBe('study-lab')
+    expect(harness.workspace.scheduleSnapshot).toHaveBeenCalled()
+    expect(harness.workspace.saveSnapshot).toHaveBeenCalled()
+    wrapper.unmount()
+    harness.workspace.workspace.tabs = [topDown]
+    harness.workspace.activeTab = topDown
+    harness.workspace.activeTabKey = topDown.stable_key
+  })
+
   it('cancels an accepted cold tool command when its workstation unmounts before hydration', async () => {
     routeState.path = '/chart'
     routeState.params = {}
