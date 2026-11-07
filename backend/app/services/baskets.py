@@ -248,12 +248,11 @@ async def materialize_etf_holdings_basket(
     if existing is None:
         db.add(basket)
         await db.flush()
-    else:
-        # The identity map can return an existing Basket whose collection was
-        # expired by earlier work in the same request. Eager-load on the
-        # SELECT above does not refresh an already-populated identity, so
-        # explicitly load the collection before mutating it in AsyncSession.
-        await db.refresh(basket, attribute_names=["members"])
+
+    # Explicitly load the relationship in async context before mutating it.
+    # This covers both a new basket after flush and an existing identity-map
+    # object whose collection may have expired during earlier request work.
+    await db.refresh(basket, attribute_names=["members"])
 
     basket.members.clear()
     await db.flush()

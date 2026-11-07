@@ -278,7 +278,7 @@ test.describe('ETF holdings preparation', () => {
     })
 
     await page.goto('/etf-holdings')
-    await expect(page.getByRole('heading', { name: 'QQQ' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'QQQ', exact: true })).toBeVisible()
     await selectETF(page, 'FNEW')
 
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
@@ -368,7 +368,7 @@ test.describe('ETF holdings preparation', () => {
     await expect(page.getByTestId('etf-preparation-status')).toContainText('request capacity')
     await selectETF(page, 'RACE')
 
-    await expect(page.getByRole('heading', { name: 'RACE' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'RACE', exact: true })).toBeVisible()
     await expect(page.locator('.holdings-table')).toContainText('RACE1')
     await expect(page.locator('.holdings-table')).not.toContainText('FNEW1')
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
@@ -493,7 +493,7 @@ test.describe('ETF holdings preparation', () => {
     await page.goto('/etf-holdings')
     await selectETF(page, 'BWET')
     await expect(page.getByTestId('etf-preparation-status')).toHaveText('Requested data is ready.')
-    await expect(page.getByRole('heading', { name: 'BWET' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'BWET', exact: true })).toBeVisible()
     await expect(page.locator('.snapshot-date-line')).toContainText('Breakwave Tanker Shipping ETF')
     await expect(page.getByTestId('etf-snapshot-lineage')).toContainText('amplify')
     await expect(page.locator('.holdings-table')).toContainText('C5TCM')
@@ -618,7 +618,7 @@ test.describe('ETF holdings preparation', () => {
     }))
 
     await page.goto('/etf-holdings')
-    await expect(page.getByRole('heading', { name: 'IGV' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'IGV', exact: true })).toBeVisible()
     await expect(page.getByTestId('etf-selected-snapshot-kind')).toHaveText('Latest stored snapshot')
     await expect(page.getByTestId('etf-snapshot-known-at')).toHaveAttribute('datetime', '2026-11-06T16:00:00Z')
 
