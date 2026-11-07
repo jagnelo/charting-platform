@@ -838,7 +838,8 @@ function dateEndAt(value: string): string | null {
 function preparationTargetLabel(target: DataEnsureRequest['target']): string {
   if (target.kind === 'instrument') return target.symbol ?? `Instrument ${target.instrument_id}`
   if (target.kind === 'market_group') return `Market group ${target.group_key}`
-  return `Family ${target.family_key}`
+  if (target.kind === 'family') return `Family ${target.family_key}`
+  return `Screener ${target.screener_id}`
 }
 async function buildStudyPreparationRequests(intent: StudyDatasetIntent): Promise<DataEnsureRequest[]> {
   const sourceId = intent.universeSourceId

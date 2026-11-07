@@ -120,6 +120,101 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await browserDiagnostics.expectNoCriticalIssues()
 })
 
+test('Study prepares SPY before validating and completes a configured high-low breakout run', async ({ page, loggedIn, browserDiagnostics }) => {
+  test.setTimeout(120_000)
+  const requestOrder: string[] = []
+  const observedRunStatuses: Array<{ id: number; status: string; error?: string | null }> = []
+  let createdRunId: number | null = null
+  page.on('request', request => {
+    if (request.method() !== 'POST') return
+    const path = new URL(request.url()).pathname
+    if (path.endsWith('/data/ensure')) requestOrder.push('ensure')
+    if (path.endsWith('/code/validate')) requestOrder.push('validate')
+  })
+  page.on('response', response => {
+    if (response.request().method() !== 'GET') return
+    const match = new URL(response.url()).pathname.match(/\/research\/runs\/(\d+)$/)
+    if (!match) return
+    void response.json().then((body: { id?: number; status?: string; error?: string | null }) => {
+      if (body.id != null && body.status) {
+        observedRunStatuses.push({ id: body.id, status: body.status, error: body.error })
+      }
+    }).catch(() => {})
+  })
+
+  await page.goto('/chart')
+  await expect(page.locator('.workspace-layout-host')).toBeVisible({ timeout: 15_000 })
+  await page.getByRole('button', { name: 'Study', exact: true }).click()
+  await page.getByRole('button', { name: 'Add tool', exact: true }).click()
+  await page.getByRole('menu', { name: 'Workstation tools' }).getByRole('menuitem', { name: 'Study Results', exact: true }).click()
+  const study = page.locator('.study-lab-tool:visible').last()
+  await expect(study).toBeVisible({ timeout: 15_000 })
+  await study.getByRole('combobox', { name: 'Factory study' }).selectOption('high_low_breakouts')
+  const lookback = study.getByRole('spinbutton', { name: 'Study parameter lookback' })
+  await expect(lookback).toHaveValue('20')
+  await expect(lookback).toHaveAttribute('min', '2')
+  await expect(lookback).toHaveAttribute('max', '252')
+  await lookback.fill('10')
+  await study.getByRole('textbox', { name: 'Study symbol' }).fill('SPY')
+
+  const preparationResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/data/ensure'))
+  const validationResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/code/validate'))
+  await study.getByRole('button', { name: 'Validate study' }).click()
+  const prepared = await preparationResponse
+  expect(prepared.ok()).toBe(true)
+  expect(prepared.request().postDataJSON()).toMatchObject({
+    target: { kind: 'instrument', symbol: 'SPY' },
+    datasets: ['history'],
+    timeframe: 'D1',
+    adjusted: true,
+  })
+  await expect(study.getByRole('status', { name: 'Study data preparation' })).toContainText('ready', { timeout: 90_000 })
+  const validation = await validationResponse
+  expect(validation.ok()).toBe(true)
+  expect(await validation.json()).toMatchObject({ valid: true })
+  expect(requestOrder.indexOf('ensure')).toBeGreaterThanOrEqual(0)
+  expect(requestOrder.indexOf('validate')).toBeGreaterThan(requestOrder.indexOf('ensure'))
+  await expect(study).toContainText('Validated for isolated execution', { timeout: 15_000 })
+
+  const runResponse = page.waitForResponse(response => response.request().method() === 'POST'
+    && new URL(response.url()).pathname.endsWith('/research/runs'))
+  await study.getByRole('button', { name: 'Run study', exact: true }).click()
+  const created = await runResponse
+  expect(created.ok()).toBe(true)
+  const run = await created.json() as { id?: number; code_version_id?: number }
+  expect(Number.isInteger(run.id)).toBe(true)
+  expect(Number.isInteger(run.code_version_id)).toBe(true)
+  createdRunId = run.id!
+  expect(created.request().postDataJSON()).toMatchObject({
+    run_config: { symbol: 'SPY', parameters: { lookback: 10 } },
+  })
+
+  try {
+    await expect(study.locator('.study-lab-tool__run-status--completed')).toBeVisible({ timeout: 90_000 })
+    await expect(study.getByRole('status', { name: /new_high_count metric/ })).toBeVisible()
+    await expect(study.getByRole('status', { name: /new_low_count metric/ })).toBeVisible()
+  } catch (cause) {
+    let persistedRun: unknown = null
+    let readbackStatus: number | null = null
+    try {
+      const readback = await page.request.get(new URL(`/api/v1/research/runs/${createdRunId}`, page.url()).toString())
+      readbackStatus = readback.status()
+      persistedRun = await readback.json()
+    } catch (readbackError) {
+      persistedRun = { readback_error: readbackError instanceof Error ? readbackError.message : String(readbackError) }
+    }
+    await test.info().attach('high-low-study-run-status-diagnostic.json', {
+      body: JSON.stringify({ run_id: createdRunId, readback_http_status: readbackStatus, persisted_run: persistedRun,
+        observed_status_responses: observedRunStatuses.filter(item => item.id === createdRunId) }, null, 2),
+      contentType: 'application/json',
+    })
+    throw cause
+  }
+  await browserDiagnostics.expectNoCriticalIssues()
+})
+
 test('Study preparation submits every universe member and benchmark while one member is held', async ({ page, loggedIn, browserDiagnostics }) => {
   const submittedTargets: Array<{ kind: string; symbol?: string }> = []
   let resolveAllSubmitted!: () => void

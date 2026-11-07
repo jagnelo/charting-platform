@@ -1188,7 +1188,10 @@ progress:
       Repair Study saved-versus-draft identity, run-list arrival/artifact-count consistency, Code
       Library async validation/save-response fencing, durable run recovery and immutable promotion binding;
       keep Results cancel/rerun failures visible and retryable; add a
-      Strategy-owned Study journey spec and focused regressions. Consume the exact TC-owned data
+      Strategy-owned Study journey spec and focused regressions. The Study E2E includes an F8p
+      high_low_breakouts path that asserts SPY history preparation before Validate, typed lookback10
+      run input and completed high/low metrics; on timeout it captures persisted run status while
+      retaining the90-second completion bound. It is authored/discovered, not executed. Consume the exact TC-owned data
       preparation coordinator in Study controls so explicit Validate/Run actions prepare the
       selected dataset first; never acquire data inside evaluation or mutate saved-run identity.
       Maintain the Strategy-owned J10/J11/J12 action matrix as an input to TC's global inventory,
@@ -1259,9 +1262,9 @@ progress:
     Earlier focused Strategy/Dashboard and shared auth/preparation checks against TC-d5e8 passed190/190
     across11 files with frontend type-check exit0; these are historical evidence and were not rerun for
     ce2262ab. The current imported66-path TC manifest has19 declared delta paths over5a; all66 entries
-    match Git blob/SHA256/status/executable-bit evidence. Browser evidence remains Root-owned; the
-    Study/Results/Library browser stories are authored but unexecuted. The prior D5 and5a pins and
-    their qualification records remain historical. The current runtime retains the strict DTO and
+    match Git blob/SHA256/status/executable-bit evidence. Browser evidence remains Root-owned; the Study/Results/Library browser stories, including the six-case
+    Study spec and F8p run-status witness, are authored/discovered but unexecuted. The prior D5 and5a
+    pins and their qualification records remain historical. The current runtime retains the strict DTO and
     preparation contracts; the Strategy Study component suite previously passed63/63 after the
     fail-closed Validate repair, but no ce-specific suite or browser body ran here. Preserve the full
     18-criterion roadmap and disabled holds.
@@ -1271,7 +1274,7 @@ progress:
     and focused unit evidence do not count as browser execution. Preserve full-profile assertions,
     all18 original roadmap criteria, and disabled-operation holds; do not treat controlled transitions
     as genuine acquisition or close the full checkpoint early.
-  updated_at: "2026-11-07T01:44:27Z"
+  updated_at: "2026-11-07T04:18:07Z"
 roadmap_goal: >-
   Implement the production-grade, local-first Strategy Lab v2 backend for
   reproducible portfolio backtesting, walk-forward and search experiments, and
@@ -2187,12 +2190,14 @@ roadmap_progress_history:
     dependency; its exact-source CI and combined release qualification remain pending. The b1a94d98
     F8p predecessor timed out without a captured run ID, terminal status, preparation response, or backend
     exception, so its runtime cause is unresolved. Current StudyLabTool prepares selected data before
-    Validate and Run and fences stale context; TC-owned browser evidence should record the ensure response
-    and created run status without weakening the90-second completion assertion. Preserve the full
+    Validate and Run and fences stale context; the Strategy-owned F8p witness records the ensure response,
+    created run ID, and persisted status if completion misses90 seconds, without weakening that assertion.
+    Its browser body remains pending Root combined execution. Preserve the full
     18-criterion roadmap and disabled native, broker, capital, paid/trial and live-provider holds.
   next_action: >-
-    Hand the four corrected Strategy workstation lifecycle stories and the current development
-    dependency pin to Root for the single combined backend/browser qualification. The eight-layout,
+    Hand the Strategy-owned Study F8p preparation/run-status witness, four corrected workstation
+    lifecycle stories, and current Provider/TC development pins to Root for the single combined
+    backend/browser qualification. The eight-layout,
     twenty-one-tool catalogue story has a bounded 240-second timeout and creates Favorites through
     the public Chart star before checking its rows. Treat test discovery as authored evidence only;
     preserve all full-roadmap criteria and disabled holds.
