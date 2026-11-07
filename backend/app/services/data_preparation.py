@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFProfile
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -508,13 +507,6 @@ async def _resolve_requested_instruments(
 
 
 async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
-    profile_id = (
-        await db.execute(
-            select(ETFProfile.id).where(ETFProfile.instrument_id == instrument_id).limit(1)
-        )
-    ).scalar_one_or_none()
-    if profile_id is not None:
-        return True
     names = (
         await db.execute(
             select(InstrumentType.name, AssetClass.name)
@@ -528,9 +520,11 @@ async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
     instrument_type, asset_class = (
         str(value or "").strip().casefold().replace("-", "_").replace(" ", "_") for value in names
     )
-    # Explicit ETF type is enough to plan the dataset.  The actual issuer
-    # handler still owns profile/identity checks before any holdings fetch.
-    return instrument_type in {"etf", "exchange_traded_fund"} or (
+    # Keep dataset planning aligned with the canonical fund types accepted by
+    # etf_holdings_refresh._resolve_canonical_fund_instrument.  Type metadata
+    # is enough to plan holdings before an ETFProfile exists; identity and
+    # synthetic checks remain in _dataset_initial_state and the handler.
+    return instrument_type in {"etf", "index_etf", "mutual_fund", "closed_end_fund"} or (
         instrument_type == "exchange_traded_vehicle" and asset_class == "exchange_traded_product"
     )
 

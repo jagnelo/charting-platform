@@ -1595,6 +1595,64 @@ async def test_unknown_symbol_late_expands_history_after_acquisition_resolution(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("asset_class_name", "instrument_type_name"),
+    [
+        ("Equity", "ETF"),
+        ("Index", "Index ETF"),
+        ("Equity", "Mutual Fund"),
+        ("Equity", "Closed-End Fund"),
+        ("Exchange Traded Product", "Exchange Traded Vehicle"),
+    ],
+)
+async def test_canonical_fund_types_plan_holdings_without_profile(
+    db, asset_class_name, instrument_type_name
+):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import ETFProfile
+    from app.models.instrument import Instrument
+
+    asset_class = db.query(AssetClass).filter_by(name=asset_class_name).one_or_none()
+    if asset_class is None:
+        asset_class = AssetClass(name=asset_class_name, description="Canonical fund fixture")
+        db.add(asset_class)
+        db.flush()
+    instrument_type = InstrumentType(name=instrument_type_name, asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol=f"FUND{instrument_type.id}",
+        name=f"Canonical {instrument_type_name}",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        is_synthetic=False,
+        identity_status="resolved",
+        domain_key=f"test:canonical-fund:{instrument_type.id}",
+        primary_identifier_type="figi",
+        primary_identifier_value=f"BBG{instrument_type.id:09d}",
+    )
+    db.add(instrument)
+    db.flush()
+
+    parent = await create_data_preparation_request(
+        AsyncSessionAdapter(db),
+        owner_user_id=81,
+        request=DataEnsureRequest.model_validate(
+            {"target": {"kind": "instrument", "instrument_id": instrument.id}}
+        ),
+    )
+
+    dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+    holdings = next(item for item in dependencies if item["dataset"] == "holdings")
+    history = next(item for item in dependencies if item["dataset"] == "history")
+    assert holdings["status"] == "queued"
+    assert holdings["job_ids"]
+    assert history["status"] == "queued"
+    assert db.query(ETFProfile).filter_by(instrument_id=instrument.id).one_or_none() is None
+
+
+@pytest.mark.asyncio
 async def test_group_and_ratio_requests_expand_each_canonical_member_and_leg(
     db, instrument, instrument_type
 ):

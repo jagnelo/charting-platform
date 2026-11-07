@@ -14932,9 +14932,9 @@ acceptance_criteria:
   text: >-
     Focused offline tests plus Root-allocated database/browser proof cover contracts, dependency planning, durable dedupe/restart/priority, exact range/provider boundaries, worker registration/wakeup and failure semantics; full backend/DDL, exact-source CI and Root's combined release gates pass before acceptance.
 next_action: >-
-  Root verifies duplicate authenticated ensures against the exact worker repair in the existing fixture, then publishes the next compatible
-  candidate. Continue the remaining Provider activation/maintenance scope after Root's focused runtime check; exact-source CI and combined
-  qualification remain pending, and all full roadmap history stays open.
+  Root replays the exact SPY metadata-recovery path and canonical-fund holdings planning on the frozen successor, then continues the
+  remaining Provider activation/maintenance and combined qualification. No worker-side provider request, ledger or policy change was made;
+  exact-source CI and combined qualification remain pending, and all full roadmap history stays open.
 human_intent_authorization: >-
   Human explicitly activated the complete “Make the existing platform complete and usable” plan in the original Provider thread. The
   execution copy and shared contract are platform-usability-20261106/APPROVED-PLAN.md and SHARED-CONTRACT.md. This is active work, not
@@ -15528,3 +15528,20 @@ provider_unknown_history_bound_witness_followup_20261107:
     full_manifest_rows_verified: 86
     status: exact_development_consumption_only; no producer-suite replay or release acceptance
   broader_platform_roadmap: open
+provider_exact_identity_profile_fallback_followup_20261107:
+  id: provider-exact-identity-profile-fallback-20261107
+  status: focused_local_green_root_runtime_replay_pending
+  root_evidence:
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-etf-canonical-compat-audit-provider-followup.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-fc4d-SPY-early-profile-error-review.json
+  implementation:
+    - Default preparation planning matches the ETF handler's canonical ETF, index ETF, mutual fund, closed-end fund, and Exchange Traded Vehicle / Exchange Traded Product classifications without requiring ETFProfile.
+    - Exact matched-source metadata may continue only after typed provider source failure, typed no-data/hold, or the exact legacy no-enabled-provider RuntimeError; unrelated RuntimeError faults remain failed and do not fall through.
+    - Fallback profiles must preserve the selected exact symbol and known exchange/currency, provide a real listing and qualified or verified retained security identity, and pass existing collision checks. Explicit exchange-qualified source choices are not switched.
+    - Explicit provider profile cache reads are qualified by that provider's data-source snapshots.
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/routers/test_instruments_router.py backend/tests/unit/services/test_data_preparation_service.py backend/tests/unit/services/test_market_data.py -q
+    result: 174 passed in 22.59s; Ruff check/format, py_compile and git diff --check passed.
+    no_provider_http_or_runtime_mutation: true
+  root_native_replay_exact_source_ci_and_combined_release: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open

@@ -117,6 +117,59 @@ async def test_required_industry_profile_falls_through_generic_source_to_massive
     assert ingested == ["alpaca", "massive"]
 
 
+@pytest.mark.asyncio
+async def test_profile_cache_qualification_uses_the_explicit_provider_source(
+    db, instrument, monkeypatch
+):
+    from app.models.data_source import DataSource
+    from app.models.provider_observation import InstrumentProfileSnapshot
+    from tests.unit.conftest import AsyncSessionAdapter
+
+    async_db = AsyncSessionAdapter(db)
+    edgar = DataSource(name="edgar", is_active=True)
+    massive = DataSource(name="massive", is_active=True)
+    db.add_all([edgar, massive])
+    db.flush()
+    now = datetime.now(UTC)
+    db.add(
+        InstrumentProfileSnapshot(
+            instrument_id=instrument.id,
+            data_source_id=edgar.id,
+            provider_symbol=instrument.symbol,
+            observed_at=now,
+            fetched_at=now,
+            profile_hash="fresh-edgar-profile",
+            payload={"provider": "edgar", "canonical_symbol": instrument.symbol},
+        )
+    )
+    await async_db.flush()
+
+    async def resolved_chain(_db, _capability, **_kwargs):
+        return [
+            SimpleNamespace(
+                provider_name="edgar",
+                data_source=edgar,
+                policy=SimpleNamespace(freshness_seconds=3600),
+            ),
+            SimpleNamespace(
+                provider_name="massive",
+                data_source=massive,
+                policy=SimpleNamespace(freshness_seconds=3600),
+            ),
+        ]
+
+    monkeypatch.setattr(market_data, "resolve_provider_chain", resolved_chain)
+
+    cached = await market_data._fresh_profile_from_cache(
+        async_db,
+        instrument_id=instrument.id,
+        provider_symbol=instrument.symbol,
+        provider_name="massive",
+    )
+
+    assert cached is None
+
+
 def _semantic_bar() -> OHLCVBar:
     return OHLCVBar(
         instrument_id=42,

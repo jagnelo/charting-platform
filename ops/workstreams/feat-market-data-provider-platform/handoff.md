@@ -33623,3 +33623,29 @@ check/format and `git diff --check` pass. No source
 HTTP, live runtime, database fixture, real-ledger, policy, quota or hold change
 was made. Root owns no-seed API/UI verification and exact-source/combined
 qualification; the complete Provider roadmap remains open and active.
+
+## 2026-11-07 — exact profile failover and canonical fund parity
+
+Root's no-seed SPY trace found that an exact EDGAR metadata operation could
+surface the legacy `No enabled providers available for capability` RuntimeError
+and stop before a later admitted exact listing provider. Acquisition now
+continues only for typed expected source failures/holds, typed no-data, and
+that exact legacy no-enabled error. Unexpected RuntimeErrors remain failed and
+do not fall through. Fallback remains exact-symbol and requires qualified
+security identity plus the same known exchange/currency; a user-selected
+exchange-qualified provider candidate is not switched. Fallback holds remain
+visible in source outcomes. Provider-specific profile cache lookup now ignores
+fresh snapshots owned by other providers.
+
+Default preparation planning now mirrors the ETF handler's canonical accepted
+fund taxonomy, including index ETFs, mutual funds, closed-end funds, and the
+Exchange Traded Vehicle / Exchange Traded Product pair, without requiring an
+ETFProfile. Synthetic and unresolved identity gates and independent history
+planning remain in force.
+
+Focused router/preparation/profile-cache modules passed 174/174; Ruff
+check/format, `py_compile`, `git diff --check`, and the workstream validator
+pass. No provider HTTP, native runtime call, real-ledger/quota/policy/hold
+mutation, fixture, or migration was performed. Root owns the preserved no-seed
+runtime replay, exact-source CI, and combined qualification; the full Provider
+roadmap remains in progress.

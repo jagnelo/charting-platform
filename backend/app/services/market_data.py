@@ -473,6 +473,7 @@ async def _fresh_profile_from_cache(
     *,
     instrument_id: int | None = None,
     provider_symbol: str | None = None,
+    provider_name: str | None = None,
 ) -> InstrumentProfile | None:
     instrument = None
     if instrument_id is not None:
@@ -499,6 +500,7 @@ async def _fresh_profile_from_cache(
             instrument_id=instrument_id,
             provider_symbol=provider_symbol,
         )
+        if provider_name is None or resolved.provider_name == provider_name
     }
     snapshots = (
         (
@@ -2021,6 +2023,7 @@ async def get_provider_profile_async(
         db,
         instrument_id=instrument_id,
         provider_symbol=provider_symbol,
+        provider_name=provider_name,
     )
     required_fields = tuple(
         dict.fromkeys(str(field).strip().lower() for field in required_profile_fields)

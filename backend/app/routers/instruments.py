@@ -40,6 +40,7 @@ from app.models.user import User
 from app.models.watchlist import Watchlist, WatchlistItem
 from app.providers import ensure_data_source
 from app.providers.base import InstrumentProfile
+from app.providers.errors import ProviderNotConfiguredError, ProviderResponseError
 from app.schemas.instrument import InstrumentMembership, InstrumentOut, InstrumentSearchResult
 from app.schemas.instrument_acquisition import (
     HistoryAcquisitionRequest,
@@ -74,6 +75,7 @@ from app.services.instrument_mastering import (
 from app.services.market_data import (
     _coverage_calendar,
     _default_series_bar_condition,
+    _is_recoverable_provider_gap,
     fetch_ohlcv,
     fetch_ohlcv_latest,
     get_provider_profile_async,
@@ -686,6 +688,7 @@ async def _fallback_exact_identity_profile(
     required_exchange: str | None,
     search_candidates: list[dict],
     existing: Instrument | None,
+    required_currency: str | None = None,
 ) -> tuple[
     InstrumentProfile | None, str | None, str | None, list[InstrumentAcquisitionSourceOutcome]
 ]:
@@ -783,7 +786,15 @@ async def _fallback_exact_identity_profile(
             ProviderQuotaCoordinatorError,
             ProviderQuotaUnknownError,
             ProviderNoDataError,
+            ProviderNotConfiguredError,
+            ProviderResponseError,
         ) as exc:
+            status, reason = _provider_profile_lookup_error(exc)
+            outcome(candidate, status, reason, exc)
+            continue
+        except RuntimeError as exc:
+            if not _is_recoverable_provider_gap(exc):
+                raise
             status, reason = _provider_profile_lookup_error(exc)
             outcome(candidate, status, reason, exc)
             continue
@@ -799,41 +810,77 @@ async def _fallback_exact_identity_profile(
             if profile is not None
             else {}
         )
-        listings = (
+        exact_symbol_listings = (
             [
                 listing
                 for listing in (profile.listings or [])
                 if _normalized_symbol_key(listing.provider_symbol) == symbol
+                and bool(str(listing.exchange_code or "").strip())
                 and (
-                    (
-                        bool(candidate_listing_exchanges)
-                        and str(listing.exchange_code or "").strip().upper()
-                        in candidate_listing_exchanges
-                    )
-                    or (
-                        not candidate_listing_exchanges
-                        and (
-                            required_exchange is None
-                            or str(listing.exchange_code or "").strip().upper() == required_exchange
-                        )
-                    )
+                    not required_exchange
+                    or str(listing.exchange_code or "").strip().upper()
+                    == required_exchange.strip().upper()
+                )
+                and (
+                    not candidate_listing_exchanges
+                    or str(listing.exchange_code or "").strip().upper()
+                    in candidate_listing_exchanges
                 )
             ]
             if profile is not None
             else []
         )
+        listings = (
+            [
+                listing
+                for listing in exact_symbol_listings
+                if (
+                    not required_currency
+                    or not str(profile.currency or "").strip()
+                    or str(profile.currency).strip().upper() == required_currency.strip().upper()
+                )
+                and (
+                    not required_currency
+                    or not str(listing.currency or "").strip()
+                    or str(listing.currency).strip().upper() == required_currency.strip().upper()
+                )
+            ]
+            if profile is not None
+            else []
+        )
+        if profile is None:
+            outcome(candidate, "no_match", "exact_profile_not_found")
+            continue
         if (
-            profile is None
-            or str(profile.provider or "").strip().lower() != candidate
+            str(profile.provider or "").strip().lower() != candidate
             or (profile.canonical_symbol or "").strip().upper() != symbol
         ):
             outcome(candidate, "failed", "provider_profile_unavailable_or_mismatched")
             continue
         if not listings:
+            currency_conflict = bool(
+                exact_symbol_listings
+                and required_currency
+                and all(
+                    (
+                        str(profile.currency or "").strip()
+                        and str(profile.currency).strip().upper()
+                        != required_currency.strip().upper()
+                    )
+                    or (
+                        str(listing.currency or "").strip()
+                        and str(listing.currency).strip().upper()
+                        != required_currency.strip().upper()
+                    )
+                    for listing in exact_symbol_listings
+                )
+            )
             outcome(
                 candidate,
                 "no_match",
-                "provider_profile_listing_mismatch"
+                "provider_profile_currency_mismatch"
+                if currency_conflict
+                else "provider_profile_listing_mismatch"
                 if profile.listings
                 else "stable_identity_or_listing_authority_missing",
             )
@@ -910,6 +957,7 @@ async def acquire_instrument(
     )
     profile: InstrumentProfile | None = None
     profile_outcome: InstrumentAcquisitionSourceOutcome
+    matched_profile_error: Exception | None = None
     exact_exchange_code: str | None = None
     if matched is None:
         if not outcomes:
@@ -1127,19 +1175,85 @@ async def acquire_instrument(
                     retry_at=retry_at,
                 )
                 outcomes.append(profile_outcome)
-                return InstrumentAcquireResponse(
-                    request_id=body.request_id,
-                    status=outcome_status,
-                    reason_code=reason_code,
-                    source_outcomes=outcomes,
-                )
-        profile_outcome = InstrumentAcquisitionSourceOutcome(
-            provider=provider_name,
-            capability=ProviderCapability.INSTRUMENT_METADATA.value,
-            operation="get_instrument_profile",
-            status="attempted" if profile is not None else "no_match",
-            reason_code="exact_profile_not_found" if profile is None else None,
+                if not _is_expected_profile_source_failure(exc):
+                    return InstrumentAcquireResponse(
+                        request_id=body.request_id,
+                        status=outcome_status,
+                        reason_code=reason_code,
+                        source_outcomes=outcomes,
+                    )
+                matched_profile_error = exc
+        if matched_profile_error is None:
+            profile_outcome = InstrumentAcquisitionSourceOutcome(
+                provider=provider_name,
+                capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                operation="get_instrument_profile",
+                status="attempted" if profile is not None else "no_match",
+                reason_code="exact_profile_not_found" if profile is None else None,
+            )
+            if profile is None:
+                outcomes.append(profile_outcome)
+
+    # A fuzzy/exact search row selects an exact symbol/listing hint, but a
+    # source-specific metadata failure or no-match must not make that provider
+    # the only identity authority. Try the normally resolved exact-symbol
+    # alternatives while keeping the selected exchange/currency, if known.
+    if matched is not None and profile is None:
+        if matched_profile_error is None:
+            failure_status, failure_reason = "no_match", "exact_profile_not_found"
+        else:
+            failure_status, failure_reason = _provider_profile_lookup_error(matched_profile_error)
+        if body.provider_candidate is not None and body.provider_candidate.exchange:
+            # A user-selected exchange-qualified row is an explicit listing
+            # choice. Keep the failed source outcome and let the user choose a
+            # different listing rather than silently changing that choice.
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status=failure_status,
+                reason_code=failure_reason,
+                source_outcomes=outcomes,
+            )
+        (
+            fallback_profile,
+            fallback_provider,
+            fallback_exchange,
+            fallback_outcomes,
+        ) = await _fallback_exact_identity_profile(
+            db,
+            request_id=body.request_id,
+            symbol=symbol,
+            rejected_provider=provider_name,
+            required_exchange=exact_exchange_code,
+            required_currency=str(matched.get("currency") or "").strip() or None,
+            search_candidates=candidates,
+            existing=existing,
         )
+        outcomes.extend(fallback_outcomes)
+        if fallback_profile is not None:
+            profile = fallback_profile
+            provider_name = fallback_provider
+            provider_symbol = symbol
+            exact_exchange_code = fallback_exchange
+            profile_outcome = InstrumentAcquisitionSourceOutcome(
+                provider=provider_name or "provider_chain",
+                capability=ProviderCapability.INSTRUMENT_METADATA.value,
+                operation="get_instrument_profile",
+                status="attempted",
+            )
+        elif any(item.status == "held" for item in fallback_outcomes):
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status="held",
+                reason_code="exact_profile_not_admitted",
+                source_outcomes=outcomes,
+            )
+        else:
+            return InstrumentAcquireResponse(
+                request_id=body.request_id,
+                status=failure_status,
+                reason_code=failure_reason,
+                source_outcomes=outcomes,
+            )
     profile_listings = (
         [
             listing
@@ -1217,6 +1331,7 @@ async def acquire_instrument(
             symbol=symbol,
             rejected_provider=provider_name,
             required_exchange=requested_exchange_code,
+            required_currency=str(profile.currency or "").strip() or None,
             search_candidates=candidates,
             existing=existing,
         )
@@ -1237,7 +1352,7 @@ async def acquire_instrument(
                 for listing in (profile.listings or [])
                 if _normalized_symbol_key(listing.provider_symbol) == symbol
             ]
-        elif fallback_outcomes and all(item.status == "held" for item in fallback_outcomes):
+        elif any(item.status == "held" for item in fallback_outcomes):
             return InstrumentAcquireResponse(
                 request_id=body.request_id,
                 status="held",
@@ -3286,7 +3401,29 @@ def _provider_profile_lookup_error(exc: Exception) -> tuple[str, str]:
         return "held", "provider_quota_contract_unknown"
     if isinstance(exc, ProviderNoDataError):
         return "no_match", "exact_profile_not_found"
+    if isinstance(exc, ProviderNotConfiguredError):
+        return "failed", "provider_profile_source_not_configured"
+    if isinstance(exc, ProviderResponseError):
+        return "failed", "provider_profile_source_error"
+    if _is_recoverable_provider_gap(exc):
+        return "no_match", "provider_unavailable_for_operation"
     return "failed", "provider_profile_unavailable_or_mismatched"
+
+
+def _is_expected_profile_source_failure(exc: Exception) -> bool:
+    """Whether an exact metadata source may fail over without hiding code bugs."""
+
+    return isinstance(
+        exc,
+        ProviderRequestScopeDeniedError
+        | ProviderRateLimitError
+        | ProviderQuotaAdmissionError
+        | ProviderQuotaCoordinatorError
+        | ProviderQuotaUnknownError
+        | ProviderNoDataError
+        | ProviderNotConfiguredError
+        | ProviderResponseError,
+    ) or _is_recoverable_provider_gap(exc)
 
 
 def _exact_discovery_profile_candidate(
