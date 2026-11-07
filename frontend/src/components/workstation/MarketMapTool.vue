@@ -1862,7 +1862,10 @@ function marketMapSelectionKey() {
 
 async function marketMapPreparationTargets(requestSourceId: string, generation: number): Promise<PreparationTarget[]> {
   const marketGroup = /^market-group:([^:]+)$/.exec(requestSourceId)
-  if (marketGroup) return [{ kind: 'market_group', group_key: activeSource.value?.stable_key ?? marketGroup[1]! }]
+  if (marketGroup) {
+    const selectedDefinition = sources.value.find(source => source.source_id === requestSourceId)
+    return [{ kind: 'market_group', group_key: selectedDefinition?.stable_key ?? marketGroup[1]! }]
+  }
   const family = /^benchmark-family:([^:]+):/.exec(requestSourceId)
   if (family) return [{ kind: 'family', family_key: family[1]! }]
   if (requestSourceId.startsWith('explicit:')) {

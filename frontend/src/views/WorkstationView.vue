@@ -65,8 +65,12 @@
               role="status"
               aria-live="polite"
             >
-              <span>Deleted layout “{{ deletedLayoutRecovery.tab.name }}”.</span>
-              <button type="button" role="menuitem" tabindex="-1" @click="undoDeletedLayout">Undo</button>
+              <span v-if="deletedLayoutRecoveryStatus === 'saving'">Restoring layout “{{ deletedLayoutRecovery.tab.name }}” and saving…</span>
+              <span v-else-if="deletedLayoutRecoveryStatus === 'error'">Layout “{{ deletedLayoutRecovery.tab.name }}” is restored here but was not saved. Retry to keep it after reload.</span>
+              <span v-else>Deleted layout “{{ deletedLayoutRecovery.tab.name }}”.</span>
+              <button type="button" role="menuitem" tabindex="-1" :disabled="deletedLayoutRecoveryStatus === 'saving'" @click="undoDeletedLayout">
+                {{ deletedLayoutRecoveryStatus === 'saving' ? 'Saving…' : deletedLayoutRecoveryStatus === 'error' ? 'Retry save' : 'Undo' }}
+              </button>
             </div>
             <small id="workspace-delete-help" class="workstation__workspace-delete-help">
               {{ workspaceStore.workspace?.is_default ? 'This factory workspace is protected; remove extra layouts from the list below.' : 'Deleting a workspace removes its saved layouts. Export it first if you need a backup.' }}
@@ -318,6 +322,10 @@
       <span>{{ chartStore.timeframe }}</span>
       <span role="status" aria-live="polite" aria-atomic="true" :title="footerError ?? symbolProxyNotice ?? undefined">{{ footerMessage }}</span>
       <span class="workstation__data-state" role="status" aria-live="polite" aria-atomic="true" :aria-label="`Market data freshness: ${dataState.label}`" :class="`workstation__data-state--${dataState.kind}`">{{ dataState.label }}</span>
+      <span class="workstation__snapshot-save-state" role="status" aria-live="polite" aria-atomic="true" aria-label="Workspace save status" :title="workspaceStore.snapshotSaveError ?? undefined" :data-state="workspaceSaveStatus">
+        {{ workspaceSaveStatusText }}
+      </span>
+      <button v-if="workspaceSaveStatus === 'error'" type="button" class="workstation__snapshot-save-retry" @click="retryWorkspaceSave">Retry save</button>
     </footer>
   </div>
 </template>
@@ -433,6 +441,7 @@ const workspaceReloadKey = ref(0)
 const workspaceReplacementPending = ref(false)
 const workspaceTabSwitchPending = ref(false)
 const deletedLayoutRecovery = ref<WorkspaceTabRecovery | null>(null)
+const deletedLayoutRecoveryStatus = ref<'ready' | 'saving' | 'error'>('ready')
 const workspaceDockPending = computed(() => workspaceReplacementPending.value || workspaceTabSwitchPending.value)
 // Shell controls render before the async workspace snapshot has necessarily
 // hydrated. Keep tool-opening commands queued behind that first load instead
@@ -991,6 +1000,12 @@ const footerError = computed(() => {
   return (selectedETF ? workspaceStore.etfConstituentSnapshotErrors[selectedETF] : null) ?? workspaceStore.error
 })
 const footerMessage = computed(() => symbolProxyNotice.value ?? humanizeWorkspaceError(footerError.value))
+const workspaceSaveStatus = computed(() => workspaceStore.snapshotSaveStatus ?? 'saved')
+const workspaceSaveStatusText = computed(() => {
+  if (workspaceSaveStatus.value === 'saving') return 'Saving layout…'
+  if (workspaceSaveStatus.value === 'error') return 'Workspace save failed'
+  return 'Workspace saved'
+})
 const isPopout = computed(() => route.path.startsWith('/popout/'))
 const popoutLabel = computed(() => {
   const title = popoutTool.value?.title?.trim() || 'workstation tool'
@@ -2199,15 +2214,30 @@ function deleteTab(stableKey: string, name: string) {
   if (!window.confirm(`Delete layout “${name}”?`)) return
   const recovery = workspaceStore.captureTabRecovery(stableKey)
   if (!recovery || !workspaceStore.deleteTab(stableKey)) return
+  deletedLayoutRecoveryStatus.value = 'ready'
   deletedLayoutRecovery.value = recovery
 }
 
 async function undoDeletedLayout() {
   const recovery = deletedLayoutRecovery.value
-  if (!recovery) return
-  if (!workspaceStore.restoreDeletedTab(recovery)) return
-  deletedLayoutRecovery.value = null
+  if (!recovery || deletedLayoutRecoveryStatus.value === 'saving') return
+  if (deletedLayoutRecoveryStatus.value !== 'error' && !workspaceStore.restoreDeletedTab(recovery)) return
+  deletedLayoutRecoveryStatus.value = 'saving'
+  // Keep the recovery affordance visible until the latest restored layout is
+  // acknowledged by the server. A failed write remains retryable instead of
+  // hiding the only indication that the restored layout is local-only.
+  const saved = await workspaceStore.saveSnapshot()
+  if (!saved) {
+    deletedLayoutRecoveryStatus.value = 'error'
+    return
+  }
   await replaceDockAfterWorkspaceChange()
+  deletedLayoutRecovery.value = null
+  deletedLayoutRecoveryStatus.value = 'ready'
+}
+
+function retryWorkspaceSave() {
+  void workspaceStore.saveSnapshot()
 }
 
 function dropTab(targetStableKey: string, event?: DragEvent) {
@@ -3440,5 +3470,10 @@ onBeforeUnmount(() => {
 .workstation__metrics b { color: #d2dce3; font-weight: 500; text-align: right; }
 .workstation__footer { display: flex; gap: 16px; align-items: center; padding: 0 7px; border-top: 1px solid var(--tc-border); color: var(--tc-text-muted); background: var(--tc-panel-bg); font-size: 10px; }
 .workstation__footer span:first-child { color: #d4e7f4; font-weight: 700; }
+.workstation__snapshot-save-state { white-space: nowrap; }
+.workstation__snapshot-save-state[data-state="saving"] { color: var(--tc-accent); }
+.workstation__snapshot-save-state[data-state="error"] { color: var(--tc-negative); }
+.workstation__snapshot-save-retry { border: 1px solid var(--tc-border); border-radius: 3px; padding: 1px 5px; background: var(--tc-control-bg); color: var(--tc-text); font: inherit; cursor: pointer; }
+.workstation__snapshot-save-retry:focus-visible { outline: 2px solid var(--tc-accent); outline-offset: 2px; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 </style>

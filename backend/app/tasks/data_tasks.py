@@ -991,6 +991,7 @@ async def _deepest_admitted_history_start(
     end: datetime,
     request_id: str,
     excluded_provider_names: set[str] | frozenset[str] = frozenset(),
+    required_provider_name: str | None = None,
 ) -> tuple[datetime | None, str | None, str | None]:
     """Inspect reviewed, currently admitted provider bounds without transport."""
     from app.services.market_data import ohlcv_operation_cost_overrides
@@ -1021,6 +1022,11 @@ async def _deepest_admitted_history_start(
     unknown_bound = False
     excluded = {str(name).strip().lower() for name in excluded_provider_names}
     for resolved in chain:
+        if (
+            required_provider_name is not None
+            and resolved.provider_name.strip().lower() != required_provider_name.strip().lower()
+        ):
+            continue
         if resolved.provider_name.strip().lower() in excluded:
             continue
         entitlement = resolved.entitlement
@@ -1072,6 +1078,7 @@ async def _history_chunk_plan(
             end=requested_end,
             request_id=f"data-preparation-plan:{job.id}",
             excluded_provider_names=excluded_provider_names,
+            required_provider_name=source_provider,
         )
         if admitted_start is None:
             return None, None, None, None, None, reason
@@ -1112,6 +1119,7 @@ async def _history_chunk_plan_with_native_admission(
     preparation,
     *,
     priority: int,
+    excluded_provider_names: set[str] | frozenset[str] = frozenset(),
 ):
     """Prefer the deepest provider whose native quota can actually be admitted.
 
@@ -1122,7 +1130,7 @@ async def _history_chunk_plan_with_native_admission(
     """
 
     pinned_source = bool(preparation.get("source_provider") or preparation.get("chunk"))
-    excluded_provider_names: set[str] = set()
+    excluded_provider_names = set(excluded_provider_names)
     last_native_hold: str | None = None
     while True:
         candidate_preparation = deepcopy(preparation)
@@ -1157,6 +1165,134 @@ async def _history_chunk_plan_with_native_admission(
             last_native_hold = usage_hold
             continue
         return plan, candidate_preparation, usage_job, usage_hold, None
+
+
+def _is_pretransport_history_quota_denial(exc: Exception, timeframe: Timeframe) -> bool:
+    """Recognize only the runtime's typed no-reservation/no-transport outcome."""
+
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    prefix = (
+        "durable provider quota admission denied for "
+        f"price_history/fetch_ohlcv:{timeframe.value}:"
+    )
+    return isinstance(exc, ProviderQuotaAdmissionError) and str(exc).startswith(prefix)
+
+
+async def _plan_and_fetch_history_chunk(
+    db,
+    *,
+    job,
+    instrument,
+    timeframe: Timeframe,
+    preparation: dict,
+    priority: int,
+    redis,
+):
+    """Plan and fetch one chunk, skipping candidates only on proven pre-send denial.
+
+    Only an unpinned deepest-history request may try another candidate. Bounded
+    requests and continuations stay on their chosen source. ProviderRateLimitError,
+    arbitrary errors, and quota errors without the runtime's reservation-denied
+    signature are propagated because transport may have started.
+    """
+
+    from app.services.provider_quota_coordinator import ProviderQuotaAdmissionError
+
+    may_select_alternative = (
+        preparation.get("range_mode") == "deepest_admitted"
+        and not preparation.get("source_provider")
+        and not preparation.get("chunk")
+    )
+    excluded_provider_names: set[str] = set()
+    last_denial: ProviderQuotaAdmissionError | None = None
+    while True:
+        (
+            chunk_plan,
+            candidate_preparation,
+            usage_job,
+            usage_hold,
+            native_hold,
+        ) = await _history_chunk_plan_with_native_admission(
+            db,
+            job,
+            instrument,
+            timeframe,
+            preparation,
+            priority=priority,
+            excluded_provider_names=excluded_provider_names,
+        )
+        source_provider = chunk_plan[4]
+        if chunk_plan[5] or usage_job is not None or usage_hold or native_hold:
+            if last_denial is not None:
+                # Keep the exact known quota reset from the candidate that was
+                # denied. A different candidate's unresolved baseline does not
+                # authorize an unsafe switch or erase that temporary retry.
+                raise last_denial
+            return (
+                chunk_plan,
+                candidate_preparation,
+                usage_job,
+                usage_hold,
+                native_hold,
+                None,
+            )
+        if not source_provider or source_provider in excluded_provider_names:
+            if last_denial is not None:
+                raise last_denial
+            return (
+                chunk_plan,
+                candidate_preparation,
+                usage_job,
+                usage_hold,
+                native_hold,
+                None,
+            )
+        if last_denial is not None and candidate_preparation.get("analysis_requirement_unmet"):
+            # Do not pin a shallower fallback that cannot satisfy the request's
+            # explicit analysis floor; wait for the deeper candidate's exact
+            # quota retry instead.
+            raise last_denial
+
+        planned_start, planned_end = chunk_plan[0], chunk_plan[1]
+        try:
+            with bind_explicit_provider_acquisition(
+                request_id=f"data-preparation:{job.id}",
+                operations=frozenset({(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}),
+                instrument_id=instrument.id,
+                symbol=instrument.symbol,
+                provider_names=frozenset({source_provider}),
+            ):
+                bars = await fetch_ohlcv(
+                    db,
+                    instrument,
+                    timeframe,
+                    planned_start,
+                    end=planned_end,
+                    adjusted=bool(candidate_preparation.get("adjusted", True)),
+                    redis=redis,
+                    source_provider=source_provider,
+                )
+        except ProviderNoDataError:
+            bars = []
+        except ProviderQuotaAdmissionError as exc:
+            if not may_select_alternative or not _is_pretransport_history_quota_denial(
+                exc, timeframe
+            ):
+                raise
+            if source_provider in excluded_provider_names:
+                raise
+            excluded_provider_names.add(source_provider)
+            last_denial = exc
+            continue
+        return (
+            chunk_plan,
+            candidate_preparation,
+            usage_job,
+            usage_hold,
+            native_hold,
+            bars,
+        )
 
 
 async def _enqueue_older_history_chunk(
@@ -1753,13 +1889,15 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         usage_job,
                         usage_hold,
                         native_hold_after_fallbacks,
-                    ) = await _history_chunk_plan_with_native_admission(
+                        bars,
+                    ) = await _plan_and_fetch_history_chunk(
                         db,
-                        job,
-                        instrument,
-                        timeframe,
-                        preparation,
+                        job=job,
+                        instrument=instrument,
+                        timeframe=timeframe,
+                        preparation=preparation,
                         priority=job.priority,
+                        redis=ctx.get("redis"),
                     )
                     (
                         planned_start,
@@ -1848,31 +1986,7 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         raise RefreshDependencyPending(
                             retry_at=datetime.now(UTC) + timedelta(seconds=20)
                         )
-                    try:
-                        with bind_explicit_provider_acquisition(
-                            request_id=f"data-preparation:{job.id}",
-                            operations=frozenset(
-                                {(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}
-                            ),
-                            instrument_id=instrument.id,
-                            symbol=instrument.symbol,
-                            provider_names=(
-                                frozenset({source_provider}) if source_provider else None
-                            ),
-                        ):
-                            bars = await fetch_ohlcv(
-                                db,
-                                instrument,
-                                timeframe,
-                                planned_start,
-                                end=planned_end,
-                                adjusted=bool(preparation.get("adjusted", True)),
-                                redis=ctx.get("redis"),
-                                source_provider=source_provider,
-                            )
-                    except ProviderNoDataError:
-                        bars = []
-                    else:
+                    if bars is not None:
                         if timeframe is Timeframe.D1 and preparation.get(
                             "derive_coarse_timeframes"
                         ):

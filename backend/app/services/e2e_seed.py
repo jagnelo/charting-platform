@@ -2,10 +2,12 @@ import hashlib
 import math
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
+from zoneinfo import ZoneInfo
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
 from app.models.etf_holdings import ETFHolding, ETFHoldingsSnapshot, ETFProfile
@@ -184,6 +186,11 @@ _E2E_MARKET_NAMES = {
 
 _E2E_RECENT_HISTORY_START = date(2024, 1, 2)
 _E2E_RECENT_HISTORY_BARS = 520
+_E2E_INTRADAY_SESSIONS = 20
+_E2E_INTRADAY_BARS_PER_SESSION = 26
+_E2E_INTRADAY_HISTORY_BARS = _E2E_INTRADAY_SESSIONS * _E2E_INTRADAY_BARS_PER_SESSION
+_E2E_INTRADAY_TIMEZONE = ZoneInfo("America/New_York")
+_E2E_ADJUSTMENT_VERSION = "e2e-split-adjusted-v1"
 _E2E_LONG_RRG_START = date(2019, 1, 2)
 _E2E_MONTHLY_RRG_SYMBOLS = (
     "SPY",
@@ -267,6 +274,16 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
     configuration and every row carries controlled-fixture provenance so the browser
     can exercise the complete top-down workflow without contacting a provider.
     """
+
+    # Keep direct callers subject to the same opt-in boundary as application startup.
+    # This prevents a helper invocation from writing controlled market rows when the
+    # E2E fixture switch is disabled.
+    if not settings.E2E_SEED_MARKET_DATA:
+        return
+
+    # Market data requires the fixture's canonical SPY listing even when a harness
+    # enables market data without separately enabling the identity seed.
+    await seed_e2e_instruments(db)
 
     asset_class = await _get_or_create_asset_class(db)
     instrument_type = await _get_or_create_instrument_type(db, asset_class.id)
@@ -597,6 +614,179 @@ async def seed_e2e_market_data(db: AsyncSession) -> None:
             end=daily_end,
         )
     await db.flush()
+
+    # The factory's 15 Minute SPY chart is an ordinary cached-data journey. Keep
+    # these M15 bars independent from D1 prices and isolated in their own controlled
+    # series; never derive intraday observations from daily OHLC.
+    spy_listing = await db.scalar(
+        select(InstrumentListing).where(
+            InstrumentListing.instrument_id == spy.id,
+            InstrumentListing.ticker == "SPY",
+            InstrumentListing.is_active.is_(True),
+            InstrumentListing.is_primary.is_(True),
+        )
+    )
+    if spy_listing is None:
+        raise RuntimeError("E2E SPY intraday seed requires its active primary listing")
+
+    intraday_series = await get_or_create_series(
+        db,
+        SeriesScope(
+            instrument_id=spy.id,
+            exchange_id=spy_listing.exchange_id,
+            timeframe=Timeframe.M15.value,
+            data_source_id=source.id,
+            feed_scope="e2e-reference",
+            session_code="regular",
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version=_E2E_ADJUSTMENT_VERSION,
+        ),
+        canonical=True,
+        source_series_key=f"e2e_reference:SPY:M15:split-adjusted:listing-{spy_listing.id}",
+        provenance={
+            "seed": "e2e",
+            "controlled_fixture": True,
+            "listing": {
+                "listing_id": spy_listing.id,
+                "ticker": spy_listing.ticker,
+                "exchange_id": spy_listing.exchange_id,
+                "currency": spy_listing.currency,
+                "source": spy_listing.source,
+            },
+        },
+    )
+    intraday_scope_key = f"series:{intraday_series.id}:regular"
+    compatible_intraday = (
+        await db.execute(
+            select(OHLCVBar).where(
+                OHLCVBar.instrument_id == spy.id,
+                OHLCVBar.data_source_id == source.id,
+                OHLCVBar.timeframe == Timeframe.M15,
+                OHLCVBar.is_adjusted.is_(True),
+                OHLCVBar.adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED,
+                OHLCVBar.adjustment_version == _E2E_ADJUSTMENT_VERSION,
+                OHLCVBar.is_derived.is_(False),
+                (
+                    OHLCVBar.market_series_id.is_(None)
+                    | (OHLCVBar.market_series_id == intraday_series.id)
+                ),
+            )
+        )
+    ).scalars()
+    for existing_bar in compatible_intraday:
+        existing_bar.market_series_id = intraday_series.id
+        existing_bar.scope_key = intraday_scope_key
+    await db.flush()
+
+    intraday_dates = trading_days[-_E2E_INTRADAY_SESSIONS:]
+    intraday_start = datetime.combine(
+        intraday_dates[0], time(9, 30), tzinfo=_E2E_INTRADAY_TIMEZONE
+    ).astimezone(UTC)
+    intraday_end = (
+        datetime.combine(intraday_dates[-1], time(9, 30), tzinfo=_E2E_INTRADAY_TIMEZONE)
+        + timedelta(minutes=15 * (_E2E_INTRADAY_BARS_PER_SESSION - 1))
+    ).astimezone(UTC)
+    intraday_timestamps = {
+        timestamp.replace(tzinfo=UTC) if timestamp.tzinfo is None else timestamp.astimezone(UTC)
+        for timestamp in (
+            await db.execute(
+                select(OHLCVBar.ts).where(
+                    OHLCVBar.market_series_id == intraday_series.id,
+                    OHLCVBar.timeframe == Timeframe.M15,
+                    OHLCVBar.is_adjusted.is_(True),
+                    OHLCVBar.is_derived.is_(False),
+                )
+            )
+        ).scalars()
+    }
+    intraday_base = base_prices["SPY"] * 1.18
+    intraday_bars: list[OHLCVBar] = []
+    previous = intraday_base
+    for day_index, session_day in enumerate(intraday_dates):
+        session_open = datetime.combine(session_day, time(9, 30), tzinfo=_E2E_INTRADAY_TIMEZONE)
+        for period_index in range(_E2E_INTRADAY_BARS_PER_SESSION):
+            index = day_index * _E2E_INTRADAY_BARS_PER_SESSION + period_index
+            timestamp = (session_open + timedelta(minutes=15 * period_index)).astimezone(UTC)
+            cycle = math.sin(index / 9.0 + 2) * 0.0015
+            close = intraday_base * (1 + index * 0.000015 + cycle)
+            open_ = previous
+            high = max(open_, close) * 1.002
+            low = min(open_, close) * 0.998
+            if timestamp not in intraday_timestamps:
+                intraday_bars.append(
+                    OHLCVBar(
+                        instrument_id=spy.id,
+                        data_source_id=source.id,
+                        market_series_id=intraday_series.id,
+                        scope_key=intraday_scope_key,
+                        timeframe=Timeframe.M15,
+                        ts=timestamp,
+                        session="regular",
+                        open=Decimal(str(round(open_, 8))),
+                        high=Decimal(str(round(high, 8))),
+                        low=Decimal(str(round(low, 8))),
+                        close=Decimal(str(round(close, 8))),
+                        volume=Decimal(str(250_000 + (index % 23) * 5_000)),
+                        is_adjusted=True,
+                        adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                        adjustment_version=_E2E_ADJUSTMENT_VERSION,
+                    )
+                )
+            previous = close
+    db.add_all(intraday_bars)
+    await db.flush()
+
+    # Validate one contiguous regular session so overnight closures are not
+    # interpreted as missing M15 bars by the conservative interval fallback.
+    last_session_start = datetime.combine(
+        intraday_dates[-1], time(9, 30), tzinfo=_E2E_INTRADAY_TIMEZONE
+    ).astimezone(UTC)
+    await select_default_series_for_complete_range(
+        db,
+        instrument_id=spy.id,
+        timeframe=Timeframe.M15.value,
+        adjusted=True,
+        market_series_id=intraday_series.id,
+        start=last_session_start,
+        end=intraday_end,
+    )
+
+    intraday_state = await db.scalar(
+        select(InstrumentDatasetState).where(
+            InstrumentDatasetState.instrument_id == spy.id,
+            InstrumentDatasetState.data_source_id == source.id,
+            InstrumentDatasetState.dataset_type == "ohlcv",
+            InstrumentDatasetState.dataset_key == "M15:adj",
+        )
+    )
+    if intraday_state is None:
+        intraday_state = InstrumentDatasetState(
+            instrument_id=spy.id,
+            data_source_id=source.id,
+            dataset_type="ohlcv",
+            dataset_key="M15:adj",
+        )
+        db.add(intraday_state)
+    intraday_fetched_at = datetime.now(UTC)
+    intraday_state.status = DatasetStatus.FRESH
+    intraday_state.observed_at = intraday_fetched_at
+    intraday_state.fetched_at = intraday_fetched_at
+    intraday_state.stale_after = intraday_fetched_at + timedelta(days=1)
+    intraday_state.coverage_start = intraday_start
+    intraday_state.coverage_end = intraday_end
+    intraday_state.version = max(intraday_state.version or 1, 1)
+    intraday_state.snapshot_hash = hashlib.sha256(
+        f"SPY:e2e:M15:adj:{intraday_start.isoformat()}:{intraday_end.isoformat()}:{_E2E_INTRADAY_HISTORY_BARS}".encode()
+    ).hexdigest()
+    intraday_state.extra_data = {
+        "seed": "e2e",
+        "controlled_fixture": True,
+        "bar_count": _E2E_INTRADAY_HISTORY_BARS,
+        "adjusted": True,
+        "interval_minutes": 15,
+        "listing_id": spy_listing.id,
+        "market_series_id": intraday_series.id,
+    }
 
     # Keep the fixture's dataset-state contract in sync with the bars it writes.
     # Analysis endpoints use this state for freshness; omitting it would make a

@@ -3825,7 +3825,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for ETF returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-06T09:58:00Z",
+  "updated_at": "2026-11-07T13:43:10Z",
   "validation_tier": "full_integration",
   "whole_frontend_presentation_reconciliation": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/human-whole-frontend-tc2000-reconciliation-20261026.md",
@@ -4301,13 +4301,14 @@
   "current_sp500_analysis_spec": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etf-sp500-analysis-acceptance-ownership-20261107.json",
     "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
-    "sha256": "a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8",
-    "frontend_typecheck": "passed after R33 reload request fence and cached-lineage assertions",
+    "sha256": "c46f4e217c6fa4f7f9c71ad4b26ad2cbcd5874933a5743c156af6074e927dfae",
+    "frontend_typecheck": "passed after alpha-aware source-over tail and CSS-composited visibility assertions; R47 browser remains terminal red on the prior oracle and the corrected spec has not run in a browser",
     "playwright_cases_discovered": 2,
     "browser_body_run": false,
     "next_owner": "Root combined seeded-backend browser profile",
     "assertion_scope": "Actual price renderer paint and returned-bar OHLC/date tooltip; both visible ratio directions; independently aligned split-adjusted arithmetic plus canonical-local freshness, full coverage-preflight and exact date-bound assertions; active D1/W1/MN payloads and latest-draw marker/tail raster; RRG reload payload is tied to a main-frame request started after navigation and consumed immediately; restore, plot pointer, Duplicate layout, tab restore and original/copy identity assertions remain.",
-    "required_tc_layout_control": "Duplicate layout is present in exact TC5a source; no old-label fallback. Browser body still awaits Root combined profile."
+    "latest_r47_evidence": "Root adopted validation-fixture/etf-r47-rrg-tail-terminal-receipt.json and raw pixels. The predecessor R47 body remained failed on XLK raster after all11 markers passed. Root's before/after RGBA example proves alpha182->217 with the expected #e7bc68 source and2.51 residual; the current oracle verifies source-over contribution and CSS-visible final pixels while retaining strict counts and thresholds. Provider owns the degenerate XLC seed correction; corrected body remains unrun.",
+    "required_tc_layout_control": "Duplicate layout is present in exact TC5a source and now imported through exact a2e222; no old-label fallback. Browser body still awaits Root combined profile."
   },
   "current_search_bar_exact_prefetch": {
     "paths": [
@@ -4320,7 +4321,7 @@
     "contracts": "A unique exact canonical local result prefetches via the shared coordinator without selecting or navigating. Uniquely identified provisional local rows also request guarded identity/profile/history preparation. A unique exact discovered candidate is resolved and prefetched only when its resolved symbol matches the exact query; Enter during that discovery preserves the canonical ID, returned type and acquire response. Prefix, ambiguous, stale, mismatched, and required-reported-symbol mismatch paths do not prepare. Duplicate local exact listings require deliberate click/keyboard choice in chart and picker modes.",
     "browser_execution": "No browser body was run; Root owns the combined profile and release acceptance."
   },
-  "current_tc_common_runtime_dependency": {
+  "historical_tc_common_runtime_dependency_1fdc92f1": {
     "source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
     "previous_source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-1fdc92f1-common-runtime-development-consumption-contract.json",
@@ -4329,6 +4330,16 @@
     "consumer_import_paths_verified": 5,
     "verification": "All77 source SHA/Git blob/executable-bit records verified; exact5 ETF paths imported under old/new guards and executable-bit semantics.",
     "state": "Root-released development dependency only; Root owns browser, exact CI, and release qualification."
+  },
+  "current_tc_common_runtime_dependency": {
+    "source": "a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d",
+    "previous_source": "1fdc92f1a1628d191ad1d5b2f0ba071a80df5052",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-runtime-development-consumption-contract.json",
+    "manifest_sha256": "6e6c1233cc1fe168528779908b57cd777e09ea2317367ff3a1e5e7826a145ba1",
+    "current_manifest_records_verified": 83,
+    "consumer_import_paths_verified": 22,
+    "verification": "All83 status_from139/SHA/Git blob/executable-bit records verified; the exact22 ETF paths passed old/new guards and were imported. The local approved manifest copy is recorded under development-dependency-imports/.",
+    "state": "Root-released development dependency only; Root owns corrected-fixture RRG/Results browser qualification and final release gates."
   },
   "historical_tc_common_runtime_dependency_45ea51bf": {
     "source": "45ea51bfa78b6ae167462b518358164a5a3e29f4",
@@ -4471,7 +4482,7 @@
     "all_status_from139_git_blob_sha256_executable_bit_exact": true,
     "consumer_import_paths": "Exactly the four ETF paths in the Root delta manifest; all66 current manifest files verified by Git blob and SHA256; no excluded owner paths imported."
   },
-  "current_provider_runtime_dependency": {
+  "historical_provider_runtime_dependency_dd70319": {
     "source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
     "previous_source": "dcd3c823f9f76ed65b65d8b6c3628e1bc02a222e",
     "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json",
@@ -4481,6 +4492,16 @@
     "verification": "All61 current manifest entries match released Git blobs, SHA256 and executable-bit semantics; the four declared ETF paths passed old/new guards and were imported exactly.",
     "validation": "Root reports pinned Ruff check/format on four delta files; no unchanged suite was replayed here. Full CI/browser/release gates remain pending.",
     "state": "Root-released development dependency only; no combined release or acceptance claimed."
+  },
+  "current_provider_runtime_dependency": {
+    "source": "182173f346d4a27694a46beba057102a5b7449e6",
+    "previous_source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
+    "manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
+    "current_manifest_records_verified": 62,
+    "consumer_import_paths_verified": 9,
+    "verification": "All62 status_from139/SHA256/Git blob/executable-bit records match the exact source; the exact9 ETF paths passed old/new guards and were imported.",
+    "state": "Root-released development dependency only; producer release and combined browser/CI/release gates remain pending."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",
@@ -4493,7 +4514,7 @@
     "unit_sha256": "43b95300e0d3443baac6238f507fe2fbbb8d1a6da726a440f236dee46737a7db",
     "supporting_journey_sha256": "60e4cf196dd9e21bd4ee31206df7678f1b185ab6ca700924b3cd7c942be19451",
     "provider_dependency": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04; exact4 declared deltas imported and all61 manifest records verified; manifest SHA256 9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e.",
-    "sp500_spec_sha256_current": "a49970e4a4ad5a07f51257f43570dee248046fe2848b61a30ace8f2b4e813ec8",
+    "sp500_spec_sha256_current": "c46f4e217c6fa4f7f9c71ad4b26ad2cbcd5874933a5743c156af6074e927dfae",
     "focused_validation": "InstrumentNoteTool lifecycle unit4/4 passed; frontend type-check exited0; Ruff check/format passed for basket service and integration test. The two leased basket PostgreSQL nodes passed2/2 against the unique empty DB and Redis DB15 with provider routing/live flags disabled and isolated quota path. S&P and basket Playwright discovery lists5 total cases, with no browser body run here. Alert POST assertion requires exact201.",
     "root_browser_evidence": "R30 first four supporting cases:0 passed/4 failed in77.27s. R28 remains unaccepted; R29 was0 passed/3 failed in138.2s. R32 was0/3. R33 was0/4; its S&P failure was stale pre-reload response-body capture, corrected in the current unrun spec. Shared ratio-status composition, basket shared-chart readiness, maximize, and Strategy Results issues remain open.",
     "focused_s_and_p_validation": "Frontend type-check exited0; Playwright discovery lists2 cases. Current ratio payload assertions include canonical local lineage, freshness, full coverage and exact date bounds. R32 showed the strict local-adjusted UI status is masked by a separate coordinator hold; no browser body run for the current spec.",

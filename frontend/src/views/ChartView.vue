@@ -31,18 +31,27 @@
           <button
             class="wl-star"
             :class="{ active: showWlMenu }"
-            title="Add to watchlist"
+            :aria-label="showWlMenu ? 'Close watchlist menu' : `Add ${activeSymbol} to a watchlist`"
+            :aria-expanded="showWlMenu"
+            :aria-controls="watchlistMenuId"
+            :title="showWlMenu ? 'Close watchlist menu' : 'Add to watchlist'"
             @click="showWlMenu = !showWlMenu"
           >★</button>
-          <div v-if="showWlMenu" class="wl-quick-menu">
+          <div v-if="showWlMenu" :id="watchlistMenuId" class="wl-quick-menu" role="group" aria-label="Add active symbol to watchlist">
             <div class="wqm-title">Add to watchlist</div>
-            <div
+            <button
               v-for="wl in addableWatchlists"
               :key="wl.id"
+              type="button"
               class="wqm-item"
+              :aria-label="`Add ${activeSymbol} to ${wl.name}`"
               @click="addToWatchlist(wl.id)"
-            >{{ wl.name }}</div>
-            <div class="wqm-item wqm-new" @click="createAndAddToWatchlist">+ New watchlist</div>
+            >{{ wl.name }}</button>
+            <button
+              type="button"
+              class="wqm-item wqm-new"
+              @click="createAndAddToWatchlist"
+            >+ New watchlist</button>
           </div>
         </div>
         <div v-if="layoutStore.layout === '1' && chartStore.symbol" class="compare-wrap">
@@ -229,7 +238,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, useId } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useChartStore, usePanelStore } from '@/stores/chart'
 import { useLayoutStore }    from '@/stores/layout'
@@ -360,6 +369,7 @@ const router = useRouter()
 
 const currentTf     = ref<Timeframe>('D1')
 const showWlMenu    = ref(false)
+const watchlistMenuId = `${useId()}-chart-watchlist-menu`
 const showCreateWatchlistModal = ref(false)
 const optionsTab    = ref<'chain' | 'exposure'>('chain')
 const optionsPanelHeight = ref(340)
@@ -1101,8 +1111,14 @@ onUnmounted(() => {
   border-bottom: 1px solid #222;
 }
 .wqm-item {
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
   padding: 7px 10px;
   font-size: 12px;
+  font-family: inherit;
   color: #aaa;
   cursor: pointer;
   transition: background 0.1s;

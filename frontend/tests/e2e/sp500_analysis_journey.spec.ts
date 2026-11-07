@@ -396,46 +396,111 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
       }
       return { hit: exactOpaquePixels > 0, exactOpaquePixels, samples, neighborhood }
     }
-    const tailRasterHits = (path: Array<{ x: number; y: number }>, color: [number, number, number]) => {
-      let hits = 0
+    const compositeOverPlot = (rgba: number[]) => rgba.slice(0, 3).map((channel, index) =>
+      channel * rgba[3] / 255 + plotBackground[index] * (1 - rgba[3] / 255),
+    )
+    const sourceOverStrokeChangedPixel = (before: number[], after: number[], color: [number, number, number]) => {
+      const beforeAlpha = before[3] / 255
+      const afterAlpha = after[3] / 255
+      if (beforeAlpha >= 0.999) return false
+      const strokeOpacity = (afterAlpha - beforeAlpha) / (1 - beforeAlpha)
+      // The individual renderer stroke is alpha 0.72; antialias coverage can
+      // lower it. This bound applies to the new stroke's contribution, not the
+      // cumulative opacity of overlapping strokes already on the canvas.
+      if (strokeOpacity < 0.2 || strokeOpacity > 0.75 || afterAlpha <= beforeAlpha) return false
+      const predictedAlpha = strokeOpacity + beforeAlpha * (1 - strokeOpacity)
+      if (Math.abs(predictedAlpha - afterAlpha) > 2 / 255) return false
+      const predicted = color.map((channel, index) =>
+        (channel * strokeOpacity + before[index] * beforeAlpha * (1 - strokeOpacity)) / predictedAlpha,
+      )
+      const sourceOverResidual = Math.hypot(...predicted.map((channel, index) => channel - after[index]))
+      if (sourceOverResidual > 8) return false
+
+      // Canvas pixels may be partially transparent. Compare the actual and
+      // predicted CSS-composited results over the plot backing so a raw draw
+      // event or invisible alpha change cannot count as visible tail paint.
+      const beforeComposite = compositeOverPlot(before)
+      const afterComposite = compositeOverPlot(after)
+      const predictedComposite = predicted.map((channel, index) =>
+        channel * predictedAlpha + plotBackground[index] * (1 - predictedAlpha),
+      )
+      const compositeResidual = Math.hypot(...predictedComposite.map((channel, index) => channel - afterComposite[index]))
+      const visibleDelta = afterComposite.map((channel, index) => channel - beforeComposite[index])
       const strokeVector = color.map((channel, index) => channel - plotBackground[index])
       const strokeLengthSquared = strokeVector.reduce((sum, channel) => sum + channel * channel, 0)
+      const visibleAlongStroke = visibleDelta.reduce((sum, channel, index) => sum + channel * strokeVector[index], 0) / strokeLengthSquared
+      return compositeResidual <= 8 && visibleAlongStroke > 0
+    }
+    const finalCanvasStrokePixel = (rgba: number[], color: [number, number, number]) => {
+      const alpha = rgba[3]
+      if (alpha >= 30 && alpha < 250) {
+        const sourceColorDistance = Math.hypot(...color.map((channel, index) => channel - rgba[index]))
+        const composite = compositeOverPlot(rgba)
+        const visibleContrast = Math.hypot(...composite.map((channel, index) => channel - plotBackground[index]))
+        return sourceColorDistance <= 2 && visibleContrast > 0
+      }
+      if (alpha >= 250) {
+        const strokeVector = color.map((channel, index) => channel - plotBackground[index])
+        const strokeLengthSquared = strokeVector.reduce((sum, channel) => sum + channel * channel, 0)
+        const fromBackground = rgba.slice(0, 3).map((channel, index) => channel - plotBackground[index])
+        const opacity = fromBackground.reduce((sum, channel, index) => sum + channel * strokeVector[index], 0) / strokeLengthSquared
+        const residual = Math.hypot(...fromBackground.map((channel, index) => channel - opacity * strokeVector[index]))
+        const composite = compositeOverPlot(rgba)
+        const visibleContrast = Math.hypot(...composite.map((channel, index) => channel - plotBackground[index]))
+        // Multiple same-color strokes can compose above 0.75 opacity. Keep the
+        // original 0.2 floor and RGB residual while bounding the physical result
+        // at full opacity instead of rejecting valid source-over composition.
+        return opacity >= 0.2 && opacity <= 1 && residual <= 8 && visibleContrast > 0
+      }
+      return false
+    }
+    const tailRasterEvidence = (
+      path: Array<{ x: number; y: number }>,
+      samples: Array<{ segmentIndex: number; x: number; y: number; before: number[][]; after: number[][] }>,
+      color: [number, number, number],
+    ) => {
+      let hits = 0
+      let sourceOverSegments = 0
+      let finalVisibleSegments = 0
+      const segmentResults: Array<{ segmentIndex: number; sourceOver: boolean; finalVisible: boolean }> = []
       for (let index = 1; index < path.length; index += 1) {
+        const sample = samples.find(candidate => candidate.segmentIndex === index - 1)
+        const sourceOver = Boolean(sample && sample.before.some((before, pixelIndex) => {
+          const after = sample.after[pixelIndex]
+          return Boolean(after && sourceOverStrokeChangedPixel(before, after, color))
+        }))
+        if (sourceOver) sourceOverSegments += 1
+
         const x = Math.round((path[index - 1].x + path[index].x) / 2)
         const y = Math.round((path[index - 1].y + path[index].y) / 2)
-        let found = false
-        for (let dy = -1; dy <= 1 && !found; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
+        let finalVisible = false
+        for (let dy = -1; dy <= 1 && !finalVisible; dy += 1) for (let dx = -1; dx <= 1; dx += 1) {
           const px = x + dx, py = y + dy
           if (px < 0 || py < 0 || px >= element.width || py >= element.height) continue
+          // Do not let the latest-point marker itself masquerade as a visible
+          // tail pixel. The actual final canvas must retain tail-colored raster
+          // outside every audited marker interior.
+          if (latestMarkers.some(marker => Math.hypot(px - marker.x, py - marker.y) < marker.radius)) continue
           const offset = (py * element.width + px) * 4
-          const alpha = image[offset + 3]
-          const pixel = [image[offset], image[offset + 1], image[offset + 2]]
-          if (alpha > 0 && alpha < 250) {
-            // Transparent canvas pixels retain the unblended stroke RGB; alpha
-            // records stroke coverage. Opaque marker and label pixels are not tails.
-            const distance = Math.hypot(...pixel.map((channel, channelIndex) => channel - color[channelIndex]))
-            if (alpha >= 30 && distance <= 2) { found = true; break }
-          } else if (alpha >= 250) {
-            // On the opaque plot backing, recover effective stroke opacity along
-            // the source-color/background vector. The renderer's 0.72 alpha plus
-            // antialias coverage lies below opaque markers and label text.
-            const fromBackground = pixel.map((channel, channelIndex) => channel - plotBackground[channelIndex])
-            const opacity = fromBackground.reduce((sum, channel, channelIndex) => sum + channel * strokeVector[channelIndex], 0) / strokeLengthSquared
-            const residual = Math.hypot(...fromBackground.map((channel, channelIndex) => channel - opacity * strokeVector[channelIndex]))
-            if (opacity >= 0.2 && opacity <= 0.75 && residual <= 8) { found = true; break }
+          if (finalCanvasStrokePixel([image[offset], image[offset + 1], image[offset + 2], image[offset + 3]], color)) {
+            finalVisible = true
+            break
           }
         }
-        if (found) hits += 1
+        if (finalVisible) finalVisibleSegments += 1
+        if (sourceOver && finalVisible) hits += 1
+        segmentResults.push({ segmentIndex: index - 1, sourceOver, finalVisible })
       }
-      return hits
+      return { hits, sourceOverSegments, finalVisibleSegments, segmentResults }
     }
     const markerRasterHits = latestMarkers.map((marker, index) => {
       const row = expectedRows[index]
       return exactMarkerPixel(marker.x, marker.y, stateColors[row?.state ?? '']).hit
     })
-    const tailHitCounts = tailPaths.map((path, index) =>
-      tailRasterHits(path.points, stateColors[expectedRows[index]?.state ?? '']),
+    const tailEvidence = tailPaths.map((path, index) =>
+      tailRasterEvidence(path.points, path.preMarkerSamples, stateColors[expectedRows[index]?.state ?? '']),
     )
+    const tailHitCounts = tailEvidence.map(evidence => evidence.hits)
     const markerDiagnostics = latestMarkers.map((marker, index) => {
       const row = expectedRows[index]
       const stateColor = stateColors[row?.state ?? '']
@@ -485,6 +550,9 @@ async function assertRotationPainted(page: Page, payload: RotationResponse): Pro
         expectedColor: stateColors[expectedRows[index]?.state ?? ''],
         points: path.points,
         preMarkerSamples: path.preMarkerSamples,
+        sourceOverSegments: tailEvidence[index]?.sourceOverSegments ?? 0,
+        finalVisibleSegments: tailEvidence[index]?.finalVisibleSegments ?? 0,
+        segmentResults: tailEvidence[index]?.segmentResults ?? [],
       })),
     }
     return {

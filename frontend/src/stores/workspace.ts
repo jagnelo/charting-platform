@@ -1103,6 +1103,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   const wildcardTimeframe = ref('D1')
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const snapshotSaveStatus = ref<'saved' | 'saving' | 'error'>('saved')
+  const snapshotSaveError = ref<string | null>(null)
   const isPersistenceLeader = ref(false)
   const marketGroups = ref<Record<string, MarketGroupState>>({})
   const groupSnapshots = ref<Record<string, GroupSnapshotState>>({})
@@ -1649,6 +1651,10 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       for (const tab of workspace.value.tabs) {
         for (const tool of tab.windows) {
           if (tool.link_group !== event.group) continue
+          // Study Lab's configuration.symbol is its editable dataset draft,
+          // not a fallback for the shared chart selection. Keep it intact while
+          // the tool continues to receive the shared symbol through its link.
+          if (tool.tool_type === 'study_lab') continue
           const hasMatchingSymbol = tool.configuration.symbol === event.symbol
           const hasMatchingInstrument = typeof event.instrumentId === 'number'
             ? tool.configuration.instrument_id === event.instrumentId
@@ -1807,6 +1813,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         revision: workspace.value.revision,
       }]
       persistedWorkspace = cloneSerializable(workspace.value)
+      snapshotSaveStatus.value = 'saved'
+      snapshotSaveError.value = null
       activeTabKey.value = workspace.value.tabs[0]?.stable_key ?? 'us-top-down'
       // Link selections are shared workspace state. Restore each concrete
       // group's last symbol plus Yellow's last received symbol from settings;
@@ -1915,6 +1923,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const next = await api.get<WorkspaceState>(`/workspaces/${workspaceId}`)
       workspace.value = next
       persistedWorkspace = cloneSerializable(next)
+      snapshotSaveStatus.value = 'saved'
+      snapshotSaveError.value = null
       activeTabKey.value = next.tabs[0]?.stable_key ?? 'us-top-down'
       error.value = null
       await refreshWorkspaces()
@@ -1932,6 +1942,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const created = await api.post<WorkspaceState>('/workspaces', { name: normalized, is_default: false })
       workspace.value = created
       persistedWorkspace = cloneSerializable(created)
+      snapshotSaveStatus.value = 'saved'
+      snapshotSaveError.value = null
       activeTabKey.value = created.tabs[0]?.stable_key ?? 'us-top-down'
       error.value = null
       await refreshWorkspaces()
@@ -1948,6 +1960,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const corrected = remapClonedWorkspaceWindowKeys(source, clone)
       workspace.value = corrected.workspace
       persistedWorkspace = cloneSerializable(clone)
+      snapshotSaveStatus.value = 'saved'
+      snapshotSaveError.value = null
       activeTabKey.value = corrected.workspace.tabs[0]?.stable_key ?? 'us-top-down'
       error.value = null
       // Some server versions clone window records but retain the source layout's
@@ -1968,6 +1982,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const updated = await api.patch<WorkspaceState>(`/workspaces/${workspace.value.id}`, { name: normalized })
       workspace.value = updated
       persistedWorkspace = cloneSerializable(updated)
+      snapshotSaveStatus.value = 'saved'
+      snapshotSaveError.value = null
       error.value = null
       await refreshWorkspaces()
       return updated
@@ -3158,6 +3174,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       return saved
     }
     if (!workspace.value) return false
+    snapshotSaveStatus.value = 'saving'
+    snapshotSaveError.value = null
     const current = workspace.value
     const baseRevision = current.revision
     const generation = snapshotGeneration
@@ -3176,6 +3194,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
         persistedWorkspace = cloneSerializable(workspace.value)
         recentClosedWindowOverrides.clear()
         announceWorkspaceSnapshot(workspace.value)
+        snapshotSaveStatus.value = 'saved'
+        snapshotSaveError.value = null
         return true
       } catch (cause: any) {
         if (String(cause?.message ?? '').includes(' 409:')) {
@@ -3208,6 +3228,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
               persistedWorkspace = cloneSerializable(saved)
               recentClosedWindowOverrides.clear()
               announceWorkspaceSnapshot(saved)
+              snapshotSaveStatus.value = 'saved'
+              snapshotSaveError.value = null
               error.value = null
               return true
             }
@@ -3216,13 +3238,19 @@ export const useWorkspaceStore = defineStore('workspace', () => {
             persistedWorkspace = cloneSerializable(latest)
             activeTabKey.value = latest.tabs[0]?.stable_key ?? 'us-top-down'
             error.value = `Workspace changed elsewhere. Your local changes were preserved as '${recovery.name}'.`
+            snapshotSaveStatus.value = 'error'
+            snapshotSaveError.value = error.value
             return false
           } catch (recoveryCause: any) {
             error.value = `Workspace changed elsewhere and recovery failed: ${recoveryCause?.message ?? 'unknown error'}`
+            snapshotSaveStatus.value = 'error'
+            snapshotSaveError.value = error.value
             return false
           }
         }
         error.value = cause?.message ?? 'Unable to save workspace snapshot'
+        snapshotSaveStatus.value = 'error'
+        snapshotSaveError.value = error.value
         return false
       }
     })()
@@ -3240,6 +3268,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
   function scheduleSnapshot() {
     lastLocalWorkspaceMutationAt = Date.now()
     snapshotGeneration += 1
+    snapshotSaveStatus.value = 'saving'
+    snapshotSaveError.value = null
     // Layout engines can report a burst of observational state changes while a
     // tool is mounting or resizing. Keep one bounded trailing save instead of
     // continually postponing persistence until the burst happens to stop.
@@ -3686,6 +3716,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
       const reset = await api.post<WorkspaceState>(`/workspaces/${workspace.value.id}/reset-factory`, {})
       workspace.value = reset
       persistedWorkspace = cloneSerializable(reset)
+      snapshotSaveStatus.value = 'saved'
+      snapshotSaveError.value = null
       recentLinkGroupOverrides.clear()
       recentActiveWindowOverrides.clear()
       lastLocalWorkspaceMutationAt = Date.now()
@@ -3717,6 +3749,8 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     linkedTimeframes,
     loading,
     error,
+    snapshotSaveStatus,
+    snapshotSaveError,
     isPersistenceLeader,
     marketGroups,
     groupSnapshots,

@@ -7,9 +7,9 @@
       :disabled="!props.symbol || !selectedRange || Boolean(rangeError) || busy"
       @click="loadMissingHistory"
     >{{ actionLabel }}</button>
-    <details class="history-acquisition__advanced">
+    <details ref="advancedRange" class="history-acquisition__advanced" @toggle="positionAdvancedRange">
       <summary>Custom date range</summary>
-      <div class="history-acquisition__body">
+      <div ref="advancedBody" class="history-acquisition__body" :style="advancedBodyStyle">
         <p>The default range is {{ HISTORY_DEFAULT_RANGE_DAYS[props.timeframe] }} days. Each request is limited to {{ HISTORY_ACQUISITION_MAX_REQUESTED_BARS }} time slots; provider history and entitlement limits still apply.</p>
         <p>Sources may not cover every date. Partial or held results are reported, and existing chart data stays available.</p>
         <label>From <input v-model="startDate" type="date" aria-label="History start date" :max="today" :disabled="busy" /></label>
@@ -23,7 +23,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type CSSProperties } from 'vue'
 import {
   acquireSelectedHistory,
   defaultHistoryRange,
@@ -50,6 +50,9 @@ const endDate = ref('')
 const stage = ref<SelectedHistoryStage | null>(null)
 const message = ref('')
 const error = ref('')
+const advancedRange = ref<HTMLDetailsElement | null>(null)
+const advancedBody = ref<HTMLDivElement | null>(null)
+const advancedBodyStyle = ref<CSSProperties>({})
 const busy = computed(() => stage.value !== null)
 const hasCustomDate = computed(() => Boolean(startDate.value || endDate.value))
 const today = computed(() => new Date().toISOString().slice(0, 10))
@@ -215,7 +218,54 @@ function finish(generation: number) {
   }
 }
 
-onBeforeUnmount(cancelCurrentAction)
+function positionAdvancedRange() {
+  const details = advancedRange.value
+  const panel = advancedBody.value
+  const summary = details?.querySelector('summary')
+  if (!details?.open) {
+    if (Object.keys(advancedBodyStyle.value).length) advancedBodyStyle.value = {}
+    return
+  }
+  if (!panel || !summary) {
+    advancedBodyStyle.value = {}
+    return
+  }
+
+  void nextTick(() => {
+    if (!details.open || !panel.isConnected || !summary.isConnected) return
+    const anchor = summary.getBoundingClientRect()
+    const viewportWidth = window.innerWidth
+    const viewportHeight = window.innerHeight
+    const margin = 8
+    const width = Math.min(320, Math.max(0, viewportWidth - margin * 2))
+    const height = Math.min(panel.scrollHeight, Math.max(0, viewportHeight - margin * 2))
+    const maxLeft = Math.max(margin, viewportWidth - width - margin)
+    const left = Math.min(Math.max(anchor.right - width, margin), maxLeft)
+    const below = anchor.bottom + 6
+    const above = anchor.top - height - 6
+    const top = below + height <= viewportHeight - margin
+      ? below
+      : Math.max(margin, above)
+
+    advancedBodyStyle.value = {
+      left: `${left}px`,
+      top: `${Math.min(top, Math.max(margin, viewportHeight - height - margin))}px`,
+      width: `${width}px`,
+      maxHeight: `${height}px`,
+    }
+  })
+}
+
+onMounted(() => {
+  window.addEventListener('resize', positionAdvancedRange)
+  window.addEventListener('scroll', positionAdvancedRange, true)
+})
+
+onBeforeUnmount(() => {
+  cancelCurrentAction()
+  window.removeEventListener('resize', positionAdvancedRange)
+  window.removeEventListener('scroll', positionAdvancedRange, true)
+})
 </script>
 
 <style scoped>
@@ -223,7 +273,7 @@ onBeforeUnmount(cancelCurrentAction)
 .history-acquisition__load { min-height: 30px; max-width: min(92vw, 360px); white-space: nowrap; }
 .history-acquisition__advanced { position: relative; }
 .history-acquisition__advanced summary { cursor: pointer; font-size: 12px; }
-.history-acquisition__body { position: absolute; z-index: 30; top: calc(100% + 6px); right: 0; display: grid; gap: 8px; width: min(320px, 92vw); box-sizing: border-box; padding: 12px; color: var(--tc-text, #d5dde4); background: var(--tc-surface, #20282e); border: 1px solid var(--tc-border, #38444c); border-radius: 6px; box-shadow: 0 8px 24px #0008; }
+.history-acquisition__body { position: fixed; z-index: 1000; left: 8px; top: 8px; display: grid; gap: 8px; box-sizing: border-box; padding: 12px; overflow-y: auto; color: var(--tc-text, #d5dde4); background: var(--tc-surface, #20282e); border: 1px solid var(--tc-border, #38444c); border-radius: 6px; box-shadow: 0 8px 24px #0008; }
 .history-acquisition__body label { display: grid; gap: 3px; font-size: 12px; }
 .history-acquisition__body input { min-width: 0; max-width: 100%; }
 .history-acquisition__body p, .history-acquisition > p { margin: 0; font-size: 12px; }

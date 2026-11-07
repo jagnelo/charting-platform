@@ -180,6 +180,30 @@ describe('workspace store layout tabs', () => {
     vi.useRealTimers()
   })
 
+  it('reports snapshot save progress, failure, and a confirmed retry', async () => {
+    const store = useWorkspaceStore()
+    store.workspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0,
+        active_window_key: 'relative-rotation', layout_config: { root: { type: 'stack', maximised: true, content: [] } },
+        windows: [{ id: 30, instance_key: 'relative-rotation', tool_type: 'relative_rotation', title: 'Relative Rotation', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }],
+      }],
+    }
+    store.scheduleSnapshot()
+    expect(store.snapshotSaveStatus).toBe('saving')
+
+    apiPut.mockRejectedValueOnce(new Error('API PUT /workspaces/10/snapshot → 503: unavailable'))
+    expect(await store.saveSnapshot()).toBe(false)
+    expect(store.snapshotSaveStatus).toBe('error')
+    expect(store.snapshotSaveError).toContain('503')
+
+    apiPut.mockResolvedValueOnce({ ...store.workspace, revision: 5 })
+    expect(await store.saveSnapshot()).toBe(true)
+    expect(store.snapshotSaveStatus).toBe('saved')
+    expect(store.snapshotSaveError).toBeNull()
+  })
+
   it('refreshes a follower from a leader refresh event without starting its own announcement', async () => {
     const messages: unknown[] = []
     let listener: ((event: MessageEvent) => void) | undefined
@@ -1272,6 +1296,42 @@ describe('workspace store layout tabs', () => {
     }))
   })
 
+  it('flushes an explicit Undo after an older snapshot settles, preserving the restored name and position', async () => {
+    const earlierWrite = deferred<any>()
+    const store = useWorkspaceStore()
+    const original = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 4, schema_version: 1, settings: {},
+      tabs: [
+        { id: 20, stable_key: 'one', name: 'One', position: 0, active_window_key: 'chart-one', layout_config: {}, windows: [{ id: 30, instance_key: 'chart-one', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+        { id: 21, stable_key: 'review', name: 'Review layout', position: 1, active_window_key: 'chart-review', layout_config: {}, windows: [{ id: 31, instance_key: 'chart-review', tool_type: 'chart', title: 'Chart', link_group: 'red', configuration: {}, style: {}, state_schema_version: 1, position: 0 }] },
+      ],
+    }
+    store.workspace = structuredClone(original)
+    const recovery = store.captureTabRecovery('review')!
+    apiPut.mockImplementationOnce(() => earlierWrite.promise)
+      .mockImplementation(async (_path, payload) => ({ ...payload, revision: 6 }))
+
+    store.scheduleSnapshot()
+    await vi.waitFor(() => expect(apiPut).toHaveBeenCalledTimes(1), { timeout: 1_000 })
+    expect(store.deleteTab('review')).toBe(true)
+    expect(store.restoreDeletedTab(recovery)).toBe(true)
+    const undoSave = store.saveSnapshot()
+
+    // Undo's explicit flush must wait for the earlier revision, then send the
+    // current restored layout instead of treating the old clone/delete state
+    // as the durable checkpoint.
+    expect(apiPut).toHaveBeenCalledTimes(1)
+    earlierWrite.resolve({ ...original, revision: 5 })
+    await undoSave
+
+    expect(apiPut).toHaveBeenCalledTimes(2)
+    expect(apiPut.mock.calls[1][1]).toEqual(expect.objectContaining({
+      base_revision: 5,
+      tabs: expect.arrayContaining([expect.objectContaining({ stable_key: 'review', name: 'Review layout', position: 1 })]),
+    }))
+    expect(store.workspace?.tabs.map(tab => tab.stable_key)).toEqual(['one', 'review'])
+  })
+
   it('rejects malformed or duplicate imported layouts', () => {
     const store = useWorkspaceStore()
     store.workspace = {
@@ -1414,6 +1474,56 @@ describe('workspace store layout tabs', () => {
     expect(store.linkedSymbols.blue?.instrumentId).toBeUndefined()
     expect(store.activeTab?.windows[0].configuration).toMatchObject({ symbol: 'XLE' })
     expect(store.activeTab?.windows[0].configuration).not.toHaveProperty('instrument_id')
+  })
+
+  it('preserves an independent Study Lab draft through shared-symbol hydration and broadcasts', async () => {
+    const store = useWorkspaceStore()
+    vi.spyOn(store, 'scheduleSnapshot').mockImplementation(() => {})
+    const savedWorkspace = {
+      id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8, schema_version: 1,
+      settings: { linked_symbols: { blue: { symbol: 'SPY' } } },
+      tabs: [{
+        id: 20, stable_key: 'us-top-down', name: 'US Top Down', position: 0, active_window_key: 'chart', layout_config: {},
+        windows: [
+          { id: 30, instance_key: 'chart', tool_type: 'chart', title: 'Chart', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 0 },
+          { id: 31, instance_key: 'study-lab', tool_type: 'study_lab', title: 'Study Lab', link_group: 'blue', configuration: { symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1' }, style: {}, state_schema_version: 1, position: 1 },
+          { id: 32, instance_key: 'notes', tool_type: 'notes', title: 'Notes', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 2 },
+          { id: 33, instance_key: 'watchlist', tool_type: 'watchlist', title: 'WatchList', link_group: 'blue', configuration: { symbol: 'SPY' }, style: {}, state_schema_version: 1, position: 3 },
+          { id: 34, instance_key: 'grey-chart', tool_type: 'chart', title: 'Grey chart', link_group: 'grey', configuration: { symbol: 'IWM', instrument_id: 77 }, style: {}, state_schema_version: 1, position: 4 },
+        ],
+      }],
+    }
+    apiGet.mockResolvedValueOnce(savedWorkspace)
+
+    await store.loadDefault()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/default')
+    expect(store.linkedSymbol).toBe('SPY')
+    expect(store.workspace?.tabs[0].windows.find(window => window.tool_type === 'study_lab')?.configuration).toMatchObject({
+      symbol: 'XLB', study_run_id: 8,
+    })
+    // Workstation startup republishes the hydrated shared symbol before the
+    // panels settle. That broadcast must not replace the saved Study draft.
+    store.publishSymbol({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })
+    expect(store.workspace?.tabs[0].windows.find(window => window.tool_type === 'study_lab')?.configuration).toEqual({
+      symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1',
+    })
+
+    // A normal linked chart selection still updates every other linked tool's
+    // serializable fallback while the independent Study dataset remains XLB.
+    expect(store.selectToolSymbol('chart', 'XLK', 42)).toBe(true)
+    const windows = store.workspace?.tabs[0].windows ?? []
+    expect(windows.find(window => window.instance_key === 'chart')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(windows.find(window => window.tool_type === 'study_lab')?.configuration).toEqual({
+      symbol: 'XLB', study_run_id: 8, study_source: 'saved-run-source', timeframe: 'W1',
+    })
+    expect(windows.find(window => window.instance_key === 'notes')?.configuration.symbol).toBe('XLK')
+    expect(windows.find(window => window.instance_key === 'watchlist')?.configuration).toMatchObject({ symbol: 'XLK', instrument_id: 42 })
+    expect(windows.find(window => window.instance_key === 'grey-chart')).toMatchObject({
+      link_group: 'grey',
+      configuration: { symbol: 'IWM', instrument_id: 77 },
+    })
+    expect(store.symbolForLinkGroup('grey', String(windows.find(window => window.instance_key === 'grey-chart')?.configuration.symbol))).toBe('IWM')
+    expect(store.linkedSymbol).toBe('XLK')
   })
 
   it('resets a factory workspace only through the backend factory-reset endpoint', async () => {

@@ -5726,8 +5726,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider580571e4 and TC4cfee476 are consumed from their exact Root manifests (51/51 and66/66 current-file records). The assigned Workstation covered-bar case passed in Root's existing fixture. Root's r7 S&P attempt failed before UI assertions on prior EED spec005bbb95 because raw-mode ratio queries had no aligned data in the adjusted-only fixture. The current S&P spec uses split-adjusted bars/ratios and visible Relative Rotation tab activation; type-check and two-case discovery pass. Current spec hash is recorded in journey-matrix.json; Root owns its existing-fixture rerun.
-  current_blocker: Root owns the current calendar-latency isolation, current S&P/RRG browser bodies and combined qualification; the prior r7 failure remains historical and is not represented as a result for the corrected spec. No additional source request, fixture, or local browser execution is authorized here. Preserve canonical identity, M1 coverage, actual bar/date, calendar, no-direct-write/no-legacy-acquisition, unresolved listing, context-fence and all full-roadmap requirements.
+  current_phase: Root-released Provider182 (62/62 manifest rows) and TC a2e222 (83/83 rows) are consumed under exact ETF path guards. The owned RRG tail oracle now verifies source-over contribution from before/after pixels and matching CSS-visible final-canvas segments without changing marker/tail counts, RGB residual, arithmetic, or visual references. Type-check, the focused RelativeRotationTool unit module (19/19), and two-case S&P Playwright discovery pass. Root owns the full original RRG after the Provider E2E fixture correction and Strategy Results fixes; no browser body ran in this checkpoint.
+  current_blocker: R47's prior oracle run is terminal failed and is not evidence for this corrected source. Root owns the next full RRG browser on the corrected deterministic sector fixture; Provider owns that E2E-only fixture, while Strategy owns outstanding Results behavior. XLC's 10-point D1 tail is geometrically degenerate (0.000014px total) and cannot produce five raster segments; no count, math, source, or tolerance was weakened. Preserve all ETF and platform roadmaps, existing genuine-source holds, and Root-owned combined release gates.
 previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
   previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
@@ -6496,3 +6496,119 @@ provider_runtime_dependency_active_dd70319e:
   active_manifest_records_verified: 61
   verification: All61 manifest entries match source Git blobs, SHA256 and executable-bit semantics; only the four declared ETF paths were imported under their old guards.
   state: Development dependency only; Root's backend/browser and full release qualifications remain pending.
+
+approved_development_dependency_imports:
+- source_sha: a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d
+  manifest_path: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json
+  manifest_sha256: 6e6c1233cc1fe168528779908b57cd777e09ea2317367ff3a1e5e7826a145ba1
+  paths:
+  - frontend/package-lock.json
+  - frontend/package.json
+  - frontend/src/App.vue
+  - frontend/src/components/chart/ChartPanel.vue
+  - frontend/src/components/chart/HistoryAcquisitionControl.vue
+  - frontend/src/components/chart/UPlotChart.vue
+  - frontend/src/components/common/Notification.vue
+  - frontend/src/components/common/SearchBar.vue
+  - frontend/src/components/radar/RadarDetailPreviewChart.vue
+  - frontend/src/components/workstation/EasyScanTool.vue
+  - frontend/src/components/workstation/MarketGaugeTool.vue
+  - frontend/src/components/workstation/MarketMapTool.vue
+  - frontend/src/components/workstation/RatioUPlot.vue
+  - frontend/src/components/workstation/RelativeRotationTool.vue
+  - frontend/src/components/workstation/ToolWindow.vue
+  - frontend/src/components/workstation/VirtualWatchlistTool.vue
+  - frontend/src/components/workstation/WorkspaceLayoutHost.vue
+  - frontend/src/components/workstation/WorkstationToolContent.vue
+  - frontend/src/lib/api.ts
+  - frontend/src/lib/authSession.ts
+  - frontend/src/lib/dataPreparation.ts
+  - frontend/src/lib/etfHoldingDrilldown.ts
+  - frontend/src/lib/workstation/benchmarkFamilySources.ts
+  - frontend/src/lib/workstation/instrumentCalendar.ts
+  - frontend/src/lib/workstation/marketMap.ts
+  - frontend/src/lib/workstation/ohlcvRequests.ts
+  - frontend/src/lib/workstation/toolActivation.ts
+  - frontend/src/main.ts
+  - frontend/src/router/index.ts
+  - frontend/src/stores/alerts.ts
+  - frontend/src/stores/auth.ts
+  - frontend/src/stores/chart.ts
+  - frontend/src/stores/layout.ts
+  - frontend/src/stores/panelLinks.ts
+  - frontend/src/stores/radar.ts
+  - frontend/src/stores/recentInstruments.ts
+  - frontend/src/stores/userSettings.ts
+  - frontend/src/stores/watchlist.ts
+  - frontend/src/stores/workspace.ts
+  - frontend/src/views/AlertsView.vue
+  - frontend/src/views/ChartView.vue
+  - frontend/src/views/ScreenerView.vue
+  - frontend/src/views/SettingsView.vue
+  - frontend/src/views/WatchlistView.vue
+  - frontend/src/views/WorkstationView.vue
+  - frontend/tests/e2e/auth_session_boundary.spec.ts
+  - frontend/tests/e2e/flows.spec.ts
+  - frontend/tests/e2e/helpers.ts
+  - frontend/tests/e2e/tc2000_visual.spec.ts
+  - frontend/tests/unit/components/test_chart_panel_lifecycle.test.ts
+  - frontend/tests/unit/components/test_easy_scan_tool.test.ts
+  - frontend/tests/unit/components/test_history_acquisition_control.test.ts
+  - frontend/tests/unit/components/test_market_gauge_tool.test.ts
+  - frontend/tests/unit/components/test_market_map_tool.test.ts
+  - frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts
+  - frontend/tests/unit/components/test_ratio_uplot.test.ts
+  - frontend/tests/unit/components/test_relative_rotation_tool.test.ts
+  - frontend/tests/unit/components/test_search_bar.test.ts
+  - frontend/tests/unit/components/test_tool_window.test.ts
+  - frontend/tests/unit/components/test_uplot_chart_context.test.ts
+  - frontend/tests/unit/components/test_workspace_layout_host.test.ts
+  - frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts
+  - frontend/tests/unit/e2e/test_browser_diagnostics.test.ts
+  - frontend/tests/unit/lib/test_api_client.test.ts
+  - frontend/tests/unit/lib/test_auth_session.test.ts
+  - frontend/tests/unit/lib/test_benchmark_family_sources.test.ts
+  - frontend/tests/unit/lib/test_data_preparation.test.ts
+  - frontend/tests/unit/lib/test_instrument_calendar.test.ts
+  - frontend/tests/unit/lib/test_market_map.test.ts
+  - frontend/tests/unit/lib/test_tool_activation.test.ts
+  - frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts
+  - frontend/tests/unit/router/test_app_shell.test.ts
+  - frontend/tests/unit/router/test_application_routes.test.ts
+  - frontend/tests/unit/setup.ts
+  - frontend/tests/unit/stores/test_drawings_store.test.ts
+  - frontend/tests/unit/stores/test_stores.test.ts
+  - frontend/tests/unit/stores/test_workspace_store.test.ts
+  - frontend/tests/unit/views/test_alerts_view_creation_path.test.ts
+  - frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts
+  - frontend/tests/unit/views/test_screener_view_accessibility.test.ts
+  - frontend/tests/unit/views/test_settings_view.test.ts
+  - frontend/tests/unit/views/test_workstation_capabilities.test.ts
+  - frontend/tests/unit/views/test_workstation_popout_bindings.test.ts
+
+tc_common_runtime_dependency_active_a2e22225:
+  authority: Root released exact TC source a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d for development consumption only; final combined browser/CI/release acceptance remains Root-owned.
+  previous_active_dependency: 1fdc92f1a1628d191ad1d5b2f0ba071a80df5052
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-a2e22225-common-runtime-development-consumption-contract.json
+  manifest_sha256: 6e6c1233cc1fe168528779908b57cd777e09ea2317367ff3a1e5e7826a145ba1
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/a2e222251d4ea796d0d4bfb6b0e8705f503c1e4d.json
+  imported_paths: exactly the22 ETF consumer import_paths under the manifest old_guards; no ETF/Strategy domain source or Producer records imported.
+  verification: all83 status_from139/SHA256/Git blob/executable-bit rows match; the exact22 ETF paths match the released source.
+  behavior: common chart/workspace/shell/dock and supporting-view runtime; browser qualification remains pending.
+  state: development dependency only.
+provider_runtime_dependency_active_182173f3:
+  authority: Root released exact Provider source 182173f346d4a27694a46beba057102a5b7449e6 for development consumption only.
+  previous_active_dependency: dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json
+  manifest_sha256: 8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56
+  imported_paths: exactly the9 ETF consumer import_paths under the manifest old_guards; Provider ownership and all prior dependency receipts remain preserved.
+  verification: all62 status_from139/SHA256/Git blob/executable-bit rows match; the exact9 ETF paths match the released source.
+  state: development dependency only; no Provider suite, new fixture, source HTTP, quota, production, integration, or deployment operation.
+rrg_r47_alpha_aware_tail_oracle_2026_11_07:
+  receipt: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/etf-r47-rrg-tail-terminal-receipt.json
+  diagnosis: Root-adopted before/after RGBA samples show partial-alpha unblended canvas pixels and legitimate same-color source-over accumulation above0.75; R47's old RGB-only opaque-backing oracle is physically incorrect.
+  correction: Count a segment only when its before/after RGBA fits the individual0.2..0.75 source-over contribution with residual<=8 and the CSS-composited change is along the expected color, AND the completed canvas has a matching visible tail-colored pixel outside audited marker interiors. Final cumulative opaque blending is bounded physically at1.0, with the existing0.2 floor and residual<=8; all11 markers,10 tails, five visible segments per tail, numeric math, colors, and visual references remain required.
+  fixture: Provider owns the deterministic E2E-only sector return correction. Root evidence proves XLC's final8 D1 values create a0.000014px tail, so five visible segments are impossible until that fixture-only repair is applied.
+  validation: RRG unit module19/19 passed; frontend type-check passed; Playwright discovery lists2 S&P cases. R47 itself remains terminal failed on the predecessor oracle; this corrected browser body is unrun.
+  results: Strategy-owned Results restoration/fix remains pending Root's combined profile; no Results pass is claimed by this ETF checkpoint.
+  full_release: Root owns the original full RRG and combined/CI/deployment qualification.
