@@ -727,15 +727,23 @@
       "spec": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
       "test_cases": [
         "Authenticated seeded-backend SPY and all eleven sector charts require actual price-renderer paint and an ordinary pointer OHLC/date tooltip matching returned bars.",
-        "All eleven sector/SPY and SPY/sector visible ratio traces are exercised through public controls; separate raw-close arithmetic independently checks every timestamp intersection.",
-        "D1/W1/MN payloads and rendered point/tail pixels are checked while active, using the latest complete draw; restore the maximized RRG before visible linked-chart assertions; actual marker pointer, keyboard/table linking, resize, maximize/restore, Duplicate layout and tab restore are covered."
+      "All eleven sector/SPY and SPY/sector visible ratio traces are exercised through public controls; separate split-adjusted-close arithmetic independently checks every timestamp intersection, including UI-triggered responses.",
+      "D1/W1/MN payloads and rendered point/tail pixels are checked while active, using the latest complete draw; activate Relative Rotation through its visible dock tab and restore the maximized RRG before visible linked-chart assertions; actual marker pointer, keyboard/table linking, resize, maximize/restore, Duplicate layout and tab restore are covered."
       ],
       "evidence": {
         "backend_contract": "Authenticated normal APIs; successful seeded paths are not route-fulfilled or mocked.",
-        "focused": "Five TC5a delta unit modules passed207/207; npm run type-check passed; Playwright discovery lists4 owned basket/S&P cases; S&P spec SHA256 ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb.",
+    "focused": "Frontend npm run type-check passed; Playwright discovery lists2 S&P cases; S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423. Provider21be dependency manifest49/49 verified in the same checkpoint.",
         "browser": {
           "body_run": false,
-          "status": "pending Root combined seeded-backend profile; the exact imported TC5a source includes the required Duplicate layout control."
+      "status": "The current ETF spec at 0a5ec5bc has not been browser-run. Root's focused r7 run failed on prior EED spec 005bbb95 before UI assertions because seeded adjusted bars were queried as raw; the current spec now uses matching split-adjusted inputs. Root owns rerun of current S&P/RRG bodies in the existing fixture.",
+      "prior_attempts": [
+        {
+          "receipt": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/validation-fixture/focused-sp500-ratios-r7-receipt.json",
+          "source": "eedc1a9369a702ddfb588786fc77b5657c978e42",
+          "spec_sha256": "005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867",
+          "result": "failed_before_UI_interaction_no_aligned_unadjusted_points_against_adjusted_only_fixture"
+        }
+      ]
         }
       },
       "boundaries": [

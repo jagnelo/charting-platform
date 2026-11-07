@@ -18,6 +18,7 @@ from app.routers.analysis import (
     _breadth_events_by_instrument,
     _calendar_year_cells,
     _entitlement_state,
+    _family_coverage_provider_metadata,
     _family_member_bar_history,
     _gauge_exclusion_warnings,
     _group_members_at,
@@ -37,12 +38,14 @@ from app.routers.analysis import (
     _truncate_bars_at,
     _volume_ratio_50,
     _wire_datetime,
+    benchmark_family_readiness,
 )
 from app.routers.market_groups import (
     _historical_profile_payloads,
     _holdings_snapshot_at,
     holdings_snapshot_source_filter,
 )
+from app.services.top_down_taxonomy import benchmark_family_registry
 
 
 def _bar(instrument_id: int, year: int, month: int, close: str) -> OHLCVBar:
@@ -87,6 +90,101 @@ def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
     assert _entitlement_state(source, entitlement) == "verified"
     entitlement.live_probe_status = "failure"
     assert _entitlement_state(source, entitlement) == "probe_failed"
+
+
+@pytest.mark.asyncio
+async def test_family_readiness_reuses_provider_metadata_within_one_request(db):
+    source = DataSource(name="marketstack", is_active=True, config={})
+    db.add(source)
+    db.flush()
+    entitlement = ProviderEntitlement(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="free-eod",
+        is_free=True,
+        authentication_required=True,
+        live_probe_status="passed",
+    )
+    db.add(entitlement)
+    db.flush()
+
+    class CountingAsyncSession:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+            self.info = sync_session.info
+            self.select_count = 0
+
+        async def execute(self, statement):
+            self.select_count += 1
+            return self.sync_session.execute(statement)
+
+    request_session = CountingAsyncSession(db)
+    first = await _family_coverage_provider_metadata(request_session)
+    second = await _family_coverage_provider_metadata(request_session)
+
+    assert request_session.select_count == 2
+    assert first is second
+    assert first[0][source.id].name == "marketstack"
+    assert first[1]["marketstack"].id == source.id
+    assert first[2][(source.id, ProviderCapability.PRICE_HISTORY)].id == entitlement.id
+
+
+@pytest.mark.asyncio
+async def test_family_readiness_loads_shared_provider_metadata_once_for_all_families(
+    db, monkeypatch
+):
+    families = benchmark_family_registry()
+    for metadata in families:
+        db.add(
+            MarketGroup(
+                stable_key=metadata["logical_key"],
+                group_type="benchmark_family",
+                name=metadata["name"],
+                provenance={
+                    "official_index": {
+                        "symbol": metadata["official_index_symbol"],
+                        "name": metadata["official_index_name"],
+                    },
+                    "proxy_mappings": {
+                        role: metadata.get(role)
+                        for role in ("cap_weight", "equal_weight", "value", "growth")
+                    },
+                },
+            )
+        )
+    db.flush()
+
+    async def _no_provider_evidence(_db):
+        return []
+
+    monkeypatch.setattr("app.routers.analysis.latest_availability", _no_provider_evidence)
+
+    class CountingAsyncSession:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+            self.info = sync_session.info
+            self.table_reads = {"data_source": 0, "provider_entitlement": 0}
+
+        async def execute(self, statement):
+            sql = str(statement).lower()
+            for table in self.table_reads:
+                if f"from {table}" in sql:
+                    self.table_reads[table] += 1
+            return self.sync_session.execute(statement)
+
+        def __getattr__(self, name):
+            return getattr(self.sync_session, name)
+
+    request_session = CountingAsyncSession(db)
+    response = await benchmark_family_readiness(
+        as_of=None,
+        limit=16,
+        _=None,
+        db=request_session,
+    )
+
+    assert response.family_count == len(families)
+    assert request_session.table_reads == {"data_source": 1, "provider_entitlement": 1}
 
 
 def test_role_readiness_cannot_be_ready_without_point_in_time_evidence():

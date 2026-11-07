@@ -23,9 +23,9 @@
   ],
   "active_changeset": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "focused_validation": "ETF source imports: Provider21be manifest49/49 and TC4cfee manifest66/66 verified. Workstation owned case passed in Root's existing fixture. S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423; frontend type-check and two-case Playwright discovery passed. No S&P browser body was run; Root owns its existing-fixture execution and combined qualification.",
+    "focused_validation": "Provider580571e4 manifest51/51 and TC4cfee manifest66/66 verified. Workstation covered-bar case passed in Root's existing fixture. Current S&P spec SHA256 0a5ec5bc7aa0dd8a4b02851af55836fe8d152c54a0d3288ac8601a14617a6423; frontend type-check and two-case discovery passed. Root's r7 failure was on prior EED spec005bbb95 and is retained; the corrected current spec has not been browser-run. Root owns its existing-fixture rerun and combined qualification.",
     "name": "ETF automatic issuer-holdings preparation and context independence",
-    "provider_contract": "The ETF preparation hook consumes the published Provider contracts; current exact development runtime dependency is Root-released 21be2915, imported only through its two declared delta paths over b0eae597. Earlier dffcf/732/464/b1 and b0 records remain preserved; no Provider workstream records were imported.",
+    "provider_contract": "The ETF preparation hook consumes the published Provider contracts; current exact development runtime dependency is Root-released 580571e4, imported only through its two declared delta paths over 21be2915. Earlier dffcf/732/464/b1, b0, and 21be records remain preserved; no Provider workstream records were imported.",
     "scope": "Automatic holdings dataset preparation for exact resolved ETF intent; holdings remain independent from price/history; preserve route/cache/freshness/quota and selected-fund provenance.",
     "source_paths": [
       "backend/app/schemas/data_preparation.py",

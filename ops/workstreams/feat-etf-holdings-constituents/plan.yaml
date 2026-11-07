@@ -5722,8 +5722,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider21be2915 and TC4cfee476 are consumed from their exact Root manifests (49/49 and66/66 current-file records). The assigned Workstation covered-bar case passed in Root's existing fixture. The S&P journey now uses split-adjusted bars and ratio responses consistently and activates Relative Rotation through its visible dock tab; type-check and two-case discovery pass. Root owns the current calendar-latency isolation and S&P browser bodies plus combined qualification.
-  current_blocker: Root owns the current shared-runtime browser isolation and combined qualification; no additional source request, fixture, or local browser execution is authorized here. Preserve canonical identity, M1 coverage, actual bar/date, calendar, no-direct-write/no-legacy-acquisition, unresolved listing, context-fence and all full-roadmap requirements.
+  current_phase: Provider580571e4 and TC4cfee476 are consumed from their exact Root manifests (51/51 and66/66 current-file records). The assigned Workstation covered-bar case passed in Root's existing fixture. Root's r7 S&P attempt failed before UI assertions on prior EED spec005bbb95 because raw-mode ratio queries had no aligned data in the adjusted-only fixture. The current S&P spec uses split-adjusted bars/ratios and visible Relative Rotation tab activation; type-check and two-case discovery pass. Current spec hash is recorded in journey-matrix.json; Root owns its existing-fixture rerun.
+  current_blocker: Root owns the current calendar-latency isolation, current S&P/RRG browser bodies and combined qualification; the prior r7 failure remains historical and is not represented as a result for the corrected spec. No additional source request, fixture, or local browser execution is authorized here. Preserve canonical identity, M1 coverage, actual bar/date, calendar, no-direct-write/no-legacy-acquisition, unresolved listing, context-fence and all full-roadmap requirements.
 previous_provider_b0eae597_development_import:
   source: b0eae5974801e320b3da858d7e1a33829b206430
   previous_source: 5cdc5ee06e26b191d889212b8cd1554d28abbc8f
@@ -5732,7 +5732,7 @@ previous_provider_b0eae597_development_import:
   changed_paths_imported: 2
   manifest_records_verified: 47
   purpose: Root-released retry/continuation contract dependency; development import only, no Provider workstream edits.
-current_provider_21be2915_development_import:
+previous_provider_21be2915_development_import:
   source: 21be29150de8298e15d34bb9eed8207b92917a34
   previous_source: b0eae5974801e320b3da858d7e1a33829b206430
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider21be2915-runtime-development-consumption-contract.json
@@ -5740,6 +5740,14 @@ current_provider_21be2915_development_import:
   changed_paths_imported: 2
   manifest_records_verified: 49
   purpose: Root-released calendar/event latency development dependency; exact import only, no Provider workstream edits or acceptance claim.
+current_provider_580571e4_development_import:
+  source: 580571e41b9797589bf205b61d337f8c92ec04c6
+  previous_source: 21be29150de8298e15d34bb9eed8207b92917a34
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider580571e4-runtime-development-consumption-contract.json
+  manifest_sha256: 4eda89809b752114c73c95083a260672d0fe0f02f5921cc9b29535dc02ca11c7
+  changed_paths_imported: 2
+  manifest_records_verified: 51
+  purpose: Root-released readiness-query metadata-reuse development dependency; no cross-request cache, API/math/policy change, or Provider workstream edit.
 current_tc_4cfee476_development_import:
   source: 4cfee47689ebeffa05ccae5f1b7cc690f6a871b8
   previous_source: ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9
