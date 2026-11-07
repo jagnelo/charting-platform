@@ -14950,9 +14950,9 @@ progress:
   - PLATFORM-PREP-6
   - PLATFORM-PREP-7
   total: 8
-  current_phase: controlled_default_m15_fixture
-  current_blocker: Root's normal selected-series API and default 15 Minute panel recheck remains pending in the existing fixture; genuine native intraday acquisition is separate and Root-owned.
-  next_action: Root uses the existing validation fixture with this exact source to verify the authenticated local SPY M15 response and default 15 Minute panel; preserve all D1/W1/MN data and native holds.
+  current_phase: workspace_read_consistency
+  current_blocker: The forced real-PostgreSQL concurrent replacement regression passes. Root owns cleanup of its unique leased database and the existing-fixture M15 panel recheck; exact-source CI and combined release gates remain pending.
+  next_action: Root cleans the exact workspace-read database lease, then reviews the frozen backend successor containing the M15 fixture and single-snapshot workspace reads; preserve all D1/W1/MN data and native holds.
 local_validation_profile: "full_stack_browser"
 local_validation_reason: >-
   API, persistence, queue, worker and provider-history routing are in scope; cumulative profile remains full_stack_browser/full_integration.
@@ -15336,4 +15336,28 @@ provider_controlled_intraday_fixture_20261107:
   production_or_public_dataset_mutations: false
   d1_w1_mn_fixture_values_changed: false
   pending: Root normal authenticated /ohlcv/local and default 15 Minute UI check in its existing fixture; genuine native intraday acquisition remains separate.
+  broader_provider_roadmap: open
+provider_workspace_read_consistency_20261107:
+  id: provider-workspace-read-consistency-20261107
+  status: focused_postgres_green_root_cleanup_pending
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-r39-workspace-read-consistency-evidence.json
+  scope:
+    - Read complete workspace, tab, and window graphs in one SQL statement so READ COMMITTED eager loading cannot combine rows from opposite sides of snapshot replacement.
+    - Preserve parent row locks and optimistic revision checks on snapshot/reset writers.
+    - Exercise default, by-ID, list, and clone reads while an independent PostgreSQL writer commits a replacement.
+  changed_paths:
+    - backend/app/routers/workspaces.py
+    - backend/tests/integration/api/test_workspace_read_consistency_postgres.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/integration/api/test_workspace_read_consistency_postgres.py::test_workspace_readers_keep_one_snapshot_during_concurrent_replacement -q
+    result: 1 passed in 8.47s on the exact Root-leased empty PostgreSQL database; the test body forced a writer commit after read rows were captured and verified complete revision-2 default output plus complete revision-3 by-ID/list/clone output.
+    ruff_check_format_diff: passed for both changed Python paths; git diff --check passed.
+    source_sha256: 8133960c0dc164425734a5a1428e36d2041d2627d673342b838ea7cb56c6111b
+    test_sha256: 8c189d9cba94ece6e2bfcc4b5f2ba1d9af311626b0f872632b719bd60ca32fc8
+  initial_sandbox_attempt: PostgreSQL fixture setup connection error before test body; same node and lease passed with the authorized host connection.
+  provider_http_or_quota_mutations: false
+  public_or_retained_database_used: false
+  root_database_cleanup: pending Root-owned
+  prior_m15_fixture_checkpoint: provider-default-m15-controlled-e2e-fixture-20261107 remains in this successor's ancestry; its 8-test unit result is preserved above.
+  exact_source_ci_and_combined_release: pending Root-owned
   broader_provider_roadmap: open

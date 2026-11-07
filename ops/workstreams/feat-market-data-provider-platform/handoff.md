@@ -33423,3 +33423,27 @@ Root will verify the authenticated ordinary M15 local response and default
 factory panel in its existing fixture. This controlled fixture is not native
 intraday evidence; genuine native intraday/deep-history acquisition, exact-tip
 CI, combined release qualification and the full Provider roadmap remain open.
+
+
+## 2026-11-07 — consistent workspace reads during snapshot replacement
+
+Root's R39 trace showed a default-workspace response returning the right
+revision and tab IDs but empty windows while a snapshot writer replaced the
+children. Ordinary workspace reads now eager-load the entire graph in one SQL
+statement, giving the response one READ COMMITTED snapshot. Snapshot and
+factory-reset writers retain their existing parent lock and optimistic revision
+checks.
+
+The focused PostgreSQL regression forced an independent locked writer to commit
+after the reader captured its rows. It passed 1/1 in 8.47 seconds and verified
+complete default revision-2 output, then complete revision-3 by-ID/list output
+and clone. A first sandbox attempt failed during database setup before the test
+body; the same exact node on the same Root-leased database passed with the
+authorized host connection. Ruff check/format and `git diff --check` passed.
+Private source-bound test receipt: `/tmp/provider-workspace-read-consistency-20261107.json`.
+
+Root owns cleanup of the exact leased database. The prior controlled M15 fixture
+checkpoint is retained in this successor's ancestry; its authenticated API/UI
+recheck, exact-source CI, combined release qualification, genuine native
+acquisition and the complete Provider roadmap remain open. No provider HTTP,
+quota/ledger/policy, production, or retained public database changes occurred.
