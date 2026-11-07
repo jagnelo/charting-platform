@@ -6378,3 +6378,17 @@ workstation_unknown_ticker_shared_ensure_fixture_2026_11_07:
   correction: Fixture now returns an exact resolved-instrument M1 adjusted-history progress response, asserts one M1 ensure for the selected canonical ID, verifies one returned local bar, and rejects legacy history calls or direct OHLCV writes.
   validation: Frontend type-check passed; SearchBar and Workstation history-acquisition unit modules56/56 passed; acquisition Playwright discovery lists7 cases. No browser body or fixture was run.
   pending: Root owns combined browser execution; no browser pass is claimed.
+provider_runtime_dependency_active_2ce29c30:
+  authority: Root released exact Provider source 2ce29c3031ee4a5011f80927dacd984d4f3d166a for development consumption; no staging or deployment acceptance.
+  previous_active_dependency: 8c26477498b1963231b0770e30e1ab8087d023a9
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider2ce29c30-runtime-development-consumption-contract.json
+  manifest_sha256: 9f7d5b4c54a0d0bad9bf564d0c57b2554d891a13bde5a2dc33a018ef1fac2712
+  changed_paths_since_previous: [backend/app/services/data_preparation.py, backend/tests/unit/routers/test_data_preparation_router.py, backend/tests/unit/services/test_data_preparation_service.py]
+  imported_paths: [backend/app/services/data_preparation.py, backend/tests/unit/routers/test_data_preparation_router.py, backend/tests/unit/services/test_data_preparation_service.py]
+  active_manifest_records: 59
+  verification: all59 status_from139/Git-blob/SHA256/executable-bit entries match exact source2ce29c30.
+  behavior: persisted waiting/held requests project current compatible cached coverage on status read and clear stale no-eligible blockers only when complete; partial/held semantics remain truthful and no replacement request is created.
+  provider_validation: Root reports pinned Ruff check/format and focused Provider tests pass; not replayed by ETF.
+  consumer_validation: no unchanged ETF frontend or backend suites replayed; Root normal-API projection proof is pending.
+  prior_dependency_history: provider_runtime_dependency_active_8c264774 remains preserved verbatim.
+  state: Development dependency only; Root owns normal-API proof, combined qualification and final release gates.
