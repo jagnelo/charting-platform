@@ -9,6 +9,7 @@ import json
 import re
 import subprocess
 import tempfile
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -35,6 +36,24 @@ ALLOWED_STATES = {
     "owner_mapped_browser_pending",
     "source_mapped_browser_pending",
 }
+ALLOWED_CASE_EXECUTION_STATES = {
+    "authored_pending_root_run",
+    "root_run_passed",
+    "root_run_failed",
+}
+ALLOWED_REVIEW_SLOT_STATES = {"pending_root_receipt", "reviewed"}
+
+
+def _declared_test_titles(source: str) -> set[str]:
+    """Collect literal test/it titles so a path alone cannot masquerade as a case."""
+    pattern = re.compile(r"\b(?:test|it)\s*\(\s*(['\"])(.*?)\1", re.DOTALL)
+    return {match.group(2).strip() for match in pattern.finditer(source)}
+
+
+@lru_cache(maxsize=256)
+def _declared_test_titles_for_path(path: str) -> set[str]:
+    """Avoid rereading the same test files for every fail-closed self-test mutation."""
+    return _declared_test_titles((ROOT / path).read_text())
 
 
 def _control_surfaces(root: Path = ROOT) -> list[dict[str, Any]]:
@@ -63,7 +82,7 @@ def _control_surfaces(root: Path = ROOT) -> list[dict[str, Any]]:
             controls = []
             for tag, attributes in pattern.findall(_rendered_template_markup(template)):
                 attrs = " ".join(attributes.split())
-                native_control = tag.lower() in {"button", "a", "input", "select", "textarea"}
+                native_control = tag.lower() in {"button", "a", "input", "select", "textarea", "summary"}
                 bound_action = bool(re.search(r"(?:@|v-on:)(?:click|submit|change|input|keydown|keyup|pointerdown|pointerup)\b", attrs))
                 semantic_action = bool(re.search(r"\brole=(?:\"|')?(?:button|menuitem|menuitemradio|option|tab)(?:\"|')?", attrs))
                 if native_control or bound_action or semantic_action:
@@ -353,6 +372,143 @@ def validate(data: dict[str, Any]) -> list[str]:
     if len(journey_ids) != len(set(journey_ids)):
         errors.append("journey IDs must be unique")
     journey_set = set(journey_ids)
+    cases = data.get("journey_cases", [])
+    if not isinstance(cases, list) or not cases:
+        errors.append("journey case inventory must be a non-empty list")
+        cases = []
+    case_by_id: dict[str, dict[str, Any]] = {}
+    for case in cases:
+        if not isinstance(case, dict):
+            errors.append("journey case row must be an object")
+            continue
+        case_id = case.get("id")
+        if not isinstance(case_id, str) or not case_id.strip():
+            errors.append("journey case is missing id")
+            continue
+        if case_id in case_by_id:
+            errors.append(f"duplicate journey case mapping: {case_id}")
+        case_by_id[case_id] = case
+        case_journeys = case.get("journey_ids")
+        if not isinstance(case_journeys, list) or not case_journeys:
+            errors.append(f"journey case {case_id} is missing journey ids")
+            case_journeys = []
+        if any(item not in journey_set for item in case_journeys):
+            errors.append(f"journey case {case_id} references an unknown journey id")
+        test_path = case.get("test_path")
+        test_name = case.get("test_name")
+        if not isinstance(test_path, str) or not test_path or not isinstance(test_name, str) or not test_name:
+            errors.append(f"journey case {case_id} must name an exact test path and title")
+        else:
+            resolved = (ROOT / test_path).resolve()
+            try:
+                resolved.relative_to(ROOT)
+            except ValueError:
+                errors.append(f"journey case {case_id} test path must remain repository-local")
+                continue
+            if not resolved.is_file():
+                errors.append(f"journey case {case_id} test file is missing: {test_path}")
+            else:
+                declared = _declared_test_titles_for_path(test_path)
+                if test_name not in declared:
+                    errors.append(f"journey case {case_id} does not name a declared test case in {test_path}")
+        if case.get("execution_status") not in ALLOWED_CASE_EXECUTION_STATES:
+            errors.append(f"journey case {case_id} has an unknown execution status")
+        slot_id = case.get("critical_review_slot")
+        if not isinstance(slot_id, str) or not slot_id:
+            errors.append(f"journey case {case_id} lacks a critical-review evidence slot")
+
+    review_slots = data.get("critical_review_slots", [])
+    if not isinstance(review_slots, list) or not review_slots:
+        errors.append("critical-review evidence slots must be a non-empty list")
+        review_slots = []
+    slot_by_id: dict[str, dict[str, Any]] = {}
+    for slot in review_slots:
+        if not isinstance(slot, dict):
+            errors.append("critical-review slot row must be an object")
+            continue
+        slot_id = slot.get("id")
+        if not isinstance(slot_id, str) or not slot_id:
+            errors.append("critical-review slot is missing id")
+            continue
+        if slot_id in slot_by_id:
+            errors.append(f"duplicate critical-review slot: {slot_id}")
+        slot_by_id[slot_id] = slot
+        if slot.get("journey_id") not in journey_set:
+            errors.append(f"critical-review slot {slot_id} references an unknown journey")
+        if slot.get("status") not in ALLOWED_REVIEW_SLOT_STATES:
+            errors.append(f"critical-review slot {slot_id} has an unknown status")
+        if slot.get("status") == "pending_root_receipt" and slot.get("receipt") is not None:
+            errors.append(f"pending critical-review slot {slot_id} must not claim a receipt")
+        if slot.get("status") == "reviewed":
+            receipt = slot.get("receipt")
+            if not isinstance(receipt, str) or not receipt or not (ROOT / receipt).is_file():
+                errors.append(f"reviewed critical-review slot {slot_id} lacks an existing receipt")
+
+    for case in cases:
+        if not isinstance(case, dict):
+            continue
+        slot_id = case.get("critical_review_slot")
+        if slot_id not in slot_by_id:
+            errors.append(f"journey case {case.get('id')} references a missing critical-review slot")
+        elif slot_by_id[slot_id].get("journey_id") not in case.get("journey_ids", []):
+            errors.append(f"journey case {case.get('id')} has a mismatched critical-review slot")
+
+    mapping_rows: list[tuple[str, list[dict[str, Any]]]] = [
+        ("journey", journeys),
+        ("route", data.get("routes", [])),
+        ("shell action", data.get("shell_actions", [])),
+        ("Add-tool definition", data.get("add_tool_definitions", [])),
+        ("factory layout", data.get("factory_layouts", [])),
+        ("action", data.get("actions", [])),
+        ("control surface", data.get("control_surfaces", [])),
+    ]
+    for label, rows in mapping_rows:
+        for row in rows if isinstance(rows, list) else []:
+            if not isinstance(row, dict):
+                continue
+            identity = row.get("id", row.get("path", row.get("key", row.get("source"))))
+            local_ids = row.get("journey_ids")
+            if not isinstance(local_ids, list) or not local_ids:
+                # Preserve the established fields while requiring a canonical local crosswalk.
+                local_ids = [row["journey"]] if isinstance(row.get("journey"), str) else row.get("journeys", [])
+            if not isinstance(local_ids, list) or not local_ids:
+                errors.append(f"{label} {identity} is missing explicit journey ids")
+                local_ids = []
+            unknown_ids = [item for item in local_ids if item not in journey_set]
+            if unknown_ids:
+                errors.append(f"{label} {identity} references unknown journey ids: {unknown_ids}")
+            case_refs = row.get("case_refs")
+            if not isinstance(case_refs, list) or not case_refs:
+                errors.append(f"{label} {identity} is missing specific test-case mappings")
+                continue
+            for case_ref in case_refs:
+                case = case_by_id.get(case_ref)
+                if case is None:
+                    errors.append(f"{label} {identity} references unknown journey case {case_ref}")
+                elif not set(local_ids).intersection(case.get("journey_ids", [])):
+                    errors.append(f"{label} {identity} case {case_ref} does not cover its declared journey ids")
+
+    for layout in data.get("factory_layouts", []):
+        if not isinstance(layout, dict):
+            continue
+        for panel in layout.get("panels", []):
+            if not isinstance(panel, dict):
+                continue
+            local_ids = panel.get("journey_ids") or ([panel["journey"]] if isinstance(panel.get("journey"), str) else [])
+            case_refs = panel.get("case_refs")
+            if not local_ids or any(item not in journey_set for item in local_ids):
+                errors.append(f"factory panel {panel.get('instance_key')} is missing valid journey ids")
+            if not isinstance(case_refs, list) or not case_refs:
+                errors.append(f"factory panel {panel.get('instance_key')} is missing specific test-case mappings")
+            elif any(ref not in case_by_id or not set(local_ids).intersection(case_by_id[ref].get("journey_ids", [])) for ref in case_refs):
+                errors.append(f"factory panel {panel.get('instance_key')} references an invalid journey case")
+
+    for journey in journeys:
+        if not isinstance(journey, dict):
+            continue
+        slot_id = journey.get("critical_review_slot")
+        if slot_id not in slot_by_id or slot_by_id[slot_id].get("journey_id") != journey.get("id"):
+            errors.append(f"journey {journey.get('id')} lacks its critical-review evidence slot")
     mapped_groups = (
         ("route", data.get("routes", []), "path"),
         ("shell action", data.get("shell_actions", []), "key"),
@@ -583,6 +739,7 @@ def validate(data: dict[str, Any]) -> list[str]:
 def self_test(data: dict[str, Any]) -> None:
     nested_template = '''<template>
       <template v-if="ready"><button @click="first">First</button></template>
+      <details><summary>More</summary><button @click="disclosed">Disclosed action</button></details>
       <!-- <button @click="comment">not rendered</button> -->
       <section>{{ '<template><button @click="expression">ignored</button></template>' }}</section>
       <button @click="afterNested">After nested block</button>
@@ -604,7 +761,7 @@ def self_test(data: dict[str, Any]) -> None:
         view.parent.mkdir(parents=True)
         view.write_text(nested_template)
         actual = _control_surfaces(root)
-        _require(len(actual) == 1 and actual[0]["control_count"] == 2, "nested-template controls were not inventoried")
+        _require(len(actual) == 1 and actual[0]["control_count"] == 4, "nested-template controls or native disclosure were not inventoried")
         _require(
             "Nested.vue" in (_control_mapping_error([], actual) or ""),
             "an unmapped control after a nested template was not rejected",
@@ -645,6 +802,22 @@ def self_test(data: dict[str, Any]) -> None:
     mutated["actions"][0]["control_surface_refs"] = []
     _require(any("lacks a current control-surface mapping" in error for error in validate(mutated)), "unconnected action surface was accepted")
     mutated = json.loads(json.dumps(data))
+    mutated["actions"][0]["journey_ids"] = ["TC-UNKNOWN"]
+    _require(any("unknown journey ids" in error for error in validate(mutated)), "unknown action journey ID was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["routes"][0]["case_refs"] = []
+    _require(any("missing specific test-case mappings" in error for error in validate(mutated)), "route without a test case was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["journey_cases"][0]["test_name"] = "a source file is not a test case"
+    _require(any("does not name a declared test case" in error for error in validate(mutated)), "path-only journey evidence was accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["critical_review_slots"] = []
+    _require(any("critical-review evidence slots must be a non-empty list" in error for error in validate(mutated)), "missing critical-review slots were accepted")
+    mutated = json.loads(json.dumps(data))
+    mutated["critical_review_slots"][0]["status"] = "pending_root_receipt"
+    mutated["critical_review_slots"][0]["receipt"] = "some-unreviewed.png"
+    _require(any("must not claim a receipt" in error for error in validate(mutated)), "pending critical-review receipt was accepted")
+    mutated = json.loads(json.dumps(data))
     mutated["cross_owner_journeys"][0]["journey_ids"] = ["missing-owner-journey"]
     _require(any("references absent owner journeys" in error for error in validate(mutated)), "missing cross-owner journey was accepted")
     mutated = json.loads(json.dumps(data))
@@ -661,7 +834,7 @@ def self_test(data: dict[str, Any]) -> None:
     mutated = json.loads(json.dumps(data))
     mutated["cross_owner_journeys"][0]["matrix"] = "../missing-owner-worktree/journey-matrix.json"
     _require(any("TC-owned frozen copy" in error or "frozen matrix" in error for error in validate(mutated)), "missing standalone owner matrix copy was accepted")
-    print("PASS: route, shell, canonical Add-tool, factory panel, action-control and portable owner-journey mappings fail closed")
+    print("PASS: route, shell, canonical Add-tool, factory panel, named test-case, critical-review and control mappings fail closed")
 
 
 def main() -> int:

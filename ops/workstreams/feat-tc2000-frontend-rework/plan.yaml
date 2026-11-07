@@ -1456,6 +1456,7 @@ owned_paths:
 - frontend/src/lib/workstation/
 - frontend/tests/unit/
 - frontend/tests/e2e/flows.spec.ts
+- frontend/tests/e2e/tc_secondary_routes_journey.spec.ts
 - frontend/tests/e2e/tc2000_date_pointer.spec.ts
 - frontend/tests/e2e/tc2000_chart_template_hotkeys.spec.ts
 - frontend/tests/e2e/tc2000_visual.spec.ts
@@ -1960,11 +1961,12 @@ roadmap_acceptance_criteria:
 branch_tests:
 - UV_CACHE_DIR=/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py
 - UV_CACHE_DIR=/tmp/tc2000-uv-cache uv run --project backend python scripts/validate-tc2000-scope.py --self-test
+- uv run --project backend python ops/workstreams/feat-tc2000-frontend-rework/validate-journey-matrix.py --self-test
 - cd frontend && npm run type-check
 - cd frontend && npm run build
 - uv run --project backend python scripts/validate-workstream.py ops/workstreams/feat-tc2000-frontend-rework/plan.yaml
-branch_tests_reason: 'The branch-declared job is intentionally stack-free: it runs TC scope/self-tests, frontend type-check/build,
-  and workstream validation. Backend unit/integration tests, frontend Vitest coverage, and all authenticated flows plus the
+branch_tests_reason: 'The branch-declared job is intentionally stack-free: it runs TC scope/self-tests, the fail-closed route/action
+  journey inventory and its negative self-tests, frontend type-check/build, and workstream validation. Backend unit/integration tests, frontend Vitest coverage, and all authenticated flows plus the
   four visual projects run in their dedicated CI jobs, with Playwright''s stack started and health-checked there. The exhaustive
   cleanup-sensitive integration gate is a separate TCP4 requirement and must use its approved isolated runtime; do not invoke
   it recursively from branch-tests or against the assigned stack.'

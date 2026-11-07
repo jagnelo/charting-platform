@@ -83,7 +83,10 @@
     "factory_instances": 38,
     "owned_actions": 12,
     "etf_actions": 16,
-    "strategy_actions": 48
+    "strategy_actions": 48,
+    "journey_cases": 56,
+    "critical_review_slots": 9,
+    "control_surfaces": 57
   },
   "routes": [
     {
@@ -93,7 +96,14 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC01-login"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ]
     },
     {
       "path": "/",
@@ -102,7 +112,14 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC01-first-chart"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03"
+      ]
     },
     {
       "path": "/chart",
@@ -111,7 +128,15 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC01-first-chart",
+        "TC03-timeframe"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03"
+      ]
     },
     {
       "path": "/chart/:symbol(.*)",
@@ -120,7 +145,13 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC02-workstation-search"
+      ],
+      "journey_ids": [
+        "TC02"
+      ]
     },
     {
       "path": "/popout/:windowKey",
@@ -129,7 +160,14 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-popouts"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC07"
+      ]
     },
     {
       "path": "/legacy/dashboard",
@@ -138,7 +176,14 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-dashboard"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/chart",
@@ -147,7 +192,16 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-legacy-routes",
+        "TC01-first-chart"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03",
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/chart/:symbol(.*)",
@@ -156,7 +210,15 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-legacy-routes",
+        "TC02-workstation-search"
+      ],
+      "journey_ids": [
+        "TC02",
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/alerts",
@@ -165,7 +227,13 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-alerts"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/radar",
@@ -175,7 +243,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts",
         "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-radar"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/strategy-lab",
@@ -184,7 +258,14 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-legacy-routes",
+        "TC09-strategy-builder-unit"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/strategy-lab-v2",
@@ -193,7 +274,14 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/baskets",
@@ -205,14 +293,22 @@
         "frontend/tests/e2e/baskets_journey.spec.ts",
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
-      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root\u2019s combined profile.",
+      "pending_reason": "ETF-owned basket CRUD, provenance, immediate shared-dashboard navigation, and member-chart journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
       "source_owner": "feat-etf-holdings-constituents",
       "source_pin": {
         "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
         "source_blob": "71b27cafc4019d5004e54e7f2536606c0484756e",
         "source_sha256": "eb237b4610cae5c7565bfcacc6bf2718586b89d032885d642f98cc55dcb5b141"
       },
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ],
+      "journey_ids": [
+        "TC04",
+        "TC07",
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/etf-holdings",
@@ -225,14 +321,21 @@
         "frontend/tests/e2e/on_demand_acquisition.spec.ts",
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
-      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root\u2019s combined profile.",
+      "pending_reason": "ETF-owned holdings discovery, dated snapshot, context-switch and history preparation journeys are authored and mapped; browser bodies remain pending Root’s combined profile.",
       "source_owner": "feat-etf-holdings-constituents",
       "source_pin": {
         "source_commit": "35fe1722848a5538d285b7c82d481acfb8e20b88",
         "source_blob": "2f4497f047aea843841f601dc4ae5e455f0429d3",
         "source_sha256": "069f39fcd8cb2eade1c1fb486e64ef52cd8f6c18e2cb0f458b147c5e1289491b"
       },
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC04-fund-selection",
+        "TC04-old-snapshot"
+      ],
+      "journey_ids": [
+        "TC04"
+      ]
     },
     {
       "path": "/legacy/screener",
@@ -241,7 +344,13 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-screener"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/watchlist",
@@ -250,7 +359,13 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-watchlists"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/legacy/settings",
@@ -259,7 +374,13 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "journey": "TC09"
+      "journey": "TC09",
+      "case_refs": [
+        "TC09-settings"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/study-lab",
@@ -269,7 +390,16 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "{ path: '/', query: { tab: 'study-lab' } }"
+      "redirect": "{ path: '/', query: { tab: 'study-lab' } }",
+      "case_refs": [
+        "TC09-route-aliases",
+        "TC08-study-run"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08",
+        "TC09"
+      ]
     },
     {
       "path": "/dashboard",
@@ -279,7 +409,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/dashboard'"
+      "redirect": "'/legacy/dashboard'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/alerts",
@@ -289,7 +425,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/alerts'"
+      "redirect": "'/legacy/alerts'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/radar",
@@ -299,7 +441,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/radar'"
+      "redirect": "'/legacy/radar'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/strategy-lab",
@@ -309,7 +457,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/strategy-lab'"
+      "redirect": "'/legacy/strategy-lab'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/strategy-lab-v2",
@@ -319,7 +473,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/strategy-lab-v2'"
+      "redirect": "'/legacy/strategy-lab-v2'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/baskets",
@@ -329,7 +489,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/baskets'"
+      "redirect": "'/legacy/baskets'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/etf-holdings",
@@ -339,7 +505,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/etf-holdings'"
+      "redirect": "'/legacy/etf-holdings'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/screener",
@@ -349,7 +521,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/screener'"
+      "redirect": "'/legacy/screener'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/watchlist",
@@ -359,7 +537,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/watchlist'"
+      "redirect": "'/legacy/watchlist'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     },
     {
       "path": "/settings",
@@ -369,7 +553,13 @@
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
       "journey": "TC09",
-      "redirect": "'/legacy/settings'"
+      "redirect": "'/legacy/settings'",
+      "case_refs": [
+        "TC09-route-aliases"
+      ],
+      "journey_ids": [
+        "TC09"
+      ]
     }
   ],
   "shell_actions": [
@@ -384,6 +574,13 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC09"
       ]
     },
     {
@@ -397,6 +594,14 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC01-first-chart",
+        "TC03-timeframe"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03"
       ]
     },
     {
@@ -410,6 +615,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-watchlists"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     },
     {
@@ -423,6 +634,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-screener"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     },
     {
@@ -436,6 +653,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-radar"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     },
     {
@@ -449,6 +672,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-alerts"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     },
     {
@@ -462,6 +691,14 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ],
+      "journey_ids": [
+        "TC04",
+        "TC07",
+        "TC09"
       ]
     },
     {
@@ -475,6 +712,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC04-fund-selection"
+      ],
+      "journey_ids": [
+        "TC04"
       ]
     },
     {
@@ -488,6 +731,13 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-legacy-routes",
+        "TC09-strategy-builder-unit"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     },
     {
@@ -501,6 +751,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     },
     {
@@ -514,6 +770,12 @@
       ],
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "case_refs": [
+        "TC09-settings"
+      ],
+      "journey_ids": [
+        "TC09"
       ]
     }
   ],
@@ -532,7 +794,16 @@
       "configuration": {
         "symbol": "SPY",
         "timeframe": "D1"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC01-first-chart"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03",
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -548,7 +819,15 @@
       "configuration": {
         "personal": true,
         "watchlist_id": null
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC09-watchlists"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC09"
+      ]
     },
     {
       "journey": "TC06",
@@ -564,7 +843,13 @@
       "configuration": {
         "personal": true,
         "favorites": true
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -579,7 +864,15 @@
       "instance_prefix": "notes",
       "configuration": {
         "scope": "active-instrument"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC09-notes"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC09"
+      ]
     },
     {
       "journey": "TC06",
@@ -594,7 +887,15 @@
       "instance_prefix": "alerts",
       "configuration": {
         "scope": "active-instrument"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC09-alerts"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC09"
+      ]
     },
     {
       "journey": "TC06",
@@ -609,7 +910,17 @@
       "instance_prefix": "easy-scan",
       "configuration": {
         "scope": "saved-conditions"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC09-screener",
+        "TC08-gauge"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08",
+        "TC09"
+      ]
     },
     {
       "journey": "TC06",
@@ -624,7 +935,15 @@
       "instance_prefix": "market-gauge",
       "configuration": {
         "scope": "saved-scans"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-gauge"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -639,7 +958,15 @@
       "instance_prefix": "study-lab",
       "configuration": {
         "symbol": "SPY"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-study-run"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -652,7 +979,15 @@
       "tool_type": "research_results",
       "title": "Study Results",
       "instance_prefix": "research-results",
-      "configuration": {}
+      "configuration": {},
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-results"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -673,7 +1008,15 @@
         "lookback": 20,
         "tail_length": 10,
         "adjusted": true
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC05-rrg"
+      ],
+      "journey_ids": [
+        "TC05",
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -688,7 +1031,15 @@
       "instance_prefix": "breadth",
       "configuration": {
         "group_key": "sp500-sectors"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-breadth"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -706,7 +1057,15 @@
         "period": "1D",
         "area_metric": "market_cap",
         "color_metric": "return"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-market-map"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -721,7 +1080,16 @@
       "instance_prefix": "technical-summary",
       "configuration": {
         "scope": "selected"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC01-first-chart"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03",
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -736,7 +1104,15 @@
       "instance_prefix": "coverage",
       "configuration": {
         "scope": "selected"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-breadth"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -749,7 +1125,15 @@
       "tool_type": "report",
       "title": "Instrument Report",
       "instance_prefix": "report",
-      "configuration": {}
+      "configuration": {},
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC04-fund-selection"
+      ],
+      "journey_ids": [
+        "TC04",
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -762,7 +1146,16 @@
       "tool_type": "code_library",
       "title": "Python Library",
       "instance_prefix": "code-library",
-      "configuration": {}
+      "configuration": {},
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-library"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08",
+        "TC09"
+      ]
     },
     {
       "journey": "TC06",
@@ -777,7 +1170,16 @@
       "instance_prefix": "benchmark-list",
       "configuration": {
         "market_group": "us-benchmarks"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC01-first-chart"
+      ],
+      "journey_ids": [
+        "TC01",
+        "TC03",
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -792,7 +1194,16 @@
       "instance_prefix": "sector-list",
       "configuration": {
         "market_group": "sp500-sectors"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC05-sector-ratios"
+      ],
+      "journey_ids": [
+        "TC05",
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -807,7 +1218,15 @@
       "instance_prefix": "industry-list",
       "configuration": {
         "market_group": "selected-sector-industries"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC08-market-map"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ]
     },
     {
       "journey": "TC06",
@@ -822,7 +1241,16 @@
       "instance_prefix": "constituent-list",
       "configuration": {
         "market_group": "selected-industry-constituents"
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC04-holding-route"
+      ],
+      "journey_ids": [
+        "TC03",
+        "TC04",
+        "TC06"
+      ]
     },
     {
       "journey": "TC06",
@@ -839,7 +1267,16 @@
         "expression": "=SPY/RSP",
         "timeframe": "D1",
         "auto_ratio": true
-      }
+      },
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC05-sector-ratios"
+      ],
+      "journey_ids": [
+        "TC05",
+        "TC06",
+        "TC08"
+      ]
     }
   ],
   "factory_layouts": [
@@ -866,7 +1303,15 @@
           "title": "Benchmarks",
           "configuration": {
             "market_group": "us-benchmarks"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -881,7 +1326,15 @@
           "title": "S&P 500 Sectors",
           "configuration": {
             "market_group": "sp500-sectors"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -896,7 +1349,15 @@
           "title": "Industries",
           "configuration": {
             "market_group": "selected-sector-industries"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -911,7 +1372,15 @@
           "title": "Constituents",
           "configuration": {
             "market_group": "selected-industry-constituents"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -927,7 +1396,15 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -944,7 +1421,15 @@
             "expression": "=SPY/RSP",
             "timeframe": "D1",
             "auto_ratio": true
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -959,7 +1444,15 @@
           "title": "Technicals",
           "configuration": {
             "scope": "selected"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -975,7 +1468,15 @@
           "configuration": {
             "group_key": "sp500-sectors",
             "scope": "selected-sector"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -990,7 +1491,15 @@
           "title": "Coverage",
           "configuration": {
             "scope": "selected"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1005,7 +1514,15 @@
           "title": "Notes",
           "configuration": {
             "scope": "active-instrument"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1020,7 +1537,15 @@
           "title": "Alerts",
           "configuration": {
             "scope": "active-instrument"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1035,7 +1560,15 @@
           "title": "EasyScan",
           "configuration": {
             "scope": "saved-conditions"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1050,7 +1583,15 @@
           "title": "Market Gauge",
           "configuration": {
             "scope": "saved-scans"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1071,8 +1612,24 @@
             "lookback": 20,
             "tail_length": 10,
             "adjusted": true
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1099,7 +1656,15 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1115,7 +1680,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1130,8 +1703,24 @@
           "title": "Notes",
           "configuration": {
             "scope": "active-instrument"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1158,7 +1747,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1174,7 +1771,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1190,7 +1795,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1206,7 +1819,15 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1225,8 +1846,24 @@
             "comparison_symbols": [
               "RSP"
             ]
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1253,7 +1890,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1269,7 +1914,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1285,7 +1938,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1301,7 +1962,15 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1320,8 +1989,24 @@
             "comparison_symbols": [
               "RSP"
             ]
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1348,8 +2033,24 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1377,7 +2078,15 @@
             "symbol": "SPY",
             "timeframe": "M15",
             "timeframe_link_group": "red"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1394,7 +2103,15 @@
             "symbol": "SPY",
             "timeframe": "D1",
             "timeframe_link_group": "green"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1411,7 +2128,15 @@
             "symbol": "SPY",
             "timeframe": "W1",
             "timeframe_link_group": "purple"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1428,8 +2153,24 @@
             "symbol": "SPY",
             "timeframe": "MN",
             "timeframe_link_group": "orange"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1456,7 +2197,15 @@
           "configuration": {
             "personal": true,
             "watchlist_id": null
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1472,7 +2221,15 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1485,8 +2242,24 @@
           "catalogue_key": "report",
           "tool_type": "report",
           "title": "Supported Symbol Report",
-          "configuration": {}
+          "configuration": {},
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     },
     {
@@ -1512,7 +2285,15 @@
           "title": "Study Lab",
           "configuration": {
             "symbol": "SPY"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1528,7 +2309,15 @@
           "configuration": {
             "symbol": "SPY",
             "timeframe": "D1"
-          }
+          },
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         },
         {
           "journey": "TC06",
@@ -1541,8 +2330,24 @@
           "catalogue_key": "research-results",
           "tool_type": "research_results",
           "title": "Study Results",
-          "configuration": {}
+          "configuration": {},
+          "case_refs": [
+            "TC06-factory-copy",
+            "TC06-catalogue-recreate"
+          ],
+          "journey_ids": [
+            "TC06",
+            "TC07"
+          ]
         }
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC06-catalogue-recreate"
+      ],
+      "journey_ids": [
+        "TC06",
+        "TC07"
       ]
     }
   ],
@@ -1639,7 +2444,19 @@
       "evidence": [
         "frontend/tests/e2e/auth_session_boundary.spec.ts"
       ],
-      "pending_reason": "Deterministic test-owned session cases exist; combined restore and cross-window journey remains Root-owned."
+      "pending_reason": "Deterministic test-owned session cases exist; combined restore and cross-window journey remains Root-owned.",
+      "journey_ids": [
+        "TC01"
+      ],
+      "case_refs": [
+        "TC01-login",
+        "TC01-session-boundary",
+        "TC01-first-chart",
+        "TC08-study-recovery",
+        "TC09-dashboard",
+        "TC09-popouts"
+      ],
+      "critical_review_slot": "TC01-critical-review"
     },
     {
       "id": "TC02",
@@ -1655,7 +2472,17 @@
         "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts",
         "frontend/tests/unit/components/test_search_bar.test.ts"
       ],
-      "pending_reason": "Main Workstation and component focused coverage exists; shared search and secondary-route browser journeys remain."
+      "pending_reason": "Main Workstation and component focused coverage exists; shared search and secondary-route browser journeys remain.",
+      "journey_ids": [
+        "TC02"
+      ],
+      "case_refs": [
+        "TC02-dashboard-search",
+        "TC02-workstation-search",
+        "TC02-search-discovery",
+        "TC04-etf-unresolved"
+      ],
+      "critical_review_slot": "TC02-critical-review"
     },
     {
       "id": "TC03",
@@ -1670,7 +2497,17 @@
         "frontend/tests/unit/lib/test_data_preparation.test.ts",
         "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
       ],
-      "pending_reason": "Provider-compatible shared coordinator is present; full backend/browser D1/W1/MN history proof is Root-owned."
+      "pending_reason": "Provider-compatible shared coordinator is present; full backend/browser D1/W1/MN history proof is Root-owned.",
+      "journey_ids": [
+        "TC03"
+      ],
+      "case_refs": [
+        "TC01-first-chart",
+        "TC03-timeframe",
+        "TC03-data-entrypoints",
+        "TC04-holding-route"
+      ],
+      "critical_review_slot": "TC03-critical-review"
     },
     {
       "id": "TC04",
@@ -1685,7 +2522,25 @@
         "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
         "frontend/tests/e2e/on_demand_acquisition.spec.ts"
       ],
-      "pending_reason": "Focused lineage and stock no-ETF-refresh assertions exist; final combined browser journey remains pending."
+      "pending_reason": "Focused lineage and stock no-ETF-refresh assertions exist; final combined browser journey remains pending.",
+      "journey_ids": [
+        "TC04"
+      ],
+      "case_refs": [
+        "TC04-holding-route",
+        "TC04-fund-selection",
+        "TC04-uncached-fund",
+        "TC04-old-snapshot",
+        "TC04-stock-independent",
+        "TC04-held-snapshot",
+        "TC04-etf-comparison-unit",
+        "TC04-parser-correction-unit",
+        "TC04-basket-lifecycle",
+        "TC04-basket-preparation",
+        "TC04-basket-snapshot",
+        "TC04-etf-unresolved"
+      ],
+      "critical_review_slot": "TC04-critical-review"
     },
     {
       "id": "TC05",
@@ -1699,7 +2554,15 @@
         "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
         "frontend/tests/unit/components/test_ratio_uplot.test.ts"
       ],
-      "pending_reason": "Focused plot behavior exists; all eleven comparison paths and real backend analysis journeys remain pending."
+      "pending_reason": "Focused plot behavior exists; all eleven comparison paths and real backend analysis journeys remain pending.",
+      "journey_ids": [
+        "TC05"
+      ],
+      "case_refs": [
+        "TC05-sector-ratios",
+        "TC05-rrg"
+      ],
+      "critical_review_slot": "TC05-critical-review"
     },
     {
       "id": "TC06",
@@ -1713,7 +2576,16 @@
         "frontend/tests/unit/stores/test_workspace_store.test.ts",
         "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
       ],
-      "pending_reason": "The canonical server catalogue contract is released and imported for development. Focused coverage dispatches all 21 definitions with their exact semantics; rendering/recreation across clone, import, reload and restore still needs the assigned browser journey."
+      "pending_reason": "The canonical server catalogue contract is released and imported for development. Focused coverage dispatches all 21 definitions with their exact semantics; rendering/recreation across clone, import, reload and restore still needs the assigned browser journey.",
+      "journey_ids": [
+        "TC06"
+      ],
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC06-factory-copy",
+        "TC08-study-run"
+      ],
+      "critical_review_slot": "TC06-critical-review"
     },
     {
       "id": "TC07",
@@ -1728,7 +2600,19 @@
         "frontend/tests/unit/stores/test_workspace_store.test.ts",
         "frontend/tests/unit/components/test_workspace_layout_host.test.ts"
       ],
-      "pending_reason": "Store/host focused lifecycle checks exist; ordinary browser round-trip coverage remains pending."
+      "pending_reason": "Store/host focused lifecycle checks exist; ordinary browser round-trip coverage remains pending.",
+      "journey_ids": [
+        "TC07"
+      ],
+      "case_refs": [
+        "TC06-factory-copy",
+        "TC07-layout-lifecycle",
+        "TC07-workspace-lifecycle",
+        "TC07-export-import",
+        "TC09-popouts",
+        "TC04-basket-lifecycle"
+      ],
+      "critical_review_slot": "TC07-critical-review"
     },
     {
       "id": "TC08",
@@ -1751,7 +2635,27 @@
         "frontend/tests/unit/components/test_study_lab_tool.test.ts",
         "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts"
       ],
-      "pending_reason": "Current code starts Market Map universe and comparison-leg preparation independently of its local analysis read; Breadth starts group and configured snapshot benchmark preparation alongside local reads; EasyScan and Gauge prepare the exact saved screener/timeframe. Focused tests cover these contracts and progress refresh. Root still owns full visible analysis journeys, cross-tool D1/W1/MN data outcomes, and combined browser acceptance."
+      "pending_reason": "Current code starts Market Map universe and comparison-leg preparation independently of its local analysis read; Breadth starts group and configured snapshot benchmark preparation alongside local reads; EasyScan and Gauge prepare the exact saved screener/timeframe. Focused tests cover these contracts and progress refresh. Root still owns full visible analysis journeys, cross-tool D1/W1/MN data outcomes, and combined browser acceptance.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC03-data-entrypoints",
+        "TC04-uncached-fund",
+        "TC04-held-snapshot",
+        "TC05-sector-ratios",
+        "TC08-study-run",
+        "TC08-study-targets",
+        "TC08-study-recovery",
+        "TC08-results",
+        "TC08-results-retry",
+        "TC08-library",
+        "TC08-market-map",
+        "TC08-breadth",
+        "TC08-gauge",
+        "TC04-basket-preparation"
+      ],
+      "critical_review_slot": "TC08-critical-review"
     },
     {
       "id": "TC09",
@@ -1763,7 +2667,37 @@
       "evidence": [
         "frontend/tests/unit/router/test_application_routes.test.ts"
       ],
-      "pending_reason": "Route contract is mapped; complete route/action user journeys and secondary-page presentation review remain pending."
+      "pending_reason": "Route contract is mapped; complete route/action user journeys and secondary-page presentation review remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC01-login",
+        "TC04-etf-comparison-unit",
+        "TC08-library",
+        "TC09-dashboard",
+        "TC09-legacy-routes",
+        "TC09-route-aliases",
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit",
+        "TC09-notes",
+        "TC09-watchlists",
+        "TC09-alerts",
+        "TC09-settings",
+        "TC09-radar",
+        "TC09-screener",
+        "TC09-shell-menu",
+        "TC09-chart-menus",
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-edit-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit",
+        "TC04-basket-lifecycle",
+        "TC04-basket-snapshot"
+      ],
+      "critical_review_slot": "TC09-critical-review"
     }
   ],
   "actions": [
@@ -1791,7 +2725,15 @@
           "frontend/tests/unit/components/test_dashboard_instrument_search.test.ts"
         ],
         "status": "unit evidence only; browser journey pending"
-      }
+      },
+      "journey_ids": [
+        "TC02"
+      ],
+      "case_refs": [
+        "TC02-dashboard-search",
+        "TC02-workstation-search",
+        "TC02-search-discovery"
+      ]
     },
     {
       "id": "TC-A-history-timeframe",
@@ -1808,6 +2750,13 @@
         "frontend/src/components/chart/HistoryAcquisitionControl.vue",
         "frontend/src/components/chart/TimeframeSelector.vue",
         "frontend/src/components/chart/UPlotChart.vue"
+      ],
+      "journey_ids": [
+        "TC03"
+      ],
+      "case_refs": [
+        "TC03-timeframe",
+        "TC03-data-entrypoints"
       ]
     },
     {
@@ -1841,6 +2790,13 @@
         "frontend/src/components/workstation/UnknownToolRecovery.vue",
         "frontend/src/components/workstation/VirtualWatchlistTool.vue",
         "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ],
+      "journey_ids": [
+        "TC04"
+      ],
+      "case_refs": [
+        "TC04-holding-route",
+        "TC04-fund-selection"
       ]
     },
     {
@@ -1874,6 +2830,12 @@
         "frontend/src/components/workstation/UnknownToolRecovery.vue",
         "frontend/src/components/workstation/VirtualWatchlistTool.vue",
         "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ],
+      "journey_ids": [
+        "TC04"
+      ],
+      "case_refs": [
+        "TC04-stock-independent"
       ]
     },
     {
@@ -1889,6 +2851,12 @@
       "control_surface_refs": [
         "frontend/src/components/workstation/RatioUPlot.vue",
         "frontend/src/components/workstation/RelativeRotationTool.vue"
+      ],
+      "journey_ids": [
+        "TC05"
+      ],
+      "case_refs": [
+        "TC05-sector-ratios"
       ]
     },
     {
@@ -1904,6 +2872,12 @@
       "control_surface_refs": [
         "frontend/src/components/workstation/RatioUPlot.vue",
         "frontend/src/components/workstation/RelativeRotationTool.vue"
+      ],
+      "journey_ids": [
+        "TC05"
+      ],
+      "case_refs": [
+        "TC05-rrg"
       ]
     },
     {
@@ -1937,6 +2911,13 @@
         "frontend/src/components/workstation/UnknownToolRecovery.vue",
         "frontend/src/components/workstation/VirtualWatchlistTool.vue",
         "frontend/src/components/workstation/WorkstationToolContent.vue"
+      ],
+      "journey_ids": [
+        "TC06"
+      ],
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC06-factory-copy"
       ]
     },
     {
@@ -1963,7 +2944,15 @@
           "frontend/tests/unit/views/test_dashboard_persistence_feedback.test.ts"
         ],
         "status": "unit evidence only; browser journey pending"
-      }
+      },
+      "journey_ids": [
+        "TC07"
+      ],
+      "case_refs": [
+        "TC07-layout-lifecycle",
+        "TC07-workspace-lifecycle",
+        "TC07-export-import"
+      ]
     },
     {
       "id": "TC-A-chart-preparation",
@@ -2004,7 +2993,19 @@
           "frontend/tests/unit/components/test_dashboard_line_chart_preparation.test.ts"
         ],
         "status": "unit evidence only; browser journey pending"
-      }
+      },
+      "journey_ids": [
+        "TC03",
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC03-timeframe",
+        "TC08-study-run",
+        "TC08-study-targets",
+        "TC08-market-map",
+        "TC08-gauge"
+      ]
     },
     {
       "id": "TC-A-route-navigation",
@@ -2044,6 +3045,14 @@
         "frontend/src/components/options/OptionsChainPanel.vue",
         "frontend/src/components/options/exposure/OptionsExposurePanel.vue",
         "frontend/src/components/watchlist/WatchlistPanel.vue"
+      ],
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-legacy-routes",
+        "TC09-route-aliases",
+        "TC09-strategy-v2-browser"
       ]
     },
     {
@@ -2058,6 +3067,12 @@
       "pending_reason": "The listed focused evidence is not a substitute for the still-pending complete browser action journey.",
       "control_surface_refs": [
         "frontend/src/views/WorkstationView.vue"
+      ],
+      "journey_ids": [
+        "TC01"
+      ],
+      "case_refs": [
+        "TC01-session-boundary"
       ]
     },
     {
@@ -2098,6 +3113,14 @@
         "frontend/src/components/options/OptionsChainPanel.vue",
         "frontend/src/components/options/exposure/OptionsExposurePanel.vue",
         "frontend/src/components/watchlist/WatchlistPanel.vue"
+      ],
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu",
+        "TC09-chart-menus",
+        "TC09-settings"
       ]
     },
     {
@@ -2117,7 +3140,19 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-fund-selection",
+        "TC04-uncached-fund"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A02",
@@ -2136,7 +3171,19 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-held-snapshot",
+        "TC04-uncached-fund"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A03",
@@ -2153,7 +3200,19 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-fund-selection",
+        "TC04-etf-comparison-unit"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A04",
@@ -2169,7 +3228,14 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-old-snapshot"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A05",
@@ -2187,7 +3253,21 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC03",
+        "TC04",
+        "TC05",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-holding-route",
+        "TC03-data-entrypoints"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A06",
@@ -2206,7 +3286,21 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC03",
+        "TC04",
+        "TC05",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-holding-route",
+        "TC04-etf-unresolved"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A07",
@@ -2222,7 +3316,15 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-parser-correction-unit",
+        "TC04-etf-comparison-unit"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A08",
@@ -2238,7 +3340,14 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-etf-comparison-unit"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A09",
@@ -2257,7 +3366,18 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A10",
@@ -2275,7 +3395,16 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A11",
@@ -2293,7 +3422,18 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A12",
@@ -2310,7 +3450,17 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A13",
@@ -2327,7 +3477,17 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC04",
+        "TC07",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A14",
@@ -2343,7 +3503,14 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-snapshot"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A15",
@@ -2361,7 +3528,20 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC03",
+        "TC04",
+        "TC05",
+        "TC07",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-preparation"
+      ]
     },
     {
       "id": "feat-etf-holdings-constituents-A16",
@@ -2378,7 +3558,16 @@
         "ops/workstreams/feat-tc2000-frontend-rework/owner-journey-inputs/etf-journey-matrix.json"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC03",
+        "TC04",
+        "TC05",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC04-basket-lifecycle"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A01",
@@ -2394,7 +3583,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 1"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A02",
@@ -2410,7 +3607,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 2"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A03",
@@ -2426,7 +3631,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 3"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A04",
@@ -2442,7 +3655,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 4"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A05",
@@ -2458,7 +3679,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 5"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A06",
@@ -2474,7 +3703,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 6"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A07",
@@ -2490,7 +3727,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 7"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A08",
@@ -2506,7 +3751,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool action 8"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-targets"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A09",
@@ -2523,7 +3776,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 9"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A10",
@@ -2540,7 +3803,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 10"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A11",
@@ -2557,7 +3830,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 11"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A12",
@@ -2574,7 +3857,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 12"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A13",
@@ -2591,7 +3884,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 13"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A14",
@@ -2608,7 +3911,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 14"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A15",
@@ -2625,7 +3938,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 15"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A16",
@@ -2642,7 +3965,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 16"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A17",
@@ -2659,7 +3992,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 17"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A18",
@@ -2676,7 +4019,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 18"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A19",
@@ -2693,7 +4046,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#ResearchResultsTool action 19"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-results-retry"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A20",
@@ -2710,7 +4073,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 20"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-study-run"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A21",
@@ -2727,7 +4100,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StudyLabTool and ResearchResultsTool action 21"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-results",
+        "TC08-study-run"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A22",
@@ -2744,7 +4127,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 22"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A23",
@@ -2761,7 +4154,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 23"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A24",
@@ -2778,7 +4181,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 24"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A25",
@@ -2795,7 +4208,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 25"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A26",
@@ -2812,7 +4235,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 26"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A27",
@@ -2829,7 +4262,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 27"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A28",
@@ -2846,7 +4289,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 28"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A29",
@@ -2863,7 +4316,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 29"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A30",
@@ -2880,7 +4343,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 30"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A31",
@@ -2897,7 +4370,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 31"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A32",
@@ -2914,7 +4397,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 32"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A33",
@@ -2931,7 +4424,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool action 33"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-library",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A34",
@@ -2948,7 +4451,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool -> StudyLabTool action 34"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A35",
@@ -2965,7 +4476,15 @@
         "feat-strategy-lab-v2:journey-matrix.json#CodeLibraryTool -> StudyLabTool action 35"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-study-run",
+        "TC08-study-recovery"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A36",
@@ -2981,7 +4500,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 36"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A37",
@@ -2997,7 +4526,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 37"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A38",
@@ -3013,7 +4552,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 38"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A39",
@@ -3029,7 +4578,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 39"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A40",
@@ -3045,7 +4604,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 40"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A41",
@@ -3061,7 +4630,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 41"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A42",
@@ -3077,7 +4656,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 42"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A43",
@@ -3093,7 +4682,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabView action 43"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-builder-unit",
+        "TC09-strategy-run-unit",
+        "TC09-strategy-walkforward-unit",
+        "TC09-strategy-history-unit",
+        "TC09-strategy-coverage-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A44",
@@ -3111,7 +4710,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 44"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A45",
@@ -3129,7 +4738,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 45"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A46",
@@ -3147,7 +4766,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 46"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A47",
@@ -3165,7 +4794,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 47"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ]
     },
     {
       "id": "feat-strategy-lab-v2-A48",
@@ -3183,7 +4822,17 @@
         "feat-strategy-lab-v2:journey-matrix.json#StrategyLabV2View action 48"
       ],
       "journey": null,
-      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate."
+      "pending_reason": "Coverage belongs to the owning branch and remains pending the single combined browser gate.",
+      "journey_ids": [
+        "TC01",
+        "TC06",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-strategy-v2-browser",
+        "TC09-strategy-v2-detail-unit"
+      ]
     }
   ],
   "analysis_coverage": {
@@ -3227,7 +4876,13 @@
       "evidence": [
         "frontend/src/views/AlertsView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-alerts"
+      ]
     },
     {
       "source": "frontend/src/views/ChartView.vue",
@@ -3242,7 +4897,18 @@
       "evidence": [
         "frontend/src/views/ChartView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC03",
+        "TC04",
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC03-data-entrypoints",
+        "TC04-holding-route",
+        "TC09-legacy-routes"
+      ]
     },
     {
       "source": "frontend/src/views/DashboardView.vue",
@@ -3263,7 +4929,14 @@
         "source_blob": "a3e4e1e1d73aefd418721ebef931df9a814e99c9",
         "source_sha256": "1425c4fb8b632be2e24066c092e07e4e7970ee6e09b64150101374375c7cff2e"
       },
-      "action_review": "Adds one visible cancel action that abandons the failed pending config, invalidates the stale save generation and restores the saved settings; owner journey includes Cancel or Retry recovery."
+      "action_review": "Adds one visible cancel action that abandons the failed pending config, invalidates the stale save generation and restores the saved settings; owner journey includes Cancel or Retry recovery.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/views/LoginView.vue",
@@ -3276,7 +4949,14 @@
       "evidence": [
         "frontend/src/views/LoginView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC01-login"
+      ]
     },
     {
       "source": "frontend/src/views/RadarView.vue",
@@ -3290,7 +4970,13 @@
         "frontend/src/views/RadarView.vue",
         "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-radar"
+      ]
     },
     {
       "source": "frontend/src/views/ScreenerView.vue",
@@ -3303,12 +4989,18 @@
       "evidence": [
         "frontend/src/views/ScreenerView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-screener"
+      ]
     },
     {
       "source": "frontend/src/views/SettingsView.vue",
-      "control_count": 17,
-      "signature_sha256": "f890703e351dcffade7d64c96352428d506856ed5b6b796d8c60661f32f8b142",
+      "control_count": 19,
+      "signature_sha256": "2d2f55bffe4291a07850b34d9af284b19ee5f7e1ae1cceba2fc6248e6e8906b2",
       "journeys": [
         "TC09"
       ],
@@ -3316,7 +5008,13 @@
       "evidence": [
         "frontend/src/views/SettingsView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-settings"
+      ]
     },
     {
       "source": "frontend/src/views/WatchlistView.vue",
@@ -3329,7 +5027,13 @@
       "evidence": [
         "frontend/src/views/WatchlistView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-watchlists"
+      ]
     },
     {
       "source": "frontend/src/views/WorkstationView.vue",
@@ -3346,7 +5050,21 @@
       "evidence": [
         "frontend/src/views/WorkstationView.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC02",
+        "TC06",
+        "TC07",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC01-session-boundary",
+        "TC02-workstation-search",
+        "TC06-catalogue-recreate",
+        "TC07-layout-lifecycle",
+        "TC08-study-run"
+      ]
     },
     {
       "source": "frontend/src/components/alerts/AlertForm.vue",
@@ -3359,7 +5077,13 @@
       "evidence": [
         "frontend/src/components/alerts/AlertForm.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-alerts"
+      ]
     },
     {
       "source": "frontend/src/components/chart/ChartPanel.vue",
@@ -3373,7 +5097,17 @@
       "evidence": [
         "frontend/src/components/chart/ChartPanel.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC03",
+        "TC04"
+      ],
+      "case_refs": [
+        "TC01-first-chart",
+        "TC03-timeframe",
+        "TC04-holding-route"
+      ]
     },
     {
       "source": "frontend/src/components/chart/DrawingToolbar.vue",
@@ -3386,12 +5120,18 @@
       "evidence": [
         "frontend/src/components/chart/DrawingToolbar.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/chart/HistoryAcquisitionControl.vue",
-      "control_count": 3,
-      "signature_sha256": "a45f10eebd3e19ef15cff44486ee70415245aa8f2d4ace21556ec3cd4a5c0b23",
+      "control_count": 4,
+      "signature_sha256": "1d02b60cd49d43c35f447619593c965f173891e654b3ea499962cdef80221fb5",
       "journeys": [
         "TC03",
         "TC04"
@@ -3400,7 +5140,15 @@
       "evidence": [
         "frontend/src/components/chart/HistoryAcquisitionControl.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC03",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC03-timeframe",
+        "TC03-data-entrypoints"
+      ]
     },
     {
       "source": "frontend/src/components/chart/IndicatorPanel.vue",
@@ -3413,7 +5161,13 @@
       "evidence": [
         "frontend/src/components/chart/IndicatorPanel.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/chart/InstrumentInfoPanel.vue",
@@ -3426,7 +5180,13 @@
       "evidence": [
         "frontend/src/components/chart/InstrumentInfoPanel.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/chart/LayoutPicker.vue",
@@ -3440,7 +5200,16 @@
       "evidence": [
         "frontend/src/components/chart/LayoutPicker.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC06",
+        "TC07"
+      ],
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC06-factory-copy",
+        "TC07-layout-lifecycle"
+      ]
     },
     {
       "source": "frontend/src/components/chart/TimeframeSelector.vue",
@@ -3454,7 +5223,15 @@
       "evidence": [
         "frontend/src/components/chart/TimeframeSelector.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC03",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC03-timeframe",
+        "TC03-data-entrypoints"
+      ]
     },
     {
       "source": "frontend/src/components/chart/UPlotChart.vue",
@@ -3468,7 +5245,17 @@
       "evidence": [
         "frontend/src/components/chart/UPlotChart.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC03",
+        "TC04"
+      ],
+      "case_refs": [
+        "TC01-first-chart",
+        "TC03-timeframe",
+        "TC04-holding-route"
+      ]
     },
     {
       "source": "frontend/src/components/common/Notification.vue",
@@ -3481,7 +5268,13 @@
       "evidence": [
         "frontend/src/components/common/Notification.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/common/ResizeHandle.vue",
@@ -3494,7 +5287,13 @@
       "evidence": [
         "frontend/src/components/common/ResizeHandle.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/common/SearchBar.vue",
@@ -3514,7 +5313,14 @@
         "source_blob": "38b7fd3bbdf998553ca0c407a6c7a6050c3f04b6",
         "source_sha256": "3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2"
       },
-      "action_review": "The Enter-during-discovery repair preserves explicit prefix candidate choice and waits only for a current exact query; source action surface and control count are unchanged from the previous released SearchBar template."
+      "action_review": "The Enter-during-discovery repair preserves explicit prefix candidate choice and waits only for a current exact query; source action surface and control count are unchanged from the previous released SearchBar template.",
+      "journey_ids": [
+        "TC02"
+      ],
+      "case_refs": [
+        "TC02-search-discovery",
+        "TC02-workstation-search"
+      ]
     },
     {
       "source": "frontend/src/components/common/SparkTfSelector.vue",
@@ -3527,7 +5333,13 @@
       "evidence": [
         "frontend/src/components/common/SparkTfSelector.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/common/TagPicker.vue",
@@ -3540,7 +5352,13 @@
       "evidence": [
         "frontend/src/components/common/TagPicker.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/common/TechnicalConditionEditor.vue",
@@ -3553,7 +5371,13 @@
       "evidence": [
         "frontend/src/components/common/TechnicalConditionEditor.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/common/TextPromptModal.vue",
@@ -3566,7 +5390,13 @@
       "evidence": [
         "frontend/src/components/common/TextPromptModal.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardAlertsWidget.vue",
@@ -3579,7 +5409,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardAlertsWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardHeatMapWidget.vue",
@@ -3592,7 +5429,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardHeatMapWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardInstrumentSearch.vue",
@@ -3605,7 +5449,13 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardInstrumentSearch.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC02"
+      ],
+      "case_refs": [
+        "TC02-dashboard-search"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardNotesWidget.vue",
@@ -3618,7 +5468,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardNotesWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardRadarWidget.vue",
@@ -3631,7 +5488,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardRadarWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardScreenerWidget.vue",
@@ -3644,7 +5508,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardScreenerWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardSeasonalityWidget.vue",
@@ -3657,7 +5528,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardSeasonalityWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/dashboard/DashboardWatchlistWidget.vue",
@@ -3670,7 +5548,14 @@
       "evidence": [
         "frontend/src/components/dashboard/DashboardWatchlistWidget.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-dashboard"
+      ]
     },
     {
       "source": "frontend/src/components/options/OptionsChainPanel.vue",
@@ -3683,7 +5568,13 @@
       "evidence": [
         "frontend/src/components/options/OptionsChainPanel.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/options/exposure/OptionsExposurePanel.vue",
@@ -3696,7 +5587,13 @@
       "evidence": [
         "frontend/src/components/options/exposure/OptionsExposurePanel.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/watchlist/WatchlistPanel.vue",
@@ -3709,7 +5606,13 @@
       "evidence": [
         "frontend/src/components/watchlist/WatchlistPanel.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-watchlists"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/BreadthConditionTreeEditor.vue",
@@ -3724,7 +5627,14 @@
       "evidence": [
         "frontend/src/components/workstation/BreadthConditionTreeEditor.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-breadth",
+        "TC08-study-targets"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/ChartPlotLibrary.vue",
@@ -3739,7 +5649,13 @@
       "evidence": [
         "frontend/src/components/workstation/ChartPlotLibrary.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/ChartTemplateControl.vue",
@@ -3754,7 +5670,13 @@
       "evidence": [
         "frontend/src/components/workstation/ChartTemplateControl.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/ConditionGroupEditor.vue",
@@ -3769,7 +5691,13 @@
       "evidence": [
         "frontend/src/components/workstation/ConditionGroupEditor.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/CoverageSummaryTool.vue",
@@ -3784,7 +5712,14 @@
       "evidence": [
         "frontend/src/components/workstation/CoverageSummaryTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-breadth",
+        "TC08-study-targets"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/EasyScanTool.vue",
@@ -3799,7 +5734,15 @@
       "evidence": [
         "frontend/src/components/workstation/EasyScanTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-gauge",
+        "TC09-screener"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/IndicatorSettingsDialog.vue",
@@ -3814,7 +5757,13 @@
       "evidence": [
         "frontend/src/components/workstation/IndicatorSettingsDialog.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/InstrumentAlertsTool.vue",
@@ -3829,7 +5778,13 @@
       "evidence": [
         "frontend/src/components/workstation/InstrumentAlertsTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-alerts"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/InstrumentNoteTool.vue",
@@ -3844,7 +5799,13 @@
       "evidence": [
         "frontend/src/components/workstation/InstrumentNoteTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-notes"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/MarketGaugeTool.vue",
@@ -3859,7 +5820,15 @@
       "evidence": [
         "frontend/src/components/workstation/MarketGaugeTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC08",
+        "TC09"
+      ],
+      "case_refs": [
+        "TC08-gauge",
+        "TC09-screener"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/MarketMapTool.vue",
@@ -3874,7 +5843,13 @@
       "evidence": [
         "frontend/src/components/workstation/MarketMapTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC08"
+      ],
+      "case_refs": [
+        "TC08-market-map"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/PythonSourceEditor.vue",
@@ -3889,7 +5864,13 @@
       "evidence": [
         "frontend/src/components/workstation/PythonSourceEditor.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/RatioUPlot.vue",
@@ -3902,12 +5883,19 @@
       "evidence": [
         "frontend/src/components/workstation/RatioUPlot.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC05",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC05-sector-ratios"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/RelativeRotationTool.vue",
-      "control_count": 23,
-      "signature_sha256": "899fdb94914ab81911293d0137be76b4d478a69bfe96ec75af0212b64d87ff9b",
+      "control_count": 25,
+      "signature_sha256": "be30756477cf712b30ca45f39f33aabbe0b86d27579cb583bacf25d447ef901f",
       "journeys": [
         "TC05"
       ],
@@ -3915,7 +5903,13 @@
       "evidence": [
         "frontend/src/components/workstation/RelativeRotationTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC05"
+      ],
+      "case_refs": [
+        "TC05-rrg"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/StudyDashboard.vue",
@@ -3930,7 +5924,13 @@
       "evidence": [
         "frontend/src/components/workstation/StudyDashboard.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/SymbolListTool.vue",
@@ -3945,7 +5945,13 @@
       "evidence": [
         "frontend/src/components/workstation/SymbolListTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/ToolWindow.vue",
@@ -3959,7 +5965,16 @@
       "evidence": [
         "frontend/src/components/workstation/ToolWindow.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC06",
+        "TC07"
+      ],
+      "case_refs": [
+        "TC06-catalogue-recreate",
+        "TC06-factory-copy",
+        "TC07-layout-lifecycle"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/UnknownToolRecovery.vue",
@@ -3974,7 +5989,13 @@
       "evidence": [
         "frontend/src/components/workstation/UnknownToolRecovery.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/VirtualWatchlistTool.vue",
@@ -3989,12 +6010,18 @@
       "evidence": [
         "frontend/src/components/workstation/VirtualWatchlistTool.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-watchlists"
+      ]
     },
     {
       "source": "frontend/src/components/workstation/WorkstationToolContent.vue",
-      "control_count": 116,
-      "signature_sha256": "3e6af38ea5b5795a6aa94500cdb29359c828e8107d8460308eb5c5534a05daa4",
+      "control_count": 117,
+      "signature_sha256": "917ce39bd2190430ff20ced76b1e1775ceb56500ed73acea51f54a4af17e30ff",
       "journeys": [
         "TC04",
         "TC06",
@@ -4004,7 +6031,720 @@
       "evidence": [
         "frontend/src/components/workstation/WorkstationToolContent.vue"
       ],
-      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending."
+      "pending_reason": "Source controls are inventoried; complete rendered user journeys remain pending.",
+      "journey_ids": [
+        "TC09"
+      ],
+      "case_refs": [
+        "TC09-shell-menu"
+      ]
+    },
+    {
+      "source": "frontend/src/components/common/CompactStatusNotice.vue",
+      "control_count": 1,
+      "signature_sha256": "f21872953bc0699509096c357a6df86e578a03fc1dd1c35e99bec0dddd6434b9",
+      "journeys": [
+        "TC03",
+        "TC08"
+      ],
+      "evidence_status": "source_mapped_browser_pending",
+      "evidence": [
+        "frontend/src/components/common/CompactStatusNotice.vue"
+      ],
+      "pending_reason": "Disclosure controls are mapped; ordinary visible open/close behavior and compact-layout review remain pending Root browser evidence.",
+      "journey_ids": [
+        "TC03",
+        "TC06",
+        "TC08"
+      ],
+      "case_refs": [
+        "TC03-timeframe",
+        "TC08-study-run"
+      ],
+      "critical_review_slot": "TC03-critical-review"
+    }
+  ],
+  "journey_cases": [
+    {
+      "id": "TC01-login",
+      "journey_ids": [
+        "TC01",
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F1 — unauthenticated user is redirected to login",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC01-critical-review"
+    },
+    {
+      "id": "TC01-session-boundary",
+      "journey_ids": [
+        "TC01"
+      ],
+      "test_path": "frontend/tests/e2e/auth_session_boundary.spec.ts",
+      "test_name": "J12 session boundary isolates test-owned same-origin accounts, expired refresh, stores and late responses",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC01-critical-review"
+    },
+    {
+      "id": "TC01-first-chart",
+      "journey_ids": [
+        "TC01",
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F6 — chart page loads with default state",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC01-critical-review"
+    },
+    {
+      "id": "TC02-dashboard-search",
+      "journey_ids": [
+        "TC02"
+      ],
+      "test_path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "test_name": "Dashboard search resolves exact and explicit candidates and ignores a superseded response",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC02-critical-review"
+    },
+    {
+      "id": "TC02-workstation-search",
+      "journey_ids": [
+        "TC02"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "main Workstation automatically discovers an unknown ticker and loads missing bars after selection",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC02-critical-review"
+    },
+    {
+      "id": "TC02-search-discovery",
+      "journey_ids": [
+        "TC02"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "chart search discovers an unknown ticker automatically and deliberate identity selection starts bounded history",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC02-critical-review"
+    },
+    {
+      "id": "TC03-timeframe",
+      "journey_ids": [
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8 — linked timeframe selector switches the chart timeframe",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC03-data-entrypoints",
+      "journey_ids": [
+        "TC03",
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "ordinary Workstation, Chart, and reported-holding selection use the real seeded application APIs",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC03-critical-review"
+    },
+    {
+      "id": "TC04-holding-route",
+      "journey_ids": [
+        "TC04",
+        "TC03"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "an unresolved ETF holding row explicitly resolves its reported equity and carries lineage into D1 history",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-fund-selection",
+      "journey_ids": [
+        "TC04"
+      ],
+      "test_path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "test_name": "normal selected-fund journey reads API-backed controlled holdings while automatic preparation runs",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-uncached-fund",
+      "journey_ids": [
+        "TC04",
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "test_name": "selecting an uncached ETF automatically requests holdings and displays the returned dated snapshot",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-old-snapshot",
+      "journey_ids": [
+        "TC04"
+      ],
+      "test_path": "frontend/tests/e2e/etf_holdings_preparation.spec.ts",
+      "test_name": "choosing an older snapshot shows that snapshot’s own date, known-at and source lineage",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-stock-independent",
+      "journey_ids": [
+        "TC04"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "main Workstation keeps selected ETF chart history independent and ignores late prior-fund holdings",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-held-snapshot",
+      "journey_ids": [
+        "TC04",
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "held IWM issuer and constituent-history actions preserve snapshot lineage and current-analysis eligibility",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-etf-comparison-unit",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "test_name": "loads ETF profiles, browses a paged holdings result, and opens a constituent chart",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-parser-correction-unit",
+      "journey_ids": [
+        "TC04"
+      ],
+      "test_path": "frontend/tests/unit/views/test_etf_holdings_view.test.ts",
+      "test_name": "labels same-date parser-version differences as audit data while preserving raw rows and metrics",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC05-sector-ratios",
+      "journey_ids": [
+        "TC05",
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "test_name": "SPY and all eleven sector charts use real bars, and both sector/SPY ratios match split-adjusted aligned closes",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC05-critical-review"
+    },
+    {
+      "id": "TC05-rrg",
+      "journey_ids": [
+        "TC05"
+      ],
+      "test_path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
+      "test_name": "S&P 500 RRG renders deep D1/W1/MN data and survives selection, resize, maximize, layout copy, and tab restore",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC05-critical-review"
+    },
+    {
+      "id": "TC06-catalogue-recreate",
+      "journey_ids": [
+        "TC06"
+      ],
+      "test_path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "test_name": "closes and recreates every factory tool through the public catalogue with useful defaults",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC06-critical-review"
+    },
+    {
+      "id": "TC06-factory-copy",
+      "journey_ids": [
+        "TC06",
+        "TC07"
+      ],
+      "test_path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "test_name": "duplicates a factory layout with remapped panels, preserves the original, and reloads both",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC06-critical-review"
+    },
+    {
+      "id": "TC07-layout-lifecycle",
+      "journey_ids": [
+        "TC07"
+      ],
+      "test_path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "test_name": "renames, reorders, cancels and confirms layout deletion, then undoes and reloads",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC07-critical-review"
+    },
+    {
+      "id": "TC07-workspace-lifecycle",
+      "journey_ids": [
+        "TC07"
+      ],
+      "test_path": "frontend/tests/e2e/workstation_lifecycle_journey.spec.ts",
+      "test_name": "duplicates and safely deletes a workspace while preserving its source and tool content through resize and maximize",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC07-critical-review"
+    },
+    {
+      "id": "TC07-export-import",
+      "journey_ids": [
+        "TC07"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F9d — workspace layouts round-trip through the real export and import controls",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC07-critical-review"
+    },
+    {
+      "id": "TC08-study-run",
+      "journey_ids": [
+        "TC08",
+        "TC06"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Study prepares SPY before validating and completes a configured high-low breakout run",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-study-targets",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Study preparation submits every universe member and benchmark while one member is held",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-study-recovery",
+      "journey_ids": [
+        "TC08",
+        "TC01"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Study ignores obsolete preparation after the selected symbol changes and validates the new context",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-results",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Results supports ordinary controls through a controlled persisted-run API",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-results-retry",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Results detail exposes a single controlled failure and explicit Retry loads saved artifacts",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-library",
+      "journey_ids": [
+        "TC08",
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/strategy_study_journey.spec.ts",
+      "test_name": "Python Library supports create, import, clone, archive, export and filter through a controlled asset API",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-market-map",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8s-market-map-watchlist — locked constituents and personal lists share one heatmap workflow",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-breadth",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8s-breadth — Market Breadth exposes universe-scoped loading and failure semantics",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC08-gauge",
+      "journey_ids": [
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8w — an EasyScan result feeds a Market Gauge in the workstation",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC08-critical-review"
+    },
+    {
+      "id": "TC09-dashboard",
+      "journey_ids": [
+        "TC09",
+        "TC01"
+      ],
+      "test_path": "frontend/tests/e2e/dashboard_usability_journey.spec.ts",
+      "test_name": "Dashboard creates useful seeded quote and chart widgets and restores saved configuration",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-legacy-routes",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "legacy authenticated surfaces remain reachable behind /legacy",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-route-aliases",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+      "test_name": "secondary route aliases land on their canonical authenticated surfaces",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-v2-browser",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+      "test_name": "Strategy Lab v2 reads resource tabs and refreshes without dispatching work",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-v2-detail-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_v2_view.test.ts",
+      "test_name": "lists owner-scoped v2 strategies and re-reads immutable Study lineage on selection",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-notes",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "test_name": "supporting notes — save, edit, reload, and return without leaking between symbols",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-watchlists",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "test_name": "supporting watchlists — keyboard create, membership, rename recovery, reload, and confirmed delete",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-alerts",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "test_name": "supporting alerts — create a non-triggering rule, edit, pause/resume, reload, and delete",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-settings",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/supporting_features_journey.spec.ts",
+      "test_name": "supporting settings — discover preferences, manage an isolated preset, and leave browser notifications untouched",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-radar",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F17 — radar page loads, can run a scan, and can open chart when detections exist",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-screener",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F12 — create screener and run it",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-shell-menu",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F9e-shell-menus-keyboard — workstation shell menus support keyboard navigation and focus recovery",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-chart-menus",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F9c-keyboard — chart templates support bidirectional keyboard opening and focus recovery",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-popouts",
+      "journey_ids": [
+        "TC01",
+        "TC07"
+      ],
+      "test_path": "frontend/tests/e2e/flows.spec.ts",
+      "test_name": "F8h — simultaneous pop-outs retain both tools and recover independently",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC01-critical-review"
+    },
+    {
+      "id": "TC09-strategy-builder-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "creates a strategy from the visual builder without JSON payload editing",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-edit-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "saves the current draft version including conditions and run defaults",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-run-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "publishes revisions and runs backtests from the current visual state",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-walkforward-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "supports walk-forward mode, watchlist universes, and implicit parameter batches from original inputs",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-history-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "filters and sorts the execution log by individual columns",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC09-strategy-coverage-unit",
+      "journey_ids": [
+        "TC09"
+      ],
+      "test_path": "frontend/tests/unit/views/test_strategy_lab_view.test.ts",
+      "test_name": "shows coverage preview during run prep and detailed coverage in results",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC09-critical-review"
+    },
+    {
+      "id": "TC04-basket-lifecycle",
+      "journey_ids": [
+        "TC04",
+        "TC07",
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "test_name": "ordinary basket lifecycle persists edits across save, reload, member-chart navigation, cancel and delete",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-basket-preparation",
+      "journey_ids": [
+        "TC04",
+        "TC08"
+      ],
+      "test_path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "test_name": "opening a basket submits each member preparation independently while cached chart data stays visible",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-basket-snapshot",
+      "journey_ids": [
+        "TC04",
+        "TC09"
+      ],
+      "test_path": "frontend/tests/e2e/baskets_journey.spec.ts",
+      "test_name": "controlled snapshot basket materializes through the normal API and displays read-only source lineage",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    },
+    {
+      "id": "TC04-etf-unresolved",
+      "journey_ids": [
+        "TC04",
+        "TC02"
+      ],
+      "test_path": "frontend/tests/e2e/on_demand_acquisition.spec.ts",
+      "test_name": "an unresolved ETF holding row explicitly resolves its reported equity and carries lineage into D1 history",
+      "execution_status": "authored_pending_root_run",
+      "critical_review_slot": "TC04-critical-review"
+    }
+  ],
+  "critical_review_slots": [
+    {
+      "id": "TC01-critical-review",
+      "journey_id": "TC01",
+      "required_profiles": [
+        "desktop account boundary",
+        "saved workspace return"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "First use, saved workspace restore, and account boundary"
+    },
+    {
+      "id": "TC02-critical-review",
+      "journey_id": "TC02",
+      "required_profiles": [
+        "keyboard/pointer search",
+        "desktop/laptop"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Exact, partial, ambiguous and delayed symbol search"
+    },
+    {
+      "id": "TC03-critical-review",
+      "journey_id": "TC03",
+      "required_profiles": [
+        "D1/W1/MN",
+        "older history"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "D1, W1, MN and older history selection and pan"
+    },
+    {
+      "id": "TC04-critical-review",
+      "journey_id": "TC04",
+      "required_profiles": [
+        "same-dashboard lineage",
+        "dated snapshot"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Holding selection preserves same-dashboard snapshot lineage"
+    },
+    {
+      "id": "TC05-critical-review",
+      "journey_id": "TC05",
+      "required_profiles": [
+        "1920x1080",
+        "1280x720",
+        "1093x614 at125%"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Ratio pairs and RRG plot interaction"
+    },
+    {
+      "id": "TC06-critical-review",
+      "journey_id": "TC06",
+      "required_profiles": [
+        "all eight layouts",
+        "all 21 Add tools"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Canonical factory and complete Add tool recreation"
+    },
+    {
+      "id": "TC07-critical-review",
+      "journey_id": "TC07",
+      "required_profiles": [
+        "cancel/undo/reload",
+        "wide/laptop"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Reversible workspace/layout lifecycle and import/export"
+    },
+    {
+      "id": "TC08-critical-review",
+      "journey_id": "TC08",
+      "required_profiles": [
+        "cached-first preparation",
+        "D1/W1/MN"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Analysis and data-preparation progress across tools"
+    },
+    {
+      "id": "TC09-critical-review",
+      "journey_id": "TC09",
+      "required_profiles": [
+        "all aliases/secondary pages",
+        "keyboard/menu actions"
+      ],
+      "status": "pending_root_receipt",
+      "receipt": null,
+      "review_focus": "Secondary routes, settings, alerts and watchlist actions"
     }
   ]
 }
