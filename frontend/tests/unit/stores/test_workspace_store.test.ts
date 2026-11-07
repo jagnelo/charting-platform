@@ -1476,10 +1476,10 @@ describe('workspace store layout tabs', () => {
     expect(store.activeTab?.windows[0].configuration).not.toHaveProperty('instrument_id')
   })
 
-  it('preserves an independent Study Lab draft through shared-symbol hydration and broadcasts', () => {
+  it('preserves an independent Study Lab draft through shared-symbol hydration and broadcasts', async () => {
     const store = useWorkspaceStore()
     vi.spyOn(store, 'scheduleSnapshot').mockImplementation(() => {})
-    store.workspace = {
+    const savedWorkspace = {
       id: 10, user_id: 3, name: 'US Top Down', is_default: true, position: 0, revision: 8, schema_version: 1,
       settings: { linked_symbols: { blue: { symbol: 'SPY' } } },
       tabs: [{
@@ -1492,7 +1492,14 @@ describe('workspace store layout tabs', () => {
         ],
       }],
     }
+    apiGet.mockResolvedValueOnce(savedWorkspace)
 
+    await store.loadDefault()
+    expect(apiGet).toHaveBeenCalledWith('/workspaces/default')
+    expect(store.linkedSymbol).toBe('SPY')
+    expect(store.workspace?.tabs[0].windows.find(window => window.tool_type === 'study_lab')?.configuration).toMatchObject({
+      symbol: 'XLB', study_run_id: 8,
+    })
     // Workstation startup republishes the hydrated shared symbol before the
     // panels settle. That broadcast must not replace the saved Study draft.
     store.publishSymbol({ symbol: 'SPY', group: 'blue', sourceWindowKey: 'workstation' })

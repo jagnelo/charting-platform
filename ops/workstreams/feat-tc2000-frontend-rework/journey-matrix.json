@@ -43,10 +43,10 @@
       "qualification": "Provider 182 adds the controlled M15 fixture and consistent workspace reads for development; exact-source CI and combined browser acceptance remain pending."
     },
     "etf_domain_runtime_import": {
-      "source_commit": "9f3ffcd9bf85d8458c14630ab244694a4dfca127",
-      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/9f3ffcd9bf85d8458c14630ab244694a4dfca127.json",
-      "manifest_sha256": "ac05b473a34025e912da02c57ee40187d30ab6daf68ba136539a21575e3320a0",
-      "qualification": "Exact ETF-owned domain successor 9f3ffcd and declared TC imports are present; current-source browser bodies and final combined acceptance remain Root-owned and pending."
+      "source_commit": "96ca7e5be2a949babb098bd5c413c468d878a5e1",
+      "manifest_path": "ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/96ca7e5be2a949babb098bd5c413c468d878a5e1.json",
+      "manifest_sha256": "db50862391a3964ee0bbd4dbd53c021ec7ea9e82460227a11ac12e4bb8028e17",
+      "qualification": "Exact ETF-owned domain successor 96ca7e5 and all declared TC imports are present; current-source browser bodies and final combined acceptance remain Root-owned and pending."
     }
   },
   "counts": {
