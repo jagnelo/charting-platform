@@ -1878,6 +1878,207 @@ async def test_execute_provider_call_reports_quota_denial_before_transport(db, m
 
 
 @pytest.mark.asyncio
+async def test_local_application_burst_hold_has_known_retry_and_settles_hop_not_sent(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="local-burst-provider",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        tokens_per_minute=60,
+        burst_capacity=1,
+        quota_scope="application",
+        quota_source="unit-test application safety envelope",
+        quota_contract={
+            "reset": "rolling",
+            "operation_costs": {"get_current_price": 1},
+            "dimensions": [
+                {
+                    "name": "application_requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "application",
+                    "baseline_mode": "local_zero",
+                    "application_usage_only": True,
+                    "source": "unit-test application safety envelope",
+                }
+            ],
+        },
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    db.add_all([policy, health])
+    db.flush()
+    resolved = ResolvedProvider(
+        provider_name=source.name,
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+    bucket = _get_bucket(policy, source.name)
+    before = datetime.now(UTC)
+
+    def first_physical_hop(_provider, _symbol):
+        response = httpx.Response(
+            302,
+            headers={"location": "/workbook.csv"},
+            content=b"",
+            request=httpx.Request("GET", "https://publisher.example/xhb"),
+        )
+        observe_response(response)
+        return response
+
+    first = await execute_provider_call(
+        async_db,
+        ProviderCapability.LATEST_PRICE,
+        "get_current_price",
+        provider_name=source.name,
+        invoke=first_physical_hop,
+    )
+    assert first.request_log_id is not None
+    assert bucket.tokens < 1
+
+    with pytest.raises(
+        ProviderQuotaAdmissionError, match="local application burst window"
+    ) as raised:
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            provider_name=source.name,
+            invoke=lambda *_args: pytest.fail("a denied physical hop must not reach transport"),
+        )
+
+    assert before + timedelta(seconds=1) <= raised.value.retry_at <= before + timedelta(seconds=3)
+    logs = db.execute(select(ProviderRequestLog)).scalars().all()
+    assert [row.id for row in logs] == [first.request_log_id]
+    assert logs[0].http_requests == 1
+    policy_windows = db.execute(select(ProviderQuotaWindow)).scalars().all()
+    assert sum(row.reserved_units for row in policy_windows) == 0
+    assert sum(row.consumed_units for row in policy_windows) == 1
+    ledger = provider_quota_coordinator_summary(provider_name=source.name)
+    assert ledger["available"] is True
+    assert sum(row["pending_reservations"] for row in ledger["windows"]) == 0
+    assert sum(row["uncertain_reservations"] for row in ledger["windows"]) == 0
+    assert sum(row["effective_used_units"] for row in ledger["windows"]) == 1
+
+
+@pytest.mark.asyncio
+async def test_unknown_native_coordinator_hold_does_not_gain_local_retry_time(db, monkeypatch):
+    async_db = AsyncSessionAdapter(db)
+    source = DataSource(
+        name="unknown-native-provider",
+        is_active=True,
+        config={"usage_tracking": {"operation_costs": {"get_current_price": 1}}},
+    )
+    db.add(source)
+    db.flush()
+    policy = ProviderPolicy(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        is_enabled=True,
+        max_concurrency=1,
+        tokens_per_minute=60,
+        burst_capacity=3,
+        quota_scope="provider-account",
+        quota_source="unit-test unknown native contract",
+        quota_contract={
+            "reset": "rolling",
+            "operation_costs": {"get_current_price": 1},
+            "dimensions": [
+                {
+                    "name": "native_requests_per_minute",
+                    "limit": 60,
+                    "window_seconds": 60,
+                    "unit": "requests",
+                    "scope": "provider-account",
+                    "source": "unit-test unknown native contract",
+                }
+            ],
+        },
+    )
+    health = ProviderHealthState(
+        data_source_id=source.id,
+        capability=ProviderCapability.LATEST_PRICE,
+        ewma_latency_ms=Decimal("0"),
+        ewma_success_rate=Decimal("1"),
+        ewma_completeness=Decimal("1"),
+        ewma_freshness=Decimal("1"),
+        ewma_consistency=Decimal("1"),
+        observed_score=Decimal("0"),
+    )
+    db.add_all([policy, health])
+    db.flush()
+    resolved = ResolvedProvider(
+        provider_name=source.name,
+        provider=object(),
+        data_source=source,
+        policy=policy,
+        health=health,
+    )
+
+    async def fake_chain(*_args, **_kwargs):
+        return [resolved]
+
+    async def reserve_contract(*_args, **_kwargs):
+        return [object()]
+
+    async def unknown_baseline(**_kwargs):
+        return None
+
+    monkeypatch.setattr("app.services.provider_runtime.resolve_provider_chain", fake_chain)
+    monkeypatch.setattr(
+        "app.services.provider_routing.reserve_provider_contract",
+        reserve_contract,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_quota_coordinator.reserve_provider_quota_async",
+        unknown_baseline,
+    )
+    monkeypatch.setattr(
+        "app.services.provider_routing.settle_provider_contract",
+        lambda *_args, **_kwargs: None,
+    )
+
+    with pytest.raises(ProviderQuotaAdmissionError) as raised:
+        await execute_provider_call(
+            async_db,
+            ProviderCapability.LATEST_PRICE,
+            "get_current_price",
+            provider_name=source.name,
+            invoke=lambda *_args: pytest.fail("unknown native quota must remain held"),
+        )
+
+    assert raised.value.retry_at is None
+    assert "local application burst window" not in str(raised.value)
+    assert db.execute(select(ProviderRequestLog)).scalars().all() == []
+
+
+@pytest.mark.asyncio
 async def test_execute_provider_call_retains_first_orf_file_if_second_download_fails(
     db, monkeypatch
 ):
@@ -4437,6 +4638,12 @@ def test_token_bucket_charges_weighted_units():
     assert bucket.try_acquire(2)
     assert bucket.try_acquire(2)
     assert not bucket.try_acquire(2)
+
+
+def test_token_bucket_has_no_retry_when_operation_cost_exceeds_burst():
+    bucket = TokenBucket(rate_per_minute=60, burst_capacity=1)
+
+    assert bucket.retry_after_seconds(2) is None
 
 
 @pytest.mark.parametrize("units", [0, -1, True, 1.5, "1", None])

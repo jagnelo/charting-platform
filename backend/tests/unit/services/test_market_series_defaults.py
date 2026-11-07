@@ -20,6 +20,7 @@ from app.services.market_series import (
     SeriesScope,
     get_or_create_series,
     select_default_series_for_complete_range,
+    select_default_series_for_latest_contiguous_suffix,
 )
 from app.services.ohlcv_coverage import _xnys_session_days
 
@@ -480,6 +481,249 @@ def test_deeper_provider_default_switches_only_after_complete_coherent_range():
         assert selected_default.selection_reason == "complete_admitted_range"
         assert session.get(MarketSeries, 20).data_source_id == 20
         assert session.get(MarketSeries, 20).adjustment_basis == AdjustmentBasis.SPLIT_ADJUSTED
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def test_latest_contiguous_deeper_suffix_can_upgrade_default_without_hiding_older_gap():
+    engine, session = _db()
+    try:
+        massive = MarketSeries(
+            id=10,
+            instrument_id=1,
+            data_source_id=10,
+            feed_scope="provider_native",
+            session_code="regular",
+            timeframe="D1",
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="massive-split-adjusted",
+            is_canonical=True,
+            is_active=True,
+        )
+        alpaca = MarketSeries(
+            id=20,
+            instrument_id=1,
+            data_source_id=20,
+            feed_scope="iex",
+            session_code="regular",
+            timeframe="D1",
+            adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+            adjustment_version="alpaca-split",
+            is_canonical=True,
+            is_active=True,
+        )
+        session.add_all(
+            [
+                Instrument(
+                    id=1,
+                    instrument_type_id=1,
+                    symbol="TEST",
+                    name="Test instrument",
+                    currency="USD",
+                    is_active=True,
+                    identity_status="resolved",
+                ),
+                massive,
+                alpaca,
+                MarketSeriesDefault(
+                    instrument_id=1,
+                    timeframe="D1",
+                    is_adjusted=True,
+                    market_series_id=10,
+                    selection_reason="first_canonical",
+                ),
+            ]
+        )
+        sessions = sorted(_xnys_session_days(date(2020, 1, 2), date(2026, 11, 6)))
+        suffix_start = date(2020, 7, 27)
+        current_default_start = date(2024, 11, 11)
+        end = datetime(2026, 11, 6, 23, 59, tzinfo=UTC)
+        for stamp_date in sessions:
+            stamp = datetime.combine(stamp_date, time.min, tzinfo=UTC)
+            if stamp_date == date(2020, 1, 2):
+                session.add(_bar(series_id=20, ts=stamp, data_source_id=20))
+            if stamp_date >= suffix_start:
+                session.add(_bar(series_id=20, ts=stamp, data_source_id=20))
+            if stamp_date >= current_default_start:
+                session.add(_bar(series_id=10, ts=stamp, data_source_id=10))
+        session.flush()
+
+        upgraded = asyncio.run(
+            select_default_series_for_latest_contiguous_suffix(
+                _AsyncSessionAdapter(session),
+                instrument_id=1,
+                timeframe="D1",
+                adjusted=True,
+                market_series_id=20,
+                requested_start=datetime(2020, 1, 2, tzinfo=UTC),
+                end=end,
+            )
+        )
+        assert upgraded is True
+        selected = session.execute(select(MarketSeriesDefault)).scalar_one()
+        assert selected.market_series_id == 20
+        assert selected.selection_reason == "complete_admitted_range"
+
+        ordinary = (
+            session.execute(
+                select(OHLCVBar)
+                .where(
+                    OHLCVBar.instrument_id == 1,
+                    OHLCVBar.timeframe == Timeframe.D1,
+                    OHLCVBar.is_adjusted.is_(True),
+                    _default_series_bar_condition(1, Timeframe.D1, True),
+                )
+                .order_by(OHLCVBar.ts)
+            )
+            .scalars()
+            .all()
+        )
+        assert ordinary
+        assert {bar.market_series_id for bar in ordinary} == {20}
+        assert min(bar.ts.date() for bar in ordinary) == date(2020, 1, 2)
+        assert (
+            min(bar.ts.date() for bar in ordinary if bar.ts.date() >= suffix_start) == suffix_start
+        )
+        assert max(bar.ts.date() for bar in ordinary) == date(2026, 11, 6)
+
+        all_rows = session.execute(select(OHLCVBar.market_series_id, OHLCVBar.data_source_id)).all()
+        assert all_rows.count((10, 10)) == sum(
+            stamp_date >= current_default_start for stamp_date in sessions
+        )
+        assert (
+            all_rows.count((20, 20))
+            == sum(stamp_date >= suffix_start for stamp_date in sessions) + 1
+        )
+
+        older_gap = asyncio.run(
+            select_default_series_for_complete_range(
+                _AsyncSessionAdapter(session),
+                instrument_id=1,
+                timeframe="D1",
+                adjusted=True,
+                market_series_id=20,
+                start=datetime(2020, 1, 2, tzinfo=UTC),
+                end=end,
+            )
+        )
+        assert older_gap is False
+    finally:
+        session.close()
+        engine.dispose()
+
+
+def test_latest_contiguous_suffix_rejects_stale_narrow_and_basis_mismatch_candidates():
+    engine, session = _db()
+    try:
+        session.add_all(
+            [
+                Instrument(
+                    id=1,
+                    instrument_type_id=1,
+                    symbol="TEST",
+                    name="Test instrument",
+                    currency="USD",
+                    is_active=True,
+                    identity_status="resolved",
+                ),
+                MarketSeries(
+                    id=10,
+                    instrument_id=1,
+                    data_source_id=10,
+                    feed_scope="provider_native",
+                    session_code="regular",
+                    timeframe="D1",
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="massive-split-adjusted",
+                    is_canonical=True,
+                    is_active=True,
+                ),
+                MarketSeries(
+                    id=20,
+                    instrument_id=1,
+                    data_source_id=20,
+                    feed_scope="iex",
+                    session_code="regular",
+                    timeframe="D1",
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="alpaca-split",
+                    is_canonical=True,
+                    is_active=True,
+                ),
+                MarketSeries(
+                    id=30,
+                    instrument_id=1,
+                    data_source_id=30,
+                    feed_scope="raw",
+                    session_code="regular",
+                    timeframe="D1",
+                    adjustment_basis=AdjustmentBasis.RAW,
+                    adjustment_version="raw-v1",
+                    is_canonical=True,
+                    is_active=True,
+                ),
+                MarketSeries(
+                    id=40,
+                    instrument_id=1,
+                    data_source_id=40,
+                    feed_scope="iex",
+                    session_code="extended",
+                    timeframe="D1",
+                    adjustment_basis=AdjustmentBasis.SPLIT_ADJUSTED,
+                    adjustment_version="alpaca-split-adjusted",
+                    is_canonical=True,
+                    is_active=True,
+                ),
+                MarketSeriesDefault(
+                    instrument_id=1,
+                    timeframe="D1",
+                    is_adjusted=True,
+                    market_series_id=10,
+                    selection_reason="first_canonical",
+                ),
+            ]
+        )
+        start = datetime(2026, 1, 2, tzinfo=UTC)
+        middle = datetime(2026, 1, 5, tzinfo=UTC)
+        newest = datetime(2026, 1, 6, tzinfo=UTC)
+        last = datetime(2026, 1, 7, tzinfo=UTC)
+        end = last
+        session.add_all(
+            [
+                _bar(series_id=10, ts=middle, data_source_id=10),
+                _bar(series_id=10, ts=newest, data_source_id=10),
+                _bar(series_id=10, ts=last, data_source_id=10),
+                _bar(series_id=20, ts=middle, data_source_id=20),
+                _bar(series_id=20, ts=newest, data_source_id=20),
+                _bar(series_id=20, ts=last, data_source_id=20),
+                _bar(series_id=30, ts=start, data_source_id=30),
+                _bar(series_id=30, ts=middle, data_source_id=30),
+                _bar(series_id=30, ts=newest, data_source_id=30),
+                _bar(series_id=30, ts=last, data_source_id=30),
+            ]
+        )
+        session.flush()
+
+        async def try_candidate(series_id, candidate_start, adjusted=True, candidate_end=end):
+            return await select_default_series_for_latest_contiguous_suffix(
+                _AsyncSessionAdapter(session),
+                instrument_id=1,
+                timeframe="D1",
+                adjusted=adjusted,
+                market_series_id=series_id,
+                requested_start=candidate_start,
+                end=candidate_end,
+            )
+
+        assert (
+            asyncio.run(try_candidate(20, start, candidate_end=datetime(2026, 1, 8, tzinfo=UTC)))
+            is False
+        )  # stale: the alternate does not reach the requested end
+        assert asyncio.run(try_candidate(20, newest)) is False  # cannot narrow the current default
+        assert asyncio.run(try_candidate(30, start)) is False  # raw is not adjusted-compatible
+        assert asyncio.run(try_candidate(40, start)) is False  # session scope must stay stable
+        assert session.execute(select(MarketSeriesDefault)).scalar_one().market_series_id == 10
     finally:
         session.close()
         engine.dispose()

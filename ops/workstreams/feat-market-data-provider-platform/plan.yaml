@@ -15641,3 +15641,71 @@ provider_etf_future_holdings_reason_projection_20261107:
   quota_ledger_policy_or_hold_mutation: false
   exact_source_ci_and_root_native_replay: pending Root-owned
   full_platform_goal_and_roadmaps: remain open
+
+provider_shared_redirect_local_burst_retry_20261107:
+  id: provider-shared-redirect-local-burst-retry-20261107
+  status: focused_local_green_root_native_replay_pending
+  base_source: ad114d20eff04992f384b5a57bb3999e3da6d6f7
+  root_finding: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-XHB-redirect-admission-review.json
+  diagnosis:
+    - The retained trace proves the first SPDR physical hop completed and the next redirect hop was denied before transport. Its ProviderQuotaAdmissionError did not retain the admission discriminator.
+    - The shared runtime has an application token-bucket burst gate after both durable and policy reservations. Before this correction that pretransport denial set retry_at to null, although its local refill time is computable. The retained 4/18 ten-minute app usage does not establish native headroom or identify this exact gate as the runtime denial.
+  implementation:
+    - A depleted local application burst bucket now returns a conservative UTC retry point derived from its remaining token refill delay; it does not infer or alter any provider-native reset.
+    - The policy reservation and durable quota reservation for a denied hop are settled as not-sent before returning the hold. Each redirect remains a separate shared-admission attempt.
+    - Native coordinator denials with unknown headroom continue to have no retry_at. ETF preparation receives a known retry_at and the existing data-preparation worker defers and wakes the durable child at that time.
+  changed_paths:
+    - backend/app/services/provider_runtime.py
+    - backend/app/services/market_refresh_queue.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+    - backend/tests/unit/services/test_market_refresh_queue.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/services/test_provider_runtime.py::test_local_application_burst_hold_has_known_retry_and_settles_hop_not_sent backend/tests/unit/services/test_provider_runtime.py::test_unknown_native_coordinator_hold_does_not_gain_local_retry_time backend/tests/unit/services/test_provider_runtime.py::test_token_bucket_has_no_retry_when_operation_cost_exceeds_burst backend/tests/unit/services/test_etf_holdings_provider_bridge.py::test_redirect_admission_hold_preserves_known_retry_without_sending_next_hop backend/tests/unit/services/test_etf_holdings_provider_bridge.py::test_adapter_httpx_redirects_are_dispatched_as_separate_shared_attempts backend/tests/unit/services/test_market_refresh_queue.py::test_provider_reset_defers_job_until_retry_at backend/tests/unit/services/test_market_refresh_queue.py::test_known_provider_retry_is_not_extended_by_generic_attempt_backoff -q
+    result: 7 passed; Ruff check and format passed on the five changed Python paths.
+    coverage: A completed first physical redirect is charged once; the denied next hop emits no request log or transport and its not-sent reservations are released. A known local refill time is preserved through the redirect bridge and existing durable queue defer path, without generic exponential backoff extending the reset. Unknown native coordinator denial and operations larger than the local burst remain untimed.
+  provider_http_runtime_or_ledger_mutation: false
+  policy_quota_hold_or_counter_mutation: false
+  exact_source_ci_and_root_native_replay: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open
+
+provider_redirect_and_retained_deeper_history_20261107:
+  id: provider-redirect-and-retained-deeper-history-20261107
+  status: focused_local_green_root_native_replay_and_exact_ci_pending
+  base_source: ad114d20eff04992f384b5a57bb3999e3da6d6f7
+  root_findings:
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-XHB-redirect-admission-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-retained-Massive-coherent-deeper-default-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-ETF-retained-cache-upgrade-audit.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-AMD-false-empty-history-completion-review.json
+    - /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/root-native-BWET-d5-history-readiness-review.json
+  implementation:
+    - Local application burst admission now returns a conservative refill time when computable; not-sent per-hop reservations are settled and known retry times are not extended by generic exponential backoff. Unknown native headroom remains untimed; the retained XHB artifact does not identify its exact denying gate or prove vendor quota exhaustion.
+    - After a first provider-specific series is created, the history cache re-read uses that exact returned series identity instead of the pre-transport no-series predicate, so persisted rows are returned to the worker and can trigger older continuation.
+    - The worker can select one active, canonical, same-session, adjustment-compatible alternate when a validated contiguous suffix reaches the requested end and extends the current default. Older gaps remain partial, continuations remain source-pinned, and all provider rows/lineage remain stored.
+    - Open-ended instrument and ratio preparation responses project actual selected-series coverage ranges without treating an unspecified full-history range as ready.
+  changed_paths:
+    - backend/app/services/provider_runtime.py
+    - backend/app/services/market_refresh_queue.py
+    - backend/app/services/market_data.py
+    - backend/app/services/market_series.py
+    - backend/app/services/data_preparation.py
+    - backend/app/tasks/data_tasks.py
+    - backend/tests/unit/services/test_provider_runtime.py
+    - backend/tests/unit/services/test_etf_holdings_provider_bridge.py
+    - backend/tests/unit/services/test_market_refresh_queue.py
+    - backend/tests/unit/services/test_market_series_defaults.py
+    - backend/tests/unit/services/test_data_preparation_worker_deeper_default.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/services/test_data_preparation_service.py backend/tests/unit/services/test_data_preparation_worker_deeper_default.py backend/tests/unit/services/test_market_series_defaults.py plus the seven focused provider-runtime/redirect/queue nodeids recorded in validation.jsonl
+    result: 68 focused tests passed in 9.92s; pinned Ruff check and format passed on all 12 changed Python paths; workstream and diff validation passed.
+    regressions:
+      - A real process_refresh_jobs worker request persists and returns first-series bars without a test-only bar flush, selects the coherent deeper alternate, reports partial coverage, and enqueues a source-pinned older continuation.
+      - The retained-cache worker case preserves the Massive default rows and a one-bar 2018 / continuous 2020+ Alpaca series, selects Alpaca for the 2021+ useful range, and retains the older gap as partial.
+      - Stale, narrower, session-mismatched and adjustment-incompatible alternates are not promoted; ordinary reads return one selected series.
+      - Open-ended BWET-like history exposes actual ranges for an instrument and both ratio legs while remaining partial.
+      - Redirect hop settlement, local refill timing, unknown-native no-timer behavior and exact durable retry scheduling remain covered.
+  provider_http_runtime_fixture_ledger_policy_or_hold_mutation: false
+  exact_source_ci_and_root_native_replay: pending Root-owned
+  full_platform_goal_and_roadmaps: remain open

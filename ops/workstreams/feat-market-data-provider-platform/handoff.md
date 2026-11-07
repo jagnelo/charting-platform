@@ -33745,3 +33745,47 @@ Ruff check/format and workstream/diff validation passed. Root still owns
 genuine replay and exact-source release qualification; XHB/IGV and future-dated
 BWET outcomes remain distinct native cases, and the full Provider roadmap
 remains open.
+
+## 2026-11-07 — shared redirect admission retry
+
+Root's XHB evidence shows a completed first SPDR hop and a quota-admission hold
+before the redirect target transport. The retained error does not identify
+which admission branch denied it, and 4/18 application requests do not prove
+native quota headroom. I fixed the concrete shared-runtime gap: when the
+application's in-process burst bucket is the denying gate, it now supplies a
+conservative retry time from its token refill delay. Both durable and policy
+reservations for that unstarted hop are settled not-sent. Unknown native
+coordinator holds and operation costs larger than the burst capacity remain
+untimed. Redirects continue
+through one independent admission and settlement per physical hop. Seven
+focused bridge/runtime/deferred-queue tests pass; a known reset now schedules
+at its actual conservative time instead of being extended by generic
+exponential backoff. Ruff check/format pass. No
+source HTTP, runtime/fixture work, policy/hold change, or ledger mutation was
+performed. Root owns the exact-source build and genuine native replay; broader
+release and Provider roadmap remain open.
+
+## 2026-11-07 — truthful retained-history status and deeper default continuation
+
+The AMD retained-runtime trace showed that a first alternate-provider fetch
+could persist bars but report zero observed bars: the post-fetch read reused
+the pre-fetch `MarketSeries.id IS NULL` predicate after the provider had
+created a series. The worker now re-reads from that exact persisted series,
+reports its bars, and can enqueue the source-pinned older continuation. A
+worker regression covers both first-series creation and a retained Massive
+default with a deeper Alpaca series; the latter selects only the contiguous
+useful suffix, keeps the older gap partial, and preserves both sources' stored
+rows and lineage.
+
+The BWET retained-cache trace exposed a related status projection gap for
+open-ended requests: 495 cached Massive bars existed, but instrument and
+SPY/BWET ratio responses had no covered ranges. Open-ended responses now
+project exact selected-series ranges while remaining partial; they do not
+claim complete unbounded history. The independent `future_dated_source`
+holdings outcome remains unchanged.
+
+The combined focused slice passed 68 tests. Ruff check/format, workstream
+validation, and diff checks passed. No provider HTTP, runtime/database
+mutation, quota/ledger/policy change, or fixture was used. Root owns exact-tip
+CI and retained native replay; actual native deeper-history upgrade remains
+unproven, and the full Provider roadmap remains open.

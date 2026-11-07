@@ -5,6 +5,7 @@ import contextvars
 import inspect
 import json
 import logging
+import math
 import random
 import time
 from collections.abc import Callable
@@ -2261,6 +2262,20 @@ class TokenBucket:
         self.tokens -= units
         return True
 
+    def retry_after_seconds(self, units: int = 1) -> float | None:
+        """Return the local refill delay, or None when the burst can never admit it."""
+        if isinstance(units, bool) or not isinstance(units, int) or units <= 0:
+            raise ProviderQuotaUnknownError(
+                "provider minute bucket requires positive integer acquisition units"
+            )
+        if units > self.capacity:
+            return None
+        now = time.monotonic()
+        elapsed = now - self.last_refill
+        self.last_refill = now
+        self.tokens = min(self.capacity, self.tokens + elapsed * self.rate_per_second)
+        return max(0.0, (units - self.tokens) / self.rate_per_second)
+
 
 def _ewma(previous: Decimal, current: Decimal) -> Decimal:
     if previous == Decimal("0"):
@@ -4000,6 +4015,7 @@ async def execute_provider_call(
     loop = asyncio.get_event_loop()
     last_error: Exception | None = None
     admission_denied: dict[str, datetime | None] = {}
+    local_application_bucket_denied: set[str] = set()
 
     for resolved in chain:
         resolved_usage_identity = (
@@ -4127,9 +4143,8 @@ async def execute_provider_call(
             resolved.policy.tokens_per_minute is not None
             and resolved.policy.burst_capacity is not None
         ):
-            if not _get_bucket(resolved.policy, resolved.provider_name).try_acquire(
-                operation_units
-            ):
+            bucket = _get_bucket(resolved.policy, resolved.provider_name)
+            if not bucket.try_acquire(operation_units):
                 settle_provider_contract(
                     reservations,
                     units=operation_units,
@@ -4146,7 +4161,19 @@ async def execute_provider_call(
                     not_sent=True,
                 )
                 semaphore.release()
-                admission_denied[resolved.provider_name] = None
+                # This is the application's in-process burst envelope, not
+                # evidence about the provider's native reset. The bucket knows
+                # exactly when its next token becomes available; preserve that
+                # local retry point so durable work can resume without an
+                # invented fixed backoff. The already-created durable and
+                # policy reservations were settled as not-sent above.
+                retry_delay = bucket.retry_after_seconds(operation_units)
+                admission_denied[resolved.provider_name] = (
+                    datetime.now(UTC) + timedelta(seconds=math.ceil(retry_delay) + 1)
+                    if retry_delay is not None
+                    else None
+                )
+                local_application_bucket_denied.add(resolved.provider_name)
                 continue
         try:
             log_row = ProviderRequestLog(
@@ -4467,8 +4494,14 @@ async def execute_provider_call(
             if retry_values and all(value is not None for value in retry_values)
             else None
         )
+        local_bucket_detail = (
+            " (local application burst window)"
+            if set(admission_denied).issubset(local_application_bucket_denied)
+            else ""
+        )
         raise ProviderQuotaAdmissionError(
-            f"durable provider quota admission denied for {capability.value}/{operation}: {names}",
+            f"durable provider quota admission denied for {capability.value}/{operation}: "
+            f"{names}{local_bucket_detail}",
             retry_at=retry_at,
         )
     raise RuntimeError(f"No enabled providers available for capability '{capability.value}'")

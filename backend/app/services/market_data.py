@@ -1028,6 +1028,10 @@ async def _fetch_ohlcv_impl(
         OHLCVBar.ts <= end,
         OHLCVBar.is_adjusted == adjusted,
     ]
+    base_predicates = list(predicates)
+    source_id = None
+    selected_series_id = None
+    source_predicates = []
     if source_provider:
         source_id = (
             await db.execute(
@@ -1053,6 +1057,11 @@ async def _fetch_ohlcv_impl(
                 .limit(1)
             )
         ).scalar_one_or_none()
+        source_predicates = [
+            OHLCVBar.data_source_id == source_id,
+            OHLCVBar.market_series_id == MarketSeries.id,
+            OHLCVBar.is_derived.is_(False),
+        ]
         if selected_series_id is None:
             # The fetch path will create this provider's first scoped series;
             # on the next read it becomes the exact cache identity.
@@ -1061,10 +1070,8 @@ async def _fetch_ohlcv_impl(
             selected_series_predicate = MarketSeries.id == selected_series_id
         predicates.extend(
             [
-                OHLCVBar.data_source_id == source_id,
-                OHLCVBar.market_series_id == MarketSeries.id,
+                *source_predicates,
                 selected_series_predicate,
-                OHLCVBar.is_derived.is_(False),
             ]
         )
     else:
@@ -1130,7 +1137,27 @@ async def _fetch_ohlcv_impl(
                 await db.rollback()
                 logger.error(f"Failed to save bars: {e}")
 
-        # Re-query after insert so cached reflects actual DB state with valid ORM objects
+        # Re-query after insert so cached reflects actual DB state with valid ORM objects.
+        # When the request created a provider's first series, the initial cache
+        # statement intentionally matched no series. Rebuild that source filter
+        # from the series attached to the persisted response instead of reusing
+        # the pre-transport ``MarketSeries.id IS NULL`` predicate.
+        if source_provider and selected_series_id is None and new_bars:
+            created_series_ids = {
+                int(bar.market_series_id) for bar in new_bars if bar.market_series_id is not None
+            }
+            if len(created_series_ids) == 1:
+                created_series_id = next(iter(created_series_ids))
+                refreshed_stmt = select(OHLCVBar).where(
+                    and_(
+                        *base_predicates,
+                        *source_predicates,
+                        MarketSeries.id == created_series_id,
+                    )
+                )
+                if _seeded_market_data():
+                    refreshed_stmt = refreshed_stmt.where(_e2e_fixture_bar_condition())
+                stmt = refreshed_stmt.order_by(OHLCVBar.ts)
         cached = list((await db.execute(stmt)).scalars().all())
 
     cached.sort(key=lambda b: b.ts)

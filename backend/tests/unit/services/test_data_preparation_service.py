@@ -42,10 +42,17 @@ from tests.unit.conftest import AsyncSessionAdapter
 
 
 def _add_selected_cached_history(
-    db, instrument, *, days, adjusted=True, currency="EUR", close_labelled=False
+    db,
+    instrument,
+    *,
+    days,
+    adjusted=True,
+    currency="EUR",
+    close_labelled=False,
+    source_name="retained-cache-test",
 ):
     instrument.currency = currency
-    source = DataSource(name="retained-cache-test")
+    source = DataSource(name=source_name)
     db.add(source)
     db.flush()
     series = MarketSeries(
@@ -169,6 +176,132 @@ async def test_fully_retained_selected_range_is_ready_without_provider_job(
     assert response.dependencies[0].covered_ranges[0].data_source_id == selected.data_source_id
     assert response.dependencies[0].covered_ranges[0].adjustment_basis == "split_adjusted"
     assert parent.metadata_payload["data_preparation"]["dependencies"][0]["job_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_open_ended_cached_history_reports_selected_ranges_for_instrument_and_ratio_legs(
+    db, instrument
+):
+    from app.models.instrument import Instrument
+
+    _qualify_test_instrument(instrument)
+    _add_selected_cached_history(
+        db,
+        instrument,
+        days=[1, 2, 3, 4],
+        source_name="retained-cache-bwet",
+    )
+    spy = Instrument(
+        symbol="SPY",
+        name="SPDR S&P 500 ETF Trust",
+        currency="EUR",
+        instrument_type_id=instrument.instrument_type_id,
+        is_active=True,
+        identity_status="resolved",
+        domain_key="test:retained:SPY",
+        primary_identifier_type="figi",
+        primary_identifier_value="BBG000B9XRY4",
+    )
+    db.add(spy)
+    db.flush()
+    _add_selected_cached_history(
+        db,
+        spy,
+        days=[1, 2, 3, 4],
+        source_name="retained-cache-spy",
+    )
+    async_db = AsyncSessionAdapter(db)
+
+    ordinary_request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+            "adjusted": True,
+        }
+    )
+    ordinary_parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=ordinary_request,
+    )
+    ordinary_dependency = next(
+        item
+        for item in ordinary_parent.metadata_payload["data_preparation"]["dependencies"]
+        if item["dataset"] == "history"
+    )
+    ordinary_child = db.get(MarketRefreshJob, ordinary_dependency["job_ids"][0])
+    ordinary_child.status = "completed"
+    ordinary_child.result_summary = {
+        "data_status": "partial",
+        "chunk_coverage_status": "partial",
+        "bars_observed": 4,
+    }
+    db.flush()
+    ordinary_response = await get_data_preparation_response(
+        async_db,
+        parent=ordinary_parent,
+        owner_user_id=81,
+    )
+    ordinary_history = next(
+        item for item in ordinary_response.dependencies if item.dataset.value == "history"
+    )
+    assert ordinary_history.status == "partial"
+    assert len(ordinary_history.covered_ranges) == 1
+    assert ordinary_history.covered_start == datetime(2026, 1, 1, tzinfo=UTC)
+    assert ordinary_history.covered_end == datetime(2026, 1, 4, tzinfo=UTC)
+
+    ratio_request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history"],
+            "timeframe": "D1",
+            "adjusted": True,
+            "analysis": {
+                "kind": "ratio",
+                "legs": [
+                    {"instrument_id": instrument.id},
+                    {"instrument_id": spy.id},
+                ],
+            },
+        }
+    )
+    ratio_parent = await create_data_preparation_request(
+        async_db,
+        owner_user_id=81,
+        request=ratio_request,
+    )
+    ratio_dependencies = [
+        item
+        for item in ratio_parent.metadata_payload["data_preparation"]["dependencies"]
+        if item["dataset"] == "history"
+    ]
+    assert {item["instrument_id"] for item in ratio_dependencies} == {instrument.id, spy.id}
+    for dependency in ratio_dependencies:
+        child = db.get(MarketRefreshJob, dependency["job_ids"][0])
+        child.status = "completed"
+        child.result_summary = {
+            "data_status": "partial",
+            "chunk_coverage_status": "partial",
+            "bars_observed": 4,
+        }
+    db.flush()
+
+    ratio_response = await get_data_preparation_response(
+        async_db,
+        parent=ratio_parent,
+        owner_user_id=81,
+    )
+    ratio_history = [
+        item for item in ratio_response.dependencies if item.dataset.value == "history"
+    ]
+    assert len(ratio_history) == 2
+    assert {item.instrument_id for item in ratio_history} == {instrument.id, spy.id}
+    for dependency in ratio_history:
+        assert dependency.status == "partial"
+        assert len(dependency.covered_ranges) == 1
+        assert dependency.covered_start == datetime(2026, 1, 1, tzinfo=UTC)
+        assert dependency.covered_end == datetime(2026, 1, 4, tzinfo=UTC)
 
 
 @pytest.mark.asyncio
