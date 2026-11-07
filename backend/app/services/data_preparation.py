@@ -16,7 +16,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.asset_class import AssetClass, InstrumentType
 from app.models.data_source import DataSource
-from app.models.etf_holdings import ETFProfile
 from app.models.instrument import Instrument
 from app.models.market_data_foundation import MarketRefreshJob, MarketSeries, MarketSeriesDefault
 from app.models.ohlcv import OHLCVBar, Timeframe
@@ -508,13 +507,6 @@ async def _resolve_requested_instruments(
 
 
 async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
-    profile_id = (
-        await db.execute(
-            select(ETFProfile.id).where(ETFProfile.instrument_id == instrument_id).limit(1)
-        )
-    ).scalar_one_or_none()
-    if profile_id is not None:
-        return True
     names = (
         await db.execute(
             select(InstrumentType.name, AssetClass.name)
@@ -528,12 +520,12 @@ async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
     instrument_type, asset_class = (
         str(value or "").strip().casefold().replace("-", "_").replace(" ", "_") for value in names
     )
-    # Explicit ETF type is enough to plan the dataset.  The actual issuer
-    # handler still owns profile/identity checks before any holdings fetch.
-    return instrument_type in {"etf", "exchange_traded_fund"} or (
-        instrument_type == "exchange_traded_vehicle"
-        and asset_class == "exchange_traded_product"
-        and profile_id is not None
+    # Keep dataset planning aligned with the canonical fund types accepted by
+    # etf_holdings_refresh._resolve_canonical_fund_instrument.  Type metadata
+    # is enough to plan holdings before an ETFProfile exists; identity and
+    # synthetic checks remain in _dataset_initial_state and the handler.
+    return instrument_type in {"etf", "index_etf", "mutual_fund", "closed_end_fund"} or (
+        instrument_type == "exchange_traded_vehicle" and asset_class == "exchange_traded_product"
     )
 
 
@@ -687,6 +679,10 @@ async def _dataset_initial_state(
     if dataset is PreparationDataset.HOLDINGS:
         if not await _instrument_is_etf(db, instrument_id):
             return "unavailable", "not_applicable"
+        if instrument.is_synthetic:
+            return "unavailable", "synthetic_instrument_not_supported"
+        if instrument.identity_status != "resolved" or not instrument.domain_key:
+            return "waiting", "canonical_etf_instrument_required"
         if _etf_holdings_preparer() is None:
             return "unavailable", "etf_preparation_handler_not_registered"
         return "queued", None
@@ -720,6 +716,18 @@ async def _enqueue_identity_profile_job(
         ]
     )
     await _acquire_enqueue_lock(db, key)
+    prior_job = (
+        await db.execute(select(MarketRefreshJob).where(MarketRefreshJob.request_key == key))
+    ).scalar_one_or_none()
+    if _identity_job_has_terminal_negative(prior_job):
+        # A completed negative identity child is immutable history, not a
+        # successful reusable result. Permit one fresh user/maintenance intent
+        # to retry it in the same hour while equivalent requests coalesce on
+        # this deterministic recovery key. The hour in the base key bounds
+        # repeated no-match work; the queue still enforces provider admission
+        # and native quota for every actual attempt.
+        key = f"{key}:recovery"
+        await _acquire_enqueue_lock(db, key)
     prior_refs = await _existing_parent_refs(db, key)
     job = await enqueue_refresh_job(
         db,
@@ -748,6 +756,30 @@ async def _enqueue_identity_profile_job(
     return job
 
 
+def _identity_job_has_terminal_negative(job: MarketRefreshJob | None) -> bool:
+    """Whether a completed identity child recorded a result worth re-evaluating.
+
+    Older workers wrote native usage context only to ``result_summary``; newer
+    workers also persist ``native_usage_hold`` on the child metadata. Accept
+    either evidence shape so a normal later ensure can recover old held jobs
+    without deleting or rewriting their result.
+    """
+
+    if job is None or job.status != "completed":
+        return False
+    summary = job.result_summary or {}
+    child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+    terminal_status = summary.get("preparation_status")
+    native_hold = summary.get("native_usage_prerequisite") or child.get("native_usage_hold")
+    return terminal_status in {
+        "held",
+        "unavailable",
+        "failed",
+        "no_match",
+        "identity_conflict",
+    } or isinstance(native_hold, dict)
+
+
 async def _enqueue_etf_holdings_job(
     db: AsyncSession,
     *,
@@ -760,9 +792,22 @@ async def _enqueue_etf_holdings_job(
     now: datetime,
 ) -> MarketRefreshJob:
     freshness_scope = now.strftime("%Y-%m-%dT%H")
-    request_key = "prep-holdings:" + _digest([instrument_id, freshness_scope])
-    await _acquire_enqueue_lock(db, request_key)
+    base_request_key = "prep-holdings:" + _digest([instrument_id, freshness_scope])
+    await _acquire_enqueue_lock(db, base_request_key)
+    prior_job = (
+        await db.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.request_key == base_request_key)
+        )
+    ).scalar_one_or_none()
+    request_key = base_request_key
+    if _holdings_job_has_terminal_negative(prior_job, now=now):
+        # A prior held/unavailable result is immutable history. A fresh user
+        # request gets one bounded retry for this hourly freshness scope;
+        # equivalent requests then coalesce on that recovery child.
+        request_key = f"{base_request_key}:recovery"
+        await _acquire_enqueue_lock(db, request_key)
     prior_refs = await _existing_parent_refs(db, request_key)
+    recovery_suffix = ":recovery" if request_key != base_request_key else ""
     job = await enqueue_refresh_job(
         db,
         request_key=request_key,
@@ -774,8 +819,13 @@ async def _enqueue_etf_holdings_job(
             "data_preparation_child": {
                 "kind": "etf_holdings",
                 "instrument_id": instrument_id,
-                "request_id": f"data-preparation-holdings:{instrument_id}:{freshness_scope}",
-                "dependency_id": f"shared-holdings:{instrument_id}:{freshness_scope}",
+                "request_id": (
+                    f"data-preparation-holdings:{instrument_id}:{freshness_scope}"
+                    f"{recovery_suffix}"
+                ),
+                "dependency_id": (
+                    f"shared-holdings:{instrument_id}:{freshness_scope}{recovery_suffix}"
+                ),
                 "freshness_scope": freshness_scope,
                 "parent_refs": prior_refs,
             }
@@ -789,6 +839,31 @@ async def _enqueue_etf_holdings_job(
     ]:
         await _append_parent_ref(db, job, ref)
     return job
+
+
+def _holdings_job_has_terminal_negative(job: MarketRefreshJob | None, *, now: datetime) -> bool:
+    """Whether a completed holdings result can be reconsidered on a new ensure.
+
+    A known future retry remains authoritative. Otherwise completed negative
+    outcomes may be retried once in the current hourly scope; the queue still
+    applies the issuer route, provider admission, and native quota controls.
+    """
+
+    if job is None or job.status != "completed":
+        return False
+    summary = job.result_summary or {}
+    if summary.get("preparation_status") not in {"waiting", "held", "unavailable", "failed"}:
+        return False
+    retry_at = summary.get("retry_at")
+    if isinstance(retry_at, str):
+        try:
+            retry_at = datetime.fromisoformat(retry_at)
+        except ValueError:
+            retry_at = None
+    if isinstance(retry_at, datetime) and retry_at.tzinfo is not None:
+        if retry_at.astimezone(UTC) > _as_utc(now):
+            return False
+    return True
 
 
 def _history_request_key(
@@ -2123,7 +2198,13 @@ async def get_data_preparation_response(
                         ),
                     )
                 elif any(outcome.get("data_status") == "empty" for outcome in outcomes):
-                    item_status, reason = "unavailable", "source_returned_no_data"
+                    empty_outcome = next(
+                        outcome for outcome in outcomes if outcome.get("data_status") == "empty"
+                    )
+                    item_status, reason = (
+                        "unavailable",
+                        empty_outcome.get("reason_code") or "source_returned_no_data",
+                    )
                 elif any(outcome.get("data_status") == "partial" for outcome in outcomes):
                     item_status, reason = (
                         "partial",

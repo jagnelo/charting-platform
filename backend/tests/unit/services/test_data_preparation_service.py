@@ -22,6 +22,8 @@ from app.models.provider_runtime import ProviderCapability, ProviderPolicy
 from app.schemas.data_preparation import DataEnsureRequest
 from app.services.data_preparation import (
     _analysis_required_start,
+    _holdings_job_has_terminal_negative,
+    _identity_job_has_terminal_negative,
     _profile_is_fresh,
     _resolve_requested_instruments,
     create_data_preparation_request,
@@ -264,6 +266,30 @@ async def test_existing_held_request_keeps_partial_gaps_and_reason_after_cache_a
     assert response.dependencies[0].reason_code == "no_eligible_history_provider"
     assert response.dependencies[0].covered_start == datetime(2026, 1, 3, tzinfo=UTC)
     assert response.dependencies[0].covered_end == datetime(2026, 1, 5, tzinfo=UTC)
+
+
+@pytest.mark.asyncio
+async def test_zero_bar_no_transport_outcome_is_unavailable_with_admission_reason(db, instrument):
+    async_db, request_id = await _create_previously_held_history_request(db, instrument)
+    parent = await load_owner_request(async_db, request_id=request_id, owner_user_id=81)
+    dependency = parent.metadata_payload["data_preparation"]["dependencies"][0]
+    child = await async_db.get(MarketRefreshJob, dependency["job_ids"][0])
+    child.status = "completed"
+    child.result_summary = {
+        "bars_observed": 0,
+        "data_status": "empty",
+        "chunk_coverage_status": None,
+        "range_coverage_status": "missing",
+        "reason_code": "no_eligible_history_provider",
+    }
+    await async_db.commit()
+
+    response = await get_data_preparation_response(async_db, parent=parent, owner_user_id=81)
+
+    assert response.status == "unavailable"
+    assert response.has_pending_work is False
+    assert response.dependencies[0].status == "unavailable"
+    assert response.dependencies[0].reason_code == "no_eligible_history_provider"
 
 
 @pytest.mark.asyncio
@@ -648,6 +674,335 @@ async def test_preparation_request_uses_tracking_parent_and_shared_history_child
     claimed_ids = {job.id for job in claimed}
     assert set(dependency["job_ids"]).issubset(claimed_ids)
     assert parent.id not in claimed_ids
+
+
+@pytest.mark.asyncio
+async def test_canonical_etv_without_profile_gets_independent_holdings_preparation(db):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import ETFProfile
+    from app.models.instrument import Instrument
+
+    asset_class = AssetClass(name="Exchange Traded Product", description="ETP fixtures")
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name="Exchange Traded Vehicle", asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="ETVTEST",
+        name="Canonical exchange traded vehicle",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        is_synthetic=False,
+        identity_status="resolved",
+        domain_key="test:etv:canonical",
+        primary_identifier_type="figi",
+        primary_identifier_value="BBG000ETV001",
+    )
+    db.add(instrument)
+    db.flush()
+
+    request = DataEnsureRequest.model_validate(
+        {"target": {"kind": "instrument", "instrument_id": instrument.id}}
+    )
+    parent = await create_data_preparation_request(
+        AsyncSessionAdapter(db), owner_user_id=81, request=request
+    )
+    dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+    holdings = next(item for item in dependencies if item["dataset"] == "holdings")
+    assert holdings["status"] == "queued"
+    assert db.query(ETFProfile).filter(ETFProfile.instrument_id == instrument.id).first() is None
+    holdings_job = db.get(MarketRefreshJob, holdings["job_ids"][0])
+    assert holdings_job.capability == "etf_holdings_preparation"
+
+
+@pytest.mark.asyncio
+async def test_synthetic_etv_holdings_stay_unavailable_without_blocking_history(db):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+
+    asset_class = AssetClass(name="Exchange Traded Product", description="ETP fixtures")
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name="Exchange Traded Vehicle", asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="SYNTHETV",
+        name="Synthetic exchange traded vehicle",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        is_synthetic=True,
+        identity_status="resolved",
+        domain_key="test:etv:synthetic",
+        primary_identifier_type="internal",
+        primary_identifier_value="synthetic:etv",
+    )
+    db.add(instrument)
+    db.flush()
+
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["history", "holdings"],
+        }
+    )
+    parent = await create_data_preparation_request(
+        AsyncSessionAdapter(db), owner_user_id=81, request=request
+    )
+    dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+    history = next(item for item in dependencies if item["dataset"] == "history")
+    holdings = next(item for item in dependencies if item["dataset"] == "holdings")
+    assert history["status"] == "queued"
+    assert holdings["status"] == "unavailable"
+    assert holdings["reason_code"] == "synthetic_instrument_not_supported"
+    assert holdings["job_ids"] == []
+
+
+@pytest.mark.asyncio
+async def test_unverified_etv_waits_for_identity_before_holdings_dispatch(db):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+
+    asset_class = AssetClass(name="Exchange Traded Product", description="ETP fixtures")
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name="Exchange Traded Vehicle", asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="UNVERIFETV",
+        name="Unverified exchange traded vehicle",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        is_synthetic=False,
+        identity_status="provisional",
+        domain_key=None,
+        primary_identifier_type="internal",
+        primary_identifier_value="symbol:UNVERIFETV",
+    )
+    db.add(instrument)
+    db.flush()
+
+    request = DataEnsureRequest.model_validate(
+        {"target": {"kind": "instrument", "instrument_id": instrument.id}}
+    )
+    parent = await create_data_preparation_request(
+        AsyncSessionAdapter(db), owner_user_id=81, request=request
+    )
+    dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+    identity = next(item for item in dependencies if item["dataset"] == "identity")
+    holdings = next(item for item in dependencies if item["dataset"] == "holdings")
+    assert identity["status"] == "queued"
+    assert holdings["status"] == "waiting"
+    assert holdings["reason_code"] == "canonical_etf_instrument_required"
+    assert holdings["job_ids"] == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("negative_status", ["held", "identity_conflict", "no_match"])
+async def test_new_ensure_retries_legacy_terminal_negative_identity_child_once_per_scope(
+    db, instrument, negative_status
+):
+    now = datetime(2026, 11, 7, 18, 56, tzinfo=UTC)
+    instrument.identity_status = "provisional"
+    instrument.domain_key = None
+    instrument.primary_identifier_type = "internal"
+    instrument.primary_identifier_value = f"symbol:{instrument.symbol}"
+    await AsyncSessionAdapter(db).flush()
+    async_db = AsyncSessionAdapter(db)
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["identity", "profile"],
+        }
+    )
+
+    first_parent = await create_data_preparation_request(
+        async_db, owner_user_id=81, request=request, now=now
+    )
+    first_data = first_parent.metadata_payload["data_preparation"]
+    first_identity = db.get(
+        MarketRefreshJob,
+        first_data["dependencies"][0]["job_ids"][0],
+    )
+    assert first_identity is not None
+    first_identity.status = "completed"
+    first_identity.finished_at = now
+    # Preserve the legacy producer shape observed in the retained native
+    # runtime: the prerequisite is in result_summary and metadata has no
+    # native_usage_hold field.
+    negative_result = {
+        "preparation_status": negative_status,
+        "reason_code": (
+            "native_usage_bootstrap_not_admitted"
+            if negative_status == "held"
+            else "stable_identity_or_listing_authority_missing"
+        ),
+        "symbol": instrument.symbol,
+    }
+    if negative_status == "held":
+        negative_result["native_usage_prerequisite"] = {
+            "provider_name": "finnhub",
+            "capability": "instrument_search",
+            "operation": "search_instruments",
+            "reason_code": "native_usage_bootstrap_not_admitted",
+        }
+    first_identity.result_summary = negative_result
+    first_child_metadata = first_identity.metadata_payload["data_preparation_child"]
+    assert "native_usage_hold" not in first_child_metadata
+    await async_db.flush()
+
+    second_parent = await create_data_preparation_request(
+        async_db, owner_user_id=82, request=request, now=now
+    )
+    second_dependency = second_parent.metadata_payload["data_preparation"]["dependencies"][0]
+    retry_id = second_dependency["job_ids"][0]
+    retry_job = db.get(MarketRefreshJob, retry_id)
+    assert retry_id != first_identity.id
+    assert retry_job is not None
+    assert retry_job.status == "queued"
+    assert retry_job.result_summary is None
+    assert first_identity.status == "completed"
+    if negative_status == "held":
+        assert (
+            first_identity.result_summary["native_usage_prerequisite"]["provider_name"] == "finnhub"
+        )
+    else:
+        assert first_identity.result_summary["preparation_status"] == negative_status
+
+    third_parent = await create_data_preparation_request(
+        async_db, owner_user_id=83, request=request, now=now
+    )
+    third_dependency = third_parent.metadata_payload["data_preparation"]["dependencies"][0]
+    assert third_dependency["job_ids"] == [retry_id]
+    retry_refs = retry_job.metadata_payload["data_preparation_child"]["parent_refs"]
+    assert {ref["parent_job_id"] for ref in retry_refs} == {
+        second_parent.id,
+        third_parent.id,
+    }
+
+
+@pytest.mark.asyncio
+async def test_new_ensure_recovers_held_holdings_child_and_coalesces_same_scope(db):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.instrument import Instrument
+
+    now = datetime(2026, 11, 7, 20, 56, tzinfo=UTC)
+    asset_class = AssetClass(name="Exchange Traded Product", description="ETP recovery fixtures")
+    db.add(asset_class)
+    db.flush()
+    instrument_type = InstrumentType(name="Exchange Traded Vehicle", asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol="ETVRECOVERY",
+        name="Canonical exchange traded vehicle",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        is_synthetic=False,
+        identity_status="resolved",
+        domain_key="test:etv:recovery",
+        primary_identifier_type="figi",
+        primary_identifier_value="BBG000ETVREC001",
+    )
+    db.add(instrument)
+    db.flush()
+
+    async_db = AsyncSessionAdapter(db)
+    request = DataEnsureRequest.model_validate(
+        {
+            "target": {"kind": "instrument", "instrument_id": instrument.id},
+            "datasets": ["holdings"],
+        }
+    )
+    first_parent = await create_data_preparation_request(
+        async_db, owner_user_id=81, request=request, now=now
+    )
+    first_dependency = first_parent.metadata_payload["data_preparation"]["dependencies"][0]
+    previous_job = db.get(MarketRefreshJob, first_dependency["job_ids"][0])
+    assert previous_job is not None
+    previous_child = deepcopy(previous_job.metadata_payload["data_preparation_child"])
+    previous_job.status = "completed"
+    previous_job.finished_at = now
+    previous_job.result_summary = {
+        "preparation_status": "waiting",
+        "reason_code": "issuer_request_held",
+        "retry_at": None,
+    }
+    await async_db.flush()
+
+    second_parent = await create_data_preparation_request(
+        async_db, owner_user_id=82, request=request, now=now
+    )
+    second_dependency = second_parent.metadata_payload["data_preparation"]["dependencies"][0]
+    recovery_id = second_dependency["job_ids"][0]
+    recovery_job = db.get(MarketRefreshJob, recovery_id)
+    assert recovery_id != previous_job.id
+    assert recovery_job is not None
+    assert recovery_job.status == "queued"
+    recovery_child = recovery_job.metadata_payload["data_preparation_child"]
+    assert recovery_child["request_id"].endswith(":recovery")
+    assert previous_job.status == "completed"
+    assert previous_job.result_summary == {
+        "preparation_status": "waiting",
+        "reason_code": "issuer_request_held",
+        "retry_at": None,
+    }
+    assert previous_job.metadata_payload["data_preparation_child"] == previous_child
+
+    third_parent = await create_data_preparation_request(
+        async_db, owner_user_id=83, request=request, now=now
+    )
+    third_dependency = third_parent.metadata_payload["data_preparation"]["dependencies"][0]
+    assert third_dependency["job_ids"] == [recovery_id]
+    recovery_child = db.get(MarketRefreshJob, recovery_id).metadata_payload[
+        "data_preparation_child"
+    ]
+    recovery_refs = recovery_child["parent_refs"]
+    assert {ref["parent_job_id"] for ref in recovery_refs} == {
+        second_parent.id,
+        third_parent.id,
+    }
+
+
+def test_completed_negative_holdings_wait_respects_a_future_retry_time():
+    now = datetime(2026, 11, 7, 20, 56, tzinfo=UTC)
+    job = MarketRefreshJob(
+        request_key="prep-holdings:negative",
+        capability="etf_holdings_preparation",
+        priority=50,
+        status="completed",
+        attempts=1,
+        next_attempt_at=now,
+        result_summary={
+            "preparation_status": "waiting",
+            "reason_code": "provider_rate_limited",
+            "retry_at": (now + timedelta(minutes=10)).isoformat(),
+        },
+        metadata_payload={},
+    )
+
+    assert _holdings_job_has_terminal_negative(job, now=now) is False
+    assert _holdings_job_has_terminal_negative(job, now=now + timedelta(minutes=10)) is True
+
+
+def test_successful_completed_identity_child_is_not_a_recovery_candidate():
+    job = MarketRefreshJob(
+        request_key="prep-identity:ready",
+        capability="instrument_metadata",
+        priority=50,
+        status="completed",
+        attempts=1,
+        next_attempt_at=datetime(2026, 11, 7, tzinfo=UTC),
+        result_summary={"preparation_status": "ready", "instrument_id": 10},
+        metadata_payload={"data_preparation_child": {"kind": "identity_profile"}},
+    )
+    assert _identity_job_has_terminal_negative(job) is False
 
 
 @pytest.mark.asyncio
@@ -1367,6 +1722,64 @@ async def test_unknown_symbol_late_expands_history_after_acquisition_resolution(
     second_holdings = next(item for item in second_expanded if item["dataset"] == "holdings")
     assert second_history["job_ids"] == history["job_ids"]
     assert second_holdings["job_ids"] == holdings["job_ids"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("asset_class_name", "instrument_type_name"),
+    [
+        ("Equity", "ETF"),
+        ("Index", "Index ETF"),
+        ("Equity", "Mutual Fund"),
+        ("Equity", "Closed-End Fund"),
+        ("Exchange Traded Product", "Exchange Traded Vehicle"),
+    ],
+)
+async def test_canonical_fund_types_plan_holdings_without_profile(
+    db, asset_class_name, instrument_type_name
+):
+    from app.models.asset_class import AssetClass, InstrumentType
+    from app.models.etf_holdings import ETFProfile
+    from app.models.instrument import Instrument
+
+    asset_class = db.query(AssetClass).filter_by(name=asset_class_name).one_or_none()
+    if asset_class is None:
+        asset_class = AssetClass(name=asset_class_name, description="Canonical fund fixture")
+        db.add(asset_class)
+        db.flush()
+    instrument_type = InstrumentType(name=instrument_type_name, asset_class_id=asset_class.id)
+    db.add(instrument_type)
+    db.flush()
+    instrument = Instrument(
+        symbol=f"FUND{instrument_type.id}",
+        name=f"Canonical {instrument_type_name}",
+        currency="USD",
+        instrument_type_id=instrument_type.id,
+        is_active=True,
+        is_synthetic=False,
+        identity_status="resolved",
+        domain_key=f"test:canonical-fund:{instrument_type.id}",
+        primary_identifier_type="figi",
+        primary_identifier_value=f"BBG{instrument_type.id:09d}",
+    )
+    db.add(instrument)
+    db.flush()
+
+    parent = await create_data_preparation_request(
+        AsyncSessionAdapter(db),
+        owner_user_id=81,
+        request=DataEnsureRequest.model_validate(
+            {"target": {"kind": "instrument", "instrument_id": instrument.id}}
+        ),
+    )
+
+    dependencies = parent.metadata_payload["data_preparation"]["dependencies"]
+    holdings = next(item for item in dependencies if item["dataset"] == "holdings")
+    history = next(item for item in dependencies if item["dataset"] == "history")
+    assert holdings["status"] == "queued"
+    assert holdings["job_ids"]
+    assert history["status"] == "queued"
+    assert db.query(ETFProfile).filter_by(instrument_id=instrument.id).one_or_none() is None
 
 
 @pytest.mark.asyncio

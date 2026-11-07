@@ -330,8 +330,8 @@ on_demand_consumer_implementation: 'Current TC-owned mocked implementation at th
   tree and passed its full required CI40656688915. This feature-branch adoption records ancestry only; its exact branch CI
   is pending Root. Controlled tests are not genuine Provider/issuer proof; target/deployment and the complete roadmap remain
   open.'
-current_blocker: "No local focused-check blocker. Root-owned browser execution, current shell navigation visual/runtime review, exact-tip CI, combined qualification, native proof, and release gates remain pending."
-current_checkpoint_status: "TC public application-menu navigation fix and source assembly: remove synchronous menu unmount from RouterLink, close menus on committed route change; add pending ordinary-click coverage for Watchlist, Alerts, Settings. The exact ETF fb378 and Strategy bc988 imports are verified. Focused tests/type/inventory/scope checks pass; Root rendered journeys and exact-tip CI remain pending."
+current_blocker: "No local frontend work is authorized while Root owns the frozen-source qualification. Root-owned build/browser, exact-tip CI, combined qualification, native proof and release gates remain pending."
+current_checkpoint_status: "Frontend source remains frozen at e1ee9d984ecbf8de66783612902cbc76fa0b8ef3. Imported the exact Provider 591bdfd9 backend dependency: 18 TC delta paths and all 73 manifest rows verified; Root-owned build/browser and exact-tip qualification remain pending."
 
 ordinary_ticker_latest_update: 'Root accepted the exact combined served profile at backend source 6eae00eb8380438da771fed0c42d19587e9520ce
   / image sha256:6c962aad753959c2ecdd79f0a1d6057d77f2ba6b829ec85b99404b009a42e76a and frontend source 36e7ad2cb08c769a242773ab2b6be69fcc350774
@@ -3924,7 +3924,7 @@ prior_accepted_b8_progress:
   - F8Y3
   - F8Y4
   total: 4
-  current_phase: "TC public application-menu navigation fix and source assembly: remove synchronous menu unmount from RouterLink, close menus on committed route change; add pending ordinary-click coverage for Watchlist, Alerts, Settings. The exact ETF fb378 and Strategy bc988 imports are verified. Focused tests/type/inventory/scope checks pass; Root rendered journeys and exact-tip CI remain pending."
+  current_phase: "Frontend source remains frozen at e1ee9d984ecbf8de66783612902cbc76fa0b8ef3. Imported the exact Provider 591bdfd9 backend dependency: 18 TC delta paths and all 73 manifest rows verified; Root-owned build/browser and exact-tip qualification remain pending."
   current_blocker: No product blocker. One exact Root-authorized terminal 404 screenshot was added after the 103/104 matrix;
     all other103 visuals passed. Fresh104 strict visuals and exact closing-tip CI are pending. Protected integration, deployment,
     and genuine-source checks remain Root-owned. No source blocker. Attempt20 strict visuals were 70/104; the 34 reviewed
@@ -4102,7 +4102,7 @@ prior_accepted_typed_enter_checkpoint_archive:
     not genuine Provider/issuer proof. Exact closing-tip CI, protected integration, deployment, genuine-source validation,
     official V25 parity, and the wider nine-item roadmap remain pending or Root-owned. The retained 52fa backend was the already-qualified
     fixture component, not a newly combined Provider/ETF release.'
-  current_blocker: "No local focused-check blocker. Root-owned browser execution, current shell navigation visual/runtime review, exact-tip CI, combined qualification, native proof, and release gates remain pending."
+  current_blocker: "No local frontend work is authorized while Root owns the frozen-source qualification. Root-owned build/browser, exact-tip CI, combined qualification, native proof and release gates remain pending."
   current_checkpoint_status: 'Root accepted the bounded ordinary typed-ticker Enter software/profile checkpoint under the
     existing standing delegation. Source 6e1ed68d2e1c10968716cb362fd56fda9f83ec75 (frontend tree d292e856b06c40c1beeb20f9633900914bab72e4)
     passed the complete local profile: functional 203 passed, 2 configured live-source skips, 0 failures; strict visual 104/104
@@ -5097,9 +5097,9 @@ development_dependency_import_history:
     superseded_by: 8ae5f9aca10803f300b6d5a41a3bced447f70ebc
 
 approved_development_dependency_imports:
-- source_sha: 22c31cd3e7f35e361e286ef40576d379aaf44449
-  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/22c31cd3e7f35e361e286ef40576d379aaf44449.json
-  manifest_sha256: a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85
+- source_sha: 591bdfd977fd156d2a489b055bb8662f487e6b3c
+  manifest_path: ops/workstreams/feat-tc2000-frontend-rework/development-dependency-imports/591bdfd977fd156d2a489b055bb8662f487e6b3c.json
+  manifest_sha256: 76749e76f08820cd2382be3d575027142d2f3271b598defdb00b53795599bd84
   paths:
   - backend/app/config.py
   - backend/app/main.py
@@ -5108,7 +5108,9 @@ approved_development_dependency_imports:
   - backend/app/providers/optional_market_data.py
   - backend/app/routers/analysis.py
   - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
   - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
   - backend/app/routers/research.py
   - backend/app/routers/workspaces.py
   - backend/app/schemas/data_preparation.py
@@ -5143,7 +5145,9 @@ approved_development_dependency_imports:
   - backend/tests/unit/routers/test_analysis_router.py
   - backend/tests/unit/routers/test_calendar_router.py
   - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
   - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
   - backend/tests/unit/routers/test_research_router.py
   - backend/tests/unit/routers/test_workspace_tool_catalogue.py
   - backend/tests/unit/services/test_data_preparation_contracts.py
@@ -5162,6 +5166,8 @@ approved_development_dependency_imports:
   - backend/tests/unit/services/test_market_data.py
   - backend/tests/unit/services/test_market_refresh_queue.py
   - backend/tests/unit/services/test_market_series_defaults.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
   - backend/tests/unit/services/test_provider_quota_coordinator.py
   - backend/tests/unit/services/test_provider_runtime.py
   - backend/tests/unit/services/test_workstation_tool_catalogue.py

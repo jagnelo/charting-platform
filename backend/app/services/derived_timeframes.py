@@ -285,17 +285,16 @@ async def derived_timeframe_needs_refresh(
     signature = await _canonical_d1_signature(db, instrument_id, adjusted=adjusted)
     if signature["bar_count"] == 0:
         return False
-    derived_exists = await db.execute(
-        select(OHLCVBar.id)
-        .where(
+    derived_count_result = await db.execute(
+        select(func.count(OHLCVBar.id)).where(
             OHLCVBar.instrument_id == instrument_id,
             OHLCVBar.timeframe == timeframe,
             OHLCVBar.is_adjusted.is_(adjusted),
             OHLCVBar.is_derived.is_(True),
         )
-        .limit(1)
     )
-    if derived_exists.scalar_one_or_none() is None:
+    derived_count = int(derived_count_result.scalar_one() or 0)
+    if derived_count == 0:
         return True
     state = (
         await db.execute(
@@ -309,6 +308,15 @@ async def derived_timeframe_needs_refresh(
         )
     ).scalar_one_or_none()
     stored_signature = (state.extra_data or {}).get("source_d1_signature") if state else None
+    if state is not None:
+        stored_bar_count = (state.extra_data or {}).get("derived_bar_count")
+        if (
+            state.status in {DatasetStatus.PENDING, DatasetStatus.FAILED}
+            or isinstance(stored_bar_count, bool)
+            or not isinstance(stored_bar_count, int)
+            or stored_bar_count != derived_count
+        ):
+            return True
     if stored_signature is not None:
         return stored_signature != signature
     if state is None:
@@ -563,6 +571,10 @@ async def materialize_derived_timeframes(
         await db.execute(delete_statement.execution_options(synchronize_session=False))
         payloads = [payload for payload in aggregate_d1_bars(d1_bars, timeframe)]
         now = datetime.now(UTC)
+        effective_adjustment_basis = (
+            adjustment_basis.value if hasattr(adjustment_basis, "value") else str(adjustment_basis)
+        )
+        effective_adjustment_version = adjustment_version or "legacy-unversioned"
         db.add_all(
             [
                 OHLCVBar(
@@ -578,6 +590,18 @@ async def materialize_derived_timeframes(
                     volume=payload["volume"],
                     vwap=payload["vwap"],
                     is_adjusted=adjusted,
+                    adjustment_basis=effective_adjustment_basis,
+                    adjustment_version=effective_adjustment_version,
+                    provenance={
+                        "derivation_method": DERIVATION_METHOD,
+                        "source_timeframe": Timeframe.D1.value,
+                        "source_data_source_id": source_data_source_id,
+                        "source_market_series_id": (
+                            source_series.id if source_series is not None else None
+                        ),
+                        "adjustment_basis": effective_adjustment_basis,
+                        "adjustment_version": effective_adjustment_version,
+                    },
                     is_derived=True,
                     source_timeframe=Timeframe.D1.value,
                     derivation_method=DERIVATION_METHOD,
@@ -595,6 +619,9 @@ async def materialize_derived_timeframes(
                 for payload in payloads
             ]
         )
+        # The application AsyncSession disables autoflush. Read the just-added
+        # derived rows explicitly before projecting their count and coverage.
+        await db.flush()
         # Keep coverage/freshness state aligned with derived rows. A
         # provider-neutral state makes the local coverage API explicit about
         # source timeframe, derivation method, adjustment mode, and version.
@@ -619,6 +646,19 @@ async def materialize_derived_timeframes(
                 version=1,
             )
             db.add(state)
+        source_state = None
+        if source_data_source_id is not None:
+            source_dataset_key = f"D1:{'adj' if adjusted else 'raw'}"
+            source_state = (
+                await db.execute(
+                    select(InstrumentDatasetState).where(
+                        InstrumentDatasetState.instrument_id == instrument_id,
+                        InstrumentDatasetState.data_source_id == source_data_source_id,
+                        InstrumentDatasetState.dataset_type == "ohlcv",
+                        InstrumentDatasetState.dataset_key == source_dataset_key,
+                    )
+                )
+            ).scalar_one_or_none()
         derived_rows = (
             (
                 await db.execute(
@@ -650,12 +690,31 @@ async def materialize_derived_timeframes(
         if not preserve_existing_state:
             if not state_was_new:
                 state.version = max(1, state.version) + 1
-            state.status = DatasetStatus.FRESH if derived_rows else DatasetStatus.PENDING
-            state.observed_at = now
-            state.fetched_at = now
+            source_stale_after = source_state.stale_after if source_state is not None else None
+            if source_stale_after is not None:
+                source_stale_after = (
+                    source_stale_after
+                    if source_stale_after.tzinfo is not None
+                    else source_stale_after.replace(tzinfo=UTC)
+                ).astimezone(UTC)
+            source_state_is_fresh = bool(
+                source_state is not None
+                and source_state.status == DatasetStatus.FRESH
+                and source_stale_after is not None
+                and source_stale_after > now
+            )
+            if not derived_rows:
+                state.status = DatasetStatus.PENDING
+            elif source_state is not None and not source_state_is_fresh:
+                state.status = DatasetStatus.STALE
+            else:
+                state.status = DatasetStatus.FRESH
+            state.observed_at = source_state.observed_at if source_state is not None else now
+            state.fetched_at = source_state.fetched_at if source_state is not None else now
+            state.stale_after = source_state.stale_after if source_state is not None else None
             state.coverage_start = derived_rows[0].ts if derived_rows else None
             state.coverage_end = derived_rows[-1].ts if derived_rows else None
-            state.extra_data = {
+            state_extra_data = {
                 "source_timeframe": Timeframe.D1.value,
                 "derivation_method": DERIVATION_METHOD,
                 "adjusted": adjusted,
@@ -671,6 +730,23 @@ async def materialize_derived_timeframes(
                     "contract_version": 1,
                 },
             }
+            if source_state is not None:
+                state_extra_data.update(
+                    {
+                        "source_data_source_id": source_data_source_id,
+                        "source_dataset_fetched_at": (
+                            source_state.fetched_at.isoformat()
+                            if source_state.fetched_at is not None
+                            else None
+                        ),
+                        "source_dataset_stale_after": (
+                            source_state.stale_after.isoformat()
+                            if source_state.stale_after is not None
+                            else None
+                        ),
+                    }
+                )
+            state.extra_data = state_extra_data
         result[timeframe.value] = len(payloads)
         if normalized_end is None and derived_series is not None:
             from app.services.market_series import select_default_series_for_complete_range
