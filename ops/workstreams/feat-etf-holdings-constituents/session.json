@@ -4275,34 +4275,49 @@
     "state": "development dependency only; Producer release gates and Root combined qualification remain pending"
   },
   "root_released_provider_runtime_consumption": {
-    "source": "46462f5531d689acf4c8004517dc4fb345d822ba",
+    "source": "b1a94d9854e06f8235074141bf56d333f6350057",
     "base": "139b350238b5e1c8a170dce5af09a805301d857e",
-    "previous_source": "732da0f9f84ee495ee58ca3b9f8311839291ff59",
+    "previous_source": "46462f5531d689acf4c8004517dc4fb345d822ba",
     "changed_paths_since_previous": [
-      "backend/app/tasks/data_tasks.py",
-      "backend/tests/unit/services/test_data_preparation_history_planning.py",
-      "backend/tests/unit/services/test_etf_holdings_native_qualification.py",
-      "backend/tests/unit/services/test_etf_issuer_catalog.py"
+      "backend/tests/integration/test_data_preparation_queue_postgres.py"
     ],
     "all_path_status_from139_git_blob_sha256_exact": true,
-    "state": "Root-authorized exact development dependency; Provider exact-source CI42328517364 in progress; no producer acceptance, integration, deployment, or combined qualification claimed.",
+    "state": "Root-authorized exact development dependency; Provider exact-source CI42332618010 in progress; no producer acceptance, integration, deployment, or combined qualification claimed.",
     "authority": "Root released exact Provider source for development consumption only; no producer workstream records or unrelated source paths imported.",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider46462f55-runtime-development-consumption-contract.json",
-    "manifest_sha256": "3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d",
-    "imported_changed_paths": 4,
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1a94d98-runtime-development-consumption-contract.json",
+    "manifest_sha256": "cfb5962a13bc2cf4121e06235df14767c341d6073f9d236f582c588f22470244",
+    "imported_changed_paths": 1,
     "active_manifest_records": 45,
-    "dirty_path_overlap": []
+    "dirty_path_overlap": [],
+    "previous_active_dependency": {
+      "source": "46462f5531d689acf4c8004517dc4fb345d822ba",
+      "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider46462f55-runtime-development-consumption-contract.json",
+      "manifest_sha256": "3600f958dd684d72bf0ed95425c4e52792566d6136c57d676c67f4f107e5301d",
+      "imported_changed_paths": 4,
+      "active_manifest_records": 45
+    }
   },
   "current_sp500_analysis_spec": {
     "authority": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etf-sp500-analysis-acceptance-ownership-20261107.json",
     "path": "frontend/tests/e2e/sp500_analysis_journey.spec.ts",
-    "sha256": "ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb",
+    "sha256": "005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867",
     "frontend_typecheck": "passed after all Root review corrections including canvas overload preservation",
     "playwright_cases_discovered": 2,
     "browser_body_run": false,
     "next_owner": "Root combined seeded-backend browser profile",
-    "assertion_scope": "Actual price renderer paint and returned-bar OHLC/date tooltip using the single chart-root; both visible ratio directions; independently aligned raw-close arithmetic; active D1/W1/MN payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; plot pointer and accessible Duplicate layout control; canvas audit preserves zero-argument native stroke overload.",
+    "assertion_scope": "Actual price renderer paint and returned-bar OHLC/date tooltip using the single chart-root; both visible ratio directions; independently aligned raw-close arithmetic; active D1/W1/MN payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; plot pointer and accessible Duplicate layout control; canvas audit preserves zero-argument native stroke overload; layout-copy assertions capture initial tab count and active stable key, require one new key, and switch original/copy by identity.",
     "required_tc_layout_control": "Duplicate layout is present in exact TC5a source; no old-label fallback. Browser body still awaits Root combined profile."
+  },
+  "current_search_bar_exact_prefetch": {
+    "paths": [
+      "frontend/src/components/common/SearchBar.vue",
+      "frontend/tests/unit/components/test_search_bar.test.ts"
+    ],
+    "source_sha256": "42d1876e697290830b923ad3aa8e365c354d21b57c930b0f2eb03cd83fc39a0b",
+    "test_sha256": "bfe8cf4d7b8de0c079f93542697e443e203c1df62eae340bbcb4e215416294a4",
+    "focused_validation": "SearchBar unit module39/39 passed; frontend vue-tsc --noEmit passed.",
+    "contracts": "A unique exact canonical local result prefetches via the shared coordinator without selecting or navigating. A unique exact discovered candidate is resolved and prefetched only when its resolved symbol matches the exact query. Prefix and ambiguous candidates do not prefetch; duplicate local exact listings require a deliberate click/keyboard choice in chart and picker modes; stale search responses cannot prepare prior-query instruments.",
+    "browser_execution": "No browser body was run; Root owns the combined profile and release acceptance."
   },
   "current_tc_common_runtime_dependency": {
     "baseline": "139b350238b5e1c8a170dce5af09a805301d857e",

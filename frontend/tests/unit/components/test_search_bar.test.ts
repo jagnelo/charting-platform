@@ -76,6 +76,80 @@ describe('SearchBar', () => {
     expect(wrapper.text()).toContain('NVDA')
   })
 
+  it('rechecks a recent ETF as one exact canonical listing before requesting holdings', async () => {
+    useRecentInstrumentsStore().add('XLE', 'Energy Select Sector SPDR Fund')
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89 },
+    ])
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').trigger('focus')
+    await wrapper.get('.result-item').trigger('click')
+    await flushPromises()
+
+    expect(api.get).toHaveBeenCalledWith('/instruments/search', { q: 'XLE', canonical_only: true })
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'XLE', instrument_id: 89, type: 'ETF' })
+    expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
+      target: { kind: 'instrument', instrument_id: 89 },
+      datasets: ['identity', 'profile', 'history', 'holdings'],
+    }), expect.objectContaining({ onProgress: expect.any(Function) }))
+  })
+
+  it('requires an explicit exchange listing for an ambiguous recent ticker', async () => {
+    useRecentInstrumentsStore().add('F', 'Ford')
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', instrument_id: 31 },
+      { symbol: 'F', name: 'Ford Motor Company', exchange: 'BATS', type: 'Common Stock', instrument_id: 32 },
+    ])
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').trigger('focus')
+    await wrapper.get('.result-item').trigger('click')
+
+    await vi.waitFor(() => expect(wrapper.findAll('.result-item')).toHaveLength(2))
+    expect(wrapper.text()).toContain('More than one listing matches F')
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(preparationMock.ensure).not.toHaveBeenCalled()
+    await wrapper.findAll('.result-item')[1].trigger('click')
+    await flushPromises()
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', exchange: 'BATS', instrument_id: 32 })
+    expect(preparationMock.ensure.mock.lastCall?.[0]).toMatchObject({
+      target: { kind: 'instrument', instrument_id: 32 },
+      datasets: ['identity', 'profile', 'history'],
+    })
+  })
+
+  it('discovers and resolves a unique uncached recent ticker before ETF preparation', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    useRecentInstrumentsStore().add('UNXQ', 'Uncached ETF')
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        status: 'complete',
+        candidates: [{ symbol: 'UNXQ', name: 'Uncached ETF', exchange: 'XNYS', type: 'ETF', provider: 'fixture', instrument_id: null, identity_status: 'candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        status: 'resolved',
+        instrument: { instrument_id: 77, symbol: 'UNXQ', identity_status: 'verified', instrument_type: 'ETF' },
+        source_outcomes: [],
+      })
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').trigger('focus')
+    await wrapper.get('.result-item').trigger('click')
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+    await flushPromises()
+
+    expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
+      symbol: 'UNXQ', provider_candidate: { provider: 'fixture', symbol: 'UNXQ', exchange: 'XNYS' },
+    }))
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'UNXQ', instrument_id: 77, explicitlyResolved: true })
+    expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
+      target: { kind: 'instrument', instrument_id: 77 },
+      datasets: ['identity', 'profile', 'history', 'holdings'],
+    }), expect.objectContaining({ onProgress: expect.any(Function) }))
+  })
+
   it('loads search results after debounce and emits selected symbol on click', async () => {
     ;(api.get as ReturnType<typeof vi.fn>).mockResolvedValueOnce([
       { symbol: 'AAPL', name: 'Apple Inc.', exchange: 'NASDAQ', type: 'Equity' },
@@ -170,6 +244,105 @@ describe('SearchBar', () => {
       datasets: ['identity', 'profile', 'history', 'holdings'], timeframe: 'D1', adjusted: true,
     }, expect.objectContaining({ onProgress: expect.any(Function) }))
     expect(wrapper.text()).toContain('Requested data is ready.')
+  })
+
+  it('prefetches a uniquely resolved exact ticker while leaving selection and navigation to the user', async () => {
+    vi.mocked(api.get).mockResolvedValueOnce([
+      { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89, identity_status: 'verified' },
+    ])
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').setValue('XLE')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await vi.waitFor(() => expect(preparationMock.ensure).toHaveBeenCalled())
+
+    expect(wrapper.findAll('.result-item')).toHaveLength(1)
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+    expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
+      target: { kind: 'instrument', instrument_id: 89 },
+      datasets: ['identity', 'profile', 'history', 'holdings'],
+    }), expect.objectContaining({ onProgress: expect.any(Function) }))
+  })
+
+  it('does not prefetch an exact discovery candidate when resolution returns a different ticker', async () => {
+    vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
+    vi.mocked(api.get).mockResolvedValueOnce([])
+    vi.mocked(api.post)
+      .mockResolvedValueOnce({
+        status: 'complete',
+        candidates: [{ symbol: 'UNXQ', name: 'Example ETF', exchange: 'XNYS', type: 'ETF', provider: 'fixture', instrument_id: null, identity_status: 'candidate' }],
+        source_outcomes: [],
+      })
+      .mockResolvedValueOnce({
+        status: 'resolved',
+        instrument: { instrument_id: 90, symbol: 'UNXQ.A', identity_status: 'verified', instrument_type: 'ETF' },
+        source_outcomes: [],
+      })
+    const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
+    await wrapper.get('input').setValue('UNXQ')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    vi.advanceTimersByTime(300)
+    await flushPromises()
+
+    expect(api.post).toHaveBeenCalledTimes(2)
+    await vi.waitFor(() => expect(wrapper.text()).toContain('does not match the exact ticker'))
+    expect(wrapper.text()).toContain('does not match the exact ticker')
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(preparationMock.ensure).not.toHaveBeenCalled()
+  })
+
+  it('does not prefetch a stale exact search result after the query changes', async () => {
+    let finishOldSearch!: (value: unknown) => void
+    vi.mocked(api.get)
+      .mockReturnValueOnce(new Promise(resolve => { finishOldSearch = resolve }) as ReturnType<typeof api.get>)
+      .mockResolvedValueOnce([])
+    const wrapper = mountSearchBar({ global: { stubs: { RouterLink: true } } })
+    const input = wrapper.get('input')
+    await input.setValue('XLE')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+    await input.setValue('QQQ')
+    vi.advanceTimersByTime(260)
+    await flushPromises()
+
+    finishOldSearch([
+      { symbol: 'XLE', name: 'Energy Select Sector SPDR Fund', exchange: 'ARCX', type: 'ETF', instrument_id: 89, identity_status: 'verified' },
+    ])
+    await flushPromises()
+
+    expect(preparationMock.ensure).not.toHaveBeenCalled()
+    expect(wrapper.findAll('.result-item')).toHaveLength(0)
+    expect((input.element as HTMLInputElement).value).toBe('QQQ')
+  })
+
+  it('requires listing choice before Enter selects duplicate local symbols in chart and picker modes', async () => {
+    for (const mode of ['chart', 'picker'] as const) {
+      preparationMock.ensure.mockClear()
+      vi.mocked(api.get).mockResolvedValueOnce([
+        { symbol: 'F', name: 'Ford Motor Company', exchange: 'XNYS', type: 'Common Stock', instrument_id: 31 },
+        { symbol: 'F', name: 'Ford Motor Company', exchange: 'BATS', type: 'Common Stock', instrument_id: 32 },
+      ])
+      const wrapper = mountSearchBar({ props: { mode }, global: { stubs: { RouterLink: true } } })
+      await wrapper.get('input').setValue('F')
+      vi.advanceTimersByTime(260)
+      await flushPromises()
+      await vi.waitFor(() => expect(wrapper.findAll('.result-item')).toHaveLength(2))
+      await wrapper.get('input').trigger('keydown.enter')
+      expect(wrapper.text()).toContain('More than one listing matches F')
+      expect(wrapper.emitted('select')).toBeUndefined()
+      expect(preparationMock.ensure).not.toHaveBeenCalled()
+
+      await wrapper.get('input').trigger('keydown', { key: 'ArrowDown' })
+      await wrapper.get('input').trigger('keydown.enter')
+      await flushPromises()
+      expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', exchange: 'XNYS', instrument_id: 31 })
+      expect(preparationMock.ensure.mock.lastCall?.[0]).toMatchObject({
+        target: { kind: 'instrument', instrument_id: 31 },
+      })
+      wrapper.unmount()
+    }
   })
 
   it('keeps issuer holdings preparation limited to ETF and ETV identities', async () => {
@@ -360,7 +533,7 @@ describe('SearchBar', () => {
     wrapper.unmount()
   })
 
-  it('automatically discovers an unknown local ticker and resolves a candidate before emitting its canonical ID', async () => {
+  it('automatically discovers and prepares an exact unknown ticker without selecting or navigating', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])
     vi.mocked(api.post)
@@ -386,19 +559,16 @@ describe('SearchBar', () => {
 
     vi.advanceTimersByTime(300)
     await flushPromises()
-    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', {
       query: 'OIH', types: [], limit: 10, request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
     })
-    expect(wrapper.text()).toContain('Use OIH')
-    await wrapper.find('.search-source-candidate').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => expect(preparationMock.ensure).toHaveBeenCalled())
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', {
       symbol: 'OIH', provider_candidate: { provider: 'free-source', symbol: 'OIH', exchange: 'NYSE Arca' },
       request_id: 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d',
     })
-    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('OIH')
-    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ instrument_id: 43 })
+    expect(wrapper.emitted('select')).toBeUndefined()
+    expect(wrapper.get('.result-item').text()).toContain('OIH')
     expect(preparationMock.ensure).toHaveBeenCalledWith(expect.objectContaining({
       target: { kind: 'instrument', instrument_id: 43 },
     }), expect.objectContaining({ onProgress: expect.any(Function) }))
@@ -428,7 +598,7 @@ describe('SearchBar', () => {
     expect(preparationMock.ensure).not.toHaveBeenCalled()
   })
 
-  it('sends raw ETV in a dedicated fund search and allows a resolved provider ETV candidate to be selected', async () => {
+  it('prepares a uniquely discovered ETV using the resolved instrument type without selecting it', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])
     vi.mocked(api.post)
@@ -470,29 +640,15 @@ describe('SearchBar', () => {
     })
     vi.advanceTimersByTime(300)
     await flushPromises()
-    await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
+    await vi.waitFor(() => expect(preparationMock.ensure).toHaveBeenCalled())
 
     expect(api.post).toHaveBeenNthCalledWith(1, '/instruments/discover', expect.objectContaining({
       query: 'EVOL', types: ['ETF', 'Fund', 'ETV', 'Exchange Traded Vehicle'], limit: 10,
     }))
-    expect(wrapper.text()).toContain('Use EVOL')
-    expect(wrapper.text()).not.toContain('Use NOTE')
-    await wrapper.find('.search-source-candidate').trigger('click')
-    await flushPromises()
-
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'EVOL', provider_candidate: { provider: 'free-source', symbol: 'EVOL', exchange: 'XNYS' },
     }))
-    expect(wrapper.emitted('select')?.[0]?.[0]).toBe('EVOL')
-    expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
-    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({
-      type: 'ETV', instrument_id: 991, identity_status: 'resolved', explicitlyResolved: true,
-    })
-    expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({
-      request_id: 'resolve-etv',
-      status: 'resolved',
-      instrument: { instrument_id: 991, symbol: 'EVOL', identity_status: 'resolved', instrument_type: 'Exchange Traded Vehicle' },
-    })
+    expect(wrapper.emitted('select')).toBeUndefined()
     expect(preparationMock.ensure.mock.lastCall?.[0]).toMatchObject({
       target: { kind: 'instrument', instrument_id: 991 },
       datasets: ['identity', 'profile', 'history', 'holdings'],
@@ -555,29 +711,29 @@ describe('SearchBar', () => {
     expect(wrapper.emitted('select')?.[0]?.[0]).toBe('OIH')
   })
 
-  it('lets keyboard Enter resolve the first discovered candidate after automatic lookup', async () => {
+  it('keeps a prefix discovery-only until keyboard listing choice', async () => {
     vi.stubGlobal('crypto', { randomUUID: () => 'f9fc3c4c-8ba9-44e3-bf11-bf3c5eaef82d' })
     vi.mocked(api.get).mockResolvedValueOnce([])
     vi.mocked(api.post)
-      .mockResolvedValueOnce({ status: 'complete', candidates: [{ symbol: 'C', name: 'Example C', exchange: 'XNYS', type: 'Equity', provider: 'fixture', instrument_id: null, identity_status: 'candidate' }], source_outcomes: [] })
-      .mockResolvedValueOnce({ status: 'resolved', instrument: { instrument_id: 31, symbol: 'C', identity_status: 'verified' }, source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'complete', candidates: [{ symbol: 'COMP', name: 'Example Company', exchange: 'XNYS', type: 'Equity', provider: 'fixture', instrument_id: null, identity_status: 'candidate' }], source_outcomes: [] })
+      .mockResolvedValueOnce({ status: 'resolved', instrument: { instrument_id: 31, symbol: 'COMP', identity_status: 'verified' }, source_outcomes: [] })
     const wrapper = mountSearchBar({ props: { allowSourceDiscovery: true }, global: { stubs: { RouterLink: true } } })
-    await wrapper.get('input').setValue('C')
+    await wrapper.get('input').setValue('CO')
     vi.advanceTimersByTime(260)
     await flushPromises()
     vi.advanceTimersByTime(300)
     await flushPromises()
     await vi.waitFor(() => expect(wrapper.find('.search-source-candidate').exists()).toBe(true))
-    expect(wrapper.text()).toContain('Use C')
+    expect(wrapper.text()).toContain('Use COMP')
     // The candidate is selected only after an intentional keyboard action;
     // default highlight alone must not turn Enter into a candidate resolve.
     await wrapper.get('input').trigger('keydown', { key: 'ArrowDown' })
     await wrapper.get('input').trigger('keydown.enter')
     await flushPromises()
-    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'C', instrument_id: 31, explicitlyResolved: true })
+    expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'COMP', instrument_id: 31, explicitlyResolved: true })
     expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
     expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({
-      status: 'resolved', instrument: { instrument_id: 31, symbol: 'C', identity_status: 'verified' },
+      status: 'resolved', instrument: { instrument_id: 31, symbol: 'COMP', identity_status: 'verified' },
     })
   })
 
@@ -610,9 +766,8 @@ describe('SearchBar', () => {
     expect(api.post).toHaveBeenNthCalledWith(2, '/instruments/acquire', expect.objectContaining({
       symbol: 'F', provider_candidate: { provider: 'fixture', symbol: 'F', exchange: 'XNYS' },
     }))
-    expect(wrapper.emitted('select')?.[0]).toHaveLength(3)
+    expect(wrapper.emitted('select')?.[0]).toHaveLength(2)
     expect(wrapper.emitted('select')?.[0]?.[1]).toMatchObject({ symbol: 'F', instrument_id: 83, explicitlyResolved: true })
-    expect(wrapper.emitted('select')?.[0]?.[2]).toMatchObject({ status: 'resolved', instrument: { instrument_id: 83, symbol: 'F' } })
   })
 
   it('waits for a known temporary discovery retry and completes the pending Enter intent', async () => {
@@ -905,10 +1060,10 @@ describe('SearchBar', () => {
     vi.advanceTimersByTime(300)
     await flushPromises()
     await flushPromises()
-    await wrapper.find('.search-source-candidate').trigger('click')
-    await flushPromises()
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledTimes(2))
     expect(wrapper.text()).toContain('Identity conflict')
     expect(wrapper.emitted('select')).toBeUndefined()
+    expect(preparationMock.ensure).not.toHaveBeenCalled()
   })
 
   it('resolves expression queries and emits the resulting symbol on enter', async () => {

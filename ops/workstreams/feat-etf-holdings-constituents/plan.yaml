@@ -5722,8 +5722,8 @@ acceptance_criteria:
 progress:
   completed: []
   total: 5
-  current_phase: Provider46462f55 and TC5a are consumed exactly (45/45 and53/53 manifest records). Five changed TC unit modules pass207/207 and type-check passes. The owned basket lifecycle covers custom/equal actual-API creation; while first-member preparation is held, its browser story now verifies real basket bars appear in the shared chart and an OHLC/date tooltip matches the returned data. Four browser cases are discovered; bodies and combined qualification remain Root-owned.
-  current_blocker: ETF and basket Playwright bodies remain pending Root's combined profile; TC must consume the retained ETF holding handoff on Workstation startup. Provider/TC shared release gates and Root's genuine-flow qualification remain open.
+  current_phase: Provider46462f55, Provider test-only b1a94d98 and TC5a are consumed exactly (45/45, 45/45, and53/53 manifest records). SearchBar exact-unique auto-prefetch and duplicate-listing explicit choice are covered by39 focused cases. The S&P layout-copy journey now locates the new tab by stable key against the actual pre-existing workspace tab set. Four browser cases remain discovered, not executed; Root owns combined qualification.
+  current_blocker: ETF/basket/S&P browser bodies and the combined profile remain pending Root; Provider b1 exact CI is still pending. Preserve current identities, listing ambiguity, cached data and all original roadmap criteria.
 integration_checkpoint:
   id: platform-usability-etf-holdings-2026-11-06
   scope: Implement the ETF-owned holdings preparation callable and ETFHoldingsView automatic request/provenance behavior under the complete human-activated platform-usability plan.
@@ -6233,7 +6233,7 @@ sp500_analysis_journey_spec_2026_11_07:
   pending: Root combined browser profile must execute and accept the actual seeded API journeys; this spec is not runtime or full-platform acceptance.
 
 
-provider_runtime_dependency_active_46462f55:
+provider_runtime_dependency_46462f55:
   authority: Root released exact Provider source 46462f5531d689acf4c8004517dc4fb345d822ba for development consumption only; no Producer workstream records or unrelated paths were imported.
   base: 139b350238b5e1c8a170dce5af09a805301d857e
   previous_active_dependency: 732da0f9f84ee495ee58ca3b9f8311839291ff59
@@ -6246,12 +6246,25 @@ provider_runtime_dependency_active_46462f55:
   history: prior 732 active pin and all earlier Provider import receipts remain preserved in session history.
   no_live_operations: no source HTTP, policy/quota/ledger or production mutation, fixture, Docker, or broad Provider test run.
 
+provider_runtime_dependency_active_b1a94d98:
+  authority: Root released exact Provider source b1a94d9854e06f8235074141bf56d333f6350057 for development consumption only; producer acceptance, integration, deployment and combined qualification are not implied.
+  base: 139b350238b5e1c8a170dce5af09a805301d857e
+  previous_active_dependency: 46462f5531d689acf4c8004517dc4fb345d822ba
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerb1a94d98-runtime-development-consumption-contract.json
+  manifest_sha256: cfb5962a13bc2cf4121e06235df14767c341d6073f9d236f582c588f22470244
+  changed_paths_since_previous: [backend/tests/integration/test_data_preparation_queue_postgres.py]
+  active_manifest_records: 45
+  verification: all45 path/status_from139/Git-blob/SHA256 records match sourceb1; the sole declared test-only delta matches the released source blob.
+  producer_status: exact Provider CI42332618010 remains in progress; no final producer acceptance or browser/body proof is claimed.
+  scope: matching Provider queue-integration test correction only; all production guards remain unchanged and Provider workstream records were excluded.
+  no_live_operations: no provider/source HTTP, quota/ledger/policy or production mutation, fixture, Docker, or broad Provider suite was run for this import.
+
 sp500_analysis_journey_review_corrections_2026_11_07:
   spec: frontend/tests/e2e/sp500_analysis_journey.spec.ts
-  sha256: ae24c47d76de378d8374d55247c903ecea8646853d2f810a3fb511d707b56bfb
-  accepted_coverage: Real price-renderer paint and returned-bar OHLC/date tooltip; forward/inverse visible ratios for all eleven sectors plus raw-close arithmetic; active D1/W1/MN RRG payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; marker pointer and linked chart. Canvas wrapper preserves native zero-argument stroke overload. Copy-layout targets the upcoming accessible Duplicate layout control.
-  validation: type-check passed; Playwright discovery found4 owned tests across S&P and baskets; ETF/Baskets view units44 passed and ETF preparation consumers46 passed. No browser body or fixture was run.
-  pending: The next exact compatible TC runtime must provide accessible Duplicate layout; Root runs the combined seeded-backend browser profile and final release gates. No browser success is claimed.
+  sha256: 005bbb95c70963cf795158a5a197fd21a6ccc5e8eba4c0dcb477c8fd2f7cb867
+  accepted_coverage: Real price-renderer paint and returned-bar OHLC/date tooltip; forward/inverse visible ratios for all eleven sectors plus raw-close arithmetic; active D1/W1/MN RRG payloads and latest-draw marker/tail raster; restores maximized RRG before linked-chart visibility; marker pointer and linked chart. Canvas wrapper preserves native zero-argument stroke overload. Layout-copy test captures actual initial tabs and active stable key, asserts exactly one new stable key, and switches original/copy by identity.
+  validation: frontend type-check passed; Playwright discovery found2 S&P tests and four owned basket/S&P tests in the combined discovery check. No browser body or fixture was run.
+  pending: Root owns combined seeded-backend browser execution and final release gates. No browser success is claimed.
 
 tc_common_runtime_dependency_active_5a783e74:
   authority: Root released exact TC source 5a783e745b211cfe8b3dd20cb77d275149f15de2 for development consumption only; no staging/deployment acceptance or TC records were imported.
@@ -6264,3 +6277,13 @@ tc_common_runtime_dependency_active_5a783e74:
   verification: all53 status_from139/Git-blob/SHA256/mode records match source5a; only the ten declared changed paths were imported. Two paths are newly added versus D5 and were absent locally before import.
   consumer_validation: five changed TC test modules passed207/207; frontend type-check passed; four owned basket/S&P browser tests discovered; browser bodies not run.
   state: Development dependency only; Root owns exact CI, combined browser qualification, staging/master and release.
+
+search_bar_exact_prefetch_checkpoint_2026_11_07:
+  authority: Root assigned the exact SearchBar source and unit-test paths for automatic exact-ticker preparation and explicit ambiguity handling; no shared frontend or caller files were changed.
+  source: frontend/src/components/common/SearchBar.vue
+  source_sha256: 42d1876e697290830b923ad3aa8e365c354d21b57c930b0f2eb03cd83fc39a0b
+  test: frontend/tests/unit/components/test_search_bar.test.ts
+  test_sha256: bfe8cf4d7b8de0c079f93542697e443e203c1df62eae340bbcb4e215416294a4
+  focused_validation: SearchBar unit tests39/39 passed; frontend vue-tsc --noEmit passed; exact S&P spec Playwright discovery found2 tests; workstream validation passed.
+  behavior: Unique exact canonical local search and unique exact discovered provider candidate trigger shared-coordinator preparation without forcing selection/navigation. A resolved symbol differing from the exact query is rejected. Prefix and ambiguous candidates do not prepare; duplicate local exact listings in chart and picker modes require deliberate click or keyboard choice; stale search responses cannot prepare a prior query.
+  pending: No browser body was run. Root owns shared bundle integration and combined runtime/profile acceptance; Provider b1 exact CI42332618010 remains pending.

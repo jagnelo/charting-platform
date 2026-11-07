@@ -705,8 +705,22 @@ async def test_worker_chunk_result_projects_while_older_continuation_is_queued(
         parent_id = parent.id
         await session.commit()
 
-    async def fixed_chunk_plan(db, job, instrument, timeframe, preparation):
+    async def fixed_chunk_plan(
+        db,
+        job,
+        instrument,
+        timeframe,
+        preparation,
+        *,
+        excluded_provider_names=frozenset(),
+    ):
+        if "massive" in excluded_provider_names:
+            return None, None, full_start, full_end, None, "no_eligible_provider"
         return planned_start, planned_end, full_start, full_end, "massive", None
+
+    async def admitted_native_baseline(_db, *, provider_name, **_kwargs):
+        assert provider_name == "massive"
+        return None, None, False
 
     async def local_fetch(db, instrument, timeframe, start, *, end=None, **kwargs):
         statement = select(OHLCVBar).where(
@@ -721,6 +735,9 @@ async def test_worker_chunk_result_projects_while_older_continuation_is_queued(
 
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
     monkeypatch.setattr(data_tasks, "_history_chunk_plan", fixed_chunk_plan)
+    monkeypatch.setattr(
+        data_tasks, "_native_usage_job_for_operation_baseline", admitted_native_baseline
+    )
     monkeypatch.setattr(data_tasks, "fetch_ohlcv", local_fetch)
     result = await data_tasks.process_refresh_jobs({"redis": None}, limit=1)
     assert result["completed"] == 1
@@ -928,8 +945,22 @@ async def test_weekly_and_monthly_coverage_tracks_rematerialized_derived_series(
         daily_chunk_id = daily_chunk.id
         await session.commit()
 
-    async def fixed_chunk_plan(db, job, instrument, timeframe, preparation):
+    async def fixed_chunk_plan(
+        db,
+        job,
+        instrument,
+        timeframe,
+        preparation,
+        *,
+        excluded_provider_names=frozenset(),
+    ):
+        if "massive" in excluded_provider_names:
+            return None, None, older_start, older_end, None, "no_eligible_provider"
         return older_start, older_end, older_start, older_end, "massive", None
+
+    async def admitted_native_baseline(_db, *, provider_name, **_kwargs):
+        assert provider_name == "massive"
+        return None, None, False
 
     async def local_fetch(db, instrument, timeframe, start, *, end=None, **kwargs):
         statement = select(OHLCVBar).where(
@@ -944,6 +975,9 @@ async def test_weekly_and_monthly_coverage_tracks_rematerialized_derived_series(
 
     monkeypatch.setattr(data_tasks, "AsyncSessionLocal", preparation_sessions)
     monkeypatch.setattr(data_tasks, "_history_chunk_plan", fixed_chunk_plan)
+    monkeypatch.setattr(
+        data_tasks, "_native_usage_job_for_operation_baseline", admitted_native_baseline
+    )
     monkeypatch.setattr(data_tasks, "fetch_ohlcv", local_fetch)
     worker_result = await data_tasks.process_refresh_jobs({"redis": None}, limit=1)
     assert worker_result["completed"] == 1
