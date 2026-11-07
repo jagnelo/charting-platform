@@ -6758,3 +6758,37 @@ provider_runtime_dependency_active_e08bdf4a:
   - backend/tests/unit/services/test_data_preparation_service.py
   verification: All73 source manifest rows match the released Git tree/blob/SHA256; the exact four declared deltas match local bytes, blob, SHA256, and executable-bit semantics. Other manifest paths were preserved and not overwritten.
   state: Root-authorized development dependency only; no native replay/source request/production mutation or release acceptance. Exact CI and combined browser gates remain Root-owned.
+
+provider_runtime_dependency_active_ad114d20:
+  authority: Root released exact Provider source ad114d20eff04992f384b5a57bb3999e3da6d6f7 for ETF development consumption only; Provider owns the XHB redirect-admission diagnosis and all native/release operations.
+  previous_active_dependency: e08bdf4aac086845603091cd0638903a47136d3b
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerad114d20-runtime-development-consumption-contract.json
+  manifest_sha256: 1854e1e23b605629b7772111426d91b6ba36c0758ea4a41efcda31fe35329f02
+  local_manifest_copy: ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/ad114d20eff04992f384b5a57bb3999e3da6d6f7.json
+  current_manifest_records_verified: 74
+  consumer_import_paths:
+  - backend/app/routers/analysis.py
+  - backend/app/routers/data_preparation.py
+  - backend/app/routers/instruments.py
+  - backend/app/routers/ohlcv.py
+  - backend/app/routers/providers.py
+  - backend/app/services/data_preparation.py
+  - backend/app/services/derived_timeframes.py
+  - backend/app/services/market_data.py
+  - backend/app/services/provider_runtime.py
+  - backend/tests/unit/routers/test_analysis_router.py
+  - backend/tests/unit/routers/test_data_preparation_router.py
+  - backend/tests/unit/routers/test_instruments_router.py
+  - backend/tests/unit/routers/test_ohlcv_router.py
+  - backend/tests/unit/routers/test_providers_router.py
+  - backend/tests/unit/services/test_data_preparation_service.py
+  - backend/tests/unit/services/test_derived_timeframes.py
+  - backend/tests/unit/services/test_market_data.py
+  - backend/tests/unit/services/test_provider_persistence.py
+  - backend/tests/unit/services/test_provider_quota_contract.py
+  - backend/tests/unit/services/test_provider_runtime.py
+  - backend/tests/unit/tasks/test_native_usage_prerequisite.py
+  - backend/tests/unit/workers/test_arq_worker.py
+  verification: All74 manifest rows match the released source tree/status/blob/SHA256/executable semantics; all22 ETF-declared import paths passed old guards and match exact source. The non-imported ETF-owned test_etf_holdings_preparation_hook.py remains byte-identical to 3969 and was preserved.
+  validation: Four focused offline tests passed, covering held-child recovery/coalescing, typed retry preservation, unknown hold behavior, and future-source typed failure. Provider's broader runtime checks and all release gates remain Root/Provider-owned.
+  state: Root-authorized development dependency only; no native request/replay, quota/policy change, production mutation, integration, or deployment is implied. Root owns XHB diagnosis and combined qualification.

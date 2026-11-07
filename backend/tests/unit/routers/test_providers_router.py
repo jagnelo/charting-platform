@@ -1,6 +1,7 @@
 import json
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
+from unittest.mock import AsyncMock
 
 from sqlalchemy import select
 
@@ -153,6 +154,63 @@ class TestProvidersRouter:
             ).status_code
             == 403
         )
+
+    def test_account_usage_refresh_binds_exact_request_driven_operation(
+        self, client, admin_headers, monkeypatch
+    ):
+        from app.config import settings
+        from app.models.provider_runtime import ProviderCapability
+        from app.services.provider_runtime import _EXPLICIT_ACQUISITION_CONTEXT
+
+        monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+
+        async def observe_scope(_db, *, provider_name):
+            scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+            assert scope is not None
+            assert scope.provider_names == frozenset({"alpaca"})
+            assert scope.operations == frozenset(
+                {(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}
+            )
+            assert scope.request_id.startswith("admin-native-usage-refresh:")
+            assert provider_name == "alpaca"
+            return {"status": "no_qualified_provider", "providers": [], "observations": []}
+
+        monkeypatch.setattr("app.routers.providers.refresh_provider_account_usage", observe_scope)
+        response = client.post(
+            "/api/v1/providers/usage/account/refresh?provider=AlPaCa",
+            headers=admin_headers,
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "no_qualified_provider"
+
+    def test_verified_admin_usage_refresh_resumes_held_preparations(
+        self, client, admin_headers, monkeypatch
+    ):
+        from app.config import settings
+        from app.services.provider_runtime import _EXPLICIT_ACQUISITION_CONTEXT
+        from app.tasks import data_tasks
+
+        monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+
+        async def refresh(_db, *, provider_name):
+            scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+            assert scope is not None
+            assert scope.provider_names == frozenset({"alpaca"})
+            assert provider_name == "alpaca"
+            return {"status": "refreshed", "providers": ["alpaca"], "observations": [{}]}
+
+        resume = AsyncMock(return_value=2)
+        monkeypatch.setattr("app.routers.providers.refresh_provider_account_usage", refresh)
+        monkeypatch.setattr(data_tasks, "resume_native_usage_held_identity_jobs", resume)
+
+        response = client.post(
+            "/api/v1/providers/usage/account/refresh?provider=alpaca",
+            headers=admin_headers,
+        )
+
+        assert response.status_code == 200
+        assert response.json()["resumed_preparation_jobs"] == 2
+        resume.assert_awaited_once()
 
     def test_etf_publisher_provisioning_stores_attestation_but_never_activates(
         self, client, admin_headers, auth_headers, db, monkeypatch

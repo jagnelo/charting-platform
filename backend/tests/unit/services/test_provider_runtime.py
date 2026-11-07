@@ -59,6 +59,7 @@ from app.services.provider_runtime import (
     _get_semaphore,
     _native_etf_initial_qualification_matches,
     bind_explicit_etf_holdings_acquisition,
+    bind_explicit_provider_acquisition,
     bind_native_etf_initial_qualification,
     execute_provider_call,
     list_provider_status,
@@ -2319,6 +2320,62 @@ async def test_seed_provider_runtime_creates_policies_for_supported_non_seeded_p
 
     assert policy is not None
     assert policy.base_priority >= 10
+
+
+@pytest.mark.asyncio
+async def test_alpaca_account_usage_requires_exact_scope_in_request_driven_mode(db, monkeypatch):
+    """The normal native usage route can resolve Alpaca without opening transport."""
+
+    monkeypatch.setattr(settings, "PROVIDER_ROUTING_ENABLED", True)
+    monkeypatch.setattr(settings, "PROVIDER_REQUEST_DRIVEN_ONLY", True)
+    monkeypatch.setattr(settings, "PROVIDER_FREE_ONLY_CHECKPOINT", True)
+    monkeypatch.setattr(settings, "ALLOW_PAID_PROVIDER_ROUTING", False)
+    monkeypatch.setattr(settings, "ALPACA_API_KEY", "offline-alpaca-key")
+    monkeypatch.setattr(settings, "ALPACA_SECRET_KEY", "offline-alpaca-secret")
+    async_db = AsyncSessionAdapter(db)
+    await seed_provider_runtime(async_db)
+    source = db.execute(select(DataSource).where(DataSource.name == "alpaca")).scalar_one()
+    policy = db.execute(
+        select(ProviderPolicy).where(
+            ProviderPolicy.data_source_id == source.id,
+            ProviderPolicy.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    entitlement = db.execute(
+        select(ProviderEntitlement).where(
+            ProviderEntitlement.data_source_id == source.id,
+            ProviderEntitlement.capability == ProviderCapability.ACCOUNT_USAGE,
+        )
+    ).scalar_one()
+    policy.is_enabled = True
+    entitlement.configured_plan = "free-iex"
+    entitlement.is_free = True
+    entitlement.authentication_required = True
+    entitlement.live_probe_status = "passed"
+    entitlement.enabled_environments = [settings.APP_ENV.strip().lower()]
+    db.commit()
+
+    assert (
+        await resolve_provider_chain(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            operation="fetch_account_usage",
+        )
+        == []
+    )
+    with bind_explicit_provider_acquisition(
+        request_id="offline-alpaca-account-usage-test",
+        operations=frozenset({(ProviderCapability.ACCOUNT_USAGE, "fetch_account_usage")}),
+        provider_names=frozenset({"alpaca"}),
+    ):
+        chain = await resolve_provider_chain(
+            async_db,
+            ProviderCapability.ACCOUNT_USAGE,
+            operation="fetch_account_usage",
+        )
+
+    assert [item.provider_name for item in chain] == ["alpaca"]
+    assert policy_allows_account_usage_bootstrap(chain[0].policy, "fetch_account_usage")
 
 
 @pytest.mark.asyncio

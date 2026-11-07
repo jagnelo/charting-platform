@@ -1141,8 +1141,8 @@
     "status": "Root-delegated bounded software checkpoint accepted; exact final-source CI pending.",
     "validated_implementation_sha": "b6d67ce93104a0a2cf83b1c41f385513b3c230f8"
   },
-  "plan_hash": "a8b2222bdd5b72782684a14d0acd5a62eae979d98a4554bc94256006c4f8f7ba",
-  "plan_sha256": "7d300f207058e4e5c2248540f688eac89ccf7b20f89c50f5fb574dddbd21cfb0",
+  "plan_hash": "c8ef50674b64c1e810cf14dbea0685f073017702f8e839404e8a9fb434605c12",
+  "plan_sha256": "c8ef50674b64c1e810cf14dbea0685f073017702f8e839404e8a9fb434605c12",
   "planning_required": false,
   "planning_state": "ready",
   "previous_active_changeset": {
@@ -4537,21 +4537,39 @@
     "state": "Root-released development dependency only; producer, joint browser, and release gates remain pending."
   },
   "current_provider_runtime_dependency": {
-    "authority": "Root released exact Provider source for development consumption only; no native replay, source request, production mutation, integration, or deployment acceptance is implied.",
-    "source": "e08bdf4aac086845603091cd0638903a47136d3b",
-    "previous_source": "e8701591e23a0207d4292476d30a24c6f5d6ed7b",
-    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providere08bdf4a-runtime-development-consumption-contract.json",
-    "manifest_sha256": "fc219d0fd8c46e82c6d660c966ca68b5374b78497c0b26b0996ab62d363969ec",
-    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/e08bdf4aac086845603091cd0638903a47136d3b.json",
+    "authority": "Root released exact Provider source ad114d20eff04992f384b5a57bb3999e3da6d6f7 for ETF development consumption only; Provider owns the XHB redirect-admission diagnosis and all native/release operations.",
+    "source": "ad114d20eff04992f384b5a57bb3999e3da6d6f7",
+    "previous_source": "e08bdf4aac086845603091cd0638903a47136d3b",
+    "manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerad114d20-runtime-development-consumption-contract.json",
+    "manifest_sha256": "1854e1e23b605629b7772111426d91b6ba36c0758ea4a41efcda31fe35329f02",
+    "local_manifest_copy": "ops/workstreams/feat-etf-holdings-constituents/development-dependency-imports/ad114d20eff04992f384b5a57bb3999e3da6d6f7.json",
     "changed_paths_imported": [
+      "backend/app/routers/analysis.py",
+      "backend/app/routers/data_preparation.py",
+      "backend/app/routers/instruments.py",
+      "backend/app/routers/ohlcv.py",
+      "backend/app/routers/providers.py",
       "backend/app/services/data_preparation.py",
-      "backend/app/tasks/data_tasks.py",
-      "backend/tests/unit/services/test_data_preparation_history_planning.py",
-      "backend/tests/unit/services/test_data_preparation_service.py"
+      "backend/app/services/derived_timeframes.py",
+      "backend/app/services/market_data.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/tests/unit/routers/test_analysis_router.py",
+      "backend/tests/unit/routers/test_data_preparation_router.py",
+      "backend/tests/unit/routers/test_instruments_router.py",
+      "backend/tests/unit/routers/test_ohlcv_router.py",
+      "backend/tests/unit/routers/test_providers_router.py",
+      "backend/tests/unit/services/test_data_preparation_service.py",
+      "backend/tests/unit/services/test_derived_timeframes.py",
+      "backend/tests/unit/services/test_market_data.py",
+      "backend/tests/unit/services/test_provider_persistence.py",
+      "backend/tests/unit/services/test_provider_quota_contract.py",
+      "backend/tests/unit/services/test_provider_runtime.py",
+      "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+      "backend/tests/unit/workers/test_arq_worker.py"
     ],
-    "source_manifest_records_verified": 73,
-    "verification": "All73 source manifest records match the released Git tree/blob/SHA256; the four declared delta paths match local bytes, blob, SHA256, and executable-bit semantics. No other manifest paths were overwritten.",
-    "state": "Root-authorized development dependency only; Provider owns same-hour held-child recovery. Exact CI, combined browser, native recovery, and release gates remain Root-owned and pending."
+    "source_manifest_records_verified": 74,
+    "verification": "All74 manifest rows match the released source tree/status/Git blob/SHA256/executable-bit semantics; all22 ETF-declared paths passed old guards and match released bytes. backend/tests/unit/services/test_etf_holdings_preparation_hook.py is outside the ETF import list and remains byte-identical to 3969; it was preserved.",
+    "state": "Root-authorized development dependency only. Four focused offline regressions pass; no native request/replay, quota/policy change, production mutation, integration, or deployment. Provider owns XHB admission diagnosis and Root owns combined qualification."
   },
   "current_checkpoint_2026_11_07_notes_lifecycle": {
     "source_parent": "369f0c8d051d8d7e17ea0dfe7478860f51218368",

@@ -2669,12 +2669,17 @@ def quota_contract_missing_dimensions(policy: ProviderPolicy) -> list[str]:
 
 
 def account_usage_reconciled_dimensions(
-    policy: ProviderPolicy, operation: str = "fetch_account_usage"
+    policy: ProviderPolicy,
+    operation: str = "fetch_account_usage",
+    *,
+    require_bootstrap: bool = True,
 ) -> set[str]:
     """Return the finite quota pools a native usage probe explicitly maps.
 
     A bootstrap declaration is a narrow control-plane exception, not a
-    blanket waiver for every unresolved provider pool.  Keep the mapping
+    blanket waiver for every unresolved provider pool. Callers using the
+    ordinary fully-admitted usage operation may read its explicit reconciliation
+    mapping without requiring the exception to be enabled. The mapping remains
     machine-checkable: it must be a non-empty list of unique names, every name
     must identify a finite dimension that applies to the usage operation, and
     concurrency leases can never be reconciled from an account counter.
@@ -2682,7 +2687,9 @@ def account_usage_reconciled_dimensions(
 
     contract = dict(getattr(policy, "quota_contract", None) or {})
     bootstrap = contract.get("account_usage_bootstrap")
-    if not isinstance(bootstrap, dict) or bootstrap.get("enabled") is not True:
+    if not isinstance(bootstrap, dict) or (
+        require_bootstrap and bootstrap.get("enabled") is not True
+    ):
         return set()
     raw_names = bootstrap.get("reconciled_dimensions")
     if not isinstance(raw_names, list) or not raw_names:

@@ -32,6 +32,7 @@ from app.schemas.data_preparation import (
     PreparationDependencyResponse,
     ScreenerPreparationTarget,
 )
+from app.services.derived_timeframes import refresh_derived_timeframe_if_needed
 from app.services.market_refresh_queue import _acquire_enqueue_lock, enqueue_refresh_job
 from app.services.ohlcv_coverage import (
     CoverageStatus,
@@ -658,6 +659,8 @@ async def _dataset_initial_state(
     dataset: PreparationDataset,
     *,
     now: datetime,
+    timeframe: Timeframe = Timeframe.D1,
+    adjusted: bool = True,
     required_profile_fields: list[str] | tuple[str, ...] = (),
 ) -> tuple[str, str | None]:
     instrument = await db.get(Instrument, instrument_id)
@@ -688,6 +691,10 @@ async def _dataset_initial_state(
         return "queued", None
     if dataset is PreparationDataset.FUNDAMENTALS:
         return "unavailable", "fundamentals_preparation_handler_unavailable"
+    if dataset is PreparationDataset.HISTORY and timeframe in {Timeframe.W1, Timeframe.MN}:
+        # A durable derived-only request may reuse existing bars and completed
+        # children, so repair stale state before coverage decides it is ready.
+        await refresh_derived_timeframe_if_needed(db, instrument_id, timeframe, adjusted=adjusted)
     return "queued", None
 
 
@@ -792,9 +799,22 @@ async def _enqueue_etf_holdings_job(
     now: datetime,
 ) -> MarketRefreshJob:
     freshness_scope = now.strftime("%Y-%m-%dT%H")
-    request_key = "prep-holdings:" + _digest([instrument_id, freshness_scope])
-    await _acquire_enqueue_lock(db, request_key)
+    base_request_key = "prep-holdings:" + _digest([instrument_id, freshness_scope])
+    await _acquire_enqueue_lock(db, base_request_key)
+    prior_job = (
+        await db.execute(
+            select(MarketRefreshJob).where(MarketRefreshJob.request_key == base_request_key)
+        )
+    ).scalar_one_or_none()
+    request_key = base_request_key
+    if _holdings_job_has_terminal_negative(prior_job, now=now):
+        # A prior held/unavailable result is immutable history. A fresh user
+        # request gets one bounded retry for this hourly freshness scope;
+        # equivalent requests then coalesce on that recovery child.
+        request_key = f"{base_request_key}:recovery"
+        await _acquire_enqueue_lock(db, request_key)
     prior_refs = await _existing_parent_refs(db, request_key)
+    recovery_suffix = ":recovery" if request_key != base_request_key else ""
     job = await enqueue_refresh_job(
         db,
         request_key=request_key,
@@ -806,8 +826,13 @@ async def _enqueue_etf_holdings_job(
             "data_preparation_child": {
                 "kind": "etf_holdings",
                 "instrument_id": instrument_id,
-                "request_id": f"data-preparation-holdings:{instrument_id}:{freshness_scope}",
-                "dependency_id": f"shared-holdings:{instrument_id}:{freshness_scope}",
+                "request_id": (
+                    f"data-preparation-holdings:{instrument_id}:{freshness_scope}"
+                    f"{recovery_suffix}"
+                ),
+                "dependency_id": (
+                    f"shared-holdings:{instrument_id}:{freshness_scope}{recovery_suffix}"
+                ),
                 "freshness_scope": freshness_scope,
                 "parent_refs": prior_refs,
             }
@@ -821,6 +846,31 @@ async def _enqueue_etf_holdings_job(
     ]:
         await _append_parent_ref(db, job, ref)
     return job
+
+
+def _holdings_job_has_terminal_negative(job: MarketRefreshJob | None, *, now: datetime) -> bool:
+    """Whether a completed holdings result can be reconsidered on a new ensure.
+
+    A known future retry remains authoritative. Otherwise completed negative
+    outcomes may be retried once in the current hourly scope; the queue still
+    applies the issuer route, provider admission, and native quota controls.
+    """
+
+    if job is None or job.status != "completed":
+        return False
+    summary = job.result_summary or {}
+    if summary.get("preparation_status") not in {"waiting", "held", "unavailable", "failed"}:
+        return False
+    retry_at = summary.get("retry_at")
+    if isinstance(retry_at, str):
+        try:
+            retry_at = datetime.fromisoformat(retry_at)
+        except ValueError:
+            retry_at = None
+    if isinstance(retry_at, datetime) and retry_at.tzinfo is not None:
+        if retry_at.astimezone(UTC) > _as_utc(now):
+            return False
+    return True
 
 
 def _history_request_key(
@@ -1093,6 +1143,8 @@ async def _enqueue_instrument_dependencies(
                 instrument_id,
                 dataset,
                 now=now,
+                timeframe=request.timeframe,
+                adjusted=request.adjusted,
                 required_profile_fields=required_profile_fields,
             )
             status = current_status
@@ -2117,7 +2169,17 @@ async def get_data_preparation_response(
                         retry_at,
                     )
                 elif "failed" in preparation_statuses:
-                    item_status, reason = "failed", "preparation_job_failed"
+                    item_status, reason = (
+                        "failed",
+                        next(
+                            (
+                                outcome.get("reason_code")
+                                for outcome in outcomes
+                                if outcome.get("reason_code")
+                            ),
+                            "preparation_job_failed",
+                        ),
+                    )
                 elif preparation_statuses & {"unavailable", "no_match", "identity_conflict"}:
                     item_status, reason = (
                         "unavailable",
