@@ -3472,6 +3472,18 @@ onBeforeUnmount(() => {
 .workstation__sign-out:hover { border-color: #6d8290; color: #fff; background: #33414a; }
 .workstation__leader { color: #63bd85; }
 .workstation__data-state--fetching { color:#80bce8; }.workstation__data-state--unavailable { color:#ed9696; }.workstation__data-state--current { color:#91d5a7; }.workstation__data-state--delayed,.workstation__data-state--stale { color:#e8c06b; }.workstation__data-state--partial,.workstation__data-state--coverage-limited { color:#e8b879; }
+@media (max-width: 1100px) {
+  .workstation__menu { gap: 5px; padding-inline: 5px; }
+  .workstation__menu nav button { padding-inline: 5px; font-size: 10px; }
+  .workstation__search { margin-left: 0; }
+  .workstation__search input { width: 72px; }
+  .workstation__timeframe { flex: 0 0 auto; }
+  .workstation__status { flex: 0 1 auto; max-width: 46%; gap: 4px; }
+  .workstation__selection-acquisition { flex-basis: 78px; min-width: 0; }
+  .workstation__selection-acquisition[data-testid="active-holding-lineage"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workstation__data-state { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .workstation__refresh, .workstation__sign-out { flex: 0 0 auto; padding-inline: 4px; white-space: nowrap; }
+}
 .workstation__tabs { display: flex; align-items: stretch; background: var(--tc-panel-bg); border-bottom: 1px solid var(--tc-border); }
 .workstation__tool-library { position: relative; display: flex; }
 .workstation__tool-library-menu { position: fixed; z-index: 60; display: grid; min-width: 118px; padding: 2px; border: 1px solid #42505a; background: #1b2228; box-shadow: 0 3px 10px #000a; overflow: auto; }
