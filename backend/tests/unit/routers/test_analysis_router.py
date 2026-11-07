@@ -18,6 +18,7 @@ from app.routers.analysis import (
     _breadth_events_by_instrument,
     _calendar_year_cells,
     _entitlement_state,
+    _family_coverage_provider_metadata,
     _family_member_bar_history,
     _gauge_exclusion_warnings,
     _group_members_at,
@@ -87,6 +88,43 @@ def test_entitlement_readiness_requires_a_successful_persisted_live_probe():
     assert _entitlement_state(source, entitlement) == "verified"
     entitlement.live_probe_status = "failure"
     assert _entitlement_state(source, entitlement) == "probe_failed"
+
+
+@pytest.mark.asyncio
+async def test_family_readiness_reuses_provider_metadata_within_one_request(db):
+    source = DataSource(name="marketstack", is_active=True, config={})
+    db.add(source)
+    db.flush()
+    entitlement = ProviderEntitlement(
+        data_source_id=source.id,
+        capability=ProviderCapability.PRICE_HISTORY,
+        configured_plan="free-eod",
+        is_free=True,
+        authentication_required=True,
+        live_probe_status="passed",
+    )
+    db.add(entitlement)
+    db.flush()
+
+    class CountingAsyncSession:
+        def __init__(self, sync_session):
+            self.sync_session = sync_session
+            self.info = sync_session.info
+            self.select_count = 0
+
+        async def execute(self, statement):
+            self.select_count += 1
+            return self.sync_session.execute(statement)
+
+    request_session = CountingAsyncSession(db)
+    first = await _family_coverage_provider_metadata(request_session)
+    second = await _family_coverage_provider_metadata(request_session)
+
+    assert request_session.select_count == 2
+    assert first is second
+    assert first[0][source.id].name == "marketstack"
+    assert first[1]["marketstack"].id == source.id
+    assert first[2][(source.id, ProviderCapability.PRICE_HISTORY)].id == entitlement.id
 
 
 def test_role_readiness_cannot_be_ready_without_point_in_time_evidence():

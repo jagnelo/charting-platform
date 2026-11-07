@@ -687,6 +687,53 @@ async def _family_member_metadata_readiness(
     return member_count, weighted_count, weights_status, classified_count, classification_status
 
 
+_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY = "analysis.family_coverage.provider_metadata.v1"
+
+
+async def _family_coverage_provider_metadata(
+    db: AsyncSession,
+) -> tuple[
+    dict[int, DataSource],
+    dict[str, DataSource],
+    dict[tuple[int, ProviderCapability], ProviderEntitlement],
+]:
+    """Load immutable request-scoped provider lookups once for family readiness.
+
+    The readiness endpoint composes one coverage report per curated family on
+    the same read-only session. These two tables are shared across all reports;
+    repeating their full scans for every family only adds serial round trips.
+    Session-local caching cannot leak across requests or outlive the database
+    snapshot used to build the response.
+    """
+
+    cached = db.info.get(_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY)
+    if cached is not None:
+        return cached
+
+    source_rows = (await db.execute(select(DataSource))).scalars().all()
+    sources = {source.id: source for source in source_rows}
+    sources_by_name = {
+        source.name.strip().lower(): source
+        for source in source_rows
+        if source.name and source.name.strip()
+    }
+    entitlements = {
+        (entitlement.data_source_id, entitlement.capability): entitlement
+        for entitlement in (
+            await db.execute(
+                select(ProviderEntitlement).where(
+                    ProviderEntitlement.capability.in_(
+                        (ProviderCapability.UNIVERSE_DISCOVERY, ProviderCapability.PRICE_HISTORY)
+                    )
+                )
+            )
+        ).scalars()
+    }
+    result = (sources, sources_by_name, entitlements)
+    db.info[_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY] = result
+    return result
+
+
 def _as_utc(value: datetime) -> datetime:
     """Normalize database timestamps before entitlement cutoff comparisons."""
 
@@ -4614,25 +4661,7 @@ async def benchmark_family_coverage(
             )
         ).scalars()
     }
-    source_rows = (await db.execute(select(DataSource))).scalars().all()
-    sources = {source.id: source for source in source_rows}
-    sources_by_name = {
-        source.name.strip().lower(): source
-        for source in source_rows
-        if source.name and source.name.strip()
-    }
-    entitlements = {
-        (entitlement.data_source_id, entitlement.capability): entitlement
-        for entitlement in (
-            await db.execute(
-                select(ProviderEntitlement).where(
-                    ProviderEntitlement.capability.in_(
-                        (ProviderCapability.UNIVERSE_DISCOVERY, ProviderCapability.PRICE_HISTORY)
-                    )
-                )
-            )
-        ).scalars()
-    }
+    sources, sources_by_name, entitlements = await _family_coverage_provider_metadata(db)
     adapter_states = {}
     profile_ids = [profile.id for profile in profiles.values()]
     if profile_ids:
@@ -5156,6 +5185,10 @@ async def benchmark_family_readiness(
     family when a registry group has not yet been materialised.
     """
 
+    # ``get_db`` supplies a request-scoped session in production. Clear this
+    # key explicitly as well so test/session adapters that reuse one session
+    # across requests still observe current source and entitlement rows.
+    db.info.pop(_FAMILY_COVERAGE_PROVIDER_METADATA_CACHE_KEY, None)
     families: list[BenchmarkFamilyCoverageOut] = []
     missing_families: list[str] = []
     for metadata in benchmark_family_registry():

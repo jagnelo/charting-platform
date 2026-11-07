@@ -33349,3 +33349,10 @@ Root's retained family-browser trace showed repeated SPY calendar requests takin
 The same read-only profile measured 85 sequential SQL statements for eight families/32 roles and 588.9 ms wall time unloaded (90.5 ms SQL time). It did not reproduce the loaded browser latency and no PostgreSQL waits were observed, so database query pressure is recorded as evidence, not a proven sole cause. TC owns frontend fan-out.
 
 Calendar/event unit tests passed 12/12; Ruff check/format and diff check passed. Imported only the four paths listed in Root's 4cfee companion manifest; all 66 contract files matched their expected SHA-256/Git blobs and modes. The exact browser recheck and full release gates remain Root-owned and pending. No source HTTP, database writes, provider policy/quota/ledger changes, or production changes. The held provider-operation review remains deferred behind this latency work.
+
+
+## 2026-11-07 — benchmark-family readiness query reuse
+
+A read-only isolated profile of the existing readiness endpoint measured 85 SQL statements across eight families and 32 roles. Each composed family report repeated the same provider source and eligible-entitlement table reads. The route now shares those two lookup maps on its request-scoped AsyncSession and clears that cache at readiness entry; family-specific memberships, adapter states, holdings, bar ranges, freshness and entitlement classification remain unchanged. No cross-request cache was added.
+
+The focused analysis-router module passed 35/35; Ruff check/format and diff check passed. The regression confirms the first metadata lookup performs two selects and a repeated lookup on the same request session performs none. By source structure this removes 14 repeated selects from the eight-family composition; this is an expected query-count reduction, not a new loaded-browser timing result. Root owns the browser recheck and full release qualification.

@@ -15295,3 +15295,23 @@ duplicate_ensure_worker_row_lock_followup_20261107:
   scope: No source HTTP, credentials, native quota/ledger, public schema/data, production or sibling-worktree mutation. Existing Root PG lease and preparation_sessions unique-schema teardown reused.
   next: Root repeats ordinary duplicate HTTP ensure against the compatible backend/worker candidate; final exact-source CI and combined qualification remain mandatory.
   integration_capture: exact branch HEAD
+
+
+family_readiness_request_scoped_metadata_reuse_20261107:
+  id: provider-family-readiness-request-scoped-provider-lookups-20261107
+  status: focused_unit_green; loaded-browser-recheck_root_owned
+  source_parent: 21be29150de8298e15d34bb9eed8207b92917a34
+  scope: Reuse only DataSource and ProviderEntitlement read maps across the existing per-family coverage calls inside one readiness request; preserve group, profile, adapter, holdings, member, bars, freshness and entitlement evaluation.
+  implementation:
+    - Store the two shared read-only lookup maps on the request AsyncSession and clear the cache at the start of the readiness endpoint.
+    - Standalone coverage remains on the same lookup semantics; no cross-request or process cache, schema, DTO, provider or quota changes.
+  focused_validation:
+    command: backend/.venv/bin/pytest backend/tests/unit/routers/test_analysis_router.py -q
+    result: 35 passed in 3.07s
+    ruff_check_format_diff: passed
+    query_reuse_regression: two provider metadata selects on first lookup; no additional selects on a repeated lookup in the same request session
+  expected_readiness_round_trips_saved: 14 across the eight-family matrix, based on eliminating seven repeated DataSource and seven repeated ProviderEntitlement selects; not measured on the loaded browser path
+  boundaries:
+    provider_http_or_data_writes: false
+    full_browser_latency_resolution: pending Root-owned recheck
+    full_platform_goal_and_roadmaps: open
