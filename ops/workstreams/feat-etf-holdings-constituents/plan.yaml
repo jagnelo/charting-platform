@@ -6320,7 +6320,7 @@ search_bar_exact_prefetch_checkpoint_2026_11_07:
   behavior: Unique exact canonical local search and unique exact discovered provider candidate trigger shared-coordinator preparation without forcing selection/navigation. A resolved symbol differing from the exact query is rejected. A uniquely identified provisional local instrument is prepared for identity/profile/history. Enter during exact discovery preserves and commits the returned canonical ID/type/acquire response; required reported-symbol mismatch blocks local preparation and selection. Prefix and ambiguous candidates do not prepare; duplicate local exact listings in chart and picker modes require deliberate click or keyboard choice; stale search responses cannot prepare a prior query.
   pending: No browser body was run. Root owns shared bundle integration and combined runtime/profile acceptance; Provider b1 exact CI42332618010 remains pending.
 
-provider_runtime_dependency_active_dffcf2e2:
+provider_runtime_dependency_dffcf2e2_historical:
   authority: Root released exact Provider source dffcf2e2cda4a3046b5e224fb4c7607574156797 for development consumption only; Provider records and unrelated paths were not imported.
   previous_active_dependency: b1a94d9854e06f8235074141bf56d333f6350057
   manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdffcf2e2-runtime-development-consumption-contract.json
@@ -6330,6 +6330,19 @@ provider_runtime_dependency_active_dffcf2e2:
   verification: all47 current path/status_from139/Git-blob/SHA256 records match exact source dffcf; only the eight declared delta paths were imported.
   consumer_validation: ETF preparation and hook modules passed31/31 against the imported source; no Provider-wide suite or integration fixture was run.
   state: Development dependency only; exact closing-source CI and Root combined acceptance remain pending.
+
+provider_runtime_dependency_active_f84c7020:
+  authority: Root released exact Provider source f84c7020932558ecfc52a355c24ef360ff71386c for development consumption; only declared delta paths were imported.
+  previous_active_dependency: dffcf2e2cda4a3046b5e224fb4c7607574156797
+  manifest_previous_source: abedafbf01469808ccc5384a36d0a6fc83d0564c
+  manifest: /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerf84c7020-runtime-development-consumption-contract.json
+  manifest_sha256: d0476cba8b9973081ffcfac3cf090c271aafd0b0567e2fc3819a6e79fe3b90b7
+  changed_paths_since_previous: [backend/app/services/e2e_seed.py, backend/tests/unit/services/test_e2e_seed.py]
+  source_manifest_records: 58
+  verification: all58 source Git-blob/SHA256/executable-bit entries verified; both declared delta paths match current source. The worktree matches56/58 pinned files; the only two preserved ETF-owned newer overlays are backend/app/services/baskets.py and backend/tests/integration/api/test_baskets.py.
+  provider_validation: Root reports seven focused seed tests and pinned Ruff check/format pass; no Provider suite replayed by ETF.
+  consumer_validation: frontend type-check passed; Playwright discovery lists9 cases across owned basket/holdings/S&P specs. Browser and DB bodies were not run.
+  state: Development dependency only; Root owns the compatible fixture and combined release gates.
 
 tc_common_runtime_dependency_active_ce2262ab:
   authority: Root released exact TC source ce2262ab2d47fc1ccda96f0c2aa7c8839e4e03f9 for development consumption; imported only the ETF consumer's declared paths, without TC records.

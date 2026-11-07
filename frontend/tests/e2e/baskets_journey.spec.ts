@@ -6,11 +6,24 @@ type SearchCandidate = {
   instrument_id: number
 }
 
-async function chooseResolvedInstrument(
-  page: import('@playwright/test').Page,
+async function resolveCanonicalInstrument(
+  request: import('@playwright/test').APIRequestContext,
+  headers: Record<string, string>,
   symbol: string,
-  onResolved?: (candidate: SearchCandidate) => void,
-) {
+): Promise<SearchCandidate> {
+  const response = await request.get('/api/v1/instruments/search', {
+    headers,
+    params: { q: symbol, canonical_only: 'true' },
+  })
+  expect(response.ok(), `Search API should resolve ${symbol}`).toBeTruthy()
+  const candidates = await response.json() as SearchCandidate[]
+  const exact = candidates.filter(candidate => candidate.symbol.toUpperCase() === symbol)
+  expect(exact, `Search API should return one canonical ${symbol} instrument`).toHaveLength(1)
+  expect(Number.isSafeInteger(exact[0]?.instrument_id) && (exact[0]?.instrument_id ?? 0) > 0).toBeTruthy()
+  return exact[0]
+}
+
+async function chooseResolvedInstrument(page: import('@playwright/test').Page, symbol: string) {
   const input = page.getByPlaceholder('Add instrument')
   const responsePromise = page.waitForResponse(response => {
     const url = new URL(response.url())
@@ -23,12 +36,11 @@ async function chooseResolvedInstrument(
   const canonical = candidates.find(candidate => candidate.symbol.toUpperCase() === symbol)
   expect(canonical, `Search API should return a canonical ${symbol} instrument`).toBeTruthy()
   expect(Number.isSafeInteger(canonical?.instrument_id) && (canonical?.instrument_id ?? 0) > 0).toBeTruthy()
-  onResolved?.(canonical!)
   await page.getByRole('option', { name: new RegExp(`^${symbol}\\s`) }).click()
   return canonical!
 }
 
-test('ordinary basket lifecycle persists edits and opens the shared dashboard chart before background preparation settles', async ({
+test('ordinary basket lifecycle persists edits across save, reload, member-chart navigation, cancel and delete', async ({
   page,
   request,
   loggedIn,
@@ -37,53 +49,14 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
   expect(token).toBeTruthy()
   const headers = { Authorization: `Bearer ${token}` }
   const createdIds: number[] = []
-  const ensureCalls: Array<{ instrument_id: number; datasets: string[]; timeframe: string }> = []
-  const acceptedEnsureInstrumentIds: number[] = []
-  let firstMemberInstrumentId: number | null = null
-  let firstEnsureAccepted = false
-  let firstEnsureWasHeld = false
-  let firstEnsureWasReleased = false
-  let releaseFirstEnsure!: () => void
-  const firstEnsureGate = new Promise<void>(resolve => { releaseFirstEnsure = resolve })
-  page.on('request', requestEvent => {
-    if (requestEvent.method() !== 'POST' || new URL(requestEvent.url()).pathname !== '/api/v1/data/ensure') return
-    const body = requestEvent.postDataJSON() as { target?: { instrument_id?: number }; datasets?: string[]; timeframe?: string }
-    if (body.target?.instrument_id) ensureCalls.push({
-      instrument_id: body.target.instrument_id,
-      datasets: body.datasets ?? [],
-      timeframe: body.timeframe ?? '',
-    })
-  })
-  await page.route('**/api/v1/data/ensure', async route => {
-    const body = route.request().postDataJSON() as { target?: { instrument_id?: number } }
-    const response = await route.fetch()
-    if (body.target?.instrument_id && response.ok()) acceptedEnsureInstrumentIds.push(body.target.instrument_id)
-    if (body.target?.instrument_id === firstMemberInstrumentId && !firstEnsureWasHeld) {
-      firstEnsureAccepted = response.ok()
-      firstEnsureWasHeld = true
-      await firstEnsureGate
-      firstEnsureWasReleased = true
-    }
-    await route.fulfill({ response })
-  })
   await page.goto('/legacy/baskets')
   await expect(page.getByRole('heading', { name: 'Baskets' })).toBeVisible()
-  const firstMemberSearch = await request.get('/api/v1/instruments/search', {
-    headers,
-    params: { q: 'AAPL', canonical_only: 'true' },
-  })
-  expect(firstMemberSearch.ok()).toBeTruthy()
-  const firstMemberCandidates = await firstMemberSearch.json() as SearchCandidate[]
-  const firstMemberCandidate = firstMemberCandidates.filter(candidate => candidate.symbol.toUpperCase() === 'AAPL')
-  expect(firstMemberCandidate).toHaveLength(1)
-  firstMemberInstrumentId = firstMemberCandidate[0].instrument_id
 
   try {
     await page.getByRole('button', { name: '+ New' }).click()
     await page.getByPlaceholder('Basket name').fill(`Lifecycle A ${Date.now()}`)
     await page.locator('select.form-select').selectOption('custom')
-    const aapl = await chooseResolvedInstrument(page, 'AAPL', candidate =>
-      expect(candidate.instrument_id).toBe(firstMemberInstrumentId))
+    const aapl = await chooseResolvedInstrument(page, 'AAPL')
     const msft = await chooseResolvedInstrument(page, 'MSFT')
     await page.locator('input.weight-input').nth(0).fill('60')
     await page.locator('input.weight-input').nth(1).fill('40')
@@ -153,60 +126,138 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
     expect(basketAfterMemberChart.ok()).toBeTruthy()
     const unchangedBasket = await basketAfterMemberChart.json() as { members: Array<{ instrument_id: number }> }
     expect(unchangedBasket.members.map(member => member.instrument_id)).toEqual([amzn.instrument_id, added.instrument_id])
+
     await page.goto('/legacy/baskets')
     await page.locator('.basket-card').filter({ hasText: basketBName }).click()
+    await page.getByRole('button', { name: 'Delete' }).click()
+    await page.getByRole('button', { name: 'Cancel' }).click()
+    await expect(page.locator('.basket-card').filter({ hasText: basketBName })).toBeVisible()
 
-    const ensureCalls: Array<{ instrument_id: number; datasets: string[]; timeframe: string }> = []
-    page.on('request', requestEvent => {
-      if (requestEvent.method() !== 'POST' || new URL(requestEvent.url()).pathname !== '/api/v1/data/ensure') return
-      const body = requestEvent.postDataJSON() as { target?: { instrument_id?: number }; datasets?: string[]; timeframe?: string }
-      if (body.target?.instrument_id) ensureCalls.push({
-        instrument_id: body.target.instrument_id,
-        datasets: body.datasets ?? [],
-        timeframe: body.timeframe ?? '',
+    await page.getByRole('button', { name: 'Delete' }).click()
+    const deleteB = page.waitForResponse(response =>
+      response.request().method() === 'DELETE' && new URL(response.url()).pathname === `/api/v1/baskets/${basketB.id}`)
+    await page.getByRole('dialog', { name: 'Delete basket?' }).getByRole('button', { name: 'Delete' }).click()
+    expect((await deleteB).status()).toBe(204)
+    await expect(page.locator('.basket-card').filter({ hasText: basketBName })).toHaveCount(0)
+    await expect(page.getByPlaceholder('Basket name')).toHaveValue(/Lifecycle A/)
+  } finally {
+    for (const basketId of createdIds) {
+      await request.delete(`/api/v1/baskets/${basketId}`, { headers }).catch(() => undefined)
+    }
+  }
+
+  expect(loggedIn).toBeUndefined()
+})
+
+test('opening a basket submits each member preparation independently while cached chart data stays visible', async ({
+  page,
+  request,
+  loggedIn,
+}) => {
+  const token = await page.evaluate(() => localStorage.getItem('access_token'))
+  expect(token).toBeTruthy()
+  const headers = { Authorization: `Bearer ${token}` }
+  const canonicalMembers = await Promise.all(['AAPL', 'MSFT'].map(symbol =>
+    resolveCanonicalInstrument(request, headers, symbol)))
+  const created = await request.post('/api/v1/baskets', {
+    headers,
+    data: {
+      name: `Delayed preparation ${Date.now()}`,
+      weighting_scheme: 'equal',
+      members: canonicalMembers.map(member => ({ instrument_id: member.instrument_id })),
+    },
+  })
+  const createdText = await created.text()
+  expect(created.status(), `POST /api/v1/baskets returned ${createdText}`).toBe(200)
+  const basket = JSON.parse(createdText) as {
+    id: number
+    name: string
+    members: Array<{ instrument_id: number; symbol?: string }>
+  }
+  const memberIds = new Set(canonicalMembers.map(member => member.instrument_id))
+  const memberIdBySymbol = new Map(canonicalMembers.map(member => [member.symbol.toUpperCase(), member.instrument_id]))
+  expect(basket.members.map(member => member.instrument_id)).toEqual([...memberIds])
+
+  let chartEntryStarted = false
+  let firstEnsureWasHeld = false
+  let firstEnsureWasReleased = false
+  let firstEnsureStatus: number | null = null
+  let releaseFirstEnsure!: () => void
+  const firstEnsureGate = new Promise<void>(resolve => { releaseFirstEnsure = resolve })
+  const chartEnsureCalls: Array<{ instrument_id: number; datasets: string[]; timeframe: string; adjusted: boolean }> = []
+  const acceptedChartEnsureIds: number[] = []
+
+  try {
+    await page.goto('/legacy/baskets')
+    await expect(page.getByRole('heading', { name: 'Baskets' })).toBeVisible()
+    await page.locator('.basket-card').filter({ hasText: basket.name }).click()
+    await page.route('**/api/v1/data/ensure', async route => {
+      if (!chartEntryStarted) return route.continue()
+      const body = route.request().postDataJSON() as {
+        target?: { kind?: string; instrument_id?: number; symbol?: string }
+        datasets?: string[]
+        timeframe?: string
+        adjusted?: boolean
+      }
+      if (body.target?.kind !== 'instrument') return route.continue()
+      const targetId = body.target?.instrument_id
+        ?? memberIdBySymbol.get(body.target?.symbol?.trim().toUpperCase() ?? '')
+      if (!targetId || !memberIds.has(targetId) || body.timeframe !== 'D1' || !body.datasets?.includes('history')) {
+        return route.continue()
+      }
+
+      const response = await route.fetch()
+      chartEnsureCalls.push({
+        instrument_id: targetId,
+        datasets: body.datasets,
+        timeframe: body.timeframe,
+        adjusted: body.adjusted === true,
       })
+      if (response.ok()) acceptedChartEnsureIds.push(targetId)
+      if (!firstEnsureWasHeld) {
+        firstEnsureStatus = response.status()
+        firstEnsureWasHeld = true
+        await firstEnsureGate
+        firstEnsureWasReleased = true
+      }
+      await route.fulfill({ response })
     })
-    const selectedA = await request.get(`/api/v1/baskets/${basketA.id}`, { headers })
-    expect(selectedA.status()).toBe(200)
-    const selectedABody = await selectedA.json() as { members: Array<{ instrument_id: number }> }
-    expect(selectedABody.members.length).toBeGreaterThan(1)
-    expect(firstMemberInstrumentId).toBe(selectedABody.members[0]?.instrument_id)
-    await page.locator('.basket-card').filter({ hasText: /Lifecycle A/ }).click()
-    const basketChartRequest = page.waitForResponse(response =>
-      new URL(response.url()).pathname.startsWith(`/api/v1/baskets/${basketA.id}/ohlcv/`))
-    await page.getByTestId('basket-open-chart').click()
-    await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basketA.id}$`), { timeout: 30_000 })
-    await expect(page.locator('.workspace-layout-host')).toBeVisible()
-    let syntheticBars: Array<{ timestamp: string; close: number }> = []
-    try {
-      // The first real preparation response is held after the server accepts it.
-      // Later member submissions and valid cached basket output must still proceed.
-      await expect.poll(() => firstEnsureWasHeld).toBeTruthy()
-      await expect.poll(() => new Set(ensureCalls
-        .filter(call => selectedABody.members.some(member => member.instrument_id === call.instrument_id)
-          && call.timeframe === 'D1' && call.datasets.includes('history'))
-        .map(call => call.instrument_id)).size).toBe(selectedABody.members.length)
-      expect(firstEnsureWasHeld).toBeTruthy()
-      expect(firstEnsureAccepted).toBeTruthy()
-      expect(firstEnsureWasReleased).toBeFalsy()
-      const memberHistoryCalls = ensureCalls.filter(call =>
-        selectedABody.members.some(member => member.instrument_id === call.instrument_id)
-          && call.timeframe === 'D1' && call.datasets.includes('history'))
-      expect(new Set(memberHistoryCalls.map(call => call.instrument_id)))
-        .toEqual(new Set(selectedABody.members.map(member => member.instrument_id)))
-      expect(memberHistoryCalls.every(call => call.datasets.includes('history'))).toBeTruthy()
-      expect(new Set(acceptedEnsureInstrumentIds.filter(instrumentId =>
-        selectedABody.members.some(member => member.instrument_id === instrumentId))))
-        .toEqual(new Set(selectedABody.members.map(member => member.instrument_id)))
-      const basketChartResponse = await basketChartRequest
-      expect(basketChartResponse.status()).toBe(200)
-      syntheticBars = await basketChartResponse.json() as Array<{ timestamp: string; close: number }>
-      expect(syntheticBars.length).toBeGreaterThan(0)
-      expect(syntheticBars.every(bar => Number.isFinite(bar.close))).toBeTruthy()
 
-      // The held preparation must not prevent the already available basket
-      // series from reaching the visible shared chart. Tie its ordinary OHLC
-      // tooltip back to the real basket response, not merely a mounted canvas.
+    const basketChartResponse = page.waitForResponse(response =>
+      new URL(response.url()).pathname.startsWith(`/api/v1/baskets/${basket.id}/ohlcv/`))
+    chartEntryStarted = true
+    await page.getByTestId('basket-open-chart').click()
+    await expect(page).toHaveURL(new RegExp(`/chart/BASKET%3A${basket.id}$`), { timeout: 30_000 })
+    await expect(page.locator('.workspace-layout-host')).toBeVisible()
+
+    try {
+      // This hold begins only after the ordinary Open chart action. Verify the
+      // current chart action reaches the server independently for every member.
+      await expect.poll(() => firstEnsureWasHeld).toBeTruthy()
+      await expect.poll(() => new Set(acceptedChartEnsureIds).size).toBe(memberIds.size)
+      expect(firstEnsureStatus).not.toBeNull()
+      expect(firstEnsureStatus).toBeGreaterThanOrEqual(200)
+      expect(firstEnsureStatus).toBeLessThan(300)
+      expect(firstEnsureWasReleased).toBeFalsy()
+      expect(new Set(chartEnsureCalls.map(call => call.instrument_id))).toEqual(memberIds)
+      expect(chartEnsureCalls).toHaveLength(memberIds.size)
+      expect(chartEnsureCalls.every(call =>
+        call.timeframe === 'D1' && call.adjusted && call.datasets.includes('history'))).toBeTruthy()
+      const requestKeys = chartEnsureCalls.map(call => JSON.stringify([
+        call.instrument_id,
+        [...call.datasets].sort(),
+        call.timeframe,
+        call.adjusted,
+      ]))
+      expect(new Set(requestKeys).size, 'identical member preparations are deduplicated').toBe(requestKeys.length)
+      expect(new Set(acceptedChartEnsureIds)).toEqual(memberIds)
+
+      const chartResponse = await basketChartResponse
+      expect(chartResponse.status()).toBe(200)
+      const bars = await chartResponse.json() as Array<{ timestamp: string; close: number }>
+      expect(bars.length).toBeGreaterThan(0)
+      expect(bars.every(bar => Number.isFinite(bar.close) && bar.close > 0)).toBeTruthy()
+
       const primaryChart = page.locator('.tool-window[data-window-key="primary-chart"]')
       await expect(primaryChart).toBeVisible()
       const chartRoot = primaryChart.locator('.chart-root')
@@ -230,36 +281,19 @@ test('ordinary basket lifecycle persists edits and opens the shared dashboard ch
       const tooltipDate = label.split('.')[0]
       const tooltipClose = label.match(/close ([0-9]+(?:\.[0-9]+)?)/i)?.[1]
       expect(tooltipClose, 'visible basket OHLC tooltip exposes a close').toBeTruthy()
-      expect(syntheticBars.some(bar => {
+      expect(bars.some(bar => {
         const timestamp = new Date(bar.timestamp)
         const date = `${timestamp.getFullYear()}-${String(timestamp.getMonth() + 1).padStart(2, '0')}-${String(timestamp.getDate()).padStart(2, '0')}`
         return date === tooltipDate && bar.close.toFixed(4) === tooltipClose
-      }), 'visible basket tooltip matches the held-window API response').toBeTruthy()
+      }), 'visible basket tooltip matches the returned cached chart series').toBeTruthy()
     } finally {
       releaseFirstEnsure()
     }
     expect(firstEnsureWasReleased).toBeTruthy()
-
-    await page.goto('/legacy/baskets')
-    await page.locator('.basket-card').filter({ hasText: basketBName }).click()
-    await page.getByRole('button', { name: 'Delete' }).click()
-    await page.getByRole('button', { name: 'Cancel' }).click()
-    await expect(page.locator('.basket-card').filter({ hasText: basketBName })).toBeVisible()
-
-    await page.getByRole('button', { name: 'Delete' }).click()
-    const deleteB = page.waitForResponse(response =>
-      response.request().method() === 'DELETE' && new URL(response.url()).pathname === `/api/v1/baskets/${basketB.id}`)
-    await page.getByRole('dialog', { name: 'Delete basket?' }).getByRole('button', { name: 'Delete' }).click()
-    expect((await deleteB).status()).toBe(204)
-    await expect(page.locator('.basket-card').filter({ hasText: basketBName })).toHaveCount(0)
-    await expect(page.getByPlaceholder('Basket name')).toHaveValue(/Lifecycle A/)
   } finally {
     releaseFirstEnsure()
-    for (const basketId of createdIds) {
-      await request.delete(`/api/v1/baskets/${basketId}`, { headers }).catch(() => undefined)
-    }
+    await request.delete(`/api/v1/baskets/${basket.id}`, { headers }).catch(() => undefined)
   }
-
   expect(loggedIn).toBeUndefined()
 })
 
