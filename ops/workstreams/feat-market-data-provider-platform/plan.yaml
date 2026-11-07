@@ -15152,3 +15152,61 @@ derived_refresh_issuer_identity_followup:
   migrations: none
   wider_roadmaps_complete: false
   integration_capture: exact branch HEAD
+
+
+# Current approved implementation follow-up; full platform goal remains in_progress.
+screener_preparation_followup_20261107:
+  id: provider-saved-screener-preparation-target-20261107
+  authority: Root approved implementation in /home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/screener-preparation-contract-20261107.json
+  status: implementation_handoff_ready
+  wire:
+    method: POST
+    path: /api/v1/data/ensure
+    target: {kind: screener, screener_id: authenticated-owner-saved-definition}
+    datasets: [history]
+    timeframe: saved-definition-timeframe; explicit mismatch returns 422
+  behavior:
+    - Reuses the screener engine universe selector for all, asset_class, custom, watchlist and basket scopes.
+    - All is the known active nonsynthetic instrument set; missing, foreign-owned or empty finite sources stay unavailable and never widen to all.
+    - Freezes the owner-scoped definition and membership identity into the parent request; edits create a distinct snapshot/request identity.
+    - Emits one existing MarketRefreshJob expansion at request time, then expands 50 members per worker continuation and creates normal history dependencies; continuation resumes from persisted cursor after worker/session reconstruction.
+    - Equivalent same-owner requests share the same expansion/history queue children while retaining separate owner-visible parent records.
+    - Expansion remains nonterminal while child work is pending; the response retains has_pending_work and never reports ready during expansion/acquisition.
+  changed_paths:
+    - backend/app/schemas/data_preparation.py
+    - backend/app/services/data_preparation.py
+    - backend/app/services/screener_engine.py
+    - backend/app/tasks/data_tasks.py
+    - backend/tests/integration/test_data_preparation_queue_postgres.py
+    - backend/tests/unit/conftest.py
+    - backend/tests/unit/services/test_data_preparation_contracts.py
+    - backend/tests/unit/services/test_data_preparation_service.py
+  validation:
+    focused_units: 75 passed, 0 failed, 0 skipped
+    real_postgres: 1 passed, 0 failed, 0 skipped; distinct AsyncSessions/worker invocations and reloaded parent graph
+    ruff_check: passed on all changed Python files
+    ruff_format: passed on all changed Python files
+    postgres_receipt: /tmp/provider-screener-preparation-20261107-r1/final-receipt.json
+    postgres_receipt_sha256: 173d20dad0f1c1ed592af9a7785c193b9d325299c363de749395968287a270cd
+    pytest_log: /tmp/provider-screener-preparation-20261107-r1/pytest-screener-final.log
+    pytest_log_sha256: c5feb241314c0f9ded4aedd838fc67d4edee90c9433271b2311f29c40a1f3da9
+    prior_test_attempts: First isolated PG attempt corrected a test call to the existing request_id API; second corrected an over-specific queued-status expectation while preserving pending=true and not-ready assertions. Both are retained in the session transcript; final isolated PG attempt passed.
+  fixture_cleanup:
+    container_id: ecee96d200b4bc43a8649bdafabf7aed5388af5d92abe02c615007ab8554c410
+    network_id: 10f0e59733d96aaebc327cb20bf8f5587969920f9f0e9152d6b4a3b28feee8b0
+    result: Exact owned container/network removed; zero schemas and other clients before cleanup; baseline container, network, volume and image inventories had zero deltas.
+  impact:
+    migrations: none
+    provider_http_requests: 0
+    real_ledger_or_policy_quota_hold_mutation: false
+    production_or_sibling_changes: false
+  b1_ci_history:
+    source: b1a94d9854e06f8235074141bf56d333f6350057
+    run_id: 42332618010
+    backend: success
+    frontend_unit: success
+    branch_declared: success
+    playwright: cancelled; b1 run is not green and remains separate historical evidence
+    exact_screener_tip_ci: pending; Root-owned
+  next: Root exact-source export/distribution and exact-tip CI; full platform goal and combined release qualification remain open.
+  integration_capture: exact branch HEAD
