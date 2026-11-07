@@ -430,6 +430,89 @@ describe('EasyScanTool', () => {
     })
   })
 
+  it('follows a queued visual-condition run and keeps the last completed result until completion', async () => {
+    let runCount = 0
+    let resolveQueuedPoll!: (value: unknown) => void
+    const queuedPoll = new Promise(resolve => { resolveQueuedPoll = resolve })
+    apiGet.mockImplementation((path: string, options?: { limit?: number }) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{
+        stable_key: 'visual-saved', name: 'Visual saved', version: 1,
+        payload: { condition: { type: 'price_threshold', field: 'close', op: 'gt', value: 50 }, python_code_version_id: 77 },
+      }])
+      if (path === '/code/assets') return Promise.resolve([])
+      if (path === '/screeners/6') return Promise.resolve(savedScreener(6, { conditions: { type: 'python_condition', code_version_id: 77 } }))
+      if (path === '/screeners/6/results' && options?.limit === 1) return queuedPoll
+      if (path === '/screeners/6/results') return Promise.resolve([])
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-condition/visual-saved') return Promise.resolve({ id: 6 })
+      if (path === '/screeners/6/run') {
+        runCount += 1
+        return Promise.resolve(runCount === 1
+          ? { matched_ids: [3], result_data: { _status: 'completed', _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null }
+          : { matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 72 }, error: null })
+      }
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Saved condition"]').setValue('visual-saved')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Visual saved scan')
+    expect((wrapper.get('select[aria-label="Python condition"]').element as HTMLSelectElement).value).toBe('')
+
+    const runButton = () => wrapper.findAll('button').find(button => button.text() === 'Run')!
+    await runButton().trigger('click')
+    await vi.waitFor(() => expect(wrapper.text()).toContain('1 matches'))
+    expect(wrapper.text()).toContain('1/1 evaluated')
+    await runButton().trigger('click')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/6/results', { limit: 1 }))
+    expect(wrapper.text()).toContain('Scan queued; waiting for results…')
+    expect(wrapper.text()).toContain('1 matches')
+    expect(wrapper.text()).toContain('1/1 evaluated')
+    expect(wrapper.text()).not.toContain('0 matches')
+
+    resolveQueuedPoll([{ matched_ids: [11], result_data: { _status: 'completed', _python_research_run_id: 72, _coverage: { evaluated_count: 1, universe_count: 1, excluded: {} } }, error: null }])
+    await vi.waitFor(() => expect(wrapper.text()).toContain('Scan completed.'))
+    expect(wrapper.text()).toContain('1 matches')
+    expect(apiPost).toHaveBeenCalledWith('/screeners/6/run', {})
+    wrapper.unmount()
+  })
+
+  it('cancels and fences a queued visual-condition run when the tool is unmounted', async () => {
+    let resolvePoll!: (value: unknown) => void
+    const pendingPoll = new Promise(resolve => { resolvePoll = resolve })
+    apiGet.mockImplementation((path: string, options?: { limit?: number }) => {
+      if (path === '/workspaces/library/conditions') return Promise.resolve([{
+        stable_key: 'visual-pending', name: 'Visual pending', version: 1,
+        payload: { condition: { type: 'price_threshold', field: 'close', op: 'gt', value: 50 }, python_code_version_id: 78 },
+      }])
+      if (path === '/code/assets') return Promise.resolve([])
+      if (path === '/screeners/7') return Promise.resolve(savedScreener(7, { conditions: { type: 'python_condition', code_version_id: 78 } }))
+      if (path === '/screeners/7/results' && options?.limit === 1) return pendingPoll
+      return Promise.resolve([])
+    })
+    apiPost.mockImplementation((path: string) => {
+      if (path === '/screeners/from-condition/visual-pending') return Promise.resolve({ id: 7 })
+      if (path === '/screeners/7/run') return Promise.resolve({ matched_ids: [], result_data: { _status: 'queued', _python_research_run_id: 73 }, error: null })
+      return Promise.resolve({})
+    })
+
+    const wrapper = mount(EasyScanTool)
+    await flushPromises()
+    await wrapper.get('select[aria-label="Saved condition"]').setValue('visual-pending')
+    await wrapper.get('input[aria-label="Scan name"]').setValue('Visual pending scan')
+    await wrapper.findAll('button').find(button => button.text() === 'Run')!.trigger('click')
+    await vi.waitFor(() => expect(apiGet).toHaveBeenCalledWith('/screeners/7/results', { limit: 1 }))
+
+    wrapper.unmount()
+    resolvePoll([{ matched_ids: [99], result_data: { _status: 'completed', _python_research_run_id: 73 }, error: null }])
+    await flushPromises()
+    expect(apiPost).toHaveBeenCalledWith('/research/runs/73/cancel', {})
+    expect(apiPost.mock.calls.filter(([path]) => path === '/screeners/7/run')).toHaveLength(1)
+  })
+
   it('accepts a chart plot drop into the technical condition editor', async () => {
     apiGet.mockResolvedValue([])
     const wrapper = mount(EasyScanTool)

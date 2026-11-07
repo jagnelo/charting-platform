@@ -5756,7 +5756,7 @@
     {
       "source": "frontend/src/components/workstation/EasyScanTool.vue",
       "control_count": 18,
-      "signature_sha256": "fc8ccfc254af66ad11e5bfb892666299c1abaf19cf010b42bd8a4145a9957d74",
+      "signature_sha256": "fef52a81050ade5a01d0240b428c7ddc77f18e2f622d64d696c6f5271bd1e5f2",
       "journeys": [
         "TC04",
         "TC06",
