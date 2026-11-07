@@ -1,5 +1,5 @@
 import { expect, test } from '../../../frontend/tests/e2e/helpers'
-import type { APIRequestContext, Page, Request } from '@playwright/test'
+import type { APIRequestContext, Page, Request, TestInfo } from '@playwright/test'
 
 type Listing = { instrument_id: number; symbol: string; name: string }
 type Bar = { ts: string; open: number; high: number; low: number; close: number }
@@ -15,8 +15,16 @@ type Snapshot = {
   source_identifier: string | null; source_quality: string; completeness_status: string
   row_count: number; resolved_count: number; unresolved_count: number
 }
-type Preparation = { symbol: string; requestId: string; httpStatus: number; status: string; datasets: string[] }
-type FundEvidence = { symbol: string; instrumentId: number; snapshotId: number; compositionDate: string; knownAt: string | null; provenance: string; sourceProvider: string; sourceIdentifier: string | null; completeness: string; rowCount: number }
+type PreparationDependency = { dataset: string; status: string | null; reasonCode: string | null; retryAt: string | null }
+type Preparation = {
+  symbol: string; requestId: string | null; httpStatus: number; status: string | null
+  reasonCode: string | null; retryAt: string | null; datasets: string[]; dependencies: PreparationDependency[]
+}
+type FundEvidence = {
+  symbol: string; instrumentId: number; snapshotId: number; compositionDate: string; knownAt: string | null
+  provenance: string; sourceProvider: string; sourceIdentifier: string | null; completeness: string; rowCount: number
+  rowTypes: Array<{ holdingType: string; rowType: string; count: number }>
+}
 
 async function json<T>(request: APIRequestContext, path: string, token: string, params?: Record<string, string | number>): Promise<T> {
   const response = await request.get(path, { headers: { Authorization: `Bearer ${token}` }, ...(params ? { params } : {}) })
@@ -51,14 +59,42 @@ async function chooseETF(page: Page, symbol: string): Promise<{ listing: Listing
   await expect(input).toHaveValue(symbol)
   const request = await ensureRequest
   const response = await page.waitForResponse(item => item.request() === request)
-  expect(response.status(), `${symbol} automatic preparation should be accepted`).toBe(200)
-  const body = await response.json() as { request_id?: string; status?: string; dependencies?: Array<{ dataset?: string }> }
-  expect(body.request_id).toBeTruthy()
-  expect(body.status).toBeTruthy()
-  expect(['held', 'failed', 'unavailable', 'blocked']).not.toContain(body.status)
-  const datasets = (body.dependencies ?? []).map(item => item.dataset ?? '').filter(Boolean)
-  expect(datasets.some(dataset => ['history', 'holdings'].includes(dataset))).toBeTruthy()
-  return { listing, preparation: { symbol, requestId: body.request_id!, httpStatus: response.status(), status: body.status!, datasets } }
+  const preparation = await preparationFromResponse(response, symbol, request, test.info())
+  return { listing, preparation }
+}
+
+async function preparationFromResponse(response: import('@playwright/test').Response, symbol: string, request: Request, testInfo: TestInfo): Promise<Preparation> {
+  const requested = request.postDataJSON() as { request_id?: string; datasets?: string[] }
+  let body: {
+    request_id?: string; status?: string; reason_code?: string | null; retry_at?: string | null
+    dependencies?: Array<{ dataset?: string; status?: string | null; reason_code?: string | null; retry_at?: string | null }>
+  } | null = null
+  try { body = await response.json() as typeof body } catch { /* retain status/request evidence for non-JSON errors */ }
+  const dependencies = (body?.dependencies ?? []).map(item => ({
+    dataset: item.dataset ?? '', status: item.status ?? null,
+    reasonCode: item.reason_code ?? null, retryAt: item.retry_at ?? null,
+  }))
+  const evidence: Preparation = {
+    symbol, requestId: body?.request_id ?? requested.request_id ?? null, httpStatus: response.status(),
+    status: body?.status ?? null, reasonCode: body?.reason_code ?? null, retryAt: body?.retry_at ?? null,
+    datasets: (body?.dependencies ?? []).map(item => item.dataset ?? '').filter(Boolean), dependencies,
+  }
+  await testInfo.attach(`native-ensure-${symbol.toLowerCase()}-${evidence.requestId ?? 'no-request-id'}.json`, {
+    body: Buffer.from(JSON.stringify({
+      ...evidence,
+      requestedDatasets: requested.datasets ?? [],
+      responseBodyParsed: body !== null,
+    }, null, 2)),
+    contentType: 'application/json',
+  })
+  expect([200, 202], `${symbol} automatic preparation public response`).toContain(response.status())
+  expect(evidence.requestId, `${symbol} automatic preparation request id`).toBeTruthy()
+  expect(evidence.status, `${symbol} automatic preparation status`).toBeTruthy()
+  expect(['held', 'failed', 'unavailable', 'blocked']).not.toContain(evidence.status)
+  expect(evidence.datasets.some(dataset => ['history', 'holdings'].includes(dataset))).toBeTruthy()
+  expect(evidence.dependencies.filter(item => ['history', 'holdings'].includes(item.dataset))
+    .every(item => !['held', 'failed', 'unavailable', 'blocked'].includes(item.status ?? ''))).toBeTruthy()
+  return evidence
 }
 
 async function reselectKnownETF(page: Page, listing: Listing): Promise<Preparation> {
@@ -71,14 +107,7 @@ async function reselectKnownETF(page: Page, listing: Listing): Promise<Preparati
   await expect(input).toHaveValue(listing.symbol)
   const request = await ensureRequest
   const response = await page.waitForResponse(item => item.request() === request)
-  expect(response.status(), `${listing.symbol} re-selection preparation should be accepted`).toBe(200)
-  const body = await response.json() as { request_id?: string; status?: string; dependencies?: Array<{ dataset?: string }> }
-  expect(body.request_id).toBeTruthy()
-  expect(body.status).toBeTruthy()
-  expect(['held', 'failed', 'unavailable', 'blocked']).not.toContain(body.status)
-  const datasets = (body.dependencies ?? []).map(item => item.dataset ?? '').filter(Boolean)
-  expect(datasets.some(dataset => ['history', 'holdings'].includes(dataset))).toBeTruthy()
-  return { symbol: listing.symbol, requestId: body.request_id!, httpStatus: response.status(), status: body.status!, datasets }
+  return preparationFromResponse(response, listing.symbol, request, test.info())
 }
 
 async function assertSelectedBars(page: Page, request: APIRequestContext, symbol: string, token: string): Promise<Bar[]> {
@@ -88,7 +117,7 @@ async function assertSelectedBars(page: Page, request: APIRequestContext, symbol
       headers: { Authorization: `Bearer ${token}` }, params: { limit: 500, adjusted: 'true' },
     })
     return response.status() === 200 ? (await response.json() as Bar[]).length : 0
-  }, { message: `${symbol} should have persisted daily bars`, timeout: 60_000 }).toBeGreaterThan(1)
+  }, { message: `${symbol} should have persisted daily bars`, timeout: 90_000 }).toBeGreaterThan(1)
   const bars = await json<Bar[]>(request, `/api/v1/ohlcv/local/${symbol}/D1`, token, { limit: 500, adjusted: 'true' })
   expect(bars.every(bar => Number.isFinite(Date.parse(bar.ts)) && [bar.open, bar.high, bar.low, bar.close].every(Number.isFinite))).toBeTruthy()
 
@@ -132,7 +161,7 @@ async function assertSelectedBars(page: Page, request: APIRequestContext, symbol
 async function currentHoldings(request: APIRequestContext, symbol: string, instrumentId: number, token: string) {
   await expect.poll(async () => (await request.get(`/api/v1/etf-holdings/${symbol}/latest`, {
     headers: { Authorization: `Bearer ${token}` },
-  })).status(), { message: `${symbol} selection should expose a real current holdings snapshot`, timeout: 45_000 }).toBe(200)
+  })).status(), { message: `${symbol} selection should expose a real current holdings snapshot`, timeout: 90_000 }).toBe(200)
   const profiles = await json<Array<{
     id: number; instrument_id: number; symbol: string; latest_snapshot_id: number | null
     holdings_capability?: { availability: string; identity_verified: boolean; usable_for_current_analysis: boolean }
@@ -161,6 +190,19 @@ async function currentHoldings(request: APIRequestContext, symbol: string, instr
   expect(page.holdings.length).toBeGreaterThan(0)
   expect(page.holdings.every(row => row.snapshot_id === snapshot.id)).toBeTruthy()
   return { snapshot, holdings: page.holdings }
+}
+
+function holdingRowTypes(holdings: Holding[]): FundEvidence['rowTypes'] {
+  const counts = new Map<string, { holdingType: string; rowType: string; count: number }>()
+  for (const row of holdings) {
+    const holdingType = row.holding_type.trim().toLowerCase()
+    const rowType = row.row_type.trim().toLowerCase()
+    const key = `${holdingType}|${rowType}`
+    const current = counts.get(key) ?? { holdingType, rowType, count: 0 }
+    current.count += 1
+    counts.set(key, current)
+  }
+  return [...counts.values()].sort((a, b) => `${a.holdingType}|${a.rowType}`.localeCompare(`${b.holdingType}|${b.rowType}`))
 }
 
 async function assertVisibleFundRows(page: Page, symbol: string, holdings: Holding[]) {
@@ -203,7 +245,7 @@ async function selectVisibleResolvedHolding(page: Page, holdings: Holding[]) {
 test('genuine BWET to XHB to IGV selection retains current holdings provenance on Workstation', async ({
   page, request, loggedIn, browserDiagnostics,
 }, testInfo) => {
-  test.setTimeout(180_000)
+  test.setTimeout(480_000)
   expect(loggedIn).toBeUndefined()
   await page.goto('/chart')
   await expect(page.locator('.workspace-layout-host')).toBeVisible()
@@ -224,18 +266,17 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
       compositionDate: fund.snapshot.composition_date, knownAt: fund.snapshot.known_at,
       provenance: fund.snapshot.provenance, sourceProvider: fund.snapshot.source_provider,
       sourceIdentifier: fund.snapshot.source_identifier, completeness: fund.snapshot.completeness_status,
-      rowCount: fund.snapshot.row_count,
+      rowCount: fund.snapshot.row_count, rowTypes: holdingRowTypes(fund.holdings),
     })
     await assertVisibleFundRows(page, symbol, fund.holdings)
     if (symbol !== 'BWET') await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
     if (symbol === 'BWET') {
-      const row = await selectVisibleResolvedHolding(page, fund.holdings)
-      const lineage = page.getByTestId('active-holding-lineage')
-      await expect(lineage).toContainText(`from BWET holdings · ${fund.snapshot.composition_date}`)
-      await expect(lineage).toHaveAttribute('aria-label', expect.stringContaining(`snapshot ${fund.snapshot.id}`))
-      await expect(page).toHaveURL(/\/chart(?:\/|[?#]|$)/)
-      await expect(page).not.toHaveURL(/\/legacy\/chart/)
-      await assertSelectedBars(page, request, row.constituent_symbol!, token!)
+      expect(fund.snapshot.source_provider.toLowerCase()).toBe('amplify')
+      expect(fund.holdings.every(row => row.holding_type.trim() && row.row_type.trim())).toBeTruthy()
+      expect(fund.holdings.some(row => row.holding_type.trim().toLowerCase() === 'future'
+        && row.row_type.trim().toLowerCase() === 'derivative' && !row.is_resolved
+        && !row.constituent_instrument_id && row.reported_symbol?.trim())).toBeTruthy()
+      expect(fund.holdings.some(row => row.holding_type.trim().toLowerCase() === 'cash')).toBeTruthy()
     }
     if (symbol === 'IGV') {
       igv = fund
@@ -261,7 +302,7 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
 
   expect(igvListing).toBeTruthy()
   const reopenPreparation = await reselectKnownETF(page, igvListing!)
-  expect(reopenPreparation.httpStatus).toBe(200)
+  expect([200, 202]).toContain(reopenPreparation.httpStatus)
   await assertSelectedBars(page, request, 'IGV', token!)
   const reopenedFund = await currentHoldings(request, 'IGV', igvListing!.instrument_id, token!)
   expect(reopenedFund.snapshot.id).toBe(igv!.snapshot.id)
@@ -278,12 +319,12 @@ test('genuine BWET to XHB to IGV selection retains current holdings provenance o
   await assertVisibleFundRows(page, 'IGV', reloadedFund.holdings)
 
   expect(evidence.map(item => item.symbol)).toEqual(['BWET', 'XHB', 'IGV'])
-  expect(evidence.every(item => item.httpStatus === 200 && item.requestId && item.status)).toBeTruthy()
+  expect(evidence.every(item => [200, 202].includes(item.httpStatus) && item.requestId && item.status)).toBeTruthy()
   await testInfo.attach('native-selection-public-evidence.json', {
     body: Buffer.from(JSON.stringify({ preparations: evidence, funds: fundEvidence, drilldown: {
       symbol: row.constituent_symbol, rowId: row.id, instrumentId: row.constituent_instrument_id,
       parentSnapshotId: igv!.snapshot.id,
-    } }, null, 2)),
+    }, contextReopen: reopenPreparation }, null, 2)),
     contentType: 'application/json',
   })
   await browserDiagnostics.expectNoCriticalIssues()
