@@ -884,6 +884,7 @@ const pageEnd = computed(() => {
 })
 
 let profileLoadSeq = 0
+let profileLoadRequest: Promise<ETFProfile[]> | null = null
 let snapshotOptionsLoadSeq = 0
 let holdingsLoadSeq = 0
 let diffLoadSeq = 0
@@ -907,16 +908,23 @@ const canCompareOverlapFamily = computed(() =>
 
 async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst = !selectedProfile.value) {
   const seq = ++profileLoadSeq
+  const selectionGeneration = fundSelectionGeneration
   loadingProfiles.value = true
   loadError.value = ''
+  const request = api.get<ETFProfile[]>('/etf-holdings', {
+    q: search || undefined,
+  })
+  profileLoadRequest = request
   try {
-    const loaded = await api.get<ETFProfile[]>('/etf-holdings', {
-      q: search || undefined,
-    })
+    const loaded = await request
     const normalized = Array.isArray(loaded) ? loaded : []
     if (seq !== profileLoadSeq) return
     profiles.value = normalized
-    if (autoSelectFirst && !selectedProfile.value && normalized.length) {
+    if (autoSelectFirst
+      && selectionGeneration === fundSelectionGeneration
+      && !selectedProfile.value
+      && !pendingFund.value
+      && normalized.length) {
       await selectProfile(normalized[0])
     }
     return normalized
@@ -926,6 +934,7 @@ async function loadProfiles(search = profileSearch.value.trim(), autoSelectFirst
     profiles.value = []
     return []
   } finally {
+    if (profileLoadRequest === request) profileLoadRequest = null
     if (seq === profileLoadSeq) loadingProfiles.value = false
   }
 }
@@ -965,12 +974,15 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
   holdingsActionBusy.value = false
   holdingsActionRefresh.value = false
   identityResolutionBusy.value = false
-  const matchedProfile = profiles.value.find(profile => profile.symbol.toUpperCase() === normalized)
   const resolvedId = result?.explicitlyResolved
     && Number.isSafeInteger(result.instrument_id)
     && Number(result.instrument_id) > 0
     ? Number(result.instrument_id)
     : null
+  const matchesSelectedIdentity = (profile: ETFProfile) =>
+    profile.symbol.trim().toUpperCase() === normalized
+    && (resolvedId == null || profile.instrument_id === resolvedId)
+  const matchedProfile = profiles.value.find(matchesSelectedIdentity)
   const pending = {
     symbol: normalized,
     name: result?.name || matchedProfile?.name || normalized,
@@ -982,12 +994,41 @@ async function selectProfileFromSearch(symbol: string, result?: ETFSearchResult)
     await selectProfile(matchedProfile, resolvedId, true)
     return
   }
-  fundSelectionGeneration += 1
+  const generation = ++fundSelectionGeneration
   pendingFund.value = pending
   resetWorkspaceSelection()
   overlapIssuer.value = ''
   overlapFundFamily.value = ''
   preparationMessage.value = `Preparing ${normalized} holdings. Any saved snapshot remains separate from current eligibility.`
+
+  // A selection can arrive before the initial profile list finishes loading.
+  // Wait for that canonical list, then query the exact symbol if it was not in
+  // the initial page. Do not treat a stored fund as undiscovered merely because
+  // the startup response has not arrived yet, and never let its first-row
+  // auto-selection replace this newer user intent.
+  const startupRequest = profileLoadRequest
+  if (startupRequest) await startupRequest.catch(() => [])
+  if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+  let storedProfile = profiles.value.find(matchesSelectedIdentity)
+  if (!storedProfile && resolvedId != null) {
+    let matchingProfiles: ETFProfile[] = []
+    try {
+      const loaded = await api.get<ETFProfile[]>('/etf-holdings', { q: normalized })
+      if (Array.isArray(loaded)) matchingProfiles = loaded
+    } catch {
+      // If the profile lookup is unavailable, retain the selected symbol and
+      // let the normal preparation request report its own truthful outcome.
+    }
+    if (generation !== fundSelectionGeneration || pendingFund.value?.symbol !== normalized) return
+    storedProfile = matchingProfiles.find(matchesSelectedIdentity)
+    if (storedProfile && !profiles.value.some(profile => profile.id === storedProfile?.id)) {
+      profiles.value = [...profiles.value, storedProfile]
+    }
+  }
+  if (storedProfile) {
+    await selectProfile(storedProfile, resolvedId, true)
+    return
+  }
   void prepareSelectedHoldings(normalized, resolvedId)
 }
 

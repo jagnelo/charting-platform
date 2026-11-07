@@ -350,7 +350,13 @@ test('supporting settings — discover preferences, manage an isolated preset, a
   await page.reload()
   const reloadedRow = page.locator('.preset-row').filter({ hasText: presetName })
   await expect(reloadedRow).toContainText('default')
+  const deletePresetResponse = page.waitForResponse(response =>
+    new URL(response.url()).pathname === `/api/v1/presets/${preset.id}`
+    && response.request().method() === 'DELETE',
+  )
   await reloadedRow.getByRole('button', { name: 'Delete' }).click()
+  expect((await deletePresetResponse).status()).toBe(204)
+  await expect(reloadedRow).toHaveCount(0)
   const afterDelete = await page.request.get('/api/v1/presets', { headers })
   const afterDeletePresets = await afterDelete.json() as Array<{ id: number; name: string; description: string | null; indicators: unknown[]; is_default: boolean }>
   expect(afterDeletePresets.some(item => item.id === preset.id)).toBe(false)

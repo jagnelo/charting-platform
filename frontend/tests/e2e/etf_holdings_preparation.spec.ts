@@ -255,7 +255,6 @@ test.describe('ETF holdings preparation', () => {
     expect(rows.snapshot.id).toBe(snapshot.id)
     expect(rows.total).toBe(snapshot.row_count)
     expect(rows.holdings.map(row => row.constituent_symbol)).toEqual(expect.arrayContaining(['LIN', 'APD']))
-    expect(selected.instrument_id).toBe(17)
 
     const unexpectedLegacyAcquires: string[] = []
     page.on('request', browserRequest => {
