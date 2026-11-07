@@ -162,20 +162,23 @@ async function assertNoCurrentBWETHoldings(request: APIRequestContext, token: st
 }
 
 async function assertFutureReasonVisible(page: Page): Promise<void> {
+  const futureHoldingsMessage = 'Current holdings are unavailable because the latest source snapshot is dated in the future.'
   const notice = page.locator('.workstation__selection-acquisition')
     .filter({ has: page.locator('summary[aria-label^="Holdings"]') }).first()
   await expect(notice, 'The selected BWET context should expose its separate holdings outcome').toBeVisible()
   const summary = notice.locator('summary')
-  await expect(summary).toHaveAttribute('aria-label', /Holdings.*current view remains usable/i)
+  await expect(summary).toHaveAttribute('aria-label', new RegExp(
+    `Holdings.*${futureHoldingsMessage.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} Your current view remains usable\\.`, 'i',
+  ))
   await summary.click()
-  await expect(notice.locator('.compact-status__detail'))
-    .toContainText('A reviewed data source could not complete this request.')
+  await expect(notice.locator('.compact-status__detail')).toContainText(futureHoldingsMessage)
   await expect(notice.locator('.compact-status__detail')).toContainText('Your current view remains usable.')
 }
 
 async function assertNoPriorFundRows(page: Page): Promise<void> {
   await expect(page.getByTestId('active-holding-lineage')).toHaveCount(0)
-  await expect(page.locator('.constituent-tool').getByRole('option')).toHaveCount(0)
+  const constituentRows = page.locator('.constituent-tool .watchlist__scroll[role="listbox"] [role="option"]')
+  await expect(constituentRows, 'Only actual constituent watchlist rows count as selected-fund holdings').toHaveCount(0)
 }
 
 async function awaitObservedDatasetRequest(request: Request): Promise<{ request: Request; requestId: string }> {
