@@ -1692,6 +1692,102 @@ describe('ETFHoldingsView', () => {
     wrapper.unmount()
   })
 
+  it('does not promote a post-ensure stored profile ID into refresh authority', async () => {
+    const oihProfile = {
+      ...profile,
+      id: 21,
+      instrument_id: 210,
+      symbol: 'OIH',
+      name: 'Oil Services ETF',
+      latest_snapshot_id: 95,
+      latest_composition_date: '2026-11-05',
+    }
+    const oihPage = holdingsPage({
+      snapshot: {
+        ...holdingsPage().snapshot,
+        id: 95,
+        etf_profile_id: oihProfile.id,
+        etf_instrument_id: oihProfile.instrument_id,
+        etf_symbol: 'OIH',
+        etf_name: oihProfile.name,
+        composition_date: '2026-11-05',
+        source_identifier: 'e2e:OIH:2026-11-05',
+      },
+      holdings: [{ ...holdingsPage().holdings[0], id: 9501, snapshot_id: 95, constituent_symbol: 'HAL' }],
+      total: 1,
+      has_next: false,
+    })
+    const oihDate = { ...dates[0], snapshot_id: 95, composition_date: '2026-11-05' }
+    let exactLookupCount = 0
+    vi.mocked(api.get).mockImplementation((path, params) => {
+      if (path !== '/etf-holdings') {
+        if (path === '/etf-holdings/OIH/dates') return Promise.resolve([oihDate]) as never
+        if (path === '/etf-holdings/OIH/holdings') return Promise.resolve(oihPage) as never
+        if (path === '/etf-holdings/OIH/diff') return Promise.resolve(diffPayload()) as never
+        if (path === '/etf-holdings/OIH/weight-evolution') return Promise.resolve(weightEvolutionPayload()) as never
+        if (path === '/etf-holdings/OIH/transitions') return Promise.resolve(transitionTimelinePayload()) as never
+        return Promise.resolve([]) as never
+      }
+      const query = (params as { q?: string } | undefined)?.q
+      if (query === undefined) return Promise.resolve([]) as never
+      if (query !== 'OIH') return Promise.resolve([]) as never
+      exactLookupCount += 1
+      return Promise.resolve(exactLookupCount === 1 ? [] : [oihProfile]) as never
+    })
+    vi.mocked(api.post).mockImplementation((path) => {
+      if (path === '/data/ensure') return Promise.resolve(preparationResponse('OIH')) as never
+      if (path === '/instruments/acquire') {
+        return Promise.resolve({
+          request_id: 'verified-oih',
+          status: 'resolved',
+          instrument: { instrument_id: 210, symbol: 'OIH', identity_status: 'verified' },
+          source_outcomes: [],
+        }) as never
+      }
+      if (path === '/etf-holdings/OIH/acquire') {
+        return Promise.resolve({
+          request_id: 'oih-holdings',
+          instrument_id: 210,
+          symbol: 'OIH',
+          outcome: 'cached',
+          refresh: false,
+          refresh_attempted: false,
+          refresh_succeeded: false,
+          profile: oihProfile,
+          snapshot: oihPage.snapshot,
+          capability: oihProfile.holdings_capability,
+          source_provider: 'issuer-test',
+          source_operation: null,
+          provider_request_log_ids: [],
+        }) as never
+      }
+      return Promise.reject(new Error(`Unexpected POST ${path}`)) as never
+    })
+
+    const wrapper = mount(ETFHoldingsView)
+    await wrapper.findComponent({ name: 'SearchBar' }).vm.$emit('select', 'OIH', {
+      symbol: 'OIH', name: 'Oil Services ETF', exchange: 'NYSE Arca', type: 'ETF',
+    })
+    await vi.waitFor(() => expect(wrapper.get('.panel-title-row h2').text()).toBe('OIH'))
+    await vi.waitFor(() => expect(wrapper.get('.holdings-table').text()).toContain('HAL'))
+    expect(exactLookupCount).toBe(2)
+    expect(api.post).toHaveBeenCalledTimes(1)
+    expect(api.post).toHaveBeenCalledWith('/data/ensure', {
+      target: { kind: 'instrument', symbol: 'OIH' }, datasets: ['holdings'],
+    }, expect.objectContaining({ signal: expect.any(AbortSignal) }))
+
+    await wrapper.get('[data-testid="etf-check-stored"]').trigger('click')
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/instruments/acquire', expect.objectContaining({
+      symbol: 'OIH',
+    })))
+    await vi.waitFor(() => expect(api.post).toHaveBeenCalledWith('/etf-holdings/OIH/acquire', expect.objectContaining({
+      instrument_id: 210,
+      refresh: false,
+    })))
+    expect(wrapper.get('.holdings-table').text()).toContain('HAL')
+    wrapper.unmount()
+  })
+
   it('does not let a late failed refresh for one selected fund alter the next fund', async () => {
     const qqqDates = dates.map((date, index) => ({ ...date, snapshot_id: 77 - index }))
     let resolveSpyPreparation: ((value: unknown) => void) | undefined

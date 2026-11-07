@@ -120,7 +120,8 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   const firstItem = page.locator('.wls-item').filter({ hasText: firstName })
   await firstItem.getByRole('button', { name: 'More options' }).click()
   await firstItem.getByRole('button', { name: 'Rename', exact: true }).click()
-  const rename = firstItem.locator('.wls-rename-input')
+  const rename = page.getByRole('textbox', { name: `Rename ${firstName}`, exact: true })
+  const editingFirstItem = page.locator('.wls-item').filter({ has: rename })
   await rename.fill(secondName)
   browserDiagnostics.allowExpectedWatchlistConflictResponses(1)
   const duplicateRename = page.waitForResponse(response =>
@@ -130,11 +131,11 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
   await rename.press('Enter')
   const rejectedRename = await duplicateRename
   expect(rejectedRename.status()).toBe(409)
-  await expect(firstItem.locator('.wls-rename-error')).toContainText(/name|already|exists|unique|409/i)
+  await expect(editingFirstItem.locator('.wls-rename-error')).toContainText(/name|already|exists|unique|409/i)
   await rename.press('Escape')
   await expect(firstItem.locator('.wlsi-name')).toHaveText(firstName)
 
-  const search = page.getByRole('textbox', { name: 'Symbol…' })
+  const search = page.getByRole('combobox', { name: 'Symbol…' })
   await search.fill('SPY')
   const spyChoice = page.getByRole('option').filter({ hasText: /^SPY\b/ }).first()
   await expect(spyChoice).toBeVisible({ timeout: 10_000 })
@@ -157,7 +158,7 @@ test('supporting watchlists — keyboard create, membership, rename recovery, re
 
   await refreshedSecond.getByRole('button', { name: 'More options' }).click()
   await refreshedSecond.getByRole('button', { name: 'Rename', exact: true }).click()
-  const validRename = refreshedSecond.locator('.wls-rename-input')
+  const validRename = page.getByRole('textbox', { name: `Rename ${secondName}`, exact: true })
   await validRename.fill(renamedName)
   const renameResponse = page.waitForResponse(response =>
     new URL(response.url()).pathname === `/api/v1/watchlists/${secondList.id}`

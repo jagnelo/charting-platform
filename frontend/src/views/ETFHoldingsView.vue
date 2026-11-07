@@ -1153,7 +1153,11 @@ async function prepareSelectedHoldings(symbol: string, instrumentId: number | nu
     const index = profiles.value.findIndex(candidate => candidate.id === updatedProfile.id)
     if (index >= 0) profiles.value.splice(index, 1, updatedProfile)
     else profiles.value = [updatedProfile, ...profiles.value]
-    await selectProfile(updatedProfile, updatedProfile.instrument_id, false)
+    // A profile row found after symbol-bound preparation is still a read-only
+    // database result. Preserve only the verified identity that authorized the
+    // ensure request; later explicit refresh actions must resolve identity if
+    // this selection began without a verified instrument ID.
+    await selectProfile(updatedProfile, instrumentId, false)
     if (generation === fundSelectionGeneration && pendingFund.value?.symbol === normalized) {
       preparationMessage.value = preparationStatusMessage(response)
     }
