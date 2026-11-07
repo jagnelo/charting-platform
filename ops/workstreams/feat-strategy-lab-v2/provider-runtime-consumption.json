@@ -3,39 +3,39 @@
   "dependency": "provider-runtime-development-consumption",
   "state": "imported_for_strategy_consumer_development; full_release_qualification_pending",
   "root_authority": {
-    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
-    "contract_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
-    "superseded_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider33e1fd44-runtime-development-consumption-contract.json",
-    "superseded_contract_sha256": "5393e80826da6ed01fd689f602444f438ec24d723c2b43a0e4a41b5bbcdae273",
+    "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+    "contract_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
+    "superseded_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
+    "superseded_contract_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
     "state": "released_for_exact_development_consumption_not_product_acceptance",
     "authority": "Root coordinates the human-approved common-interface implementation; no staging or deployment acceptance"
   },
   "producer": "original Provider session/worktree",
-  "source_commit": "182173f346d4a27694a46beba057102a5b7449e6",
+  "source_commit": "22c31cd3e7f35e361e286ef40576d379aaf44449",
   "base_commit": "139b350238b5e1c8a170dce5af09a805301d857e",
-  "scope": "Adds E2E-only canonical controlled SPY M15 fixture while preserving daily/weekly/monthly series; one-statement joined workspace reads prevent nested eager-loader graphs straddling concurrent snapshot replacement. Optimistic writer locks/revisions retained. Existing native admission, free-only holds, lineage and quotas unchanged. Real PostgreSQL read-concurrency regression1/1 plus E2E seed8/8 owner evidence; Root runtime, native and release qualification pending",
+  "scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
   "qualification": {
-    "previous_source_evidence": "Provider dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04 and its exact62-path consumer history are retained under historical_sources.",
+    "previous_source_evidence": "Provider dd05c5e8318ff59a90f879867cae9664dcc0de4f and its exact consumer history remain under historical_sources and ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json.",
     "successor_evidence": {
-      "root_exact_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
-      "root_manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
+      "root_exact_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+      "root_manifest_sha256": "a5079b0eb78a8fd67e48e94a7d749bc171ffa2b21165fc9c59c405501dc2db85",
       "root_reported_owner_evidence": {
         "owner": "See exact Provider handoff and validation records for focused proof; Root does not substitute this style export for functional, CI, real-source or browser proof",
-        "root_exact_export": "provider182173f3-exact-development-review.json",
+        "root_exact_export": "provider22c31cd3-exact-development-review.json",
         "full_release": "pending"
       },
-      "scope": "Adds E2E-only canonical controlled SPY M15 fixture while preserving daily/weekly/monthly series; one-statement joined workspace reads prevent nested eager-loader graphs straddling concurrent snapshot replacement. Optimistic writer locks/revisions retained. Existing native admission, free-only holds, lineage and quotas unchanged. Real PostgreSQL read-concurrency regression1/1 plus E2E seed8/8 owner evidence; Root runtime, native and release qualification pending",
-      "full_release": "pending; no exact-source full CI, combined browser acceptance, staging, deployment, or live-source proof is implied."
+      "scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
+      "full_release": "pending; no staging, deployment or live-source qualification is implied."
     },
-    "local_import_verification": "Only the nine Strategy consumer import_paths were imported after their exact old_guards passed. All62 source manifest rows were verified against182 bytes, Git blob, base status and executable-bit semantics. Current consumer rows match the exact manifest; producer suites/runtime were not rerun by Strategy.",
-    "full_release_gates": "pending; Root owns combined qualification and release."
+    "local_import_verification": "Imported only the 6 guarded Strategy paths. Verified all 67 manifest rows against SHA256, Git blob, status_from139 and executable-bit modes.",
+    "full_release_gates": "pending; Root owns combined browser/profile, exact-source CI and release acceptance."
   },
   "strategy_consumer": {
     "component": "frontend/src/components/workstation/StudyLabTool.vue",
     "client_path": "frontend/src/lib/dataPreparation.ts",
     "client_owner": "TC; exact 49-path common runtime and matching tests imported for Strategy consumption",
-    "client_release_commit": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
-    "client_sha256": "8193f6fdce8998cca36c0a90a2770864d9d2eff4eeb5e4948a8b66a4e445812e",
+    "client_release_commit": "2666aa559afbff7cff8dff6b50ead357ae1f654f",
+    "client_sha256": "ee6fae211ecafc7b076f0f6e1264017f4b14aa8d542b259d05a0d6d512beb7c3",
     "flow": [
       "The exact TC common-runtime source includes the matching session/auth/API/preparation, router/App shell, chart/stores/workspace, dock/plot and controlled-flow companions. It preserves the released session-bound preparation and candidate/source contracts; Strategy consumes these modules without duplicating provider workers, policy, quota or source acquisition.",
       "Study builds independent selected-symbol/member and benchmark history requests from the captured dataset intent.",
@@ -43,7 +43,7 @@
       "Study awaits all target outcomes before source validation/run dispatch, fences changed intents and aborts only obsolete client subscriptions.",
       "Provider owns durable queueing, worker scheduling, provider policy and series lineage; Strategy does not duplicate or activate these operations."
     ],
-    "qualification_boundary": "This5a source is released for exact development consumption only. Root reports the unchanged provider-boundary predicate on29 frozen runtime files and exact diff checks; no combined browser/full-profile or staging/deployment acceptance is implied. Strategy authored four reserved workstation lifecycle journeys; browser execution remains pending Root’s single combined slot.",
+    "qualification_boundary": "TC2666 and Provider22c31cd3 are exact development imports. R56 passed one corrected existing-asset Library validation diagnostic on c9/dd05; the complete Study-to-Library journey with exact edited-source request/response witness remains pending Root combined execution. R51 remains red historical evidence. No full-profile, exact-source CI, staging or release acceptance is implied.",
     "prior_client_pins": [
       {
         "source": "877df044d2496c5f1be0e86b4dd49503cc6e55db",
@@ -395,350 +395,93 @@
           "all_paths_sha256_git_blob_status_and_executable_semantics_match": true
         },
         "superseded_by": "5a783e745b211cfe8b3dd20cb77d275149f15de2"
+      },
+      {
+        "source": "5a783e745b211cfe8b3dd20cb77d275149f15de2",
+        "path": "frontend/src/lib/dataPreparation.ts",
+        "sha256": "8193f6fdce8998cca36c0a90a2770864d9d2eff4eeb5e4948a8b66a4e445812e",
+        "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json",
+        "contract_sha256": "4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290",
+        "scope": "Exact53-path TC common frontend runtime and matching tests;10 declared deltas over D5. Strategy consumes the authorized public workstation lifecycle interfaces without editing TC product modules.",
+        "superseded_by": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec"
+      },
+      {
+        "source": "c9fc3bbbfa9cc92ad037040fa3e610dd95bbf0ec",
+        "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-c9fc3bbb-common-runtime-development-consumption-contract.json",
+        "contract_sha256": "762e04066871d894e6da4bcc863f3cb8558d6473793eada942195f95a91275f6",
+        "superseded_by": "2666aa559afbff7cff8dff6b50ead357ae1f654f"
       }
     ],
-    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-5a783e74-common-runtime-development-consumption-contract.json",
-    "client_contract_sha256": "4e7919990af84e733c0e7ef9d5c2cd5593cc961d3f08a0af6ec2bbcf80bdb290",
+    "client_contract_path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/tc-2666aa55-common-runtime-development-consumption-contract.json",
+    "client_contract_sha256": "f0784a8337d3d53add381b0f06f9fd37e7e27fa861bca70d97e78ba341f3a10a",
     "client_files": [
       {
-        "path": "frontend/src/App.vue",
+        "path": "frontend/src/components/chart/HistoryAcquisitionControl.vue",
         "status_from139": "M",
-        "git_blob": "30b044eca6a257cf19c8ce276af7f376887acdd9",
-        "sha256": "97da879a96c0ccb11fd632f1e801e7aa61796630fa447dbec353b8fe9ee29153"
-      },
-      {
-        "path": "frontend/src/components/common/Notification.vue",
-        "status_from139": "M",
-        "git_blob": "6bc097a442066de2b9bc3e0b318275da4bcee388",
-        "sha256": "16535b3ec4d8983dd47aab9975f1777e1f4536c33e1891c263fb41539698709a"
-      },
-      {
-        "path": "frontend/src/components/radar/RadarDetailPreviewChart.vue",
-        "status_from139": "M",
-        "git_blob": "aac1f6ce656c44beac3ecd2da4dc10d6da4bf373",
-        "sha256": "dac1abe2d8314669529cc23c5746cf2cb3bf22386db6598053969c64c0c9059b"
-      },
-      {
-        "path": "frontend/src/components/workstation/RatioUPlot.vue",
-        "status_from139": "M",
-        "git_blob": "d4eb04c81611833e2c67d61d96204fd00d5b7e0e",
-        "sha256": "da077d3203ae85976ad90268e112f49732e5732c2b86ea7830920e2b56b2a482"
+        "git_blob": "1fd0fcaaf865b954f074ad0994d1d82c1e376bf3",
+        "sha256": "b707a705103bbfb90d42e422b2f91f580fb5917cceaee861b43c5571f32c8ef0"
       },
       {
         "path": "frontend/src/components/workstation/RelativeRotationTool.vue",
         "status_from139": "M",
-        "git_blob": "a5d35bdfe566f4aa8bc81f1b3dec234d4bf683c3",
-        "sha256": "37ec398d1a3a2d7c6925a3d39e73b1b8569533a817329e622751b5438dd547b1"
+        "git_blob": "43c101d0a60c26ca01772aa4f5b417de8f0d23c2",
+        "sha256": "6a8812c2d29ae450ebdd62f1aa4e0a70037557ca716cc50e55382ed2b01293aa"
       },
       {
-        "path": "frontend/src/components/workstation/ToolWindow.vue",
-        "status_from139": "M",
-        "git_blob": "d01d54fdcca7c2f11400a239357d28b0557f8157",
-        "sha256": "18b54638c8c6f88122800f4f6031ca67877a0cdd916c828fa5fb52010c32a76e"
-      },
-      {
-        "path": "frontend/src/components/workstation/WorkspaceLayoutHost.vue",
-        "status_from139": "M",
-        "git_blob": "9ea8080d899a7462f78baae9f6d049b2f466175b",
-        "sha256": "168f2a285ea1e7c5930acb1188392d1a8a10089c144cf06fe3cd47a91b99a3dc"
-      },
-      {
-        "path": "frontend/src/components/workstation/WorkstationToolContent.vue",
-        "status_from139": "M",
-        "git_blob": "cb1c765c6b6e4e82e36a3fa0241c0316b7fb18c7",
-        "sha256": "1bcc3320ca1639c44d57b5300332933b349cebb5aced6fa7e52837af5acf5801"
-      },
-      {
-        "path": "frontend/src/lib/api.ts",
-        "status_from139": "M",
-        "git_blob": "81b12b469db6f4d5c543887f72952d8accf31688",
-        "sha256": "b657ee72d3e7947508dc4148e3e370c73bddb190bebcb3eef45fb4efa3099519"
-      },
-      {
-        "path": "frontend/src/lib/authSession.ts",
+        "path": "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
         "status_from139": "A",
-        "git_blob": "08a2ca831c277009bcf139699d22e569f5d1dac0",
-        "sha256": "8ed6b9dca7d36ca0da329b3f5885f470a25e3a0362599a326336bdcad42aaba8"
+        "git_blob": "2e31968084b46a722688f52fe7baeee66e98ad1d",
+        "sha256": "2a6ecb3863c589764507fb54d724b616fd55122f9f623a02c2d34a0224e62921"
       },
       {
-        "path": "frontend/src/lib/dataPreparation.ts",
+        "path": "frontend/tests/unit/components/test_compact_status_notice.test.ts",
         "status_from139": "A",
-        "git_blob": "4d2151b3aede3176a68d2ba64180d25070e31676",
-        "sha256": "8193f6fdce8998cca36c0a90a2770864d9d2eff4eeb5e4948a8b66a4e445812e"
+        "git_blob": "d191639f5d5a25cbf6624275682342328074810b",
+        "sha256": "7bf39d9cafd051b0f07ae2a074f1de995016da26e63ff11bd2a9ed65b7d29001"
       },
       {
-        "path": "frontend/src/lib/etfHoldingDrilldown.ts",
+        "path": "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
         "status_from139": "M",
-        "git_blob": "714d26cc0e0e81fed24fadc1b25b9097d8318fbf",
-        "sha256": "05986174edd2c229a7c07640192a333eabc5daa8c46730fabda44d45c01bfa76"
-      },
-      {
-        "path": "frontend/src/lib/workstation/ohlcvRequests.ts",
-        "status_from139": "M",
-        "git_blob": "e7ea6f716fc6f5a71a155e79b5ac51582a3552f3",
-        "sha256": "574359b7d69f359b56c9fbf292457cff87e2594d49b21f2cd04eb8fc10352602"
-      },
-      {
-        "path": "frontend/src/main.ts",
-        "status_from139": "M",
-        "git_blob": "feb9216bb519177c7782962de17b7fc2d2f1dd8a",
-        "sha256": "4c9253d30eab71e58826d9a46295e1785a2bfe795a43276469fef9a52bdaf304"
-      },
-      {
-        "path": "frontend/src/router/index.ts",
-        "status_from139": "M",
-        "git_blob": "0b42e2d4bd8aaffa9d295d5e3691a4238811e984",
-        "sha256": "8779ae2000cadbd8c01bf09bbf62dfea6173fdd08632146bcfb3fc73c8de33ab"
-      },
-      {
-        "path": "frontend/src/stores/alerts.ts",
-        "status_from139": "M",
-        "git_blob": "96d9acaf2ba2e7a34c592846e03854631044aa64",
-        "sha256": "142413573c26294162fbc8c5cebee2673df486c2763b663a729bedd1c85430c9"
-      },
-      {
-        "path": "frontend/src/stores/auth.ts",
-        "status_from139": "M",
-        "git_blob": "a41924732bc9b179d3214502a0c5c70c63b67d44",
-        "sha256": "38b1b7f73cfc251cde7c2ef3971629b01d56e157d8f75ecc083f705e2db4feef"
-      },
-      {
-        "path": "frontend/src/stores/chart.ts",
-        "status_from139": "M",
-        "git_blob": "e9381c3467adbb618d85590f8dba38253f0821e8",
-        "sha256": "8b48945894487b73bfa1edec3f7147ffea570fd731c141cb9b6f8440c9a3d13d"
-      },
-      {
-        "path": "frontend/src/stores/layout.ts",
-        "status_from139": "M",
-        "git_blob": "77025d52b26feaacf58eef0ec4e8bc750cff0417",
-        "sha256": "791997814cd88e48fe5c0b2f7d9508835875e57b32af3b31cdf0acb096e72f8f"
-      },
-      {
-        "path": "frontend/src/stores/panelLinks.ts",
-        "status_from139": "M",
-        "git_blob": "f958ee2443bb7fe13497e50b5d01f84d64493b98",
-        "sha256": "6e1fe199023441217209f8825e0b49f82fb3215b30d0b024cf9300034d7a103b"
-      },
-      {
-        "path": "frontend/src/stores/radar.ts",
-        "status_from139": "M",
-        "git_blob": "22bffcd457304eab655246c6f09ccdde66cf59cc",
-        "sha256": "a68988f29570e3921dfc4e9fb02ac0bbe0cc8dad8dab0d3c4f5cfbec4bc11b55"
-      },
-      {
-        "path": "frontend/src/stores/recentInstruments.ts",
-        "status_from139": "M",
-        "git_blob": "6acd5eabc747e562e2fc3fb63fe0fd2d85c43263",
-        "sha256": "ae0183555ae9363f4f5dec1d3f72ef857ddd3478512c51afebdc10166a4dd626"
-      },
-      {
-        "path": "frontend/src/stores/userSettings.ts",
-        "status_from139": "M",
-        "git_blob": "67a59b6b2eafa285d07077ad6b90725a870fca0b",
-        "sha256": "3b4c13685562c01ec9d86070dd0bab5304b5139ab1153b2815eb5e5e3af25fc2"
-      },
-      {
-        "path": "frontend/src/stores/watchlist.ts",
-        "status_from139": "M",
-        "git_blob": "ebfe93116891a465f86a37fd30b3ab768a5e8ffe",
-        "sha256": "13efd99204c61fa4fd46f2d6044711e297becdc8a192d5b97580196674022bd1"
-      },
-      {
-        "path": "frontend/src/stores/workspace.ts",
-        "status_from139": "M",
-        "git_blob": "450919c186189b7c7dbd042418ed4cd488698332",
-        "sha256": "ad8c80b2b112ae8f68e47bb34d007992c3a81890e1afeb8dba14a580ff6c576e"
-      },
-      {
-        "path": "frontend/src/views/AlertsView.vue",
-        "status_from139": "M",
-        "git_blob": "8c268205749381574e7b69f28d8d976ba0a9ac58",
-        "sha256": "424dc46ad8058c3be768fff4965b362b6677f5e9f896b16d04efd211402c169b"
-      },
-      {
-        "path": "frontend/src/views/ChartView.vue",
-        "status_from139": "M",
-        "git_blob": "ccf4749361ad1329ffb53d9f7be5c8459e105aed",
-        "sha256": "00da56e3a99e6d9447af27814f0be00f5ea97975c2176cc9804b3bb89b62fca3"
-      },
-      {
-        "path": "frontend/src/views/SettingsView.vue",
-        "status_from139": "M",
-        "git_blob": "4b6ae268b275c8acab7d8b9acd446dd71b5f4fd6",
-        "sha256": "5f79d8398edf9c71f468bde74aca2bd92169910a370e549e4278dd40b000efae"
-      },
-      {
-        "path": "frontend/src/views/WorkstationView.vue",
-        "status_from139": "M",
-        "git_blob": "b17487c3f89b9810385a1df1efcea63563dca4bc",
-        "sha256": "8a88e10b3db050b175f7f8102985e0186735e446fee88add6c8fd44d6057f963"
-      },
-      {
-        "path": "frontend/tests/e2e/auth_session_boundary.spec.ts",
-        "status_from139": "A",
-        "git_blob": "f017b46526752fc6444cd977f8d1875fe061d54b",
-        "sha256": "76113a03a2fc4248401d3f191c9503afc13436d90994c8e7b9c636aed864b8d8"
-      },
-      {
-        "path": "frontend/tests/e2e/flows.spec.ts",
-        "status_from139": "M",
-        "git_blob": "e139b4144700118dbd5eebc44eed507e709b2f27",
-        "sha256": "d56a9c0031c2f65c48afe9479f083339f8f31d1d5fb63b50a7642d72bfafd802"
-      },
-      {
-        "path": "frontend/tests/e2e/tc2000_visual.spec.ts",
-        "status_from139": "M",
-        "git_blob": "d935bc93f3f1aa169617e12a4872792390c15c37",
-        "sha256": "f4944c55fc684a0a1284fd16fdfe16a071904fb2277a4f6f2a439434df1f763d"
-      },
-      {
-        "path": "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
-        "status_from139": "A",
-        "git_blob": "a7bcbddda6113c621d05357a78aef6cc9ce42773",
-        "sha256": "54f074573244ca33beb9f8f945b01ffde24920c2c3fcb4905393dc5f46be5a2e"
-      },
-      {
-        "path": "frontend/tests/unit/components/test_ratio_uplot.test.ts",
-        "status_from139": "M",
-        "git_blob": "10a7531559ac2763bcad8e53c48127eb5290accb",
-        "sha256": "e8e7f28ddedd292d487cf500cfcb62641162f44abb0373069b8124d5e9a99b0b"
+        "git_blob": "b281ca9d76d07ed08382605cc18e6f2a938f204a",
+        "sha256": "658529f244f58751c865388736e3c36aadfe0060242c55c50c00bbdcad431cd9"
       },
       {
         "path": "frontend/tests/unit/components/test_relative_rotation_tool.test.ts",
         "status_from139": "M",
-        "git_blob": "7bbd8f715ad40cf5d4d8e1bf443b9953eaef1696",
-        "sha256": "62f30a07804587431f37255758055e206d118cb5a7dd3de48d329a5f2baf6e20"
-      },
-      {
-        "path": "frontend/tests/unit/components/test_tool_window.test.ts",
-        "status_from139": "M",
-        "git_blob": "041e00c62011f28de1c67d26c40b47cc6abe86e8",
-        "sha256": "4149dad36dfa67c4f5af5fe710cc08479b151aa7b086fb8a882f027c969d5cb0"
-      },
-      {
-        "path": "frontend/tests/unit/components/test_workspace_layout_host.test.ts",
-        "status_from139": "M",
-        "git_blob": "4de1836930d59369f35fc2142c6c80ac7c1e8959",
-        "sha256": "91b54fc2177f4f1dbfdf9e0c2cb6099719ec2bc4886504f02265fda9d15c16d1"
-      },
-      {
-        "path": "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
-        "status_from139": "M",
-        "git_blob": "da89d105f8cfb8e7dfaf1efb532aab93a1e0f639",
-        "sha256": "c2d1b0d29798a8ff54a45a710c35031062bbf0d671e686c5c9f55cec46cc90ea"
-      },
-      {
-        "path": "frontend/tests/unit/lib/test_api_client.test.ts",
-        "status_from139": "M",
-        "git_blob": "dfa9f9acddff029447d017f04076b4d638a2527c",
-        "sha256": "5d9400edb9e7d48b9525b3cc7841f54d7d5aa12cd7a7c1d7587f6a1b6e9295f9"
-      },
-      {
-        "path": "frontend/tests/unit/lib/test_auth_session.test.ts",
-        "status_from139": "A",
-        "git_blob": "27b13cb7dff285e148ec2ad90b52bef15facad4b",
-        "sha256": "c336f5b8e15cf8185199c5319de7dd87b008f01e1a06a095d1846a9de9818487"
-      },
-      {
-        "path": "frontend/tests/unit/lib/test_data_preparation.test.ts",
-        "status_from139": "A",
-        "git_blob": "f9040144cbceee626164e29da542d2340b73012e",
-        "sha256": "df136f41d0245a528fea60482068b1e34b395771acd141f99f7c4b80b2060c9c"
-      },
-      {
-        "path": "frontend/tests/unit/lib/workstation_ohlcv_requests.test.ts",
-        "status_from139": "M",
-        "git_blob": "f365a2d6bbba9ec91e1eed5abaf537f0caf6d1e5",
-        "sha256": "d2282805ea6bebfe4dcc658f3507ead6fc0f0a4a641871fef8a399a5acaefa83"
-      },
-      {
-        "path": "frontend/tests/unit/router/test_app_shell.test.ts",
-        "status_from139": "M",
-        "git_blob": "a1462a0757868cf0656e77059db3135543e3465c",
-        "sha256": "5d1dd149407c4fb5cdaa29233bdd6c89ffee2e5673c9741e8621621a5144e192"
-      },
-      {
-        "path": "frontend/tests/unit/router/test_application_routes.test.ts",
-        "status_from139": "M",
-        "git_blob": "6a3a9e4626c091cbf31cc245b7c996c9b0d5e7c2",
-        "sha256": "a62c5bcb51fbb068337e18ff0f836af4a5fe96c26f90649beb8f8770ec26a867"
-      },
-      {
-        "path": "frontend/tests/unit/setup.ts",
-        "status_from139": "M",
-        "git_blob": "8d1aad7c0125bef31cb56b1fd950bb42bc0f70c1",
-        "sha256": "e011f0d9534079df270f39a9d763bc6d2ceb934f5b7324849824fe7bb8b9afb3"
-      },
-      {
-        "path": "frontend/tests/unit/stores/test_drawings_store.test.ts",
-        "status_from139": "M",
-        "git_blob": "b099f5c9f2fb112f084fb600e11a3aed514a8f98",
-        "sha256": "e8043e84737d0b0b5a8574a4ddd1d69b4f1b44be2435ef882334db553c19e990"
-      },
-      {
-        "path": "frontend/tests/unit/stores/test_stores.test.ts",
-        "status_from139": "M",
-        "git_blob": "3ad0dde7ba64dece36e6739f6a99c9ca86455963",
-        "sha256": "b4f33cbdb5d65aeee16a9529400cb79dd9801560d8bdfb765a5e33f706c63fda"
-      },
-      {
-        "path": "frontend/tests/unit/stores/test_workspace_store.test.ts",
-        "status_from139": "M",
-        "git_blob": "7acd2ecf06772f1542c5baaa1b2cf3a8dac52cab",
-        "sha256": "db86d534af008dd60a78f45fa488ae5c2eed8c781ca8b169bc9b5881f545974d"
-      },
-      {
-        "path": "frontend/tests/unit/views/test_alerts_view_creation_path.test.ts",
-        "status_from139": "A",
-        "git_blob": "0c249b125282562f3e987f4653d8df3b8473a0ea",
-        "sha256": "ee2acc4c6a0e6504dcc49a7d9c3012b0541fa0719f33a63f6a58759ca724f925"
-      },
-      {
-        "path": "frontend/tests/unit/views/test_chart_view_radar_handoff.test.ts",
-        "status_from139": "M",
-        "git_blob": "63a5651b2fb73f5b4d4f91f3119e2974a27e74a2",
-        "sha256": "734391222ec33b028220a8b8c470979fd1590189a6836e4098de4e1939e3d993"
-      },
-      {
-        "path": "frontend/tests/unit/views/test_settings_view.test.ts",
-        "status_from139": "M",
-        "git_blob": "964fc96b1209a3fbff08db078b533da3820799c9",
-        "sha256": "14af364e608a43eee5f244089388cf4204e893ef86ce136d4de8d0b4ae0cb616"
-      },
-      {
-        "path": "frontend/tests/unit/views/test_workstation_capabilities.test.ts",
-        "status_from139": "M",
-        "git_blob": "2ca772629df232d0b73c143da1f1dd3e2d5046ea",
-        "sha256": "f31a84d5438be29238f5646941eeb995184f43544f6830baa19528af0f009555"
-      },
-      {
-        "path": "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts",
-        "status_from139": "M",
-        "git_blob": "ba364fdf711e1aa68d896fb702b264924c9b3c6c",
-        "sha256": "95151ac00390b8f3cc5d11f4beafad9499610be8b1ca8c09e8e4dd23a0b259da"
+        "git_blob": "f1c540dd1d859dd92698733a57b367dc292c293c",
+        "sha256": "5c2d45d3d221f1a83cfbb30c640745c62cc522c615edba857fdfd4dae5ece284"
       }
     ],
-    "client_scope": "Exact53-path TC common frontend runtime and matching tests;10 declared deltas over D5. Strategy consumes the authorized public workstation lifecycle interfaces without editing TC product modules.",
+    "client_scope": "Frozen TC successor: generic latest RRG markers painted above all historical markers, secondary History acquisition visual treatment, existing compact controls/statuses, new secondary-route browser cases and disclosure regression. Complete86 common paths; private ETF/Strategy remain separate. No math/data/reference/quota changes.",
     "client_import_verification": {
       "changed_paths_since_previous": [
-        "frontend/src/components/radar/RadarDetailPreviewChart.vue",
-        "frontend/src/components/workstation/WorkstationToolContent.vue",
-        "frontend/src/stores/workspace.ts",
-        "frontend/src/views/SettingsView.vue",
-        "frontend/src/views/WorkstationView.vue",
-        "frontend/tests/unit/components/test_radar_detail_preview_chart.test.ts",
-        "frontend/tests/unit/components/test_workstation_tool_content_history_acquisition.test.ts",
-        "frontend/tests/unit/stores/test_workspace_store.test.ts",
-        "frontend/tests/unit/views/test_settings_view.test.ts",
-        "frontend/tests/unit/views/test_workstation_popout_bindings.test.ts"
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+        "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+        "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
       ],
-      "all_53_entries_match_sha256_git_blob_status_from139_and_executable_bit": true,
-      "unowned_or_excluded_paths_changed": false,
-      "verified_at": "2026-11-07T02:55:44Z"
+      "consumer_import_paths": [
+        "frontend/src/components/chart/HistoryAcquisitionControl.vue",
+        "frontend/src/components/workstation/RelativeRotationTool.vue",
+        "frontend/tests/e2e/tc_secondary_routes_journey.spec.ts",
+        "frontend/tests/unit/components/test_compact_status_notice.test.ts",
+        "frontend/tests/unit/components/test_history_acquisition_control.test.ts",
+        "frontend/tests/unit/components/test_relative_rotation_tool.test.ts"
+      ],
+      "all_86_manifest_rows_match_sha256_git_blob_status_from139_and_executable_bit": true,
+      "old_guards_passed": true,
+      "verified_at": "2026-11-07T15:42:32+00:00"
     }
   },
   "imported_files": [
+    {
+      "path": "backend/app/config.py",
+      "status_from139": "M",
+      "git_blob": "e2d3a89159937a56c59a856f9a34c1f8b82ea698",
+      "sha256": "334fc1f98f623569bf74e5b4d20fba9e8527f6de3b987fdf9073fa114887355a"
+    },
     {
       "path": "backend/app/main.py",
       "status_from139": "M",
@@ -756,6 +499,12 @@
       "status_from139": "M",
       "git_blob": "de2e2cd5aca749b19b1d61ef17c6063f5056ee68",
       "sha256": "d51d4f35defed8825937c91027e6059767b0519413209824e303d87b1b52c456"
+    },
+    {
+      "path": "backend/app/providers/optional_market_data.py",
+      "status_from139": "M",
+      "git_blob": "99e35cc266b1c01bed858ddf69284bec9a11b2d8",
+      "sha256": "def4f1ac99b1b228e67dbc194bca83f151a1e28e29c6a7da6071e069a85d575f"
     },
     {
       "path": "backend/app/routers/analysis.py",
@@ -826,8 +575,8 @@
     {
       "path": "backend/app/services/e2e_seed.py",
       "status_from139": "M",
-      "git_blob": "b691f38ff9a2145ef7456d8741099f86aaac79d3",
-      "sha256": "4802be9c8879ec9a6109dfe155f0156cfefc7416050dc6ef8b97c0653a24b6fd"
+      "git_blob": "99c99a9f95e6d9626bae52cfa8683c6e8d091186",
+      "sha256": "b5f0de5424f36ee5b08ee7b201c08903e798a7b807394dca67ae8d024e41c317"
     },
     {
       "path": "backend/app/services/etf_holdings_adapters.py",
@@ -852,6 +601,12 @@
       "status_from139": "M",
       "git_blob": "9c8ee222980a5ef5780fc7a94f7ac326269c21d4",
       "sha256": "bc526d2c0f94a52386d6049fd2ffb82ad695606b1c5a301c2b2b8fb580510474"
+    },
+    {
+      "path": "backend/app/services/exchange_sessions.py",
+      "status_from139": "M",
+      "git_blob": "4a837ac351802a986e073becfd7b8f898ba81b10",
+      "sha256": "a07e0b9165f18da5314a8ab587cdbe7e0a5b44650a657876f8d24cd3ab155831"
     },
     {
       "path": "backend/app/services/instrument_events.py",
@@ -886,14 +641,14 @@
     {
       "path": "backend/app/services/ohlcv_coverage.py",
       "status_from139": "M",
-      "git_blob": "d5123da35f78e366516e01298da447909d0cfce6",
-      "sha256": "1decd6ba026caccfc48678f5d9d03816984208ad1edde6352e184ec24a5e64fd"
+      "git_blob": "46a9426f986fe88e1942593aa6d8e23217404466",
+      "sha256": "483b7a7b862a3dd1ea0b9f8afdb45fdab9ad6ad8d08b266a1ece93177b154918"
     },
     {
       "path": "backend/app/services/provider_runtime.py",
       "status_from139": "M",
-      "git_blob": "73ef681adc87b7383f9eb33596be4b8b16463034",
-      "sha256": "c6d0a47d395e7b9a1807880184a094e43bbd9241222c0afbfcd8d9a06b4a3ec5"
+      "git_blob": "307fc7bb14e94b76b02a03acf7f6f6c4b78ca9dd",
+      "sha256": "60a9438595d2d4a772e971697b3496b295dd97091f2dcf2d6703e35cf0a73b28"
     },
     {
       "path": "backend/app/services/screener_engine.py",
@@ -910,8 +665,8 @@
     {
       "path": "backend/app/tasks/data_tasks.py",
       "status_from139": "M",
-      "git_blob": "ca4afda72633158604a3b6f3340c970fd5fbea5e",
-      "sha256": "35b6eb97d86e7449cfab3226b76052d744eb59f64660898b8a15080b0f20c082"
+      "git_blob": "96a7ff5ab9d056445bcc55542d5471daa7b2168a",
+      "sha256": "4552cd54c6a2cae965f074b39d60cf4c8db56011f6bc3d297c22c5e6c5f6e4fe"
     },
     {
       "path": "backend/app/workers/arq_worker.py",
@@ -948,6 +703,12 @@
       "status_from139": "M",
       "git_blob": "e2296f53ddabd131288de8c061f1a1b0239cb263",
       "sha256": "cdd9b24b4c9c25e2a19c7d6120101ee07c88eef69eca7dcab99ab3a4c0768474"
+    },
+    {
+      "path": "backend/tests/unit/providers/test_optional_market_data.py",
+      "status_from139": "M",
+      "git_blob": "471da0b4aafdce79322c747665a1dc3f5ac96c33",
+      "sha256": "07d076179a1ef356a6743a90ddc69228eb4f64808c75e450979801a2162182ae"
     },
     {
       "path": "backend/tests/unit/routers/test_analysis_router.py",
@@ -994,8 +755,8 @@
     {
       "path": "backend/tests/unit/services/test_data_preparation_history_planning.py",
       "status_from139": "A",
-      "git_blob": "ee5d93d133fd47f48071fc54048d617e564e573f",
-      "sha256": "efe7b2b49be7c60e0e9b837e1b4f715b35030d920ba19d1e50058506ac88dde7"
+      "git_blob": "10e51ae300e9d8463a9737f1bbf080438cce1174",
+      "sha256": "3f4cce785014db1397acc92b675e8142012203de4a8979b2b759db56eb623ae2"
     },
     {
       "path": "backend/tests/unit/services/test_data_preparation_service.py",
@@ -1012,8 +773,8 @@
     {
       "path": "backend/tests/unit/services/test_e2e_seed.py",
       "status_from139": "M",
-      "git_blob": "8b33dae4d28e782d24026d9c37abff32d7549001",
-      "sha256": "6fa1c8ee19e1e23adf7a2ea65d4520f568df7465f6fe5fa3804ff74d109ce65e"
+      "git_blob": "51b42af9cc004f4bebd2909a099ec43e043fdbd9",
+      "sha256": "f8f348e6ade63a14ed542e597d7cb6490fba6327939e37284c572d1131d4b55b"
     },
     {
       "path": "backend/tests/unit/services/test_etf_holdings_adapters.py",
@@ -1058,10 +819,16 @@
       "sha256": "8b8c8d5bb5183a6cdb2b1805fbcc895a22d4adc13f169c4cec57cb02be2de3dc"
     },
     {
+      "path": "backend/tests/unit/services/test_exchange_catalog.py",
+      "status_from139": "M",
+      "git_blob": "e1582802f27f9edd0b84c33218137278efce471e",
+      "sha256": "0db64ad27be70bec384b4fce55300fda243687f8411eee5adadb00a43879da91"
+    },
+    {
       "path": "backend/tests/unit/services/test_market_data.py",
       "status_from139": "M",
-      "git_blob": "834a363d2ff8cc24becc15b47fda1cb08000c664",
-      "sha256": "088c258a4d05ab26ce18200d68a403fc4fbef0d85e526dd8e8ba013e50fcd390"
+      "git_blob": "b388a6d0d70e47b1467853423ae5162072398364",
+      "sha256": "1af74e5e49557198f3dc6de7fa94a31516367159c2d909dab630501fca727b76"
     },
     {
       "path": "backend/tests/unit/services/test_market_refresh_queue.py",
@@ -1122,26 +889,23 @@
   "preserve": "Keep complete roadmap and previous manifests as immutable history; preserve domain frontend/parser edits. Root owns combined qualification and release.",
   "no_new_tables_or_migration": true,
   "import_verification": {
-    "method": "Verified all62 source rows, base-to-source status, Git blobs, SHA256 and executable-bit modes; verified the nine declared Strategy old guards and imported only those paths.",
-    "path_count": 9,
-    "changed_paths_count": 9,
-    "source_manifest_entries_verified": 62,
+    "method": "Imported only the exact 6 Strategy consumer paths after all old guards passed; verified all 67 manifest source rows, SHA256, Git blobs, base status and executable-bit modes.",
+    "path_count": 6,
+    "changed_paths_count": 6,
+    "source_manifest_entries_verified": 67,
     "git_blob_and_sha256_verified": true,
     "status_from139_verified": true,
     "executable_bit_verified": true,
     "consumer_import_paths": [
-      "backend/app/routers/workspaces.py",
-      "backend/app/services/baskets.py",
-      "backend/app/services/e2e_seed.py",
+      "backend/app/config.py",
+      "backend/app/providers/optional_market_data.py",
+      "backend/app/services/provider_runtime.py",
       "backend/app/tasks/data_tasks.py",
-      "backend/tests/integration/api/test_baskets.py",
-      "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
-      "backend/tests/integration/test_data_preparation_queue_postgres.py",
-      "backend/tests/unit/services/test_data_preparation_history_planning.py",
-      "backend/tests/unit/services/test_e2e_seed.py"
+      "backend/tests/unit/providers/test_optional_market_data.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py"
     ],
     "consumer_import_exact": true,
-    "checked_at": "2026-11-07T13:45:03Z"
+    "checked_at": "2026-11-07T15:42:32+00:00"
   },
   "historical_sources": [
     {
@@ -5355,17 +5119,466 @@
       "superseded_by": "182173f346d4a27694a46beba057102a5b7449e6",
       "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd70319e-runtime-development-consumption-contract.json",
       "contract_sha256": "9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e"
+    },
+    {
+      "source_commit": "182173f346d4a27694a46beba057102a5b7449e6",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
+      "contract_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
+      "base_commit": "139b350238b5e1c8a170dce5af09a805301d857e",
+      "scope": "Adds E2E-only canonical controlled SPY M15 fixture while preserving daily/weekly/monthly series; one-statement joined workspace reads prevent nested eager-loader graphs straddling concurrent snapshot replacement. Optimistic writer locks/revisions retained. Existing native admission, free-only holds, lineage and quotas unchanged. Real PostgreSQL read-concurrency regression1/1 plus E2E seed8/8 owner evidence; Root runtime, native and release qualification pending",
+      "qualification": {
+        "previous_source_evidence": "Provider dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04 and its exact62-path consumer history are retained under historical_sources.",
+        "successor_evidence": {
+          "root_exact_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
+          "root_manifest_sha256": "8d48966b85588d46222de04b1ade9401379db284688253280ef8630d40a73a56",
+          "root_reported_owner_evidence": {
+            "owner": "See exact Provider handoff and validation records for focused proof; Root does not substitute this style export for functional, CI, real-source or browser proof",
+            "root_exact_export": "provider182173f3-exact-development-review.json",
+            "full_release": "pending"
+          },
+          "scope": "Adds E2E-only canonical controlled SPY M15 fixture while preserving daily/weekly/monthly series; one-statement joined workspace reads prevent nested eager-loader graphs straddling concurrent snapshot replacement. Optimistic writer locks/revisions retained. Existing native admission, free-only holds, lineage and quotas unchanged. Real PostgreSQL read-concurrency regression1/1 plus E2E seed8/8 owner evidence; Root runtime, native and release qualification pending",
+          "full_release": "pending; no exact-source full CI, combined browser acceptance, staging, deployment, or live-source proof is implied."
+        },
+        "local_import_verification": "Only the nine Strategy consumer import_paths were imported after their exact old_guards passed. All62 source manifest rows were verified against182 bytes, Git blob, base status and executable-bit semantics. Current consumer rows match the exact manifest; producer suites/runtime were not rerun by Strategy.",
+        "full_release_gates": "pending; Root owns combined qualification and release."
+      },
+      "files": [
+        {
+          "path": "backend/app/main.py",
+          "status_from139": "M",
+          "git_blob": "bcdb5e07415c1fd84504adec4f835d824d24b8ff",
+          "sha256": "12df279e453e6c8fcf7e05ede9208af027fa27645eb927cd4e84fa4dc742f4ca"
+        },
+        {
+          "path": "backend/app/providers/alpaca.py",
+          "status_from139": "M",
+          "git_blob": "f04bb5b13374dfe4c5683acd70250d921bfbf5f5",
+          "sha256": "65cf8bf722a580c8c74d5562f73e57bc495196544590be8d71a1538b0182b3e6"
+        },
+        {
+          "path": "backend/app/providers/massive.py",
+          "status_from139": "M",
+          "git_blob": "de2e2cd5aca749b19b1d61ef17c6063f5056ee68",
+          "sha256": "d51d4f35defed8825937c91027e6059767b0519413209824e303d87b1b52c456"
+        },
+        {
+          "path": "backend/app/routers/analysis.py",
+          "status_from139": "M",
+          "git_blob": "8099306776174af5186e612d9a300bc64b5ecf7f",
+          "sha256": "5396c1c3178678947ab4c6fd70f51a65054b0d4d2e502aa06fc54875b2274212"
+        },
+        {
+          "path": "backend/app/routers/data_preparation.py",
+          "status_from139": "A",
+          "git_blob": "6a076671ad88a0e4f93ca742a644d6fa8958032d",
+          "sha256": "3f263b31955de71deac04cccbbeb63add7b5ac9d59d8afcf9e0a25ba344d634b"
+        },
+        {
+          "path": "backend/app/routers/ohlcv.py",
+          "status_from139": "M",
+          "git_blob": "d0921270b79f2ac24419a32833f75e5f441af96e",
+          "sha256": "420387926e48794e48cd452c04fbd9478b68980f0162762acdd434a019407b30"
+        },
+        {
+          "path": "backend/app/routers/research.py",
+          "status_from139": "M",
+          "git_blob": "0c273ed12ad83bfe09ff6677321a906d3fcf1751",
+          "sha256": "ad99feb6bb7f858ccf2898df1c81a52ca2cca485966f94b9d628b226387f1a10"
+        },
+        {
+          "path": "backend/app/routers/workspaces.py",
+          "status_from139": "M",
+          "git_blob": "21be8a9c50bf6fd97564ed44b315b848244fbaf9",
+          "sha256": "8133960c0dc164425734a5a1428e36d2041d2627d673342b838ea7cb56c6111b"
+        },
+        {
+          "path": "backend/app/schemas/data_preparation.py",
+          "status_from139": "A",
+          "git_blob": "a0cdd05f40398618c654062bfcf3976628b9fb89",
+          "sha256": "0b28c5249ba29ca523a49405d8bce1248bd32e07a90639674666449f5822f280"
+        },
+        {
+          "path": "backend/app/services/baskets.py",
+          "status_from139": "M",
+          "git_blob": "88ea39ba873e7b515c02b6a8c9f0685fb92dd51e",
+          "sha256": "d4d2bc5f247d31fe1e382b1708861c545e4ad7e982fea9f1acc03a1d696207bc"
+        },
+        {
+          "path": "backend/app/services/bulk_fetch.py",
+          "status_from139": "M",
+          "git_blob": "2ccd5aa9d04e2dc1b9e6bbabc45dfed96f68cf0b",
+          "sha256": "91c9d3312d0b6265622b1a025135edab6dbd281a4b5bd5164eb9ff43b8ebbbd5"
+        },
+        {
+          "path": "backend/app/services/data_preparation.py",
+          "status_from139": "A",
+          "git_blob": "47cedcba03e7fc8ec718a2dc3fd5de28f302eb9d",
+          "sha256": "665433063a696ae1287cd427cbe334cfb18c163e9e908e67612f8fe5fd6a36f9"
+        },
+        {
+          "path": "backend/app/services/data_preparation_contracts.py",
+          "status_from139": "A",
+          "git_blob": "c49bc33100b252eb4f523755223e0acbb43e5805",
+          "sha256": "03cdee95aa09144365115a3c0f005feb8863ff464bf463be551e8bdc0edb2298"
+        },
+        {
+          "path": "backend/app/services/derived_timeframes.py",
+          "status_from139": "M",
+          "git_blob": "3b2c6337ad25a533096f1a9ed213fcc7207d933f",
+          "sha256": "d88137707ebb337e7bb30ad7b2e55ba9c92b7c3e55c007b7d58c86a2caa492e5"
+        },
+        {
+          "path": "backend/app/services/e2e_seed.py",
+          "status_from139": "M",
+          "git_blob": "b691f38ff9a2145ef7456d8741099f86aaac79d3",
+          "sha256": "4802be9c8879ec9a6109dfe155f0156cfefc7416050dc6ef8b97c0653a24b6fd"
+        },
+        {
+          "path": "backend/app/services/etf_holdings_adapters.py",
+          "status_from139": "M",
+          "git_blob": "3499b76989dc0b5162dfc5effe7d434aa12c97b9",
+          "sha256": "a1da7a2a021af51e5bace6a4904906f0115d01fe5bf19f9df4d17ca8ae588c36"
+        },
+        {
+          "path": "backend/app/services/etf_holdings_preparation.py",
+          "status_from139": "A",
+          "git_blob": "f4470a83a237dc38e42680b3a45948e71dbe28b8",
+          "sha256": "30a9b581609d2ee584d81667afa388df62e5a9133895cc98a841015cd6eb7df1"
+        },
+        {
+          "path": "backend/app/services/etf_holdings_refresh.py",
+          "status_from139": "M",
+          "git_blob": "8ab7d7879661abb68309b668c61648cf212785cd",
+          "sha256": "e258f61bcc7aa288897999cb421d320512439e101157ff0f91fe5be4b216fce3"
+        },
+        {
+          "path": "backend/app/services/evaluator_preflight.py",
+          "status_from139": "M",
+          "git_blob": "9c8ee222980a5ef5780fc7a94f7ac326269c21d4",
+          "sha256": "bc526d2c0f94a52386d6049fd2ffb82ad695606b1c5a301c2b2b8fb580510474"
+        },
+        {
+          "path": "backend/app/services/instrument_events.py",
+          "status_from139": "M",
+          "git_blob": "94d3758d98586cc9f618c146c98287412c1e1fad",
+          "sha256": "7dd565787ebcbce82c6f6e361ed3729b276ab2a8744ffdfc1b0c27a604ed09f8"
+        },
+        {
+          "path": "backend/app/services/instrument_mastering.py",
+          "status_from139": "M",
+          "git_blob": "14a29699796ab68ad99f4352b6084130092967fe",
+          "sha256": "3bac765ed5e48d8027ec7382e80320b264edc396c12c74afdf17b40d31f74861"
+        },
+        {
+          "path": "backend/app/services/market_data.py",
+          "status_from139": "M",
+          "git_blob": "4be042a3da3405e461b9a61d280e1a03ca7dac66",
+          "sha256": "6ddacd402572398b3e70d88c303d05ab2a8b21a59764692ac30522d628ea56c0"
+        },
+        {
+          "path": "backend/app/services/market_refresh_queue.py",
+          "status_from139": "M",
+          "git_blob": "ee5f702001d0670e8d4c37a9533c5bc4809d5521",
+          "sha256": "3ea7b26e93ae932bd17791c5032f2d21ec789fed34b74be7c45a905665525b5f"
+        },
+        {
+          "path": "backend/app/services/market_series.py",
+          "status_from139": "M",
+          "git_blob": "a971b4c3acb7856596afb77508401b4347414a89",
+          "sha256": "eecfac599f3d6a097f282ba467271a13194f99148ea3ffff339d7c1795b73597"
+        },
+        {
+          "path": "backend/app/services/ohlcv_coverage.py",
+          "status_from139": "M",
+          "git_blob": "d5123da35f78e366516e01298da447909d0cfce6",
+          "sha256": "1decd6ba026caccfc48678f5d9d03816984208ad1edde6352e184ec24a5e64fd"
+        },
+        {
+          "path": "backend/app/services/provider_runtime.py",
+          "status_from139": "M",
+          "git_blob": "73ef681adc87b7383f9eb33596be4b8b16463034",
+          "sha256": "c6d0a47d395e7b9a1807880184a094e43bbd9241222c0afbfcd8d9a06b4a3ec5"
+        },
+        {
+          "path": "backend/app/services/screener_engine.py",
+          "status_from139": "M",
+          "git_blob": "86bb2b5b7b840d2f8dd07ab943c61c4dfbf997e6",
+          "sha256": "a9ff0585f89ceb0b94fd46b8cc763ec56d03c84c64c277ceac12adb4897f402b"
+        },
+        {
+          "path": "backend/app/services/workstation_tool_catalogue.py",
+          "status_from139": "A",
+          "git_blob": "279a44ecea8ab0901741da0efaff3d06773d729d",
+          "sha256": "7a111059b60764c3f44ce01e562f4e4030447a0afa7e4673c237d44ba76e396f"
+        },
+        {
+          "path": "backend/app/tasks/data_tasks.py",
+          "status_from139": "M",
+          "git_blob": "ca4afda72633158604a3b6f3340c970fd5fbea5e",
+          "sha256": "35b6eb97d86e7449cfab3226b76052d744eb59f64660898b8a15080b0f20c082"
+        },
+        {
+          "path": "backend/app/workers/arq_worker.py",
+          "status_from139": "M",
+          "git_blob": "8cef37e55479112b0d057305b680e01cb6112c5a",
+          "sha256": "08a681809f7e425eac56ea5cad104bc1e34ba12f0df1d0417c3d41bff51226fd"
+        },
+        {
+          "path": "backend/tests/integration/api/test_baskets.py",
+          "status_from139": "M",
+          "git_blob": "47bafba3d2ce7d7fbb78c0234785cda41f9614ec",
+          "sha256": "5ede032abeb7eb5c44effff911e1c2586f116122e6b0fcfc3a1bb8d0b3d81555"
+        },
+        {
+          "path": "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
+          "status_from139": "A",
+          "git_blob": "f20b0fb86acaa147b47a3471e82b185aedda81c4",
+          "sha256": "8c189d9cba94ece6e2bfcc4b5f2ba1d9af311626b0f872632b719bd60ca32fc8"
+        },
+        {
+          "path": "backend/tests/integration/test_data_preparation_queue_postgres.py",
+          "status_from139": "A",
+          "git_blob": "2d9a5e7e87c2d9f990e7c4e320bf2c8c77a2ff2b",
+          "sha256": "5192f20ebbdd9e6bcdd98db56e513e8fb07d682651eae8abad5e4b20e11521c7"
+        },
+        {
+          "path": "backend/tests/unit/conftest.py",
+          "status_from139": "M",
+          "git_blob": "1b5404373d3151543f1f333b21b99810acacd779",
+          "sha256": "fb75aa61429d56112299a610148ff843a5518f9d00d0d45f48ad973e0778d0c5"
+        },
+        {
+          "path": "backend/tests/unit/providers/test_new_providers.py",
+          "status_from139": "M",
+          "git_blob": "e2296f53ddabd131288de8c061f1a1b0239cb263",
+          "sha256": "cdd9b24b4c9c25e2a19c7d6120101ee07c88eef69eca7dcab99ab3a4c0768474"
+        },
+        {
+          "path": "backend/tests/unit/routers/test_analysis_router.py",
+          "status_from139": "M",
+          "git_blob": "035f6fb82411b959f1dac807c4f19878f0674cea",
+          "sha256": "627a1cb968f97d73e4f16462d42fd68b6e00280292db94eed7c78b0539eef832"
+        },
+        {
+          "path": "backend/tests/unit/routers/test_calendar_router.py",
+          "status_from139": "M",
+          "git_blob": "48043ca1f24121f7e89cc70b60d1d37869c7768b",
+          "sha256": "5456df79bee745f195b9ee321be780b0bbebdc105f0cfaf9b83066643a4c4aa3"
+        },
+        {
+          "path": "backend/tests/unit/routers/test_data_preparation_router.py",
+          "status_from139": "A",
+          "git_blob": "33ab5fe3e37dee0dd43fde91af726d8e74a80f6e",
+          "sha256": "aafe967b75126e5aa1634ceb4c8267f84604c33dd9396ac9290c16e3e7dd227b"
+        },
+        {
+          "path": "backend/tests/unit/routers/test_ohlcv_router.py",
+          "status_from139": "M",
+          "git_blob": "57cc0d615df4351a9a7f74ec798145f6ab9c1b0a",
+          "sha256": "7f676110a98ab05c8739acf0c094bc797c5486fe4298dcce5982b62027be3ede"
+        },
+        {
+          "path": "backend/tests/unit/routers/test_research_router.py",
+          "status_from139": "M",
+          "git_blob": "39674ab3db4bc9516f1d0945beadb2770fc56480",
+          "sha256": "f79e9c8851e746486caf5b7d7c9de6490b401397da4252cd9b7ef8364290aca3"
+        },
+        {
+          "path": "backend/tests/unit/routers/test_workspace_tool_catalogue.py",
+          "status_from139": "A",
+          "git_blob": "25d184d89c7ec5206962aa982e51fbd53a422c91",
+          "sha256": "eab99dea4ad2af764775c312c1ff1caf08863f6607a170a408cd0282463b2873"
+        },
+        {
+          "path": "backend/tests/unit/services/test_data_preparation_contracts.py",
+          "status_from139": "A",
+          "git_blob": "794f8e8043d3164b53a4406db7acd5788ff02ac1",
+          "sha256": "d863fa6099ad77750a24391d652f92467c2e47d660711dc5e12862697ba9efca"
+        },
+        {
+          "path": "backend/tests/unit/services/test_data_preparation_history_planning.py",
+          "status_from139": "A",
+          "git_blob": "ee5d93d133fd47f48071fc54048d617e564e573f",
+          "sha256": "efe7b2b49be7c60e0e9b837e1b4f715b35030d920ba19d1e50058506ac88dde7"
+        },
+        {
+          "path": "backend/tests/unit/services/test_data_preparation_service.py",
+          "status_from139": "A",
+          "git_blob": "9c52afab7f832634be26c24e2e7c7171db75b91b",
+          "sha256": "7be509956059fd19aa98b3de944829d1d9cb08ce729a4aaab85b0a07ce9833af"
+        },
+        {
+          "path": "backend/tests/unit/services/test_derived_timeframes.py",
+          "status_from139": "M",
+          "git_blob": "85811ade209a4adfbe1b095527453fa2608e9207",
+          "sha256": "a20cd49f05714cff8b14d564ca4a36ad0e0e3fe4888b4177f381d787c60bd66a"
+        },
+        {
+          "path": "backend/tests/unit/services/test_e2e_seed.py",
+          "status_from139": "M",
+          "git_blob": "8b33dae4d28e782d24026d9c37abff32d7549001",
+          "sha256": "6fa1c8ee19e1e23adf7a2ea65d4520f568df7465f6fe5fa3804ff74d109ce65e"
+        },
+        {
+          "path": "backend/tests/unit/services/test_etf_holdings_adapters.py",
+          "status_from139": "M",
+          "git_blob": "b92a703639113398ef2b753f0927425ad6d5ed1b",
+          "sha256": "3cdbcb0d10e2367b9cedc11d097950d8fbbdfb8ff3852af1bd9c34bf0d52e330"
+        },
+        {
+          "path": "backend/tests/unit/services/test_etf_holdings_checkpoint_consumers.py",
+          "status_from139": "M",
+          "git_blob": "dba534c2d3c34e2374498e2c732f82e353e91589",
+          "sha256": "389c1ebd1608fb5fdd46d4bec85f4bd8c791d508485d322720671e308194ae09"
+        },
+        {
+          "path": "backend/tests/unit/services/test_etf_holdings_native_qualification.py",
+          "status_from139": "M",
+          "git_blob": "02ef9f4756ed5476b3aefa403558d2bc94d07670",
+          "sha256": "b36a518ca161671be17a77f7a12bdcec46b638c5837b4a634ce57b5c4afa1c33"
+        },
+        {
+          "path": "backend/tests/unit/services/test_etf_holdings_preparation.py",
+          "status_from139": "A",
+          "git_blob": "8f0a484f033fc3a9c7700a7c96d99aa4469eb8e4",
+          "sha256": "2d44f15dfeb27e00cb0799ab4b1ce4b61d35ff3288c9757d6e6f9638fc7ae939"
+        },
+        {
+          "path": "backend/tests/unit/services/test_etf_holdings_preparation_hook.py",
+          "status_from139": "A",
+          "git_blob": "d745f4845a06708a8deaa5fd7f3a3c8a3a39b560",
+          "sha256": "2d4ff55d6dbf495c42ad3f6cc1728aa98d6269fdb577afbbe9700c1a08f213f0"
+        },
+        {
+          "path": "backend/tests/unit/services/test_etf_issuer_catalog.py",
+          "status_from139": "M",
+          "git_blob": "96ac5766f0d89ab9904f39e9911950cd3fc50c87",
+          "sha256": "c7a852ca382d9cc8ecb5d8a4e1118e5fa252f3b7baa4d8744023805cef9e3071"
+        },
+        {
+          "path": "backend/tests/unit/services/test_evaluator_preflight.py",
+          "status_from139": "M",
+          "git_blob": "6a4ca60bf54b507f0c4eefc36acc5eba61db4472",
+          "sha256": "8b8c8d5bb5183a6cdb2b1805fbcc895a22d4adc13f169c4cec57cb02be2de3dc"
+        },
+        {
+          "path": "backend/tests/unit/services/test_market_data.py",
+          "status_from139": "M",
+          "git_blob": "834a363d2ff8cc24becc15b47fda1cb08000c664",
+          "sha256": "088c258a4d05ab26ce18200d68a403fc4fbef0d85e526dd8e8ba013e50fcd390"
+        },
+        {
+          "path": "backend/tests/unit/services/test_market_refresh_queue.py",
+          "status_from139": "M",
+          "git_blob": "8f3fa448896f7c2d9a39bf86eae23a9e16e11caa",
+          "sha256": "5f0b94451148f877fdbfbc3c8c32664d06e355c15eebc676cd384e49cd881dae"
+        },
+        {
+          "path": "backend/tests/unit/services/test_market_series_defaults.py",
+          "status_from139": "M",
+          "git_blob": "1d80bdd386cce3232181f59b7fcae52c5423c16e",
+          "sha256": "45020f23deb48434a2065f8828a9e0d45577e2da982ea0ee8834443866f84c7f"
+        },
+        {
+          "path": "backend/tests/unit/services/test_provider_quota_coordinator.py",
+          "status_from139": "M",
+          "git_blob": "c44d687dd37c158ec4851b692127c0c7bd729470",
+          "sha256": "0974174e83d813ebb4169842d7ed167c53f78026c64cad7a9cf8bd6d2bfe320b"
+        },
+        {
+          "path": "backend/tests/unit/services/test_provider_runtime.py",
+          "status_from139": "M",
+          "git_blob": "9920483f34e2dda17ef49528429257b1a9853dc9",
+          "sha256": "f607b2c6e67954e996ba47916ad9875d3eb8698ce4a0d53c430aa3e85436fc3c"
+        },
+        {
+          "path": "backend/tests/unit/services/test_workstation_tool_catalogue.py",
+          "status_from139": "A",
+          "git_blob": "bcbeff75f63564353e86b447fb5d7be2f5911c13",
+          "sha256": "9ada1348e3136e707de13eec5699d2ffdb9dc217d15f3ccb6b7da6f1bf1d845a"
+        },
+        {
+          "path": "backend/tests/unit/tasks/test_data_tasks.py",
+          "status_from139": "M",
+          "git_blob": "6b5dbdbba5f3b0a5f4af2e27d5fa8db2abd30623",
+          "sha256": "3d2271a807e7bc30d7c2510c01d9faeb730422f7c3aff3d9b5e5eaca97425a28"
+        },
+        {
+          "path": "backend/tests/unit/tasks/test_native_usage_prerequisite.py",
+          "status_from139": "A",
+          "git_blob": "4d4933dcfea1b1d051e25fa0fc008b977c452082",
+          "sha256": "b53638df1eae692b448e287b1a21fc7e83e62463b7a2f197b70a227b8e1fa987"
+        },
+        {
+          "path": "backend/tests/unit/workers/test_arq_worker.py",
+          "status_from139": "M",
+          "git_blob": "1b3578e9d1fbb612bc3ad7f3dc4ff235a181b6b6",
+          "sha256": "29ed8466dd10417310afadcc00cbd7d6b736806576a6e31974270c6bba25d886"
+        }
+      ],
+      "import_verification": {
+        "method": "Verified all62 source rows, base-to-source status, Git blobs, SHA256 and executable-bit modes; verified the nine declared Strategy old guards and imported only those paths.",
+        "path_count": 9,
+        "changed_paths_count": 9,
+        "source_manifest_entries_verified": 62,
+        "git_blob_and_sha256_verified": true,
+        "status_from139_verified": true,
+        "executable_bit_verified": true,
+        "consumer_import_paths": [
+          "backend/app/routers/workspaces.py",
+          "backend/app/services/baskets.py",
+          "backend/app/services/e2e_seed.py",
+          "backend/app/tasks/data_tasks.py",
+          "backend/tests/integration/api/test_baskets.py",
+          "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
+          "backend/tests/integration/test_data_preparation_queue_postgres.py",
+          "backend/tests/unit/services/test_data_preparation_history_planning.py",
+          "backend/tests/unit/services/test_e2e_seed.py"
+        ],
+        "consumer_import_exact": true,
+        "checked_at": "2026-11-07T13:45:03Z"
+      },
+      "successor": {
+        "previous_source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
+        "changed_paths_since_previous": [
+          "backend/app/routers/workspaces.py",
+          "backend/app/services/e2e_seed.py",
+          "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
+          "backend/tests/unit/services/test_e2e_seed.py"
+        ],
+        "successor_scope": "Adds E2E-only canonical controlled SPY M15 fixture while preserving daily/weekly/monthly series; one-statement joined workspace reads prevent nested eager-loader graphs straddling concurrent snapshot replacement. Optimistic writer locks/revisions retained. Existing native admission, free-only holds, lineage and quotas unchanged. Real PostgreSQL read-concurrency regression1/1 plus E2E seed8/8 owner evidence; Root runtime, native and release qualification pending",
+        "full_release_qualification": "Pending Root combined browser/exact-source qualification; this development import is not product acceptance."
+      }
+    },
+    {
+      "source_commit": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
+      "superseded_by": "22c31cd3e7f35e361e286ef40576d379aaf44449",
+      "contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
+      "contract_sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+      "scope": "E2E-only distinct evolving sector relative paths with versioned controlled series, exact unchanged SPY520 baseline/streak, factor applied once and idempotent prior-row preservation. US regular-session maintenance uses the existing holiday basis only for reviewed XNYS/ARCX/XNAS/BATS cash-equity MICs, explicit exceptions override, published early closes and Saturday NewYear behavior are covered. Owner14 focused tests, style and workstream guards passed. Genuine data/providers/quota/holds unchanged; Root actual fresh-fixture, native and release proof pending.",
+      "local_import_receipt": "ops/workstreams/feat-strategy-lab-v2/development-dependency-imports/dd05c5e8318ff59a90f879867cae9664dcc0de4f.json",
+      "consumer_import_paths": [
+        "backend/app/services/e2e_seed.py",
+        "backend/app/services/exchange_sessions.py",
+        "backend/app/services/ohlcv_coverage.py",
+        "backend/tests/unit/services/test_e2e_seed.py",
+        "backend/tests/unit/services/test_exchange_catalog.py",
+        "backend/tests/unit/services/test_market_data.py"
+      ],
+      "qualification": "Development-only dependency; its exact manifest rows and local guards remain in the linked immutable receipt. Full combined/release proof pending."
     }
   ],
   "successor": {
-    "previous_source": "dd70319eb725dc6b5c1b4feb0ba5a5ba060efd04",
+    "previous_source": "dd05c5e8318ff59a90f879867cae9664dcc0de4f",
     "changed_paths_since_previous": [
-      "backend/app/routers/workspaces.py",
-      "backend/app/services/e2e_seed.py",
-      "backend/tests/integration/api/test_workspace_read_consistency_postgres.py",
-      "backend/tests/unit/services/test_e2e_seed.py"
+      "backend/app/config.py",
+      "backend/app/providers/optional_market_data.py",
+      "backend/app/services/provider_runtime.py",
+      "backend/app/tasks/data_tasks.py",
+      "backend/tests/unit/providers/test_optional_market_data.py",
+      "backend/tests/unit/services/test_data_preparation_history_planning.py"
     ],
-    "successor_scope": "Adds E2E-only canonical controlled SPY M15 fixture while preserving daily/weekly/monthly series; one-statement joined workspace reads prevent nested eager-loader graphs straddling concurrent snapshot replacement. Optimistic writer locks/revisions retained. Existing native admission, free-only holds, lineage and quotas unchanged. Real PostgreSQL read-concurrency regression1/1 plus E2E seed8/8 owner evidence; Root runtime, native and release qualification pending",
+    "successor_scope": "Source-specific unknown-depth planning and scoped native earliest-history witness with exact operation cost; explicit bounded requests retain eligible unknown-floor alternatives instead of inheriting a shallower provider ceiling. Actual owner focused proof is in its handoff. Native/provider, final combined and release acceptance remain pending. Existing fixture/calendar/cached-series and lineage contracts retained; no paid/trial activation, quota reset or arbitrary history floor.",
     "full_release_qualification": "Pending Root combined browser/exact-source qualification; this development import is not product acceptance."
   },
   "superseded_manifest_contracts": [
@@ -5446,9 +5659,15 @@
       "sha256": "9679b42e3e8dc4190d1b221b7b4ce7c0b86b3cd66d90e5a4f936eb8e61c6e95e",
       "superseded_by": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
       "reason": "The exact182 development successor replaces the active dd703 pin; prior source/qualification remains historical."
+    },
+    {
+      "path": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/providerdd05c5e8-runtime-development-consumption-contract.json",
+      "sha256": "0be00f63f7c9c77b2f4c41696657e122bd54265ff68b614f6e9d958b074493e9",
+      "superseded_by": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
+      "reason": "Exact Provider22c31cd3 development successor replaces the active dd05 source pin; the dd05 receipt and all earlier Provider history remain preserved."
     }
   ],
-  "supersedes_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider182173f3-runtime-development-consumption-contract.json",
+  "supersedes_manifest": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider22c31cd3-runtime-development-consumption-contract.json",
   "metadata_correction": {
     "at": "2026-11-07T01:23:23.038877+00:00",
     "original_contract": "/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/provider732da0f9-runtime-development-consumption-contract.json",

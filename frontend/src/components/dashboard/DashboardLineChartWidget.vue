@@ -27,7 +27,7 @@ import uPlot from 'uplot'
 import 'uplot/dist/uPlot.min.css'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import type { OHLCVBar, Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -146,43 +146,75 @@ async function refresh() {
       try {
         const symbol = await ensureKnownInstrumentSymbol(target.symbol)
         if (seq !== refreshSeq || controller.signal.aborted) return
-        const prepared = await dataPreparationCoordinator.ensure(
+        const queue = new PreparationProgressRefreshQueue()
+        const isCurrent = () => seq === refreshSeq && !controller.signal.aborted
+        const publishBars = async (bars: OHLCVBar[]) => {
+          if (!isCurrent()) return
+          if (!bars.length) {
+            if (!targetStatuses.value[target.symbol]) {
+              targetStatuses.value = { ...targetStatuses.value, [target.symbol]: 'No cached history is available for this chart yet.' }
+            }
+            return
+          }
+          const rawValues = bars.map(b => b.close)
+          const first = rawValues.find(v => Number.isFinite(v) && v !== 0) ?? 1
+          const item = {
+            key: `${symbol}-${index}`,
+            label: target.label || symbol,
+            color: target.color,
+            bars,
+            values: selectedNormalize ? rawValues.map(v => ((v - first) / first) * 100) : rawValues,
+          }
+          loadedSeries.value = [...loadedSeries.value.filter(series => series.key !== item.key), item]
+          destroyPlot()
+          await nextTick()
+          if (isCurrent()) buildPlot()
+        }
+        // Read the local series immediately. A held or still-running durable
+        // preparation request must not hide bars already available to this view.
+        const initialRead = loadBars(symbol, selectedTimeframe, selectedLimit)
+          .then(result => publishBars(result.bars))
+          .catch(cause => {
+            if (isCurrent()) targetStatuses.value = {
+              ...targetStatuses.value,
+              [target.symbol]: cause?.message ?? 'Cached history could not be read.',
+            }
+          })
+        const refreshForProgress = (response: import('@/lib/dataPreparation').DataEnsureResponse) =>
+          queue.request(response, async () => {
+            await initialRead
+            if (!isCurrent() || !queue.isLatest(response)) return
+            const refreshed = await loadBars(symbol, selectedTimeframe, selectedLimit)
+            if (!isCurrent() || !queue.isLatest(response)) return
+            await publishBars(refreshed.bars)
+          })
+        const preparation = dataPreparationCoordinator.ensure(
           instrumentHistoryPreparationRequest({ kind: 'instrument', symbol }, selectedTimeframe),
           {
             signal: controller.signal,
             onProgress: progress => {
-              if (seq !== refreshSeq) return
+              if (!isCurrent()) return
               const message = preparationStatusMessage(progress.response)
               targetStatuses.value = { ...targetStatuses.value, [target.symbol]: message }
               loadingMessage.value = message
+              if (shouldRefreshAnalysisProgress(progress.response)) {
+                void refreshForProgress(progress.response).catch(() => {
+                  if (isCurrent() && !loadedSeries.value.some(series => series.key === `${symbol}-${index}`)) {
+                    targetStatuses.value = { ...targetStatuses.value, [target.symbol]: 'Available local history could not be refreshed.' }
+                  }
+                })
+              }
             },
           },
         )
-        if (seq !== refreshSeq || controller.signal.aborted) return
+        const prepared = await preparation
+        if (!isCurrent()) return
         if (prepared.status !== 'ready') {
           targetStatuses.value = { ...targetStatuses.value, [target.symbol]: preparationStatusMessage(prepared) }
           return
         }
         targetStatuses.value = { ...targetStatuses.value, [target.symbol]: '' }
-        const { bars } = await loadBars(symbol, selectedTimeframe, selectedLimit)
-        if (seq !== refreshSeq || controller.signal.aborted) return
-        if (!bars.length) {
-          targetStatuses.value = { ...targetStatuses.value, [target.symbol]: 'Prepared history has no bars available for this chart.' }
-          return
-        }
-        const rawValues = bars.map(b => b.close)
-        const first = rawValues.find(v => Number.isFinite(v) && v !== 0) ?? 1
-        const item = {
-          key: `${symbol}-${index}`,
-          label: target.label || symbol,
-          color: target.color,
-          bars,
-          values: selectedNormalize ? rawValues.map(v => ((v - first) / first) * 100) : rawValues,
-        }
-        loadedSeries.value = [...loadedSeries.value.filter(series => series.key !== item.key), item]
-        destroyPlot()
-        await nextTick()
-        if (seq === refreshSeq) buildPlot()
+        await refreshForProgress(prepared)
       } catch (e: any) {
         if (seq === refreshSeq && !controller.signal.aborted) {
           targetStatuses.value = {

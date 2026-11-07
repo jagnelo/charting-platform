@@ -224,8 +224,25 @@ test('Study journey keeps saved identity, refreshes Results, and returns from Py
   await libraryAsset.locator('summary').click()
   const libraryEditedSource = `${immutableSource.trim()}\n# Saved as an immutable version from the Python Library.\n`
   await libraryAsset.getByRole('textbox', { name: `Python source for ${studyName}` }).fill(libraryEditedSource)
+  const libraryValidationRequest = page.waitForRequest(request => {
+    if (request.method() !== 'POST' || new URL(request.url()).pathname !== '/api/v1/code/validate') return false
+    try {
+      const body = request.postDataJSON() as { source?: string }
+      return body.source === libraryEditedSource
+    } catch {
+      return false
+    }
+  })
   await libraryAsset.getByRole('button', { name: 'Validate', exact: true }).click()
-  await expect(libraryAsset).toContainText('Validated', { timeout: 15_000 })
+  const editedLibraryValidation = await libraryValidationRequest
+  expect(editedLibraryValidation.postDataJSON()).toEqual({ source: libraryEditedSource })
+  const editedLibraryValidationResponse = await editedLibraryValidation.response()
+  expect(editedLibraryValidationResponse?.status()).toBe(200)
+  const editedLibraryValidationResult = await editedLibraryValidationResponse!.json() as { valid?: boolean }
+  expect(editedLibraryValidationResult.valid).toBe(true)
+  const editedLibraryValidationNotice = libraryAsset.locator('.code-library-tool__validation')
+  await expect(editedLibraryValidationNotice).toHaveAttribute('role', 'status')
+  await expect(editedLibraryValidationNotice.locator('strong')).toHaveText('Validated', { timeout: 15_000 })
   const savedVersionResponse = page.waitForResponse(response => response.request().method() === 'POST' && /\/code\/assets\/\d+\/versions$/.test(new URL(response.url()).pathname))
   await libraryAsset.getByRole('button', { name: 'Save as new version', exact: true }).click()
   const savedVersion = await savedVersionResponse

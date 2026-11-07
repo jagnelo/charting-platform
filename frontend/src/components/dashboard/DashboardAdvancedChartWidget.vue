@@ -1,12 +1,12 @@
 <template>
   <div class="advanced-chart-widget">
     <div v-if="!symbol" class="widget-state">Choose an instrument</div>
-    <div v-else-if="preparing" class="widget-state" role="status">{{ preparationMessage || `Preparing ${symbol}...` }}</div>
-    <div v-else-if="preparationMessage" class="widget-state" :class="{ error: preparationFailed }" role="status">{{ preparationMessage }}</div>
-    <div v-else-if="store.isLoading" class="widget-state">Loading {{ symbol }}...</div>
-    <div v-else-if="store.error" class="widget-state error">{{ store.error }}</div>
+    <div v-else-if="preparing && !hasCurrentBars" class="widget-state" role="status">{{ preparationMessage || `Preparing ${symbol}...` }}</div>
+    <div v-else-if="preparationMessage && !hasCurrentBars" class="widget-state" :class="{ error: preparationFailed }" role="status">{{ preparationMessage }}</div>
+    <div v-else-if="store.isLoading && !hasCurrentBars" class="widget-state">Loading cached bars for {{ symbol }}...</div>
+    <div v-else-if="store.error && !hasCurrentBars" class="widget-state error">{{ store.error }}</div>
     <UPlotChart
-      v-else-if="store.symbol"
+      v-else-if="hasCurrentBars"
       :chart-type="chartType"
       :overlay-drawings="showDrawings ? drawings : []"
       :overlay-alerts="showAlerts ? priceAlerts : []"
@@ -16,6 +16,7 @@
       :enable-keyboard="false"
       :show-controls="false"
     />
+    <div v-if="hasCurrentBars && preparationMessage" class="preparation-status" role="status">{{ preparationMessage }}</div>
     <div v-if="symbol" class="chart-link">
       <router-link :to="`/chart/${encodeURIComponent(symbol)}`">Open in chart</router-link>
     </div>
@@ -28,7 +29,7 @@ import UPlotChart from '@/components/chart/UPlotChart.vue'
 import { usePanelStore } from '@/stores/chart'
 import { api } from '@/lib/api'
 import { ensureKnownInstrumentSymbol } from '@/lib/instruments'
-import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage } from '@/lib/dataPreparation'
+import { dataPreparationCoordinator, instrumentHistoryPreparationRequest, preparationStatusMessage, PreparationProgressRefreshQueue, shouldRefreshAnalysisProgress } from '@/lib/dataPreparation'
 import type { ChartBarType, ChartDrawing, PriceAlert, Timeframe } from '@/types'
 
 const props = defineProps<{
@@ -45,6 +46,7 @@ const store = usePanelStore(panelId)
 const symbol = computed(() =>
   (props.overrideSymbol?.trim() || String(props.config.symbol ?? '').trim()).toUpperCase()
 )
+const hasCurrentBars = computed(() => store.symbol.toUpperCase() === symbol.value && store.bars.length > 0)
 const timeframe = computed<Timeframe>(() => props.config.timeframe ?? 'D1')
 const chartType = computed<ChartBarType>(() => props.config.chartType ?? 'candles')
 const showIndicators = computed(() => props.config.showIndicators !== false)
@@ -64,6 +66,7 @@ async function refresh() {
   refreshController?.abort()
   const controller = new AbortController()
   refreshController = controller
+  let preparationSettled = false
   preparationMessage.value = ''
   preparationFailed.value = false
   preparing.value = !!symbol.value
@@ -81,35 +84,55 @@ async function refresh() {
     const selectedTimeframe = timeframe.value
     const target = await resolveTarget(requestedSymbol)
     if (!mounted || seq !== refreshSeq) return
-    const prepared = await dataPreparationCoordinator.ensure(
+    const isCurrent = () => mounted && seq === refreshSeq && !controller.signal.aborted
+    const queue = new PreparationProgressRefreshQueue()
+    // The panel store's local-only load uses its generation fence and never
+    // takes a provider-capable history route. Start it before joining the
+    // durable preparation request so an existing cache remains immediately useful.
+    const initialRead = store.loadBars(target, selectedTimeframe, chartType.value, true)
+    preparing.value = false
+    const refreshForProgress = (response: import('@/lib/dataPreparation').DataEnsureResponse) =>
+      queue.request(response, async () => {
+        await initialRead
+        if (!isCurrent() || !queue.isLatest(response)) return
+        await store.refreshLocalBars()
+        if (!isCurrent() || !queue.isLatest(response)) return
+        await loadReadOnlyOverlays(seq)
+      })
+    const preparation = dataPreparationCoordinator.ensure(
       instrumentHistoryPreparationRequest({ kind: 'instrument', symbol: target }, selectedTimeframe),
       {
         signal: controller.signal,
         onProgress: progress => {
-          if (mounted && seq === refreshSeq) {
-            preparationMessage.value = preparationStatusMessage(progress.response)
+          if (!isCurrent()) return
+          preparationMessage.value = preparationStatusMessage(progress.response)
+          if (shouldRefreshAnalysisProgress(progress.response)) {
+            void refreshForProgress(progress.response).catch(cause => {
+              if (isCurrent() && !store.bars.length) store.error = cause?.message ?? 'Cached chart history could not be refreshed.'
+            })
           }
         },
       },
     )
-    if (!mounted || seq !== refreshSeq) return
-    if (prepared.status !== 'ready') {
-      preparationMessage.value = preparationStatusMessage(prepared)
+    void preparation.then(async prepared => {
+      if (!isCurrent()) return
+      preparationMessage.value = prepared.status === 'ready' ? '' : preparationStatusMessage(prepared)
       preparationFailed.value = ['failed', 'unavailable'].includes(prepared.status)
-      preparing.value = false
-      return
-    }
-    preparationMessage.value = ''
-    preparing.value = false
-    store.error = null
-    await store.loadBars(target, selectedTimeframe, chartType.value)
-    if (!mounted || seq !== refreshSeq) return
+      await refreshForProgress(prepared)
+    }).catch(() => {
+      if (isCurrent()) preparationMessage.value = 'Data preparation could not be completed; showing cached chart history.'
+    }).finally(() => {
+      preparationSettled = true
+      if (refreshController === controller) refreshController = null
+    })
+    await initialRead
+    if (!isCurrent()) return
     await loadReadOnlyOverlays(seq)
   } catch (e: any) {
     if (mounted && seq === refreshSeq && !controller.signal.aborted) store.error = e?.message ?? 'Chart unavailable'
   } finally {
     if (mounted && seq === refreshSeq) preparing.value = false
-    if (refreshController === controller) refreshController = null
+    if (preparationSettled && refreshController === controller) refreshController = null
   }
 }
 
@@ -160,6 +183,7 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 .advanced-chart-widget :deep(.chart-root) { height: 100%; }
+.preparation-status { position: absolute; left: 6px; bottom: 4px; z-index: 5; color: #9c9c77; font-size: 9px; }
 .widget-state {
   height: 100%;
   display: flex;

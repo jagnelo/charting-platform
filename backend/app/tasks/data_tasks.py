@@ -16,7 +16,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.data_source import DataSource
+from app.models.exchange import Exchange
 from app.models.instrument import Instrument
+from app.models.instrument_identity import InstrumentProviderSymbol
+from app.models.listing import InstrumentListing
 from app.models.market_data_foundation import MarketRefreshJob
 from app.models.ohlcv import TIMEFRAME_SECONDS, OHLCVBar, Timeframe
 from app.models.provider_runtime import ProviderCapability, ProviderPolicy
@@ -990,6 +993,9 @@ async def _deepest_admitted_history_start(
     adjusted: bool,
     end: datetime,
     request_id: str,
+    priority: int = 100,
+    requested_start: datetime | None = None,
+    preparation: dict | None = None,
     excluded_provider_names: set[str] | frozenset[str] = frozenset(),
     required_provider_name: str | None = None,
 ) -> tuple[datetime | None, str | None, str | None]:
@@ -1018,8 +1024,9 @@ async def _deepest_admitted_history_start(
             adjusted=adjusted,
             read_only=True,
         )
-    bounds: list[tuple[datetime, str]] = []
+    bounds: list[tuple[datetime, str, bool]] = []
     unknown_bound = False
+    invalid_bound = False
     excluded = {str(name).strip().lower() for name in excluded_provider_names}
     for resolved in chain:
         if (
@@ -1034,17 +1041,258 @@ async def _deepest_admitted_history_start(
         constraints = (
             quota_policy.get("history_constraints") if isinstance(quota_policy, dict) else None
         )
-        if not isinstance(constraints, dict):
+        declared_constraints = isinstance(constraints, dict)
+        earliest = None
+        if declared_constraints:
+            earliest, _reason = provider_history_bound_start(constraints, now=end)
+            invalid_bound = invalid_bound or earliest is None
+        elif (
+            requested_start is None
+            and resolved.provider_name == "twelve_data"
+            and not adjusted
+            and timeframe in {Timeframe.D1, Timeframe.W1, Timeframe.MN}
+        ):
+            witness = await _twelve_data_history_bound_witness(
+                db,
+                instrument,
+                timeframe,
+                resolved,
+                end=end,
+                request_id=request_id,
+                priority=priority,
+                preparation=preparation if preparation is not None else {},
+            )
+            if witness is not None:
+                earliest = _optional_datetime(witness.get("earliest_start"))
+                if earliest is not None and preparation is not None:
+                    preparation["history_bound_witness"] = witness
+        if earliest is None:
             unknown_bound = True
+            if requested_start is None and preparation is not None:
+                pending = set(preparation.get("history_depth_unknown_candidates") or [])
+                pending.add(resolved.provider_name)
+                preparation["history_depth_unknown_candidates"] = sorted(pending)
+            if requested_start is not None and not declared_constraints:
+                # A concrete caller range is not rejected by another source's
+                # shallower floor. This source is tried under a one-request
+                # bounded scope; an empty/unsupported response is not a global
+                # history boundary.
+                bounds.append((requested_start, resolved.provider_name, True))
             continue
-        earliest, _reason = provider_history_bound_start(constraints, now=end)
-        if earliest is not None:
-            bounds.append((earliest, resolved.provider_name))
+        if requested_start is not None and requested_start < earliest:
+            continue
+        bounds.append((earliest, resolved.provider_name, False))
     if bounds:
-        earliest, provider_name = min(bounds, key=lambda item: (item[0], item[1]))
+        if requested_start is not None:
+            earliest, provider_name, unknown_source_floor = bounds[0]
+            if unknown_source_floor and preparation is not None:
+                preparation["bounded_unknown_depth_provider"] = provider_name
+        else:
+            earliest, provider_name, _unknown_source_floor = min(
+                bounds, key=lambda item: (item[0], item[1])
+            )
         return earliest, provider_name, None
-    reason = "history_depth_unknown" if unknown_bound else "no_eligible_history_provider"
+    reason = (
+        "history_depth_invalid"
+        if invalid_bound and not bounds
+        else "history_depth_unknown"
+        if unknown_bound
+        else "no_eligible_history_provider"
+    )
     return None, None, reason
+
+
+async def _twelve_data_history_bound_witness(
+    db,
+    instrument: Instrument,
+    timeframe: Timeframe,
+    resolved,
+    *,
+    end: datetime,
+    request_id: str,
+    priority: int,
+    preparation: dict,
+) -> dict | None:
+    """Read or acquire one exact Twelve Data symbol/listing history witness."""
+
+    from hashlib import sha256
+
+    from app.services.provider_runtime import (
+        bind_explicit_provider_acquisition,
+        execute_provider_call,
+    )
+
+    usage_job, usage_hold, usage_needed = await _native_usage_job_for_operation_baseline(
+        db,
+        provider_name="twelve_data",
+        capability=ProviderCapability.PRICE_HISTORY,
+        operation="get_earliest_timestamp",
+        priority=priority,
+        now=datetime.now(UTC),
+    )
+    if usage_needed:
+        if usage_job is not None:
+            preparation["history_bound_usage_job_id"] = int(usage_job.id)
+        if usage_hold:
+            preparation["history_bound_usage_hold"] = usage_hold
+        return None
+
+    binding_rows = (
+        await db.execute(
+            select(
+                InstrumentProviderSymbol.provider_symbol,
+                InstrumentProviderSymbol.provider_exchange_code,
+                InstrumentProviderSymbol.effective_at,
+                InstrumentListing.id,
+                InstrumentListing.currency,
+                InstrumentListing.effective_at,
+                Exchange.mic,
+                Exchange.timezone,
+                Instrument.domain_key,
+                Instrument.currency,
+            )
+            .join(DataSource, DataSource.id == InstrumentProviderSymbol.data_source_id)
+            .join(
+                InstrumentListing,
+                (InstrumentListing.instrument_id == InstrumentProviderSymbol.instrument_id)
+                & InstrumentListing.is_active.is_(True)
+                & InstrumentListing.is_primary.is_(True),
+            )
+            .join(Exchange, Exchange.id == InstrumentListing.exchange_id)
+            .join(Instrument, Instrument.id == InstrumentProviderSymbol.instrument_id)
+            .where(
+                InstrumentProviderSymbol.instrument_id == instrument.id,
+                InstrumentProviderSymbol.data_source_id == resolved.data_source.id,
+                InstrumentProviderSymbol.is_active.is_(True),
+                InstrumentProviderSymbol.is_primary.is_(True),
+                DataSource.name == "twelve_data",
+            )
+        )
+    ).all()
+    if len(binding_rows) != 1:
+        return None
+    (
+        source_symbol,
+        source_mic,
+        binding_effective_at,
+        listing_id,
+        listing_currency,
+        listing_effective_at,
+        listing_mic,
+        exchange_timezone,
+        domain_key,
+        instrument_currency,
+    ) = binding_rows[0]
+    mic = str(listing_mic or "").strip().upper()
+    currency = str(instrument_currency or "").strip().upper()
+    if (
+        not source_symbol
+        or not mic
+        or str(source_mic or "").strip().upper() != mic
+        or not currency
+        or str(listing_currency or "").strip().upper() != currency
+        or not exchange_timezone
+        or not domain_key
+    ):
+        holds = dict(preparation.get("history_depth_unknown_holds") or {})
+        holds["twelve_data"] = "verified_symbol_listing_scope_unavailable"
+        preparation["history_depth_unknown_holds"] = holds
+        return None
+    scope = {
+        "version": 1,
+        "provider_name": "twelve_data",
+        "data_source_id": resolved.data_source.id,
+        "instrument_id": instrument.id,
+        "domain_key": domain_key,
+        "canonical_symbol": instrument.symbol.strip().upper(),
+        "provider_symbol": str(source_symbol).strip().upper(),
+        "listing_id": listing_id,
+        "mic": mic,
+        "currency": currency,
+        "timeframe": timeframe.value,
+        "adjusted": False,
+        "adjustment_basis": "raw",
+        "feed_scope": "twelve_data:time_series",
+        "session": "regular",
+        "entitlement_revision": resolved.entitlement.revision,
+    }
+    scope_key = sha256(
+        json.dumps(scope, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    witnesses = preparation.get("history_bound_witnesses")
+    if isinstance(witnesses, dict):
+        cached = witnesses.get(scope_key)
+        if isinstance(cached, dict):
+            try:
+                stale_after = _optional_datetime(cached.get("stale_after"))
+                if (
+                    all(cached.get(key) == value for key, value in scope.items())
+                    and _optional_datetime(cached.get("observed_at")) is not None
+                    and stale_after is not None
+                    and stale_after > datetime.now(UTC)
+                    and _optional_datetime(cached.get("earliest_start")) is not None
+                ):
+                    return cached
+            except (TypeError, ValueError):
+                pass
+
+    with bind_explicit_provider_acquisition(
+        request_id=request_id,
+        operations=frozenset({(ProviderCapability.PRICE_HISTORY, "get_earliest_timestamp")}),
+        instrument_id=instrument.id,
+        symbol=instrument.symbol,
+        provider_names=frozenset({"twelve_data"}),
+    ):
+        execution = await execute_provider_call(
+            db,
+            ProviderCapability.PRICE_HISTORY,
+            "get_earliest_timestamp",
+            instrument_id=instrument.id,
+            provider_symbol=instrument.symbol,
+            usage_identity=str(source_symbol).strip().upper(),
+            provider_name="twelve_data",
+            operation_cost_overrides={"twelve_data": 1},
+            adjusted=False,
+            invoke=lambda provider, _symbol: provider.get_earliest_timestamp(
+                str(source_symbol).strip().upper(),
+                timeframe,
+                mic_code=mic,
+                exchange_timezone=str(exchange_timezone),
+            ),
+        )
+    earliest = execution.result
+    if not isinstance(earliest, datetime):
+        return None
+    earliest = _optional_datetime(earliest)
+    if earliest is None or earliest > _optional_datetime(end):
+        return None
+    # These columns carry lifecycle start evidence (for example the listing
+    # IPO date), whereas ``known_at`` is only when we learned about the row.
+    # Never use first-observed timestamps to invent an instrument history floor.
+    effective_dates = [
+        _optional_datetime(value)
+        for value in (binding_effective_at, listing_effective_at)
+        if isinstance(value, datetime)
+    ]
+    effective_dates = [value for value in effective_dates if value is not None]
+    if effective_dates:
+        earliest = max(earliest, *effective_dates)
+    if earliest > _optional_datetime(end):
+        return None
+    observed_at = datetime.now(UTC)
+    witness = {
+        **scope,
+        "earliest_start": earliest.isoformat(),
+        "observed_at": observed_at.isoformat(),
+        "stale_after": (observed_at + timedelta(days=30)).isoformat(),
+        "source_operation": "get_earliest_timestamp",
+        "source_entitlement_revision": resolved.entitlement.revision,
+        "source_response_field": "unix_time",
+    }
+    witnesses = dict(witnesses) if isinstance(witnesses, dict) else {}
+    witnesses[scope_key] = witness
+    preparation["history_bound_witnesses"] = witnesses
+    return witness
 
 
 def _optional_datetime(value) -> datetime | None:
@@ -1077,10 +1325,15 @@ async def _history_chunk_plan(
             adjusted=bool(preparation.get("adjusted", True)),
             end=requested_end,
             request_id=f"data-preparation-plan:{job.id}",
+            priority=int(getattr(job, "priority", 100)),
+            requested_start=requested_start,
+            preparation=preparation,
             excluded_provider_names=excluded_provider_names,
             required_provider_name=source_provider,
         )
         if admitted_start is None:
+            if preparation.get("history_bound_usage_job_id"):
+                return None, None, None, None, None, None
             return None, None, None, None, None, reason
         if requested_start is not None and requested_start < admitted_start:
             return (
@@ -1147,6 +1400,24 @@ async def _history_chunk_plan_with_native_admission(
         plan_reason = plan[5]
         if plan_reason:
             return plan, candidate_preparation, None, None, last_native_hold
+
+        history_usage_job_id = candidate_preparation.get("history_bound_usage_job_id")
+        if history_usage_job_id:
+            history_usage_job = await db.get(MarketRefreshJob, int(history_usage_job_id))
+            if history_usage_job is None:
+                return plan, candidate_preparation, None, "history_bound_usage_job_missing", None
+            if history_usage_job.status != "completed":
+                candidate_preparation.pop("source_provider", None)
+                return plan, candidate_preparation, history_usage_job, None, None
+            candidate_preparation.pop("history_bound_usage_job_id", None)
+            if (history_usage_job.result_summary or {}).get("preparation_status") != "ready":
+                return (
+                    plan,
+                    candidate_preparation,
+                    None,
+                    None,
+                    "history_bound_usage_refresh_not_qualified",
+                )
 
         source_provider = plan[4]
         if not source_provider:
@@ -1256,6 +1527,11 @@ async def _plan_and_fetch_history_chunk(
 
         planned_start, planned_end = chunk_plan[0], chunk_plan[1]
         try:
+            from app.services.provider_runtime import (
+                bind_bounded_unknown_history,
+                bind_history_bound_witness,
+            )
+
             with bind_explicit_provider_acquisition(
                 request_id=f"data-preparation:{job.id}",
                 operations=frozenset({(ProviderCapability.PRICE_HISTORY, "fetch_ohlcv")}),
@@ -1263,16 +1539,41 @@ async def _plan_and_fetch_history_chunk(
                 symbol=instrument.symbol,
                 provider_names=frozenset({source_provider}),
             ):
-                bars = await fetch_ohlcv(
-                    db,
-                    instrument,
-                    timeframe,
-                    planned_start,
-                    end=planned_end,
-                    adjusted=bool(candidate_preparation.get("adjusted", True)),
-                    redis=redis,
-                    source_provider=source_provider,
-                )
+                with bind_history_bound_witness(candidate_preparation.get("history_bound_witness")):
+                    if (
+                        candidate_preparation.get("bounded_unknown_depth_provider")
+                        == source_provider
+                    ):
+                        with bind_bounded_unknown_history(
+                            provider_name=source_provider,
+                            instrument_id=instrument.id,
+                            canonical_symbol=instrument.symbol,
+                            timeframe=timeframe.value,
+                            adjusted=bool(candidate_preparation.get("adjusted", True)),
+                            start_at=planned_start,
+                            end_at=planned_end,
+                        ):
+                            bars = await fetch_ohlcv(
+                                db,
+                                instrument,
+                                timeframe,
+                                planned_start,
+                                end=planned_end,
+                                adjusted=bool(candidate_preparation.get("adjusted", True)),
+                                redis=redis,
+                                source_provider=source_provider,
+                            )
+                    else:
+                        bars = await fetch_ohlcv(
+                            db,
+                            instrument,
+                            timeframe,
+                            planned_start,
+                            end=planned_end,
+                            adjusted=bool(candidate_preparation.get("adjusted", True)),
+                            redis=redis,
+                            source_provider=source_provider,
+                        )
         except ProviderNoDataError:
             bars = []
         except ProviderQuotaAdmissionError as exc:
@@ -2085,6 +2386,10 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                                     "analysis_requirement_unmet"
                                 ):
                                     range_coverage_status = "partial"
+                                if range_coverage_status == "ready" and preparation.get(
+                                    "history_depth_unknown_candidates"
+                                ):
+                                    range_coverage_status = "partial"
                 else:
                     start = job.start_at or (datetime.now(UTC) - timedelta(days=7))
                     with bind_explicit_provider_acquisition(
@@ -2181,10 +2486,20 @@ async def process_refresh_jobs(ctx: dict, limit: int | None = None) -> dict:
                         "reason_code": (
                             "analysis_history_depth_not_admitted"
                             if preparation.get("analysis_requirement_unmet")
+                            else "history_depth_unknown"
+                            if preparation.get("history_depth_unknown_candidates")
+                            and range_coverage_status == "partial"
                             else "history_coverage_partial"
                             if range_coverage_status == "partial"
                             else None
                         ),
+                        "history_depth_unknown_candidates": preparation.get(
+                            "history_depth_unknown_candidates", []
+                        ),
+                        "history_depth_unknown_holds": preparation.get(
+                            "history_depth_unknown_holds", {}
+                        ),
+                        "history_bound_witnesses": preparation.get("history_bound_witnesses", {}),
                         "default_series_selected": default_series_selected,
                     },
                 )

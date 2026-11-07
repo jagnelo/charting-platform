@@ -151,11 +151,32 @@ async function readRrgMarkerAudit(canvas: ReturnType<Page['locator']>) {
     type MarkerArc = { x: number; y: number; radius: number; fillStyle: string; frame: number }
     type AuditedCanvas = HTMLCanvasElement & { __rrgLatestMarkerDraw?: MarkerArc[]; __rrgAuditFrame?: number }
     const target = element as AuditedCanvas
-    const markers = target.__rrgLatestMarkerDraw ?? []
+    const auditFrame = target.__rrgAuditFrame ?? 0
+    const markers = (target.__rrgLatestMarkerDraw ?? []).filter(marker => marker.frame === auditFrame)
     const dpr = window.devicePixelRatio || 1
     const visibleMarkers = markers.filter(marker => marker.radius >= 3.4 * dpr)
     const context = target.getContext('2d', { willReadFrequently: true })
     const colors = new Set(['#61c58c', '#e7bc68', '#6dbbe6', '#df8181'])
+    const rect = target.getBoundingClientRect()
+    const clip = { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight }
+    for (let node: HTMLElement | null = target; node; node = node.parentElement) {
+      const style = window.getComputedStyle(node)
+      const bounds = node.getBoundingClientRect()
+      if (['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowX)) {
+        clip.left = Math.max(clip.left, bounds.left)
+        clip.right = Math.min(clip.right, bounds.right)
+      }
+      if (['hidden', 'clip', 'auto', 'scroll'].includes(style.overflowY)) {
+        clip.top = Math.max(clip.top, bounds.top)
+        clip.bottom = Math.min(clip.bottom, bounds.bottom)
+      }
+    }
+    const completeCanvasVisible = rect.width > 0 && rect.height >= 100
+      && target.height / dpr >= 100
+      && rect.left >= clip.left && rect.top >= clip.top
+      && rect.right <= clip.right && rect.bottom <= clip.bottom
+      && window.getComputedStyle(target).visibility === 'visible'
+      && Number(window.getComputedStyle(target).opacity) > 0
     const samples = visibleMarkers.map((marker) => {
       const x = Math.round(marker.x)
       const y = Math.round(marker.y)
@@ -168,14 +189,17 @@ async function readRrgMarkerAudit(canvas: ReturnType<Page['locator']>) {
       )
       return { x, y, radius: marker.radius, fillStyle: marker.fillStyle, frame: marker.frame, pixel, opaqueStateColor }
     })
-    const passed = Boolean(target.isConnected && visibleMarkers.length && samples.every(sample => sample.opaqueStateColor))
+    const passed = Boolean(target.isConnected && auditFrame > 0 && completeCanvasVisible && visibleMarkers.length === 11
+      && samples.every(sample => sample.opaqueStateColor))
     return {
       passed,
       currentDocument: location.href,
       connected: target.isConnected,
       canvas: { width: target.width, height: target.height, rect: target.getBoundingClientRect().toJSON() },
+      clip,
+      completeCanvasVisible,
       dpr,
-      frame: target.__rrgAuditFrame ?? 0,
+      frame: auditFrame,
       markerCount: markers.length,
       visibleMarkerCount: visibleMarkers.length,
       samples,
@@ -239,9 +263,10 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
   const tool = await activatePanel(page, title)
   if (kind === 'watchlist') {
     const rows = tool.locator('.watchlist__row')
+    const spyRow = tool.getByRole('option', { name: /^SPY\s/ })
     const emptyPersonalList = tool.getByText('No personal watchlists available.', { exact: true })
     await expect.poll(async () => (await rows.count()) > 0 || await emptyPersonalList.isVisible()).toBe(true)
-    if (title === 'WatchList' && await rows.locator('[aria-label^="SPY "]').count() === 0) {
+    if (title === 'WatchList' && await spyRow.count() === 0) {
       if (await rows.count() === 0) {
         const listName = `Factory journey ${Date.now()}`
         await tool.getByLabel('Personal watchlist name').fill(listName)
@@ -251,7 +276,7 @@ async function assertUsefulTool(page: Page, title: string, kind: typeof TOOL_OUT
       }
       await tool.getByRole('textbox', { name: 'Add symbol to personal watchlist', exact: true }).fill('SPY')
       await tool.getByRole('button', { name: 'Add symbol to personal watchlist', exact: true }).click()
-      await expect(rows.locator('[aria-label^="SPY "]')).toBeVisible({ timeout: 20_000 })
+      await expect(spyRow).toBeVisible({ timeout: 20_000 })
     }
     const firstRow = rows.first()
     await expect(firstRow).toBeVisible({ timeout: 20_000 })
