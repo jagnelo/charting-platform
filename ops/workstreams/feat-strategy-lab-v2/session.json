@@ -50,13 +50,13 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root R68 is terminal with 1 pass / 4 fail on frontend 851b4dbe556c2d03951fd20a245aefc2000d3c6b and backend ec44347092a140b3b0cf615da8f2e77dedf2d5cc. Strategy corrected the three assigned test contracts: both Dashboard Details loops scope label locators through the widget's page; the completed second Study run is read through the existing authenticated browser fetch and checked for persisted XLB canonical identity; Coverage now follows the public active symbol and compares the exact canonical D1 count/provenance. The reference-only checker reports no actionable unbound references; unrelated Node ambient and fixture/type advisories remain unqualified. No browser body or product change ran. TC owns the separate Gauge race repair; Root owns the next combined browser run. Full qualification, original roadmap and safety holds remain open.",
+  "current_blocker": "Root R69 completed five journeys on frontend 61ee8598c82fc9bc0677344f1906e9743aca1329 and backend fc4d46b406f0ced24857a414a1e3deb530ea0f60: three passed and two factory journeys failed because Coverage read a per-chart header absent from some factory layouts. Strategy corrected the oracle to read the public Active symbol combobox while retaining exact authenticated coverage/count/provenance assertions. Reference preflight has no actionable unbound references. No browser body reran; Root owns the next combined browser run. Full qualification and roadmap remain open.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root R68 is terminal with 1 pass / 4 fail on frontend 851b4dbe556c2d03951fd20a245aefc2000d3c6b and backend ec44347092a140b3b0cf615da8f2e77dedf2d5cc. Strategy's three assigned test-only corrections use widget.page() in both Details locator loops, the existing authenticated read pattern for completed Study detail, and current public active symbol plus exact canonical Coverage count/provenance. Reference-only semantic preflight reports no actionable unbound names; known Node ambient and unrelated semantic advisories are not claimed fixed. TC owns the separate Gauge race repair. No browser body or product changes ran. Root owns the next combined journey run; original roadmap and safety holds remain open.",
+    "heavy_profile": "Root R69 terminal: three journeys passed; two factory journeys failed on the same Strategy-owned Coverage selector assumption. The owned test now uses the global Active symbol combobox and preserves exact canonical-coverage assertions. No browser rerun or product change was made; Root owns next browser qualification. All18 roadmap criteria and safety holds remain open.",
     "id": "strategy-study-usability-2026-11-06",
-    "next_action": "Freeze and hand Root this test-only candidate for the next affected journey run. Do not run a local browser/native/full suite.",
+    "next_action": "Freeze this single test-only correction and hand the exact source to Root for the next controlled browser run; do not start a local browser/native/full suite.",
     "status": "in_progress"
   },
   "dirty_paths": [
@@ -243,7 +243,7 @@
       "reason": "Human-authorized coordinator takeover on 2026-10-19: the installed Codex owner route for Strategy Lab v2 returned no-client-found and the latest branch turn is terminal. Take over this exact stale writer claim in order to continue the existing checkpoint after its upstream dependencies release. Preserve all existing source, workstream evidence, roadmap, tests, and runtime/data safety boundaries; do not modify staging."
     }
   ],
-  "updated_at": "2026-11-07T19:28:47Z",
+  "updated_at": "2026-11-07T19:52:39Z",
   "validation_tier": "full_integration",
   "workstream": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2/ops/workstreams/feat-strategy-lab-v2",
   "workstream_files": [
