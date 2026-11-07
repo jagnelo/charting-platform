@@ -19709,3 +19709,36 @@ SearchBar tests and frontend type-check; Strategy did not rerun them. Browser be
 qualification remain pending. The shared-consumption manifest is in `journey-matrix.json`. The current
 145/145 Strategy component,14/14 Research-router, and207/207 reserved Dashboard focused suites remain
 separately recorded; none substitutes for Root's combined gate or closes the full18-criterion roadmap.
+
+### Correction: ETF SearchBar exact-source import and complete copied-layout witness (2026-11-07)
+
+Root's independent absolute-path hash review showed the prior claim that the released ETF SearchBar files
+were already identical was incorrect. Before import, the Strategy worktree had SearchBar SHA256
+`e860fcaf6a868cf7a183a08886758fd23b491ddecc75d479b834aea5eff322e5` and test SHA256
+`2ea86d91f80f77d9cd68cd5ffc4be35db2d2b86c42f6467865366cf411ec2db5`; the prior receipt and matrix
+claim are preserved as superseded history. After confirming both paths were clean relative to index and
+HEAD, only `frontend/src/components/common/SearchBar.vue` and
+`frontend/tests/unit/components/test_search_bar.test.ts` were restored from exact source
+`bfc39453bbc986f736e1187434df48d716351e6e`. Their current absolute worktree SHA256 values are now
+`5a5a3e119c403276f0859eeb71b634869f8bbb8fdc6bd8c12b63be7fa6006aaf` and
+`b090aac0a9d7e321718d297ad30fa0bc730c9c848d3f97d5e192500fe352a942`, matching the release manifest;
+the producer's42 tests were not rerun. This bfc state was later superseded by the exact a0c5250 release
+below; the earlier bfc hashes remain historical, not the current pin.
+
+The workstation copy story now uses the authenticated canonical US Top Down layout returned by
+`assertCanonicalCoverage`, preserves the copied window-key check, and runs each of that layout's mapped
+useful-outcome assertions on the copy. It retains original-layout, reload, and return checks and bounds
+the14-panel interaction to300seconds. This is authored browser evidence only; Root owns execution and
+the full combined qualification.
+
+### ETF SearchBar successor import (2026-11-07)
+
+Root released ETF SearchBar successor `a0c5250ee962452f55ad6410f4af6404f2bcc045` under
+`/home/m920q/charting-platform/.ai/staging-attempts/platform-usability-20261106/etfa0c5250e-shared-search-development-consumption-contract.json`
+(SHA256 `75be0b287ef0f83d9d193df64fb59e25e84ef1d4dedec9d1ab75affb815d8a94`). Root verified the
+current two worktree paths matched the prior bfc bytes; only those two paths were then restored from
+a0c5250. Current SHA256 values are `SearchBar.vue=3bfcd2461db4855d4363e5e089daa74dd57d75ed2a9e5b6dc3ee9aa426542af2`
+and `test_search_bar.test.ts=b422836247802690bbc7bd2d47ddfc7e5e3627bf4185534bb59590742b5f95a2`;
+both Git blobs match the new manifest. Root reports43/43 SearchBar tests and type-check; neither
+suite nor a browser journey was rerun in Strategy. The workstation copy journey remains bounded to
+300 seconds and checks the mapped useful outcome for every canonical US Top Down panel.

@@ -348,6 +348,8 @@ test.describe('Workstation lifecycle journeys', () => {
   })
 
   test('duplicates a factory layout with remapped panels, preserves the original, and reloads both', async ({ page, loggedIn, browserDiagnostics }) => {
+    test.setTimeout(300_000)
+    retainedGaugeScanName = ''
     await page.goto('/chart/SPY')
     await expect(page.locator('.workspace-layout-host')).toBeVisible()
     const original = page.getByRole('tab', { name: 'US Top Down', exact: true })
@@ -360,7 +362,9 @@ test.describe('Workstation lifecycle journeys', () => {
 
     const { workspace } = await assertCanonicalCoverage(page)
     await assertFactoryLayouts(page, workspace.tabs)
-    await activateLayout(page, 'US Top Down')
+    const usTopDown = workspace.tabs.find(layout => layout.name === 'US Top Down')
+    expect(usTopDown, 'the authenticated default US Top Down layout is required').toBeDefined()
+    await activateLayout(page, usTopDown!.name)
 
     await page.getByRole('button', { name: 'Duplicate layout', exact: true }).click()
     const copied = page.getByRole('tab', { name: 'US Top Down Copy', exact: true })
@@ -372,12 +376,13 @@ test.describe('Workstation lifecycle journeys', () => {
     expect(copiedWindowKey).toBeTruthy()
     expect(copiedWindowKey).not.toBe(originalWindowKey)
 
-    await assertUsefulTool(page, 'Benchmarks', 'watchlist')
-    await assertUsefulTool(page, 'Relative Rotation', 'rotation')
-    await copied.click()
-    await assertUsefulTool(page, 'Chart', 'chart')
+    for (const window of usTopDown!.windows) {
+      const outcome = TOOL_OUTCOMES[window.title]
+      expect(outcome, `the copied ${window.title} panel needs a useful-outcome assertion`).toBeTruthy()
+      await assertUsefulTool(page, window.title, outcome)
+    }
     const copiedSemanticTitles = await page.locator('.lm_tab').allTextContents()
-    expect(copiedSemanticTitles).toEqual(expect.arrayContaining(['Benchmarks', 'Chart', 'Relative Rotation']))
+    expect(copiedSemanticTitles).toEqual(expect.arrayContaining(usTopDown!.windows.map(window => window.title)))
 
     await original.click()
     await assertUsefulTool(page, 'Benchmarks', 'watchlist')

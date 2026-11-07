@@ -50,11 +50,11 @@
     "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
     "worktree_id": "feat-strategy-lab-v2-7794d9e53d"
   },
-  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library component suites pass145/145; Research router units pass14/14; and five reserved Dashboard component files pass207/207. The five owned browser journeys remain authored/discovery-only. ETF SearchBar bfc39453 is an exact two-file shared dependency already byte-identical in the clean Strategy checkout; no producer code was changed or ETF test rerun. Provider b1a94d98 is test-only; its exact CI42332618010 has Backend and Frontend Unit green while E2E and Branch-declared remain pending. Preserve all18 criteria and disabled-operation holds.",
+  "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Current Strategy Study/Results/Library component suites pass145/145; Research router unit module passes14/14; reserved Dashboard files pass207/207. The workstation copy story now exercises mapped useful outcomes for every canonical US Top Down panel with a300-second bound. ETF SearchBar bfc39453 import was corrected after Root identified the two pre-import SHA256 mismatches, then superseded by authorized a0c5250ee962452f55ad6410f4af6404f2bcc045; only the two declared paths were restored and now match the current manifest. Provider b1a94d98 remains test-only; its exact CI42332618010 is not fully green. Preserve all18 criteria and disabled-operation holds.",
   "current_execution_checkpoint": {
     "authority": "Human-activated platform-usability plan; existing session-local goal aligned in place by Root, no objective/accounting reset.",
     "full_roadmap_preserved": true,
-    "heavy_profile": "Root owns one combined backend/browser/strict-visual qualification. Focused Strategy Study/Results/Library suites pass145/145; Research router unit module passes14/14; reserved Dashboard files pass207/207. These checks do not replace the full profile; five Strategy browser journeys remain discovered but unexecuted. TC5a is development-only. Provider b1a94d98 is test-only; exact CI42332618010 has Backend and Frontend Unit success while E2E and Branch-declared remain pending. ETF SearchBar bfc39453 is an exact two-path dependency already byte-identical in this worktree; Root reports42/42 owner tests and frontend type-check, not rerun by Strategy. No browser body or full profile ran locally.",
+    "heavy_profile": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library suites pass145/145; Research router units pass14/14; reserved Dashboard files pass207/207. The workstation copy story now checks each canonical US Top Down window with its mapped useful outcome under a300-second timeout. ETF SearchBar exact two-path import is pinned to a0c5250ee962452f55ad6410f4af6404f2bcc045 and verified after the earlier false byte-identity claim; Root-reported43/43 producer tests are provenance only and were not rerun. Provider b1a94d98 remains test-only and exact CI is pending. No browser body/full profile ran.",
     "id": "strategy-study-usability-2026-11-06",
     "status": "in_progress"
   },
@@ -94,10 +94,10 @@
   "goal_unavailable_reason": null,
   "head": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
   "implementation_sha": "8dfeed8d9092bbf90e54f283afe1d96e71c23511",
-  "last_checkpoint": "2026-11-07T03:40:10Z",
+  "last_checkpoint": "2026-11-07T03:48:12Z",
   "last_human_progress_update": "2026-10-23T00:40:35.808906+00:00",
   "local_validation_profile": "full_stack_browser",
-  "next_action": "Provide Root the coherent Strategy-owned usability checkpoint with145 focused Study/Results/Library tests,14 Research router units,207 reserved Dashboard units, the five authored browser journeys, and the exact ETF SearchBar source pin. Root owns the combined browser/backend/strict-visual qualification; repair concrete Strategy-owned failures from that run. Keep SU5/full-profile and all18-roadmap completion pending.",
+  "next_action": "Hand the coherent corrected SearchBar import and all-panel copied-layout story to Root for review. Root owns the combined browser/backend/strict-visual qualification; the four workstation lifecycle bodies remain discovery-only and no browser body or full profile ran. Preserve SU5, all18-roadmap work, and disabled holds.",
   "parent_branch": "staging",
   "plan_hash": "f0e7e297b51b3196fe0085daac0a0f40047d42fc81bd0941c9dd201113769dc6",
   "planning_required": false,
@@ -128,11 +128,11 @@
       "SU3",
       "SU4"
     ],
-    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Strategy Study/Results/Library component suites pass145/145; Research router units pass14/14; and five reserved Dashboard component files pass207/207. The five owned browser journeys remain authored/discovery-only. ETF SearchBar bfc39453 is an exact two-file shared dependency already byte-identical in the clean Strategy checkout; no producer code was changed or ETF test rerun. Provider b1a94d98 is test-only; its exact CI42332618010 has Backend and Frontend Unit green while E2E and Branch-declared remain pending. Preserve all18 criteria and disabled-operation holds.",
+    "current_blocker": "Root owns the single combined backend/browser/strict-visual qualification. Current Strategy Study/Results/Library component suites pass145/145; Research router unit module passes14/14; reserved Dashboard files pass207/207. The workstation copy story now exercises mapped useful outcomes for every canonical US Top Down panel with a300-second bound. ETF SearchBar bfc39453 was corrected after Root identified the two pre-import SHA256 mismatches; only the exact two authorized paths were restored and now match the manifest. Provider b1a94d98 remains test-only; its exact CI42332618010 is not fully green. Preserve all18 criteria and disabled-operation holds.",
     "current_phase": "strategy-study-usability-2026-11-06",
-    "next_action": "Provide Root the coherent Strategy checkpoint and focused evidence, including exact ETF SearchBar dependency consumption; Root owns the combined browser/backend/strict-visual qualification. Repair concrete Strategy-owned failures from that gate. No browser body ran locally; keep SU5/full-profile and all18-roadmap completion pending.",
+    "next_action": "Finish focused type-check/discovery and workstream validation for the corrected all-default-panel copy story and exact SearchBar import; then hand one coherent local checkpoint to Root. Root owns the combined browser/backend/strict-visual qualification; no browser body or full profile ran. Preserve SU5, all18-roadmap work, and disabled holds.",
     "total": 9,
-    "updated_at": "2026-11-07T03:40:10Z"
+    "updated_at": "2026-11-07T03:42:00Z"
   },
   "remote": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
   "remote_sha": "c7f0585fc6735bbfe5e768836092419b13ce8a25",
@@ -249,5 +249,5 @@
   ],
   "worktree": "/home/m920q/charting-platform/.ai/worktrees/feat-strategy-lab-v2",
   "worktree_id": "feat-strategy-lab-v2-7794d9e53d",
-  "updated_at": "2026-11-07T03:40:10Z"
+  "updated_at": "2026-11-07T03:42:00Z"
 }
