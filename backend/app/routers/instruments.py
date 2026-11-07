@@ -353,9 +353,19 @@ async def discover_instruments(
     # canonical state: the returned profile is only a selectable candidate.
     query_symbol = _normalized_symbol_key(body.query)
     exact_candidate: InstrumentDiscoveryCandidate | None = None
-    if not _search_results_exact_match(rows, query_symbol) and _is_ticker_shaped_query(
-        query_symbol
-    ):
+    exact_search_rows = [
+        row for row in rows if _normalized_symbol_key(row.get("symbol")) == query_symbol
+    ]
+    exact_search_has_listing_hint = any(
+        str(row.get("exchange") or "").strip() for row in exact_search_rows
+    )
+    needs_exact_profile = not exact_search_rows or not exact_search_has_listing_hint
+    weak_exact_search_providers = {
+        str(row.get("provider") or "").strip().lower()
+        for row in exact_search_rows
+        if not str(row.get("exchange") or "").strip()
+    }
+    if needs_exact_profile and _is_ticker_shaped_query(query_symbol):
         searched_providers = list(
             dict.fromkeys(
                 str(item.get("provider") or "").strip().lower()
@@ -376,10 +386,24 @@ async def discover_instruments(
             metadata_by_provider = {
                 str(row.get("provider") or "").strip().lower(): row for row in metadata_rows
             }
+            # An exact issuer hint without an exchange is not a listing choice.
+            # Prefer another participating metadata source that can provide an
+            # exact listing/security identity; only try the issuer-hint source
+            # itself when no such alternative is eligible. This remains one
+            # bounded profile lookup and normal runtime admission is unchanged.
+            profile_provider_order = [
+                provider
+                for provider in searched_providers
+                if provider not in weak_exact_search_providers
+            ] + [
+                provider
+                for provider in searched_providers
+                if provider in weak_exact_search_providers
+            ]
             selected_provider = next(
                 (
                     provider
-                    for provider in searched_providers
+                    for provider in profile_provider_order
                     if (status := metadata_by_provider.get(provider))
                     and status.get("routing_eligible")
                 ),
@@ -483,6 +507,14 @@ async def discover_instruments(
                         )
 
     if exact_candidate is not None:
+        candidates = [
+            candidate
+            for candidate in candidates
+            if not (
+                candidate.symbol.strip().upper() == query_symbol
+                and candidate.provider.strip().lower() in weak_exact_search_providers
+            )
+        ]
         candidates.insert(0, exact_candidate)
     candidates = candidates[: body.limit]
     outcomes = [InstrumentAcquisitionSourceOutcome(**item) for item in raw_outcomes]
@@ -652,6 +684,7 @@ async def _fallback_exact_identity_profile(
     symbol: str,
     rejected_provider: str | None,
     required_exchange: str | None,
+    search_candidates: list[dict],
     existing: Instrument | None,
 ) -> tuple[
     InstrumentProfile | None, str | None, str | None, list[InstrumentAcquisitionSourceOutcome]
@@ -693,10 +726,34 @@ async def _fallback_exact_identity_profile(
             operation="get_instrument_profile",
             provider_symbol=symbol,
         )
-    for resolved in chain:
+    candidate_exchanges: dict[str, set[str]] = {}
+    candidate_order: dict[str, int] = {}
+    for candidate_row in search_candidates:
+        if _normalized_symbol_key(candidate_row.get("symbol")) != symbol:
+            continue
+        candidate_provider = str(candidate_row.get("provider") or "").strip().lower()
+        if not candidate_provider:
+            continue
+        candidate_order.setdefault(candidate_provider, len(candidate_order))
+        candidate_exchange = str(candidate_row.get("exchange") or "").strip().upper()
+        if candidate_exchange:
+            candidate_exchanges.setdefault(candidate_provider, set()).add(candidate_exchange)
+
+    # Search results are hints, not admission. Prefer exact-symbol providers
+    # that actually contributed a candidate, but intersect them with the
+    # normal metadata resolver chain below; execute_provider_call remains the
+    # final quota/configuration/admission boundary.
+    ordered_chain = sorted(
+        chain,
+        key=lambda item: candidate_order.get(
+            str(item.provider_name or "").strip().lower(), len(candidate_order)
+        ),
+    )
+    for resolved in ordered_chain:
         candidate = str(resolved.provider_name or "").strip().lower()
         if not candidate or candidate == str(rejected_provider or "").strip().lower():
             continue
+        candidate_listing_exchanges = candidate_exchanges.get(candidate)
         try:
             with bind_explicit_provider_acquisition(
                 request_id=request_id,
@@ -748,8 +805,18 @@ async def _fallback_exact_identity_profile(
                 for listing in (profile.listings or [])
                 if _normalized_symbol_key(listing.provider_symbol) == symbol
                 and (
-                    required_exchange is None
-                    or str(listing.exchange_code or "").strip().upper() == required_exchange
+                    (
+                        bool(candidate_listing_exchanges)
+                        and str(listing.exchange_code or "").strip().upper()
+                        in candidate_listing_exchanges
+                    )
+                    or (
+                        not candidate_listing_exchanges
+                        and (
+                            required_exchange is None
+                            or str(listing.exchange_code or "").strip().upper() == required_exchange
+                        )
+                    )
                 )
             ]
             if profile is not None
@@ -775,11 +842,7 @@ async def _fallback_exact_identity_profile(
             outcome(candidate, "no_match", "stable_identity_or_listing_authority_missing")
             continue
         listing = next((item for item in listings if item.is_primary), listings[0])
-        exchange = (
-            required_exchange
-            or str(profile.exchange or listing.exchange_code or "").strip().upper()
-            or None
-        )
+        exchange = str(listing.exchange_code or profile.exchange or "").strip().upper() or None
         outcome(candidate, "attempted", None)
         return profile, candidate, exchange, outcomes
     return None, None, None, outcomes
@@ -1121,8 +1184,17 @@ async def acquire_instrument(
     profile_has_stable_identity = bool(
         choose_domain_key(profile_identifiers) or choose_domain_key(retained_for_fallback)
     )
+    exchange_was_explicitly_selected = bool(
+        body.provider_candidate is not None and body.provider_candidate.exchange
+    )
+    weak_selected_issuer_hint = bool(
+        selected_provider is not None
+        and not exchange_was_explicitly_selected
+        and not profile_has_listing
+        and not profile_has_stable_identity
+    )
     if (
-        selected_provider is None
+        (selected_provider is None or weak_selected_issuer_hint)
         and profile is not None
         and _profile_exact_match(profile, symbol)
         and (not profile_has_listing or not profile_has_stable_identity)
@@ -1145,6 +1217,7 @@ async def acquire_instrument(
             symbol=symbol,
             rejected_provider=provider_name,
             required_exchange=requested_exchange_code,
+            search_candidates=candidates,
             existing=existing,
         )
         outcomes.extend(fallback_outcomes)
@@ -1152,6 +1225,7 @@ async def acquire_instrument(
             profile = fallback_profile
             provider_name = fallback_provider
             exact_exchange_code = fallback_exchange
+            requested_exchange_code = fallback_exchange
             profile_outcome = InstrumentAcquisitionSourceOutcome(
                 provider=provider_name,
                 capability=ProviderCapability.INSTRUMENT_METADATA.value,

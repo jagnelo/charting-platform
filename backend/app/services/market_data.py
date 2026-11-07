@@ -395,7 +395,7 @@ async def _fresh_search_from_cache(
 ) -> list[dict] | None:
     now = datetime.now(UTC)
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, ...]] = set()
     for resolved in await resolve_provider_chain(
         db,
         ProviderCapability.INSTRUMENT_SEARCH,
@@ -433,9 +433,26 @@ async def _fresh_search_from_cache(
             )
         for item in provider_rows:
             symbol = item.get("symbol", "")
-            if not symbol or symbol in seen:
+            if not symbol:
                 continue
-            seen.add(symbol)
+            # Keep exact ticker hits provider-qualified. Acquisition needs to
+            # compare each admitted source's own listing/profile authority;
+            # collapsing them by symbol makes whichever cache is visited
+            # first the only candidate. Fuzzy rows remain merged by symbol so
+            # the bounded result page does not fill with duplicate guesses.
+            dedupe_key = (
+                (
+                    "exact",
+                    str(item.get("provider") or "").strip().lower(),
+                    symbol,
+                    str(item.get("exchange") or "").strip().upper(),
+                )
+                if symbol.strip().upper() == query.strip().upper()
+                else ("symbol", symbol)
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             merged.append(item)
     return merged
 
@@ -1881,7 +1898,7 @@ async def search_provider_instruments_async(
         provider_symbol=query,
     )
     merged: list[dict] = []
-    seen: set[str] = set()
+    seen: set[tuple[str, ...]] = set()
     for resolved in chain:
         try:
             execution = await execute_provider_call(
@@ -1951,9 +1968,21 @@ async def search_provider_instruments_async(
             provider_name=execution.provider_name,
         ):
             symbol = item.get("symbol", "")
-            if not symbol or symbol in seen:
+            if not symbol:
                 continue
-            seen.add(symbol)
+            dedupe_key = (
+                (
+                    "exact",
+                    str(item.get("provider") or "").strip().lower(),
+                    symbol,
+                    str(item.get("exchange") or "").strip().upper(),
+                )
+                if symbol.strip().upper() == query.strip().upper()
+                else ("symbol", symbol)
+            )
+            if dedupe_key in seen:
+                continue
+            seen.add(dedupe_key)
             merged.append(item)
         if source_outcomes is not None:
             provider_results = [

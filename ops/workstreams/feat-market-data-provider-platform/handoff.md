@@ -33593,3 +33593,33 @@ The Root review `root-native-metadata-fallback-defect-review.json` showed that a
 The existing per-operation prerequisite path is sufficient for cold first use: an explicitly allowlisted provider with either the narrow bootstrap permission or a fully known normal account-usage quota/cost and explicit pool mapping gets a durable usage job in the shared queue. Unknown usage contracts stay held. Same-provider duplicate usage observations now count as one provider result; mixed provider sets do not satisfy a provider-specific refresh. The existing daily cron remains maintenance, not a prerequisite for first use.
 
 Focused offline checks passed 37/37 across native prerequisite/resume behavior, quota mapping, scheduled refresh, and exact-profile fallback/negative listing cases. Ruff check/format and `git diff --check` pass. No provider HTTP, native ledger/policy/quota changes, database fixture or runtime operation occurred. Root owns preserved-DB replay and exact-source CI; wider Provider criteria remain open.
+
+## 2026-11-07 — weak issuer-hint and terminal-negative recovery
+
+Root's BWET UI trace showed an exchange-less EDGAR issuer hint being selected
+as if it were a listing, while the acquire route skipped exact-profile
+fallback whenever a provider was already selected. Discovery now makes at
+most one exact metadata lookup for a ticker-shaped exact miss/weak hint, using
+only participating providers that remain eligible through the ordinary
+metadata resolver. A returned candidate must carry the exact symbol and a
+provider-owned listing; acquisition additionally requires stable security
+identity or already-verified retained issuer identity and preserves any
+explicit selected exchange. Exact search cache rows from different providers
+and exchanges remain distinct so the resolver can evaluate their own profile
+authority.
+
+A fresh normal ensure now retries a completed identity child only when it
+recorded a negative result or native usage prerequisite. The prior child and
+hold evidence remain immutable; equivalent same-hour requests coalesce on a
+deterministic recovery child, and ordinary provider/native admission still
+governs execution. The shared planner also recognizes the canonical
+Exchange-Traded-Product / Exchange-Traded-Vehicle taxonomy without requiring
+an ETFProfile. Synthetic instruments cannot dispatch holdings; their
+independent history dependency remains actionable.
+
+Focused instrument-router, provider-search-persistence and preparation-service
+tests passed 137/137 after adding the unresolved/synthetic ETV gates and completed no_match/identity_conflict retry cases. Ruff
+check/format and `git diff --check` pass. No source
+HTTP, live runtime, database fixture, real-ledger, policy, quota or hold change
+was made. Root owns no-seed API/UI verification and exact-source/combined
+qualification; the complete Provider roadmap remains open and active.

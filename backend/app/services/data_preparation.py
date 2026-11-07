@@ -531,9 +531,7 @@ async def _instrument_is_etf(db: AsyncSession, instrument_id: int) -> bool:
     # Explicit ETF type is enough to plan the dataset.  The actual issuer
     # handler still owns profile/identity checks before any holdings fetch.
     return instrument_type in {"etf", "exchange_traded_fund"} or (
-        instrument_type == "exchange_traded_vehicle"
-        and asset_class == "exchange_traded_product"
-        and profile_id is not None
+        instrument_type == "exchange_traded_vehicle" and asset_class == "exchange_traded_product"
     )
 
 
@@ -687,6 +685,10 @@ async def _dataset_initial_state(
     if dataset is PreparationDataset.HOLDINGS:
         if not await _instrument_is_etf(db, instrument_id):
             return "unavailable", "not_applicable"
+        if instrument.is_synthetic:
+            return "unavailable", "synthetic_instrument_not_supported"
+        if instrument.identity_status != "resolved" or not instrument.domain_key:
+            return "waiting", "canonical_etf_instrument_required"
         if _etf_holdings_preparer() is None:
             return "unavailable", "etf_preparation_handler_not_registered"
         return "queued", None
@@ -720,6 +722,18 @@ async def _enqueue_identity_profile_job(
         ]
     )
     await _acquire_enqueue_lock(db, key)
+    prior_job = (
+        await db.execute(select(MarketRefreshJob).where(MarketRefreshJob.request_key == key))
+    ).scalar_one_or_none()
+    if _identity_job_has_terminal_negative(prior_job):
+        # A completed negative identity child is immutable history, not a
+        # successful reusable result. Permit one fresh user/maintenance intent
+        # to retry it in the same hour while equivalent requests coalesce on
+        # this deterministic recovery key. The hour in the base key bounds
+        # repeated no-match work; the queue still enforces provider admission
+        # and native quota for every actual attempt.
+        key = f"{key}:recovery"
+        await _acquire_enqueue_lock(db, key)
     prior_refs = await _existing_parent_refs(db, key)
     job = await enqueue_refresh_job(
         db,
@@ -746,6 +760,30 @@ async def _enqueue_identity_profile_job(
     ]:
         await _append_parent_ref(db, job, ref)
     return job
+
+
+def _identity_job_has_terminal_negative(job: MarketRefreshJob | None) -> bool:
+    """Whether a completed identity child recorded a result worth re-evaluating.
+
+    Older workers wrote native usage context only to ``result_summary``; newer
+    workers also persist ``native_usage_hold`` on the child metadata. Accept
+    either evidence shape so a normal later ensure can recover old held jobs
+    without deleting or rewriting their result.
+    """
+
+    if job is None or job.status != "completed":
+        return False
+    summary = job.result_summary or {}
+    child = (job.metadata_payload or {}).get("data_preparation_child") or {}
+    terminal_status = summary.get("preparation_status")
+    native_hold = summary.get("native_usage_prerequisite") or child.get("native_usage_hold")
+    return terminal_status in {
+        "held",
+        "unavailable",
+        "failed",
+        "no_match",
+        "identity_conflict",
+    } or isinstance(native_hold, dict)
 
 
 async def _enqueue_etf_holdings_job(

@@ -578,6 +578,101 @@ async def test_discovery_exact_profile_fallback_is_selectable_and_does_not_creat
 
 
 @pytest.mark.asyncio
+async def test_discovery_replaces_unlisted_exact_issuer_hint_with_one_qualified_profile(
+    db, monkeypatch
+):
+    async_db = AsyncSessionAdapter(db)
+    symbol = "BWETTEST"
+    profile = _discovery_exact_profile(symbol)
+    exact_calls: list[str] = []
+
+    async def _search(_db, query, *, source_outcomes=None):
+        assert query == symbol
+        source_outcomes.extend(
+            [
+                {
+                    "provider": "edgar",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 1,
+                },
+                {
+                    "provider": "massive",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "no_match",
+                    "result_count": 0,
+                },
+                {
+                    "provider": "coingecko",
+                    "capability": ProviderCapability.INSTRUMENT_SEARCH.value,
+                    "operation": "search_instruments",
+                    "status": "returned",
+                    "result_count": 1,
+                },
+            ]
+        )
+        return [
+            {
+                "symbol": symbol,
+                "name": "BWET issuer hint",
+                "exchange": "",
+                "type": "EQUITY",
+                "provider": "edgar",
+            },
+            {
+                "symbol": "BWETON-USD",
+                "name": "Tokenized unrelated asset",
+                "exchange": "CoinGecko",
+                "type": "CRYPTOCURRENCY",
+                "provider": "coingecko",
+            },
+        ]
+
+    async def _status(_db):
+        return [
+            {
+                "provider": provider,
+                "capability": ProviderCapability.INSTRUMENT_METADATA.value,
+                "routing_eligible": True,
+            }
+            for provider in ("edgar", "massive", "coingecko")
+        ]
+
+    async def _exact_profile(_db, capability, operation, **kwargs):
+        exact_calls.append(kwargs["provider_name"])
+        assert kwargs["provider_name"] == "massive"
+        scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+        assert scope is not None
+        assert scope.symbol == symbol
+        assert scope.provider_names == frozenset({"massive"})
+        assert capability is ProviderCapability.INSTRUMENT_METADATA
+        assert operation == "get_instrument_profile"
+        return SimpleNamespace(provider_name="massive", result=profile)
+
+    monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", _search)
+    monkeypatch.setattr("app.routers.instruments.list_provider_status", _status)
+    monkeypatch.setattr("app.routers.instruments.execute_provider_call", _exact_profile)
+
+    response = await discover_instruments(
+        InstrumentDiscoveryRequest(query=symbol, request_id="discover-weak-issuer-hint"),
+        async_db,
+        None,
+    )
+
+    assert exact_calls == ["massive"]
+    assert response.candidates[0].provider == "massive"
+    assert response.candidates[0].exchange == "XNAS"
+    assert response.candidates[0].identity_status == "provider_candidate"
+    assert not any(
+        candidate.provider == "edgar" and candidate.symbol == symbol
+        for candidate in response.candidates
+    )
+    assert db.query(Instrument).filter_by(symbol=symbol).one_or_none() is None
+
+
+@pytest.mark.asyncio
 async def test_discovery_exact_profile_fallback_respects_metadata_holds_without_transport(
     db, monkeypatch
 ):
@@ -1804,8 +1899,9 @@ class TestExplicitAcquireCanonicalIdentity:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("fallback_exchange", ["XNAS", "XNYS"])
+    @pytest.mark.parametrize("selected_weak_provider_hint", [False, True])
     async def test_weak_search_provider_profile_falls_through_to_exact_listing_authority(
-        self, db, monkeypatch, fallback_exchange
+        self, db, monkeypatch, fallback_exchange, selected_weak_provider_hint
     ):
         async_db = AsyncSessionAdapter(db)
         symbol = "SPYFALLBACK"
@@ -1857,14 +1953,26 @@ class TestExplicitAcquireCanonicalIdentity:
                     "reason_code": "fresh_search_snapshot",
                 }
             )
-            return [
+            rows = [
                 {
                     "symbol": symbol,
                     "exchange": "XNAS",
                     "type": "ETF",
                     "provider": "edgar",
-                }
+                },
+                {
+                    "symbol": symbol,
+                    "exchange": "XNAS",
+                    "type": "ETF",
+                    "provider": "massive",
+                },
             ]
+            if selected_weak_provider_hint:
+                scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
+                assert scope is not None
+                assert scope.provider_names == frozenset({"edgar"})
+                return rows[:1]
+            return rows
 
         async def weak_profile(*_args, **_kwargs):
             return weak_edgar_profile
@@ -1875,8 +1983,11 @@ class TestExplicitAcquireCanonicalIdentity:
             assert kwargs["provider_symbol"] == symbol
             return [
                 SimpleNamespace(provider_name="edgar"),
+                SimpleNamespace(provider_name="finnhub"),
                 SimpleNamespace(provider_name="massive"),
             ]
+
+        fallback_calls = []
 
         async def exact_call(_db, capability, operation, **kwargs):
             from app.services.provider_runtime import _EXPLICIT_ACQUISITION_CONTEXT
@@ -1884,11 +1995,15 @@ class TestExplicitAcquireCanonicalIdentity:
             scope = _EXPLICIT_ACQUISITION_CONTEXT.get()
             assert scope is not None
             assert scope.symbol == symbol
-            assert scope.provider_names == frozenset({"massive"})
             assert capability is ProviderCapability.INSTRUMENT_METADATA
             assert operation == "get_instrument_profile"
-            assert kwargs["provider_name"] == "massive"
+            candidate_provider = kwargs["provider_name"]
+            assert scope.provider_names == frozenset({candidate_provider})
             assert kwargs["provider_symbol"] == symbol
+            fallback_calls.append(candidate_provider)
+            if candidate_provider == "finnhub":
+                raise ProviderNoDataError("no exact symbol profile")
+            assert candidate_provider == "massive"
             return SimpleNamespace(provider_name="massive", result=qualified_profile)
 
         monkeypatch.setattr("app.routers.instruments.search_provider_instruments_async", search)
@@ -1897,7 +2012,15 @@ class TestExplicitAcquireCanonicalIdentity:
         monkeypatch.setattr("app.routers.instruments.execute_provider_call", exact_call)
 
         response = await acquire_instrument(
-            InstrumentAcquireRequest(symbol=symbol, request_id="weak-profile-fallback"),
+            InstrumentAcquireRequest(
+                symbol=symbol,
+                provider_candidate=(
+                    ProviderCandidateBinding(provider="edgar", symbol=symbol)
+                    if selected_weak_provider_hint
+                    else None
+                ),
+                request_id="weak-profile-fallback",
+            ),
             async_db,
         )
 
@@ -1926,6 +2049,11 @@ class TestExplicitAcquireCanonicalIdentity:
                 and outcome.reason_code == "provider_profile_listing_mismatch"
                 for outcome in response.source_outcomes
             )
+        assert "massive" in fallback_calls
+        if selected_weak_provider_hint:
+            assert fallback_calls == ["finnhub", "massive"]
+        else:
+            assert fallback_calls[0] == "massive"
 
     @pytest.mark.asyncio
     async def test_exact_profile_absence_stays_no_match(self, db, monkeypatch):
